@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
-import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
+import '../../../domain/model/pin/check_pin_result.dart';
+import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/pin/check_pin_usecase.dart';
-import '../../../util/extension/bloc_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
@@ -49,33 +49,32 @@ class PinBloc extends Bloc<PinEvent, PinState> {
   }
 
   Future<void> _validatePin(Emitter<PinState> emit) async {
-    try {
-      final result = await checkPinUseCase.invoke(_currentPin);
-      if (result is! CheckPinResultOk) _currentPin = '';
+    final result = await checkPinUseCase.invoke(_currentPin);
 
-      switch (result) {
-        case CheckPinResultOk():
-          emit(PinValidateSuccess(returnUrl: result.returnUrl));
-        case CheckPinResultIncorrect():
-          emit(
-            PinValidateFailure(
-              attemptsLeftInRound: result.attemptsLeftInRound,
-              isFinalRound: result.isFinalRound,
-            ),
-          );
-        case CheckPinResultTimeout():
-          emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: result.timeoutMillis))));
-        case CheckPinResultBlocked():
-          emit(const PinValidateBlocked());
-      }
-    } catch (ex) {
-      Fimber.e('Pin validation error', ex: ex);
-      await handleError(
-        ex,
-        onNetworkError: (ex, hasInternet) => emit(PinValidateNetworkError(error: ex, hasInternet: hasInternet)),
-        onUnhandledError: (ex) => emit(PinValidateGenericError(error: ex)),
-      );
-      _currentPin = '';
+    await result.process(
+      onSuccess: (returnUrl) => emit(PinValidateSuccess(returnUrl: returnUrl)),
+      onError: (error) {
+        _currentPin = '';
+        switch (error) {
+          case NetworkError():
+            emit(PinValidateNetworkError(error: error, hasInternet: error.hasInternet));
+          case IncorrectPinError():
+            _handleCheckPinErrors(emit, error.result);
+          default:
+            emit(PinValidateGenericError(error: error));
+        }
+      },
+    );
+  }
+
+  void _handleCheckPinErrors(Emitter<PinState> emit, CheckPinResult result) {
+    switch (result) {
+      case CheckPinResultIncorrect():
+        emit(PinValidateFailure(attemptsLeftInRound: result.attemptsLeftInRound, isFinalRound: result.isFinalRound));
+      case CheckPinResultTimeout():
+        emit(PinValidateTimeout(DateTime.now().add(Duration(milliseconds: result.timeoutMillis))));
+      case CheckPinResultBlocked():
+        emit(const PinValidateBlocked());
     }
   }
 

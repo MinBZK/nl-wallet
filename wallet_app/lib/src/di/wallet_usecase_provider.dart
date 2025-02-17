@@ -1,7 +1,5 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../domain/usecase/app/check_is_app_initialized_usecase.dart';
@@ -22,11 +20,9 @@ import '../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../domain/usecase/card/impl/get_wallet_card_usecase_impl.dart';
 import '../domain/usecase/card/impl/get_wallet_cards_usecase_impl.dart';
-import '../domain/usecase/card/impl/lock_wallet_usecase_impl.dart';
 import '../domain/usecase/card/impl/observe_wallet_card_detail_usecase_impl.dart';
 import '../domain/usecase/card/impl/observe_wallet_card_usecase_impl.dart';
 import '../domain/usecase/card/impl/observe_wallet_cards_usecase_impl.dart';
-import '../domain/usecase/card/lock_wallet_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 import '../domain/usecase/card/observe_wallet_card_usecase.dart';
 import '../domain/usecase/card/observe_wallet_cards_usecase.dart';
@@ -56,8 +52,6 @@ import '../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart
 import '../domain/usecase/navigation/impl/check_navigation_prerequisites_usecase_impl.dart';
 import '../domain/usecase/navigation/impl/perform_pre_navigation_actions_usecase_impl.dart';
 import '../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
-import '../domain/usecase/network/check_has_internet_usecase.dart';
-import '../domain/usecase/network/impl/check_has_internet_usecase_impl.dart';
 import '../domain/usecase/permission/check_has_permission_usecase.dart';
 import '../domain/usecase/permission/impl/check_has_permission_usecase_impl.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
@@ -92,20 +86,17 @@ import '../domain/usecase/uri/impl/decode_uri_usecase_impl.dart';
 import '../domain/usecase/version/get_version_string_usecase.dart';
 import '../domain/usecase/version/impl/get_version_string_usecase_impl.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
-import '../domain/usecase/wallet/get_requested_attributes_from_wallet_usecase.dart';
-import '../domain/usecase/wallet/get_requested_attributes_with_card_usecase.dart';
 import '../domain/usecase/wallet/impl/create_wallet_usecase_impl.dart';
-import '../domain/usecase/wallet/impl/get_requested_attributes_from_wallet_usecase_impl.dart';
-import '../domain/usecase/wallet/impl/get_requested_attributes_with_card_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
+import '../domain/usecase/wallet/impl/lock_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/observe_wallet_locked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/reset_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
+import '../domain/usecase/wallet/lock_wallet_usecase.dart';
 import '../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../domain/usecase/wallet/reset_wallet_usecase.dart';
 import '../domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
-import '../util/extension/bloc_extension.dart';
 import '../util/extension/build_context_extension.dart';
 
 /// This widget is responsible for initializing and providing all `use cases`.
@@ -125,16 +116,13 @@ class WalletUseCaseProvider extends StatelessWidget {
           create: (context) => IsWalletInitializedUseCaseImpl(context.read()),
         ),
         RepositoryProvider<UnlockWalletWithPinUseCase>(
-          create: (context) => UnlockWalletWithPinUseCaseImpl(context.read()),
+          create: (context) => UnlockWalletWithPinUseCaseImpl(context.read(), context.read()),
         ),
         RepositoryProvider<CreateWalletUseCase>(
           create: (context) => CreateWalletUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CheckIsValidPinUseCase>(
           create: (context) => CheckIsValidPinUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<GetRequestedAttributesFromWalletUseCase>(
-          create: (context) => GetRequestedAttributesFromWalletUseCaseImpl(context.read()),
         ),
         RepositoryProvider<LockWalletUseCase>(
           create: (context) => LockWalletUseCaseImpl(context.read()),
@@ -178,9 +166,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<IsWalletInitializedWithPidUseCase>(
           create: (context) => IsWalletInitializedWithPidUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<GetRequestedAttributesWithCardUseCase>(
-          create: (context) => GetRequestedAttributesWithCardUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<GetPidIssuanceUrlUseCase>(
           create: (context) => GetPidIssuanceUrlUseCaseImpl(context.read()),
         ),
@@ -189,14 +174,6 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<ObserveWalletLockedUseCase>(
           create: (context) => ObserveWalletLockedUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<CheckHasInternetUseCase>(
-          lazy: false /* false to make sure [BlocExtensions.instance] is available */,
-          create: (context) {
-            final usecase = CheckHasInternetUseCaseImpl(Connectivity(), InternetConnectionChecker());
-            BlocExtensions.checkHasInternetUseCase = usecase;
-            return usecase;
-          },
         ),
         RepositoryProvider<AcceptOfferedPidUseCase>(
           create: (context) => AcceptOfferedPidUseCaseImpl(context.read()),

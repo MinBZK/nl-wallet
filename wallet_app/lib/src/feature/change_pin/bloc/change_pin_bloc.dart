@@ -1,14 +1,13 @@
 import 'package:equatable/equatable.dart';
-import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
+import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/pin/change_pin_usecase.dart';
 import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../util/cast_util.dart';
-import '../../../util/extension/bloc_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
@@ -64,17 +63,21 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
   /// Handle events for when the user is selecting a new pin
   Future<void> _onSelectNewPinDigitEvent(event, emit) async {
     _newPin += event.digit.toString();
-    if (_newPin.length == kPinDigits) {
-      try {
-        await checkIsValidPinUseCase.invoke(_newPin);
-        emit(const ChangePinConfirmNewPinInProgress(0));
-      } catch (error) {
-        _newPin = '';
-        emit(ChangePinSelectNewPinFailed(reason: tryCast<PinValidationError>(error) ?? PinValidationError.other));
-      }
-    } else {
+    if (_newPin.length < kPinDigits) {
       emit(ChangePinSelectNewPinInProgress(_newPin.length));
+      return; // User is still entering pin
     }
+    assert(_newPin.length == kPinDigits, 'Unexpected pin length');
+
+    final checkPinResult = await checkIsValidPinUseCase.invoke(_newPin);
+    await checkPinResult.process(
+      onSuccess: (_) => emit(const ChangePinConfirmNewPinInProgress(0)),
+      onError: (error) {
+        _newPin = '';
+        final reason = tryCast<ValidatePinError>(error)?.error ?? PinValidationError.other;
+        emit(ChangePinSelectNewPinFailed(reason: reason));
+      },
+    );
   }
 
   /// Handle events for when the user is confirming the new pin
@@ -98,19 +101,21 @@ class ChangePinBloc extends Bloc<ChangePinEvent, ChangePinState> {
   Future<void> _changePin(emit) async {
     assert(_currentPin.length == kPinDigits, 'Current pin unavailable');
     assert(_newPin.length == kPinDigits, 'New pin unavailable');
-    try {
-      emit(ChangePinUpdating());
-      await changePinUseCase.invoke(_currentPin, _newPin);
-      emit(ChangePinCompleted());
-    } catch (ex) {
-      Fimber.e('Failed to update pin', ex: ex);
-      await handleError(
-        ex,
-        onNetworkError: (ex, hasInternet) => emit(ChangePinNetworkError(error: ex, hasInternet: hasInternet)),
-        onUnhandledError: (ex) => emit(ChangePinGenericError(error: ex)),
-      );
-      await _resetFlow(emit);
-    }
+
+    emit(ChangePinUpdating());
+    final changePinResult = await changePinUseCase.invoke(_currentPin, _newPin);
+    await changePinResult.process(
+      onSuccess: (_) => emit(ChangePinCompleted()),
+      onError: (error) async {
+        switch (error) {
+          case NetworkError():
+            emit(ChangePinNetworkError(error: error, hasInternet: error.hasInternet));
+          default:
+            emit(ChangePinGenericError(error: error));
+        }
+        await _resetFlow(emit);
+      },
+    );
   }
 
   Future<void> _onPinBackspacePressedEvent(PinBackspacePressed event, emit) async {

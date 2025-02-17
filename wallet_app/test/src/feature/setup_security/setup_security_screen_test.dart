@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../util/device_utils.dart';
@@ -200,7 +200,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
-          const SetupSecurityNetworkError(hasInternet: false, error: CoreNetworkError('no internet')),
+          const SetupSecurityNetworkError(
+            hasInternet: false,
+            error: NetworkError(hasInternet: false, sourceError: 'test'),
+          ),
         ),
       );
 
@@ -226,7 +229,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
-          const SetupSecurityNetworkError(hasInternet: true, error: CoreNetworkError('server')),
+          const SetupSecurityNetworkError(
+            hasInternet: true,
+            error: NetworkError(hasInternet: true, sourceError: 'test'),
+          ),
         ),
       );
 
@@ -251,7 +257,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
-          const SetupSecurityGenericError(error: CoreGenericError('generic')),
+          const SetupSecurityGenericError(error: GenericError('generic', sourceError: 'test')),
         ),
       );
 
@@ -277,7 +283,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
           MockSetupSecurityBloc(),
-          const SetupSecurityDeviceIncompatibleError(error: 'n/a'),
+          const SetupSecurityDeviceIncompatibleError(error: HardwareUnsupportedError(sourceError: 'test')),
         ),
       );
 

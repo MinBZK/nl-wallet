@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/feature/change_pin/bloc/change_pin_bloc.dart';
 import 'package:wallet/src/feature/change_pin/change_pin_screen.dart';
@@ -167,7 +168,7 @@ void main() {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
-              const ChangePinGenericError(error: 'generic'),
+              const ChangePinGenericError(error: GenericError('generic', sourceError: 'test')),
             ),
           );
           await tester.pumpAndSettle();
@@ -181,7 +182,10 @@ void main() {
           await tester.pumpWidgetWithAppWrapper(
             const ChangePinScreen().withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
-              const ChangePinNetworkError(hasInternet: true, error: 'network'),
+              const ChangePinNetworkError(
+                hasInternet: true,
+                error: NetworkError(hasInternet: true, sourceError: 'test'),
+              ),
             ),
           );
           await tester.pumpAndSettle();

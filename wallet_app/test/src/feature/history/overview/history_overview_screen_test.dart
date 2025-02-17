@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/history/overview/bloc/history_overview_bloc.dart';
 import 'package:wallet/src/feature/history/overview/history_overview_screen.dart';
 
@@ -64,7 +65,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          const HistoryOverviewLoadFailure(),
+          const HistoryOverviewLoadFailure(error: GenericError('', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden(tester, 'error.light');
@@ -118,7 +119,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryOverviewScreen().withState<HistoryOverviewBloc, HistoryOverviewState>(
           MockHistoryOverviewBloc(),
-          const HistoryOverviewLoadFailure(),
+          const HistoryOverviewLoadFailure(error: GenericError('', sourceError: 'test')),
         ),
       );
 

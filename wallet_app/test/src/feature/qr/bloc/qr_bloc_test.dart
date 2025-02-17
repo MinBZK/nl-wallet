@@ -5,6 +5,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mockito/mockito.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/usecase/permission/check_has_permission_usecase.dart';
 import 'package:wallet/src/feature/qr/bloc/qr_bloc.dart';
 
@@ -15,6 +17,7 @@ void main() {
   late MockCheckHasPermissionUseCase checkHasPermissionUseCase;
 
   setUp(() {
+    provideDummy<Result<NavigationRequest>>(const Result.success(GenericNavigationRequest('')));
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(const MethodChannel('vibration'), (MethodCall methodCall) {
       return null;
@@ -73,14 +76,15 @@ void main() {
     setUp: () {
       when(checkHasPermissionUseCase.invoke(Permission.camera))
           .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any)).thenThrow('failed to decode QR');
+      when(decodeQrUseCase.invoke(any))
+          .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
     },
     wait: const Duration(milliseconds: 100),
     expect: () => [QrScanScanning(), const QrScanLoading(), QrScanFailure()],
   );
 
   blocTest(
-    'verify scanner moves to scan failed when scanner returns null',
+    'verify scanner moves to scan failed when scanner returns an error',
     build: () => QrBloc(decodeQrUseCase, checkHasPermissionUseCase),
     act: (bloc) => bloc
       ..add(const QrScanCheckPermission())
@@ -88,7 +92,8 @@ void main() {
     setUp: () {
       when(checkHasPermissionUseCase.invoke(Permission.camera))
           .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any)).thenAnswer((_) async => null);
+      when(decodeQrUseCase.invoke(any))
+          .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
     },
     wait: const Duration(milliseconds: 100),
     expect: () => [QrScanScanning(), const QrScanLoading(), QrScanFailure()],
@@ -103,7 +108,8 @@ void main() {
     setUp: () {
       when(checkHasPermissionUseCase.invoke(Permission.camera))
           .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any)).thenAnswer((_) async => const GenericNavigationRequest('/destination'));
+      when(decodeQrUseCase.invoke(any))
+          .thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
     },
     wait: const Duration(milliseconds: 100),
     expect: () => [
@@ -124,7 +130,8 @@ void main() {
     setUp: () {
       when(checkHasPermissionUseCase.invoke(Permission.camera))
           .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
-      when(decodeQrUseCase.invoke(any)).thenAnswer((_) async => const GenericNavigationRequest('/destination'));
+      when(decodeQrUseCase.invoke(any))
+          .thenAnswer((_) async => const Result.success(GenericNavigationRequest('/destination')));
     },
     verify: (bloc) => verify(decodeQrUseCase.invoke(any)).called(1),
     wait: const Duration(milliseconds: 100),
@@ -153,7 +160,7 @@ void main() {
           .thenAnswer((_) async => PermissionCheckResult(isGranted: true, isPermanentlyDenied: false));
       when(decodeQrUseCase.invoke(any)).thenAnswer((invocation) async {
         final Barcode barcode = invocation.positionalArguments.first;
-        return GenericNavigationRequest(barcode.rawValue!);
+        return Result.success(GenericNavigationRequest(barcode.rawValue!));
       });
     },
     verify: (bloc) => verify(decodeQrUseCase.invoke(any)).called(2),

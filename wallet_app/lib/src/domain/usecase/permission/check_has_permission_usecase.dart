@@ -1,6 +1,8 @@
 import 'package:permission_handler/permission_handler.dart';
 
-abstract class CheckHasPermissionUseCase {
+import '../wallet_usecase.dart';
+
+abstract class CheckHasPermissionUseCase extends WalletUseCase {
   Future<PermissionCheckResult> invoke(Permission permission);
 }
 

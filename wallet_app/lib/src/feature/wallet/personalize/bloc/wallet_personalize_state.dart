@@ -98,7 +98,7 @@ class WalletPersonalizeFailure extends WalletPersonalizeState {
 
 class WalletPersonalizeDigidFailure extends WalletPersonalizeState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   const WalletPersonalizeDigidFailure({required this.error});
 
@@ -137,7 +137,7 @@ class WalletPersonalizeAddingCards extends WalletPersonalizeState {
 
 class WalletPersonalizeNetworkError extends WalletPersonalizeState implements NetworkErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   final int? statusCode;
@@ -153,7 +153,7 @@ class WalletPersonalizeNetworkError extends WalletPersonalizeState implements Ne
 
 class WalletPersonalizeGenericError extends WalletPersonalizeState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   const WalletPersonalizeGenericError({required this.error});
 
@@ -163,7 +163,7 @@ class WalletPersonalizeGenericError extends WalletPersonalizeState implements Er
 
 class WalletPersonalizeSessionExpired extends WalletPersonalizeState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   const WalletPersonalizeSessionExpired({required this.error});
 

@@ -7,6 +7,7 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/feature/common/page/generic_loading_page.dart';
 import 'package:wallet/src/feature/common/page/terminal_page.dart';
@@ -19,7 +20,6 @@ import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_di
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_intro_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_success_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -312,7 +312,7 @@ void main() {
           ..addScenario(
             widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
               MockWalletPersonalizeBloc(),
-              const WalletPersonalizeDigidFailure(error: ''),
+              const WalletPersonalizeDigidFailure(error: GenericError('', sourceError: 'test')),
             ),
             name: 'digid_failure',
           ),
@@ -342,7 +342,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeDigidFailure(error: ''),
+          const WalletPersonalizeDigidFailure(error: GenericError('', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden(tester, 'wallet_personalize/digid_failure.portrait.light');
@@ -405,7 +405,7 @@ void main() {
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
           const WalletPersonalizeNetworkError(
-            error: CoreNetworkError('no internet'),
+            error: NetworkError(hasInternet: false, sourceError: 'test'),
             hasInternet: false,
           ),
         ),
@@ -435,7 +435,7 @@ void main() {
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
           const WalletPersonalizeNetworkError(
-            error: CoreNetworkError('server'),
+            error: NetworkError(hasInternet: true, sourceError: 'test'),
             hasInternet: true,
           ),
         ),
@@ -463,7 +463,7 @@ void main() {
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
           const WalletPersonalizeGenericError(
-            error: CoreGenericError('generic'),
+            error: GenericError('generic', sourceError: 'test'),
           ),
         ),
       );
@@ -491,7 +491,7 @@ void main() {
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
           const WalletPersonalizeSessionExpired(
-            error: CoreGenericError('expired'),
+            error: SessionError(state: SessionState.expired, sourceError: 'test'),
           ),
         ),
       );
@@ -623,7 +623,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeDigidFailure(error: 'error'),
+          const WalletPersonalizeDigidFailure(error: GenericError('', sourceError: 'test')),
         ),
       );
       expect(find.byType(WalletPersonalizeDigidErrorPage), findsOneWidget);
@@ -633,7 +633,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeNetworkError(error: 'error', hasInternet: true),
+          const WalletPersonalizeNetworkError(
+            error: NetworkError(hasInternet: true, sourceError: 'test'),
+            hasInternet: true,
+          ),
         ),
       );
       expect(find.byType(ErrorPage), findsOneWidget);
@@ -643,7 +646,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeGenericError(error: 'error'),
+          const WalletPersonalizeGenericError(error: GenericError('generic', sourceError: 'test')),
         ),
       );
       expect(find.byType(ErrorPage), findsOneWidget);
@@ -653,7 +656,9 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          const WalletPersonalizeSessionExpired(error: 'error'),
+          const WalletPersonalizeSessionExpired(
+            error: SessionError(state: SessionState.expired, sourceError: 'test'),
+          ),
         ),
       );
       expect(find.byType(ErrorPage), findsOneWidget);

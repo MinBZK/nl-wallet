@@ -2,7 +2,7 @@ import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../../../model/navigation/navigation_request.dart';
 import '../check_navigation_prerequisites_usecase.dart';
 
-class CheckNavigationPrerequisitesUseCaseImpl implements CheckNavigationPrerequisitesUseCase {
+class CheckNavigationPrerequisitesUseCaseImpl extends CheckNavigationPrerequisitesUseCase {
   final WalletRepository _walletRepository;
 
   CheckNavigationPrerequisitesUseCaseImpl(this._walletRepository);

@@ -2,16 +2,17 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:equatable/equatable.dart';
-import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/multiple_cards_flow.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/result/application_error.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/issuance/accept_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/cancel_issuance_usecase.dart';
@@ -57,28 +58,42 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   Future<void> _onIssuanceInitiated(IssuanceInitiated event, emit) async {
-    try {
-      final issuanceUri = event.issuanceUri;
-      _startIssuanceResult = await startIssuanceUseCase.invoke(issuanceUri);
-      if (isRefreshFlow) {
-        /// We assume all the app is in [StartIssuanceReadyToDisclose] state for ALL refresh flows, as the
-        /// requested attributes were available for the initial issuance. If that's somehow not the case the
-        /// user will always be presented with the [IssuanceGenericError] state.
-        final attributes = (_startIssuanceResult! as StartIssuanceReadyToDisclose).requestedAttributes;
+    final startResult = await startIssuanceUseCase.invoke(event.issuanceUri);
+    _startIssuanceResult = startResult.value;
+    await startResult.process(
+      onSuccess: (result) {
+        if (isRefreshFlow) {
+          _emitStartOfRefreshFlow(emit, result);
+        } else {
+          emit(IssuanceCheckOrganization(organization: result.relyingParty));
+        }
+      },
+      onError: (error) => emit(IssuanceGenericError(isRefreshFlow: isRefreshFlow, error: error)),
+    );
+  }
+
+  void _emitStartOfRefreshFlow(emit, StartIssuanceResult result) {
+    switch (result) {
+      case StartIssuanceReadyToDisclose():
         emit(
           IssuanceProofIdentity(
-            organization: _startIssuanceResult!.relyingParty,
-            policy: _startIssuanceResult!.policy,
-            requestedAttributes: attributes.values.flattened.toList(),
+            organization: result.relyingParty,
+            policy: result.policy,
+            requestedAttributes: result.requestedAttributes.values.flattened.toList(),
             isRefreshFlow: isRefreshFlow,
           ),
         );
-      } else {
-        emit(IssuanceCheckOrganization(organization: _startIssuanceResult!.relyingParty));
-      }
-    } catch (ex) {
-      Fimber.e('Failed to start issuance', ex: ex);
-      emit(IssuanceGenericError(isRefreshFlow: isRefreshFlow));
+      case StartIssuanceMissingAttributes():
+        // We (currently) don't support this flow. (i.e. a refresh flow where-in the requested attributes changed
+        // compared to the first issuance of this card, causing attributes to be missing this time around.)
+        emit(
+          IssuanceGenericError(
+            error: GenericError(
+              'Missing attributes detected during refresh flow',
+              sourceError: Exception('Missing attributes: this is unexpected in the refresh flow'),
+            ),
+          ),
+        );
     }
   }
 
@@ -154,10 +169,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     }
   }
 
-  Future<void> _onIssuanceShareRequestedAttributesDeclined(event, emit) async {
-    await cancelIssuanceUseCase.invoke();
-    emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
-  }
+  Future<void> _onIssuanceShareRequestedAttributesDeclined(event, emit) async => _stopIssuance(emit);
 
   Future<void> _onIssuanceShareRequestedAttributesApproved(event, emit) async {
     final state = this.state;
@@ -169,39 +181,45 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final issuance = _startIssuanceResult;
     if (state is! IssuanceProvidePin) throw UnsupportedError('Incorrect state to $state');
     if (issuance == null) throw UnsupportedError('Can not move to select cards state without date');
-    final result = _continueIssuanceResult = await continueIssuanceUseCase.invoke();
-    if (result.cards.length > 1) {
-      emit(
-        IssuanceSelectCards(
-          isRefreshFlow: isRefreshFlow,
-          multipleCardsFlow: MultipleCardsFlow.fromCards(
-            result.cards,
-            issuance.relyingParty,
-          ),
-        ),
-      );
-    } else {
-      emit(
-        IssuanceCheckDataOffering(
-          isRefreshFlow: isRefreshFlow,
-          card: result.cards.first,
-        ),
-      );
-    }
+
+    final continueResult = await continueIssuanceUseCase.invoke();
+    _continueIssuanceResult = continueResult.value;
+
+    await continueResult.process(
+      onSuccess: (continueResult) {
+        final issuedCards = continueResult.cards;
+        if (issuedCards.length > 1) {
+          emit(
+            IssuanceSelectCards(
+              isRefreshFlow: isRefreshFlow,
+              multipleCardsFlow: MultipleCardsFlow.fromCards(
+                issuedCards,
+                issuance.relyingParty,
+              ),
+            ),
+          );
+        } else {
+          emit(IssuanceCheckDataOffering(isRefreshFlow: isRefreshFlow, card: issuedCards.first));
+        }
+      },
+      onError: (error) => emit(IssuanceGenericError(error: error)),
+    );
   }
 
   Future<void> _onIssuanceCheckDataOfferingApproved(event, emit) async {
     final state = this.state;
-    if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state to $state');
+    if (state is! IssuanceCheckDataOffering) throw UnsupportedError('Incorrect state: $state');
+    final continueIssuanceResult = _continueIssuanceResult;
+    if (continueIssuanceResult == null) throw UnsupportedError('ContinueIssuanceResult should be available');
 
-    await acceptIssuanceUseCase.invoke([_continueIssuanceResult!.cards.first.docType]);
-    emit(IssuanceCompleted(isRefreshFlow: isRefreshFlow, addedCards: _continueIssuanceResult!.cards));
+    final acceptResult = await acceptIssuanceUseCase.invoke([continueIssuanceResult.cards.first.docType]);
+    await acceptResult.process(
+      onSuccess: (_) => emit(IssuanceCompleted(isRefreshFlow: isRefreshFlow, addedCards: continueIssuanceResult.cards)),
+      onError: (error) => emit(IssuanceGenericError(error: error)),
+    );
   }
 
-  Future<void> _onIssuanceStopRequested(IssuanceStopRequested event, emit) async {
-    await cancelIssuanceUseCase.invoke();
-    emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
-  }
+  Future<void> _onIssuanceStopRequested(IssuanceStopRequested event, emit) async => _stopIssuance(emit);
 
   FutureOr<void> _onIssuanceCardToggled(IssuanceCardToggled event, emit) {
     final state = this.state;
@@ -251,8 +269,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     } else {
       if (updatedMultipleCardFlow.selectedCardIds.isEmpty) {
         //All cards are declined, show stopped.
-        await cancelIssuanceUseCase.invoke();
-        emit(IssuanceStopped(isRefreshFlow: isRefreshFlow));
+        await _stopIssuance(emit);
       } else {
         //No more cards to check, add the selected ones and show completed state
         await _addCardsAndEmitCompleted(updatedMultipleCardFlow.selectedCards, emit);
@@ -261,7 +278,18 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
   }
 
   Future<void> _addCardsAndEmitCompleted(List<WalletCard> selectedCards, emit) async {
-    await acceptIssuanceUseCase.invoke(selectedCards.map((e) => e.docType));
-    emit(IssuanceCompleted(isRefreshFlow: isRefreshFlow, addedCards: selectedCards));
+    final acceptResult = await acceptIssuanceUseCase.invoke(selectedCards.map((e) => e.docType));
+    await acceptResult.process(
+      onSuccess: (_) => emit(IssuanceCompleted(isRefreshFlow: isRefreshFlow, addedCards: selectedCards)),
+      onError: (error) => emit(IssuanceGenericError(isRefreshFlow: isRefreshFlow, error: error)),
+    );
+  }
+
+  Future<void> _stopIssuance(emit) async {
+    final cancelResult = await cancelIssuanceUseCase.invoke();
+    await cancelResult.process(
+      onSuccess: (_) => emit(IssuanceStopped(isRefreshFlow: isRefreshFlow)),
+      onError: (error) => emit(IssuanceGenericError(error: error)),
+    );
   }
 }

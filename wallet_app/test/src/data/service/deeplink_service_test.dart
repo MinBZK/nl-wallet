@@ -7,6 +7,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/data/service/deeplink_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 
 import '../../mocks/wallet_mocks.dart';
 
@@ -17,7 +18,7 @@ void main() {
   late AppLifecycleService mockAppLifecycleService;
 
   setUp(() {
-    provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
+    provideDummy<Result<NavigationRequest>>(const Result.success(GenericNavigationRequest('/mock_destination')));
     appLinks = MockAppLinks();
     mockNavigationService = MockNavigationService();
     mockAppLifecycleService = AppLifecycleService(); // Uses the real implementation because it's trivial
@@ -34,7 +35,7 @@ void main() {
   group('uri events', () {
     test('Navigation request should be passed on to the navigation service if the app is resumed', () async {
       const navigationRequest = GenericNavigationRequest('/mock');
-      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => const Result.success(navigationRequest));
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
 
       // Make sure the navigation request was passed on
@@ -45,7 +46,7 @@ void main() {
       // Provide NavigationRequest
       mockAppLifecycleService.notifyStateChanged(AppLifecycleState.paused);
       const navigationRequest = GenericNavigationRequest('/mock');
-      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => const Result.success(navigationRequest));
       // Make sure it gets queued
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
 
@@ -57,7 +58,7 @@ void main() {
       // Provide NavigationRequest
       mockAppLifecycleService.notifyStateChanged(AppLifecycleState.paused);
       const navigationRequest = GenericNavigationRequest('/mock');
-      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => const Result.success(navigationRequest));
       // Make sure it gets queued
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
 
@@ -75,7 +76,7 @@ void main() {
     test('Navigation request is only handled once as the app cycles through lifecycles', () async {
       // Provide NavigationRequest
       const navigationRequest = GenericNavigationRequest('/mock');
-      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => navigationRequest);
+      when(mockDecodeUriUseCase.invoke(any)).thenAnswer((_) async => const Result.success(navigationRequest));
       // Insert the uri
       await appLinks.mockUriEvent(Uri.parse('https://example.org'));
 

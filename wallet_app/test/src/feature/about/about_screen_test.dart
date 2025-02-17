@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/feature/about/about_screen.dart';
 
@@ -16,8 +17,9 @@ void main() {
   late GetVersionStringUseCase getVersionUsecase;
 
   setUp(() async {
+    provideDummy<Result<String>>(const Result.success('1.0'));
     getVersionUsecase = MockGetVersionStringUseCase();
-    when(getVersionUsecase.invoke()).thenAnswer((_) async => '1.2.3 (123)');
+    when(getVersionUsecase.invoke()).thenAnswer((_) async => const Result.success('1.2.3 (123)'));
   });
 
   group('goldens', () {

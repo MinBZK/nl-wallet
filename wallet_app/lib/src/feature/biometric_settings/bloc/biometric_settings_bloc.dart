@@ -61,52 +61,54 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
   }
 
   Future<void> _disableBiometrics(emit, BiometricSettingsLoaded currentState) async {
-    try {
-      emit(const BiometricSettingsLoaded(biometricLoginEnabled: false));
-      await setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: false);
-    } catch (ex) {
-      Fimber.e('Failed to update state', ex: ex);
-      // Revert state changes
-      emit(currentState);
-    }
+    emit(const BiometricSettingsLoaded(biometricLoginEnabled: false));
+    final result = await setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: false);
+    await result.process(
+      onSuccess: (_) {},
+      onError: (error) {
+        Fimber.e('Failed to disable biometrics', ex: error);
+        emit(currentState); // Revert state changes
+      },
+    );
   }
 
   Future<void> _enableBiometrics(emit, BiometricSettingsLoaded currentState) async {
-    try {
-      // Eagerly update the UI
-      emit(const BiometricSettingsLoaded(biometricLoginEnabled: true));
+    // Eagerly update the UI
+    emit(const BiometricSettingsLoaded(biometricLoginEnabled: true));
 
-      // Perform biometric authentication
-      final result = await requestBiometricsUsecaseImpl.invoke();
-      switch (result) {
-        case BiometricAuthenticationResult.success:
-          emit(const BiometricSettingsConfirmPin()); // Request PIN to confirm
-        case BiometricAuthenticationResult.failure:
-          emit(currentState);
-        case BiometricAuthenticationResult.lockedOut:
-          emit(const BiometricSettingsLockedOut());
-          emit(currentState);
-        case BiometricAuthenticationResult.setupRequired:
-          emit(const BiometricSettingsSetupRequired());
-          emit(currentState);
-      }
-    } catch (ex) {
-      Fimber.e('Failed to update state', ex: ex);
-      emit(currentState);
-    }
+    // Perform biometric authentication
+    final result = await requestBiometricsUsecaseImpl.invoke();
+    await result.process(
+      onSuccess: (authResult) {
+        switch (authResult) {
+          case BiometricAuthenticationResult.success:
+            emit(const BiometricSettingsConfirmPin()); // Request PIN to confirm
+          case BiometricAuthenticationResult.lockedOut:
+            emit(const BiometricSettingsLockedOut());
+            emit(currentState);
+          case BiometricAuthenticationResult.setupRequired:
+            emit(const BiometricSettingsSetupRequired());
+            emit(currentState);
+        }
+      },
+      onError: (error) {
+        Fimber.e('Could not enable biometrics', ex: error);
+        emit(currentState);
+      },
+    );
   }
 
   Future<void> _onBiometricUnlockEnabled(event, emit) async {
-    try {
-      final availability = await getAvailableBiometricsUseCase.invoke();
-      if (availability == Biometrics.none) {
-        throw UnsupportedError('Biometrics can only be enabled when they are available');
-      }
-      await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
-      emit(const BiometricSettingsLoaded(biometricLoginEnabled: true));
-    } catch (ex) {
-      Fimber.e('Failed to get state', ex: ex);
+    final availability = await getAvailableBiometricsUseCase.invoke();
+    if (availability == Biometrics.none) {
+      Fimber.e('Biometrics can only be enabled if the device supports it.');
       emit(const BiometricSettingsError());
+      return;
     }
+    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
+    await result.process(
+      onSuccess: (_) => emit(const BiometricSettingsLoaded(biometricLoginEnabled: true)),
+      onError: (error) => Fimber.e('Failed to enable biometric unlock', ex: error),
+    );
   }
 }

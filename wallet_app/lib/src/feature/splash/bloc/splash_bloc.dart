@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../environment.dart';
@@ -19,15 +18,10 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
   }
 
   Future<void> _initApp(InitSplashEvent event, Emitter<SplashState> emit) async {
-    try {
-      final skipDelay = Environment.isTest || !Environment.mockRepositories;
-      await Future.delayed(skipDelay ? Duration.zero : kDefaultMockDelay);
-      final isInitialized = await isWalletInitializedUseCase.invoke();
-      final containsPid = await isWalletInitializedWithPidUseCase.invoke();
-      emit(SplashLoaded(isRegistered: isInitialized, hasPid: containsPid));
-    } catch (ex) {
-      Fimber.e('Failed to check wallet initialization state', ex: ex);
-      throw StateError('Detected unrecoverable error during initialization. Wallet in unknown state.');
-    }
+    final skipDelay = Environment.isTest || !Environment.mockRepositories;
+    await Future.delayed(skipDelay ? Duration.zero : kDefaultMockDelay);
+    final isInitialized = await isWalletInitializedUseCase.invoke();
+    final containsPid = await isWalletInitializedWithPidUseCase.invoke();
+    emit(SplashLoaded(isRegistered: isInitialized, hasPid: containsPid));
   }
 }

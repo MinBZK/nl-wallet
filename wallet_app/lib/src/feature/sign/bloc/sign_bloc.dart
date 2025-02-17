@@ -38,19 +38,21 @@ class SignBloc extends Bloc<SignEvent, SignState> {
   }
 
   Future<void> _initSigning(String signUri) async {
-    try {
-      final result = _startSignResult = await _startSignUseCase.invoke(signUri);
-      add(
-        SignUpdateState(
-          SignCheckOrganization(
-            relyingParty: result.relyingParty,
+    final startResult = await _startSignUseCase.invoke(signUri);
+    _startSignResult = startResult.value;
+
+    await startResult.process(
+      onSuccess: (result) {
+        add(
+          SignUpdateState(
+            SignCheckOrganization(
+              relyingParty: result.relyingParty,
+            ),
           ),
-        ),
-      );
-    } catch (ex) {
-      Fimber.e('Failed to start disclosure', ex: ex);
-      add(const SignUpdateState(SignError()));
-    }
+        );
+      },
+      onError: (error) => add(const SignUpdateState(SignError())),
+    );
   }
 
   Future<void> _onOrganizationApproved(event, emit) async {
@@ -119,13 +121,11 @@ class SignBloc extends Bloc<SignEvent, SignState> {
 
   Future<void> _onStopRequested(event, emit) async {
     assert(_startSignResult != null, 'Stop can only be requested after flow is loaded');
-    try {
-      await _rejectSignAgreementUseCase.invoke();
-      emit(const SignStopped());
-    } catch (ex) {
-      Fimber.e('Failed to move to SignStopped state', ex: ex);
-      emit(const SignError());
-    }
+    final rejectResult = await _rejectSignAgreementUseCase.invoke();
+    await rejectResult.process(
+      onSuccess: (_) => emit(const SignStopped()),
+      onError: (error) => emit(const SignError()),
+    );
   }
 
   Future<void> _onBackPressed(event, emit) async {

@@ -49,7 +49,9 @@ class DeeplinkService {
     ).whereNotNull();
     debounceUntilResumedStream.debounceTime(kResumeDebounceDuration).asyncMap((uri) async {
       clearController.add(null);
-      return _decodeUriUseCase.invoke(uri);
+      final decodeUriResult = await _decodeUriUseCase.invoke(uri);
+      if (decodeUriResult.hasError) throw decodeUriResult.error!;
+      return decodeUriResult.value!;
     }).listen(
       (navigationRequest) => _navigationService.handleNavigationRequest(navigationRequest, queueIfNotReady: true),
       onError: (exception) => Fimber.e('Error while processing deeplink', ex: exception),

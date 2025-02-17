@@ -1,8 +1,11 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
-import 'package:wallet/src/domain/model/pid/pid_issuance_status.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
+import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 
@@ -22,6 +25,10 @@ void main() {
     mockCancelPidIssuanceUseCase = MockCancelPidIssuanceUseCase();
     mockContinuePidIssuanceUseCase = MockContinuePidIssuanceUseCase();
     mockIsWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
+    provideDummy<Result<List<WalletCard>>>(const Result.success([]));
+    provideDummy<Result<String>>(const Result.success(''));
+    provideDummy<Result<bool>>(const Result.success(true));
+    provideDummy<Result<List<Attribute>>>(const Result.success([]));
   });
 
   blocTest(
@@ -36,18 +43,21 @@ void main() {
     verify: (bloc) => expect(bloc.state, const WalletPersonalizeInitial()),
   );
 
-  blocTest(
-    'verify initial state when isInitializedWithPid throws',
-    build: () => WalletPersonalizeBloc(
-      mockGetWalletCardsUseCase,
-      mockGetPidIssuanceUrlUseCase,
-      mockCancelPidIssuanceUseCase,
-      mockContinuePidIssuanceUseCase,
-      mockIsWalletInitializedWithPidUseCase,
-    ),
-    setUp: () => when(mockIsWalletInitializedWithPidUseCase.invoke()).thenAnswer((_) async => throw 'error'),
-    verify: (bloc) => expect(bloc.state, const WalletPersonalizeInitial()),
-  );
+  test('Verify app crashes when isInitializedWithPid throws a StateError', () {
+    // This usecase should never throw, if it does we are in an invalid state and should just crash.
+    when(mockIsWalletInitializedWithPidUseCase.invoke()).thenThrow(StateError('error'));
+
+    expect(
+      () => WalletPersonalizeBloc(
+        mockGetWalletCardsUseCase,
+        mockGetPidIssuanceUrlUseCase,
+        mockCancelPidIssuanceUseCase,
+        mockContinuePidIssuanceUseCase,
+        mockIsWalletInitializedWithPidUseCase,
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
 
   blocTest(
     'verify initial state when wallet is initialized with pid',
@@ -59,7 +69,7 @@ void main() {
       mockIsWalletInitializedWithPidUseCase,
     ),
     setUp: () {
-      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => [WalletMockData.card]);
+      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
       when(mockIsWalletInitializedWithPidUseCase.invoke()).thenAnswer((_) => Future.value(true));
     },
     wait: const Duration(milliseconds: 50),
@@ -78,8 +88,8 @@ void main() {
       mockIsWalletInitializedWithPidUseCase,
     ),
     setUp: () {
-      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => [WalletMockData.card]);
-      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => 'pid_issuance_url');
+      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
+      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => const Result.success('pid_issuance_url'));
     },
     act: (bloc) async {
       bloc.add(WalletPersonalizeLoginWithDigidClicked());
@@ -110,15 +120,17 @@ void main() {
       mockIsWalletInitializedWithPidUseCase,
     ),
     setUp: () {
-      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => [WalletMockData.card]);
-      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => throw 'issuance_url_error');
+      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
+      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer(
+        (_) async => const Result.error(GenericError('failed to get issuance url', sourceError: 'test')),
+      );
     },
     act: (bloc) async {
       bloc.add(WalletPersonalizeLoginWithDigidClicked());
     },
     expect: () => [
       const WalletPersonalizeLoadingIssuanceUrl(),
-      const WalletPersonalizeDigidFailure(error: 'issuance_url_error'),
+      isA<WalletPersonalizeDigidFailure>(),
     ],
   );
 
@@ -132,9 +144,9 @@ void main() {
       mockIsWalletInitializedWithPidUseCase,
     ),
     setUp: () {
-      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => [WalletMockData.card]);
-      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => 'pid_issuance_url');
-      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer((_) async => PidIssuanceSuccess(const []));
+      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
+      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => const Result.success('pid_issuance_url'));
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer((_) async => const Result.success([]));
     },
     act: (bloc) async {
       bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
@@ -162,10 +174,11 @@ void main() {
       mockIsWalletInitializedWithPidUseCase,
     ),
     setUp: () {
-      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => [WalletMockData.card]);
-      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => 'pid_issuance_url');
-      when(mockContinuePidIssuanceUseCase.invoke('auth_url'))
-          .thenAnswer((_) async => PidIssuanceError(RedirectError.accessDenied));
+      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
+      when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => const Result.success('pid_issuance_url'));
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
+        (_) async => const Result.error(RedirectUriError(redirectError: RedirectError.accessDenied, sourceError: '')),
+      );
     },
     act: (bloc) async {
       bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
@@ -187,7 +200,7 @@ void main() {
       mockIsWalletInitializedWithPidUseCase,
     ),
     setUp: () {
-      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer((_) async => PidIssuanceSuccess(const []));
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer((_) async => const Result.success([]));
     },
     act: (bloc) async {
       bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
@@ -213,7 +226,7 @@ void main() {
     ),
     setUp: () {
       when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
-        (_) async => PidIssuanceSuccess(WalletMockData.card.attributes),
+        (_) async => Result.success(WalletMockData.card.attributes),
       );
     },
     act: (bloc) async {
@@ -221,14 +234,14 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
       await Future.delayed(const Duration(milliseconds: 10));
-      bloc.add(const WalletPersonalizeAcceptPidFailed(error: CoreGenericError('error')));
+      bloc.add(const WalletPersonalizeAcceptPidFailed(error: GenericError('error', sourceError: 'test')));
     },
     expect: () => [
       const WalletPersonalizeAuthenticating(),
       WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
       isA<WalletPersonalizeLoadInProgress>(),
-      const WalletPersonalizeGenericError(error: CoreGenericError('error')),
+      isA<WalletPersonalizeGenericError>(),
     ],
   );
 }
