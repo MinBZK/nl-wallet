@@ -29,14 +29,14 @@ where
     /// Construct an [`InstructionClient`] for this [`Wallet`].
     /// This is the recommended way to obtain an [`InstructionClient`], because this function
     /// will try to finalize any unfinished PIN change process.
-    pub(super) async fn new_instruction_client<'a>(
-        &'a self,
+    pub(super) async fn new_instruction_client(
+        &self,
         pin: String,
-        attested_key: &'a AttestedKey<AKH::AppleKey, AKH::GoogleKey>,
-        registration_data: &'a RegistrationData,
-        client_config: &'a TlsPinningConfig,
-        instruction_result_public_key: &'a EcdsaDecodingKey,
-    ) -> Result<InstructionClient<'a, S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError> {
+        attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
+        registration_data: RegistrationData,
+        client_config: TlsPinningConfig,
+        instruction_result_public_key: EcdsaDecodingKey,
+    ) -> Result<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>, ChangePinError> {
         tracing::info!("Try to finalize PIN change if it is in progress");
 
         if self.storage.get_change_pin_state().await?.is_some() {
@@ -45,9 +45,9 @@ where
 
         let client = InstructionClient::new(
             pin,
-            &self.storage,
+            Arc::clone(&self.storage),
             attested_key,
-            &self.account_provider_client,
+            Arc::clone(&self.account_provider_client),
             registration_data,
             client_config,
             instruction_result_public_key,

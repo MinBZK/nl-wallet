@@ -1,7 +1,6 @@
 import 'package:test/test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute_value.dart';
 import 'package:wallet/src/domain/model/attribute/converter/attribute_value_converter.dart';
-import 'package:wallet/src/domain/model/attribute/value/gender.dart';
 
 void main() {
   const AttributeValueConverter converter = AttributeValueConverter();
@@ -20,15 +19,8 @@ void main() {
     expect(result, equals(input));
   });
 
-  test('DateValue', () {
-    final input = DateValue(DateTime.fromMillisecondsSinceEpoch(123456789));
-    final json = converter.toJson(input);
-    final result = converter.fromJson(json);
-    expect(result, equals(input));
-  });
-
-  test('GenderValue', () {
-    const input = GenderValue(Gender.female);
+  test('NumberValue', () {
+    const input = NumberValue(1);
     final json = converter.toJson(input);
     final result = converter.fromJson(json);
     expect(result, equals(input));

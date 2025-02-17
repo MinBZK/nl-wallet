@@ -205,7 +205,7 @@ impl TestDocument {
             unsigned.copy_count = copy_count;
             unsigned
         };
-        let metadata = TypeMetadata::new_example();
+        let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 

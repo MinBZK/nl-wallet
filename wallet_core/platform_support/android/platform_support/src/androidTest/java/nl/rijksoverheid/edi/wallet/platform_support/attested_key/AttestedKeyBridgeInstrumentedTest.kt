@@ -1,7 +1,6 @@
 package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 
 import android.security.keystore.KeyProperties
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -34,12 +33,16 @@ import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
 
+
+// TODO: PVW-4070: Handle play integrity enablement/disablement here (also google_cloud_project_id)
+
 @RunWith(AndroidJUnit4::class)
 @DelicateCoroutinesApi // Needed for `newSingleThreadContext`
 @ExperimentalCoroutinesApi // Needed for `newSingleThreadContext`, `Dispatchers.setMain` and `Dispatchers.resetMain`
 class AttestedKeyBridgeInstrumentedTest {
     companion object {
         const val CHALLENGE: String = "test-challenge"
+        const val GOOGLE_CLOUD_PROJECT_ID: ULong = 0u
 
         @JvmStatic
         external fun attested_key_test()
@@ -93,13 +96,19 @@ class AttestedKeyBridgeInstrumentedTest {
         val challenge = CHALLENGE.toByteArray().toUByteList()
 
         // Generate a new key using `attest`
-        val attestationData = attestedKeyBridge.attest(id, challenge)
+        val attestationData = attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
+
+        // Note: Below we check the appAttestationToken. The current assumption is that the data is opaque. but
+        // https://developer.android.com/google/play/integrity/standard#protect-requests seems to hint that you
+        // can get at the requestHash verbatim, which would mean that you can validate more meaningfully than
+        // simply checking that the data is not empty. This should also be done in tests we have related to
+        // this, like 'create_and_verify_attested_key' in platform_suport/src/attested_key/test.rs.
 
         // Verify that attestationData is an instance of `Google`
         if (attestationData is AttestationData.Google) {
             // Verify the attestation token is empty
-            // TODO: fix when implementing app attestation
-            assert(attestationData.appAttestationToken.isEmpty())
+            // TODO: PVW-4071: See if appAttestationToken can be more meaningfully verified
+            assert(attestationData.appAttestationToken.isNotEmpty())
             // Verify that the certificate chain is not empty
             assert(attestationData.certificateChain.size >= 2) {
                 "expected at least the root certificate and the key's certificate"
@@ -118,11 +127,11 @@ class AttestedKeyBridgeInstrumentedTest {
         val id = "id"
         val challenge = CHALLENGE.toByteArray().toUByteList()
 
-        attestedKeyBridge.attest(id, challenge)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
         assertFails<AttestedKeyException.Other>(
             "reason=precondition failed: A key already exists with alias: `ecdsa_id`"
         ) {
-            attestedKeyBridge.attest(id, challenge)
+            attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
         }
     }
 
@@ -137,7 +146,7 @@ class AttestedKeyBridgeInstrumentedTest {
         }
 
         // Generate new key via `attest`
-        attestedKeyBridge.attest(id, challenge)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
 
         // Verify public key for 'id' does exist
         val publicKeyBytes = attestedKeyBridge.publicKey(id).toByteArray()
@@ -176,7 +185,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val valueToSign = "value to sign".toByteArray().toUByteList()
 
         // Generate a new key
-        attestedKeyBridge.attest(id, challenge)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
 
         // Sign the valueToSign
         val signature = attestedKeyBridge.sign(id, valueToSign)
@@ -229,7 +238,7 @@ class AttestedKeyBridgeInstrumentedTest {
 }
 
 
-private suspend inline fun <reified T> assertFails(
+private inline fun <reified T> assertFails(
     expectedMessage: String? = null,
     crossinline block: suspend () -> Unit
 ) {

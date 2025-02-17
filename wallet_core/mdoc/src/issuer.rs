@@ -1,27 +1,36 @@
+use std::collections::VecDeque;
+
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::CoseSign1;
+use coset::Header;
 use coset::HeaderBuilder;
+use coset::Label;
 
+use sd_jwt::metadata::ResourceIntegrity;
+use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use sd_jwt::metadata::COSE_METADATA_HEADER_LABEL;
 use sd_jwt::metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
 use wallet_common::keys::EcdsaKey;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::iso::*;
 use crate::server_keys::KeyPair;
 use crate::unsigned::UnsignedMdoc;
+use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
 use crate::utils::serialization::TaggedBytes;
+use crate::Error;
 use crate::Result;
 
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
-        metadata_chain: TypeMetadataChain,
+        type_metadata: TypeMetadataChain,
         device_public_key: CoseKey,
         key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
@@ -45,29 +54,9 @@ impl IssuerSigned {
             validity_info: validity,
         };
 
-        // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3808)
+        let (metadata, integrity) = type_metadata.verify_and_destructure()?;
+        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata, integrity)?;
 
-        let (chain, integrity) = metadata_chain.into_destructured();
-
-        let headers = HeaderBuilder::new()
-            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(key.certificate().to_vec()))
-            .text_value(
-                String::from(COSE_METADATA_HEADER_LABEL),
-                Value::Array(
-                    chain
-                        .into_iter()
-                        .map(|m| {
-                            let encoded = m.try_as_base64()?;
-                            Ok(Value::Text(encoded))
-                        })
-                        .collect::<Result<_, TypeMetadataError>>()?,
-                ),
-            )
-            .text_value(
-                String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL),
-                Value::Text(integrity.into()),
-            )
-            .build();
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
             MdocCose::sign(&mso_tagged, headers, key, true).await?;
@@ -78,6 +67,59 @@ impl IssuerSigned {
         };
 
         Ok(issuer_signed)
+    }
+
+    pub(crate) fn create_unprotected_header(
+        x5chain: Vec<u8>,
+        metadata_chain: VecNonEmpty<TypeMetadata>,
+        metadata_integrity: ResourceIntegrity,
+    ) -> Result<Header> {
+        let header = HeaderBuilder::new()
+            .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(x5chain))
+            .text_value(
+                String::from(COSE_METADATA_HEADER_LABEL),
+                Value::Array(
+                    metadata_chain
+                        .into_iter()
+                        .map(|m| {
+                            let encoded = m.try_as_base64()?;
+                            Ok(Value::Text(encoded))
+                        })
+                        .collect::<Result<_, TypeMetadataError>>()?,
+                ),
+            )
+            .text_value(
+                String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL),
+                Value::Text(metadata_integrity.into()),
+            )
+            .build();
+
+        Ok(header)
+    }
+
+    pub fn type_metadata(&self) -> Result<TypeMetadataChain> {
+        let metadata_label = Label::Text(String::from(COSE_METADATA_HEADER_LABEL));
+
+        let encoded_chain = self
+            .issuer_auth
+            .unprotected_header_item(&metadata_label)?
+            .as_array()
+            .ok_or(CoseError::MissingLabel(metadata_label.clone()))?;
+
+        let mut chain = encoded_chain
+            .iter()
+            .map(|value| {
+                let encoded = value
+                    .as_text()
+                    .ok_or(Error::Cose(CoseError::MissingLabel(metadata_label.clone())))?;
+                let type_metadata = TypeMetadata::try_from_base64(encoded).map_err(Error::TypeMetadata)?;
+                Ok(type_metadata)
+            })
+            .collect::<Result<VecDeque<_>, Error>>()?;
+
+        let root = chain.pop_front().ok_or(CoseError::MissingLabel(metadata_label))?;
+
+        Ok(TypeMetadataChain::create(root, chain.into())?)
     }
 }
 
@@ -133,7 +175,7 @@ mod tests {
             .try_into()
             .unwrap(),
         };
-        let metadata = TypeMetadata::new_example();
+        let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use wallet_common::account::messages::auth::WalletCertificate;
@@ -9,7 +10,7 @@ use crate::storage::ChangePinData;
 use crate::storage::RegistrationData;
 use crate::storage::Storage;
 
-impl<S> ChangePinStorage for RwLock<S>
+impl<S> ChangePinStorage for Arc<RwLock<S>>
 where
     S: Storage,
 {
@@ -60,7 +61,7 @@ mod tests {
     #[tokio::test]
     async fn test_change_pin_storage() {
         let storage = MockStorage::new(StorageState::Opened, None);
-        let change_pin_storage = RwLock::new(storage);
+        let change_pin_storage = Arc::new(RwLock::new(storage));
 
         assert_matches!(change_pin_storage.get_change_pin_state().await, Ok(None));
 

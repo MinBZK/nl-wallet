@@ -56,7 +56,7 @@ void main() {
     ),
     DataAttribute.untranslated(
       label: 'Geboortedatum',
-      value: DateValue(DateTime(2023, 1, 1)),
+      value: const StringValue('01-01-2023'),
       key: 'mock.birthDate',
       sourceCardDocType: kPidId,
     ),
@@ -154,6 +154,16 @@ void main() {
         wrapper: walletAppWrapper(),
       );
       await screenMatchesGolden(tester, 'wallet_personalize/load_in_progress.light');
+    });
+
+    testGoldens('WalletPersonalizeAddingCards Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeAddingCards(FlowProgress(currentStep: 8, totalSteps: 9)),
+        ),
+      );
+      await screenMatchesGolden(tester, 'wallet_personalize/adding_cards.light');
     });
 
     testGoldens('WalletPersonalizeAuthenticating Light', (tester) async {
@@ -649,6 +659,17 @@ void main() {
       expect(find.byType(ErrorPage), findsOneWidget);
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.errorScreenSessionExpiredHeadline), findsOneWidget);
+    });
+
+    testWidgets('Verify WalletPersonalizeAddingCards shows dedicated loading message', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeAddingCards(FlowProgress(currentStep: 8, totalSteps: 9)),
+        ),
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.walletPersonalizeScreenAddingCardsSubtitle), findsOneWidget);
     });
   });
 }

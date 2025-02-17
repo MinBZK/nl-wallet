@@ -1,4 +1,8 @@
+.rust:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-rust:${BUILD_TAG}"
+
 lint-rust:
+  extends: .rust
   rules: !reference [.default-or-release-or-merge-request, rules]
   before_script:
     - set -euxo pipefail
@@ -10,6 +14,7 @@ lint-rust:
     - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
 
 test-rust:
+  extends: .rust
   rules: !reference [.default-or-release-or-merge-request, rules]
   tags:
     - wallet-ci
@@ -20,7 +25,7 @@ test-rust:
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
     WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:250128-0f78cc9d"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
       variables:
         POSTGRESQL_USER: "postgres"
@@ -48,6 +53,7 @@ test-rust:
       - wallet_core/target/nextest/ci/junit.xml
 
 test-rust-doctest:
+  extends: .rust
   rules: !reference [.default-or-release-or-merge-request, rules]
   tags:
     - wallet-ci
@@ -66,16 +72,18 @@ test-rust-doctest:
     CONFIG_ENV: "dev"
 
 test-rust-compilation-android-linux:
-  extends: .test-rust-compilation
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
+  extends: [.test-rust-compilation]
   script:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
 
 test-rust-compilation-ios:
-  extends: [.test-rust-compilation, .env-macos-runner, .ruby-cache-macos]
+  extends: [.test-rust-compilation, .env-macos-runner]
   script:
     - cargo check --manifest-path wallet_core/Cargo.toml --locked --release --package flutter_api --target aarch64-apple-ios
 
 .build-binary:
+  extends: .rust
   rules: !reference [.default-or-release-or-merge-request, rules]
   needs:
     - job: test-rust

@@ -145,7 +145,10 @@ async fn test_disclosure_usecases_ok(
         .urls
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
-    let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
+    let status_query = serde_urlencoded::to_string(StatusParams {
+        session_type: Some(session_type),
+    })
+    .unwrap();
     status_url.set_query(status_query.as_str().into());
 
     let mut disclosed_attributes_url =
@@ -291,7 +294,7 @@ async fn test_disclosure_without_pid() {
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
-        session_type: SessionType::SameDevice,
+        session_type: Some(SessionType::SameDevice),
     })
     .unwrap();
     status_url.set_query(status_query.as_str().into());

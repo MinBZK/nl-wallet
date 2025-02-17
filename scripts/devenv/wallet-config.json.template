@@ -43,5 +43,6 @@
         "${UPDATE_POLICY_SERVER_CA_CRT}"
       ]
     }
-  }
+  },
+  "google_cloud_project_id": ${GOOGLE_CLOUD_PROJECT_ID}
 }

@@ -167,19 +167,11 @@ impl CredentialRequestProof {
 /// Stores multiple copies of credentials that have identical attributes.
 #[nutype(
     validate(predicate = |copies| !copies.is_empty()),
-    derive(Debug, Clone, AsRef, TryFrom, Serialize, Deserialize, PartialEq)
+    derive(Debug, Clone, AsRef, TryFrom, Serialize, Deserialize, PartialEq, IntoIterator)
 )]
 pub struct CredentialCopies<T>(Vec<T>);
 
 pub type MdocCopies = CredentialCopies<Mdoc>;
-
-impl<T> IntoIterator for CredentialCopies<T> {
-    type Item = T;
-    type IntoIter = std::vec::IntoIter<T>;
-    fn into_iter(self) -> Self::IntoIter {
-        self.into_inner().into_iter()
-    }
-}
 
 impl<T> CredentialCopies<T> {
     pub fn first(&self) -> &T {

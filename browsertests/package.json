@@ -1,7 +1,13 @@
 {
-    "name": "nl-wallet-browsertests",
-    "private": true,
-    "workspaces": [
-      "packages/*"
-    ]
+  "name": "nl-wallet-browsertests",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "prettier": "^3.5.0"
+  },
+  "scripts": {
+    "format": "prettier --config ../.prettierrc.json --write \"**/*.{js,json,md}\""
   }
+}

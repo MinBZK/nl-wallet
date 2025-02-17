@@ -149,14 +149,74 @@ run-automation-smoke-test-ont:
       -Dfile.encoding=UTF-8
   variables: !reference [.run-automation-tests-default, variables]
 
+.run-browsertest-common:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
+  extends: .env-ont-k8s
+
+run-mrp-browsertest-test-ont:
+  extends: .run-browsertest-common
+  rules:
+    - !reference [.default-branch, rules]
+  needs:
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
+  script: |
+    cd browsertests
+    npm ci
+    cd packages/mock-relying-party
+    npx playwright install chromium webkit
+    npm run test:ci
+  variables:
+    MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: "${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}"
+  after_script:
+    - deploy/bin/store-artifact.sh browsertests/packages/mock-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
+  artifacts:
+    when: always
+    paths:
+      - browsertests/packages/mock-relying-party/test-results/
+    reports:
+      junit: browsertests/packages/mock-relying-party/test-results/*.xml
+  allow_failure: false
+
+run-fallback-page-browsertest-test-ont:
+  extends: .run-browsertest-common
+  rules:
+    - !reference [.default-branch, rules]
+  needs:
+    - job: deploy-update-policy-server-ont
+      artifacts: false
+  script: |
+    cd browsertests
+    npm ci
+    cd packages/fallback-pages
+    npx playwright install chromium webkit
+    npm run test:ci
+  variables:
+    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
+  after_script:
+    - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-fallback-pages.xml
+  artifacts:
+    when: always
+    paths:
+      - browsertests/packages/fallback-pages/test-results/
+    reports:
+      junit: browsertests/packages/fallback-pages/test-results/*.xml
+  allow_failure: false
+
 run-gba-fetch-browsertest-test-ont:
+  extends: .run-browsertest-common
   rules:
     - !reference [.on-schedule, rules]
-  extends: .env-ont-k8s
+    - !reference [.on-web-trigger, rules]
+  needs:
+    - job: deploy-gba-fetch-frontend-ont
+      artifacts: false
+      optional: true
   before_script: |
     kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE=$(kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath='{.data.passphrase}' | base64 --decode)
+    export GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME="${GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT}"
   script: |
     cd browsertests
     npm ci
@@ -165,21 +225,19 @@ run-gba-fetch-browsertest-test-ont:
     npm run test:authenticated
     npm run test:unauthenticated
   after_script: |
-    mkdir -p browsertests-junit
-    cp browsertests/packages/gba-fetch/test-results-authenticated/results_authenticated.xml browsertest-junit/
-    cp browsertests/packages/gba-fetch/test-results-unauthenticated/results_unauthenticated.xml browsertest-junit/
-    zip -r browsertest.zip browsertests-junit
-    deploy/bin/store-artifact.sh browsertest.zip qt/quality-time/junit-results/browsertest.zip
+    zip -r -i "*.xml" browsertest.zip browsertests/packages/gba-fetch/
+    deploy/bin/store-artifact.sh browsertest-gbafetch.zip qt/quality-time/junit-results/browsertest-gbafetch.zip
   artifacts:
     when: always
     paths:
       - browsertests/packages/gba-fetch/test-results*/
     reports:
       junit: browsertests/packages/gba-fetch/test-results*/*.xml
+  allow_failure: false
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
-  extends: .env-ont-k8s
+  extends: [.rust, .env-ont-k8s]
   needs:
     - job: deploy-mock-relying-party-ont
       artifacts: false
@@ -196,13 +254,84 @@ run-performance-test-ont:
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
     APPLE_ATTESTATION_ENVIRONMENT: "production"
-  script: |
-    cd ./wallet_core/
-    cargo build --release --bin performance_test --features performance_test,allow_insecure_url
-    export PT_START_DATE=$(date -u +%s)
-    bash ./tests_integration/run_performance_test.sh 100
-    export PT_END_DATE=$(date -u +%s)
-    export PT_DURATION=$(( PT_END_DATE - PT_START_DATE ))
-    echo "Load: 100"
-    echo "Duration: ${PT_DURATION} seconds"
+  script: wallet_core/tests_integration/run_performance_test.sh 50
   allow_failure: true
+
+create-pipeline-for-running-test-on-all-browserstack-androids:
+  resource_group: automation-tests
+  extends: .env-ont-k8s
+  environment:
+    action: access
+  rules:
+    - !reference [ .on-web-trigger, rules ]
+  allow_failure: false
+  before_script:
+    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - java -version
+    - set -euxo pipefail
+  variables:
+    BROWSERSTACK_USER: "$BROWSERSTACK_USER"
+    BROWSERSTACK_KEY: "$BROWSERSTACK_KEY"
+  script: |
+      DEVICE_LIST=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json")
+      TEST_SETS=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json" | 
+                  jq -r '.[] | select(.os == "android" and .realMobile == true) | "\(.device)|\(.os_version)"')
+    
+      echo "Retrieved real Android devices: $TEST_SETS"
+      
+      if [[ -z $TEST_SETS ]]; then
+        echo "No real Android devices found in BrowserStack!"
+        exit 1
+      fi
+    
+      cd "$CI_PROJECT_DIR"
+    
+      cat <<EOT > test-all-android-devices.yml
+      include:
+        - local: "/.gitlab-ci.yml"
+      EOT
+    
+      while IFS="|" read -r DEVICE_NAME PLATFORM_VERSION; do
+        JOB_NAME=$(echo "$DEVICE_NAME" | tr ' ' '_')
+        PLATFORM_NAME="Android"
+        APP_IDENTIFIER="nl.ictu.edi.wallet.latest"
+      
+        cat <<EOT >> test-all-android-devices.yml
+      
+      run-automation-test-ont-$JOB_NAME:
+        extends: .run-automation-tests-common-setup
+        script:
+          - ./gradlew --no-daemon --info --stacktrace runOnAll
+            -Dtest.config.app.identifier="$APP"
+            -Dtest.config.device.name="$DEVICE_NAME"
+            -Dtest.config.platform.name="$PLATFORM_NAME"
+            -Dtest.config.platform.version="$PLATFORM_VERSION"
+            -Dtest.config.remote=true
+            -Dfile.encoding=UTF-8
+        variables:
+          DEVICE_NAME: "$DEVICE_NAME"
+          PLATFORM_NAME: "$PLATFORM_NAME"
+          PLATFORM_VERSION: "$PLATFORM_VERSION"
+          APP: "${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+      EOT
+      done <<< "$TEST_SETS"
+      
+      echo "Generated test-all-android-devices.yml:"
+      cat test-all-android-devices.yml
+  artifacts:
+    paths:
+      - test-all-android-devices.yml
+    expire_in: 1 hour
+
+run-pipeline-for-running-test-on-all-browserstack-androids:
+  rules:
+    - !reference [ .on-web-trigger, rules ]
+  needs:
+    - create-pipeline-for-running-test-on-all-browserstack-androids
+  trigger:
+    include:
+      - artifact: test-all-android-devices.yml
+        job: create-pipeline-for-running-test-on-all-browserstack-androids
+    strategy: depend
+

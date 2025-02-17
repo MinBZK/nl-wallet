@@ -112,6 +112,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
           WalletPersonalizeGenericError() => _buildGenericError(context),
           WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
+          WalletPersonalizeAddingCards() => _buildAddingCards(context, progress: state.stepperProgress),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -136,6 +137,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
       title: context.l10n.walletPersonalizeScreenLoadingTitle,
       description: context.l10n.walletPersonalizeScreenLoadingSubtitle,
       onCancel: onCancel,
+      appBar: WalletAppBar(progress: progress),
+    );
+  }
+
+  Widget _buildAddingCards(BuildContext context, {FlowProgress? progress}) {
+    return GenericLoadingPage(
+      title: context.l10n.walletPersonalizeScreenLoadingTitle,
+      description: context.l10n.walletPersonalizeScreenAddingCardsSubtitle,
       appBar: WalletAppBar(progress: progress),
     );
   }
@@ -243,9 +252,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
     final loginSucceeded = (await MockDigidScreen.mockLogin(context)) ?? false;
     await Future.delayed(kDefaultMockDelay);
     if (loginSucceeded) {
-      final cards = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
-      final mockPidCardAttributes =
-          cards.map((card) => card.attributes.map((e) => CardAttributeWithDocType(card.docType, e))).flattened.toList();
+      final attestations = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
+      final mockPidCardAttributes = attestations
+          .map(
+            (attestation) =>
+                attestation.attributes.map((e) => CardAttributeWithDocType(attestation.attestationType, e)),
+          )
+          .flattened
+          .toList();
       bloc.add(WalletPersonalizeLoginWithDigidSucceeded(attributeMapper.mapList(mockPidCardAttributes)));
     } else {
       bloc.add(const WalletPersonalizeLoginWithDigidFailed());

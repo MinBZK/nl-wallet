@@ -277,6 +277,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
         &self,
         key_identifier: String,
         challenge: Vec<u8>,
+        _google_cloud_project_id: u64,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         match self.error_scenario {
             KeyHolderErrorScenario::UnretryableAttestationError => {
@@ -337,7 +338,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
                     key,
                     certificate_chain,
                     // As this token is opaque anyway, just provide some random data.
-                    app_attestation_token: utils::random_bytes(32),
+                    app_attestation_token: utils::random_string(32),
                 }
             }
         };
@@ -475,7 +476,6 @@ pub use persistent::*;
 #[cfg(feature = "persistent_mock_attested_key")]
 mod persistent {
     use std::future::Future;
-    use std::ops::Deref;
     use std::path::Path;
     use std::path::PathBuf;
     use std::sync::LazyLock;
@@ -595,7 +595,7 @@ mod persistent {
 
             future
                 .and_then(|key_identifier| async {
-                    let json = serde_json::to_string_pretty(KEY_STATES.read().deref())
+                    let json = serde_json::to_string_pretty(&*KEY_STATES.read())
                         .expect("could not encode mock Apple attested keys JSON file");
                     fs::write(file_path, json)
                         .await
@@ -625,10 +625,11 @@ mod persistent {
             &self,
             key_identifier: String,
             challenge: Vec<u8>,
+            google_cloud_project_id: u64,
         ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
             // Map the output from `KeyWithAttestation<MockAppleAttestedKey, MockGoogleAttestedKey>`
             // to `KeyWithAttestation<PersistentMockAppleAttestedKey, MockGoogleAttestedKey>`.
-            Self::with_key_state_write(self.0.attest(key_identifier, challenge))
+            Self::with_key_state_write(self.0.attest(key_identifier, challenge, google_cloud_project_id))
                 .await
                 .map(|key_with_attestation| match key_with_attestation {
                     KeyWithAttestation::Apple { key, attestation_data } => KeyWithAttestation::Apple {

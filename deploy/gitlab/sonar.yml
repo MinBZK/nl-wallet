@@ -1,4 +1,5 @@
 .default-sonar:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules: !reference [.default-or-merge-request, rules]
 
 sonar-rust:

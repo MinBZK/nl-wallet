@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/list_button.dart';
 import '../widget/loading_indicator.dart';
+import '../widget/text/title_text.dart';
 import '../widget/wallet_app_bar.dart';
 
 class GenericLoadingPage extends StatelessWidget {
@@ -52,7 +53,7 @@ class GenericLoadingPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
+                    TitleText(
                       title,
                       style: context.textTheme.headlineMedium,
                       textAlign: TextAlign.center,

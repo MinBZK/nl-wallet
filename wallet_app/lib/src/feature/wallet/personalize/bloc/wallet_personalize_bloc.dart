@@ -174,7 +174,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
   Future<void> _onPinConfirmed(event, emit) async {
     final state = this.state;
     if (state is WalletPersonalizeConfirmPin) {
-      emit(WalletPersonalizeLoadInProgress(state.stepperProgress));
+      emit(WalletPersonalizeAddingCards(state.stepperProgress));
       try {
         await _loadCardsAndEmitSuccessState();
       } catch (ex, stack) {

@@ -5,10 +5,11 @@ import 'src/api/full.dart' as core;
 
 export 'src/api/full.dart';
 export 'src/frb_generated.dart';
-export 'src/models/card.dart';
+export 'src/models/attestation.dart';
 export 'src/models/config.dart';
 export 'src/models/disclosure.dart';
 export 'src/models/instruction.dart';
+export 'src/models/localize.dart';
 export 'src/models/pin.dart';
 export 'src/models/uri.dart';
 export 'src/models/version_state.dart';
@@ -28,7 +29,7 @@ Future<void> postInit() async {
     await core.clearLockStream();
     await core.clearConfigurationStream();
     await core.clearVersionStateStream();
-    await core.clearCardsStream();
+    await core.clearAttestationsStream();
     await core.clearRecentHistoryStream();
     // Make sure the wallet is locked, as the [AutoLockObserver] was also killed.
     await core.lockWallet();

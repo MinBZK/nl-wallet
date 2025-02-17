@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use sd_jwt::metadata::DisplayMetadata;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 
@@ -22,6 +23,7 @@ pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 pub struct ProposedDocumentAttributes {
     pub issuer: BorrowingCertificate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
+    pub display_metadata: Vec<DisplayMetadata>,
 }
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`] for disclosure.
@@ -33,6 +35,7 @@ pub struct ProposedDocument<I> {
     pub issuer_signed: IssuerSigned,
     pub device_signed_challenge: Vec<u8>,
     pub issuer_certificate: BorrowingCertificate,
+    pub display_metadata: Vec<DisplayMetadata>,
 }
 
 impl<I> ProposedDocument<I> {
@@ -98,6 +101,8 @@ impl<I> ProposedDocument<I> {
             mdoc,
         } = stored_mdoc;
 
+        let metadata = mdoc.type_metadata()?;
+
         // As this method should only ever be called when we know that it
         // matches the `requested_attributes`, we know that it should result
         // in at least one name space with at least one attribute. For this
@@ -112,7 +117,7 @@ impl<I> ProposedDocument<I> {
                         .into_iter()
                         .filter(|attribute| {
                             let attribute_identifier = AttributeIdentifier {
-                                credential_type: mdoc.doc_type.clone(),
+                                credential_type: mdoc.mso.doc_type.clone(),
                                 namespace: name_space.clone(),
                                 attribute: attribute.0.element_identifier.clone(),
                             };
@@ -140,10 +145,11 @@ impl<I> ProposedDocument<I> {
         let proposed_document = ProposedDocument {
             source_identifier,
             private_key_id: mdoc.private_key_id,
-            doc_type: mdoc.doc_type,
+            doc_type: mdoc.mso.doc_type,
             issuer_signed,
             device_signed_challenge,
             issuer_certificate,
+            display_metadata: metadata.first().display.clone(),
         };
         Ok(proposed_document)
     }
@@ -152,7 +158,16 @@ impl<I> ProposedDocument<I> {
     pub fn proposed_attributes(&self) -> ProposedDocumentAttributes {
         let issuer = self.issuer_certificate.clone();
         let attributes = self.issuer_signed.to_entries_by_namespace();
-        ProposedDocumentAttributes { issuer, attributes }
+        let display_metadata = self.display_metadata.clone();
+        ProposedDocumentAttributes {
+            issuer,
+            attributes,
+            display_metadata,
+        }
+    }
+
+    pub fn display_metadata(&self) -> Vec<DisplayMetadata> {
+        self.display_metadata.clone()
     }
 
     /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.
@@ -193,6 +208,8 @@ impl<I> ProposedDocument<I> {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
+    use sd_jwt::metadata::TypeMetadata;
+
     use crate::holder::Mdoc;
 
     use super::ProposedDocument;
@@ -206,10 +223,11 @@ mod examples {
             Self {
                 source_identifier: "id_1234".to_string(),
                 private_key_id: mdoc.private_key_id,
-                doc_type: mdoc.doc_type,
+                doc_type: mdoc.mso.doc_type,
                 issuer_signed: mdoc.issuer_signed,
                 device_signed_challenge: b"signing_challenge".to_vec(),
                 issuer_certificate,
+                display_metadata: TypeMetadata::bsn_only_example().display,
             }
         }
     }
@@ -240,7 +258,7 @@ mod tests {
             mdoc: Mdoc::new_example_mock(),
         };
         let id = stored_mdoc.id;
-        let doc_type = stored_mdoc.mdoc.doc_type.clone();
+        let doc_type = stored_mdoc.mdoc.mso.doc_type.clone();
         let private_key_id = stored_mdoc.mdoc.private_key_id.clone();
         let issuer_auth = stored_mdoc.mdoc.issuer_signed.issuer_auth.clone();
 
@@ -296,7 +314,7 @@ mod tests {
         };
         let mdoc3 = mdoc1.clone();
 
-        let doc_type = mdoc1.doc_type.clone();
+        let doc_type = mdoc1.mso.doc_type.clone();
         let private_key_id = mdoc1.private_key_id.clone();
 
         let requested_attributes = AttributeIdentifier::new_example_index_set_from_attributes([

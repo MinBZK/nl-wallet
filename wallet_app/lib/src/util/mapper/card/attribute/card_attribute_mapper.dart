@@ -1,12 +1,12 @@
 import 'package:equatable/equatable.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../mapper.dart';
 
 class CardAttributeMapper extends Mapper<CardAttributeWithDocType, DataAttribute> {
-  final Mapper<CardValue, AttributeValue> _attributeValueMapper;
-  final Mapper<List<LocalizedString>, LocalizedText> _localizedLabelsMapper;
+  final Mapper<core.AttributeValue, AttributeValue> _attributeValueMapper;
+  final Mapper<List<core.LocalizedString>, LocalizedText> _localizedLabelsMapper;
 
   CardAttributeMapper(this._attributeValueMapper, this._localizedLabelsMapper);
 
@@ -23,7 +23,7 @@ class CardAttributeMapper extends Mapper<CardAttributeWithDocType, DataAttribute
 
 class CardAttributeWithDocType extends Equatable {
   final String docType;
-  final CardAttribute attribute;
+  final core.AttestationAttribute attribute;
 
   const CardAttributeWithDocType(this.docType, this.attribute);
 

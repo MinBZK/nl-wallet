@@ -14,24 +14,25 @@ import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
 
 const _kSampleDocType = 'pid_id';
-const _kSampleCardAttributeName = CoreMockData.cardAttributeName;
-const _kSampleCardAttributeCity = CoreMockData.cardAttributeCity;
+const _kSampleAttributeName = CoreMockData.attestationAttributeName;
+const _kSampleAttributeCity = CoreMockData.attestationAttributeCity;
 const _kSampleIssuer = CoreMockData.organization;
 
-const _kSampleCard = core.Card(
-  persistence: core.CardPersistence_InMemory(),
-  docType: _kSampleDocType,
-  attributes: [_kSampleCardAttributeName, _kSampleCardAttributeCity],
+const _kSampleCard = core.Attestation(
+  identity: core.AttestationIdentity.ephemeral(),
+  attestationType: 'com.example.pid',
+  displayMetadata: [CoreMockData.displayMetadata],
+  attributes: [_kSampleAttributeName, _kSampleAttributeCity],
   issuer: _kSampleIssuer,
 );
 
 void main() {
-  late Mapper<core.Card, CardFront> mockCardFrontMapper;
+  late Mapper<core.Attestation, CardFront> mockCardFrontMapper;
   late Mapper<CardAttributeWithDocType, DataAttribute> mockCardAttributeMapper;
   late Mapper<String, CardConfig> mockCardConfigMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
 
-  late Mapper<core.Card, WalletCard> mapper;
+  late Mapper<core.Attestation, WalletCard> mapper;
 
   setUp(() {
     provideDummy<CardConfig>(const CardConfig());
@@ -52,13 +53,14 @@ void main() {
   group('map', () {
     test('card with `InMemory` persistence should return docType as `id`', () {
       final WalletCard actual = mapper.map(_kSampleCard);
-      expect(actual.id, _kSampleCard.docType);
+      expect(actual.id, _kSampleCard.attestationType);
     });
 
     test('card with `stored` persistence should return storage `id`', () {
-      const input = core.Card(
-        persistence: core.CardPersistence_Stored(id: 'id-987'),
-        docType: _kSampleDocType,
+      const input = core.Attestation(
+        identity: core.AttestationIdentity.fixed(id: 'id-987'),
+        attestationType: _kSampleDocType,
+        displayMetadata: [CoreMockData.displayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );
@@ -70,7 +72,7 @@ void main() {
 
       verify(
         mockCardAttributeMapper.mapList(
-          _kSampleCard.attributes.map((e) => CardAttributeWithDocType(_kSampleCard.docType, e)),
+          _kSampleCard.attributes.map((e) => CardAttributeWithDocType(_kSampleCard.attestationType, e)),
         ),
       ).called(1);
     });

@@ -11,7 +11,7 @@ import '../pid_repository.dart';
 
 class CorePidRepository extends PidRepository {
   final TypedWalletCore _walletCore;
-  final Mapper<Card, WalletCard> _cardMapper;
+  final Mapper<Attestation, WalletCard> _cardMapper;
 
   CorePidRepository(
     this._walletCore,
@@ -24,7 +24,7 @@ class CorePidRepository extends PidRepository {
   @override
   Future<List<DataAttribute>> continuePidIssuance(String uri) async {
     final result = await _walletCore.continuePidIssuance(uri);
-    return result.map(_cardMapper.map).map((card) => card.attributes).flattened.toList();
+    return result.map(_cardMapper.map).map((attestation) => attestation.attributes).flattened.toList();
   }
 
   @override

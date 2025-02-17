@@ -77,12 +77,12 @@ where
             .hw_pubkey;
 
         let instruction_client = InstructionClientFactory::new(
-            &self.storage,
-            attested_key,
-            &self.account_provider_client,
-            registration_data,
-            &config.http_config,
-            &instruction_result_public_key,
+            Arc::clone(&self.storage),
+            Arc::clone(attested_key),
+            Arc::clone(&self.account_provider_client),
+            registration_data.clone(),
+            config.http_config.clone(),
+            instruction_result_public_key,
         );
 
         let session = BeginChangePinOperation::new(
@@ -123,12 +123,12 @@ where
         let instruction_result_public_key = instruction_result_public_key.into();
 
         let instruction_client = InstructionClientFactory::new(
-            &self.storage,
-            attested_key,
-            &self.account_provider_client,
-            registration_data,
-            &config.http_config,
-            &instruction_result_public_key,
+            Arc::clone(&self.storage),
+            Arc::clone(attested_key),
+            Arc::clone(&self.account_provider_client),
+            registration_data.clone(),
+            config.http_config.clone(),
+            instruction_result_public_key,
         );
 
         let session = FinishChangePinOperation::new(&instruction_client, &self.storage, CHANGE_PIN_RETRIES);
@@ -143,6 +143,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use assert_matches::assert_matches;
     use futures::FutureExt;
     use serde::de::DeserializeOwned;
@@ -181,14 +183,14 @@ mod tests {
     async fn test_wallet_begin_and_continue_change_pin() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        wallet
-            .account_provider_client
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
             .expect_instruction_challenge()
             .times(2)
             .returning(|_, _| Ok(utils::random_bytes(32)));
 
         let (attested_key, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
-        let AttestedKey::Apple(attested_key) = attested_key else {
+        let AttestedKey::Apple(attested_key) = attested_key.as_ref() else {
             unreachable!();
         };
 
@@ -197,8 +199,8 @@ mod tests {
             *attested_key.verifying_key(),
         ));
 
-        wallet
-            .account_provider_client
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
             .expect_instruction()
             .times(1)
             .return_once(|_, _: Instruction<ChangePinStart>| Ok(wp_result));
@@ -217,8 +219,8 @@ mod tests {
 
         let wp_result = create_wp_result(());
 
-        wallet
-            .account_provider_client
+        Arc::get_mut(&mut wallet.account_provider_client)
+            .unwrap()
             .expect_instruction()
             .times(1)
             .return_once(|_, _: Instruction<ChangePinCommit>| Ok(wp_result));

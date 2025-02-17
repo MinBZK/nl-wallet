@@ -63,6 +63,17 @@ tasks.register<Test>("smokeTest") {
     }
 }
 
+tasks.register<Test>("runOnAll") {
+    configureTestTask(this)
+    useJUnitPlatform {
+        includeTags("runonall")
+
+        // Exclude all test suites/wrappers; when using 'includeTags' this is needed to prevent
+        // duplicated test executions and ensure only the actual tagged tests are run.
+        exclude("suite/**")
+    }
+}
+
 val compileKotlin: KotlinCompile by tasks
 compileKotlin.kotlinOptions {
     jvmTarget = "17"

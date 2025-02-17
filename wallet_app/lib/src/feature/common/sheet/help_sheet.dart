@@ -5,6 +5,7 @@ import '../../../util/extension/string_extension.dart';
 import '../screen/placeholder_screen.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/button/list_button.dart';
+import '../widget/text/title_text.dart';
 import '../widget/version/app_version_text.dart';
 import '../widget/version/config_version_text.dart';
 import '../widget/version/os_version_text.dart';
@@ -26,27 +27,21 @@ class HelpSheet extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          MergeSemantics(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.l10n.helpSheetTitle,
-                    style: context.textTheme.displayMedium,
-                    textAlign: TextAlign.start,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    context.l10n.helpSheetDescription,
-                    style: context.textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildInfoSection(context),
-                ],
-              ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TitleText(context.l10n.helpSheetTitle),
+                const SizedBox(height: 16),
+                Text(
+                  context.l10n.helpSheetDescription,
+                  style: context.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 16),
+                _buildInfoSection(context),
+              ],
             ),
           ),
           ListButton(

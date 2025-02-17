@@ -86,6 +86,24 @@
         }
       ],
       "sd": "always"
+    },
+    {
+      "path": [
+        "resident_country"
+      ],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Land",
+          "description": "Land van het adres"
+        },
+        {
+          "lang": "en-US",
+          "label": "Country",
+          "description": "Country of the address"
+        }
+      ],
+      "sd": "always"
     }
   ],
   "schema": {
@@ -104,7 +122,10 @@
         "type": "string"
       },
       "resident_city": {
-        "type": "boolean"
+        "type": "string"
+      },
+      "resident_country": {
+        "type": "string"
       },
       "vct": {
         "type": "string"
@@ -116,10 +137,13 @@
         "type": "string"
       },
       "iat": {
-        "type": "string"
+        "type": "number"
       },
       "exp": {
-        "type": "string"
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
       }
     },
     "required": [

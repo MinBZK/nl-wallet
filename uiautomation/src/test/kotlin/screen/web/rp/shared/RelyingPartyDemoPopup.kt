@@ -37,10 +37,7 @@ class RelyingPartyDemoPopup : MobileActions() {
     fun helpSectionVisible() = isWebElementVisible(getWebModalAnchor().findElement(helpSectionLocator))
     fun closeButtonVisible() = isWebElementVisible(getWebModalAnchor().findElement(closeButtonLocator))
 
-    fun clickSameDeviceButton() {
-        clickWebElement(getWebModalAnchor().findElement(sameDeviceButtonLocator))
-        switchToAppContext()
-    }
+    fun clickSameDeviceButton() = clickWebElement(getWebModalAnchor().findElement(sameDeviceButtonLocator))
 
     fun clickOtherDeviceButton() = clickWebElement(getWebModalAnchor().findElement(otherDeviceButtonLocator))
 

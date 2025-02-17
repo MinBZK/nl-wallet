@@ -22,7 +22,7 @@ class WalletEventLog {
             /// Check if the provided docType was used in this request
             return disclosure.requestedCards!.any((card) => card.docType == docType);
           },
-          issuance: (WalletEvent_Issuance issuance) => issuance.card.docType == docType,
+          issuance: (WalletEvent_Issuance issuance) => issuance.attestation.attestationType == docType,
         ),
       )
       .toList();
@@ -75,10 +75,10 @@ class WalletEventLog {
     _logEvent(event);
   }
 
-  void logIssuance(Card card) {
+  void logIssuance(Attestation attestation) {
     final event = WalletEvent.issuance(
       dateTime: DateTime.now().toIso8601String(),
-      card: card,
+      attestation: attestation,
     );
     _logEvent(event);
   }
@@ -97,7 +97,7 @@ class WalletEventLog {
             return disclosure.relyingParty == organization;
           },
           issuance: (issuance) {
-            return issuance.card.issuer == organization;
+            return issuance.attestation.issuer == organization;
           },
         );
       },

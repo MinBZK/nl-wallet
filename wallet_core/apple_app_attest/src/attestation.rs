@@ -338,8 +338,7 @@ pub mod mock {
             }
 
             pub fn new_mock() -> Self {
-                Self::from_der(&MOCK_APPLE_ROOT_CA, &MOCK_APPLE_ROOT_CA_KEY)
-                    .expect("could not decode mock Apple root CA")
+                Self::from_der(MOCK_APPLE_ROOT_CA, MOCK_APPLE_ROOT_CA_KEY).expect("could not decode mock Apple root CA")
             }
         }
     }

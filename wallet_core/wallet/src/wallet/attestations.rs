@@ -1,3 +1,4 @@
+use http::Uri;
 use tracing::info;
 
 use error_category::sentry_capture_error;
@@ -6,10 +7,13 @@ use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use openid4vc::credential_payload::CredentialPayload;
+use openid4vc::credential_payload::CredentialPayloadError;
 use platform_support::attested_key::AttestedKeyHolder;
 
-use crate::document::Document;
-use crate::document::DocumentPersistence;
+use crate::attestation::Attestation;
+use crate::attestation::AttestationError;
+use crate::attestation::AttestationIdentity;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
@@ -18,7 +22,7 @@ use super::Wallet;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
-pub enum DocumentsError {
+pub enum AttestationsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
     #[error("could not extract Mdl extension from X.509 certificate: {0}")]
@@ -28,68 +32,70 @@ pub enum DocumentsError {
     #[error("X.509 certificate does not contain IssuerRegistration")]
     #[category(critical)]
     MissingIssuerRegistration,
+    #[error("error converting mdoc to credential payload: {0}")]
+    #[category(defer)]
+    CredentialPayload(#[from] CredentialPayloadError),
+    #[error("error converting credential payload to attestation: {0}")]
+    #[category(defer)]
+    Attestation(#[from] AttestationError),
 }
 
-pub type DocumentsCallback = Box<dyn FnMut(Vec<Document>) + Send + Sync>;
+pub type AttestationsCallback = Box<dyn FnMut(Vec<Attestation>) + Send + Sync>;
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
 {
-    pub(super) async fn emit_documents(&mut self) -> Result<(), DocumentsError> {
+    pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
         info!("Emit mdocs from storage");
 
         let storage = self.storage.read().await;
 
-        // Note that this currently panics whenever conversion from Mdoc to Documents fails,
-        // as we assume that the (hardcoded) mapping will always be backwards compatible.
-        // This is particularly important when this mapping comes from a trusted registry
-        // in the near future!
-        let mut documents = storage
+        let attestations = storage
             .fetch_unique_mdocs()
             .await?
             .into_iter()
             .map(|StoredMdocCopy { mdoc_id, mdoc, .. }| {
                 let issuer_certificate = mdoc.issuer_certificate()?;
                 let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
-                    .ok_or(DocumentsError::MissingIssuerRegistration)?;
-                let document = Document::from_mdoc_attributes(
-                    DocumentPersistence::Stored(mdoc_id.to_string()),
-                    &mdoc.doc_type,
-                    mdoc.attributes(),
-                    issuer_registration,
-                )
-                .expect("Could not interpret stored mdoc attributes");
-                Ok(document)
+                    .ok_or(AttestationsError::MissingIssuerRegistration)?;
+
+                let attestation = Attestation::from_credential_payload(
+                    AttestationIdentity::Fixed {
+                        id: mdoc_id.to_string(),
+                    },
+                    CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?, // TODO: PVW-3823
+                    mdoc.type_metadata().unwrap().first().clone(),                     // TODO: PVW-3812
+                    issuer_registration.organization,
+                )?;
+                Ok(attestation)
             })
-            .collect::<Result<Vec<_>, DocumentsError>>()?;
+            .collect::<Result<Vec<_>, AttestationsError>>()?;
 
-        documents.sort_by_key(Document::priority);
-
-        if let Some(ref mut callback) = self.documents_callback {
-            callback(documents);
+        if let Some(ref mut callback) = self.attestations_callback {
+            callback(attestations);
         }
 
         Ok(())
     }
 
     #[sentry_capture_error]
-    pub async fn set_documents_callback(
+    pub async fn set_attestations_callback(
         &mut self,
-        callback: DocumentsCallback,
-    ) -> Result<Option<DocumentsCallback>, DocumentsError> {
-        let previous_callback = self.documents_callback.replace(callback);
+        callback: AttestationsCallback,
+    ) -> Result<Option<AttestationsCallback>, AttestationsError> {
+        let previous_callback = self.attestations_callback.replace(callback);
 
         if self.registration.is_registered() {
-            self.emit_documents().await?;
+            self.emit_attestations().await?;
         }
 
         Ok(previous_callback)
     }
 
-    pub fn clear_documents_callback(&mut self) -> Option<DocumentsCallback> {
-        self.documents_callback.take()
+    pub fn clear_attestations_callback(&mut self) -> Option<AttestationsCallback> {
+        self.attestations_callback.take()
     }
 }
 
@@ -104,32 +110,32 @@ mod tests {
     use super::super::test::WalletWithMocks;
     use super::*;
 
-    // Tests both setting and clearing the documents callback on an unregistered `Wallet`.
+    // Tests both setting and clearing the attestations callback on an unregistered `Wallet`.
     #[tokio::test]
-    async fn test_wallet_set_clear_documents_callback() {
+    async fn test_wallet_set_clear_attestations_callback() {
         // Prepare an unregistered wallet.
         let mut wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Register mock document_callback
-        let documents = test::setup_mock_documents_callback(&mut wallet)
+        let attestations = test::setup_mock_attestations_callback(&mut wallet)
             .await
-            .expect("Failed to set mock documents callback");
+            .expect("Failed to set mock attestations callback");
 
         // Infer that the closure is still alive by counting the `Arc` references.
-        assert_eq!(Arc::strong_count(&documents), 2);
+        assert_eq!(Arc::strong_count(&attestations), 2);
 
         // Confirm that the callback was not called.
         {
-            let documents = documents.lock();
+            let attestations = attestations.lock();
 
-            assert!(documents.is_empty());
+            assert!(attestations.is_empty());
         }
 
         // Clear the documents callback on the `Wallet.`
-        wallet.clear_documents_callback();
+        wallet.clear_attestations_callback();
 
         // Infer that the closure is now dropped by counting the `Arc` references.
-        assert_eq!(Arc::strong_count(&documents), 1);
+        assert_eq!(Arc::strong_count(&attestations), 1);
     }
 
     // Tests both setting and clearing the documents callback on a registered `Wallet`.
@@ -139,38 +145,39 @@ mod tests {
 
         // The database contains a single `Mdoc`.
         let mdoc = test::create_full_pid_mdoc();
-        let mdoc_doc_type = mdoc.doc_type.clone();
+        let mdoc_doc_type = mdoc.doc_type().clone();
         wallet
             .storage
-            .get_mut()
+            .write()
+            .await
             .mdocs
-            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].try_into().unwrap()]);
+            .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
 
         // Register mock document_callback
-        let documents = test::setup_mock_documents_callback(&mut wallet)
+        let attestations = test::setup_mock_attestations_callback(&mut wallet)
             .await
-            .expect("Failed to set mock documents callback");
+            .expect("Failed to set mock attestations callback");
 
         // Infer that the closure is still alive by counting the `Arc` references.
-        assert_eq!(Arc::strong_count(&documents), 2);
+        assert_eq!(Arc::strong_count(&attestations), 2);
 
         // Confirm that we received a single `Document` on the callback.
         {
-            let documents = documents.lock();
+            let attestations = attestations.lock();
 
-            let document = documents
+            let attestation = attestations
                 .first()
-                .expect("Documents callback should have been called")
+                .expect("Attestations callback should have been called")
                 .first()
-                .expect("Documents callback should have been provided an Mdoc");
-            assert_eq!(document.doc_type, mdoc_doc_type);
+                .expect("Attestations callback should have been provided an Mdoc");
+            assert_eq!(attestation.attestation_type, mdoc_doc_type);
         }
 
         // Clear the documents callback on the `Wallet.`
-        wallet.clear_documents_callback();
+        wallet.clear_attestations_callback();
 
         // Infer that the closure is now dropped by counting the `Arc` references.
-        assert_eq!(Arc::strong_count(&documents), 1);
+        assert_eq!(Arc::strong_count(&attestations), 1);
     }
 
     // Tests that setting the documents callback on a registered `Wallet`, with invalid issuer certificate raises
@@ -183,36 +190,37 @@ mod tests {
         let mdoc = test::create_full_pid_mdoc_unauthenticated();
         wallet
             .storage
-            .get_mut()
+            .write()
+            .await
             .mdocs
-            .insert(mdoc.doc_type.clone(), vec![vec![mdoc].try_into().unwrap()]);
+            .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
 
-        // Register mock document_callback
-        let (documents, error) = test::setup_mock_documents_callback(&mut wallet)
+        // Register mock attestation_callback
+        let (attestations, error) = test::setup_mock_attestations_callback(&mut wallet)
             .await
             .map(|_| ())
             .expect_err("Expected error");
 
-        assert_matches!(error, DocumentsError::MissingIssuerRegistration);
+        assert_matches!(error, AttestationsError::MissingIssuerRegistration);
 
         // Infer that the closure is still alive by counting the `Arc` references.
-        assert_eq!(Arc::strong_count(&documents), 2);
+        assert_eq!(Arc::strong_count(&attestations), 2);
     }
 
     #[tokio::test]
-    async fn test_wallet_set_documents_callback_error() {
+    async fn test_wallet_set_attestations_callback_error() {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the database return an error on query.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.write().await.has_query_error = true;
 
         // Confirm that setting the callback returns an error.
         let error = wallet
-            .set_documents_callback(Box::new(|_| {}))
+            .set_attestations_callback(Box::new(|_| {}))
             .await
             .map(|_| ())
-            .expect_err("Setting documents callback should have resulted in an error");
+            .expect_err("Setting attestations callback should have resulted in an error");
 
-        assert_matches!(error, DocumentsError::Storage(_));
+        assert_matches!(error, AttestationsError::Storage(_));
     }
 }

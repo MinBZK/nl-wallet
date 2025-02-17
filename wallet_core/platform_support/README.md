@@ -34,6 +34,14 @@ Wallet Android Project --> wallet_core --> platform_support
             \----->  PlatformSupport  -------/
 ```
 
+### Play Integrity
+
+The Android app supports Play Integrity integration. Currently, this is enabled
+unconditionally. The Play Integrity API is throttled, which affects our testing
+(our ./connectedAndroidTest task, see below). You will see HTTP 429 (backoff)
+responses. This is a known issue and we are currently (as of 2025-02-13) working
+to fix this by handling play integrity enablement more intelligently.
+
 ## iOS
 
 First, there is the Swift implementation, which is contained within a small Xcode project that produces a static library (i.e. a `.a` file).

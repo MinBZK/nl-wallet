@@ -158,22 +158,25 @@ where
                     .attested_key(data.attested_key_identifier.clone())
                     .expect("should be able to instantiate hardware attested key");
 
-                WalletRegistration::Registered { attested_key, data }
+                WalletRegistration::Registered {
+                    attested_key: Arc::new(attested_key),
+                    data,
+                }
             }
         };
 
         Wallet {
             config_repository,
             update_policy_repository,
-            storage: RwLock::new(storage),
+            storage: Arc::new(RwLock::new(storage)),
             key_holder,
             registration,
-            account_provider_client,
+            account_provider_client: Arc::new(account_provider_client),
             issuance_session: None,
             disclosure_session: None,
             wte_issuance_client: WIC::default(),
             lock: WalletLock::new(true),
-            documents_callback: None,
+            attestations_callback: None,
             recent_history_callback: None,
         }
     }

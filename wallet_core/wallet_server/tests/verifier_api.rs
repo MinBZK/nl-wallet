@@ -519,7 +519,10 @@ fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session
     let mut status_url = public_url.join(&format!("disclosure/sessions/{session_token}"));
 
     if let Some(session_type) = session_type {
-        let status_query = serde_urlencoded::to_string(StatusParams { session_type }).unwrap();
+        let status_query = serde_urlencoded::to_string(StatusParams {
+            session_type: Some(session_type),
+        })
+        .unwrap();
         status_url.set_query(status_query.as_str().into());
     }
 
@@ -890,7 +893,7 @@ async fn prepare_example_holder_mocks(
         copy_count: 1.try_into().unwrap(),
     };
 
-    let metadata = TypeMetadata::new_example();
+    let metadata = TypeMetadata::bsn_only_example();
     let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.

@@ -1,4 +1,5 @@
 build-sbom:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .ruby-cache
   rules: !reference [.default-branch, rules]
   script:

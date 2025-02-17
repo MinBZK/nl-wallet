@@ -7,7 +7,6 @@ use std::sync::Arc;
 use aes_gcm::Aes256Gcm;
 use anyhow::anyhow;
 use askama::Template;
-use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::extract::Request;
 use axum::extract::State;
@@ -116,17 +115,13 @@ async fn serve(settings: Settings) -> anyhow::Result<()> {
     });
 
     let app = Router::new()
-        .nest("/health", Router::new().route("/", get(|| async {})))
-        .nest(
-            "/",
-            Router::new()
-                .route("/", get(index).post(fetch))
-                .route("/clear", post(clear))
-                .with_state(app_state)
-                .layer(CsrfLayer::new(csrf_config))
-                .layer(middleware::from_fn(check_auth))
-                .layer(TraceLayer::new_for_http()),
-        );
+        .route("/", get(index).post(fetch))
+        .route("/clear", post(clear))
+        .with_state(app_state)
+        .layer(CsrfLayer::new(csrf_config))
+        .layer(middleware::from_fn(check_auth))
+        .layer(TraceLayer::new_for_http())
+        .route("/health", get(|| async {}));
 
     axum::serve(listener, app).await?;
 
@@ -138,7 +133,6 @@ struct CertSerial(String);
 
 struct ExtractCertSerial(Option<CertSerial>);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for ExtractCertSerial
 where
     S: Send + Sync,

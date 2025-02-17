@@ -1,8 +1,10 @@
+use std::mem;
 use std::sync::Arc;
 
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
+use http::Uri;
 use p256::ecdsa::signature;
 use tracing::info;
 use tracing::instrument;
@@ -14,6 +16,8 @@ use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
+use openid4vc::credential_payload::CredentialPayload;
+use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
@@ -30,8 +34,10 @@ use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
+use crate::attestation::Attestation;
+use crate::attestation::AttestationError;
+use crate::attestation::AttestationIdentity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
-use crate::document::Document;
 use crate::document::DocumentMdocError;
 use crate::document::PID_DOCTYPE;
 use crate::errors::ChangePinError;
@@ -47,9 +53,9 @@ use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::WalletEvent;
+use crate::wallet::attestations::AttestationsError;
 use crate::wte::WteIssuanceClient;
 
-use super::documents::DocumentsError;
 use super::history::EventStorageError;
 use super::Wallet;
 
@@ -104,8 +110,8 @@ pub enum PidIssuanceError {
     #[error("issuer not authenticated")]
     #[category(critical)]
     MissingIssuerRegistration,
-    #[error("could not read documents from storage: {0}")]
-    Document(#[source] DocumentsError),
+    #[error("could not read attestations from storage: {0}")]
+    Attestations(#[source] AttestationsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
     AttestationPreview(#[from] CredentialPreviewError),
     #[error("error finalizing pin change: {0}")]
@@ -117,6 +123,11 @@ pub enum PidIssuanceError {
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataError),
+    #[error("error converting mdoc to credential payload: {0}")]
+    CredentialPayload(#[from] CredentialPayloadError),
+    #[error("error converting credential payload to attestation: {0}")]
+    #[category(critical)]
+    Attestation(#[from] AttestationError),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -157,7 +168,8 @@ where
         info!("Checking if a pid is already present");
         let has_pid = self
             .storage
-            .get_mut()
+            .write()
+            .await
             .has_any_mdocs_with_doctype(PID_DOCTYPE)
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
@@ -238,7 +250,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Document>, PidIssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Attestation>, PidIssuanceError> {
         info!("Received DigiD redirect URI, processing URI and retrieving access token");
 
         info!("Checking if blocked");
@@ -290,7 +302,7 @@ where
         .await?;
 
         info!("PID received successfully from issuer, returning preview documents");
-        let documents = attestation_previews
+        let attestations = attestation_previews
             .into_iter()
             .flatten()
             .map(|preview| {
@@ -301,10 +313,19 @@ where
                         metadata_chain,
                         ..
                     } => {
-                        let _metadata = metadata_chain.verify_and_parse_root()?;
+                        let (metadata, _) = metadata_chain.verify_and_destructure()?;
                         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
-                        Ok(Document::from_unsigned_mdoc(unsigned_mdoc, *issuer_registration)?)
+                        let credential_payload =
+                            CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                        let attestation = Attestation::from_credential_payload(
+                            AttestationIdentity::Ephemeral,
+                            credential_payload,
+                            metadata.first().clone(), // TODO: PVW-3812
+                            issuer_registration.organization,
+                        )?;
+
+                        Ok(attestation)
                     }
                 }
             })
@@ -313,7 +334,7 @@ where
         self.issuance_session
             .replace(PidIssuanceSession::Openid4vci(pid_issuer));
 
-        Ok(documents)
+        Ok(attestations)
     }
 
     #[instrument(skip_all)]
@@ -361,19 +382,19 @@ where
         let remote_instruction = self
             .new_instruction_client(
                 pin,
-                attested_key,
-                registration_data,
-                &config.account_server.http_config,
-                &instruction_result_public_key,
+                Arc::clone(attested_key),
+                registration_data.clone(),
+                config.account_server.http_config.clone(),
+                instruction_result_public_key,
             )
             .await?;
 
         let wte = self
             .wte_issuance_client
-            .obtain_wte(&config.account_server.wte_public_key.0, &remote_instruction)
+            .obtain_wte(&config.account_server.wte_public_key.0, remote_instruction.clone())
             .await?;
 
-        let remote_key_factory = RemoteEcdsaKeyFactory::new(&remote_instruction);
+        let remote_key_factory = RemoteEcdsaKeyFactory::new(remote_instruction);
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
@@ -401,6 +422,9 @@ where
                     _ => PidIssuanceError::PidIssuer(error),
                 }
             });
+
+        // Make sure there are no remaining references to the `AttestedKey` value.
+        mem::drop(remote_key_factory);
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.
@@ -444,7 +468,8 @@ where
 
         info!("PID accepted, storing mdoc in database");
         self.storage
-            .get_mut()
+            .write()
+            .await
             .insert_mdocs(issued_mdocs)
             .await
             .map_err(PidIssuanceError::MdocStorage)?;
@@ -453,7 +478,7 @@ where
             .await
             .map_err(PidIssuanceError::EventStorage)?;
 
-        self.emit_documents().await.map_err(PidIssuanceError::Document)?;
+        self.emit_attestations().await.map_err(PidIssuanceError::Attestations)?;
 
         Ok(())
     }
@@ -480,7 +505,6 @@ mod tests {
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use crate::document;
-    use crate::document::DocumentPersistence;
     use crate::issuance::MockDigidSession;
     use crate::storage::StorageState;
     use crate::wallet::history::HistoryEvent;
@@ -724,13 +748,13 @@ mod tests {
         });
 
         // Continuing PID issuance should result in one preview `Document`.
-        let documents = wallet
+        let attestations = wallet
             .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect("Could not continue PID issuance");
 
-        assert_eq!(documents.len(), 1);
-        assert_matches!(documents[0].persistence, DocumentPersistence::InMemory);
+        assert_eq!(attestations.len(), 1);
+        assert_matches!(attestations[0].identity, AttestationIdentity::Ephemeral);
     }
 
     #[tokio::test]
@@ -824,41 +848,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[serial(MockIssuanceSession)]
-    async fn test_continue_pid_issuance_error_document() {
-        let mut wallet = setup_wallet_with_digid_session();
-
-        // Set up the `MockIssuanceSession` to return an `AttestationPreview` with an unknown doctype.
-        let start_context = MockIssuanceSession::start_context();
-        start_context.expect().return_once(|| {
-            let (mut unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
-            unsigned_mdoc.doc_type = "foobar".to_string();
-            let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
-
-            Ok((
-                MockIssuanceSession::new(),
-                vec![CredentialFormats::try_new(
-                    VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
-                        unsigned_mdoc,
-                        issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
-                        metadata_chain,
-                    }])
-                    .unwrap(),
-                )
-                .unwrap()],
-            ))
-        });
-
-        // Continuing PID issuance when receiving an unknown mdoc should result in an error.
-        let error = wallet
-            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
-            .await
-            .expect_err("Continuing PID issuance should have resulted in error");
-
-        assert_matches!(error, PidIssuanceError::MdocDocument(_));
-    }
-
-    #[tokio::test]
     async fn test_cancel_pid_issuance_error_pid_issuer() {
         // Prepare a registered and unlocked wallet.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
@@ -890,7 +879,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Register mock document_callback
-        let documents = test::setup_mock_documents_callback(&mut wallet).await.unwrap();
+        let attestations = test::setup_mock_attestations_callback(&mut wallet).await.unwrap();
 
         // Register mock recent_history_callback
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
@@ -908,18 +897,18 @@ mod tests {
             .expect("Could not accept PID issuance");
 
         {
-            // Test which `Document` instances we have received through the callback.
-            let documents = documents.lock();
+            // Test which `Attestation` instances we have received through the callback.
+            let attestations = attestations.lock();
 
             // The first entry should be empty, because there are no mdocs in the database.
-            assert_eq!(documents.len(), 2);
-            assert!(documents[0].is_empty());
+            assert_eq!(attestations.len(), 2);
+            assert!(attestations[0].is_empty());
 
-            // The second entry should contain a single document with the PID.
-            assert_eq!(documents[1].len(), 1);
-            let document = &documents[1][0];
-            assert_matches!(document.persistence, DocumentPersistence::Stored(_));
-            assert_eq!(document.doc_type, "com.example.pid");
+            // The second entry should contain a single attestation with the PID.
+            assert_eq!(attestations[1].len(), 1);
+            let attestation = &attestations[1][0];
+            assert_matches!(attestation.identity, AttestationIdentity::Fixed { id: _ });
+            assert_eq!(attestation.attestation_type, "com.example.pid");
 
             // Test that one successful issuance event is logged
             let events = events.lock();
@@ -1061,7 +1050,7 @@ mod tests {
         #[case] instruction_error: InstructionError,
         #[case] expect_reset: bool,
     ) {
-        let (mut wallet, error) =
+        let (wallet, error) =
             test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(instruction_error)).await;
 
         // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
@@ -1072,13 +1061,13 @@ mod tests {
             assert!(!wallet.has_registration());
             assert!(wallet.is_locked());
             assert_matches!(
-                wallet.storage.get_mut().state().await.unwrap(),
+                wallet.storage.read().await.state().await.unwrap(),
                 StorageState::Uninitialized
             );
         } else {
             assert!(wallet.has_registration());
             assert!(!wallet.is_locked());
-            assert_matches!(wallet.storage.get_mut().state().await.unwrap(), StorageState::Opened);
+            assert_matches!(wallet.storage.read().await.state().await.unwrap(), StorageState::Opened);
         }
     }
 
@@ -1144,7 +1133,7 @@ mod tests {
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
         // Have the mdoc storage return an error on query.
-        wallet.storage.get_mut().has_query_error = true;
+        wallet.storage.write().await.has_query_error = true;
 
         // Accepting PID issuance should result in an error.
         let error = wallet

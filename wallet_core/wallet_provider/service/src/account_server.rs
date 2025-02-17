@@ -16,13 +16,22 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 use uuid::Uuid;
+use webpki::ring::ECDSA_P256_SHA256;
+use webpki::ring::ECDSA_P256_SHA384;
+use webpki::ring::ECDSA_P384_SHA256;
+use webpki::ring::ECDSA_P384_SHA384;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA384;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA512;
+use webpki::ring::RSA_PKCS1_3072_8192_SHA384;
 
 use android_attest::android_crl;
 use android_attest::android_crl::GoogleRevocationListClient;
 use android_attest::android_crl::RevocationStatusList;
-use android_attest::certificate_chain::verify_google_key_attestation_with_time;
+use android_attest::certificate_chain::verify_google_key_attestation_with_params;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::root_public_key::RootPublicKey;
+use android_attest::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
@@ -436,11 +445,25 @@ impl<GC> AccountServer<GC> {
                     .iter()
                     .map(|cert| CertificateDer::from_slice(cert))
                     .collect::<Vec<_>>();
-                let leaf_certificate = verify_google_key_attestation_with_time(
+
+                let supported_sig_algs = vec![
+                    ECDSA_P256_SHA256,
+                    ECDSA_P256_SHA256_WITH_NULL_PARAMETERS,
+                    ECDSA_P256_SHA384,
+                    ECDSA_P384_SHA256,
+                    ECDSA_P384_SHA384,
+                    RSA_PKCS1_2048_8192_SHA256,
+                    RSA_PKCS1_2048_8192_SHA384,
+                    RSA_PKCS1_2048_8192_SHA512,
+                    RSA_PKCS1_3072_8192_SHA384,
+                ];
+
+                let leaf_certificate = verify_google_key_attestation_with_params(
                     &attested_key_chain,
                     &self.android_root_public_keys,
                     &crl,
                     &challenge_hash,
+                    &supported_sig_algs,
                     attestation_timestamp,
                 )
                 .map_err(|error| match error {
