@@ -1274,8 +1274,8 @@ mod tests {
     async fn test_credential_response_into_mdoc_issued_issuer_mismatch_error() {
         let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
-        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
-        // in the preview than are contained within the response should fail.
+        // Converting a `CredentialResponse` into an `Mdoc` with a different `issuer_common_name` in the preview than
+        // contained within the response should fail.
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 mut unsigned_mdoc,
@@ -1305,8 +1305,8 @@ mod tests {
     async fn test_credential_response_into_mdoc_issued_doctype_mismatch_error() {
         let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
-        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
-        // in the preview than are contained within the response should fail.
+        // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
+        // within the response should fail.
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 mut unsigned_mdoc,
@@ -1336,8 +1336,8 @@ mod tests {
     async fn test_credential_response_into_mdoc_issued_validity_info_mismatch_error() {
         let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
-        // Converting a `CredentialResponse` into an `Mdoc` with different attributes
-        // in the preview than are contained within the response should fail.
+        // Converting a `CredentialResponse` into an `Mdoc` with different expiration information in the preview than
+        // contained within the response should fail.
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 mut unsigned_mdoc,
