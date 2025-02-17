@@ -2,9 +2,9 @@ use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use uuid::Uuid;
 
+use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_domain::model::wrapped_key::WrappedKey;
 use wallet_provider_persistence::wallet_user_key::create_keys;
 use wallet_provider_persistence::wallet_user_key::find_keys_by_identifiers;
 

@@ -51,6 +51,8 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
         return RedirectError.accessDenied;
       case 'server_error':
         return RedirectError.serverError;
+      case 'login_required':
+        return RedirectError.loginRequired;
       default:
         return RedirectError.unknown;
     }

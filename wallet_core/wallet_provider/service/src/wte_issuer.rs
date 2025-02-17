@@ -2,16 +2,15 @@ use std::error::Error;
 
 use p256::ecdsa::VerifyingKey;
 
+use hsm::keys::HsmEcdsaKey;
+use hsm::model::wrapped_key::WrappedKey;
+use hsm::service::HsmError;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtCredentialClaims;
 use wallet_common::jwt::JwtError;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::wte::WteClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
-use wallet_provider_domain::model::wrapped_key::WrappedKey;
-
-use crate::hsm::HsmError;
-use crate::keys::WalletProviderEcdsaKey;
 
 pub trait WteIssuer {
     type Error: Error + Send + Sync + 'static;
@@ -20,15 +19,21 @@ pub trait WteIssuer {
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
-pub struct HsmWteIssuer<H, K = WalletProviderEcdsaKey> {
+pub struct HsmWteIssuer<H, K = HsmEcdsaKey> {
     private_key: K,
     iss: String,
     hsm: H,
+    wrapping_key_identifier: String,
 }
 
 impl<H, K> HsmWteIssuer<H, K> {
-    pub fn new(private_key: K, iss: String, hsm: H) -> Self {
-        Self { private_key, iss, hsm }
+    pub fn new(private_key: K, iss: String, hsm: H, wrapping_key_identifier: String) -> Self {
+        Self {
+            private_key,
+            iss,
+            hsm,
+            wrapping_key_identifier,
+        }
     }
 }
 
@@ -52,7 +57,7 @@ where
     type Error = HsmWteIssuerError;
 
     async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
-        let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key().await?;
+        let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
 
         let jwt = JwtCredentialClaims::new_signed(
             &pubkey,
@@ -81,10 +86,10 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use hsm::model::wrapped_key::WrappedKey;
     use wallet_common::jwt::Jwt;
     use wallet_common::jwt::JwtCredentialClaims;
     use wallet_common::wte::WteClaims;
-    use wallet_provider_domain::model::wrapped_key::WrappedKey;
 
     use super::WteIssuer;
 
@@ -111,13 +116,12 @@ pub mod mock {
 mod tests {
     use chrono::Utc;
 
+    use hsm::model::mock::MockPkcs11Client;
+    use hsm::service::HsmError;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use wallet_common::jwt;
     use wallet_common::jwt::jwk_to_p256;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
-
-    use crate::hsm::HsmError;
 
     use super::HsmWteIssuer;
     use super::WteIssuer;
@@ -128,11 +132,13 @@ mod tests {
         let wte_signing_key = SigningKey::random(&mut OsRng);
         let wte_verifying_key = wte_signing_key.verifying_key();
         let iss = "iss";
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wte_issuer = HsmWteIssuer {
             private_key: wte_signing_key.clone(),
             iss: iss.to_string(),
             hsm,
+            wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
         let (wte_privkey, wte) = wte_issuer.issue_wte().await.unwrap();

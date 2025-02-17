@@ -1,11 +1,5 @@
 sealed class CheckPinResult {}
 
-class CheckPinResultOk extends CheckPinResult {
-  final String? returnUrl;
-
-  CheckPinResultOk({this.returnUrl});
-}
-
 class CheckPinResultIncorrect extends CheckPinResult {
   final int attemptsLeftInRound;
   final bool isFinalRound;

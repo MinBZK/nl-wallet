@@ -443,6 +443,8 @@ p11tool --login --write \
   --provider="${HSM_LIBRARY_PATH}" \
   "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
 
+render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/hsm/hsm.toml"
+
 ########################################################################
 # Configure configuration-server
 ########################################################################

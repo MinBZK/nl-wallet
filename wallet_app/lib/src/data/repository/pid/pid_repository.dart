@@ -2,8 +2,6 @@ import 'package:wallet_core/core.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 
-export '../../../domain/model/pid/pid_issuance_status.dart';
-
 abstract class PidRepository {
   Future<String> getPidIssuanceUrl();
 

@@ -1,12 +1,18 @@
 import '../../../../data/repository/card/wallet_card_repository.dart';
+import '../../../model/result/result.dart';
 import '../../../model/wallet_card.dart';
 import '../get_wallet_card_usecase.dart';
 
-class GetWalletCardUseCaseImpl implements GetWalletCardUseCase {
-  final WalletCardRepository walletCardRepository;
+class GetWalletCardUseCaseImpl extends GetWalletCardUseCase {
+  final WalletCardRepository _walletCardRepository;
 
-  GetWalletCardUseCaseImpl(this.walletCardRepository);
+  GetWalletCardUseCaseImpl(this._walletCardRepository);
 
   @override
-  Future<WalletCard> invoke(String docType) async => walletCardRepository.read(docType);
+  Future<Result<WalletCard>> invoke(String docType) async {
+    return tryCatch(
+      () async => _walletCardRepository.read(docType),
+      'Failed to load card with id: $docType',
+    );
+  }
 }

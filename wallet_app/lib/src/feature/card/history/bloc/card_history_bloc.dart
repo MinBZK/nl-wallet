@@ -1,5 +1,4 @@
 import 'package:equatable/equatable.dart';
-import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../domain/model/event/wallet_event.dart';
@@ -23,13 +22,13 @@ class CardHistoryBloc extends Bloc<CardHistoryEvent, CardHistoryState> {
 
   Future<void> _onCardHistoryLoadTriggered(CardHistoryLoadTriggered event, emit) async {
     emit(const CardHistoryLoadInProgress());
-    try {
-      final WalletCard card = await getWalletCardUseCase.invoke(event.docType);
-      final List<WalletEvent> events = await getEventsForCardUseCase.invoke(event.docType);
-      emit(CardHistoryLoadSuccess(card, events));
-    } catch (error, stack) {
-      Fimber.e('Failed to load card history for ${event.docType}', ex: error, stacktrace: stack);
+    final cardResult = await getWalletCardUseCase.invoke(event.docType);
+    final eventsResult = await getEventsForCardUseCase.invoke(event.docType);
+
+    if (cardResult.hasError || eventsResult.hasError) {
       emit(const CardHistoryLoadFailure());
+    } else {
+      emit(CardHistoryLoadSuccess(cardResult.value!, eventsResult.value!));
     }
   }
 }

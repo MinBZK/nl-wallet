@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/pin_screen.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.mocks.dart';
@@ -44,7 +44,7 @@ void main() {
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateNetworkError(
-            error: CoreNetworkError('no internet'),
+            error: NetworkError(hasInternet: false, sourceError: 'test'),
             hasInternet: false,
           ),
         ),
@@ -78,7 +78,7 @@ void main() {
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateNetworkError(
-            error: CoreNetworkError('server'),
+            error: NetworkError(hasInternet: true, sourceError: 'test'),
             hasInternet: true,
           ),
         ),
@@ -112,7 +112,7 @@ void main() {
         ).withState<PinBloc, PinState>(
           MockPinBloc(),
           const PinValidateGenericError(
-            error: CoreGenericError('generic'),
+            error: GenericError('generic', sourceError: 'test'),
           ),
         ),
         providers: [

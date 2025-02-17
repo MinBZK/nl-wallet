@@ -2,7 +2,7 @@ import '../../../../navigation/secured_page_route.dart';
 import '../../wallet/setup_mocked_wallet_usecase.dart';
 import '../perform_pre_navigation_actions_usecase.dart';
 
-class PerformPreNavigationActionsUseCaseImpl implements PerformPreNavigationActionsUseCase {
+class PerformPreNavigationActionsUseCaseImpl extends PerformPreNavigationActionsUseCase {
   final SetupMockedWalletUseCase _setupMockedWalletUseCase;
 
   PerformPreNavigationActionsUseCaseImpl(this._setupMockedWalletUseCase);

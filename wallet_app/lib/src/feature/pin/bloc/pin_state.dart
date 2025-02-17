@@ -65,7 +65,7 @@ class PinValidateBlocked extends PinState {
 
 class PinValidateNetworkError extends PinState implements NetworkErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   final bool hasInternet;
@@ -81,7 +81,7 @@ class PinValidateNetworkError extends PinState implements NetworkErrorState {
 
 class PinValidateGenericError extends PinState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   const PinValidateGenericError({required this.error});
 

@@ -8,6 +8,7 @@ import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
+import 'package:wallet/src/data/repository/network/network_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/data/repository/version/version_state_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
@@ -22,7 +23,6 @@ import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
-import 'package:wallet/src/domain/usecase/card/lock_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart';
@@ -38,7 +38,6 @@ import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dar
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
-import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
 import 'package:wallet/src/domain/usecase/permission/check_has_permission_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
 import 'package:wallet/src/domain/usecase/pid/cancel_pid_issuance_usecase.dart';
@@ -57,10 +56,11 @@ import 'package:wallet/src/domain/usecase/uri/decode_uri_usecase.dart';
 import 'package:wallet/src/domain/usecase/version/get_version_string_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/create_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
+import 'package:wallet/src/domain/usecase/wallet/lock_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/reset_wallet_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/setup_mocked_wallet_usecase.dart';
-import 'package:wallet/src/util/extension/bloc_extension.dart';
+import 'package:wallet/src/util/extension/core_error_extension.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
@@ -110,7 +110,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<ObserveWalletLockedUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckPinUseCase>()])
 @GenerateNiceMocks([MockSpec<SetupMockedWalletUseCase>()])
-@GenerateNiceMocks([MockSpec<CheckHasInternetUseCase>()])
+@GenerateNiceMocks([MockSpec<NetworkRepository>()])
 @GenerateNiceMocks([MockSpec<PerformPreNavigationActionsUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckNavigationPrerequisitesUseCase>()])
 @GenerateNiceMocks([MockSpec<AcceptOfferedPidUseCase>()])
@@ -188,10 +188,10 @@ class Mocks {
     sl.registerFactory<ObserveWalletLockedUseCase>(MockObserveWalletLockedUseCase.new);
     sl.registerFactory<CheckPinUseCase>(MockCheckPinUseCase.new);
     sl.registerFactory<SetupMockedWalletUseCase>(MockSetupMockedWalletUseCase.new);
-    sl.registerFactory<CheckHasInternetUseCase>(() {
-      final mock = MockCheckHasInternetUseCase();
-      when(mock.invoke()).thenAnswer((realInvocation) async => true);
-      BlocExtensions.checkHasInternetUseCase = mock;
+    sl.registerFactory<NetworkRepository>(() {
+      final mock = MockNetworkRepository();
+      when(mock.hasInternet()).thenAnswer((realInvocation) async => true);
+      CoreErrorExtension.networkRepository = mock;
       return mock;
     });
     sl.registerFactory<PerformPreNavigationActionsUseCase>(MockPerformPreNavigationActionsUseCase.new);

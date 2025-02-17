@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/src/domain/model/multiple_cards_flow.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
@@ -226,7 +227,10 @@ void main() {
           ..addScenario(
             widget: const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
               MockIssuanceBloc(),
-              const IssuanceGenericError(isRefreshFlow: false),
+              const IssuanceGenericError(
+                isRefreshFlow: false,
+                error: GenericError('generic', sourceError: 'test'),
+              ),
             ),
             name: 'generic_error',
           ),

@@ -1,6 +1,8 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart';
 import 'package:wallet/src/feature/sign/bloc/sign_bloc.dart';
 
@@ -18,6 +20,17 @@ void main() {
   setUp(() {
     startSignUseCase = MockStartSignUseCase();
     rejectSignAgreementUseCase = MockRejectSignAgreementUseCase();
+    provideDummy<Result<StartSignResult>>(
+      Result.success(
+        StartSignReadyToSign(
+          document: WalletMockData.document,
+          policy: WalletMockData.policy,
+          relyingParty: WalletMockData.organization,
+          trustProvider: WalletMockData.organization,
+          requestedAttributes: {},
+        ),
+      ),
+    );
   });
 
   test('initial state is correct', () {
@@ -26,7 +39,8 @@ void main() {
 
   blocTest(
     'when startSignUseCase fails, emit generic error',
-    setUp: () => when(startSignUseCase.invoke(any)).thenThrow(Exception('')),
+    setUp: () => when(startSignUseCase.invoke(any))
+        .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     build: create,
     expect: () => [isA<SignError>()],
   );
@@ -34,12 +48,14 @@ void main() {
   blocTest(
     'verify happy flow to up to SignSuccess',
     setUp: () => when(startSignUseCase.invoke(any)).thenAnswer((_) async {
-      return StartSignReadyToSign(
-        document: WalletMockData.document,
-        policy: WalletMockData.policy,
-        relyingParty: WalletMockData.organization,
-        trustProvider: WalletMockData.organization,
-        requestedAttributes: {},
+      return Result.success(
+        StartSignReadyToSign(
+          document: WalletMockData.document,
+          policy: WalletMockData.policy,
+          relyingParty: WalletMockData.organization,
+          trustProvider: WalletMockData.organization,
+          requestedAttributes: {},
+        ),
       );
     }),
     build: create,

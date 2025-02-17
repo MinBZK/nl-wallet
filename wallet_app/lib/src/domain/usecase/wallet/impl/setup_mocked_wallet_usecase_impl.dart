@@ -3,7 +3,7 @@ import '../../../../data/repository/pid/pid_repository.dart';
 import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../setup_mocked_wallet_usecase.dart';
 
-class SetupMockedWalletUseCaseImpl implements SetupMockedWalletUseCase {
+class SetupMockedWalletUseCaseImpl extends SetupMockedWalletUseCase {
   final WalletRepository walletRepository;
   final PidRepository pidRepository;
 

@@ -2,24 +2,23 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/wallet_constants.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
 void main() {
   late MockCheckIsValidPinUseCase checkIsValidPinUseCase;
   late MockCreateWalletUseCase createWalletUseCase;
-  late MockUnlockWalletWithPinUseCase unlockWalletWithPinUseCase;
   late MockGetAvailableBiometricsUseCase getAvailableBiometricsUseCase;
   late MockSetBiometricsUseCase setBiometricsUseCase;
 
   setUp(() {
     checkIsValidPinUseCase = MockCheckIsValidPinUseCase();
     createWalletUseCase = MockCreateWalletUseCase();
-    unlockWalletWithPinUseCase = MockUnlockWalletWithPinUseCase();
     getAvailableBiometricsUseCase = MockGetAvailableBiometricsUseCase();
     setBiometricsUseCase = MockSetBiometricsUseCase();
   });
@@ -27,7 +26,6 @@ void main() {
   SetupSecurityBloc buildBloc() => SetupSecurityBloc(
         checkIsValidPinUseCase,
         createWalletUseCase,
-        unlockWalletWithPinUseCase,
         getAvailableBiometricsUseCase,
         setBiometricsUseCase,
       );
@@ -58,7 +56,9 @@ void main() {
     'verify state transitions when choosing invalid pin',
     build: buildBloc,
     setUp: () {
-      when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => throw PinValidationError.tooFewUniqueDigits);
+      when(checkIsValidPinUseCase.invoke(any)).thenAnswer(
+        (_) async => const Result.error(ValidatePinError(PinValidationError.tooFewUniqueDigits, sourceError: 'test')),
+      );
     },
     act: (bloc) => bloc.enterPin('000000'),
     expect: () => [
@@ -121,7 +121,8 @@ void main() {
     'verify state transition when wallet creation fails with network error',
     build: buildBloc,
     setUp: () {
-      when(createWalletUseCase.invoke(any)).thenAnswer((_) async => throw const CoreNetworkError('error'));
+      when(createWalletUseCase.invoke(any))
+          .thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test')));
     },
     act: (bloc) {
       // Choose initial pin
@@ -132,7 +133,7 @@ void main() {
     skip: 11 /* skip pin setup */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      const SetupSecurityNetworkError(error: CoreNetworkError('error'), hasInternet: true),
+      isA<SetupSecurityNetworkError>().having((e) => e.hasInternet, 'hasInternet', true),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );
@@ -141,7 +142,8 @@ void main() {
     'verify state transition when wallet creation fails with generic error',
     build: buildBloc,
     setUp: () {
-      when(createWalletUseCase.invoke(any)).thenAnswer((_) async => throw const CoreGenericError('generic'));
+      when(createWalletUseCase.invoke(any))
+          .thenAnswer((_) async => const Result.error(GenericError('generic', sourceError: 'test')));
     },
     act: (bloc) {
       // Choose initial pin
@@ -152,7 +154,7 @@ void main() {
     skip: 11 /* skip pin setup */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      const SetupSecurityGenericError(error: CoreGenericError('generic')),
+      isA<SetupSecurityGenericError>(),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );
@@ -162,7 +164,7 @@ void main() {
     build: buildBloc,
     setUp: () {
       when(createWalletUseCase.invoke(any))
-          .thenAnswer((_) async => throw const CoreHardwareKeyUnsupportedError('hardware_unsupported'));
+          .thenAnswer((_) async => const Result.error(HardwareUnsupportedError(sourceError: 'test')));
     },
     act: (bloc) {
       // Choose initial pin
@@ -173,7 +175,7 @@ void main() {
     skip: 11 /* skip pin setup */,
     expect: () => [
       SetupSecurityCreatingWallet(),
-      const SetupSecurityDeviceIncompatibleError(error: CoreHardwareKeyUnsupportedError('hardware_unsupported')),
+      isA<SetupSecurityDeviceIncompatibleError>(),
       isA<SetupSecuritySelectPinInProgress>(),
     ],
   );
@@ -207,7 +209,7 @@ void main() {
           enable: anyNamed('enable'),
           authenticateBeforeEnabling: anyNamed('authenticateBeforeEnabling'),
         ),
-      ).thenAnswer((_) async {});
+      ).thenAnswer((_) async => const Result.success(null));
     },
     act: (bloc) async {
       // Choose initial pin
