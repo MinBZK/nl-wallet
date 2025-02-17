@@ -68,7 +68,10 @@ where
 
             (Some(id), None)
         }
-        WalletUserAttestationCreate::Android { certificate_chain } => {
+        WalletUserAttestationCreate::Android {
+            certificate_chain,
+            integrity_verdict_json,
+        } => {
             let id = Uuid::new_v4();
 
             wallet_user_android_attestation::ActiveModel {
@@ -77,6 +80,7 @@ where
                     .into_iter()
                     .map(|cert| BASE64_STANDARD_NO_PAD.encode(cert))
                     .collect()),
+                integrity_verdict_json: Set(integrity_verdict_json),
             }
             .insert(connection)
             .await

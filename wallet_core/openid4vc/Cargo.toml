@@ -50,7 +50,7 @@ nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pem", "serde", "std"] }
 rand_core.workspace = true
 regex.workspace = true
-reqwest = { workspace = true, features = ["json"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }

@@ -43,8 +43,7 @@ pub enum RegistrationAttestation {
         // TODO: Consider using `BorrowingCertificate` here when it becomes available.
         #[serde_as(as = "Vec<Base64>")]
         certificate_chain: VecAtLeastTwo<Vec<u8>>,
-        #[serde_as(as = "Base64")]
-        app_attestation_token: Vec<u8>,
+        integrity_token: String,
     },
 }
 
@@ -75,7 +74,7 @@ impl ChallengeResponse<Registration> {
     pub async fn new_google<SK, PK>(
         secure_key: &SK,
         certificate_chain: VecAtLeastTwo<Vec<u8>>,
-        app_attestation_token: Vec<u8>,
+        integrity_token: String,
         pin_signing_key: &PK,
         challenge: Vec<u8>,
     ) -> Result<Self>
@@ -92,7 +91,7 @@ impl ChallengeResponse<Registration> {
             Registration {
                 attestation: RegistrationAttestation::Google {
                     certificate_chain,
-                    app_attestation_token,
+                    integrity_token,
                 },
                 pin_pubkey: pin_pubkey.into(),
             },
@@ -140,7 +139,7 @@ mod tests {
     use android_attest::android_crl::RevocationStatusList;
     use android_attest::attestation_extension::key_description::KeyDescription;
     use android_attest::certificate_chain::verify_google_key_attestation;
-    use android_attest::mock::MockCaChain;
+    use android_attest::mock_chain::MockCaChain;
     use android_attest::root_public_key::RootPublicKey;
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
@@ -216,14 +215,14 @@ mod tests {
         let attested_ca_chain = MockCaChain::generate(1);
         let (attested_certificate_chain, attested_private_key) =
             attested_ca_chain.generate_attested_leaf_certificate(&KeyDescription::new_valid_mock(challenge.to_vec()));
-        let app_attestation_token = utils::random_bytes(32);
+        let integrity_token = utils::random_string(32);
         let pin_signing_key = SigningKey::random(&mut OsRng);
 
         // The Wallet generates a registration message.
         let msg = ChallengeResponse::<Registration>::new_google(
             &attested_private_key,
             attested_certificate_chain.try_into().unwrap(),
-            app_attestation_token,
+            integrity_token,
             &pin_signing_key,
             challenge.to_vec(),
         )

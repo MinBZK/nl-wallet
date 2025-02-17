@@ -6,4 +6,4 @@ pub mod root_public_key;
 pub mod sig_alg;
 
 #[cfg(feature = "mock")]
-pub mod mock;
+pub mod mock_chain;

@@ -121,6 +121,9 @@ dependencies = [
  "const-decoder",
  "der",
  "derive_more",
+ "futures",
+ "gcloud-auth",
+ "http",
  "http-cache-reqwest",
  "int-enum",
  "num-bigint",
@@ -1778,6 +1781,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
+name = "encoding_rs"
+version = "0.8.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "entity"
 version = "0.3.0-dev"
 dependencies = [
@@ -2264,6 +2276,48 @@ dependencies = [
  "tracing-subscriber",
  "trait-variant",
  "wallet_common",
+]
+
+[[package]]
+name = "gcloud-auth"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "059e4cb9bbfb037d0dc0ddce9d55debbec7615b0580322b454a8512b26e76ba8"
+dependencies = [
+ "async-trait",
+ "base64 0.21.7",
+ "gcloud-metadata",
+ "gcloud-token",
+ "home",
+ "jsonwebtoken",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "time",
+ "tokio",
+ "tracing",
+ "urlencoding",
+]
+
+[[package]]
+name = "gcloud-metadata"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d575310b4546530f6b21ee000c20155f11f9291fa0b67ea0949fd48aa49ed70"
+dependencies = [
+ "reqwest",
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
+name = "gcloud-token"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84e20db637faf228be7bbf39a9e3ea3e36e6ead323662974f53926f21dcee39e"
+dependencies = [
+ "async-trait",
 ]
 
 [[package]]
@@ -4078,6 +4132,7 @@ dependencies = [
  "android_logger 0.14.1",
  "apple_app_attest",
  "async-trait",
+ "base64 0.22.1",
  "cfg-if",
  "derive_more",
  "error_category",
@@ -4534,6 +4589,7 @@ checksum = "43e734407157c3c2034e0258f5e4473ddb361b1e85f95a66690d67264d7cd1da"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "encoding_rs",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -6927,6 +6983,7 @@ dependencies = [
  "apple_app_attest",
  "axum",
  "axum-server",
+ "cfg-if",
  "chrono",
  "config",
  "derive_more",

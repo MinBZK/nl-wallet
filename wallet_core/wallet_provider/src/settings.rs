@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+use std::collections::HashSet;
 use std::env;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -11,9 +13,11 @@ use derive_more::From;
 use derive_more::Into;
 use serde::Deserialize;
 use serde_with::base64::Base64;
+use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
 
+use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use hsm::settings::Hsm;
@@ -87,6 +91,11 @@ pub enum AppleEnvironment {
 pub struct Android {
     #[serde_as(as = "Vec<Base64>")]
     pub root_public_keys: Vec<AndroidRootPublicKey>,
+    pub package_name: String,
+    pub allow_sideloading: bool,
+    pub credentials_file: PathBuf,
+    #[serde_as(as = "HashSet<Hex>")]
+    pub play_store_certificate_hashes: HashSet<Vec<u8>>,
 }
 
 #[derive(Clone, From, Into)]
@@ -121,6 +130,9 @@ impl Settings {
             .set_default("instruction_challenge_timeout_in_ms", 15_000)?
             .set_default("hsm.max_sessions", 10)?
             .set_default("hsm.max_session_lifetime_in_sec", 900)?
+            .set_default("android.allow_sideloading", false)?
+            .set_default("android.credentials_file", "google-cloud-service-account.json")?
+            .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
             .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
@@ -129,6 +141,7 @@ impl Settings {
                     .list_separator(",")
                     .with_list_parse_key("ios.root_certificates")
                     .with_list_parse_key("android.root_public_keys")
+                    .with_list_parse_key("android.play_store_certificate_hashes")
                     .try_parsing(true),
             )
             .build()?
@@ -142,6 +155,30 @@ impl From<AppleEnvironment> for AttestationEnvironment {
             AppleEnvironment::Development => Self::Development,
             AppleEnvironment::Production => Self::Production,
         }
+    }
+}
+
+impl Android {
+    pub fn installation_method(&self) -> InstallationMethod {
+        if self.allow_sideloading {
+            InstallationMethod::SideloadOrPlayStore
+        } else {
+            InstallationMethod::PlayStore
+        }
+    }
+
+    pub fn credentials_file_absolute(&self) -> Cow<'_, PathBuf> {
+        if self.credentials_file.is_absolute() {
+            return Cow::Borrowed(&self.credentials_file);
+        }
+
+        // If the path to the credentials file is not already absolute, either prepend the same directory
+        // as the Cargo.toml file (if ran through cargo) or prepend the current working directory.
+        let path_base = env::var("CARGO_MANIFEST_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| env::current_dir().expect("could not get current working directory"));
+
+        Cow::Owned(path_base.join(&self.credentials_file))
     }
 }
 

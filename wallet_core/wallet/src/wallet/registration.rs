@@ -246,7 +246,7 @@ where
                 certificate_chain
                     .try_into()
                     .map_err(WalletRegistrationError::AndroidCertificateChain)?,
-                app_attestation_token.into(),
+                app_attestation_token,
                 &pin_key,
                 challenge,
             )

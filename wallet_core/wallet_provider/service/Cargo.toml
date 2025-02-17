@@ -16,14 +16,20 @@ path = "tests/account_server.rs"
 required-features = ["db_test"]
 
 [features]
+# This disables checking the request hash within an Android integrity verdict, which should only be used when combining
+# real Android integrity tokens (either from a real device or the emulator) with the MockPlayIntegrityClient below.
+# Note that enabling this is DANGEROUS and should not be used in any production environment.
+spoof_integrity_verdict_hash = []
+# Exposes the MockPlayIntegrityClient type, which can be used for testing or local development.
+mock_play_integrity = ["android_attest/mock"]
 # Implement InstructionResultSigningKey and related traits on SigningKey
 mock_secure_keys = ["wallet_common/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
+    "mock_play_integrity",
     "dep:anyhow",
     "dep:hmac",
     "dep:rand_core",
-    "android_attest/mock",
     "apple_app_attest/mock",
     "wallet_provider_domain/mock",
     "wallet_provider_persistence",

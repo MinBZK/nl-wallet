@@ -94,6 +94,7 @@ dotenvy = "0.15.7"
 etag = "4.0.0"
 flutter_rust_bridge = { version = "2.7.1", default-features = false }
 futures = { version = "0.3.31", default-features = false }
+gcloud-auth = { version = "1.0.0", default-features = false }
 hex = "0.4.3"
 hex-literal = "0.4.1"
 http = "1.2.0"

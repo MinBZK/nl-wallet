@@ -2,6 +2,8 @@ use std::collections::HashMap;
 use std::sync::atomic::AtomicU32;
 use std::sync::Arc;
 
+#[cfg(feature = "mock_attested_key_google")]
+use base64::prelude::*;
 use p256::ecdsa::signature::Signer;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
@@ -14,7 +16,7 @@ use uuid::Uuid;
 #[cfg(feature = "mock_attested_key_google")]
 use android_attest::attestation_extension::key_description::KeyDescription;
 #[cfg(feature = "mock_attested_key_google")]
-use android_attest::mock::MockCaChain;
+use android_attest::mock_chain::MockCaChain;
 #[cfg(feature = "mock_attested_key_apple")]
 use apple_app_attest::AppIdentifier;
 #[cfg(feature = "mock_attested_key_apple")]
@@ -24,8 +26,6 @@ use apple_app_attest::MockAttestationCa;
 use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
-#[cfg(feature = "mock_attested_key_google")]
-use wallet_common::utils;
 
 use super::AttestationError;
 use super::AttestedKey;
@@ -324,6 +324,10 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
             }
             #[cfg(feature = "mock_attested_key_google")]
             KeyHolderType::Google { ca_chain } => {
+                // The token is simply the Base64 encoded challenge hash, which can then be used by
+                // a mock Play Integrity implementation in order to generate an integrity verdict.
+                let app_attestation_token = BASE64_STANDARD.encode(&challenge);
+
                 let key_description = KeyDescription::new_valid_mock(challenge);
 
                 // Generate a new Google key and mock certificate chain.
@@ -337,8 +341,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
                 KeyWithAttestation::Google {
                     key,
                     certificate_chain,
-                    // As this token is opaque anyway, just provide some random data.
-                    app_attestation_token: utils::random_string(32),
+                    app_attestation_token,
                 }
             }
         };
@@ -717,7 +720,8 @@ mod persistent {
     }
 }
 
-#[cfg(test)]
+// Only run these tests when both Apple and Google mock attested keys are enabled.
+#[cfg(all(feature = "mock_attested_key", test))]
 mod tests {
     use android_attest::root_public_key::RootPublicKey;
     use apple_app_attest::AppIdentifier;

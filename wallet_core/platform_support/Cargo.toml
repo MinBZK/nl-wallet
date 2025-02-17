@@ -24,6 +24,7 @@ mock_attested_key_apple = [
 # Include the MockHardwareAttestedKeyHolder type for use in Android tests
 mock_attested_key_google = [
     "dep:android_attest",
+    "dep:base64",
     "dep:rand_core",
     "dep:uuid",
     "android_attest/mock",
@@ -74,6 +75,7 @@ parking_lot.workspace = true
 thiserror.workspace = true
 uniffi.workspace = true
 
+base64 = { workspace = true, optional = true }
 cfg-if = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std"] }
 log = { workspace = true, optional = true }
