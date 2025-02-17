@@ -80,6 +80,8 @@ spec:
               value: ${APP_IDENTIFIER}
             - name: WALLET_PROVIDER__ANDROID__PACKAGE_NAME
               value: ${APP_IDENTIFIER}
+            - name: WALLET_PROVIDER__ANDROID__CREDENTIALS_FILE
+              value: "/google-cloud-service-account.json"
             - name: CS_PKCS11_R3_CFG
               value: "/cs_pkcs11_R3.cfg"
       volumes:
