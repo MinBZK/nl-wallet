@@ -37,7 +37,6 @@ db_test = ["mock_secure_keys", "mock", "dep:tracing-subscriber", "dep:wallet_pro
 anyhow = { workspace = true, optional = true }
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
-cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["into"] }
 futures = { workspace = true, features = ["std", "async-await"] }
@@ -45,10 +44,8 @@ indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pem", "std"] }
-r2d2-cryptoki.workspace = true
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
-sec1.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
@@ -71,6 +68,7 @@ hmac = { workspace = true, optional = true, features = ["std"] }
 
 android_attest.path = "../../android_attest"
 apple_app_attest.path = "../../apple_app_attest"
+hsm.path = "../../hsm"
 nl_wallet_mdoc.path = "../../mdoc"
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"], optional = true }

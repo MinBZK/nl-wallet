@@ -10,8 +10,8 @@ use sea_orm::QueryFilter;
 use sea_orm::QuerySelect;
 use sea_orm::Set;
 
+use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_domain::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::entity::wallet_user_key;

@@ -3,6 +3,8 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
+use hsm::model::mock::MockPkcs11Client;
+use hsm::service::HsmError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::WalletCertificate;
 use wallet_common::account::messages::auth::WalletCertificateClaims;
@@ -11,7 +13,6 @@ use wallet_common::account::signed::ChallengeResponse;
 use wallet_common::apple::MockAppleAttestedKey;
 use wallet_common::utils;
 use wallet_provider_database_settings::Settings;
-use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
@@ -27,7 +28,6 @@ use wallet_provider_service::account_server::mock::MockHardwareKey;
 use wallet_provider_service::account_server::mock::MOCK_APPLE_CA;
 use wallet_provider_service::account_server::mock::MOCK_GOOGLE_CA_CHAIN;
 use wallet_provider_service::account_server::UserState;
-use wallet_provider_service::hsm::HsmError;
 use wallet_provider_service::keys::WalletCertificateSigningKey;
 use wallet_provider_service::wallet_certificate;
 use wallet_provider_service::wte_issuer::mock::MockWteIssuer;
@@ -50,6 +50,7 @@ async fn do_registration(
     pin_privkey: &SigningKey,
     db: Db,
     attestation_ca: AttestationCa<'_>,
+    wrapping_key_identifier: &str,
 ) -> (
     WalletCertificate,
     MockHardwareKey,
@@ -96,7 +97,11 @@ async fn do_registration(
         }
     };
 
-    let user_state = mock::user_state(Repositories::new(db), wallet_certificate::mock::setup_hsm().await);
+    let user_state = mock::user_state(
+        Repositories::new(db),
+        wallet_certificate::mock::setup_hsm().await,
+        wrapping_key_identifier.to_string(),
+    );
     let certificate = account_server
         .register(certificate_signing_key, registration_message, &user_state)
         .await
@@ -134,6 +139,7 @@ async fn test_instruction_challenge(
     #[values(AttestationType::Apple, AttestationType::Google)] attestation_type: AttestationType,
 ) {
     let db = db_from_env().await.expect("Could not connect to database");
+    let wrapping_key_identifier = "my-wrapping-key-identifier";
 
     let certificate_signing_key = SigningKey::random(&mut OsRng);
     let certificate_signing_pubkey = certificate_signing_key.verifying_key();
@@ -152,6 +158,7 @@ async fn test_instruction_challenge(
         &pin_privkey,
         db,
         attestation_ca,
+        wrapping_key_identifier,
     )
     .await;
 

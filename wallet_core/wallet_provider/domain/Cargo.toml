@@ -12,20 +12,20 @@ doctest = false
 
 [features]
 # Include mock implementations and constructors for testing
-mock = ["dashmap", "hmac", "rand", "sha2"]
+mock = ["hmac", "rand", "hsm/mock"]
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
-dashmap = { workspace = true, optional = true }
 derive_more = { workspace = true, features = ["debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
-hmac = { workspace = true, optional = true, features = ["std"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
-rand = { workspace = true, optional = true }
 serde.workspace = true
-sha2 = { workspace = true, optional = true }
 thiserror.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
+hmac = { workspace = true, optional = true, features = ["std"] }
+rand = { workspace = true, optional = true }
+
 apple_app_attest.path = "../../apple_app_attest"
 wallet_common.path = "../../wallet_common"
+hsm.path = "../../hsm"

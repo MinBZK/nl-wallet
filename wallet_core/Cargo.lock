@@ -444,6 +444,45 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
 
 [[package]]
+name = "async-dropper"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d901072ae4dcdca2201b98beb02d31fb4b6b2472fbd0e870b12ec15b8b35b2d2"
+dependencies = [
+ "async-dropper-derive",
+ "async-dropper-simple",
+ "async-trait",
+ "futures",
+ "tokio",
+]
+
+[[package]]
+name = "async-dropper-derive"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a35cf17a37761f1c88b8e770b5956820fe84c12854165b6f930c604ea186e47e"
+dependencies = [
+ "async-trait",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "tokio",
+]
+
+[[package]]
+name = "async-dropper-simple"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7c4748dfe8cd3d625ec68fc424fa80c134319881185866f9e173af9e5d8add8"
+dependencies = [
+ "async-scoped",
+ "async-trait",
+ "futures",
+ "rustc_version",
+ "tokio",
+]
+
+[[package]]
 name = "async-lock"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -452,6 +491,17 @@ dependencies = [
  "event-listener",
  "event-listener-strategy",
  "pin-project-lite",
+]
+
+[[package]]
+name = "async-scoped"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4042078ea593edffc452eef14e99fdb2b120caa4ad9618bcdeabc4a023b98740"
+dependencies = [
+ "futures",
+ "pin-project",
+ "tokio",
 ]
 
 [[package]]
@@ -2509,6 +2559,33 @@ dependencies = [
  "cfg-if",
  "libc",
  "windows 0.52.0",
+]
+
+[[package]]
+name = "hsm"
+version = "0.3.0-dev"
+dependencies = [
+ "async-dropper",
+ "async-trait",
+ "config",
+ "cryptoki",
+ "dashmap 6.1.0",
+ "der",
+ "futures",
+ "hmac",
+ "p256",
+ "r2d2-cryptoki",
+ "rand",
+ "rand_core",
+ "rstest",
+ "sec1",
+ "serde",
+ "serde_with",
+ "serial_test",
+ "sha2",
+ "thiserror 2.0.11",
+ "tokio",
+ "wallet_common",
 ]
 
 [[package]]
@@ -6136,9 +6213,9 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.22.23"
+version = "0.22.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "02a8b472d1a3d7c18e2d61a489aee3453fd9031c33e4f55bd533f4a7adca1bee"
+checksum = "17b4795ff5edd201c7cd6dca065ae59972ce77d1b80fa0a84d94950ece7d1474"
 dependencies = [
  "indexmap 2.7.1",
  "serde",
@@ -6853,6 +6930,7 @@ dependencies = [
  "config",
  "derive_more",
  "futures",
+ "hsm",
  "http",
  "nutype",
  "p256",
@@ -6892,14 +6970,13 @@ version = "0.3.0-dev"
 dependencies = [
  "apple_app_attest",
  "chrono",
- "dashmap 6.1.0",
  "derive_more",
  "futures",
  "hmac",
+ "hsm",
  "p256",
  "rand",
  "serde",
- "sha2",
  "thiserror 2.0.11",
  "uuid",
  "wallet_common",
@@ -6924,6 +7001,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "ctor",
+ "hsm",
  "mockall",
  "p256",
  "rand_core",
@@ -6948,23 +7026,21 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
- "cryptoki",
  "der",
  "derive_more",
  "futures",
  "hmac",
+ "hsm",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
  "nl_wallet_mdoc",
  "p256",
- "r2d2-cryptoki",
  "rand",
  "rand_core",
  "rstest",
  "rustls-pki-types",
  "rustls-webpki",
- "sec1",
  "serde",
  "serde_json",
  "serde_with",
@@ -7552,9 +7628,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86e376c75f4f43f44db463cf729e0d3acbf954d13e22c51e26e4c264b4ab545f"
+checksum = "59690dea168f2198d1a3b0cac23b8063efcd11012f10ae4698f284808c8ef603"
 dependencies = [
  "memchr",
 ]
