@@ -41,7 +41,7 @@ pub struct FlutterApiError {
     source: Box<dyn Error>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone, Copy, PartialEq, Eq)]
 enum FlutterApiErrorType {
     /// This version of the app is blocked.
     VersionBlocked,
@@ -386,5 +386,92 @@ impl FlutterApiErrorFields for ChangePinError {
             | Self::PublicKeyMismatch
             | Self::WalletIdMismatch => FlutterApiErrorType::Generic,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::error::Error;
+
+    use rstest::rstest;
+
+    use serde_json::json;
+    use wallet::errors::openid4vc::AuthorizationErrorCode;
+    use wallet::errors::openid4vc::ErrorResponse;
+    use wallet::errors::openid4vc::OidcError;
+    use wallet::errors::DigidSessionError;
+    use wallet::errors::PidIssuanceError;
+
+    use super::FlutterApiError;
+    use super::FlutterApiErrorType;
+
+    // TODO: (PVW-4073) Add more error test cases.
+    #[rstest]
+    #[case(
+        PidIssuanceError::VersionBlocked,
+        FlutterApiErrorType::VersionBlocked,
+        serde_json::Value::Null
+    )]
+    #[case(
+        PidIssuanceError::NotRegistered,
+        FlutterApiErrorType::WalletState,
+        serde_json::Value::Null
+    )]
+    #[case(PidIssuanceError::Locked, FlutterApiErrorType::WalletState, serde_json::Value::Null)]
+    #[case(
+        PidIssuanceError::SessionState,
+        FlutterApiErrorType::WalletState,
+        serde_json::Value::Null
+    )]
+    #[case(
+        PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(
+            Box::new(ErrorResponse {
+                error: AuthorizationErrorCode::InvalidRequest,
+                error_description: None,
+                error_uri: None,
+            })
+        ))),
+        FlutterApiErrorType::RedirectUri,
+        json!({"redirect_error": "invalid_request"})
+    )]
+    #[case(
+        PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(
+            Box::new(ErrorResponse {
+                error: AuthorizationErrorCode::Other("some_error".to_string()),
+                error_description: None,
+                error_uri: None,
+            })
+        ))),
+        FlutterApiErrorType::RedirectUri,
+        json!({"redirect_error": "some_error"})
+    )]
+    #[case(
+        PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(Box::new(ErrorResponse {
+            error: AuthorizationErrorCode::InvalidRequest,
+            error_description: None,
+            error_uri: None,
+        })))),
+        FlutterApiErrorType::Server,
+        serde_json::Value::Null
+    )]
+    #[case(
+        PidIssuanceError::MissingSignature,
+        FlutterApiErrorType::Generic,
+        serde_json::Value::Null
+    )]
+    fn test_pid_issuance_error<E>(
+        #[case] source_error: E,
+        #[case] expected_type: FlutterApiErrorType,
+        #[case] expected_data: serde_json::Value,
+    ) where
+        E: Error + Send + Sync + 'static,
+    {
+        let anyhow_error = anyhow::Error::new(source_error);
+        let flutter_api_error =
+            FlutterApiError::try_from(anyhow_error).expect("error should convert to FlutterApiError successfully");
+
+        assert_eq!(flutter_api_error.typ, expected_type);
+        assert_eq!(flutter_api_error.data, expected_data);
+        assert!(flutter_api_error.source().unwrap().is::<E>());
     }
 }

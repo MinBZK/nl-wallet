@@ -1909,6 +1909,7 @@ dependencies = [
  "itertools 0.14.0",
  "oslog 0.2.0",
  "parking_lot",
+ "rstest",
  "sentry",
  "serde",
  "serde_json",
