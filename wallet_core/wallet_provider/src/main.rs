@@ -31,6 +31,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         if #[cfg(feature = "mock_android_integrity_verdict")] {
             use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
 
+            tracing::warn!("DANGEROUS - Android integrity verdicts are mocked. This should NOT be used in production!");
+
             let play_integrity_client = MockPlayIntegrityClient::new(
                 settings.android.package_name.clone(),
                 settings.android.play_store_certificate_hashes.clone()
