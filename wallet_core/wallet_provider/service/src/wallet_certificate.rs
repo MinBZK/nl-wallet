@@ -4,13 +4,14 @@ use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::EncodePublicKey;
 use tracing::debug;
 
+use hsm::model::encrypted::Encrypted;
+use hsm::model::encrypter::Decrypter;
+use hsm::model::Hsm;
+use hsm::service::HsmError;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_common::jwt::EcdsaDecodingKey;
 use wallet_common::jwt::Jwt;
-use wallet_provider_domain::model::encrypted::Encrypted;
-use wallet_provider_domain::model::encrypter::Decrypter;
-use wallet_provider_domain::model::hsm::Hsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
@@ -19,7 +20,6 @@ use wallet_provider_domain::repository::WalletUserRepository;
 
 use crate::account_server::UserState;
 use crate::account_server::WalletCertificateError;
-use crate::hsm::HsmError;
 use crate::keys::WalletCertificateSigningKey;
 use crate::wte_issuer::WteIssuer;
 
@@ -205,12 +205,11 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
 
-    use wallet_provider_domain::model::encrypted::Encrypted;
-    use wallet_provider_domain::model::encrypter::Encrypter;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
-    use wallet_provider_domain::model::hsm::Hsm;
-
-    use crate::hsm::HsmError;
+    use hsm::model::encrypted::Encrypted;
+    use hsm::model::encrypter::Encrypter;
+    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::Hsm;
+    use hsm::service::HsmError;
 
     pub const SIGNING_KEY_IDENTIFIER: &str = "certificate_signing_key_1";
     pub const PIN_PUBLIC_DISCLOSURE_PROTECTION_KEY_IDENTIFIER: &str =
@@ -268,13 +267,13 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
 
+    use hsm::model::encrypter::Encrypter;
+    use hsm::model::mock::MockPkcs11Client;
+    use hsm::service::HsmError;
     use wallet_common::jwt::EcdsaDecodingKey;
-    use wallet_provider_domain::model::encrypter::Encrypter;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::account_server::mock::user_state;
-    use crate::hsm::HsmError;
     use crate::wallet_certificate::mock;
     use crate::wallet_certificate::mock::setup_hsm;
     use crate::wallet_certificate::new_wallet_certificate;
@@ -301,6 +300,7 @@ mod tests {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
         let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -324,6 +324,7 @@ mod tests {
                 apple_assertion_counter: None,
             },
             hsm,
+            wrapping_key_identifier.to_string(),
         );
 
         verify_wallet_certificate(
@@ -343,6 +344,7 @@ mod tests {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
         let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -366,6 +368,7 @@ mod tests {
                 apple_assertion_counter: None,
             },
             setup_hsm().await,
+            wrapping_key_identifier.to_string(),
         );
         verify_wallet_certificate(
             &wallet_certificate,
@@ -384,6 +387,7 @@ mod tests {
         let setup = mock::WalletCertificateSetup::new().await;
         let hsm = setup_hsm().await;
         let hw_pubkey = *SigningKey::random(&mut OsRng).verifying_key();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let wallet_certificate = new_wallet_certificate(
             String::from("issuer_1"),
@@ -415,6 +419,7 @@ mod tests {
                 apple_assertion_counter: None,
             },
             hsm,
+            wrapping_key_identifier.to_string(),
         );
         verify_wallet_certificate(
             &wallet_certificate,

@@ -136,6 +136,9 @@
       "iat": {
         "type": "string"
       },
+      "nbf": {
+        "type": "number"
+      },
       "exp": {
         "type": "string"
       }

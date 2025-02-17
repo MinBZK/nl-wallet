@@ -25,9 +25,12 @@ class HistoryOverviewLoadSuccess extends HistoryOverviewState {
   List<Object> get props => [events];
 }
 
-class HistoryOverviewLoadFailure extends HistoryOverviewState {
-  const HistoryOverviewLoadFailure();
+class HistoryOverviewLoadFailure extends HistoryOverviewState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  const HistoryOverviewLoadFailure({required this.error});
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [error];
 }

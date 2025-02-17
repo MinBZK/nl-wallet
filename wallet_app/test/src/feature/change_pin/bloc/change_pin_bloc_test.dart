@@ -2,8 +2,9 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/change_pin/bloc/change_pin_bloc.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../mocks/wallet_mocks.dart';
 
@@ -32,9 +33,13 @@ void main() {
   blocTest(
     'verify providing invalid new pin emits ChangePinSelectNewPinFailed',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenThrow(PinValidationError.tooFewUniqueDigits),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer(
+      (_) async => const Result.error(
+        ValidatePinError(PinValidationError.sequentialDigits, sourceError: 'test'),
+      ),
+    ),
     act: (bloc) {
-      bloc.add(const ChangePinCurrentPinValidated('000111'));
+      bloc.add(const ChangePinCurrentPinValidated('123456'));
       bloc.provideInvalidPin();
     },
     expect: () => [
@@ -44,14 +49,14 @@ void main() {
       const ChangePinSelectNewPinInProgress(3),
       const ChangePinSelectNewPinInProgress(4),
       const ChangePinSelectNewPinInProgress(5),
-      const ChangePinSelectNewPinFailed(reason: PinValidationError.tooFewUniqueDigits),
+      const ChangePinSelectNewPinFailed(reason: PinValidationError.sequentialDigits),
     ],
   );
 
   blocTest(
     'verify providing valid new pin emits ChangePinSelectNewPinFailed',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.provideValidPin();
@@ -70,7 +75,7 @@ void main() {
   blocTest(
     'verify confirming new pin with a different pin results in ChangePinConfirmNewPinFailed',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.provideValidPin();
@@ -91,7 +96,7 @@ void main() {
   blocTest(
     'verify retying the confirm new pin step is only allowed once',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.provideValidPin();
@@ -113,7 +118,7 @@ void main() {
   blocTest(
     'verify successful pin change leads to updating and completed state',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.provideValidPin();
@@ -130,8 +135,9 @@ void main() {
     'verify unsuccessful pin change (network error) leads to ChangePinNetworkError followed by a reset to ChangePinInitial',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
     setUp: () {
-      when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ());
-      when(changePinUseCase.invoke(any, any)).thenThrow(const CoreNetworkError('network'));
+      when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(changePinUseCase.invoke(any, any))
+          .thenAnswer((_) async => const Result.error(NetworkError(hasInternet: true, sourceError: 'test')));
     },
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
@@ -141,7 +147,7 @@ void main() {
     skip: 12 /* skip setting up new pin and confirming pin */,
     expect: () => [
       ChangePinUpdating(),
-      const ChangePinNetworkError(error: CoreNetworkError('network'), hasInternet: true),
+      const ChangePinNetworkError(error: NetworkError(hasInternet: true, sourceError: 'test'), hasInternet: true),
       const ChangePinInitial(didGoBack: true),
     ],
   );
@@ -150,8 +156,9 @@ void main() {
     'verify unsuccessful pin change (generic error) leads to ChangePinGenericError followed by a reset to ChangePinInitial',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
     setUp: () {
-      when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ());
-      when(changePinUseCase.invoke(any, any)).thenThrow(const CoreGenericError('generic'));
+      when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null));
+      when(changePinUseCase.invoke(any, any))
+          .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test')));
     },
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
@@ -161,7 +168,7 @@ void main() {
     skip: 12 /* skip setting up new pin and confirming pin */,
     expect: () => [
       ChangePinUpdating(),
-      const ChangePinGenericError(error: CoreGenericError('generic')),
+      isA<ChangePinGenericError>(),
       const ChangePinInitial(didGoBack: true),
     ],
   );
@@ -169,7 +176,7 @@ void main() {
   blocTest(
     'verify pressing back from new pin setup returns to ChangePinInitial',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.add(const PinDigitPressed(0));
@@ -185,7 +192,7 @@ void main() {
   blocTest(
     'verify pressing back from new pin confirmation returns to ChangePinSelectNewPinInProgress',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.provideValidPin();
@@ -203,7 +210,7 @@ void main() {
   blocTest(
     'verify backspace key removes the last entered digit while entering new pin',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.add(const PinDigitPressed(0));
@@ -225,7 +232,7 @@ void main() {
   blocTest(
     'verify backspace key removes the last entered digit while entering new pin',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.provideValidPin();
@@ -249,7 +256,7 @@ void main() {
   blocTest(
     'verify holding backspace key removes all entered digits while entering new pin',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.add(const PinDigitPressed(0));
@@ -271,7 +278,7 @@ void main() {
   blocTest(
     'verify holding backspace key removes all entered digits while confirming new pin',
     build: () => ChangePinBloc(checkIsValidPinUseCase, changePinUseCase),
-    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => ()),
+    setUp: () => when(checkIsValidPinUseCase.invoke(any)).thenAnswer((_) async => const Result.success(null)),
     act: (bloc) {
       bloc.add(const ChangePinCurrentPinValidated('000111'));
       bloc.provideValidPin();

@@ -1,7 +1,9 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/domain/usecase/network/check_has_internet_usecase.dart';
+import 'package:wallet/src/data/repository/network/network_repository.dart';
+import 'package:wallet/src/domain/model/pin/check_pin_result.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
@@ -11,17 +13,18 @@ import '../../../mocks/wallet_mocks.dart';
 void main() {
   late PinBloc bloc;
   late CheckPinUseCase checkPinUseCase;
-  late CheckHasInternetUseCase checkHasInternetUseCase;
+  late NetworkRepository networkRepository;
 
   setUp(() {
     // Provide a fallback dummy value for mockito, required here but likely overridden.
+    provideDummy<Result<String?>>(const Result.success(null));
     provideDummy<CheckPinResult>(CheckPinResultBlocked());
     checkPinUseCase = MockCheckPinUseCase();
-    checkHasInternetUseCase = Mocks.create();
+    networkRepository = Mocks.create();
     bloc = PinBloc(checkPinUseCase);
   });
 
-  void triggerValidateFromCleanBloc(PinBloc bloc, CheckPinResult Function() respondWith) {
+  void triggerValidateFromCleanBloc(PinBloc bloc, Result<String?> Function() respondWith) {
     when(checkPinUseCase.invoke('100000')).thenAnswer((_) async => respondWith());
     bloc.add(const PinDigitPressed(1));
     bloc.add(const PinDigitPressed(0));
@@ -35,7 +38,7 @@ void main() {
     blocTest<PinBloc, PinState>(
       'PinEntryInProgress counter should increase with every pressed digit until and start validating at 6 characters',
       build: () => bloc,
-      setUp: () => when(checkPinUseCase.invoke('333333')).thenAnswer((_) async => CheckPinResultOk()),
+      setUp: () => when(checkPinUseCase.invoke('333333')).thenAnswer((_) async => const Result.success(null)),
       act: (bloc) {
         bloc.add(const PinDigitPressed(3));
         bloc.add(const PinDigitPressed(3));
@@ -79,7 +82,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => CheckPinResultIncorrect(attemptsLeftInRound: 3),
+        () => Result.error(IncorrectPinError(CheckPinResultIncorrect(attemptsLeftInRound: 3), sourceError: 'test')),
       ),
       skip: 6,
       expect: () => [const PinValidateFailure(attemptsLeftInRound: 3, isFinalRound: false)],
@@ -89,7 +92,12 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => CheckPinResultIncorrect(attemptsLeftInRound: 1, isFinalRound: true),
+        () => Result.error(
+          IncorrectPinError(
+            CheckPinResultIncorrect(attemptsLeftInRound: 1, isFinalRound: true),
+            sourceError: 'test',
+          ),
+        ),
       ),
       skip: 6,
       expect: () => [const PinValidateFailure(attemptsLeftInRound: 1, isFinalRound: true)],
@@ -99,7 +107,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        CheckPinResultBlocked.new,
+        () => Result.error(IncorrectPinError(CheckPinResultBlocked(), sourceError: 'test')),
       ),
       skip: 6,
       expect: () => [const PinValidateBlocked()],
@@ -109,7 +117,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => CheckPinResultTimeout(timeoutMillis: 1000),
+        () => Result.error(IncorrectPinError(CheckPinResultTimeout(timeoutMillis: 1000), sourceError: 'test')),
       ),
       skip: 6,
       expect: () => [isA<PinValidateTimeout>()],
@@ -119,31 +127,43 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw const CoreGenericError('generic'),
+        () => const Result.error(GenericError(CoreGenericError('generic'), sourceError: 'test')),
       ),
       skip: 6,
-      expect: () => [const PinValidateGenericError(error: CoreGenericError('generic'))],
+      expect: () => [isA<PinValidateGenericError>()],
     );
     blocTest<PinBloc, PinState>(
       'Verify that CheckPinResultServerError results in PinValidateNetworkError with true as hasInternet flag',
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw const CoreNetworkError('network'),
+        () => const Result.error(NetworkError(hasInternet: true, sourceError: 'test')),
       ),
       skip: 6,
-      expect: () => [const PinValidateNetworkError(error: CoreNetworkError('network'), hasInternet: true)],
+      expect: () => [
+        isA<PinValidateNetworkError>().having(
+          (error) => error.hasInternet,
+          'hasInternet should be true',
+          isTrue,
+        ),
+      ],
     );
     blocTest<PinBloc, PinState>(
       'Verify that CheckPinResultServerError results in PinValidateNetworkError with false as hasInternet flag',
       build: () => bloc,
-      setUp: () => when(checkHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => false),
+      setUp: () => when(networkRepository.hasInternet()).thenAnswer((realInvocation) async => false),
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => throw const CoreNetworkError('network'),
+        () => const Result.error(NetworkError(hasInternet: false, sourceError: 'test')),
       ),
       skip: 6,
-      expect: () => [const PinValidateNetworkError(error: CoreNetworkError('network'), hasInternet: false)],
+      expect: () => [
+        isA<PinValidateNetworkError>().having(
+          (error) => error.hasInternet,
+          'hasInternet should be false',
+          isFalse,
+        ),
+      ],
     );
   });
 }

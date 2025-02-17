@@ -1,5 +1,7 @@
+import '../../model/result/result.dart';
+import '../wallet_usecase.dart';
 import 'biometric_authentication_result.dart';
 
-abstract class RequestBiometricsUsecase {
-  Future<BiometricAuthenticationResult> invoke();
+abstract class RequestBiometricsUsecase extends WalletUseCase {
+  Future<Result<BiometricAuthenticationResult>> invoke();
 }

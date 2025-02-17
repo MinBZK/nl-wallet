@@ -31,6 +31,9 @@ error_category.path = "../error_category"
 flutter_api_macros.path = "flutter_api_macros"
 wallet.path = "../wallet"
 
+[dev-dependencies]
+rstest.workspace = true
+
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger.workspace = true
 cstr.workspace = true

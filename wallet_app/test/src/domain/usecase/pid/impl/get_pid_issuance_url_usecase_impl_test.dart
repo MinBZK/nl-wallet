@@ -18,7 +18,7 @@ void main() {
     test('pid issuance url should be fetched through the Repository', () async {
       final url = await usecase.invoke();
       verify(mockRepo.getPidIssuanceUrl());
-      expect(url, kMockPidIssuanceUrl);
+      expect(url.value, kMockPidIssuanceUrl);
     });
   });
 }

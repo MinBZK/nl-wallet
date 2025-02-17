@@ -2,16 +2,16 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:fimber/fimber.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
-import '../check_has_internet_usecase.dart';
+import '../network_repository.dart';
 
-class CheckHasInternetUseCaseImpl implements CheckHasInternetUseCase {
+class NetworkRepositoryImpl implements NetworkRepository {
   final Connectivity connectivity;
   final InternetConnectionChecker connectionChecker;
 
-  CheckHasInternetUseCaseImpl(this.connectivity, this.connectionChecker);
+  const NetworkRepositoryImpl(this.connectivity, this.connectionChecker);
 
   @override
-  Future<bool> invoke() async {
+  Future<bool> hasInternet() async {
     try {
       final result = await connectivity.checkConnectivity();
       if (result.firstOrNull == ConnectivityResult.none) return false;

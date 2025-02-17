@@ -1,6 +1,6 @@
 import 'package:wallet_core/core.dart';
 
-import '../../domain/usecase/pin/check_pin_usecase.dart';
+import '../../domain/model/pin/check_pin_result.dart';
 
 extension WalletInstructionErrorExtension on WalletInstructionError {
   CheckPinResult asCheckPinResult() {

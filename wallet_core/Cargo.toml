@@ -8,6 +8,7 @@ members = [
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
+    "hsm",
     "mdoc",
     "mock_relying_party",
     "openid4vc",
@@ -53,17 +54,16 @@ unused_async = "warn"
 unused_self = "warn"
 
 [workspace.dependencies]
-bitflags = "2.8.0"
-built = "0.7.5"
 accept-language = "3.1.0"
 aes-gcm = "0.10.3"
 android_logger = { version = "0.14.1", default-features = false }
 anyhow = "1.0.95"
+askama = "0.12.1"
+assert-json-diff = "2.0.2"
 assert_cmd = "2.0.16"
 assert_fs = "1.1.2"
-assert-json-diff = "2.0.2"
-askama = "0.12.1"
 assert_matches = "1.5.0"
+async-dropper = "0.3.1"
 async-trait = "0.1.86"
 axum = { version = "0.8.1", default-features = false }
 axum-extra = "0.10.0"
@@ -72,6 +72,8 @@ axum_csrf = "0.11.0"
 backtrace = "0.3.74"
 base64 = "0.22.1"
 biscuit = "0.7.0"
+bitflags = "2.8.0"
+built = "0.7.5"
 cfg-if = "1.0.0"
 chrono = { version = "0.4.39", default-features = false }
 ciborium = "0.2.2"
@@ -177,5 +179,6 @@ uniffi = { version = "0.28.3", default-features = false }
 url = "2.5.4"
 uuid = "1.12.1"
 wiremock = "0.6.2"
+x509-cert = { version = "0.2.5", default-features = false }
 x509-parser = "0.17.0"
 yoke = "0.7.5"

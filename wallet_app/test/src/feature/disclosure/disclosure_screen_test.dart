@@ -8,6 +8,7 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
@@ -29,7 +30,6 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
-import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
@@ -103,7 +103,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              const DisclosureGenericError(error: anything),
+              const DisclosureGenericError(error: GenericError('generic', sourceError: 'test')),
             ),
             name: 'generic_error',
           ),
@@ -324,7 +324,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureNetworkError(error: CoreNetworkError('no internet'), hasInternet: false),
+          const DisclosureNetworkError(
+            error: NetworkError(hasInternet: false, sourceError: 'no internet'),
+            hasInternet: false,
+          ),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
@@ -352,7 +355,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureNetworkError(error: CoreNetworkError('server'), hasInternet: true),
+          const DisclosureNetworkError(
+            error: NetworkError(hasInternet: true, sourceError: 'server'),
+            hasInternet: true,
+          ),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
@@ -380,7 +386,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          const DisclosureGenericError(error: CoreGenericError('generic')),
+          const DisclosureGenericError(error: GenericError('generic', sourceError: 'test')),
         ),
       );
 
@@ -410,7 +416,12 @@ void main() {
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
           const DisclosureSessionExpired(
-            error: CoreExpiredSessionError('expired', canRetry: false),
+            error: SessionError(
+              state: SessionState.expired,
+              crossDevice: SessionType.crossDevice,
+              canRetry: false,
+              sourceError: 'test',
+            ),
             canRetry: false,
             isCrossDevice: false,
           ),

@@ -115,7 +115,7 @@ class SetupSecurityGenericError extends SetupSecurityState implements ErrorState
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 
   @override
-  final Object error;
+  final ApplicationError error;
 
   const SetupSecurityGenericError({required this.error});
 
@@ -128,7 +128,7 @@ class SetupSecurityDeviceIncompatibleError extends SetupSecurityState implements
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 
   @override
-  final Object error;
+  final ApplicationError error;
 
   const SetupSecurityDeviceIncompatibleError({required this.error});
 
@@ -141,7 +141,7 @@ class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErr
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kSetupSteps);
 
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   final int? statusCode;

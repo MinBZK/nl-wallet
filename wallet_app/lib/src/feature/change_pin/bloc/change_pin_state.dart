@@ -66,7 +66,7 @@ class ChangePinCompleted extends ChangePinState {}
 
 class ChangePinGenericError extends ChangePinState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   const ChangePinGenericError({required this.error});
 
@@ -76,7 +76,7 @@ class ChangePinGenericError extends ChangePinState implements ErrorState {
 
 class ChangePinNetworkError extends ChangePinState implements NetworkErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   final int? statusCode;

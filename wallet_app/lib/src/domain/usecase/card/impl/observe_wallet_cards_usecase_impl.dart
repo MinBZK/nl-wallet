@@ -1,14 +1,14 @@
 import '../../../../data/repository/card/wallet_card_repository.dart';
 import '../../../model/wallet_card.dart';
+import '../../wallet_usecase.dart';
 import '../observe_wallet_cards_usecase.dart';
 
-class ObserveWalletCardsUseCaseImpl implements ObserveWalletCardsUseCase {
-  final WalletCardRepository walletCardRepository;
+class ObserveWalletCardsUseCaseImpl extends ObserveWalletCardsUseCase {
+  final WalletCardRepository _walletCardRepository;
 
-  ObserveWalletCardsUseCaseImpl(this.walletCardRepository);
+  ObserveWalletCardsUseCaseImpl(this._walletCardRepository);
 
   @override
-  Stream<List<WalletCard>> invoke() {
-    return walletCardRepository.observeWalletCards();
-  }
+  Stream<List<WalletCard>> invoke() =>
+      _walletCardRepository.observeWalletCards().handleAppError('Observing wallet cards failed');
 }

@@ -23,8 +23,8 @@ use sea_orm::RelationTrait;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
-use wallet_provider_domain::model::encrypted::Encrypted;
-use wallet_provider_domain::model::encrypted::InitializationVector;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::encrypted::InitializationVector;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io' as io;
 
 import 'package:fimber/fimber.dart';
@@ -89,8 +90,12 @@ class CoreWalletRepository implements WalletRepository {
 
   @override
   Future<bool> containsPid() async {
-    // The timeout here makes sure that we don't infinitely await in case the stream stays empty
-    final attestations = await _walletCore.observeCards().first.timeout(const Duration(seconds: 5));
-    return attestations.any((attestation) => attestation.attestationType == kPidDocType);
+    try {
+      final attestations = await _walletCore.observeCards().first.timeout(const Duration(seconds: 1));
+      return attestations.any((attestation) => attestation.attestationType == kPidDocType);
+    } on TimeoutException catch (ex) {
+      Fimber.e('Stream remained empty, no cards available yet.', ex: ex);
+      return false;
+    }
   }
 }
