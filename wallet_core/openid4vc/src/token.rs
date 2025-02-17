@@ -228,7 +228,7 @@ pub enum CredentialPreviewError {
     #[category(critical)]
     NoIssuerRegistration,
     #[error("common name mismatch: expected {0}, found {1}")]
-    #[category(critical)]
+    #[category(pd)]
     CommonNameMismatch(Uri, Uri),
 }
 
