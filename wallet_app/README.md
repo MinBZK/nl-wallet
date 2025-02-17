@@ -160,14 +160,32 @@ flutter pub run rename setBundleId --targets ios --value <BUNDLE ID>
 ###### Android
 
 Any real Android device that has either a TEE as part of its SoC or a separate StrongBox should
-generate attested keys that pass validation. The included setup script will configure the Wallet
-Provider to accept keys that are signed by a CA that uses Google's published public key.
+generate attested keys that pass key attestation validation. The included setup script will
+configure the Wallet Provider to accept keys that are signed by a CA that uses Google's published
+public key. The setup script will also configure the Wallet Provider to accept side loaded apps
+when evaluating the app integrity verdict it receives from Google, so that compiling and running
+the wallet app locally successfully passes app attestation.
+
+Note that, in order to request integrity verdicts from Google, the Wallet Provider needs to have
+access to a file that contains credentials for a Google Cloud service account. This file should be
+located at `wallet_core/wallet_provider/google-cloud-service-account.json`. Alternatively, mock
+verdicts could be issued instead using the `mock_android_integrity_verdict` Cargo feature, which
+bypasses the Google API. See the description below.
 
 For the Android emulator to work, the following requirements will need to be met:
-* The emulator should be running the Android 34 system images with Play Store support. This is currently the only known version to work, as it includes known pre-generated root CAs.
-* The `wallet_provider` should have the `allow_android_emulator_keys` Cargo feature enabled, which lowers the attested key requirements to allow keys generated in software. Note that this feature should never be used in any production environment.
 
-App attestation using Google Play integrity is not yet implemented.
+* The emulator should be running the Android 34 system images with Play Store support. This is
+  currently the only known version to work, as it includes known pre-generated root CAs. The setup
+  script configures the Wallet Provider with the public keys of these known CAs.
+* The Wallet Provider should have the `allow_android_emulator_keys` Cargo feature enabled, which
+  lowers the attested key requirements to allow keys generated in software. Note that this feature
+  should **NEVER** be used in any production environment.
+* The Wallet Provider should have the `mock_android_integrity_verdict` Cargo feature enabled, which
+  prevents it from requesting integrity verdicts from Google and replaces them with fake verdicts
+  that will pass validation. Note that this feature should **NEVER** be used in any production
+  environment.
+* Both of the above features have conveniently been combined in the `android_emulator` Cargo
+  feature for the Wallet Provider.
 
 ## File Structure
 

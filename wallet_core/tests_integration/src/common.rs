@@ -60,11 +60,11 @@ use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_common::vec_at_least::VecNonEmpty;
-use wallet_provider::settings::Android;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
+use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
 use wallet_server::pid::mock::MockAttributesLookup;
 use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;
@@ -175,9 +175,7 @@ pub async fn setup_wallet_and_env(
             };
         }
         KeyHolderType::Google { ca_chain } => {
-            wp_settings.android = Android {
-                root_public_keys: vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()],
-            }
+            wp_settings.android.root_public_keys = vec![RootPublicKey::Rsa(ca_chain.root_public_key.clone()).into()]
         }
     }
 
@@ -329,8 +327,15 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_wp_base_url(&settings.webserver.port);
 
+    let play_integrity_client = MockPlayIntegrityClient::new(
+        settings.android.package_name.clone(),
+        settings.android.play_store_certificate_hashes.clone(),
+    );
+
     tokio::spawn(async {
-        if let Err(error) = wallet_provider::server::serve(settings, RevocationStatusList::default()).await {
+        if let Err(error) =
+            wallet_provider::server::serve(settings, RevocationStatusList::default(), play_integrity_client).await
+        {
             println!("Could not start wallet_provider: {:?}", error);
 
             process::exit(1);

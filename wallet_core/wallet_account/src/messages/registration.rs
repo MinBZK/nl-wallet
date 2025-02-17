@@ -37,8 +37,7 @@ pub enum RegistrationAttestation {
     Google {
         #[serde_as(as = "Vec<Base64>")]
         certificate_chain: VecAtLeastTwo<Vec<u8>>,
-        #[serde_as(as = "Base64")]
-        app_attestation_token: Vec<u8>,
+        integrity_token: String,
     },
 }
 
@@ -112,7 +111,7 @@ mod client {
         pub async fn new_google<SK, PK>(
             secure_key: &SK,
             certificate_chain: VecAtLeastTwo<Vec<u8>>,
-            app_attestation_token: Vec<u8>,
+            integrity_token: String,
             pin_signing_key: &PK,
             challenge: Vec<u8>,
         ) -> Result<Self, EncodeError>
@@ -129,7 +128,7 @@ mod client {
                 Registration {
                     attestation: RegistrationAttestation::Google {
                         certificate_chain,
-                        app_attestation_token,
+                        integrity_token,
                     },
                     pin_pubkey: DerVerifyingKey::from(pin_pubkey),
                 },

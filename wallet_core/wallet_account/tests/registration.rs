@@ -8,7 +8,7 @@ use rustls_pki_types::CertificateDer;
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::attestation_extension::key_description::KeyDescription;
 use android_attest::certificate_chain::verify_google_key_attestation;
-use android_attest::mock::MockCaChain;
+use android_attest::mock_chain::MockCaChain;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
@@ -80,14 +80,14 @@ fn test_google_registration() {
     let attested_ca_chain = MockCaChain::generate(1);
     let (attested_certificate_chain, attested_private_key) =
         attested_ca_chain.generate_attested_leaf_certificate(&KeyDescription::new_valid_mock(challenge.to_vec()));
-    let app_attestation_token = utils::random_bytes(32);
+    let integrity_token = utils::random_string(32);
     let pin_signing_key = SigningKey::random(&mut OsRng);
 
     // The Wallet generates a registration message.
     let msg = ChallengeResponse::<Registration>::new_google(
         &attested_private_key,
         attested_certificate_chain.try_into().unwrap(),
-        app_attestation_token,
+        integrity_token,
         &pin_signing_key,
         challenge.to_vec(),
     )

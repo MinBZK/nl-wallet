@@ -23,7 +23,7 @@ mod tests {
             "appIntegrity": {
                 "appRecognitionVerdict": "PLAY_RECOGNIZED",
                 "packageName": "com.package.name",
-                "certificateSha256Digest": ["6a6a1474b5cbbb2b1aa57e0bc3"],
+                "certificateSha256Digest": ["amoUdLXLuysapX4Lww"],
                 "versionCode": "42"
             },
             "deviceIntegrity": {
@@ -50,7 +50,7 @@ mod tests {
     pub static EXAMPLE_VERDICT: LazyLock<IntegrityVerdict> = LazyLock::new(|| IntegrityVerdict {
         request_details: RequestDetails {
             request_package_name: "com.package.name".to_string(),
-            request_hash: b"hello wolrd there".to_vec(),
+            request_hash: "aGVsbG8gd29scmQgdGhlcmU".to_string(),
             timestamp: NaiveDate::from_ymd_opt(2023, 2, 6)
                 .unwrap()
                 .and_hms_milli_opt(3, 43, 29, 345)
@@ -59,16 +59,14 @@ mod tests {
         },
         app_integrity: AppIntegrity {
             app_recognition_verdict: AppRecognitionVerdict::PlayRecognized,
-            details: Some(AppIntegrityDetails {
-                package_name: "com.package.name".to_string(),
-                certificate_sha256_digest: HashSet::from([
-                    b"\x6a\x6a\x14\x74\xb5\xcb\xbb\x2b\x1a\xa5\x7e\x0b\xc3".to_vec()
-                ]),
-                version_code: 42.to_string(),
-            }),
+            package_name: Some("com.package.name".to_string()),
+            certificate_sha256_digest: Some(HashSet::from([
+                b"\x6a\x6a\x14\x74\xb5\xcb\xbb\x2b\x1a\xa5\x7e\x0b\xc3".to_vec()
+            ])),
+            version_code: Some(42.to_string()),
         },
         device_integrity: DeviceIntegrity {
-            device_recognition_verdict: HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity]),
+            device_recognition_verdict: Some(HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity])),
             recent_device_activity: Some(RecentDeviceActivity {
                 device_activity_level: DeviceActivityLevel::Level2,
             }),

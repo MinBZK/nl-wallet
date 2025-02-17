@@ -48,3 +48,5 @@ root_public_keys = [
     "${ANDROID_EMULATOR_EC_ROOT_PUBKEY}",
     "${ANDROID_EMULATOR_RSA_ROOT_PUBKEY}"
 ]
+package_name = "nl.ictu.edi.wallet.latest"
+allow_sideloading = true

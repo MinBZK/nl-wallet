@@ -18,7 +18,7 @@ use android_attest::attestation_extension::key_description::KeyDescription;
 use android_attest::attestation_extension::key_description::SecurityLevel;
 use android_attest::certificate_chain::verify_google_key_attestation;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
-use android_attest::mock::MockCaChain;
+use android_attest::mock_chain::MockCaChain;
 use android_attest::root_public_key::RootPublicKey;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
