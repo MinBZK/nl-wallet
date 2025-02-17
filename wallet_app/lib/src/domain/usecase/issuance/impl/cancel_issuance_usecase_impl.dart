@@ -1,4 +1,5 @@
 import '../../../../data/repository/issuance/issuance_repository.dart';
+import '../../../model/result/result.dart';
 import '../cancel_issuance_usecase.dart';
 
 class CancelIssuanceUseCaseImpl extends CancelIssuanceUseCase {
@@ -7,5 +8,10 @@ class CancelIssuanceUseCaseImpl extends CancelIssuanceUseCase {
   CancelIssuanceUseCaseImpl(this._issuanceRepository);
 
   @override
-  Future<void> invoke() => _issuanceRepository.cancelIssuance();
+  Future<Result<void>> invoke() async {
+    return tryCatch(
+      () async => _issuanceRepository.cancelIssuance(),
+      'Failed to cancel issuance',
+    );
+  }
 }

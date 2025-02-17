@@ -37,7 +37,7 @@ mock_android_integrity_verdict = [
 # This is DANGEROUS and should not be used in any production environment.
 android_emulator = ["allow_android_emulator_keys", "mock_android_integrity_verdict"]
 # Include and run test that depend on a configured HSM
-hsm_test = ["dep:rand_core", "dep:serial_test"]
+hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
 
 [dependencies]
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
@@ -76,6 +76,7 @@ uuid = { workspace = true, features = ["serde", "v4"] }
 
 android_attest.path = "../android_attest"
 apple_app_attest.path = "../apple_app_attest"
+hsm = { path = "../hsm", features = ["settings"] }
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"

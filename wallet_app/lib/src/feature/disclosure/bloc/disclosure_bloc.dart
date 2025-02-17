@@ -12,12 +12,11 @@ import '../../../domain/model/disclosure/disclosure_type.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/result/application_error.dart';
 import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../../util/cast_util.dart';
-import '../../../util/extension/bloc_extension.dart';
-import '../../../wallet_core/error/core_error.dart';
 import '../../report_issue/report_issue_screen.dart';
 
 part 'disclosure_event.dart';
@@ -48,78 +47,89 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   }
 
   Future<void> _onSessionStarted(DisclosureSessionStarted event, Emitter<DisclosureState> emit) async {
-    try {
-      // Cancel any potential ongoing disclosure, this can happen when a second disclosure
-      // deeplink is pressed while the disclosure flow is currently open. This opens a second
-      // disclosure bloc before the original one is closed, thus we need to cancel it here.
-      await _cancelDisclosureUseCase.invoke();
-      final startDisclosureResult =
-          _startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri, isQrCode: event.isQrCode);
-      if (startDisclosureResult is StartDisclosureReadyToDisclose && isLoginFlow) {
+    // Cancel any potential ongoing disclosure, this can happen when a second disclosure
+    // deeplink is pressed while the disclosure flow is currently open. This opens a second
+    // disclosure bloc before the original one is closed, thus we need to cancel it here.
+    await _cancelDisclosureUseCase.invoke();
+    final startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri, isQrCode: event.isQrCode);
+
+    await startDisclosureResult.process(
+      onSuccess: (result) {
+        _startDisclosureResult = result; // Cache the result
+        if (isLoginFlow) {
+          _emitDisclosureResultForLogin(result, emit);
+        } else {
+          emit(
+            DisclosureCheckOrganization(
+              relyingParty: result.relyingParty,
+              originUrl: result.originUrl,
+              sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
+              sessionType: result.sessionType,
+            ),
+          );
+        }
+      },
+      onError: (error) {
+        Fimber.e('Failed to start disclosure', ex: error);
+        switch (error) {
+          case GenericError():
+            emit(DisclosureGenericError(error: error, returnUrl: error.redirectUrl));
+          case NetworkError():
+            emit(DisclosureNetworkError(hasInternet: error.hasInternet, error: error));
+          case SessionError():
+            _handleSessionError(emit, error);
+          case ExternalScannerError():
+            emit(DisclosureExternalScannerError(error: error));
+          default:
+            emit(DisclosureGenericError(error: error));
+        }
+      },
+    );
+  }
+
+  void _emitDisclosureResultForLogin(StartDisclosureResult result, Emitter<DisclosureState> emit) {
+    switch (result) {
+      case StartDisclosureReadyToDisclose():
         emit(
           DisclosureCheckOrganizationForLogin(
-            relyingParty: startDisclosureResult.relyingParty,
-            originUrl: startDisclosureResult.originUrl,
-            sessionType: startDisclosureResult.sessionType,
-            policy: startDisclosureResult.policy,
-            sharedDataWithOrganizationBefore: startDisclosureResult.sharedDataWithOrganizationBefore,
-            requestedAttributes: startDisclosureResult.requestedAttributes,
+            relyingParty: result.relyingParty,
+            originUrl: result.originUrl,
+            sessionType: result.sessionType,
+            policy: result.policy,
+            sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
+            requestedAttributes: result.requestedAttributes,
           ),
         );
-      } else {
+      case StartDisclosureMissingAttributes():
         emit(
-          DisclosureCheckOrganization(
-            relyingParty: startDisclosureResult.relyingParty,
-            originUrl: startDisclosureResult.originUrl,
-            sharedDataWithOrganizationBefore: startDisclosureResult.sharedDataWithOrganizationBefore,
-            sessionType: startDisclosureResult.sessionType,
+          DisclosureGenericError(
+            error: GenericError(
+              'Disclosing unavailable attributes in login flow is not supported',
+              sourceError: Exception('Missing attributes: this unexpected in login flow'),
+            ),
           ),
         );
-      }
-    } catch (ex) {
-      Fimber.e('Failed to start disclosure', ex: ex);
-      await handleError(
-        ex,
-        onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(hasInternet: hasInternet, error: error)),
-        onDisclosureSourceMismatchError: (error) {
-          if (error.isCrossDevice) {
-            emit(DisclosureExternalScannerError(error: error));
-          } else {
-            emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl));
-          }
-        },
-        onCoreExpiredSessionError: (error) => emit(
-          DisclosureSessionExpired(
-            error: error,
-            canRetry: error.canRetry,
-            isCrossDevice: event.isQrCode,
-            returnUrl: error.returnUrl,
-          ),
-        ),
-        onCoreError: (error) => emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl)),
-        onUnhandledError: (error) => emit(DisclosureGenericError(error: error)),
-      );
     }
   }
 
   Future<void> _onStopRequested(DisclosureStopRequested event, emit) async {
-    String? returnUrl;
-    try {
-      emit(DisclosureLoadInProgress());
-      returnUrl = await _cancelDisclosureUseCase.invoke();
-    } catch (ex) {
-      Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
-      returnUrl = tryCast<CoreError>(ex)?.returnUrl;
-    } finally {
-      final relyingParty = _startDisclosureResult?.relyingParty;
-      if (relyingParty == null) {
-        emit(
-          DisclosureGenericError(
-            error: 'Invalid state, no relying party to render stopped',
-            returnUrl: returnUrl,
-          ),
-        );
-      } else {
+    emit(DisclosureLoadInProgress());
+    final cancelResult = await _cancelDisclosureUseCase.invoke();
+
+    // Check edge case where relyingParty (needed to render stopped screen) is not available.
+    if (_startDisclosureResult?.relyingParty == null) {
+      emit(
+        DisclosureGenericError(
+          error:
+              GenericError('Invalid state, no relyingParty to render', sourceError: Exception('Relying party is null')),
+          returnUrl: cancelResult.value,
+        ),
+      );
+      return;
+    }
+
+    await cancelResult.process(
+      onSuccess: (returnUrl) {
         emit(
           DisclosureStopped(
             organization: _startDisclosureResult!.relyingParty,
@@ -127,8 +137,16 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
             returnUrl: returnUrl,
           ),
         );
-      }
-    }
+      },
+      onError: (error) {
+        switch (error) {
+          case NetworkError():
+            emit(DisclosureNetworkError(error: error, hasInternet: error.hasInternet));
+          default:
+            emit(DisclosureGenericError(error: error, returnUrl: cancelResult.value));
+        }
+      },
+    );
   }
 
   Future<void> _onBackPressed(DisclosureBackPressed event, emit) async {
@@ -244,56 +262,54 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   Future<void> _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
     Fimber.d('User selected reporting option ${event.option}');
-    String? returnUrl;
-    try {
-      emit(DisclosureLoadInProgress());
-      returnUrl = await _cancelDisclosureUseCase.invoke();
-    } catch (ex) {
-      Fimber.e('Failed to explicitly cancel disclosure flow', ex: ex);
-      returnUrl = tryCast<CoreError>(ex)?.returnUrl;
-    } finally {
-      emit(DisclosureLeftFeedback(returnUrl: returnUrl));
-    }
+    emit(DisclosureLoadInProgress());
+    final cancelResult = await _cancelDisclosureUseCase.invoke();
+    if (cancelResult.hasError) Fimber.e('Failed to explicitly cancel disclosure flow', ex: cancelResult.error);
+    emit(DisclosureLeftFeedback(returnUrl: cancelResult.value));
   }
 
   Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
-    String? returnUrl;
-    try {
-      emit(DisclosureLoadInProgress());
-      Fimber.d('Disclosure failed when entering pin, cause: ${event.error}. Calling cancelSession explicitly as well.');
-      returnUrl = await _cancelDisclosureUseCase.invoke();
-    } catch (ex) {
-      Fimber.e('Failed to explicitly cancel disclosure session', ex: ex);
-      returnUrl = tryCast<CoreError>(ex)?.returnUrl;
-    } finally {
-      await handleError(
-        event.error,
-        onNetworkError: (error, hasInternet) => emit(DisclosureNetworkError(error: error, hasInternet: hasInternet)),
-        onCoreExpiredSessionError: (error) {
-          final isCrossDevice = _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
-          emit(
-            DisclosureSessionExpired(
-              error: error,
-              canRetry: error.canRetry,
-              isCrossDevice: isCrossDevice,
-              returnUrl: error.returnUrl ?? returnUrl,
-            ),
-          );
-        },
-        onCoreCancelledSessionError: (error) => emit(
+    emit(DisclosureLoadInProgress());
+    // {event.error} is the error that was thrown when user tried to confirm the disclosure session with a PIN.
+    switch (event.error) {
+      case SessionError():
+        _handleSessionError(emit, event.error as SessionError);
+        return;
+      case NetworkError():
+        await _cancelDisclosureUseCase.invoke(); // Attempt to cancel the session, but propagate original error
+        emit(DisclosureNetworkError(error: event.error, hasInternet: (event.error as NetworkError).hasInternet));
+        return;
+      default:
+        Fimber.d('Disclosure failed unexpectedly when entering pin, cause: ${event.error}.');
+    }
+    // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
+    final cancelResult = await _cancelDisclosureUseCase.invoke();
+    await cancelResult.process(
+      onSuccess: (returnUrl) => emit(DisclosureGenericError(error: event.error, returnUrl: returnUrl)),
+      onError: (error) => emit(DisclosureGenericError(error: error)),
+    );
+  }
+
+  void _handleSessionError(Emitter<DisclosureState> emit, SessionError error) {
+    final isCrossDevice = _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
+    switch (error.state) {
+      case SessionState.expired:
+        emit(
+          DisclosureSessionExpired(
+            error: error,
+            canRetry: error.canRetry,
+            isCrossDevice: isCrossDevice,
+            returnUrl: error.returnUrl,
+          ),
+        );
+      case SessionState.cancelled:
+        emit(
           DisclosureCancelledSessionError(
             error: error,
             relyingParty: relyingParty!,
-            returnUrl: error.returnUrl ?? returnUrl,
+            returnUrl: error.returnUrl,
           ),
-        ),
-        onCoreError: (error) => emit(DisclosureGenericError(error: error, returnUrl: error.returnUrl ?? returnUrl)),
-        onUnhandledError: (error) => emit(DisclosureGenericError(error: error, returnUrl: returnUrl)),
-      );
+        );
     }
   }
-}
-
-extension _CoreErrorExtension on CoreError {
-  String? get returnUrl => data?['return_url'];
 }

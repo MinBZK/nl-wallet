@@ -1,6 +1,10 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/event/wallet_event.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
+import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/feature/card/history/bloc/card_history_bloc.dart';
 
 import '../../../../mocks/wallet_mock_data.dart';
@@ -13,6 +17,8 @@ void main() {
   setUp(() {
     getWalletCardUseCase = MockGetWalletCardUseCase();
     getWalletEventsForCardUseCase = MockGetWalletEventsForCardUseCase();
+    provideDummy<Result<WalletCard>>(Result.success(WalletMockData.card));
+    provideDummy<Result<List<WalletEvent>>>(const Result.success([]));
   });
 
   blocTest(
@@ -34,8 +40,9 @@ void main() {
     ),
     setUp: () {
       when(getWalletCardUseCase.invoke(WalletMockData.card.docType))
-          .thenAnswer((_) => Future.value(WalletMockData.card));
-      when(getWalletEventsForCardUseCase.invoke(WalletMockData.card.docType)).thenAnswer((_) => Future.value([]));
+          .thenAnswer((_) async => Result.success(WalletMockData.card));
+      when(getWalletEventsForCardUseCase.invoke(WalletMockData.card.docType))
+          .thenAnswer((_) => Future.value(const Result.success([])));
     },
     act: (bloc) => bloc.add(CardHistoryLoadTriggered(WalletMockData.card.docType)),
     expect: () => [const CardHistoryLoadInProgress(), CardHistoryLoadSuccess(WalletMockData.card, const [])],
@@ -49,7 +56,7 @@ void main() {
     ),
     setUp: () {
       when(getWalletCardUseCase.invoke(WalletMockData.card.docType))
-          .thenAnswer((_) => Future.error('failed to load card data'));
+          .thenAnswer((_) async => const Result.error(GenericError('failed to load card', sourceError: 'test')));
     },
     act: (bloc) => bloc.add(CardHistoryLoadTriggered(WalletMockData.card.docType)),
     expect: () => [const CardHistoryLoadInProgress(), const CardHistoryLoadFailure()],

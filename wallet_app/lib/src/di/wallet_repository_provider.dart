@@ -1,6 +1,8 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:wallet_mock/mock.dart';
 
 import '../data/repository/biometric/biometric_repository.dart';
@@ -19,6 +21,8 @@ import '../data/repository/issuance/core/core_issuance_repository.dart';
 import '../data/repository/issuance/issuance_repository.dart';
 import '../data/repository/language/impl/language_repository_impl.dart';
 import '../data/repository/language/language_repository.dart';
+import '../data/repository/network/impl/network_repository_impl.dart';
+import '../data/repository/network/network_repository.dart';
 import '../data/repository/pid/core/core_pid_repository.dart';
 import '../data/repository/pid/pid_repository.dart';
 import '../data/repository/qr/core/core_qr_repository.dart';
@@ -33,6 +37,7 @@ import '../data/repository/version/version_state_repository.dart';
 import '../data/repository/version/version_string_repository.dart';
 import '../data/repository/wallet/core/core_wallet_repository.dart';
 import '../data/repository/wallet/wallet_repository.dart';
+import '../util/extension/core_error_extension.dart';
 
 /// This widget is responsible for initializing and providing all `repositories`.
 /// Most likely to be used once at the top (app) level.
@@ -112,6 +117,14 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<VersionStringRepository>(
           create: (context) => CoreVersionStringRepository(context.read()),
+        ),
+        RepositoryProvider<NetworkRepository>(
+          lazy: false /* false to make sure [CoreErrorExtension.networkRepository] is available */,
+          create: (context) {
+            final networkRepository = NetworkRepositoryImpl(Connectivity(), InternetConnectionChecker());
+            CoreErrorExtension.networkRepository = networkRepository;
+            return networkRepository;
+          },
         ),
       ],
       child: child,

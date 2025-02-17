@@ -1,7 +1,10 @@
-abstract class CheckIsValidPinUseCase {
+import '../../model/result/result.dart';
+import '../wallet_usecase.dart';
+
+abstract class CheckIsValidPinUseCase extends WalletUseCase {
   /// Validates the supplied [pin]
   ///
-  /// Throws a [PinValidationError] if the pin does
+  /// Returns a [ValidatePinError] if the pin does
   /// not meet the required standards.
-  Future<void> invoke(String pin);
+  Future<Result<void>> invoke(String pin);
 }

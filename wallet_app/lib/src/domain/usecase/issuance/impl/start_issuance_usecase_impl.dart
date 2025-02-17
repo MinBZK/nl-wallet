@@ -1,5 +1,6 @@
 import '../../../../data/repository/issuance/issuance_repository.dart';
 import '../../../model/issuance/start_issuance_result.dart';
+import '../../../model/result/result.dart';
 import '../start_issuance_usecase.dart';
 
 class StartIssuanceUseCaseImpl extends StartIssuanceUseCase {
@@ -8,7 +9,10 @@ class StartIssuanceUseCaseImpl extends StartIssuanceUseCase {
   StartIssuanceUseCaseImpl(this._issuanceRepository);
 
   @override
-  Future<StartIssuanceResult> invoke(String issuanceUri) {
-    return _issuanceRepository.startIssuance(issuanceUri);
+  Future<Result<StartIssuanceResult>> invoke(String issuanceUri) async {
+    return tryCatch(
+      () async => _issuanceRepository.startIssuance(issuanceUri),
+      'Failed to start issuance',
+    );
   }
 }

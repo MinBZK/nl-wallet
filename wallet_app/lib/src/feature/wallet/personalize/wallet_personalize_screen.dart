@@ -11,6 +11,7 @@ import 'package:wallet_mock/mock.dart';
 import '../../../../environment.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/flow_progress.dart';
+import '../../../domain/model/result/application_error.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
@@ -173,7 +174,14 @@ class WalletPersonalizeScreen extends StatelessWidget {
       onCancel: () async {
         final bloc = context.bloc;
         final cancelled = await _showStopDigidLoginDialog(context);
-        if (cancelled) bloc.add(const WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true));
+        if (cancelled) {
+          bloc.add(
+            WalletPersonalizeLoginWithDigidFailed(
+              cancelledByUser: true,
+              error: GenericError(cancelled, sourceError: Exception('Login cancelled')),
+            ),
+          );
+        }
       },
       loadingIndicator: stage == DigiDAuthStage.awaitingUserAction ? const SizedBox.shrink() : const LoadingIndicator(),
     );
@@ -231,7 +239,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         await launchUrlString(authUrl, mode: LaunchMode.externalApplication);
       } catch (ex) {
         Fimber.e('Failed to open auth url: $authUrl', ex: ex);
-        bloc.add(const WalletPersonalizeLoginWithDigidFailed());
+        bloc.add(WalletPersonalizeLoginWithDigidFailed(error: GenericError(ex.toString(), sourceError: ex)));
       }
     }
   }
@@ -262,7 +270,11 @@ class WalletPersonalizeScreen extends StatelessWidget {
           .toList();
       bloc.add(WalletPersonalizeLoginWithDigidSucceeded(attributeMapper.mapList(mockPidCardAttributes)));
     } else {
-      bloc.add(const WalletPersonalizeLoginWithDigidFailed());
+      bloc.add(
+        WalletPersonalizeLoginWithDigidFailed(
+          error: GenericError('Mock login failed', sourceError: Exception('Mock exception')),
+        ),
+      );
     }
   }
 

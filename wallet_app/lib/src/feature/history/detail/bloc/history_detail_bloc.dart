@@ -21,14 +21,17 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
 
   Future<void> _onHistoryDetailLoadTriggered(HistoryDetailLoadTriggered event, emit) async {
     emit(const HistoryDetailLoadInProgress());
-    try {
-      final relatedCardDocTypes = event.event.attributes.map((e) => e.sourceCardDocType).toSet();
-      final relatedCards =
-          (await getWalletCardsUseCase.invoke()).where((card) => relatedCardDocTypes.contains(card.docType));
-      emit(HistoryDetailLoadSuccess(event.event, relatedCards.toList()));
-    } catch (error) {
-      Fimber.e('Failed to load history details', ex: error);
-      emit(const HistoryDetailLoadFailure());
-    }
+    final relatedCardDocTypes = event.event.attributes.map((e) => e.sourceCardDocType).toSet();
+    final cardsResult = await getWalletCardsUseCase.invoke();
+    await cardsResult.process(
+      onSuccess: (cards) {
+        final relatedCards = cards.where((card) => relatedCardDocTypes.contains(card.docType));
+        emit(HistoryDetailLoadSuccess(event.event, relatedCards.toList()));
+      },
+      onError: (error) {
+        Fimber.e('Failed to load history details', ex: error);
+        emit(const HistoryDetailLoadFailure());
+      },
+    );
   }
 }

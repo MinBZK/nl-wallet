@@ -3,7 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../check_has_permission_usecase.dart';
 
-class CheckHasPermissionUseCaseImpl implements CheckHasPermissionUseCase {
+class CheckHasPermissionUseCaseImpl extends CheckHasPermissionUseCase {
   CheckHasPermissionUseCaseImpl();
 
   @override

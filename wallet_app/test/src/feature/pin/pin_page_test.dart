@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/pin_page.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
@@ -68,7 +69,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateGenericError(error: 'error'),
+          const PinValidateGenericError(error: GenericError('', sourceError: 'test')),
         ),
       );
       await tester.pumpAndSettle();
@@ -79,7 +80,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
           MockPinBloc(),
-          const PinValidateNetworkError(error: 'error', hasInternet: true),
+          const PinValidateNetworkError(
+            error: NetworkError(hasInternet: true, sourceError: 'test'),
+            hasInternet: true,
+          ),
         ),
       );
       await tester.pumpAndSettle();

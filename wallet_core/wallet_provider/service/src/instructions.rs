@@ -12,6 +12,9 @@ use serde::Serialize;
 use tracing::warn;
 use uuid::Uuid;
 
+use hsm::model::encrypter::Encrypter;
+use hsm::model::wrapped_key::WrappedKey;
+use hsm::service::HsmError;
 use wallet_common::account::messages::instructions::ChangePinCommit;
 use wallet_common::account::messages::instructions::ChangePinRollback;
 use wallet_common::account::messages::instructions::ChangePinStart;
@@ -32,12 +35,10 @@ use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::POA_JWT_TYP;
 use wallet_common::keys::EcdsaKey;
-use wallet_provider_domain::model::encrypter::Encrypter;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
-use wallet_provider_domain::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -45,7 +46,6 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use crate::account_server::InstructionError;
 use crate::account_server::InstructionValidationError;
 use crate::account_server::UserState;
-use crate::hsm::HsmError;
 use crate::wte_issuer::WteIssuer;
 
 pub trait ValidateInstruction {
@@ -189,7 +189,10 @@ impl HandleInstruction for GenerateKey {
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
         let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
-        let keys = user_state.wallet_user_hsm.generate_wrapped_keys(&identifiers).await?;
+        let keys = user_state
+            .wallet_user_hsm
+            .generate_wrapped_keys(&user_state.wrapping_key_identifier, &identifiers)
+            .await?;
 
         let (public_keys, wrapped_keys): (Vec<(String, DerVerifyingKey)>, Vec<WalletUserKey>) = keys
             .into_iter()
@@ -255,7 +258,7 @@ impl HandleInstruction for Sign {
                 let wrapped_key = found_keys.get(identifier).cloned().unwrap();
                 user_state
                     .wallet_user_hsm
-                    .sign_wrapped(wrapped_key, Arc::clone(&data))
+                    .sign_wrapped(&user_state.wrapping_key_identifier, wrapped_key, Arc::clone(&data))
                     .await
                     .map(DerSignature::from)
             }))
@@ -339,6 +342,7 @@ impl HandleInstruction for ConstructPoa {
                 Ok(HsmCredentialSigningKey {
                     hsm: &user_state.wallet_user_hsm,
                     wrapped_key,
+                    wrapping_key_identifier: &user_state.wrapping_key_identifier,
                 })
             })
             .collect::<Result<Vec<_>, InstructionError>>()?;
@@ -355,6 +359,7 @@ impl HandleInstruction for ConstructPoa {
 struct HsmCredentialSigningKey<'a, H> {
     hsm: &'a H,
     wrapped_key: WrappedKey,
+    wrapping_key_identifier: &'a str,
 }
 
 impl<H> PartialEq for HsmCredentialSigningKey<'_, H> {
@@ -383,7 +388,11 @@ where
 
     async fn try_sign(&self, msg: &[u8]) -> Result<Signature, Self::Error> {
         self.hsm
-            .sign_wrapped(self.wrapped_key.clone(), Arc::new(msg.to_vec()))
+            .sign_wrapped(
+                self.wrapping_key_identifier,
+                self.wrapped_key.clone(),
+                Arc::new(msg.to_vec()),
+            )
             .await
     }
 }
@@ -442,6 +451,7 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
 
+    use hsm::model::wrapped_key::WrappedKey;
     use wallet_common::account::messages::instructions::CheckPin;
     use wallet_common::account::messages::instructions::ConstructPoa;
     use wallet_common::account::messages::instructions::GenerateKey;
@@ -454,7 +464,6 @@ mod tests {
     use wallet_common::utils::random_string;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUser;
-    use wallet_provider_domain::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::FixedUuidGenerator;
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
@@ -469,13 +478,18 @@ mod tests {
     #[tokio::test]
     async fn should_handle_checkpin() {
         let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my_wrapping_key_identifier";
 
         let instruction = CheckPin {};
         instruction
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &mock::user_state(MockTransactionalWalletUserRepository::new(), setup_hsm().await),
+                &mock::user_state(
+                    MockTransactionalWalletUserRepository::new(),
+                    setup_hsm().await,
+                    wrapping_key_identifier.to_string(),
+                ),
             )
             .await
             .unwrap();
@@ -484,6 +498,7 @@ mod tests {
     #[tokio::test]
     async fn should_handle_generate_key() {
         let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my_wrapping_key_identifier";
 
         let instruction = GenerateKey {
             identifiers: vec!["key1".to_string(), "key2".to_string()],
@@ -499,7 +514,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await),
+                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
             )
             .await
             .unwrap();
@@ -515,6 +530,7 @@ mod tests {
     #[tokio::test]
     async fn should_handle_sign() {
         let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let random_msg_1 = random_bytes(32);
         let random_msg_2 = random_bytes(32);
@@ -557,7 +573,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await),
+                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
             )
             .await
             .unwrap();
@@ -579,6 +595,7 @@ mod tests {
     #[tokio::test]
     async fn should_handle_issue_wte() {
         let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let instruction = IssueWte {
             key_identifier: random_string(32),
@@ -599,7 +616,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await),
+                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
             )
             .await
             .unwrap();
@@ -627,6 +644,7 @@ mod tests {
     #[tokio::test]
     async fn should_handle_construct_poa() {
         let wallet_user = wallet_user::mock::wallet_user_1();
+        let wrapping_key_identifier = "my-wrapping-key-identifier";
 
         let signing_key_1 = SigningKey::random(&mut OsRng);
         let signing_key_2 = SigningKey::random(&mut OsRng);
@@ -664,7 +682,7 @@ mod tests {
             .handle(
                 &wallet_user,
                 &FixedUuidGenerator,
-                &mock::user_state(wallet_user_repo, setup_hsm().await),
+                &mock::user_state(wallet_user_repo, setup_hsm().await, wrapping_key_identifier.to_string()),
             )
             .await
             .unwrap()

@@ -1,7 +1,9 @@
-import '../../model/pin/check_pin_result.dart';
+import '../../model/result/result.dart';
+import '../wallet_usecase.dart';
 
-export '../../model/pin/check_pin_result.dart';
+export '../../model/result/result.dart';
 
-abstract class CheckPinUseCase {
-  Future<CheckPinResult> invoke(String pin);
+/// Check the provided pin, optionally providing a returnUrl (e.g. when using pin to accept same device disclosure).
+abstract class CheckPinUseCase extends WalletUseCase {
+  Future<Result<String? /*returnUrl*/ >> invoke(String pin);
 }

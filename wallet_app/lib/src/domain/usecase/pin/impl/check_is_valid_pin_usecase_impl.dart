@@ -1,7 +1,9 @@
-import 'package:fimber/fimber.dart';
-
 import '../../../../data/repository/wallet/wallet_repository.dart';
+import '../../../../util/extension/core_error_extension.dart';
+import '../../../../wallet_core/error/core_error.dart';
 import '../../../model/pin/pin_validation_error.dart';
+import '../../../model/result/application_error.dart';
+import '../../../model/result/result.dart';
 import '../check_is_valid_pin_usecase.dart';
 
 class CheckIsValidPinUseCaseImpl extends CheckIsValidPinUseCase {
@@ -10,17 +12,16 @@ class CheckIsValidPinUseCaseImpl extends CheckIsValidPinUseCase {
   CheckIsValidPinUseCaseImpl(this._walletRepository);
 
   @override
-  Future<void> invoke(String pin) async {
+  Future<Result<void>> invoke(String pin) async {
     try {
       await _walletRepository.validatePin(pin);
-    } catch (error) {
-      // Guarantee ONLY [PinValidationError]s are thrown
-      if (error is PinValidationError) {
-        rethrow;
-      } else {
-        Fimber.e('Something other than pin validation failed.', ex: error);
-        throw PinValidationError.other;
-      }
+      return const Result.success(null);
+    } on PinValidationError catch (ex) {
+      return Result.error(ValidatePinError(ex, sourceError: ex));
+    } on CoreError catch (ex) {
+      return Result.error(await ex.asApplicationError());
+    } catch (ex) {
+      return Result.error(ValidatePinError(PinValidationError.other, sourceError: ex));
     }
   }
 }

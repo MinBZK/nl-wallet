@@ -54,7 +54,7 @@ pub enum OidcError {
     #[error("URL decoding error: {0}")]
     UrlDecoding(#[from] serde::de::value::Error),
     #[error("error requesting authorization code: {0:?}")]
-    RedirectUriError(ErrorResponse<AuthorizationErrorCode>),
+    RedirectUriError(Box<ErrorResponse<AuthorizationErrorCode>>),
     #[error("error requesting access token: {0:?}")]
     RequestingAccessToken(Box<ErrorResponse<TokenErrorCode>>),
     #[error("error requesting userinfo: {0:?}")]
@@ -197,7 +197,7 @@ impl<P: PkcePair> HttpOidcClient<P> {
         // First see if we received an error
         if received_redirect_uri.query_pairs().any(|(key, _)| key == "error") {
             let err_response: ErrorResponse<AuthorizationErrorCode> = serde_urlencoded::from_str(auth_response)?;
-            return Err(OidcError::RedirectUriError(err_response));
+            return Err(OidcError::RedirectUriError(Box::new(err_response)));
         }
 
         let auth_response: AuthorizationResponse = serde_urlencoded::from_str(auth_response)?;

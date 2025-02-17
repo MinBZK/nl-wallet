@@ -9,6 +9,8 @@ use tracing::info;
 use uuid::Uuid;
 
 use android_attest::root_public_key::RootPublicKey;
+use hsm::keys::HsmEcdsaKey;
+use hsm::service::Pkcs11Hsm;
 use wallet_common::account::messages::instructions::Instruction;
 use wallet_common::account::messages::instructions::InstructionAndResult;
 use wallet_common::account::messages::instructions::InstructionResultMessage;
@@ -21,12 +23,10 @@ use wallet_provider_service::account_server::AccountServerKeys;
 use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::UserState;
-use wallet_provider_service::hsm::Pkcs11Hsm;
 use wallet_provider_service::instructions::HandleInstruction;
 use wallet_provider_service::instructions::ValidateInstruction;
 use wallet_provider_service::keys::InstructionResultSigning;
 use wallet_provider_service::keys::WalletCertificateSigning;
-use wallet_provider_service::keys::WalletProviderEcdsaKey;
 use wallet_provider_service::pin_policy::PinPolicy;
 use wallet_provider_service::wte_issuer::HsmWteIssuer;
 
@@ -47,19 +47,13 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
         google_crl_client: GRC,
         play_integrity_client: PIC,
     ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
-        let hsm = Pkcs11Hsm::new(
-            settings.hsm.library_path,
-            settings.hsm.user_pin,
-            settings.hsm.max_sessions,
-            settings.hsm.max_session_lifetime,
-            settings.attestation_wrapping_key_identifier,
-        )?;
+        let hsm = Pkcs11Hsm::from_settings(settings.hsm)?;
 
-        let certificate_signing_key = WalletCertificateSigning(WalletProviderEcdsaKey::new(
+        let certificate_signing_key = WalletCertificateSigning(HsmEcdsaKey::new(
             settings.certificate_signing_key_identifier,
             hsm.clone(),
         ));
-        let instruction_result_signing_key = InstructionResultSigning(WalletProviderEcdsaKey::new(
+        let instruction_result_signing_key = InstructionResultSigning(HsmEcdsaKey::new(
             settings.instruction_result_signing_key_identifier,
             hsm.clone(),
         ));
@@ -127,9 +121,10 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
 
         let repositories = Repositories::new(db);
         let wte_issuer = HsmWteIssuer::new(
-            WalletProviderEcdsaKey::new(settings.wte_signing_key_identifier, hsm.clone()),
+            HsmEcdsaKey::new(settings.wte_signing_key_identifier, hsm.clone()),
             settings.wte_issuer_identifier,
             hsm.clone(),
+            settings.attestation_wrapping_key_identifier.clone(),
         );
 
         let state = RouterState {
@@ -141,6 +136,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 repositories,
                 wallet_user_hsm: hsm,
                 wte_issuer,
+                wrapping_key_identifier: settings.attestation_wrapping_key_identifier,
             },
         };
 

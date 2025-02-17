@@ -33,7 +33,7 @@ class DisclosureLoadInProgress extends DisclosureState {
 /// This [ErrorState] is emitted when the user scanned a Disclosure QR with an external app (e.g. the built-in camera)
 class DisclosureExternalScannerError extends DisclosureState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   bool get showStopConfirmation => false;
@@ -46,7 +46,7 @@ class DisclosureExternalScannerError extends DisclosureState implements ErrorSta
 
 class DisclosureGenericError extends DisclosureState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   final String? returnUrl;
 
@@ -61,7 +61,7 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
 
 class DisclosureSessionExpired extends DisclosureState implements ErrorState {
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   bool get showStopConfirmation => false;
@@ -89,7 +89,7 @@ class DisclosureCancelledSessionError extends DisclosureState implements ErrorSt
   final String? returnUrl;
 
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   bool get showStopConfirmation => false;
@@ -112,7 +112,7 @@ class DisclosureNetworkError extends DisclosureState implements NetworkErrorStat
   final bool hasInternet;
 
   @override
-  final Object error;
+  final ApplicationError error;
 
   @override
   final int? statusCode;

@@ -7,12 +7,12 @@ use uuid;
 use uuid::Uuid;
 
 use apple_app_attest::AssertionCounter;
-use wallet_provider_domain::model::encrypted::Encrypted;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletUserCreate;
 use wallet_provider_domain::model::wallet_user::WalletUserKeys;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
-use wallet_provider_domain::model::wrapped_key::WrappedKey;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
@@ -184,15 +184,15 @@ pub mod mock {
     use uuid::Uuid;
 
     use apple_app_attest::AssertionCounter;
+    use hsm::model::encrypted::Encrypted;
+    use hsm::model::wrapped_key::WrappedKey;
     use wallet_common::account::serialization::DerVerifyingKey;
-    use wallet_provider_domain::model::encrypted::Encrypted;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
     use wallet_provider_domain::model::wallet_user::WalletUserCreate;
     use wallet_provider_domain::model::wallet_user::WalletUserKeys;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
-    use wallet_provider_domain::model::wrapped_key::WrappedKey;
     use wallet_provider_domain::repository::MockTransaction;
     use wallet_provider_domain::repository::MockTransactionStarter;
     use wallet_provider_domain::repository::PersistenceError;

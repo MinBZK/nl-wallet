@@ -45,6 +45,11 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
+use hsm::model::encrypted::Encrypted;
+use hsm::model::encrypter::Decrypter;
+use hsm::model::encrypter::Encrypter;
+use hsm::model::Hsm;
+use hsm::service::HsmError;
 use wallet_common::account::errors::Error as AccountError;
 use wallet_common::account::messages::auth::Registration;
 use wallet_common::account::messages::auth::RegistrationAttestation;
@@ -69,10 +74,6 @@ use wallet_common::jwt::JwtError;
 use wallet_common::jwt::JwtSubject;
 use wallet_common::keys::poa::PoaError;
 use wallet_common::utils;
-use wallet_provider_domain::model::encrypted::Encrypted;
-use wallet_provider_domain::model::encrypter::Decrypter;
-use wallet_provider_domain::model::encrypter::Encrypter;
-use wallet_provider_domain::model::hsm::Hsm;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
@@ -86,7 +87,6 @@ use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_domain::repository::TransactionStarter;
 use wallet_provider_domain::repository::WalletUserRepository;
 
-use crate::hsm::HsmError;
 use crate::instructions::HandleInstruction;
 use crate::instructions::ValidateInstruction;
 use crate::keys::InstructionResultSigningKey;
@@ -355,14 +355,16 @@ pub struct UserState<R, H, W> {
     pub repositories: R,
     pub wallet_user_hsm: H,
     pub wte_issuer: W,
+    pub wrapping_key_identifier: String,
 }
 
 impl<R, H, W> UserState<R, H, W> {
-    pub fn new(repositories: R, wallet_user_hsm: H, wte_issuer: W) -> Self {
+    pub fn new(repositories: R, wallet_user_hsm: H, wte_issuer: W, wrapping_key_identifier: String) -> Self {
         Self {
             repositories,
             wallet_user_hsm,
             wte_issuer,
+            wrapping_key_identifier,
         }
     }
 }
@@ -1146,8 +1148,8 @@ pub mod mock {
 
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
+    use hsm::model::mock::MockPkcs11Client;
     use wallet_common::apple::MockAppleAttestedKey;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::wallet_certificate;
@@ -1217,11 +1219,13 @@ pub mod mock {
     pub fn user_state<R>(
         repositories: R,
         wallet_user_hsm: MockPkcs11Client<HsmError>,
+        wrapping_key_identifier: String,
     ) -> UserState<R, MockPkcs11Client<HsmError>, MockWteIssuer> {
         UserState::<R, MockPkcs11Client<HsmError>, MockWteIssuer> {
             repositories,
             wallet_user_hsm,
             wte_issuer: MockWteIssuer,
+            wrapping_key_identifier,
         }
     }
 
@@ -1330,6 +1334,10 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
+    use hsm::model::encrypted::Encrypted;
+    use hsm::model::encrypter::Encrypter;
+    use hsm::model::mock::MockPkcs11Client;
+    use hsm::service::HsmError;
     use wallet_common::account::errors::Error as AccountError;
     use wallet_common::account::messages::auth::WalletCertificate;
     use wallet_common::account::messages::errors::IncorrectPinData;
@@ -1346,9 +1354,6 @@ mod tests {
     use wallet_common::keys::EcdsaKey;
     use wallet_common::utils;
     use wallet_provider_domain::generator::mock::MockGenerators;
-    use wallet_provider_domain::model::encrypted::Encrypted;
-    use wallet_provider_domain::model::encrypter::Encrypter;
-    use wallet_provider_domain::model::hsm::mock::MockPkcs11Client;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
     use wallet_provider_domain::model::FailingPinPolicy;
@@ -1361,7 +1366,6 @@ mod tests {
     use wallet_provider_persistence::repositories::mock::MockTransactionalWalletUserRepository;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
-    use crate::hsm::HsmError;
     use crate::keys::WalletCertificateSigningKey;
     use crate::wallet_certificate;
     use crate::wallet_certificate::mock::setup_hsm;
@@ -1390,6 +1394,7 @@ mod tests {
         certificate_signing_key: &impl WalletCertificateSigningKey,
         pin_privkey: &SigningKey,
         attestation_ca: AttestationCa<'_>,
+        wrapping_key_identifier: &str,
     ) -> Result<(WalletCertificate, MockHardwareKey, MockPkcs11Client<HsmError>), RegistrationError> {
         let challenge = account_server
             .registration_challenge(certificate_signing_key)
@@ -1445,6 +1450,7 @@ mod tests {
             repositories: wallet_user_repo,
             wallet_user_hsm: hsm,
             wte_issuer: MockWteIssuer,
+            wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
         account_server
@@ -1462,6 +1468,8 @@ mod tests {
         WalletCertificate,
         MockUserState,
     ) {
+        let wrapping_key_identifier = "my_wrapping_key_identifier".to_string();
+
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
@@ -1470,10 +1478,15 @@ mod tests {
             AttestationType::Google => AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
         };
 
-        let (cert, hw_privkey, hsm) =
-            do_registration(&account_server, &setup.signing_key, &setup.pin_privkey, attestation_ca)
-                .await
-                .expect("Could not process registration message at account server");
+        let (cert, hw_privkey, hsm) = do_registration(
+            &account_server,
+            &setup.signing_key,
+            &setup.pin_privkey,
+            attestation_ca,
+            &wrapping_key_identifier,
+        )
+        .await
+        .expect("Could not process registration message at account server");
 
         let apple_assertion_counter = match attestation_type {
             AttestationType::Apple => Some(AssertionCounter::from(1)),
@@ -1489,7 +1502,7 @@ mod tests {
             apple_assertion_counter,
         };
 
-        let user_state = mock::user_state(repo, hsm);
+        let user_state = mock::user_state(repo, hsm, wrapping_key_identifier);
 
         (setup, account_server, hw_privkey, cert, user_state)
     }
@@ -1685,6 +1698,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_apple_attestation() {
+        let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
@@ -1696,6 +1710,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Apple(&other_apple_mock_ca),
+            wrapping_key_identifier,
         )
         .await
         .map(|_| ()) // the return value MockPkcs11Client doesn't implement Debug, so discard it
@@ -1707,6 +1722,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_android_key_attestation() {
+        let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
         let account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
@@ -1718,6 +1734,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Google(&other_android_mock_ca_chain),
+            wrapping_key_identifier,
         )
         .await
         .map(|_| ())
@@ -1729,6 +1746,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_android_play_integrity_client_error() {
+        let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
         let mut account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
@@ -1740,6 +1758,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
+            wrapping_key_identifier,
         )
         .await
         .map(|_| ())
@@ -1754,6 +1773,7 @@ mod tests {
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_android_integrity_verdict() {
+        let wrapping_key_identifier = "my_wrapping_key_identifier";
         let setup = WalletCertificateSetup::new().await;
         let mut account_server = mock::setup_account_server(&setup.signing_pubkey, Default::default());
 
@@ -1768,6 +1788,7 @@ mod tests {
             &setup.signing_key,
             &setup.pin_privkey,
             AttestationCa::Google(&MOCK_GOOGLE_CA_CHAIN),
+            wrapping_key_identifier,
         )
         .await
         .map(|_| ())

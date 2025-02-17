@@ -1,0 +1,59 @@
+[package]
+name = "hsm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# Include mock implementations and constructors for testing
+mock = [
+     "dep:dashmap",
+     "dep:hmac",
+     "dep:rand",
+     "dep:sha2",
+]
+settings = [
+    "dep:serde",
+    "dep:serde_with",
+]
+test = [
+    "dep:async-dropper",
+    "dep:async-trait",
+    "dep:config",
+    "dep:rand_core",
+]
+
+[[test]]
+name = "hsm"
+path = "tests/hsm.rs"
+required-features = ["settings", "test"]
+
+[dependencies]
+cryptoki.workspace = true
+der = { workspace = true, features = ["std"] }
+p256 = { workspace = true, features = ["ecdsa", "std"] }
+r2d2-cryptoki.workspace = true
+sec1.workspace = true
+thiserror.workspace = true
+
+async-dropper = { workspace = true, optional = true, features = ["simple", "tokio"] }
+async-trait = { workspace = true, optional = true }
+config = { workspace = true, optional = true, features = ["toml"] }
+dashmap = { workspace = true, optional = true }
+hmac = { workspace = true, optional = true, features = ["std"] }
+rand = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
+serde = { workspace = true, optional = true, features = ["derive"] }
+serde_with = { workspace = true, optional = true, features = ["base64"] }
+sha2 = { workspace = true, optional = true }
+
+wallet_common = { path = "../wallet_common" }
+futures.workspace = true
+
+[dev-dependencies]
+serial_test.workspace = true
+rstest.workspace = true
+tokio = { workspace = true, features = ["macros"] }

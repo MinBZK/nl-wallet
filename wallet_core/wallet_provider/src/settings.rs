@@ -16,11 +16,11 @@ use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::DurationMilliSeconds;
-use serde_with::DurationSeconds;
 
 use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
+use hsm::settings::Hsm;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_provider_database_settings::Database;
@@ -65,18 +65,6 @@ pub struct PinPolicySettings {
     #[serde(rename = "timeouts_in_ms")]
     #[serde_as(as = "Vec<DurationMilliSeconds>")]
     pub timeouts: Vec<Duration>,
-}
-
-#[serde_as]
-#[derive(Clone, Deserialize)]
-pub struct Hsm {
-    pub library_path: PathBuf,
-    pub user_pin: String,
-    pub max_sessions: u8,
-
-    #[serde(rename = "max_session_lifetime_in_sec")]
-    #[serde_as(as = "DurationSeconds")]
-    pub max_session_lifetime: Duration,
 }
 
 #[serde_as]

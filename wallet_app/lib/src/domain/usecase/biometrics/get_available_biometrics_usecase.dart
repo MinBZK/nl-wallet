@@ -1,3 +1,4 @@
+import '../wallet_usecase.dart';
 import 'biometrics.dart';
 
 export 'biometrics.dart';
@@ -7,6 +8,6 @@ export 'biometrics.dart';
 /// details are unavailable.
 /// If you only want to check if the device supports biometrics and don't care about the
 /// availability (i.e. if they are set up by the user), see [GetSupportedBiometricsUseCase].
-abstract class GetAvailableBiometricsUseCase {
+abstract class GetAvailableBiometricsUseCase extends WalletUseCase {
   Future<Biometrics> invoke();
 }

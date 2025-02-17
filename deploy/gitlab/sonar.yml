@@ -18,8 +18,8 @@ sonar-rust:
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
-      -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**"
-      -Dsonar.coverage.exclusions=flutter_api/src/bridge_generated/**,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/migration/**
+      -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**,flutter_api/src/frb_generated.rs"
+      -Dsonar.coverage.exclusions=flutter_api/src/frb_generated.rs,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/migration/**
       -Dcommunity.rust.lcov.reportPaths="lcov.info"
       -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
 
@@ -41,7 +41,8 @@ sonar-flutter:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
       -Dsonar.sources=.
-      -Dsonar.exclusions=android/**,ios/**,test/**,**/*.freezed.dart,**/*.g.dart
+      -Dsonar.exclusions=android/**,ios/**,test/**,**/*.freezed.dart,**/*.g.dart,**/frb_generated*.dart
+      -Dsonar.coverage.exclusions=**/frb_generated*.dart,**/*.freezed.dart
       -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json

@@ -140,6 +140,9 @@
       "iat": {
         "type": "number"
       },
+      "nbf": {
+        "type": "number"
+      },
       "exp": {
         "type": "number"
       }

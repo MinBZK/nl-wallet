@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
 
@@ -28,35 +29,47 @@ void main() {
   });
 
   test('should throw a PinValidationError.other when a pin with less than 6 digits is provided', () async {
-    try {
-      const shorPin = '123';
-      when(walletRepository.validatePin(shorPin)).thenAnswer((_) => throw PinValidationError.other);
-      await useCase.invoke(shorPin);
-      assert(false, 'unreachable');
-    } catch (error) {
-      expect(error, PinValidationError.other);
-    }
+    const shorPin = '123';
+    when(walletRepository.validatePin(shorPin)).thenAnswer((_) => throw PinValidationError.other);
+    final result = await useCase.invoke(shorPin);
+    expect(result.hasError, isTrue);
+    expect(
+      result.error,
+      isA<ValidatePinError>().having(
+        (error) => error.error,
+        'validation error is other',
+        PinValidationError.other,
+      ),
+    );
   });
 
   test('should throw a PinValidationError.sequentialDigits error when 123456 is provided as a pin', () async {
-    try {
-      const sequentialPin = '123456';
-      when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw PinValidationError.sequentialDigits);
-      await useCase.invoke(sequentialPin);
-      assert(false, 'unreachable');
-    } catch (error) {
-      expect(error, PinValidationError.sequentialDigits);
-    }
+    const sequentialPin = '123456';
+    when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw PinValidationError.sequentialDigits);
+    final result = await useCase.invoke(sequentialPin);
+    expect(result.hasError, isTrue);
+    expect(
+      result.error,
+      isA<ValidatePinError>().having(
+        (error) => error.error,
+        'validation error is sequentialDigits',
+        PinValidationError.sequentialDigits,
+      ),
+    );
   });
 
   test('should throw a PinValidationError.tooFewUniqueDigits error when 555555 is provided as a pin', () async {
-    try {
-      const nonUniquePin = '555555';
-      when(walletRepository.validatePin(nonUniquePin)).thenAnswer((_) => throw PinValidationError.tooFewUniqueDigits);
-      await useCase.invoke(nonUniquePin);
-      assert(false, 'unreachable');
-    } catch (error) {
-      expect(error, PinValidationError.tooFewUniqueDigits);
-    }
+    const nonUniquePin = '555555';
+    when(walletRepository.validatePin(nonUniquePin)).thenAnswer((_) => throw PinValidationError.tooFewUniqueDigits);
+    final result = await useCase.invoke(nonUniquePin);
+    expect(result.hasError, isTrue);
+    expect(
+      result.error,
+      isA<ValidatePinError>().having(
+        (error) => error.error,
+        'validation error is tooFewUniqueDigits',
+        PinValidationError.tooFewUniqueDigits,
+      ),
+    );
   });
 }
