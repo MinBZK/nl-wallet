@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
+use android_attest::certificate_chain::verify_google_key_attestation_with_params;
+use android_attest::sig_alg::ECDSA_P256_SHA256_WITH_NULL_PARAMETERS;
 use assert_matches::assert_matches;
+use chrono::Utc;
 use num_bigint::BigUint;
 use rstest::rstest;
 use rustls_pki_types::CertificateDer;
@@ -17,6 +20,8 @@ use android_attest::certificate_chain::verify_google_key_attestation;
 use android_attest::certificate_chain::GoogleKeyAttestationError;
 use android_attest::mock::MockCaChain;
 use android_attest::root_public_key::RootPublicKey;
+use webpki::ring::ECDSA_P256_SHA256;
+use webpki::ring::RSA_PKCS1_2048_8192_SHA256;
 
 static MOCK_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
 static OTHER_MOCK_CA_CHAIN: LazyLock<MockCaChain> = LazyLock::new(|| MockCaChain::generate(1));
@@ -177,7 +182,7 @@ fn test_google_key_attestation_without_certificate_extension() {
     let challenge = b"challenge";
 
     // Generate an unattested certificate chain
-    let (certificates, _) = MOCK_CA_CHAIN.generate_leaf_certificate();
+    let certificates = MOCK_CA_CHAIN.generate_leaf_certificate();
     let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
 
     // Get root public key from the same MOCK_CA_CHAIN
@@ -201,7 +206,7 @@ fn test_google_key_attestation_invalid_certificate_chain() {
     // Generate a certificate chain with an invalid intermediate
     let certificates = {
         let (mut certificates, _) = MOCK_CA_CHAIN.generate_attested_leaf_certificate(&key_description(challenge));
-        let (mut certificates_1, _) = OTHER_MOCK_CA_CHAIN.generate_leaf_certificate();
+        let mut certificates_1 = OTHER_MOCK_CA_CHAIN.generate_leaf_certificate();
 
         certificates[1] = certificates_1.remove(1);
         certificates
@@ -227,7 +232,7 @@ fn test_google_key_attestation_expired_certificate() {
     let challenge = b"challenge";
 
     // Generate a certificate chain with an expired intermediate
-    let (certificates, _) = MOCK_CA_CHAIN.generate_expired_leaf_certificate(&key_description(challenge));
+    let certificates = MOCK_CA_CHAIN.generate_expired_leaf_certificate(&key_description(challenge));
     let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
 
     // Get root public key from the same MOCK_CA_CHAIN
@@ -242,4 +247,39 @@ fn test_google_key_attestation_expired_certificate() {
     )
     .expect_err("should fail because of invalid certificate chain");
     assert_matches!(error, GoogleKeyAttestationError::InvalidCertificateChain(_));
+}
+
+#[test]
+fn test_google_key_attestation_signature_algorithm_with_null_parameters() {
+    let attestation_challenge = b"challenge";
+    let key_description = key_description(attestation_challenge);
+    let certificate_mock_ca = &MOCK_CA_CHAIN;
+    let trusted_root_mock_ca = &MOCK_CA_CHAIN;
+    let revocation_list = &RevocationStatusList::default();
+
+    // Generate attested certificate chain
+    let certificates =
+        certificate_mock_ca.generate_attested_leaf_certificate_with_null_sig_parameters(&key_description);
+
+    let certificate_chain: Vec<_> = certificates.iter().map(|der| CertificateDer::from_slice(der)).collect();
+
+    // Get root public key
+    let root_public_keys = vec![RootPublicKey::Rsa(trusted_root_mock_ca.root_public_key.clone())];
+
+    let supported_sig_algs = vec![
+        ECDSA_P256_SHA256,
+        ECDSA_P256_SHA256_WITH_NULL_PARAMETERS,
+        RSA_PKCS1_2048_8192_SHA256,
+    ];
+
+    // Verify the attested key
+    verify_google_key_attestation_with_params(
+        &certificate_chain,
+        &root_public_keys,
+        revocation_list,
+        attestation_challenge,
+        &supported_sig_algs,
+        Utc::now(),
+    )
+    .expect("valid certificate chain");
 }
