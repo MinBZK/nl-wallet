@@ -118,21 +118,14 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 
 /// Generates a valid `Mdoc` that contains a full PID.
 pub fn create_full_pid_mdoc() -> Mdoc {
-    let (unsigned_mdoc, metadata) =
-        document::create_full_unsigned_pid_mdoc(ISSUER_KEY.issuance_key.certificate().common_name_uri().unwrap());
+    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
 
     mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
 pub fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
-    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc(
-        ISSUER_KEY_UNAUTHENTICATED
-            .issuance_key
-            .certificate()
-            .common_name_uri()
-            .unwrap(),
-    );
+    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
 
     mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY_UNAUTHENTICATED)
 }

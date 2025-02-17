@@ -364,8 +364,11 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
     }
 }
 
+#[cfg(any(test, feature = "mock"))]
 pub mod data {
     use super::*;
+
+    use crate::server_keys::generate::mock::ISSUANCE_CERT_CN;
 
     const PID: &str = "com.example.pid";
     const ADDR: &str = "com.example.address";
@@ -377,7 +380,7 @@ pub mod data {
     pub fn pid_given_name() -> TestDocuments {
         vec![TestDocument::new(
             PID.to_owned(),
-            "cert.issuer.example.com".parse().unwrap(),
+            ISSUANCE_CERT_CN.parse().unwrap(),
             IndexMap::from_iter(vec![(
                 PID.to_string(),
                 vec![Entry {
@@ -392,7 +395,7 @@ pub mod data {
     pub fn pid_family_name() -> TestDocuments {
         vec![TestDocument::new(
             PID.to_owned(),
-            "cert.issuer.example.com".parse().unwrap(),
+            ISSUANCE_CERT_CN.parse().unwrap(),
             IndexMap::from_iter(vec![(
                 PID.to_string(),
                 vec![Entry {
@@ -407,7 +410,7 @@ pub mod data {
     pub fn pid_full_name() -> TestDocuments {
         vec![TestDocument::new(
             PID.to_owned(),
-            "cert.issuer.example.com".parse().unwrap(),
+            ISSUANCE_CERT_CN.parse().unwrap(),
             IndexMap::from_iter(vec![(
                 PID.to_string(),
                 vec![
@@ -428,7 +431,7 @@ pub mod data {
     pub fn addr_street() -> TestDocuments {
         vec![TestDocument::new(
             ADDR.to_owned(),
-            "cert.issuer.example.com".parse().unwrap(),
+            ISSUANCE_CERT_CN.parse().unwrap(),
             IndexMap::from_iter(vec![(
                 ADDR.to_string(),
                 vec![Entry {

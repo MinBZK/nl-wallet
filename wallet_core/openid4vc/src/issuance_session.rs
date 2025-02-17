@@ -912,8 +912,7 @@ mod tests {
         let key_factory = MockRemoteKeyFactory::default();
         let trust_anchor = ca.to_trust_anchor().to_owned();
 
-        let mut unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
-        unsigned_mdoc.issuer_common_name = issuance_key.certificate().common_name_uri().unwrap();
+        let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
 
         let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
@@ -1251,8 +1250,7 @@ mod tests {
                 issuer_certificate,
                 metadata_chain,
             } => {
-                let mut unsigned_mdoc = UnsignedMdoc::from(data::pid_full_name().into_first().unwrap());
-                unsigned_mdoc.issuer_common_name = issuer_certificate.common_name_uri().unwrap();
+                let unsigned_mdoc = UnsignedMdoc::from(data::pid_full_name().into_first().unwrap());
                 CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer_certificate,
