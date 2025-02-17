@@ -38,6 +38,8 @@ impl TryFrom<Vec<u8>> for DerSigningKey {
     }
 }
 
+/// Wraps a [`VerifyingKey`] and implements both `TryFrom<Vec<u8>>` and
+/// `AsRef<[u8]>` in order to support (de)serialization using `serde_with`.
 #[derive(Debug, Clone, AsRef)]
 pub struct DerVerifyingKey(VerifyingKey, #[as_ref([u8])] Vec<u8>);
 
