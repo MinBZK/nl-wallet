@@ -622,14 +622,9 @@ impl Session<Created> {
                     .certificate()
                     .to_owned();
 
-                let issuer_common_name = issuer_certificate.common_name_uri()?;
-
-                let unsigned_mdoc = doc.document.to_unsigned_mdoc(
-                    doc.valid_from.into(),
-                    doc.valid_until.into(),
-                    doc.copy_count,
-                    issuer_common_name,
-                )?;
+                let unsigned_mdoc =
+                    doc.document
+                        .to_unsigned_mdoc(doc.valid_from.into(), doc.valid_until.into(), doc.copy_count)?;
                 let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
                 credential_payload.validate(&doc.metadata_chain)?;
 

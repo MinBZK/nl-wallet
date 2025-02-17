@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
+use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use openid4vc::attributes::IssuableDocument;
@@ -57,6 +58,7 @@ impl From<BrpPerson> for IssuableDocuments {
 
         vec![
             IssuableDocument::try_new(
+                ISSUANCE_CERT_CN.parse().unwrap(),
                 String::from(MOCK_PID_DOCTYPE),
                 IndexMap::from_iter(
                     vec![
@@ -107,6 +109,7 @@ impl From<BrpPerson> for IssuableDocuments {
             )
             .unwrap(),
             IssuableDocument::try_new(
+                ISSUANCE_CERT_CN.parse().unwrap(),
                 String::from(MOCK_ADDRESS_DOCTYPE),
                 IndexMap::from_iter(
                     vec![
@@ -349,6 +352,7 @@ mod tests {
 
         assert_eq!(
             json!({
+                "issuer_common_name": "cert.issuer.example.com",
                 "attestation_type": "com.example.pid",
                 "attributes": {
                     "bsn": "999991772",
@@ -364,6 +368,7 @@ mod tests {
 
         assert_eq!(
             json!({
+                "issuer_common_name": "cert.issuer.example.com",
                 "attestation_type": "com.example.address",
                 "attributes": {
                     "resident_country": "Nederland",

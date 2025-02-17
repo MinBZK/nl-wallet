@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use chrono::NaiveDate;
 use serde::Deserialize;
 
+use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use openid4vc::attributes::IssuableDocument;
@@ -49,6 +50,7 @@ pub struct PersonAttributes {
 impl From<PersonAttributes> for IssuableDocument {
     fn from(value: PersonAttributes) -> Self {
         Self::try_new(
+            ISSUANCE_CERT_CN.parse().unwrap(),
             MOCK_PID_DOCTYPE.to_string(),
             vec![
                 (PID_BSN.to_string(), Attribute::Single(AttributeValue::Text(value.bsn))),
@@ -89,6 +91,7 @@ pub struct ResidentAttributes {
 impl From<ResidentAttributes> for IssuableDocument {
     fn from(value: ResidentAttributes) -> Self {
         Self::try_new(
+            ISSUANCE_CERT_CN.parse().unwrap(),
             MOCK_ADDRESS_DOCTYPE.to_string(),
             vec![
                 value.address.map(|v| {
