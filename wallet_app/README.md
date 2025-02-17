@@ -168,7 +168,7 @@ the wallet app locally successfully passes app attestation.
 
 Note that, in order to request integrity verdicts from Google, the Wallet Provider needs to have
 access to a file that contains credentials for a Google Cloud service account. This file should be
-located at `wallet_core/src/wallet_provider/google-cloud-service-account.json`. Alternatively, mock
+located at `wallet_core/wallet_provider/google-cloud-service-account.json`. Alternatively, mock
 verdicts could be issued instead using the `mock_android_integrity_verdict` Cargo feature, which
 bypasses the Google API. See the description below.
 
