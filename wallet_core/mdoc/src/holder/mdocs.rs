@@ -138,13 +138,13 @@ impl Mdoc {
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
     #[error("issued doc_type mismatch: expected {0}, found {1}")]
-    #[category(critical)]
+    #[category(pd)]
     IssuedDoctypeMismatch(String, String),
     #[error("issued issuer common name missing")]
     #[category(critical)]
     IssuedIssuerMissing,
     #[error("issued issuer mismatch: expected {0}, found {1}")]
-    #[category(critical)]
+    #[category(pd)]
     IssuedIssuerMismatch(http::Uri, http::Uri),
     #[error("issued validity info mismatch: expected {0:?}, found {1:?}")]
     #[category(critical)]
