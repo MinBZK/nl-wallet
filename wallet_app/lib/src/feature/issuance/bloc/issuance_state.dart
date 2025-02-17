@@ -249,11 +249,17 @@ class IssuanceStopped extends IssuanceState {
   bool get showStopConfirmation => false;
 }
 
-class IssuanceGenericError extends IssuanceState {
-  const IssuanceGenericError({super.isRefreshFlow});
+class IssuanceGenericError extends IssuanceState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  const IssuanceGenericError({required this.error, super.isRefreshFlow});
 
   @override
   bool get showStopConfirmation => false;
+
+  @override
+  List<Object?> get props => [...super.props, error];
 }
 
 class IssuanceIdentityValidationFailure extends IssuanceState {

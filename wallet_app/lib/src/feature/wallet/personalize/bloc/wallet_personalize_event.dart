@@ -37,20 +37,20 @@ class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {
 }
 
 class WalletPersonalizeLoginWithDigidFailed extends WalletPersonalizeEvent {
-  final Object? error;
+  final ApplicationError error;
 
   final bool cancelledByUser;
 
-  const WalletPersonalizeLoginWithDigidFailed({this.error, this.cancelledByUser = false});
+  const WalletPersonalizeLoginWithDigidFailed({required this.error, this.cancelledByUser = false});
 
   @override
   List<Object?> get props => [error, cancelledByUser];
 }
 
 class WalletPersonalizeAcceptPidFailed extends WalletPersonalizeEvent {
-  final Object? error;
+  final ApplicationError error;
 
-  const WalletPersonalizeAcceptPidFailed({this.error});
+  const WalletPersonalizeAcceptPidFailed({required this.error});
 
   @override
   List<Object?> get props => [error];

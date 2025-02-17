@@ -45,21 +45,20 @@ class PinScreen extends StatelessWidget {
   }
 
   Future<void> _performBiometricUnlock(BuildContext context) async {
-    try {
-      final useCase = context.read<UnlockWalletWithBiometricsUseCase>();
-      final biometricAuthenticationResult = await useCase.invoke();
-      switch (biometricAuthenticationResult) {
-        case BiometricAuthenticationResult.success:
-          onUnlock();
-        case BiometricAuthenticationResult.lockedOut:
-          // ignore: use_build_context_synchronously
-          unawaited(LockedOutDialog.show(context));
-        case BiometricAuthenticationResult.failure:
-        case BiometricAuthenticationResult.setupRequired:
-          Fimber.d('Authentication failed $biometricAuthenticationResult');
-      }
-    } catch (ex) {
-      Fimber.e('Failed to unlock wallet with biometrics', ex: ex);
-    }
+    final unlockWithBiometricsUseCase = context.read<UnlockWalletWithBiometricsUseCase>();
+    final unlockResult = await unlockWithBiometricsUseCase.invoke();
+    await unlockResult.process(
+      onSuccess: (authResult) {
+        switch (authResult) {
+          case BiometricAuthenticationResult.success:
+            onUnlock();
+          case BiometricAuthenticationResult.lockedOut:
+            unawaited(LockedOutDialog.show(context));
+          case BiometricAuthenticationResult.setupRequired:
+            Fimber.d('Authentication failed $unlockResult');
+        }
+      },
+      onError: (error) => Fimber.e('Failed to unlock wallet with biometrics', ex: error),
+    );
   }
 }

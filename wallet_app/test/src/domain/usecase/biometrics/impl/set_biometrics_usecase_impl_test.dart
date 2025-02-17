@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/result/application_error.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/usecase/biometrics/impl/set_biometrics_usecase_impl.dart';
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart';
 
@@ -71,10 +73,17 @@ void main() {
 
   test('Verify setting to true fails when device is not supported', () async {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => false);
-    await expectLater(
-      () async => setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false),
-      throwsA(isA<UnsupportedError>()),
+
+    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
+    expect(
+      result,
+      isA<Error>().having(
+        (Error e) => e.error,
+        'Expecting a HardwareUnsupportedError',
+        isA<HardwareUnsupportedError>(),
+      ),
     );
+
     verifyNever(biometricRepository.enableBiometricLogin());
   });
 
@@ -86,10 +95,10 @@ void main() {
         options: anyNamed('options'),
       ),
     ).thenAnswer((_) async => false);
-    await expectLater(
-      () async => setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true),
-      throwsA(isA<Exception>()),
-    );
+
+    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
+    expect(result, isA<Error>().having((Error e) => e.error, 'Expecting a GenericError', isA<GenericError>()));
+
     verifyNever(biometricRepository.enableBiometricLogin());
   });
 

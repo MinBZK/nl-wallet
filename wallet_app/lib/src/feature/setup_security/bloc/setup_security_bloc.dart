@@ -8,13 +8,12 @@ import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
+import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import '../../../domain/usecase/biometrics/set_biometrics_usecase.dart';
 import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
-import '../../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../../../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../../../util/cast_util.dart';
-import '../../../util/extension/bloc_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_constants.dart';
 
@@ -24,7 +23,6 @@ part 'setup_security_state.dart';
 const int _kMaxConfirmAttempts = 1;
 
 class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
-  final UnlockWalletWithPinUseCase unlockWalletWithPinUseCase;
   final CheckIsValidPinUseCase checkIsValidPinUseCase;
   final CreateWalletUseCase createWalletUseCase;
   final GetAvailableBiometricsUseCase supportsBiometricsUsecase;
@@ -37,7 +35,6 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   SetupSecurityBloc(
     this.checkIsValidPinUseCase,
     this.createWalletUseCase,
-    this.unlockWalletWithPinUseCase,
     this.supportsBiometricsUsecase,
     this.setBiometricsUseCase,
   ) : super(const SetupSecuritySelectPinInProgress(0)) {
@@ -69,17 +66,21 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
 
   Future<void> _onSelectPinDigitEvent(event, emit) async {
     _newPin += event.digit.toString();
-    if (_newPin.length == kPinDigits) {
-      try {
-        await checkIsValidPinUseCase.invoke(_newPin);
-        emit(const SetupSecurityPinConfirmationInProgress(0));
-      } catch (error) {
-        _newPin = '';
-        emit(SetupSecuritySelectPinFailed(reason: tryCast<PinValidationError>(error) ?? PinValidationError.other));
-      }
-    } else {
+    if (_newPin.length < kPinDigits) {
       emit(SetupSecuritySelectPinInProgress(_newPin.length));
+      return; // User is still entering pin
     }
+    assert(_newPin.length == kPinDigits, 'Unexpected pin length');
+
+    final checkPinResult = await checkIsValidPinUseCase.invoke(_newPin);
+    await checkPinResult.process(
+      onSuccess: (_) => emit(const SetupSecurityPinConfirmationInProgress(0)),
+      onError: (error) {
+        _newPin = '';
+        final reason = tryCast<ValidatePinError>(error)?.error ?? PinValidationError.other;
+        emit(SetupSecuritySelectPinFailed(reason: reason));
+      },
+    );
   }
 
   Future<void> _onConfirmPinDigitEvent(event, emit) async {
@@ -99,24 +100,31 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   }
 
   Future<void> _createAndUnlockWallet(String pin, emit) async {
-    try {
-      await createWalletUseCase.invoke(pin);
-      final biometrics = await supportsBiometricsUsecase.invoke();
-      if (biometrics == Biometrics.none) {
-        emit(const SetupSecurityCompleted());
-      } else {
-        emit(SetupSecurityConfigureBiometrics(biometrics: biometrics));
-      }
-    } catch (ex, stack) {
-      Fimber.e('Failed to create wallet', ex: ex, stacktrace: stack);
-      await handleError(
-        ex,
-        onHardwareKeyUnsupportedError: (ex) => emit(SetupSecurityDeviceIncompatibleError(error: ex)),
-        onNetworkError: (ex, hasInternet) => emit(SetupSecurityNetworkError(error: ex, hasInternet: hasInternet)),
-        onUnhandledError: (ex) => emit(SetupSecurityGenericError(error: ex)),
-      );
-      await _resetFlow(emit);
-    }
+    final result = await createWalletUseCase.invoke(pin);
+    await result.process(
+      onSuccess: (_) async {
+        final biometrics = await supportsBiometricsUsecase.invoke();
+        switch (biometrics) {
+          case Biometrics.none:
+            emit(const SetupSecurityCompleted());
+          case Biometrics.face:
+          case Biometrics.fingerprint:
+          case Biometrics.some:
+            emit(SetupSecurityConfigureBiometrics(biometrics: biometrics));
+        }
+      },
+      onError: (error) async {
+        switch (error) {
+          case NetworkError():
+            emit(SetupSecurityNetworkError(error: error, hasInternet: error.hasInternet));
+          case HardwareUnsupportedError():
+            emit(SetupSecurityDeviceIncompatibleError(error: error));
+          default:
+            emit(SetupSecurityGenericError(error: error));
+        }
+        await _resetFlow(emit);
+      },
+    );
   }
 
   Future<void> _onPinBackspacePressedEvent(event, emit) async {
@@ -155,13 +163,14 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
 
   Future<void> _onEnableBiometricsPressed(event, emit) async {
     assert(state is SetupSecurityConfigureBiometrics, 'Can only enable biometrics from the configuration state');
-    try {
-      await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
-      final biometrics = tryCast<SetupSecurityConfigureBiometrics>(state)?.biometrics ?? Biometrics.some;
-      emit(SetupSecurityCompleted(enabledBiometrics: biometrics));
-    } catch (ex) {
-      Fimber.e('Failed to enable biometrics', ex: ex);
-    }
+    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
+    await result.process(
+      onSuccess: (_) {
+        final biometrics = tryCast<SetupSecurityConfigureBiometrics>(state)?.biometrics ?? Biometrics.some;
+        emit(SetupSecurityCompleted(enabledBiometrics: biometrics));
+      },
+      onError: (error) => Fimber.e('Failed to enable biometrics', ex: error),
+    );
   }
 
   Future<void> _onSkipBiometricsPressed(event, emit) async {

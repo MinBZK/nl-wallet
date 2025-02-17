@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:equatable/equatable.dart';
-import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -43,14 +42,15 @@ class QrBloc extends Bloc<QrEvent, QrState> {
     }
     emit(const QrScanLoading());
     unawaited(Vibration.vibrate());
-    try {
-      final request = await _decodeQrUseCase.invoke(event.code);
-      await Future.delayed(kProcessingDelay);
-      emit(QrScanSuccess(request!));
-    } catch (ex) {
-      Fimber.e('Failed to decode QR code', ex: ex);
-      emit(QrScanFailure());
-    }
+
+    final decodeResult = await _decodeQrUseCase.invoke(event.code);
+    await decodeResult.process(
+      onSuccess: (navRequest) async {
+        await Future.delayed(kProcessingDelay);
+        emit(QrScanSuccess(navRequest));
+      },
+      onError: (error) => emit(QrScanFailure()),
+    );
   }
 
   void _onReset(QrScanReset event, emit) {

@@ -1,3 +1,4 @@
+import '../../../model/result/result.dart';
 import '../start_disclosure_usecase.dart';
 
 class StartDisclosureUseCaseImpl extends StartDisclosureUseCase {
@@ -6,6 +7,10 @@ class StartDisclosureUseCaseImpl extends StartDisclosureUseCase {
   StartDisclosureUseCaseImpl(this._disclosureRepository);
 
   @override
-  Future<StartDisclosureResult> invoke(String disclosureUri, {bool isQrCode = false}) =>
-      _disclosureRepository.startDisclosure(disclosureUri, isQrCode: isQrCode);
+  Future<Result<StartDisclosureResult>> invoke(String disclosureUri, {bool isQrCode = false}) async {
+    return tryCatch(
+      () async => _disclosureRepository.startDisclosure(disclosureUri, isQrCode: isQrCode),
+      'Failed to start disclosure',
+    );
+  }
 }

@@ -12,9 +12,9 @@ import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
-import 'package:wallet/src/domain/model/pid/pid_issuance_status.dart';
+import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart';
-import 'package:wallet/src/util/extension/bloc_extension.dart';
+import 'package:wallet/src/util/extension/core_error_extension.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 import 'package:wallet_core/core.dart' as core;
@@ -32,12 +32,12 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   return testMain();
 }
 
-/// Some BLoCs rely on the static [BlocExtensions.checkHasInternetUseCase], provide a default
-/// implementation for all tests.
+/// Mapping [CoreError]s to [ApplicationError]s relies on the static [CoreErrorExtension.networkRepository],
+/// provide a default implementation for all tests.
 void _provideDefaultCheckHasInternetMock() {
-  final mockCheckHasInternetUseCase = MockCheckHasInternetUseCase();
-  when(mockCheckHasInternetUseCase.invoke()).thenAnswer((realInvocation) async => true);
-  BlocExtensions.checkHasInternetUseCase = mockCheckHasInternetUseCase;
+  final mockNetworkRepository = MockNetworkRepository();
+  when(mockNetworkRepository.hasInternet()).thenAnswer((realInvocation) async => true);
+  CoreErrorExtension.networkRepository = mockNetworkRepository;
 }
 
 /// Configure some basic mockito dummies
@@ -79,7 +79,8 @@ void _setupMockitoDummies() {
       requestedAttributes: {},
     ),
   );
-  provideDummy<PidIssuanceStatus>(PidIssuanceSuccess(const []));
+  // Provide a Result<void> dummy type. More specifically typed dummies can be provided in the setUp of a test class.
+  provideDummy<Result<void>>(const Result.success(null));
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

@@ -23,7 +23,7 @@ void main() {
   blocTest(
     'if isWalletInitializedUseCase app initialization should fail',
     setUp: () {
-      when(isWalletInitializedUseCase.invoke()).thenThrow('error');
+      when(isWalletInitializedUseCase.invoke()).thenThrow(StateError('error'));
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),
@@ -34,7 +34,7 @@ void main() {
     'if isWalletInitializedWithPidUseCase app initialization should fail',
     setUp: () {
       when(isWalletInitializedUseCase.invoke()).thenAnswer((_) async => true);
-      when(isWalletInitializedWithPidUseCase.invoke()).thenThrow('error');
+      when(isWalletInitializedWithPidUseCase.invoke()).thenThrow(StateError('error'));
     },
     act: (bloc) => bloc.add(const InitSplashEvent()),
     build: () => SplashBloc(isWalletInitializedUseCase, isWalletInitializedWithPidUseCase),

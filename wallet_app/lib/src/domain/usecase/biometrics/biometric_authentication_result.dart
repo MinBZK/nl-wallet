@@ -1,1 +1,1 @@
-enum BiometricAuthenticationResult { success, failure, lockedOut, setupRequired }
+enum BiometricAuthenticationResult { success, lockedOut, setupRequired }

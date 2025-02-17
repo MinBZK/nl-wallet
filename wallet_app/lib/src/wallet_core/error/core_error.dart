@@ -31,7 +31,7 @@ class CoreRedirectUriError extends CoreError {
   List<Object?> get props => [redirectError, ...super.props];
 }
 
-enum RedirectError { accessDenied, serverError, unknown }
+enum RedirectError { accessDenied, serverError, loginRequired, unknown }
 
 class CoreHardwareKeyUnsupportedError extends CoreError {
   const CoreHardwareKeyUnsupportedError(super.description, {super.data});
