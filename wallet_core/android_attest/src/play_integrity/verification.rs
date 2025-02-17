@@ -111,15 +111,20 @@ impl VerifiedIntegrityVerdict {
             ));
         }
 
-        // The set of certificate hashes in the verdict must contain at least all of the required hashes.
-        // Note that this effectively renders the check pointless when certificate_hashes is empty.
-        if !integrity_verdict
-            .app_integrity
-            .certificate_sha256_digest
-            .as_ref()
-            .map(|certificate_sha256_digest| certificate_sha256_digest.is_superset(expected_certificate_hashes))
-            // If the verdict contains no hashes, it can only be verified if there are no required hashes.
-            .unwrap_or_else(|| expected_certificate_hashes.is_empty())
+        // Verification of the certificate hashes will only succeed if one of these conditions is met:
+        // 1. Sideloading is allowed.
+        // 2. The integrity verdict contains at least one hash AND all of the
+        //    hashes in the verdict are present in the set of required hashes.
+        if !matches!(allowed_installation_method, InstallationMethod::SideloadOrPlayStore)
+            && !integrity_verdict
+                .app_integrity
+                .certificate_sha256_digest
+                .as_ref()
+                .map(|certificate_sha256_digest| {
+                    !certificate_sha256_digest.is_empty()
+                        && certificate_sha256_digest.is_subset(expected_certificate_hashes)
+                })
+                .unwrap_or(false)
         {
             return Err(IntegrityVerdictVerificationError::PlayStoreCertificateMismatch);
         }
@@ -157,15 +162,16 @@ mod tests {
     use super::super::tests::EXAMPLE_VERDICT;
     use super::*;
 
-    fn verify_example_verdict(
+    fn verify_example_verdict_with_hashes(
         integrity_verdict: IntegrityVerdict,
+        certificate_hashes: &HashSet<Vec<u8>>,
         installation_method: InstallationMethod,
     ) -> Result<(), IntegrityVerdictVerificationError> {
         VerifiedIntegrityVerdict::verify_with_time(
             integrity_verdict,
             "com.package.name",
             "aGVsbG8gd29scmQgdGhlcmU",
-            &HashSet::from([b"\x6a\x6a\x14\x74\xb5\xcb\xbb\x2b\x1a\xa5\x7e\x0b\xc3".to_vec()]),
+            certificate_hashes,
             installation_method,
             NaiveDate::from_ymd_opt(2023, 2, 6)
                 .unwrap()
@@ -174,6 +180,17 @@ mod tests {
                 .and_utc(),
         )
         .map(|_| ())
+    }
+
+    fn verify_example_verdict(
+        integrity_verdict: IntegrityVerdict,
+        installation_method: InstallationMethod,
+    ) -> Result<(), IntegrityVerdictVerificationError> {
+        verify_example_verdict_with_hashes(
+            integrity_verdict,
+            &HashSet::from([b"\x6a\x6a\x14\x74\xb5\xcb\xbb\x2b\x1a\xa5\x7e\x0b\xc3".to_vec()]),
+            installation_method,
+        )
     }
 
     #[rstest]
@@ -205,16 +222,6 @@ mod tests {
             package_name,
             request_hash,
             &HashSet::from([b"hash_hash_hash".to_vec()]),
-            installation_method,
-        )
-        .expect("integrity verdict should verify successfully");
-
-        // Verifying against an empty set of certificate hashes should also succeed.
-        VerifiedIntegrityVerdict::verify(
-            mock_verdict,
-            package_name,
-            request_hash,
-            &HashSet::new(),
             installation_method,
         )
         .expect("integrity verdict should verify successfully");
@@ -262,9 +269,9 @@ mod tests {
     #[case(NaiveDate::from_ymd_opt(2023, 2, 6).unwrap().and_hms_opt(3, 51, 0).unwrap().and_utc(), false)]
     fn test_verified_integrity_verdict_request_timestamp_inconsistent_error(
         #[case] verdict_timestamp: DateTime<Utc>,
-        #[case] should_succeed: bool,
         #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
         installation_method: InstallationMethod,
+        #[case] should_succeed: bool,
     ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
         verdict.request_details.timestamp = verdict_timestamp;
@@ -336,17 +343,61 @@ mod tests {
     }
 
     #[rstest]
+    // When no hashes are required, the integrity verdict should never verify.
+    #[case(None, HashSet::new(), false)]
+    #[case(Some(HashSet::new()), HashSet::new(), false)]
+    #[case(Some(HashSet::from([b"hash_1".to_vec(), b"hash_2".to_vec()])), HashSet::new(), false)]
+    // If any hashes are required, receiving a verdict without hashes should not verify.
+    #[case(None, HashSet::from([b"hash_1".to_vec(), b"hash_2".to_vec(), b"hash_3".to_vec()]), false)]
+    #[case(Some(HashSet::new()), HashSet::from([b"hash_1".to_vec(), b"hash_2".to_vec(), b"hash_3".to_vec()]), false)]
+    // If the verdict contains hashes, they should form a subset of the required hashes.
+    #[case(
+        Some(HashSet::from([b"hash_2".to_vec()])),
+        HashSet::from([b"hash_1".to_vec(), b"hash_2".to_vec(), b"hash_3".to_vec()]),
+        true
+    )]
+    #[case(
+        Some(HashSet::from([b"hash_3".to_vec(), b"hash_2".to_vec()])),
+        HashSet::from([b"hash_1".to_vec(), b"hash_2".to_vec(), b"hash_3".to_vec()]),
+        true
+    )]
+    #[case(
+        Some(HashSet::from([b"hash_4".to_vec()])),
+        HashSet::from([b"hash_1".to_vec(), b"hash_2".to_vec(), b"hash_3".to_vec()]),
+        false
+    )]
+    #[case(
+        Some(HashSet::from([b"hash_3".to_vec(), b"hash_2".to_vec()])),
+        HashSet::from([b"hash_3".to_vec()]),
+        false
+    )]
+    #[case(
+        Some(HashSet::from([b"hash_3".to_vec(), b"hash_4".to_vec()])),
+        HashSet::from([b"hash_1".to_vec(), b"hash_2".to_vec(), b"hash_3".to_vec()]),
+        false
+    )]
     fn test_verified_integrity_verdict_play_store_certificate_mismatch_error(
-        #[values(InstallationMethod::SideloadOrPlayStore, InstallationMethod::PlayStore)]
-        installation_method: InstallationMethod,
+        #[case] verdict_hashes: Option<HashSet<Vec<u8>>>,
+        #[case] required_hashes: HashSet<Vec<u8>>,
+        #[case] should_succeed: bool,
     ) {
         let mut verdict = EXAMPLE_VERDICT.clone();
-        verdict.app_integrity.certificate_sha256_digest.take();
+        verdict.app_integrity.certificate_sha256_digest = verdict_hashes;
 
-        let error =
-            verify_example_verdict(verdict, installation_method).expect_err("integrity verdict should not verify");
+        let result =
+            verify_example_verdict_with_hashes(verdict.clone(), &required_hashes, InstallationMethod::PlayStore);
 
-        assert_matches!(error, IntegrityVerdictVerificationError::PlayStoreCertificateMismatch)
+        if should_succeed {
+            result.expect("integrity verdict should verify successfully");
+        } else {
+            let error = result.expect_err("integrity verdict should not verify");
+
+            assert_matches!(error, IntegrityVerdictVerificationError::PlayStoreCertificateMismatch)
+        }
+
+        // When sideloading is allowed, any hashes should be completely ignored.
+        verify_example_verdict_with_hashes(verdict, &required_hashes, InstallationMethod::SideloadOrPlayStore)
+            .expect("integrity verdict should verify successfully");
     }
 
     #[rstest]
