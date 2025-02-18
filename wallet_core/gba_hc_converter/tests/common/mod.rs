@@ -1,4 +1,3 @@
-use std::env;
 use std::fs;
 use std::path::PathBuf;
 
@@ -7,16 +6,14 @@ use aes_gcm::KeyInit;
 use rand_core::OsRng;
 use tempfile::TempDir;
 
+use wallet_common::utils;
+
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;
 use gba_hc_converter::settings::SymmetricKey;
 
-fn manifest_path() -> PathBuf {
-    env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap()
-}
-
 fn xml_resources_path() -> PathBuf {
-    manifest_path().join("tests/resources")
+    utils::prefix_local_path("tests/resources".as_ref()).into_owned()
 }
 
 pub async fn read_file(name: &str) -> String {

@@ -1,7 +1,5 @@
-use std::env;
 use std::net::IpAddr;
 use std::path::Path;
-use std::path::PathBuf;
 
 use config::Config;
 use config::ConfigError;
@@ -16,6 +14,7 @@ use serde_with::serde_as;
 
 use wallet_common::reqwest::ReqwestTrustAnchor;
 use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
 
 use crate::gba;
 use crate::gba::client::FileGbavClient;
@@ -124,14 +123,10 @@ pub enum RunMode {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
-        // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 3008)?
-            .add_source(File::from(config_path.join("gba_hc_converter.toml")).required(false))
+            .add_source(File::from(utils::prefix_local_path("gba_hc_converter.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("gba_hc_converter")
                     .separator("__")

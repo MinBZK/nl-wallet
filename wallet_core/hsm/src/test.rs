@@ -1,5 +1,4 @@
-use std::env;
-use std::path::PathBuf;
+use std::path::Path;
 
 // re-export for convenience
 pub use async_dropper::AsyncDropper;
@@ -12,7 +11,7 @@ use config::File;
 use serde::Deserialize;
 use serde_with::serde_as;
 
-use wallet_common::utils::random_string;
+use wallet_common::utils;
 
 use crate::model::Hsm;
 use crate::service::Pkcs11Hsm;
@@ -66,10 +65,10 @@ mod mock {
 impl TestCase<Pkcs11Hsm> {
     pub fn new(config_file: &str, identifier_prefix: &str) -> Self {
         // let (hsm, settings) = setup_hsm();
-        let settings = TestSettings::new(config_file).unwrap();
+        let settings = TestSettings::new(config_file.as_ref()).unwrap();
         let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).unwrap();
         Self {
-            identifier: format!("{}-{}", identifier_prefix, random_string(8)),
+            identifier: format!("{}-{}", identifier_prefix, utils::random_string(8)),
             hsm: Some(hsm),
         }
     }
@@ -84,13 +83,9 @@ impl AsyncDrop for TestCase<Pkcs11Hsm> {
 }
 
 impl TestSettings {
-    fn new(config_file: &str) -> Result<Self, ConfigError> {
-        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
-        // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-
+    fn new(config_file: &Path) -> Result<Self, ConfigError> {
         Config::builder()
-            .add_source(File::from(config_path.join(config_file)).required(true))
+            .add_source(File::from(utils::prefix_local_path(config_file).as_ref()).required(true))
             .build()?
             .try_deserialize()
     }
