@@ -22,6 +22,7 @@ class MockDigidWebTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     fun verifyMockDigidLogin() {
+        setUp()
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
 
         digidLoginStartWebPage.clickMockLoginButton()

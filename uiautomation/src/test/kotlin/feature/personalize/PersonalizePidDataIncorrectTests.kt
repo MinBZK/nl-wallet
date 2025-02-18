@@ -24,7 +24,6 @@ class PersonalizePidDataIncorrectTests : TestBase() {
 
     private lateinit var personalizePidDataIncorrectScreen: PersonalizePidDataIncorrectScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
 
@@ -36,12 +35,14 @@ class PersonalizePidDataIncorrectTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 When the User rejects, the App shows the 'Incorrect data support screen' that informs the User about what to do in case the data are not correct. [$JIRA_ID]")
     fun verifyPersonalizePidDataIncorrectScreen() {
+        setUp()
         assertTrue(personalizePidDataIncorrectScreen.visible(), "personalize pid data incorrect screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 The App offers a button for the user to go back to the process. [$JIRA_ID]")
     fun verifyBackButton() {
+        setUp()
         personalizePidDataIncorrectScreen.clickBottomBackButton()
 
         val personalizePidPreviewScreen = PersonalizePidPreviewScreen()

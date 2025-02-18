@@ -25,7 +25,6 @@ class SecuritySetupCompletedTests : TestBase() {
 
     private lateinit var securitySetupCompletedScreen: SecuritySetupCompletedScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecuritySetupCompleted)
 
@@ -51,6 +50,7 @@ class SecuritySetupCompletedTests : TestBase() {
     @DisplayName("$USE_CASE.4 Wallet confirms setup to user and offers button to start personalization flow. [$JIRA_ID]")
     @Tags(Tag("runonall"))
     fun verifyStartPersonalization() {
+        setUp()
         securitySetupCompletedScreen.clickNextButton()
 
         val personalizeInformScreen = PersonalizeInformScreen()

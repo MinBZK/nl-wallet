@@ -26,7 +26,6 @@ class ClearDataTests : TestBase() {
 
     private lateinit var clearDataDialog: ClearDataDialog
 
-    @BeforeEach
     fun setUp() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickSettingsButton()
@@ -42,18 +41,21 @@ class ClearDataTests : TestBase() {
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @DisplayName("$USE_CASE.1.1 the App informs the User of the consequences of this action. [$JIRA_ID]")
         fun verifyConsequenceInform() {
+            setUp()
             assertTrue(clearDataDialog.informVisible(), "consequence inform is not visible")
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @DisplayName("$USE_CASE.1.2 the App offers the User the option to cancel, aborting this flow. [$JIRA_ID]")
         fun verifyCancelButton() {
+            setUp()
             assertTrue(clearDataDialog.cancelButtonVisible(), "cancel button is not visible")
         }
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @DisplayName("$USE_CASE.1.3 the App offers the User the option to continue, continuing this flow. [$JIRA_ID]")
         fun verifyConfirmButton() {
+            setUp()
             assertTrue(clearDataDialog.confirmButtonVisible(), "confirm button is not visible")
         }
     }
@@ -61,6 +63,7 @@ class ClearDataTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("${ChangeLanguageTests.USE_CASE}.2 If wiping is confirmed, the App and all data stored by the App are completely removed from the device. [${ChangeLanguageTests.JIRA_ID}]")
     fun verifyClearData() {
+        setUp()
         clearDataDialog.clickConfirmButton()
 
         assertTrue(IntroductionScreen().page1Visible(), "introduction screen is not visible")
