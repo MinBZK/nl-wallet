@@ -11,7 +11,7 @@ variables:
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
-  BUILD_TAG: 250218-70717859
+  BUILD_TAG: 250218-a2814e76
 
 .env-ont:
   environment:
