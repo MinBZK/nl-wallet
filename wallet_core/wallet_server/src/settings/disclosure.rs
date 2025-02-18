@@ -4,16 +4,18 @@ use derive_more::AsRef;
 use derive_more::From;
 use derive_more::IntoIterator;
 use nutype::nutype;
-use p256::ecdsa::SigningKey;
 use ring::hmac;
 use serde::Deserialize;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
+use nl_wallet_mdoc::server_keys;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
 use wallet_common::urls::CorsOrigin;
+
+use crate::keys::PrivateKeyType;
 
 use super::*;
 
@@ -42,29 +44,30 @@ pub struct VerifierUseCase {
     pub key_pair: KeyPair,
 }
 
-impl TryFrom<VerifierUseCases> for UseCases<SigningKey> {
+impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyType> {
     type Error = anyhow::Error;
 
-    fn try_from(value: VerifierUseCases) -> Result<Self, Self::Error> {
-        let use_cases = value
-            .into_iter()
-            .map(|(id, use_case)| {
-                let use_case = UseCase::try_from(use_case)?;
+    async fn try_from_key_settings(value: VerifierUseCases, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error> {
+        // TODO: rewrite using join_all
+        let mut use_cases = HashMap::new();
 
-                Ok((id, use_case))
-            })
-            .collect::<Result<HashMap<_, _>, Self::Error>>()?
-            .into();
+        for (id, use_case) in value {
+            let use_case = UseCase::try_from_key_settings(use_case, hsm).await?;
+            use_cases.insert(id, use_case);
+        }
 
-        Ok(use_cases)
+        Ok(use_cases.into())
     }
 }
 
-impl TryFrom<VerifierUseCase> for UseCase<SigningKey> {
+impl TryFromKeySettings<VerifierUseCase> for UseCase<PrivateKeyType> {
     type Error = anyhow::Error;
 
-    fn try_from(value: VerifierUseCase) -> Result<Self, Self::Error> {
-        let use_case = UseCase::try_new(value.key_pair.try_into_mdoc_key_pair()?, value.session_type_return_url)?;
+    async fn try_from_key_settings(value: VerifierUseCase, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error> {
+        let use_case = UseCase::try_new(
+            server_keys::KeyPair::try_from_key_settings(value.key_pair, hsm).await?,
+            value.session_type_return_url,
+        )?;
 
         Ok(use_case)
     }

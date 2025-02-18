@@ -15,7 +15,6 @@ use http::HeaderValue;
 use http::Method;
 use http::StatusCode;
 use http::Uri;
-use p256::ecdsa::SigningKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -23,6 +22,7 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing::warn;
 
+use hsm::service::Pkcs11Hsm;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
@@ -34,6 +34,7 @@ use openid4vc::server_state::SessionToken;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
 use openid4vc::DisclosureErrorResponse;
@@ -46,27 +47,30 @@ use wallet_common::urls;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 
+use crate::keys::PrivateKeyType;
 use crate::settings;
+use crate::settings::TryFromKeySettings;
 use crate::settings::Urls;
 
 struct ApplicationState<S> {
-    verifier: Verifier<S, SigningKey>,
+    verifier: Verifier<S, PrivateKeyType>,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
 }
 
-fn create_application_state<S>(
+async fn create_application_state<S>(
     urls: Urls,
     verifier: settings::Verifier,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
+    hsm: Option<&Pkcs11Hsm>,
 ) -> anyhow::Result<ApplicationState<S>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let application_state = ApplicationState {
         verifier: Verifier::new(
-            verifier.usecases.try_into()?,
+            UseCases::try_from_key_settings(verifier.usecases, hsm).await?,
             sessions,
             issuer_trust_anchors,
             (&verifier.ephemeral_id_secret).into(),
@@ -83,22 +87,19 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
         .allow_methods([Method::GET, Method::DELETE])
 }
 
-pub fn create_routers<S>(
+pub async fn create_routers<S>(
     urls: Urls,
     verifier: settings::Verifier,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
+    hsm: Option<&Pkcs11Hsm>,
 ) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let allow_origins = verifier.allow_origins.clone();
-    let application_state = Arc::new(create_application_state(
-        urls,
-        verifier,
-        issuer_trust_anchors,
-        sessions,
-    )?);
+    let application_state =
+        Arc::new(create_application_state(urls, verifier, issuer_trust_anchors, sessions, hsm).await?);
 
     let mut wallet_web = Router::new()
         .route("/{session_token}", get(status::<S>))

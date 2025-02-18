@@ -1,13 +1,16 @@
 use anyhow::Result;
 
+use hsm::service::Pkcs11Hsm;
 use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
 
-use super::*;
 use crate::issuer::create_issuance_router;
 use crate::issuer::IssuerKeyRing;
 use crate::settings::Settings;
+use crate::settings::TryFromKeySettings;
+
+use super::*;
 
 pub async fn serve<A, IS, W>(attr_service: A, settings: Settings, issuance_sessions: IS, wte_tracker: W) -> Result<()>
 where
@@ -16,8 +19,9 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     let log_requests = settings.log_requests;
+    let hsm = settings.hsm.map(Pkcs11Hsm::from_settings).transpose()?;
 
-    let private_keys: IssuerKeyRing<_> = settings.issuer.private_keys.try_into()?;
+    let private_keys = IssuerKeyRing::try_from_key_settings(settings.issuer.private_keys, hsm.as_ref()).await?;
     let wallet_issuance_router = create_issuance_router(
         &settings.urls,
         private_keys,

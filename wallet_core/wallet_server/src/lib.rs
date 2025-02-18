@@ -2,6 +2,7 @@ cfg_if::cfg_if! {
     if #[cfg(any(feature = "issuance", feature = "disclosure"))] {
         pub mod log_requests;
         pub mod server;
+        pub mod keys;
     }
 }
 cfg_if::cfg_if! {

@@ -16,6 +16,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
+use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -27,6 +28,9 @@ use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
+
+use crate::keys::KeyError;
+use crate::keys::PrivateKeyType;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
@@ -131,7 +135,14 @@ pub struct Storage {
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
     pub certificate: BorrowingCertificate,
-    pub private_key: DerSigningKey,
+    pub private_key: PrivateKey,
+}
+
+#[derive(Clone, Deserialize)]
+#[serde(untagged)]
+pub enum PrivateKey {
+    Software(DerSigningKey),
+    Hardware(String),
 }
 
 impl From<&Storage> for SessionStoreTimeouts {
@@ -144,11 +155,17 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
-impl KeyPair {
-    pub fn try_into_mdoc_key_pair(self) -> Result<nl_wallet_mdoc::server_keys::KeyPair, CertificateError> {
-        let key_pair =
-            nl_wallet_mdoc::server_keys::KeyPair::new_from_signing_key(self.private_key.0, self.certificate)?;
+pub trait TryFromKeySettings<SRC>: Sized {
+    type Error;
+    async fn try_from_key_settings(source: SRC, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error>;
+}
 
+impl TryFromKeySettings<KeyPair> for nl_wallet_mdoc::server_keys::KeyPair<PrivateKeyType> {
+    type Error = KeyError;
+
+    async fn try_from_key_settings(source: KeyPair, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error> {
+        let private_key = PrivateKeyType::from_settings(source.private_key, hsm)?;
+        let key_pair = nl_wallet_mdoc::server_keys::KeyPair::new(private_key, source.certificate).await?;
         Ok(key_pair)
     }
 }
@@ -158,7 +175,7 @@ impl From<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
     fn from(value: nl_wallet_mdoc::server_keys::KeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
-            private_key: DerSigningKey(value.private_key().clone()),
+            private_key: PrivateKey::Software(DerSigningKey(value.private_key().clone())),
         }
     }
 }
@@ -340,12 +357,7 @@ where
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        let key_pair = key_pair
-            .clone()
-            .try_into_mdoc_key_pair()
-            .map_err(|error| CertificateVerificationError::InvalidKeyPair(error, key_pair_id.clone()))?;
-
-        let certificate = key_pair.certificate();
+        let certificate = &key_pair.certificate;
 
         if !trust_anchors.is_empty() {
             certificate
