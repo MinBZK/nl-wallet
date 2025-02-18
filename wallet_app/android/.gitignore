@@ -9,6 +9,9 @@ key.properties
 **/*.keystore
 **/*.jks
 
+# Some new debug directory introduced by Flutter 3.29
+/app/.cxx
+
 # Android Studio will place build artifacts here
 /app/debug
 /app/profile
