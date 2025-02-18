@@ -24,7 +24,6 @@ class PersonalizePidPreviewTests : TestBase() {
 
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
 
@@ -34,24 +33,28 @@ class PersonalizePidPreviewTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 When the PID provider offers PID data, the app displays this PID data to the user. [$JIRA_ID]")
     fun verifyPersonalizePidPreviewScreen() {
+        setUp()
         assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 The App displays the PID data in a user friendly / human readable format. [$JIRA_ID]")
     fun verifyHumanReadablePidPreviewData() {
+        setUp()
         assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(), "human readable pid data is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The App asks the User to check whether the data is correct, and offers two buttons: confirm and reject. [$JIRA_ID]")
     fun verifyConfirmationButtons() {
+        setUp()
         assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 When the User confirms, the User must enter their PIN (UC2.4 Confirm a Protected action). [$JIRA_ID]")
     fun verifyAcceptPidPreview() {
+        setUp()
         personalizePidPreviewScreen.clickAcceptButton()
 
         val personalizeConfirmPinScreen = PersonalizeConfirmPinScreen()
@@ -71,6 +74,7 @@ class PersonalizePidPreviewTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.7 When the User rejects, the App displays a support screen. [$JIRA_ID]")
     fun verifyRejectPidPreview() {
+        setUp()
         personalizePidPreviewScreen.clickRejectButton()
 
         val personalizePidDataIncorrectScreen = PersonalizePidDataIncorrectScreen()

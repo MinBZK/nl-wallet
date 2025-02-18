@@ -23,7 +23,6 @@ class SecurityChoosePinTests : TestBase() {
 
     private lateinit var pinScreen: PinScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecurityChoosePin)
 
@@ -33,6 +32,7 @@ class SecurityChoosePinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The User can enter a six digit PIN on an in-app keyboard. [$JIRA_ID]")
     fun verifyChoosePinScreenVisible() {
+        setUp()
         assertTrue(pinScreen.choosePinScreenVisible(), "choose pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
     }
@@ -40,6 +40,7 @@ class SecurityChoosePinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 The PIN is not visible at any time, only the length of the entered PIN. [$JIRA_ID]")
     fun verifyHiddenPin() {
+        setUp()
         val pin = "34567"
         pinScreen.enterPin(pin)
         assertTrue(pinScreen.enteredPinAbsent(pin), "entered pin is not absent")
@@ -53,6 +54,7 @@ class SecurityChoosePinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 Upon PIN entry, the app checks that the PIN matches the security requirements. [$JIRA_ID]")
     fun verifyPinTwoUniqueDigitsError() {
+        setUp()
         pinScreen.enterPin("111111")
         assertTrue(
             pinScreen.choosePinErrorTooFewUniqueDigitsVisible(),
@@ -63,6 +65,7 @@ class SecurityChoosePinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5 Upon failing the security requirements, the App rejects the PIN and explains why. [$JIRA_ID]")
     fun verifyPinAscendingDescendingError() {
+        setUp()
         pinScreen.enterPin("123456")
         assertTrue(
             pinScreen.choosePinErrorSequentialDigitsVisible(),
@@ -80,6 +83,7 @@ class SecurityChoosePinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.6 Upon successful PIN entry, go to Feature 'User confirms PIN'. [$JIRA_ID]")
     fun verifySuccessfulPinEntry() {
+        setUp()
         pinScreen.enterPin("122222")
         assertTrue(pinScreen.confirmPinScreenVisible(), "confirm pin screen is not visible")
     }
@@ -87,6 +91,7 @@ class SecurityChoosePinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.7 The screen offers an entrance to the App Info screen. [$JIRA_ID]")
     fun verifyAppInfoButton() {
+        setUp()
         pinScreen.clickAppInfoButton()
 
         val aboutScreen = AboutScreen()

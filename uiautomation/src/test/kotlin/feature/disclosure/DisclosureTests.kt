@@ -35,7 +35,7 @@ class DisclosureTests : TestBase() {
     private lateinit var monkeyBikeWebPage: RelyingPartyMonkeyBikeWebPage
     private lateinit var pinScreen: PinScreen
 
-    @BeforeEach
+
     fun setUp() {
         overviewWebPage = RelyingPartyOverviewWebPage()
         disclosureScreen = DisclosureApproveOrganizationScreen()
@@ -45,6 +45,7 @@ class DisclosureTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Opening a bank account")
     fun verifyDisclosureCreateAccountXyzBank() {
+        setUp()
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         xyzBankWebPage = RelyingPartyXyzBankWebPage()
@@ -67,6 +68,7 @@ class DisclosureTests : TestBase() {
     @DisplayName("Log in to MijnAmsterdam")
     @Tags(Tag("smoke"))
     fun verifyDisclosureLogin() {
+        setUp()
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         amsterdamWebPage = RelyingPartyAmsterdamWebPage()
@@ -86,6 +88,7 @@ class DisclosureTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Sign up, Online Marketplace")
     fun verifyDisclosureCreateAccountMarketplace() {
+        setUp()
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         marketPlaceWebPage = RelyingPartyMarketplaceWebPage()
@@ -107,6 +110,7 @@ class DisclosureTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Sign up, MonkeyBike")
     fun verifyDisclosureCreateAccountMonkeyBike() {
+        setUp()
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         monkeyBikeWebPage = RelyingPartyMonkeyBikeWebPage()

@@ -25,7 +25,6 @@ class UserLocksWalletTests : TestBase() {
 
     private lateinit var menuScreen: MenuScreen
 
-    @BeforeEach
     fun setUp() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
 
@@ -35,6 +34,7 @@ class UserLocksWalletTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The User can log out of the app (lock the app) from the app menu. [${JIRA_ID}]")
     fun verifyLogoutButton() {
+        setUp()
         assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible")
     }
 
@@ -42,6 +42,7 @@ class UserLocksWalletTests : TestBase() {
     @DisplayName("$USE_CASE.2 When logging out of the app, the PIN entry screen is displayed. [${JIRA_ID}]")
     @Tags(Tag("smoke"))
     fun verifyLockedState() {
+        setUp()
         menuScreen.clickLogoutButton()
 
         val pinScreen = PinScreen()

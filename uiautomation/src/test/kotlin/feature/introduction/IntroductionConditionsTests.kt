@@ -23,7 +23,6 @@ class IntroductionConditionsTests : TestBase() {
 
     private lateinit var conditionsScreen: IntroductionConditionsScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.IntroductionConditions)
 
@@ -33,6 +32,7 @@ class IntroductionConditionsTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The App displays the summary of the terms & conditions. [${JIRA_ID}]")
     fun verifyConditionsScreen() {
+        setUp()
         assertTrue(conditionsScreen.visible(), "expectations screen is not visible")
     }
 
@@ -44,6 +44,7 @@ class IntroductionConditionsTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The App offers an option to accept the terms and conditions, leading to setup pin. [${JIRA_ID}]")
     fun verifyNextButton() {
+        setUp()
         conditionsScreen.clickNextButton()
 
         val pinScreen = PinScreen()
@@ -53,6 +54,7 @@ class IntroductionConditionsTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 The App offers a return to the previous screen. [${JIRA_ID}]")
     fun verifyBackButton() {
+        setUp()
         conditionsScreen.clickBackButton()
         assertTrue(conditionsScreen.absent(), "conditions screen is visible")
     }

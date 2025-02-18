@@ -36,7 +36,7 @@ class TestInfoHandler {
         }
 
         private fun setEnglishLanguage() {
-            language = "EN"
+            language = "en"
             locale = if (platformName == "android") "US" else "en_US"
         }
 

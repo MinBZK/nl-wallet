@@ -25,7 +25,6 @@ class SecurityConfirmPinTests : TestBase() {
 
     private lateinit var pinScreen: PinScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecurityConfirmPin)
 
@@ -35,6 +34,7 @@ class SecurityConfirmPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The App asks the user to re-enter their PIN. [$JIRA_ID]")
     fun verifyConfirmPinScreenVisible() {
+        setUp()
         assertTrue(pinScreen.confirmPinScreenVisible(), "confirm pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
     }
@@ -42,6 +42,7 @@ class SecurityConfirmPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 Upon PIN entry, the App asserts that the first and second entry are equal. [$JIRA_ID]")
     fun verifyConfirmPin() {
+        setUp()
         pinScreen.enterPin(OnboardingNavigator.PIN)
 
         val securitySetupCompletedScreen = SecuritySetupCompletedScreen()
@@ -51,6 +52,7 @@ class SecurityConfirmPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 Upon incorrect entry, the App displays an error message and asks the user to try again. [$JIRA_ID]")
     fun verifyIncorrectConfirmPin() {
+        setUp()
         pinScreen.enterPin(incorrectConfirmPin)
         assertTrue(pinScreen.confirmPinErrorMismatchVisible(), " confirm pin error mismatch is not visible")
     }
@@ -58,6 +60,7 @@ class SecurityConfirmPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 The user may attempt entering their PIN in 2 attempts. [$JIRA_ID]")
     fun verifyIncorrectConfirmPinTwice() {
+        setUp()
         pinScreen.enterPin(incorrectConfirmPin)
         pinScreen.closeAlertDialog()
         pinScreen.enterPin(incorrectConfirmPin)
@@ -67,6 +70,7 @@ class SecurityConfirmPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5 After 2 attempts, the App offers the user to pick a new PIN. [$JIRA_ID]")
     fun verifyRestartChoosePin() {
+        setUp()
         pinScreen.enterPin(incorrectConfirmPin)
         pinScreen.closeAlertDialog()
         pinScreen.enterPin(incorrectConfirmPin)
