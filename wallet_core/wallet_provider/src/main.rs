@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let play_integrity_client = PlayIntegrityClient::new(
                 reqwest_client,
-                ServiceAccountAuthenticator::new(settings.android.credentials_file_absolute().as_ref()).await?,
+                ServiceAccountAuthenticator::new(settings.android.credentials_file_path().as_ref()).await?,
                 &settings.android.package_name,
             )?;
         }

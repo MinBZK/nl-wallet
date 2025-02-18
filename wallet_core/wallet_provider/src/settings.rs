@@ -167,18 +167,17 @@ impl Android {
         }
     }
 
-    pub fn credentials_file_absolute(&self) -> Cow<'_, PathBuf> {
+    pub fn credentials_file_path(&self) -> Cow<'_, PathBuf> {
         if self.credentials_file.is_absolute() {
             return Cow::Borrowed(&self.credentials_file);
         }
 
-        // If the path to the credentials file is not already absolute, either prepend the same directory
-        // as the Cargo.toml file (if ran through cargo) or prepend the current working directory.
-        let path_base = env::var("CARGO_MANIFEST_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| env::current_dir().expect("could not get current working directory"));
-
-        Cow::Owned(path_base.join(&self.credentials_file))
+        // Attempt to prepend the same directory as the Cargo.toml file, if the path is not already
+        // absolute and the binary is ran through cargo. Otherwise, just return the file name unchanged.
+        match env::var("CARGO_MANIFEST_DIR").map(PathBuf::from) {
+            Ok(path_base) => Cow::Owned(path_base.join(&self.credentials_file)),
+            Err(_) => Cow::Borrowed(&self.credentials_file),
+        }
     }
 }
 

@@ -224,9 +224,9 @@ run-gba-fetch-browsertest-test-ont:
     npx playwright install chromium
     npm run test:authenticated
     npm run test:unauthenticated
-  after_script: |
-    zip -r -i "*.xml" browsertest.zip browsertests/packages/gba-fetch/
-    deploy/bin/store-artifact.sh browsertest-gbafetch.zip qt/quality-time/junit-results/browsertest-gbafetch.zip
+  after_script:
+    - zip -r browsertest-gbafetch.zip browsertests/packages/gba-fetch/ -i "*.xml"
+    - deploy/bin/store-artifact.sh browsertest-gbafetch.zip qt/quality-time/junit-results/browsertest-gbafetch.zip
   artifacts:
     when: always
     paths:
