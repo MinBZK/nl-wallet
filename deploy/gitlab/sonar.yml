@@ -20,6 +20,7 @@ sonar-rust:
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**,flutter_api/src/frb_generated.rs"
       -Dsonar.coverage.exclusions=flutter_api/src/frb_generated.rs,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/migration/**
+      -Dcommunity.rust.cpd.ignoretests=true
       -Dcommunity.rust.lcov.reportPaths="lcov.info"
       -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
 
