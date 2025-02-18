@@ -84,7 +84,7 @@ abstract class WalletMockData {
   );
 
   static DisclosureEvent get disclosureEvent => WalletEvent.disclosure(
-        dateTime: DateTime(2024, 2, 1),
+        dateTime: DateTime(2024, 3, 1),
         status: EventStatus.success,
         relyingParty: organization,
         purpose: 'disclosure'.untranslated,
@@ -116,4 +116,24 @@ abstract class WalletMockData {
         status: EventStatus.success,
         card: card,
       ) as IssuanceEvent;
+
+  static DisclosureEvent get failedDisclosureEvent => WalletEvent.disclosure(
+        dateTime: DateTime(2024, 2, 1),
+        status: EventStatus.error,
+        relyingParty: organization,
+        purpose: 'disclosure'.untranslated,
+        cards: [card],
+        policy: policy,
+        type: DisclosureType.regular,
+      ) as DisclosureEvent;
+
+  static DisclosureEvent get cancelledDisclosureEvent => WalletEvent.disclosure(
+        dateTime: DateTime(2024, 2, 1),
+        status: EventStatus.cancelled,
+        relyingParty: organization,
+        purpose: 'disclosure'.untranslated,
+        cards: [card],
+        policy: policy,
+        type: DisclosureType.regular,
+      ) as DisclosureEvent;
 }
