@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
 import 'package:wallet/src/feature/history/detail/history_detail_screen.dart';
@@ -95,8 +97,24 @@ void main() {
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
-
+      final l10n = await TestUtils.englishLocalizations;
+      //sharedAttributesCardTitle
       expect(find.byType(HistoryDetailDisclosePage), findsOneWidget);
+      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsExactly(3));
+      expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
+      final count = WalletMockData.disclosureEvent.cards.first.attributes.length.toString();
+      expect(find.text('$count from ${WalletMockData.card.front.title.testValue}'), findsOneWidget);
+      expect(find.text(WalletMockData.disclosureEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
+      expect(find.text('1 March 2024, 00:00'), findsOneWidget);
+      expect(find.textContaining('will store your data for'), findsOneWidget);
+      final scrollableFinder = find.byType(Scrollable);
+      await tester.scrollUntilVisible(
+        find.text(l10n.disclosureStopSheetReportIssueCta),
+        500,
+        scrollable: scrollableFinder,
+      );
+      expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
+      expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
     });
 
     testWidgets('Issuance event is rendered with IssuePage', (tester) async {
@@ -106,8 +124,15 @@ void main() {
           HistoryDetailLoadSuccess(WalletMockData.issuanceEvent, [WalletMockData.card]),
         ),
       );
-
+      debugDumpApp();
+      final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(HistoryDetailIssuePage), findsOneWidget);
+      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsOneWidget);
+      final count = WalletMockData.issuanceEvent.attributes.length;
+      expect(find.text('$count from ${WalletMockData.card.front.title.testValue}'), findsOneWidget);
+      expect(find.text('1 December 2023, 00:00'), findsOneWidget);
+      expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
+      expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
     });
 
     testWidgets('Login event is rendered with LoginPage', (tester) async {
@@ -119,8 +144,25 @@ void main() {
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
-
+      debugDumpApp();
+      final l10n = await TestUtils.englishLocalizations;
+      //sharedAttributesCardTitle
       expect(find.byType(HistoryDetailLoginPage), findsOneWidget);
+      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsExactly(3));
+      expect(find.text(WalletMockData.loginEvent.purpose.testValue), findsOneWidget);
+      final count = WalletMockData.loginEvent.cards.first.attributes.length.toString();
+      expect(find.text('$count from ${WalletMockData.card.front.title.testValue}'), findsOneWidget);
+      expect(find.text(WalletMockData.loginEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
+      expect(find.text('1 February 2024, 00:00'), findsOneWidget);
+      expect(find.textContaining('will store your data for'), findsOneWidget);
+      final scrollableFinder = find.byType(Scrollable);
+      await tester.scrollUntilVisible(
+        find.text(l10n.disclosureStopSheetReportIssueCta),
+        500,
+        scrollable: scrollableFinder,
+      );
+      expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
+      expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
     });
 
     testWidgets('Sign event is rendered with SignPage', (tester) async {
