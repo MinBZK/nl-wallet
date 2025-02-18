@@ -4,12 +4,12 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::sync::RwLockWriteGuard;
 
+use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
-use wallet_common::account::messages::instructions::Instruction;
-use wallet_common::account::messages::instructions::InstructionAndResult;
-use wallet_common::account::messages::instructions::InstructionChallengeRequest;
-use wallet_common::apple::AppleAttestedKey;
+use wallet_account::messages::instructions::Instruction;
+use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::InstructionChallengeRequest;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::jwt::EcdsaDecodingKey;
 
@@ -79,7 +79,7 @@ impl<S, AK, GK, A> InstructionClient<S, AK, GK, A> {
     where
         S: Storage,
         F: FnOnce(u64) -> O,
-        O: Future<Output = Result<R, wallet_common::account::errors::Error>>,
+        O: Future<Output = Result<R, wallet_account::error::EncodeError>>,
     {
         let mut instruction_data = storage.fetch_data::<InstructionData>().await?.unwrap_or_default();
         instruction_data.instruction_sequence_number += 1;

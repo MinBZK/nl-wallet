@@ -30,11 +30,12 @@ mock = [
     "dep:anyhow",
     "dep:hmac",
     "dep:rand_core",
+    "dep:platform_support",
     "apple_app_attest/mock",
+    "wallet_account/client",
     "wallet_provider_domain/mock",
     "wallet_provider_persistence",
     "wallet_common/mock_secure_keys",
-    "wallet_common/mock_apple_attested_key",
 ]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["mock_secure_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provider_database_settings"]
@@ -76,10 +77,13 @@ android_attest.path = "../../android_attest"
 apple_app_attest.path = "../../apple_app_attest"
 hsm.path = "../../hsm"
 nl_wallet_mdoc.path = "../../mdoc"
+wallet_account = { path = "../../wallet_account", features = ["server"] }
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"], optional = true }
 wallet_provider_domain.path = "../domain"
 wallet_common.path = "../../wallet_common"
+
+platform_support = { path = "../../platform_support", optional = true, features = ["mock_attested_key_apple"] }
 
 [dev-dependencies]
 anyhow.workspace = true
@@ -92,6 +96,8 @@ tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
 android_attest = { path = "../../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
-wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys", "mock_apple_attested_key"] }
+platform_support = { path = "../../platform_support", features = ["mock_attested_key_apple"] }
+wallet_account = { path = "../../wallet_account", features = ["client", "server"] }
+wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

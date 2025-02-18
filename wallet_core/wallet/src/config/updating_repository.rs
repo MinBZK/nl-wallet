@@ -36,7 +36,7 @@ impl WalletConfigurationRepository {
     ) -> Result<Self, ConfigurationError> {
         let wrapped = FileStorageConfigurationRepository::init(
             storage_path,
-            (&config.signing_public_key.0).into(),
+            config.signing_public_key.as_inner().into(),
             initial_config,
         )
         .await?;

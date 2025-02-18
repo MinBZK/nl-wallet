@@ -24,7 +24,7 @@ where
         issuance_sessions,
         attr_service,
         settings.issuer.wallet_client_ids,
-        settings.issuer.wte_issuer_pubkey.0,
+        settings.issuer.wte_issuer_pubkey.into_inner(),
         wte_tracker,
     )?;
 

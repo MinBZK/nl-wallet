@@ -50,23 +50,21 @@ use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
-use wallet_common::account::errors::Error as AccountError;
-use wallet_common::account::messages::auth::Registration;
-use wallet_common::account::messages::auth::RegistrationAttestation;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::errors::IncorrectPinData;
-use wallet_common::account::messages::errors::PinTimeoutData;
-use wallet_common::account::messages::instructions::ChangePinRollback;
-use wallet_common::account::messages::instructions::ChangePinStart;
-use wallet_common::account::messages::instructions::Instruction;
-use wallet_common::account::messages::instructions::InstructionAndResult;
-use wallet_common::account::messages::instructions::InstructionChallengeRequest;
-use wallet_common::account::messages::instructions::InstructionResult;
-use wallet_common::account::messages::instructions::InstructionResultClaims;
-use wallet_common::account::serialization::DerVerifyingKey;
-use wallet_common::account::signed::ChallengeResponse;
-use wallet_common::account::signed::ChallengeResponsePayload;
-use wallet_common::account::signed::SequenceNumberComparison;
+use wallet_account::messages::errors::IncorrectPinData;
+use wallet_account::messages::errors::PinTimeoutData;
+use wallet_account::messages::instructions::ChangePinRollback;
+use wallet_account::messages::instructions::ChangePinStart;
+use wallet_account::messages::instructions::Instruction;
+use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::InstructionChallengeRequest;
+use wallet_account::messages::instructions::InstructionResult;
+use wallet_account::messages::instructions::InstructionResultClaims;
+use wallet_account::messages::registration::Registration;
+use wallet_account::messages::registration::RegistrationAttestation;
+use wallet_account::messages::registration::WalletCertificate;
+use wallet_account::signed::ChallengeResponse;
+use wallet_account::signed::ChallengeResponsePayload;
+use wallet_account::signed::SequenceNumberComparison;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::EcdsaDecodingKey;
 use wallet_common::jwt::Jwt;
@@ -115,7 +113,7 @@ pub enum ChallengeError {
     #[error("could not store challenge: {0}")]
     Storage(#[from] PersistenceError),
     #[error("challenge message validation error: {0}")]
-    Validation(#[from] wallet_common::account::errors::Error),
+    Validation(#[from] wallet_account::error::DecodeError),
     #[error("wallet certificate validation error: {0}")]
     WalletCertificate(#[from] WalletCertificateError),
     #[error("instruction sequence number validation failed")]
@@ -179,9 +177,9 @@ pub enum RegistrationError {
     #[error("validation of Google app attestation failed: {0}")]
     AndroidAppAttestation(#[from] AndroidAppAttestationError),
     #[error("registration message parsing error: {0}")]
-    MessageParsing(#[source] wallet_common::account::errors::Error),
+    MessageParsing(#[source] wallet_account::error::DecodeError),
     #[error("registration message validation error: {0}")]
-    MessageValidation(#[source] wallet_common::account::errors::Error),
+    MessageValidation(#[source] wallet_account::error::DecodeError),
     #[error("incorrect registration serial number (expected: {expected:?}, received: {received:?})")]
     SerialNumberMismatch { expected: u64, received: u64 },
     #[error("could not store certificate: {0}")]
@@ -229,7 +227,7 @@ pub enum InstructionValidationError {
     #[error("instruction challenge timeout")]
     ChallengeTimeout,
     #[error("instruction verification failed: {0}")]
-    VerificationFailed(#[source] AccountError),
+    VerificationFailed(#[source] wallet_account::error::DecodeError),
     #[error("pin change is in progress")]
     PinChangeInProgress,
     #[error("pin change is not in progress")]
@@ -444,7 +442,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let attestation_timestamp = Utc::now();
         let challenge_hash = utils::sha256(challenge);
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
-        let DerVerifyingKey(pin_pubkey) = unverified.payload.pin_pubkey;
+        let pin_pubkey = unverified.payload.pin_pubkey.into_inner();
 
         let (hw_pubkey, attestation) = match unverified.payload.attestation {
             RegistrationAttestation::Apple { data } => {
@@ -652,21 +650,20 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Parsing and verifying challenge request for user {}", user.id);
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(user.instruction_sequence_number);
-        let DerVerifyingKey(hw_pubkey) = &user.hw_pubkey;
         let (request, assertion_counter) = match user.attestation {
             WalletUserAttestation::Apple { assertion_counter } => challenge_request
                 .request
                 .parse_and_verify_apple(
                     &claims.wallet_id,
                     sequence_number_comparison,
-                    hw_pubkey,
+                    &user.hw_pubkey,
                     &self.apple_config.app_identifier,
                     assertion_counter,
                 )
                 .map(|(request, assertion_counter)| (request, Some(assertion_counter))),
             WalletUserAttestation::Android => challenge_request
                 .request
-                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, hw_pubkey)
+                .parse_and_verify_google(&claims.wallet_id, sequence_number_comparison, &user.hw_pubkey)
                 .map(|request| (request, None)),
         }?;
 
@@ -783,11 +780,14 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             })
             .await?;
 
-        let pin_pubkey = instruction_payload.pin_pubkey.0;
+        let pin_pubkey = instruction_payload.pin_pubkey.into_inner();
 
         if let Some(challenge) = wallet_user.instruction_challenge {
             pin_pubkey
-                .verify(challenge.bytes.as_slice(), &instruction_payload.pop_pin_pubkey.0)
+                .verify(
+                    challenge.bytes.as_slice(),
+                    instruction_payload.pop_pin_pubkey.as_inner(),
+                )
                 .map_err(|_| InstructionError::Validation(InstructionValidationError::ChallengeMismatch))?;
         } else {
             return Err(InstructionError::Validation(
@@ -814,7 +814,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             &self.keys.pin_public_disclosure_protection_key_identifier,
             signing_keys.1,
             wallet_user.wallet_id,
-            wallet_user.hw_pubkey.0,
+            wallet_user.hw_pubkey,
             &pin_pubkey,
             &user_state.wallet_user_hsm,
         )
@@ -1047,14 +1047,13 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .await?;
 
         let sequence_number_comparison = SequenceNumberComparison::LargerThan(wallet_user.instruction_sequence_number);
-        let DerVerifyingKey(hw_pubkey) = &wallet_user.hw_pubkey;
         let (parsed, assertion_counter) = match wallet_user.attestation {
             WalletUserAttestation::Apple { assertion_counter } => instruction
                 .instruction
                 .parse_and_verify_apple(
                     &challenge.bytes,
                     sequence_number_comparison,
-                    hw_pubkey,
+                    &wallet_user.hw_pubkey,
                     &self.apple_config.app_identifier,
                     assertion_counter,
                     &pin_pubkey,
@@ -1062,7 +1061,12 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                 .map(|(parsed, assertion_counter)| (parsed, Some(assertion_counter))),
             WalletUserAttestation::Android => instruction
                 .instruction
-                .parse_and_verify_google(&challenge.bytes, sequence_number_comparison, hw_pubkey, &pin_pubkey)
+                .parse_and_verify_google(
+                    &challenge.bytes,
+                    sequence_number_comparison,
+                    &wallet_user.hw_pubkey,
+                    &pin_pubkey,
+                )
                 .map(|parsed| (parsed, None)),
         }
         .map_err(InstructionValidationError::VerificationFailed)?;
@@ -1149,7 +1153,7 @@ pub mod mock {
     use android_attest::mock_chain::MockCaChain;
     use apple_app_attest::MockAttestationCa;
     use hsm::model::mock::MockPkcs11Client;
-    use wallet_common::apple::MockAppleAttestedKey;
+    use platform_support::attested_key::mock::MockAppleAttestedKey;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::wallet_certificate;
@@ -1338,17 +1342,16 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use wallet_common::account::errors::Error as AccountError;
-    use wallet_common::account::messages::auth::WalletCertificate;
-    use wallet_common::account::messages::errors::IncorrectPinData;
-    use wallet_common::account::messages::instructions::ChangePinCommit;
-    use wallet_common::account::messages::instructions::ChangePinRollback;
-    use wallet_common::account::messages::instructions::ChangePinStart;
-    use wallet_common::account::messages::instructions::CheckPin;
-    use wallet_common::account::messages::instructions::InstructionAndResult;
-    use wallet_common::account::messages::instructions::InstructionResult;
-    use wallet_common::account::signed::ChallengeResponse;
-    use wallet_common::apple::MockAppleAttestedKey;
+    use platform_support::attested_key::mock::MockAppleAttestedKey;
+    use wallet_account::messages::errors::IncorrectPinData;
+    use wallet_account::messages::instructions::ChangePinCommit;
+    use wallet_account::messages::instructions::ChangePinRollback;
+    use wallet_account::messages::instructions::ChangePinStart;
+    use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::InstructionAndResult;
+    use wallet_account::messages::instructions::InstructionResult;
+    use wallet_account::messages::registration::WalletCertificate;
+    use wallet_account::signed::ChallengeResponse;
     use wallet_common::generator::Generator;
     use wallet_common::jwt::EcdsaDecodingKey;
     use wallet_common::keys::EcdsaKey;
@@ -1681,7 +1684,7 @@ mod tests {
             .parse_and_verify_with_sub(&setup.signing_key.verifying_key().into())
             .expect("Could not parse and verify wallet certificate");
         assert_eq!(cert_data.iss, account_server.name);
-        assert_eq!(&cert_data.hw_pubkey.0, hw_privkey.verifying_key());
+        assert_eq!(cert_data.hw_pubkey.as_inner(), hw_privkey.verifying_key());
 
         verify_wallet_certificate(
             &cert,
@@ -1823,7 +1826,7 @@ mod tests {
 
         assert_matches!(
             error,
-            ChallengeError::Validation(wallet_common::account::errors::Error::SignatureTypeMismatch { .. })
+            ChallengeError::Validation(wallet_account::error::DecodeError::SignatureTypeMismatch { .. })
         )
     }
 
@@ -1842,7 +1845,7 @@ mod tests {
 
         assert_matches!(
             error,
-            ChallengeError::Validation(wallet_common::account::errors::Error::AssertionVerification(
+            ChallengeError::Validation(wallet_account::error::DecodeError::Assertion(
                 AssertionError::Validation(AssertionValidationError::CounterTooLow { .. })
             ))
         )
@@ -1936,7 +1939,7 @@ mod tests {
                 AttestationType::Apple => {
                     assert_matches!(
                         error,
-                        InstructionValidationError::VerificationFailed(AccountError::AssertionVerification(
+                        InstructionValidationError::VerificationFailed(wallet_account::error::DecodeError::Assertion(
                             AssertionError::Validation(AssertionValidationError::ChallengeMismatch)
                         ))
                     );
@@ -1945,7 +1948,7 @@ mod tests {
                     assert_matches!(
                         error,
                         InstructionValidationError::VerificationFailed(
-                            wallet_common::account::errors::Error::ChallengeMismatch
+                            wallet_account::error::DecodeError::ChallengeMismatch
                         )
                     );
                 }
@@ -2028,7 +2031,7 @@ mod tests {
 
         assert_matches!(
             challenge_error,
-            ChallengeError::Validation(wallet_common::account::errors::Error::SequenceNumberMismatch)
+            ChallengeError::Validation(wallet_account::error::DecodeError::SequenceNumberMismatch)
         );
 
         let instruction_result = do_check_pin(

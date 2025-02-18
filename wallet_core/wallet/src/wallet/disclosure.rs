@@ -433,7 +433,7 @@ where
         // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
         let config = self.config_repository.get();
 
-        let instruction_result_public_key = config.account_server.instruction_result_public_key.clone().into();
+        let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self
             .new_instruction_client(

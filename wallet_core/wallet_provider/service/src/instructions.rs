@@ -15,26 +15,26 @@ use uuid::Uuid;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use wallet_common::account::messages::instructions::ChangePinCommit;
-use wallet_common::account::messages::instructions::ChangePinRollback;
-use wallet_common::account::messages::instructions::ChangePinStart;
-use wallet_common::account::messages::instructions::CheckPin;
-use wallet_common::account::messages::instructions::ConstructPoa;
-use wallet_common::account::messages::instructions::ConstructPoaResult;
-use wallet_common::account::messages::instructions::GenerateKey;
-use wallet_common::account::messages::instructions::GenerateKeyResult;
-use wallet_common::account::messages::instructions::IssueWte;
-use wallet_common::account::messages::instructions::IssueWteResult;
-use wallet_common::account::messages::instructions::Sign;
-use wallet_common::account::messages::instructions::SignResult;
-use wallet_common::account::serialization::DerSignature;
-use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_account::messages::instructions::ChangePinCommit;
+use wallet_account::messages::instructions::ChangePinRollback;
+use wallet_account::messages::instructions::ChangePinStart;
+use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::ConstructPoa;
+use wallet_account::messages::instructions::ConstructPoaResult;
+use wallet_account::messages::instructions::GenerateKey;
+use wallet_account::messages::instructions::GenerateKeyResult;
+use wallet_account::messages::instructions::IssueWte;
+use wallet_account::messages::instructions::IssueWteResult;
+use wallet_account::messages::instructions::Sign;
+use wallet_account::messages::instructions::SignResult;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::POA_JWT_TYP;
 use wallet_common::keys::EcdsaKey;
+use wallet_common::p256_der::DerSignature;
+use wallet_common::p256_der::DerVerifyingKey;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
@@ -194,7 +194,7 @@ impl HandleInstruction for GenerateKey {
             .generate_wrapped_keys(&user_state.wrapping_key_identifier, &identifiers)
             .await?;
 
-        let (public_keys, wrapped_keys): (Vec<(String, DerVerifyingKey)>, Vec<WalletUserKey>) = keys
+        let (public_keys, wrapped_keys) = keys
             .into_iter()
             .map(|(identifier, public_key, wrapped_key)| {
                 (
@@ -452,11 +452,11 @@ mod tests {
     use rstest::rstest;
 
     use hsm::model::wrapped_key::WrappedKey;
-    use wallet_common::account::messages::instructions::CheckPin;
-    use wallet_common::account::messages::instructions::ConstructPoa;
-    use wallet_common::account::messages::instructions::GenerateKey;
-    use wallet_common::account::messages::instructions::IssueWte;
-    use wallet_common::account::messages::instructions::Sign;
+    use wallet_account::messages::instructions::CheckPin;
+    use wallet_account::messages::instructions::ConstructPoa;
+    use wallet_account::messages::instructions::GenerateKey;
+    use wallet_account::messages::instructions::IssueWte;
+    use wallet_account::messages::instructions::Sign;
     use wallet_common::jwt::validations;
     use wallet_common::jwt::Jwt;
     use wallet_common::keys::poa::PoaPayload;
@@ -580,15 +580,15 @@ mod tests {
 
         signing_key_1
             .verifying_key()
-            .verify(&random_msg_1, &result.signatures[0][0].0)
+            .verify(&random_msg_1, result.signatures[0][0].as_inner())
             .unwrap();
         signing_key_2
             .verifying_key()
-            .verify(&random_msg_1, &result.signatures[0][1].0)
+            .verify(&random_msg_1, result.signatures[0][1].as_inner())
             .unwrap();
         signing_key_2
             .verifying_key()
-            .verify(&random_msg_2, &result.signatures[1][0].0)
+            .verify(&random_msg_2, result.signatures[1][0].as_inner())
             .unwrap();
     }
 

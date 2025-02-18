@@ -9,33 +9,35 @@ use axum::Router;
 use futures::try_join;
 use futures::TryFutureExt;
 use serde::Serialize;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
 
-use wallet_common::account::messages::auth::Certificate;
-use wallet_common::account::messages::auth::Challenge;
-use wallet_common::account::messages::auth::Registration;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::instructions::ChangePinCommit;
-use wallet_common::account::messages::instructions::ChangePinRollback;
-use wallet_common::account::messages::instructions::ChangePinStart;
-use wallet_common::account::messages::instructions::CheckPin;
-use wallet_common::account::messages::instructions::ConstructPoa;
-use wallet_common::account::messages::instructions::ConstructPoaResult;
-use wallet_common::account::messages::instructions::GenerateKey;
-use wallet_common::account::messages::instructions::GenerateKeyResult;
-use wallet_common::account::messages::instructions::Instruction;
-use wallet_common::account::messages::instructions::InstructionAndResult;
-use wallet_common::account::messages::instructions::InstructionChallengeRequest;
-use wallet_common::account::messages::instructions::InstructionResultMessage;
-use wallet_common::account::messages::instructions::IssueWte;
-use wallet_common::account::messages::instructions::IssueWteResult;
-use wallet_common::account::messages::instructions::Sign;
-use wallet_common::account::messages::instructions::SignResult;
-use wallet_common::account::serialization::DerVerifyingKey;
-use wallet_common::account::signed::ChallengeResponse;
+use wallet_account::messages::instructions::ChangePinCommit;
+use wallet_account::messages::instructions::ChangePinRollback;
+use wallet_account::messages::instructions::ChangePinStart;
+use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::instructions::ConstructPoa;
+use wallet_account::messages::instructions::ConstructPoaResult;
+use wallet_account::messages::instructions::GenerateKey;
+use wallet_account::messages::instructions::GenerateKeyResult;
+use wallet_account::messages::instructions::Instruction;
+use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::InstructionChallengeRequest;
+use wallet_account::messages::instructions::InstructionResultMessage;
+use wallet_account::messages::instructions::IssueWte;
+use wallet_account::messages::instructions::IssueWteResult;
+use wallet_account::messages::instructions::Sign;
+use wallet_account::messages::instructions::SignResult;
+use wallet_account::messages::registration::Certificate;
+use wallet_account::messages::registration::Challenge;
+use wallet_account::messages::registration::Registration;
+use wallet_account::messages::registration::WalletCertificate;
+use wallet_account::signed::ChallengeResponse;
 use wallet_common::keys::EcdsaKey;
+use wallet_common::p256_der::DerVerifyingKey;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
 use wallet_provider_service::wte_issuer::WteIssuer;
@@ -287,10 +289,14 @@ async fn construct_poa<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
+#[serde_as]
 #[derive(Serialize)]
 struct PublicKeys {
+    #[serde_as(as = "Base64")]
     certificate_public_key: DerVerifyingKey,
+    #[serde_as(as = "Base64")]
     instruction_result_public_key: DerVerifyingKey,
+    #[serde_as(as = "Base64")]
     wte_signing_key: DerVerifyingKey,
 }
 
