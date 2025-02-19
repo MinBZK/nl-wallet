@@ -487,7 +487,7 @@ read the text in a regular text editor or pager to see them.
 
 [6]: mailto:edi@minbzk.nl?subject=Feedback%20or%20ideas
 
-[7]: releases
+[7]: /../../releases
 
 [8]: ./LICENSES/EUPL-1.2.txt
 
