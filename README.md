@@ -477,7 +477,7 @@ read the text in a regular text editor or pager to see them.
 
 [1]: https://www.digitaleoverheid.nl/kabinetsbeleid-digitalisering/werkagenda/
 
-[2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte-eer-eidas/alles-wat-u-moet-weten-over-eidas/
+[2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
 
 [3]: https://www.figma.com/design/4efsEQFFJqenB80OKqfmdl/20241126_Release_UI_NLWallet?node-id=1-3716&t=HhqTBGpCrSVcW8ku-1
 
