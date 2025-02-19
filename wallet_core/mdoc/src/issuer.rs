@@ -52,7 +52,7 @@ impl IssuerSigned {
             value_digests: (&attrs).try_into()?,
             device_key_info: device_public_key.into(),
             validity_info: validity,
-            issuer_common_name: Some(key.certificate().common_name_uri()?),
+            issuer_uri: Some(unsigned_mdoc.issuer_uri),
         };
 
         let (metadata, integrity) = type_metadata.verify_and_destructure()?;
@@ -173,7 +173,7 @@ mod tests {
             )])
             .try_into()
             .unwrap(),
-            issuer_common_name: issuance_key.certificate().common_name_uri().unwrap(),
+            issuer_uri: issuance_key.certificate().san_dns_name_or_uris().unwrap().into_first(),
         };
         let metadata = TypeMetadata::bsn_only_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();

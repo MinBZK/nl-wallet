@@ -1274,7 +1274,7 @@ mod tests {
     async fn test_credential_response_into_mdoc_issued_issuer_mismatch_error() {
         let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
 
-        // Converting a `CredentialResponse` into an `Mdoc` with a different `issuer_common_name` in the preview than
+        // Converting a `CredentialResponse` into an `Mdoc` with a different `issuer_uri` in the preview than
         // contained within the response should fail.
         let preview = match preview {
             CredentialPreview::MsoMdoc {
@@ -1282,7 +1282,7 @@ mod tests {
                 issuer_certificate,
                 metadata_chain,
             } => {
-                unsigned_mdoc.issuer_common_name = "https://other-issuer.example.com".parse().unwrap();
+                unsigned_mdoc.issuer_uri = "https://other-issuer.example.com".parse().unwrap();
                 CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer_certificate,

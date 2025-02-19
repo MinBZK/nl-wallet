@@ -7,7 +7,7 @@ use url::Url;
 
 #[nutype(
     validate(predicate = |u| !u.cannot_be_a_base()),
-    derive(FromStr, Debug, Clone, Deserialize, Serialize, Display, AsRef, TryFrom, PartialEq, Eq, Hash),
+    derive(Debug, Clone, TryFrom, FromStr, Display, AsRef, PartialEq, Eq, Hash, Serialize, Deserialize),
 )]
 pub struct BaseUrl(Url);
 
@@ -43,7 +43,10 @@ pub fn disclosure_base_uri(universal_link_base: &BaseUrl) -> BaseUrl {
     universal_link_base.join_base_url(DISCLOSURE_BASE_PATH)
 }
 
-#[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(TryFrom, Deserialize, Clone, Debug, PartialEq, Eq))]
+#[nutype(validate(predicate = |u| u.scheme() == "https"), derive(Debug, Clone, TryFrom, FromStr, Display, PartialEq, Eq, Serialize, Deserialize))]
+pub struct HttpsUri(Url);
+
+#[nutype(validate(predicate = |u| Origin::is_valid(u)), derive(Debug, Clone, TryFrom, PartialEq, Eq, Deserialize))]
 pub struct Origin(Url);
 
 impl Origin {

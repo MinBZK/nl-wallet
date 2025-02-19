@@ -50,7 +50,7 @@ pub struct PersonAttributes {
 impl From<PersonAttributes> for IssuableDocument {
     fn from(value: PersonAttributes) -> Self {
         Self::try_new(
-            ISSUANCE_CERT_CN.parse().unwrap(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             MOCK_PID_DOCTYPE.to_string(),
             vec![
                 (PID_BSN.to_string(), Attribute::Single(AttributeValue::Text(value.bsn))),
@@ -91,7 +91,7 @@ pub struct ResidentAttributes {
 impl From<ResidentAttributes> for IssuableDocument {
     fn from(value: ResidentAttributes) -> Self {
         Self::try_new(
-            ISSUANCE_CERT_CN.parse().unwrap(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             MOCK_ADDRESS_DOCTYPE.to_string(),
             vec![
                 value.address.map(|v| {

@@ -4,9 +4,8 @@ use std::time::Duration;
 use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
-use http::uri::InvalidUri;
-use http::Uri;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
 use p256::pkcs8::der::asn1::Utf8StringRef;
@@ -19,6 +18,8 @@ use rustls_pki_types::UnixTime;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
+use wallet_common::vec_at_least::VecAtLeastNError;
+use wallet_common::vec_at_least::VecNonEmpty;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::EndEntityCert;
 use x509_parser::der_parser::Oid;
@@ -37,6 +38,8 @@ use yoke::Yokeable;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
+use wallet_common::urls::HttpsUri;
+use wallet_common::urls::HttpsUriParseError;
 
 use super::issuer_auth::IssuerRegistration;
 use super::reader_auth::ReaderRegistration;
@@ -91,10 +94,14 @@ pub enum CertificateError {
     KeyMismatch,
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
-    #[error("invalid common name: {0}")]
-    InvalidCommonName(InvalidUri),
-    #[error("unexpected amount of Common Names in certificate: expected 1, found {0}")]
-    UnexpectedCommonNameCount(usize),
+    #[error("missing SAN extension")]
+    MissingSan,
+    #[category(pd)]
+    #[error("missing SAN DNS name or URI, found: {0:?}")]
+    MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
+    #[error("SAN DNS name is not a URI: {0}")]
+    #[category(pd)]
+    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriParseError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -210,7 +217,7 @@ impl BorrowingCertificate {
             .collect::<Result<_, _>>()
     }
 
-    pub fn issuer_common_names(&self) -> Result<Vec<&str>, CertificateError> {
+    pub fn issuer_uris(&self) -> Result<Vec<&str>, CertificateError> {
         x509_common_names(&self.x509_certificate().issuer)
     }
 
@@ -218,16 +225,33 @@ impl BorrowingCertificate {
         x509_common_names(&self.x509_certificate().subject)
     }
 
-    pub fn common_name_uri(&self) -> Result<Uri, CertificateError> {
-        let common_names = self.common_names()?;
-        match common_names.len() {
-            1 => common_names
-                .first()
-                .unwrap()
-                .parse()
-                .map_err(CertificateError::InvalidCommonName),
-            n => Err(CertificateError::UnexpectedCommonNameCount(n)),
-        }
+    /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
+    pub fn san_dns_name_or_uris(&self) -> Result<VecNonEmpty<HttpsUri>, CertificateError> {
+        let san_ext = self
+            .x509_certificate()
+            .subject_alternative_name()?
+            .ok_or(CertificateError::MissingSan)?;
+
+        let san_dns_name_or_uri: VecNonEmpty<_> = san_ext
+            .value
+            .general_names
+            .iter()
+            .filter_map(|name| match name {
+                GeneralName::DNSName(name) => Some(format!("https://{name}")),
+                GeneralName::URI(uri) => Some(uri.to_string()),
+                _ => None,
+            })
+            .collect_vec()
+            .try_into()?;
+
+        let san_https_uris = san_dns_name_or_uri
+            .iter()
+            .map(|san| san.parse().map_err(CertificateError::SanDnsNameOrUriIsNotAnHttpsUri))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap(); // we come from a VecNonEmpty<_>, so this is safe
+
+        Ok(san_https_uris)
     }
 
     /// Returns the first DNS SAN, if any, from the certificate.

@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 use derive_more::From;
-use http::Uri;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -23,6 +22,7 @@ use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::generator::TimeGenerator;
+use wallet_common::urls::HttpsUri;
 use wallet_common::utils::random_string;
 use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -186,11 +186,15 @@ impl CredentialPreview {
                 // have produced an mdoc against that certificate.
                 issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
 
-                // Verify that the issuer_common_name matches the common_name in the issuer_certificate
-                if unsigned_mdoc.issuer_common_name != issuer_certificate.common_name_uri()? {
-                    return Err(CredentialPreviewError::CommonNameMismatch(
-                        unsigned_mdoc.issuer_common_name.clone(),
-                        issuer_certificate.common_name_uri()?,
+                // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
+                if issuer_certificate
+                    .san_dns_name_or_uris()?
+                    .as_ref()
+                    .contains(&unsigned_mdoc.issuer_uri)
+                {
+                    return Err(CredentialPreviewError::IssuerUriNotFoundInSan(
+                        unsigned_mdoc.issuer_uri.clone(),
+                        issuer_certificate.san_dns_name_or_uris()?,
                     ));
                 }
 
@@ -227,9 +231,9 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
-    #[error("common name mismatch: expected {0}, found {1}")]
+    #[error("issuer URI {0} not found in SAN {1:?}")]
     #[category(pd)]
-    CommonNameMismatch(Uri, Uri),
+    IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]

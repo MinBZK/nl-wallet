@@ -308,7 +308,7 @@ mod tests {
 
         TestDocument {
             doc_type,
-            issuer_common_name: issuer_certificate.common_name_uri().unwrap(),
+            issuer_uri: issuer_certificate.san_dns_name_or_uris().unwrap().into_first(),
             namespaces: convert_namespaces(name_spaces),
         }
     }

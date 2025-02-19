@@ -3,12 +3,13 @@ use std::num::NonZeroU8;
 
 use ciborium::Value;
 use coset::CoseSign1;
-use http::Uri;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
+
+use wallet_common::urls::HttpsUri;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -151,15 +152,15 @@ impl DeviceRequest {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TestDocument {
     pub doc_type: String,
-    pub issuer_common_name: Uri,
+    pub issuer_uri: HttpsUri,
     pub namespaces: IndexMap<String, Vec<Entry>>,
 }
 
 impl TestDocument {
-    fn new(doc_type: String, issuer_common_name: Uri, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
+    fn new(doc_type: String, issuer_uri: HttpsUri, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
         Self {
             doc_type,
-            issuer_common_name,
+            issuer_uri,
             namespaces,
         }
     }
@@ -233,7 +234,7 @@ impl From<TestDocument> for UnsignedMdoc {
             valid_from: chrono::Utc::now().into(),
             valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
             attributes: value.namespaces.try_into().unwrap(),
-            issuer_common_name: value.issuer_common_name,
+            issuer_uri: value.issuer_uri,
         }
     }
 }
@@ -274,7 +275,7 @@ impl TestDocuments {
         for TestDocument {
             doc_type: expected_doc_type,
             namespaces: expected_namespaces,
-            issuer_common_name: expected_issuer,
+            issuer_uri: expected_issuer,
         } in self.0.iter()
         {
             // verify the disclosed attributes
@@ -282,7 +283,7 @@ impl TestDocuments {
                 .get(expected_doc_type)
                 .expect("expected doc_type not received");
             // verify the issuer
-            assert_eq!(disclosed_namespaces.issuer, expected_issuer.to_string());
+            assert_eq!(disclosed_namespaces.issuer_uri, *expected_issuer);
             // verify the number of namespaces in this document
             assert_eq!(disclosed_namespaces.attributes.len(), expected_namespaces.len());
             for (expected_namespace, expected_attributes) in expected_namespaces {
@@ -380,7 +381,7 @@ pub mod data {
     pub fn pid_given_name() -> TestDocuments {
         vec![TestDocument::new(
             PID.to_owned(),
-            ISSUANCE_CERT_CN.parse().unwrap(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             IndexMap::from_iter(vec![(
                 PID.to_string(),
                 vec![Entry {
@@ -395,7 +396,7 @@ pub mod data {
     pub fn pid_family_name() -> TestDocuments {
         vec![TestDocument::new(
             PID.to_owned(),
-            ISSUANCE_CERT_CN.parse().unwrap(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             IndexMap::from_iter(vec![(
                 PID.to_string(),
                 vec![Entry {
@@ -410,7 +411,7 @@ pub mod data {
     pub fn pid_full_name() -> TestDocuments {
         vec![TestDocument::new(
             PID.to_owned(),
-            ISSUANCE_CERT_CN.parse().unwrap(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             IndexMap::from_iter(vec![(
                 PID.to_string(),
                 vec![
@@ -431,7 +432,7 @@ pub mod data {
     pub fn addr_street() -> TestDocuments {
         vec![TestDocument::new(
             ADDR.to_owned(),
-            ISSUANCE_CERT_CN.parse().unwrap(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             IndexMap::from_iter(vec![(
                 ADDR.to_string(),
                 vec![Entry {

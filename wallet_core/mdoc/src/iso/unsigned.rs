@@ -1,10 +1,11 @@
 use std::num::NonZeroU8;
 
-use http::Uri;
 use indexmap::IndexMap;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+
+use wallet_common::urls::HttpsUri;
 
 use crate::utils::serialization::TaggedBytes;
 use crate::Attributes;
@@ -39,9 +40,8 @@ pub struct UnsignedMdoc {
     /// The amount of copies of this mdoc that the holder will receive.
     pub copy_count: NonZeroU8,
 
-    /// The common name of the issuer, as it appears in the issuer's certificate.
-    #[serde(with = "http_serde::uri")]
-    pub issuer_common_name: Uri,
+    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate.
+    pub issuer_uri: HttpsUri,
 }
 
 /// An attribute name and value.

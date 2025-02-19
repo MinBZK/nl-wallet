@@ -58,7 +58,7 @@ impl From<BrpPerson> for IssuableDocuments {
 
         vec![
             IssuableDocument::try_new(
-                ISSUANCE_CERT_CN.parse().unwrap(),
+                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 String::from(MOCK_PID_DOCTYPE),
                 IndexMap::from_iter(
                     vec![
@@ -109,7 +109,7 @@ impl From<BrpPerson> for IssuableDocuments {
             )
             .unwrap(),
             IssuableDocument::try_new(
-                ISSUANCE_CERT_CN.parse().unwrap(),
+                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 String::from(MOCK_ADDRESS_DOCTYPE),
                 IndexMap::from_iter(
                     vec![
@@ -352,7 +352,7 @@ mod tests {
 
         assert_eq!(
             json!({
-                "issuer_common_name": "cert.issuer.example.com",
+                "issuer_uri": "cert.issuer.example.com",
                 "attestation_type": "com.example.pid",
                 "attributes": {
                     "bsn": "999991772",
@@ -368,7 +368,7 @@ mod tests {
 
         assert_eq!(
             json!({
-                "issuer_common_name": "cert.issuer.example.com",
+                "issuer_uri": "cert.issuer.example.com",
                 "attestation_type": "com.example.address",
                 "attributes": {
                     "resident_country": "Nederland",

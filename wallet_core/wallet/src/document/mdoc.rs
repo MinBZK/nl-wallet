@@ -418,7 +418,7 @@ pub mod tests {
                 )])
                 .try_into()
                 .unwrap(),
-                issuer_common_name: ISSUANCE_CERT_CN.parse().unwrap(),
+                issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             },
             TypeMetadata::bsn_only_example(),
         )
@@ -660,7 +660,7 @@ pub mod tests {
             )])
             .try_into()
             .unwrap(),
-            issuer_common_name: ISSUANCE_CERT_CN.parse().unwrap(),
+            issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
         };
 
         let mut metadata = TypeMetadata::empty_example();

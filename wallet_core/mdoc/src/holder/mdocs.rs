@@ -2,7 +2,6 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::Utc;
-use http::Uri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
@@ -14,6 +13,7 @@ use sd_jwt::metadata::TypeMetadata;
 use wallet_common::generator::Generator;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
+use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
@@ -68,8 +68,8 @@ impl Mdoc {
         self.issuer_signed.issuer_auth.signing_cert()
     }
 
-    pub fn issuer_common_name(&self) -> Option<&Uri> {
-        self.mso.issuer_common_name.as_ref()
+    pub fn issuer_uri(&self) -> Option<&HttpsUri> {
+        self.mso.issuer_uri.as_ref()
     }
 
     pub fn doc_type(&self) -> &String {
@@ -95,12 +95,12 @@ impl Mdoc {
             ));
         }
 
-        match self.mso.issuer_common_name.as_ref() {
+        match self.mso.issuer_uri.as_ref() {
             None => Err(IssuedDocumentMismatchError::IssuedIssuerMissing),
-            Some(issuer_common_name) if *issuer_common_name != unsigned.issuer_common_name => {
+            Some(issuer_uri) if *issuer_uri != unsigned.issuer_uri => {
                 Err(IssuedDocumentMismatchError::IssuedIssuerMismatch(
-                    unsigned.issuer_common_name.clone(),
-                    issuer_common_name.clone(),
+                    Box::new(unsigned.issuer_uri.clone()),
+                    Box::new(issuer_uri.clone()),
                 ))
             }
             Some(_) => Ok(()),
@@ -143,9 +143,9 @@ pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
     #[error("issued issuer common name missing")]
     #[category(critical)]
     IssuedIssuerMissing,
-    #[error("issued issuer mismatch: expected {0}, found {1}")]
+    #[error("issued issuer mismatch: expected {0:?}, found {0:?}")]
     #[category(pd)]
-    IssuedIssuerMismatch(http::Uri, http::Uri),
+    IssuedIssuerMismatch(Box<HttpsUri>, Box<HttpsUri>),
     #[error("issued validity info mismatch: expected {0:?}, found {1:?}")]
     #[category(critical)]
     IssuedValidityInfoMismatch((Tdate, Tdate), (Tdate, Tdate)),

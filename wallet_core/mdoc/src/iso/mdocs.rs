@@ -12,7 +12,6 @@ use chrono::ParseError;
 use chrono::Utc;
 use ciborium::tag;
 use ciborium::value::Value;
-use http::Uri;
 use indexmap::IndexMap;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
@@ -21,6 +20,7 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 
+use wallet_common::urls::HttpsUri;
 use wallet_common::utils::random_bytes;
 
 use crate::unsigned::Entry;
@@ -163,10 +163,9 @@ pub struct MobileSecurityObject {
     pub doc_type: String,
     pub validity_info: ValidityInfo,
 
-    /// The common name of the issuer, as it appears in the issuer's certificate. Optional because it is not in the
-    /// spec.
-    #[serde(default, with = "http_serde::option::uri")]
-    pub issuer_common_name: Option<Uri>,
+    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate. Optional because it is not in
+    /// the spec.
+    pub issuer_uri: Option<HttpsUri>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

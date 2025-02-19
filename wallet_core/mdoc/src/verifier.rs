@@ -15,6 +15,8 @@ use tracing::debug;
 use tracing::warn;
 
 use wallet_common::generator::Generator;
+use wallet_common::urls::HttpsUri;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -37,7 +39,7 @@ use crate::Result;
 pub struct DocumentDisclosedAttributes {
     #[serde_as(as = "IfIsHumanReadable<IndexMap<_, IndexMap<_, FromInto<JsonCborValue>>>>")]
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
-    pub issuer: String,
+    pub issuer_uri: HttpsUri,
     pub ca: String,
     pub validity_info: ValidityInfo,
 }
@@ -68,8 +70,10 @@ pub enum VerificationError {
     MissingAttributes(Vec<AttributeIdentifier>),
     #[error("unexpected amount of CA Common Names in issuer certificate: expected 1, found {0}")]
     UnexpectedCACommonNameCount(usize),
-    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
-    UnexpectedIssuerCommonNameCount(usize),
+    #[error("issuer URI {0} not found in SAN {1:?}")]
+    IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
+    #[error("missing issuer URI")]
+    MissingIssuerUri,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, AsRef)]
@@ -201,7 +205,7 @@ impl IssuerSigned {
             .verify_is_valid_at(time.generate(), validity)
             .map_err(VerificationError::Validity)?;
 
-        let attrs = self
+        let attributes = self
             .name_spaces
             .as_ref()
             .map(|name_spaces| {
@@ -215,20 +219,22 @@ impl IssuerSigned {
             .unwrap_or_default();
 
         let signing_cert = self.issuer_auth.signing_cert()?;
-        let mut ca_cns = signing_cert.issuer_common_names()?;
+        let mut ca_cns = signing_cert.issuer_uris()?;
         if ca_cns.len() != 1 {
             return Err(VerificationError::UnexpectedCACommonNameCount(ca_cns.len()).into());
         }
 
-        let mut issuer_cns = signing_cert.common_names()?;
-        if issuer_cns.len() != 1 {
-            return Err(VerificationError::UnexpectedIssuerCommonNameCount(issuer_cns.len()).into());
-        }
+        let san_dns_name_or_uris = signing_cert.san_dns_name_or_uris()?;
+        let issuer_uri = match mso.issuer_uri {
+            Some(ref uri) if san_dns_name_or_uris.as_ref().contains(uri) => uri.to_owned(),
+            Some(uri) => return Err(VerificationError::IssuerUriNotFoundInSan(uri, san_dns_name_or_uris).into()),
+            None => return Err(VerificationError::MissingIssuerUri.into()),
+        };
 
         Ok((
             DocumentDisclosedAttributes {
-                attributes: attrs,
-                issuer: String::from(issuer_cns.pop().unwrap()),
+                attributes,
+                issuer_uri,
                 ca: String::from(ca_cns.pop().unwrap()),
                 validity_info: mso.validity_info.clone(),
             },

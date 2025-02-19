@@ -891,7 +891,11 @@ async fn prepare_example_holder_mocks(
         valid_until: (Utc::now() + Days::new(365)).into(),
         attributes: example_attributes.try_into().unwrap(),
         copy_count: 1.try_into().unwrap(),
-        issuer_common_name: issuer_key_pair.certificate().common_name_uri().unwrap(),
+        issuer_uri: issuer_key_pair
+            .certificate()
+            .san_dns_name_or_uris()
+            .unwrap()
+            .into_first(),
     };
 
     let metadata = TypeMetadata::bsn_only_example();

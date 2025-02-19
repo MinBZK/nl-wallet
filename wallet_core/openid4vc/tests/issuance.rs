@@ -483,7 +483,7 @@ fn mock_issuable_attestation(
     (0..attestation_count.get())
         .map(|i| IssuableCredential {
             document: IssuableDocument::try_new(
-                ISSUANCE_CERT_CN.parse().unwrap(),
+                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 MOCK_DOCTYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (
