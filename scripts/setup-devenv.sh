@@ -21,6 +21,8 @@
 # - softhsm2-util: software implementation of a hardware security module (HSM). See https://github.com/opendnssec/SoftHSMv2.
 # - p11tool: utility that is part of the gnutls package. The Homebrew package is 'gnutls'. On Debian/Ubuntu, it is 'gnutls-bin'.
 # - nodejs: JavaScript runtime environment for building frontend library
+# - envsubst: Environment variables substitution
+# - make: used for building nl-rdo-max (digid-connector)
 #
 # MacOS specific instructions
 # This script needs GNU sed. this can be installed by
@@ -59,7 +61,7 @@ source "${SCRIPTS_DIR}/utils.sh"
 
 # Use gsed on macOS, sed on others
 is_macos && SED="gsed" || SED="sed"
-have cargo jq tr xxd openssl p11tool softhsm2-util "${SED}"
+have cargo jq tr xxd openssl p11tool softhsm2-util envsubst make "${SED}"
 
 # Check if openssl is "real" OpenSSL
 check_openssl
