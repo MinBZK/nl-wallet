@@ -39,12 +39,14 @@ where
     )?;
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.urls,
-        settings.verifier,
+        settings.verifier.usecases.try_into()?,
+        (&settings.verifier.ephemeral_id_secret).into(),
         settings
             .issuer_trust_anchors
             .iter()
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
+        settings.verifier.allow_origins,
         disclosure_sessions,
     )?;
 
