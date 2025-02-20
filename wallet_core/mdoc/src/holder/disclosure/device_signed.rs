@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_mac_device_signed() {
-        let mdoc = Mdoc::new_example_mock();
+        let (mdoc, ca) = Mdoc::new_example_mock();
         let eph_reader_key = Examples::ephemeral_reader_key();
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
 
@@ -112,7 +112,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &session_transcript,
                 &IsoCertTimeGenerator,
-                Examples::iaca_trust_anchors(),
+                &[ca.to_trust_anchor()],
             )
             .unwrap();
     }

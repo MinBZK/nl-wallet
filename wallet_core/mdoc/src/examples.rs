@@ -243,7 +243,6 @@ pub mod mock {
 
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
-    use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
@@ -262,7 +261,7 @@ pub mod mock {
         /// construct the example mdoc with all attributes present.
         ///
         /// Using tests should not rely on all attributes being present.
-        pub fn new_example_mock() -> Self {
+        pub fn new_example_mock() -> (Self, Ca) {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
             let mut issuer_signed = DeviceResponse::example_resigned(&ca).documents.as_ref().unwrap()[0]
                 .issuer_signed
@@ -279,19 +278,21 @@ pub mod mock {
                 IssuerSigned::create_unprotected_header(x5chain.clone().into_bytes().unwrap(), chain, integrity)
                     .unwrap();
 
-            Mdoc::new::<MockRemoteEcdsaKey>(
+            let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
             )
-            .unwrap()
+            .unwrap();
+
+            (mdoc, ca)
         }
 
-        pub fn new_example_mock_with_doctype(doc_type: &str) -> Self {
-            let mut mdoc = Self::new_example_mock();
+        pub fn new_example_mock_with_doctype(doc_type: &str) -> (Self, Ca) {
+            let (mut mdoc, ca) = Self::new_example_mock();
             mdoc.mso.doc_type = String::from(doc_type);
-            mdoc
+            (mdoc, ca)
         }
     }
 }

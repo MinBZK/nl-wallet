@@ -22,8 +22,9 @@ impl MockMdocDataSource {
     }
 
     #[cfg(any(test, feature = "mock_example_constructors"))]
-    pub fn new_with_example() -> Self {
-        Self::new(vec![Mdoc::new_example_mock()])
+    pub fn new_with_example() -> (Self, crate::server_keys::generate::Ca) {
+        let (mdoc, ca) = Mdoc::new_example_mock();
+        (Self::new(vec![mdoc]), ca)
     }
 }
 

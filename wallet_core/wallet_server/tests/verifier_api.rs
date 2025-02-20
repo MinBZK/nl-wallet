@@ -1081,7 +1081,7 @@ async fn test_disclosed_attributes_failed_session() {
         HttpVpMessageClient::from(client.clone()),
         &request_uri_query,
         DisclosureUriSource::QrCode,
-        &MockMdocDataSource::new_with_example(),
+        &MockMdocDataSource::new_with_example().0,
         &[rp_trust_anchor],
     )
     .await

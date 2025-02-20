@@ -23,7 +23,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {
-        let mdoc = Mdoc::new_example_mock();
+        let (mdoc, _) = Mdoc::new_example_mock();
 
         let public_key = mdoc
             .issuer_signed
