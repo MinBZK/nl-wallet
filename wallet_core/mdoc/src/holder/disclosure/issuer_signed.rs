@@ -17,22 +17,24 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::keys::examples::Examples;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
 
     #[tokio::test]
     async fn test_issuer_signed_public_key() {
-        let (mdoc, _) = Mdoc::new_example_mock();
+        let key = SigningKey::random(&mut OsRng);
+        let key = MockRemoteEcdsaKey::new("identifier".to_string(), key);
+        let mdoc = Mdoc::new_mock_with_key(&key).await;
 
         let public_key = mdoc
             .issuer_signed
             .public_key()
             .expect("Could not get public key from from IssuerSigned");
 
-        let expected_public_key = *Examples::static_device_key().verifying_key();
-
-        // The example mdoc should contain the example static device key.
-        assert_eq!(public_key, expected_public_key);
+        // The example mdoc should contain the generated key.
+        assert_eq!(public_key, *key.verifying_key());
     }
 }

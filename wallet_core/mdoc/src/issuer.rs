@@ -120,6 +120,17 @@ impl IssuerSigned {
 
         Ok(TypeMetadataChain::create(root, chain.into())?)
     }
+
+    pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
+        let mut mso = self.issuer_auth.dangerous_parse_unverified()?.0;
+
+        // Update (fill) the issuer_uri to match the new key
+        mso.issuer_uri = Some(key.certificate().san_dns_name_or_uris()?.into_first());
+
+        self.issuer_auth = MdocCose::sign(&mso.into(), self.issuer_auth.0.unprotected.clone(), key, true).await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -175,8 +186,7 @@ mod tests {
             .unwrap(),
             issuer_uri: issuance_key.certificate().san_dns_name_or_uris().unwrap().into_first(),
         };
-        let metadata = TypeMetadata::bsn_only_example();
-        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+        let metadata_chain = TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap();
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
         let issuer_signed = IssuerSigned::sign(unsigned.clone(), metadata_chain, device_key, &issuance_key)

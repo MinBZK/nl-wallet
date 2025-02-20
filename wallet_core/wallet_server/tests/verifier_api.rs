@@ -1077,11 +1077,12 @@ async fn test_disclosed_attributes_failed_session() {
     // Start a disclosure session with the default MockMdocDataSource, which contains expired
     // attestations from the examples in the ISO specifications, then disclose those.
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
+    let mdocs = MockMdocDataSource::new_example();
     let disclosure_session = DisclosureSession::start(
         HttpVpMessageClient::from(client.clone()),
         &request_uri_query,
         DisclosureUriSource::QrCode,
-        &MockMdocDataSource::new_with_example().0,
+        &mdocs,
         &[rp_trust_anchor],
     )
     .await

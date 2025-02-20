@@ -125,21 +125,19 @@ impl MockRemoteKeyFactory {
             has_multi_key_signing_error: false,
         }
     }
+
+    pub fn new_example() -> Self {
+        use super::examples::Examples;
+        use super::examples::EXAMPLE_KEY_IDENTIFIER;
+
+        let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
+        Self::new_signing_keys(keys)
+    }
 }
 
 impl Default for MockRemoteKeyFactory {
     fn default() -> Self {
-        let keys = HashMap::from([
-            #[cfg(feature = "examples")]
-            {
-                use super::examples::Examples;
-                use super::examples::EXAMPLE_KEY_IDENTIFIER;
-
-                (EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())
-            },
-        ]);
-
-        Self::new_signing_keys(keys)
+        Self::new_signing_keys(HashMap::new())
     }
 }
 

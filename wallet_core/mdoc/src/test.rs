@@ -371,11 +371,51 @@ pub mod data {
 
     use crate::server_keys::generate::mock::ISSUANCE_CERT_CN;
 
-    const PID: &str = "com.example.pid";
+    pub const PID: &str = "com.example.pid";
     const ADDR: &str = "com.example.address";
 
     pub fn empty() -> TestDocuments {
         vec![].into()
+    }
+
+    pub fn pid_bsn_only() -> TestDocuments {
+        vec![TestDocument::new(
+            PID.to_owned(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
+            IndexMap::from_iter(vec![(
+                PID.to_string(),
+                vec![Entry {
+                    name: "bsn".to_string(),
+                    value: Value::Text("999999999".to_string()),
+                }],
+            )]),
+        )]
+        .into()
+    }
+
+    pub fn pid_example() -> TestDocuments {
+        vec![TestDocument::new(
+            PID.to_owned(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
+            IndexMap::from_iter(vec![(
+                PID.to_string(),
+                vec![
+                    Entry {
+                        name: "bsn".to_string(),
+                        value: Value::Text("999999999".to_string()),
+                    },
+                    Entry {
+                        name: "given_name".to_string(),
+                        value: Value::Text("Willeke Liselotte".to_string()),
+                    },
+                    Entry {
+                        name: "family_name".to_string(),
+                        value: Value::Text("De Bruijn".to_string()),
+                    },
+                ],
+            )]),
+        )]
+        .into()
     }
 
     pub fn pid_given_name() -> TestDocuments {

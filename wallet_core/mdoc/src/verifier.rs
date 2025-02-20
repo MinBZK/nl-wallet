@@ -415,10 +415,10 @@ mod tests {
     }
 
     /// Verify the example disclosure from the standard.
-    #[test]
-    fn verify_iso_example_disclosure() {
+    #[tokio::test]
+    async fn verify_iso_example_disclosure() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let device_response = DeviceResponse::example_resigned(&ca);
+        let device_response = DeviceResponse::example_resigned(&ca).await;
 
         println!("DeviceResponse: {:#?} ", DebugCollapseBts::from(&device_response));
 

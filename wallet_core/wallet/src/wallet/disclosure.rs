@@ -1602,8 +1602,8 @@ mod tests {
         let wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Create some fake `Mdoc` entries to place into wallet storage.
-        let (mdoc1, _) = Mdoc::new_example_mock();
-        let (mdoc2, _) = Mdoc::new_example_mock_with_doctype("com.example.doc_type");
+        let mdoc1 = Mdoc::new_example();
+        let mdoc2 = Mdoc::new_example_with_doctype("com.example.doc_type");
 
         // Place 3 copies of each `Mdoc` into `MockStorage`.
         wallet

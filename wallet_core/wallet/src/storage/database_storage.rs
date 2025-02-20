@@ -878,7 +878,7 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         // Create MdocsMap from example Mdoc
-        let (mdoc, _) = Mdoc::new_example_mock();
+        let mdoc = Mdoc::new_example();
         let mdoc_copies = MdocCopies::try_from([mdoc.clone(), mdoc.clone(), mdoc].to_vec()).unwrap();
 
         // Insert mdocs

@@ -44,6 +44,7 @@ pub type DigestID = u64;
 /// A map containing attribute digests keyed by the attribute ID (an incrementing integer).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
+
 impl TryFrom<&Attributes> for DigestIDs {
     type Error = CborError;
     fn try_from(val: &Attributes) -> Result<Self, Self::Error> {
@@ -61,6 +62,7 @@ impl TryFrom<&Attributes> for DigestIDs {
 /// Digests of the attributes, grouped per [`NameSpace`].
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ValueDigests(pub IndexMap<NameSpace, DigestIDs>);
+
 impl TryFrom<&IssuerNameSpaces> for ValueDigests {
     type Error = CborError;
     fn try_from(val: &IssuerNameSpaces) -> Result<Self, Self::Error> {

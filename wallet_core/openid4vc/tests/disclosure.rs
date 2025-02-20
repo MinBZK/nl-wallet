@@ -118,7 +118,7 @@ async fn disclosure_direct() {
 
 /// The wallet side: verify the Authorization Request, compute the disclosure, and encrypt it into a JWE.
 async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors: &[TrustAnchor<'_>]) -> String {
-    let (mdocs, ca) = IsoMockMdocDataSource::new_with_example();
+    let mdocs = IsoMockMdocDataSource::new_example();
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -175,7 +175,7 @@ async fn disclosure_using_message_client() {
         .unwrap();
 
     // Initialize the "wallet"
-    let (mdocs, ca) = IsoMockMdocDataSource::new_with_example();
+    let mdocs = IsoMockMdocDataSource::new_example();
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair);
