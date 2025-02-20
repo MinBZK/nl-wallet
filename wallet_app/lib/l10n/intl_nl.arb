@@ -490,7 +490,7 @@
     "generalWCAGLanguageUpdatedAnnouncement": "De taal is gewijzigd naar {language}",
     "generalWCAGLogoutAnnouncement": "Je bent uitgelogd",
     "generalWCAGMenu": "Menu",
-    "generalWCAGOpenLink": "Openen",
+    "generalWCAGOpenLink": "navigeren",
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "Alle activiteiten te bekijken",
     "generalWCAGStepper": "Stap {current} van {total}.",
