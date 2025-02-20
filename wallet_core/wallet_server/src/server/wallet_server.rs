@@ -4,13 +4,13 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
 use openid4vc::verifier::DisclosureData;
+use openid4vc_server::issuer::create_issuance_router;
+use openid4vc_server::issuer::IssuerKeyRing;
+use openid4vc_server::verifier;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use super::*;
-use crate::issuer::create_issuance_router;
-use crate::issuer::IssuerKeyRing;
 use crate::settings::Settings;
-use crate::verifier;
 
 pub async fn serve<A, DS, IS, W>(
     attr_service: A,
@@ -27,7 +27,7 @@ where
 {
     let log_requests = settings.log_requests;
 
-    let private_keys: IssuerKeyRing<_> = settings.issuer.private_keys.try_into()?;
+    let private_keys = IssuerKeyRing::try_new(settings.issuer.private_keys)?;
     let wallet_issuance_router = create_issuance_router(
         &settings.urls,
         private_keys,

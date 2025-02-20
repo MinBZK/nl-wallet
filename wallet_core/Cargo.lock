@@ -3471,6 +3471,7 @@ dependencies = [
  "nl_wallet_mdoc",
  "nutype",
  "openid4vc",
+ "openid4vc_server",
  "reqwest",
  "rstest",
  "serde",
@@ -3484,7 +3485,6 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wallet_common",
- "wallet_server",
 ]
 
 [[package]]
@@ -3832,6 +3832,59 @@ dependencies = [
  "wallet_common",
  "wiremock",
  "x509-parser 0.17.0",
+]
+
+[[package]]
+name = "openid4vc_server"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "axum",
+ "axum-extra",
+ "base64 0.22.1",
+ "cfg-if",
+ "chrono",
+ "ciborium",
+ "config",
+ "derive_more",
+ "futures",
+ "http",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "nl_wallet_mdoc",
+ "nutype",
+ "openid4vc",
+ "p256",
+ "parking_lot",
+ "rand_core",
+ "reqwest",
+ "ring",
+ "rstest",
+ "rustls-pki-types",
+ "sd_jwt",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "serial_test",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
+name = "openid4vc_server_migrations"
+version = "0.3.0-dev"
+dependencies = [
+ "sea-orm-migration",
+ "tokio",
 ]
 
 [[package]]
@@ -6003,6 +6056,7 @@ dependencies = [
  "jsonwebtoken",
  "nl_wallet_mdoc",
  "openid4vc",
+ "openid4vc_server",
  "p256",
  "platform_support",
  "rand_core",
@@ -7161,6 +7215,7 @@ dependencies = [
  "nl_wallet_mdoc",
  "nutype",
  "openid4vc",
+ "openid4vc_server",
  "p256",
  "parking_lot",
  "rand_core",
@@ -7183,14 +7238,6 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wallet_common",
-]
-
-[[package]]
-name = "wallet_server_migrations"
-version = "0.3.0-dev"
-dependencies = [
- "sea-orm-migration",
- "tokio",
 ]
 
 [[package]]

@@ -37,7 +37,7 @@ test-rust:
     - cd wallet_core
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
-    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
+    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin openid4vc_server_migrations --locked -- up
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   after_script:
@@ -162,10 +162,10 @@ build-wallet-server-binary:
 build-wallet-server-migrations-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migrations" --bin wallet_server_migrations
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "openid4vc_server_migrations" --bin openid4vc_server_migrations
   artifacts:
     paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server_migrations
+      - wallet_core/target/x86_64-unknown-linux-musl/release/openid4vc_server_migrations
 
 build-demo-relying-party-binary:
   extends: .build-binary

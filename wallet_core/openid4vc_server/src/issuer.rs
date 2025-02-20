@@ -21,6 +21,7 @@ use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use derive_more::AsRef;
 use derive_more::From;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
@@ -28,7 +29,6 @@ use tracing::warn;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -49,12 +49,11 @@ use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings;
-use crate::settings::Urls;
-
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+
+use crate::Urls;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,
@@ -71,18 +70,19 @@ impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
     }
 }
 
-impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
-    type Error = CertificateError;
-
-    fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
+impl IssuerKeyRing<SigningKey> {
+    pub fn try_new<T>(private_keys: HashMap<String, T>) -> Result<Self, CertificateError>
+    where
+        T: TryInto<KeyPair<SigningKey>>,
+        CertificateError: From<T::Error>,
+    {
         let key_ring = private_keys
             .into_iter()
             .map(|(doctype, key_pair)| {
-                let key_pair = key_pair.try_into_mdoc_key_pair()?;
-
+                let key_pair = key_pair.try_into()?;
                 Ok((doctype, key_pair))
             })
-            .collect::<Result<HashMap<_, _>, Self::Error>>()?
+            .collect::<Result<HashMap<_, _>, CertificateError>>()?
             .into();
 
         Ok(key_ring)

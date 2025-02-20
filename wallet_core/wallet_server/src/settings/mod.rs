@@ -10,12 +10,14 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use openid4vc_server::Urls;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
+use nl_wallet_mdoc::server_keys::KeyPair as ParsedKeyPair;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
@@ -25,7 +27,6 @@ use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
-use wallet_common::urls::BaseUrl;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
@@ -40,15 +41,6 @@ cfg_if::cfg_if! {
         mod issuance;
         pub use issuance::*;
     }
-}
-
-#[derive(Clone, Deserialize)]
-pub struct Urls {
-    // used by the wallet
-    pub public_url: BaseUrl,
-
-    #[cfg(feature = "disclosure")]
-    pub universal_link_base_url: BaseUrl,
 }
 
 #[serde_as]
@@ -142,20 +134,17 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
-impl KeyPair {
-    pub fn try_into_mdoc_key_pair(self) -> Result<nl_wallet_mdoc::server_keys::KeyPair, CertificateError> {
-        let key_pair = nl_wallet_mdoc::server_keys::KeyPair::new_from_signing_key(
-            self.private_key.into_inner(),
-            self.certificate,
-        )?;
+impl TryFrom<KeyPair> for ParsedKeyPair {
+    type Error = CertificateError;
 
-        Ok(key_pair)
+    fn try_from(value: KeyPair) -> Result<Self, Self::Error> {
+        ParsedKeyPair::new_from_signing_key(value.private_key.into_inner(), value.certificate)
     }
 }
 
 #[cfg(feature = "integration_test")]
-impl From<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
-    fn from(value: nl_wallet_mdoc::server_keys::KeyPair) -> Self {
+impl From<ParsedKeyPair> for KeyPair {
+    fn from(value: ParsedKeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
             private_key: DerSigningKey::from(value.private_key().clone()),
@@ -340,9 +329,9 @@ where
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        let key_pair = key_pair
+        let key_pair: ParsedKeyPair = key_pair
             .clone()
-            .try_into_mdoc_key_pair()
+            .try_into()
             .map_err(|error| CertificateVerificationError::InvalidKeyPair(error, key_pair_id.clone()))?;
 
         let certificate = key_pair.certificate();

@@ -1,12 +1,6 @@
-# Wallet Server
-
-The Wallet Server is a supporting server for issuers and/or verifiers, it
-implements the protocol(s) that the NL Wallet supports and offers a REST API
-towards the requester.
-
 ## Migrate database
 
-The Wallet Server comes with a separate binary to update the postgres database
+This package comes with a separate binary to update the postgres database
 tables, i.e. `openid4vc_server_migrations`.
 As an example how to use it, the following snippet can be used to upgrade the
 databases in the local development environment, where we use 2 different
