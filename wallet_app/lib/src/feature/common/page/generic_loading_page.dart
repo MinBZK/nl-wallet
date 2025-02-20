@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/list_button.dart';
@@ -6,7 +7,7 @@ import '../widget/loading_indicator.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_app_bar.dart';
 
-class GenericLoadingPage extends StatelessWidget {
+class GenericLoadingPage extends StatefulWidget {
   /// The title shown above the loading indicator
   final String title;
 
@@ -25,20 +26,41 @@ class GenericLoadingPage extends StatelessWidget {
 
   final Widget loadingIndicator;
 
+  final bool requestAccessibilityFocus;
+
   const GenericLoadingPage({
     required this.title,
     required this.description,
     this.onCancel,
     this.cancelCta,
     this.appBar,
+    this.requestAccessibilityFocus = true,
     this.loadingIndicator = const LoadingIndicator(),
     super.key,
   });
 
   @override
+  State<GenericLoadingPage> createState() => _GenericLoadingPageState();
+}
+
+class _GenericLoadingPageState extends State<GenericLoadingPage> {
+  final GlobalKey titleKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.requestAccessibilityFocus) {
+      // Using addPostFrameCallback because changing focus need to wait for the widget to finish rendering.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        titleKey.currentContext?.findRenderObject()?.sendSemanticsEvent(const FocusSemanticEvent());
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBar,
+      appBar: widget.appBar,
       body: SizedBox(
         width: double.infinity,
         child: Column(
@@ -52,15 +74,16 @@ class GenericLoadingPage extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
+                  key: titleKey,
                   children: [
                     TitleText(
-                      title,
+                      widget.title,
                       style: context.textTheme.headlineMedium,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      description,
+                      widget.description,
                       style: context.textTheme.bodyLarge,
                       textAlign: TextAlign.center,
                     ),
@@ -69,7 +92,7 @@ class GenericLoadingPage extends StatelessWidget {
                 ),
               ),
             ),
-            loadingIndicator,
+            widget.loadingIndicator,
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -85,16 +108,16 @@ class GenericLoadingPage extends StatelessWidget {
   }
 
   Widget _buildOptionalCancelButton(BuildContext context) {
-    if (onCancel == null) return const SizedBox.shrink();
+    if (widget.onCancel == null) return const SizedBox.shrink();
     return SafeArea(
       left: false,
       right: false,
       child: ListButton(
         icon: const Icon(Icons.block_outlined),
-        onPressed: onCancel,
+        onPressed: widget.onCancel,
         dividerSide: DividerSide.top,
         mainAxisAlignment: MainAxisAlignment.center,
-        text: Text(cancelCta ?? context.l10n.generalCancelCta),
+        text: Text(widget.cancelCta ?? context.l10n.generalCancelCta),
       ),
     );
   }
