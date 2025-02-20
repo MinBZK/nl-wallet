@@ -36,7 +36,7 @@ where
         settings.issuer.wallet_client_ids,
         settings.issuer.wte_issuer_pubkey.into_inner(),
         wte_tracker,
-    )?;
+    );
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.urls,
         settings.verifier.usecases.try_into()?,
@@ -48,7 +48,7 @@ where
             .collect(),
         settings.verifier.allow_origins,
         disclosure_sessions,
-    )?;
+    );
 
     listen(
         settings.wallet_server,

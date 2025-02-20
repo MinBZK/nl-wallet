@@ -97,7 +97,7 @@ pub fn create_issuance_router<A, K, S, W>(
     wallet_client_ids: Vec<String>,
     wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
-) -> anyhow::Result<Router>
+) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
     K: KeyRing + Send + Sync + 'static,
@@ -127,7 +127,7 @@ where
         .route("/batch_credential", delete(reject_issuance))
         .with_state(application_state);
 
-    Ok(issuance_router)
+    issuance_router
 }
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`

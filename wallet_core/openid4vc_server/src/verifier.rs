@@ -61,16 +61,15 @@ fn create_application_state<S>(
     ephemeral_id_secret: hmac::Key,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
-) -> anyhow::Result<ApplicationState<S>>
+) -> ApplicationState<S>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let application_state = ApplicationState {
+    ApplicationState {
         verifier: Verifier::new(use_cases, sessions, issuer_trust_anchors, ephemeral_id_secret),
         public_url: urls.public_url,
         universal_link_base_url: urls.universal_link_base_url,
-    };
-    Ok(application_state)
+    }
 }
 
 fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
@@ -86,7 +85,7 @@ pub fn create_routers<S>(
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     allow_origins: Option<CorsOrigin>,
     sessions: S,
-) -> anyhow::Result<(Router, Router)>
+) -> (Router, Router)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -96,7 +95,7 @@ where
         ephemeral_id_secret,
         issuer_trust_anchors,
         sessions,
-    )?);
+    ));
 
     let mut wallet_web = Router::new()
         .route("/{session_token}", get(status::<S>))
@@ -122,10 +121,10 @@ where
         .route("/{session_token}/disclosed_attributes", get(disclosed_attributes::<S>))
         .with_state(application_state);
 
-    Ok((
+    (
         Router::new().nest("/sessions", wallet_router),
         Router::new().nest("/sessions", requester_router),
-    ))
+    )
 }
 
 async fn retrieve_request<S>(

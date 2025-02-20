@@ -25,7 +25,7 @@ where
             .collect(),
         settings.verifier.allow_origins,
         disclosure_sessions,
-    )?;
+    );
 
     listen(
         settings.wallet_server,

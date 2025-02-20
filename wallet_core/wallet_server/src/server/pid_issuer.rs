@@ -27,7 +27,7 @@ where
         settings.issuer.wallet_client_ids,
         settings.issuer.wte_issuer_pubkey.into_inner(),
         wte_tracker,
-    )?;
+    );
 
     listen_wallet_only(
         settings.wallet_server,
