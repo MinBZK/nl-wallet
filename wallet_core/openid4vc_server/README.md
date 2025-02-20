@@ -1,3 +1,9 @@
+# openid4vc_server
+
+This package contains the HTTP endpoints in the form of Axum routers that a server side
+implementation of OpenID4VCI and/or OpenID4VP can use, as well as a Postgres implementation
+of the session store used by the `openid4vc` package.
+
 ## Migrate database
 
 This package comes with a separate binary to update the postgres database
@@ -14,6 +20,6 @@ DATABASE_URL="postgres://postgres:postgres@127.0.0.1:5432/pid_issuer" cargo run 
 ## Generate entities
 
 ```
-sea-orm-cli generate entity -o wallet_server/src/entity --database-url "postgres://postgres:postgres@127.0.0.1:5432/verification_server"
-sea-orm-cli generate entity -o wallet_server/src/entity --database-url "postgres://postgres:postgres@127.0.0.1:5432/pid_issuer"
+sea-orm-cli generate entity -o openid4vc_server/src/entity --database-url "postgres://postgres:postgres@127.0.0.1:5432/verification_server"
+sea-orm-cli generate entity -o openid4vc_server/src/entity --database-url "postgres://postgres:postgres@127.0.0.1:5432/pid_issuer"
 ```
