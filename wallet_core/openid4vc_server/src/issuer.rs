@@ -117,7 +117,7 @@ where
         ),
     });
 
-    let issuance_router = Router::new()
+    Router::new()
         .route("/.well-known/openid-credential-issuer", get(metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/token", post(token))
@@ -125,9 +125,7 @@ where
         .route("/credential", delete(reject_issuance))
         .route("/batch_credential", post(batch_credential))
         .route("/batch_credential", delete(reject_issuance))
-        .with_state(application_state);
-
-    issuance_router
+        .with_state(application_state)
 }
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
