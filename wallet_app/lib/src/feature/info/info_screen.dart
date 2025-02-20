@@ -24,21 +24,23 @@ class InfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverWalletAppBar(
-              title: title,
-              scrollController: PrimaryScrollController.maybeOf(context),
+        child: Column(
+          children: [
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
+                  SliverWalletAppBar(
+                    title: title,
+                    scrollController: PrimaryScrollController.maybeOf(context),
+                  ),
+                  SliverPadding(
+                    sliver: ParagraphedSliverList.splitContent(description),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                ],
+              ),
             ),
-            SliverPadding(
-              sliver: ParagraphedSliverList.splitContent(description),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            const SliverFillRemaining(
-              hasScrollBody: false,
-              fillOverscroll: true,
-              child: BottomBackButton(),
-            ),
+            const BottomBackButton(),
           ],
         ),
       ),
