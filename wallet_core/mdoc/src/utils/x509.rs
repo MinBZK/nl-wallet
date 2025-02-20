@@ -18,8 +18,6 @@ use rustls_pki_types::UnixTime;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
-use wallet_common::vec_at_least::VecAtLeastNError;
-use wallet_common::vec_at_least::VecNonEmpty;
 use webpki::ring::ECDSA_P256_SHA256;
 use webpki::EndEntityCert;
 use x509_parser::der_parser::Oid;
@@ -40,6 +38,8 @@ use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
 use wallet_common::urls::HttpsUri;
 use wallet_common::urls::HttpsUriParseError;
+use wallet_common::vec_at_least::VecAtLeastNError;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use super::issuer_auth::IssuerRegistration;
 use super::reader_auth::ReaderRegistration;
