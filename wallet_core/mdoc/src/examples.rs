@@ -10,14 +10,18 @@ use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::generator::Generator;
 
+use crate::server_keys::generate::Ca;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 use crate::verifier::ItemsRequests;
 use crate::DeviceAuthenticationBytes;
 use crate::DeviceRequest;
 use crate::DeviceResponse;
+use crate::IssuerSigned;
 use crate::ItemsRequest;
 use crate::ReaderAuthenticationBytes;
 
@@ -66,6 +70,26 @@ where
         assert_eq!(serialized, bts);
 
         deserialized
+    }
+}
+
+impl DeviceResponse {
+    pub fn example_resigned(ca: &Ca) -> Self {
+        let mut device_response = Self::example();
+
+        // Re sign with a certificate that includes a SAN DNS name
+        device_response.documents.as_mut().unwrap().iter_mut().for_each(|doc| {
+            let signing_cert = doc.issuer_signed.issuer_auth.signing_cert().unwrap();
+            let new_cert = ca.resign_issuer_certificate(&signing_cert).unwrap();
+
+            let metadata_chain = TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap();
+            let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
+
+            doc.issuer_signed.issuer_auth.0.unprotected =
+                IssuerSigned::create_unprotected_header(new_cert.to_vec(), chain, integrity).unwrap();
+        });
+
+        device_response
     }
 }
 
@@ -138,6 +162,7 @@ impl Example<DeviceResponse> for DeviceResponse {
          5820e99521a85ad7891b806a07f8b5388a332d92c189a7bf293ee1f543405ae6824d6673746174757300"
     }
 }
+
 impl Example<DeviceAuthenticationBytes<'_>> for DeviceAuthenticationBytes<'_> {
     fn example_hex() -> &'static str {
         "d818590271847444657669636541757468656e7469636174696f6e83d8185858a20063312e30018201d818584ba4010220012158205a8\
@@ -154,6 +179,7 @@ impl Example<DeviceAuthenticationBytes<'_>> for DeviceAuthenticationBytes<'_> {
          a6b020414756f72672e69736f2e31383031332e352e312e6d444cd81841a0"
     }
 }
+
 impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
     fn example_hex() -> &'static str {
         "d8185902ee837452656164657241757468656e7469636174696f6e83d8185858a20063312e30018201d818584ba4010220012158205a8\
@@ -172,6 +198,7 @@ impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
          f70726976696c65676573f56a69737375655f64617465f56b6578706972795f64617465f568706f727472616974f4"
     }
 }
+
 impl Example<DeviceRequest> for DeviceRequest {
     fn example_hex() -> &'static str {
         "a26776657273696f6e63312e306b646f63526571756573747381a26c6974656d7352657175657374d8185893a267646f6354797065756\
@@ -236,8 +263,8 @@ pub mod mock {
         ///
         /// Using tests should not rely on all attributes being present.
         pub fn new_example_mock() -> Self {
-            let trust_anchors = Examples::iaca_trust_anchors();
-            let mut issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
+            let ca = Ca::generate_issuer_mock_ca().unwrap();
+            let mut issuer_signed = DeviceResponse::example_resigned(&ca).documents.as_ref().unwrap()[0]
                 .issuer_signed
                 .clone();
 
@@ -256,7 +283,7 @@ pub mod mock {
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,
-                trust_anchors,
+                &[ca.to_trust_anchor()],
             )
             .unwrap()
         }

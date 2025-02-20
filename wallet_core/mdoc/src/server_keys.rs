@@ -317,6 +317,10 @@ pub mod generate {
 
     #[cfg(any(test, feature = "mock"))]
     pub mod mock {
+
+        use rcgen::SubjectPublicKeyInfo;
+
+        use crate::examples::IsoCertTimeGenerator;
         use crate::server_keys::KeyPair;
         use crate::utils::issuer_auth::IssuerRegistration;
         use crate::utils::reader_auth::ReaderRegistration;
@@ -358,6 +362,51 @@ pub mod generate {
                     &CertificateType::ReaderAuth(reader_registration.map(Box::new)),
                     Default::default(),
                 )
+            }
+
+            pub fn resign_issuer_certificate(
+                &self,
+                issuer_certificate: &BorrowingCertificate,
+            ) -> Result<BorrowingCertificate, CertificateError> {
+                let mut params = CertificateParams::default();
+                let certificate = issuer_certificate.x509_certificate();
+                params.not_before =
+                    OffsetDateTime::from_unix_timestamp(certificate.validity.not_before.timestamp()).unwrap();
+                params.not_after =
+                    OffsetDateTime::from_unix_timestamp(certificate.validity.not_after.timestamp()).unwrap();
+
+                params.is_ca = IsCa::NoCa;
+
+                let common_name = *issuer_certificate
+                    .common_names()?
+                    .first()
+                    .ok_or(CertificateError::MissingCommonName)?;
+                params
+                    .distinguished_name
+                    .push(DnType::CommonName, common_name.to_string());
+                let san_dns = format!("https://{common_name}");
+                params.subject_alt_names.push(SanType::DnsName(san_dns.try_into()?));
+                params
+                    .custom_extensions
+                    .extend(CertificateType::from_certificate(issuer_certificate)?.to_custom_exts()?);
+
+                let certificate = params.signed_by(
+                    &SubjectPublicKeyInfo::from_der(issuer_certificate.x509_certificate().public_key().raw)?,
+                    &self.certificate,
+                    &self.key_pair,
+                )?;
+                let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
+
+                assert!(certificate
+                    .verify(
+                        CertificateUsage::Mdl,
+                        &[],
+                        &IsoCertTimeGenerator,
+                        &[self.to_trust_anchor()]
+                    )
+                    .is_ok());
+
+                Ok(certificate)
             }
         }
     }

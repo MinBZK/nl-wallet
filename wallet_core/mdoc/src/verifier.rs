@@ -130,6 +130,7 @@ impl DeviceResponse {
         if let Some(errors) = &self.document_errors {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
+
         if self.status != 0 {
             return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
@@ -362,6 +363,7 @@ mod tests {
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::identifiers::AttributeIdentifierHolder;
+    use crate::server_keys::generate::Ca;
     use crate::test;
     use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;
@@ -415,7 +417,9 @@ mod tests {
     /// Verify the example disclosure from the standard.
     #[test]
     fn verify_iso_example_disclosure() {
-        let device_response = DeviceResponse::example();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let device_response = DeviceResponse::example_resigned(&ca);
+
         println!("DeviceResponse: {:#?} ", DebugCollapseBts::from(&device_response));
 
         // Examine the first attribute in the device response
@@ -430,14 +434,13 @@ mod tests {
 
         // Do the verification
         let eph_reader_key = Examples::ephemeral_reader_key();
-        let trust_anchors = Examples::iaca_trust_anchors();
+
         let disclosed_attrs = device_response
             .verify(
                 Some(&eph_reader_key),
-                // To be signed by device key found in MSO
                 &DeviceAuthenticationBytes::example().0 .0.session_transcript,
                 &IsoCertTimeGenerator,
-                trust_anchors,
+                &[ca.to_trust_anchor()],
             )
             .unwrap();
         println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));

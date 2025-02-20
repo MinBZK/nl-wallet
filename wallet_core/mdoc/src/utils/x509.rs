@@ -94,6 +94,8 @@ pub enum CertificateError {
     KeyMismatch,
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("missing Common Name")]
+    MissingCommonName,
     #[error("missing SAN extension")]
     MissingSan,
     #[category(pd)]
