@@ -21,7 +21,6 @@ use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use derive_more::AsRef;
 use derive_more::From;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
@@ -29,6 +28,7 @@ use tracing::warn;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
