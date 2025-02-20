@@ -1,7 +1,5 @@
-use std::env;
 use std::net::IpAddr;
 use std::num::NonZeroU64;
-use std::path::PathBuf;
 use std::time::Duration;
 
 use chrono::DateTime;
@@ -27,6 +25,7 @@ use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
+use wallet_common::utils;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
@@ -212,8 +211,7 @@ impl Settings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-        let config_source = config_path.join(config_file);
+        let config_source = utils::prefix_local_path(config_file.as_ref());
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
@@ -233,8 +231,8 @@ impl Settings {
         let environment_parser = environment_parser.try_parsing(true);
 
         let config = config_builder
-            .add_source(File::from(config_source).required(false))
-            .add_source(File::from(PathBuf::from(config_file)).required(false))
+            .add_source(File::from(config_source.as_ref()).required(false))
+            .add_source(File::from(config_file.as_ref()).required(false))
             .add_source(environment_parser)
             .build()?
             .try_deserialize()?;

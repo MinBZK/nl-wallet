@@ -278,7 +278,7 @@ void main() {
           MockDisclosureBloc(),
           DisclosureCheckOrganization(
             relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
+            originUrl: originUrl,
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
           ),
@@ -286,7 +286,17 @@ void main() {
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.organizationApprovePageFraudInfoPart1, findRichText: true), findsOneWidget);
-      expect(find.text(l10n.organizationApprovePageFraudInfoPart2(originUrl), findRichText: true), findsOneWidget);
+
+      final leadingPart = l10n.organizationApprovePageFraudInfoPart2(originUrl).split(originUrl).first.trim();
+      final trailingPart = l10n.organizationApprovePageFraudInfoPart2(originUrl).split(originUrl).last.trim();
+      // We match on the longest piece of text (before/after the embedded [originUrl], to avoid only matching on a "." which could cause multiple hits (e.g. with current translations).
+      // We consider onlyu checking for the longest part sufficient because the main thing we want to verify is that this warning is visible (in cross device flows).
+      final matchOn = leadingPart.length >= trailingPart.length ? leadingPart : trailingPart;
+      expect(find.textContaining(matchOn, findRichText: true), findsOneWidget);
+
+      // Verify the originUrl is visible, now in a dedicated widget (which is why this test is more convoluted in the first place,
+      // as the new [UrlSpan] is not directly matchable using the findRichText flag.
+      expect(find.text(originUrl), findsOneWidget);
     });
 
     testWidgets('when same-device session; fraud warning is NOT shown on organization approve page', (tester) async {

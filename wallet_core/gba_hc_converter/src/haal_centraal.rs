@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -8,6 +7,8 @@ use nutype::nutype;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
+
+use wallet_common::utils;
 
 use crate::gba;
 use crate::gba::data::Categorievoorkomen;
@@ -100,10 +101,7 @@ fn read_csv(name: &str) -> Result<HashMap<String, String>, csv::Error> {
 }
 
 fn csv_path(name: &str) -> PathBuf {
-    env::var("CARGO_MANIFEST_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_default()
-        .join(format!("resources/stamdata/{}.csv", name))
+    utils::prefix_local_path(format!("resources/stamdata/{}.csv", name).as_ref()).into_owned()
 }
 
 #[nutype(
