@@ -1,6 +1,4 @@
-use std::borrow::Cow;
 use std::collections::HashSet;
-use std::env;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::time::Duration;
@@ -23,6 +21,7 @@ use apple_app_attest::AttestationEnvironment;
 use hsm::settings::Hsm;
 use wallet_common::config::http::TlsServerConfig;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
+use wallet_common::utils;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]
@@ -103,10 +102,6 @@ pub struct AndroidRootPublicKey(RootPublicKey);
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
-        // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-
         Config::builder()
             .set_default("certificate_signing_key_identifier", "certificate_signing_key")?
             .set_default(
@@ -133,7 +128,7 @@ impl Settings {
             .set_default("android.allow_sideloading", false)?
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
-            .add_source(File::from(config_path.join("wallet_provider.toml")).required(false))
+            .add_source(File::from(utils::prefix_local_path("wallet_provider.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")
@@ -164,19 +159,6 @@ impl Android {
             InstallationMethod::SideloadOrPlayStore
         } else {
             InstallationMethod::PlayStore
-        }
-    }
-
-    pub fn credentials_file_path(&self) -> Cow<'_, PathBuf> {
-        if self.credentials_file.is_absolute() {
-            return Cow::Borrowed(&self.credentials_file);
-        }
-
-        // Attempt to prepend the same directory as the Cargo.toml file, if the path is not already
-        // absolute and the binary is ran through cargo. Otherwise, just return the file name unchanged.
-        match env::var("CARGO_MANIFEST_DIR").map(PathBuf::from) {
-            Ok(path_base) => Cow::Owned(path_base.join(&self.credentials_file)),
-            Err(_) => Cow::Borrowed(&self.credentials_file),
         }
     }
 }

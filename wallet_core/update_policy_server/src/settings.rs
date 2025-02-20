@@ -1,6 +1,4 @@
-use std::env;
 use std::net::IpAddr;
-use std::path::PathBuf;
 
 use config::Config;
 use config::ConfigError;
@@ -9,6 +7,7 @@ use config::File;
 use serde::Deserialize;
 
 use wallet_common::config::http::TlsServerConfig;
+use wallet_common::utils;
 
 use crate::config::UpdatePolicyConfig;
 
@@ -25,15 +24,13 @@ pub struct Settings {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
-        // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 3009)?
             .set_default("structured_logging", false)?
-            .add_source(File::from(config_path.join("update_policy_server.toml")).required(false))
+            .add_source(
+                File::from(utils::prefix_local_path("update_policy_server.toml".as_ref()).as_ref()).required(false),
+            )
             .add_source(
                 Environment::with_prefix("update_policy_server")
                     .separator("__")

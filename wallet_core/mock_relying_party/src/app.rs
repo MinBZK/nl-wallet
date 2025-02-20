@@ -1,5 +1,3 @@
-use std::env;
-use std::path::PathBuf;
 use std::result::Result as StdResult;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -44,7 +42,7 @@ use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
-use wallet_common::utils::sha256;
+use wallet_common::utils;
 
 use crate::askama_axum;
 use crate::client::WalletServerClient;
@@ -106,8 +104,6 @@ pub fn create_router(settings: Settings) -> Router {
         wallet_web: settings.wallet_web,
     });
 
-    let root_dir = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-
     let mut app = Router::new()
         .route("/", get(index))
         .route("/sessions", post(create_session))
@@ -120,7 +116,8 @@ pub fn create_router(settings: Settings) -> Router {
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(root_dir.join("assets")).not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                    ServeDir::new(utils::prefix_local_path("assets".as_ref()).as_ref())
+                        .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
                 ),
         )
         .with_state(application_state)
@@ -277,7 +274,7 @@ struct UsecaseTemplate<'a> {
 }
 
 static USECASE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(sha256(include_bytes!("../assets/usecase.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(utils::sha256(include_bytes!("../assets/usecase.js"))));
 
 fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
     let mut start_url = public_url.join("/sessions");

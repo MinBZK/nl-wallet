@@ -281,25 +281,21 @@ impl BrpAddress {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
     use std::fs;
-    use std::path::PathBuf;
 
     use rstest::rstest;
 
     use serde_json::json;
 
     use openid4vc::attributes::IssuableDocuments;
+    use wallet_common::utils;
 
     use crate::pid::brp::data::BrpPersons;
 
     fn read_json(name: &str) -> String {
-        fs::read_to_string(
-            env::var("CARGO_MANIFEST_DIR")
-                .map(PathBuf::from)
-                .unwrap()
-                .join(format!("resources/test/haal-centraal-examples/{}.json", name)),
-        )
+        fs::read_to_string(utils::prefix_local_path(
+            format!("resources/test/haal-centraal-examples/{}.json", name).as_ref(),
+        ))
         .unwrap()
     }
 

@@ -1,4 +1,3 @@
-use std::env;
 use std::net::IpAddr;
 use std::path::PathBuf;
 
@@ -13,6 +12,7 @@ use serde::Serialize;
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
+use wallet_common::utils;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -56,16 +56,14 @@ pub struct Usecase {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
-        // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-
         Config::builder()
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3004)?
             .set_default("public_url", "http://localhost:3004/")?
             .set_default("structured_logging", false)?
-            .add_source(File::from(config_path.join("mock_relying_party.toml")).required(false))
+            .add_source(
+                File::from(utils::prefix_local_path("mock_relying_party.toml".as_ref()).as_ref()).required(false),
+            )
             .add_source(
                 Environment::with_prefix("mock_relying_party")
                     .separator("__")
