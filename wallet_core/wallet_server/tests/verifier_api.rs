@@ -16,7 +16,6 @@ use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use openid4vc_server::Urls;
 use p256::ecdsa::SigningKey;
 use parking_lot::RwLock;
 #[cfg(feature = "issuance")]
@@ -62,6 +61,7 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
+use openid4vc_server::urls::Urls;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;

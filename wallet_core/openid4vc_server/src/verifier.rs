@@ -47,7 +47,7 @@ use wallet_common::urls;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 
-use crate::Urls;
+use crate::urls::Urls;
 
 struct ApplicationState<S> {
     verifier: Verifier<S>,

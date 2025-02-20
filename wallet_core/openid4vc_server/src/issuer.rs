@@ -53,7 +53,7 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 
-use crate::Urls;
+use crate::urls::Urls;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,
