@@ -39,7 +39,7 @@
       artifacts: false
     - job: test-rust-doctest
       artifacts: false
-    - job: test-rust-compilation-android-linux
+    - job: test-rust-compilation-android
       artifacts: false
   artifacts:
     name: "wallet-android"
