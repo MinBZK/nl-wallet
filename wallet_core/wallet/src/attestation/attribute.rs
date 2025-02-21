@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use indexmap::IndexMap;
+use itertools::Itertools;
 
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
@@ -28,13 +29,18 @@ impl Attestation {
         nested_attributes: &IndexMap<String, Attribute>,
     ) -> Result<Self, AttestationError> {
         // Check that all attributes have been processed by the metadata claims.
-        let processed_keys = attributes.iter().map(|attr| attr.key.clone()).collect::<HashSet<_>>();
-        let original_keys = collect_keys(nested_attributes).into_iter().collect::<HashSet<_>>();
-        let difference = original_keys.difference(&processed_keys).collect::<Vec<_>>();
+        let processed_key_paths = attributes
+            .iter()
+            .map(|attr| attr.key.iter().map(String::as_str).collect())
+            .collect();
+        let original_key_paths = collect_key_paths(nested_attributes);
+        let difference = original_key_paths
+            .difference(&processed_key_paths)
+            .map(|key_path| key_path.iter().map(|key| key.to_string()).collect_vec())
+            .collect::<HashSet<_>>();
+
         if !difference.is_empty() {
-            return Err(AttestationError::AttributeNotProcessedByClaim(
-                difference.into_iter().cloned().collect(),
-            ));
+            return Err(AttestationError::AttributeNotProcessedByClaim(difference));
         }
 
         let attestation = Attestation {
@@ -143,26 +149,43 @@ impl AttestationAttribute {
     }
 }
 
-fn collect_keys(attributes: &IndexMap<String, Attribute>) -> Vec<Vec<String>> {
-    collect_keys_recursive(attributes, &[])
+/// Collect all of full key paths present in `attributes` by unrolling any nested attribute paths.
+fn collect_key_paths(attributes: &IndexMap<String, Attribute>) -> HashSet<Vec<&str>> {
+    collect_key_paths_recursive(attributes, &[])
 }
 
-fn collect_keys_recursive(attributes: &IndexMap<String, Attribute>, groups: &[String]) -> Vec<Vec<String>> {
-    attributes.iter().fold(vec![], |mut acc, (k, v)| {
-        let mut keys = Vec::from(groups);
-        keys.push(k.clone());
+fn collect_key_paths_recursive<'a>(
+    attributes: &'a IndexMap<String, Attribute>,
+    parent_path: &[&'a str],
+) -> HashSet<Vec<&'a str>> {
+    // The minimum amount of paths is when all of the attributes are single,
+    // so this fold reserves at least that amount as the accumulator.
+    attributes.iter().fold(
+        HashSet::with_capacity(attributes.len()),
+        |mut key_paths, (key, attribute)| {
+            // Construct how we got here by appending the iteration's key to the path of our caller.
+            let mut current_path = Vec::with_capacity(parent_path.len() + 1);
+            current_path.extend_from_slice(parent_path);
+            current_path.push(key);
 
-        match v {
-            Attribute::Single(_) => acc.push(keys),
-            Attribute::Nested(nested) => acc.append(&mut collect_keys_recursive(nested, &keys)),
-        }
+            match attribute {
+                // This is a leaf node, so simply add the current path to the accumulator.
+                Attribute::Single(_) => {
+                    key_paths.insert(current_path);
+                }
+                // If this is not a leaf node, prove the current path to a recursive
+                // call of this function and extend the accumulator with the result.
+                Attribute::Nested(nested) => key_paths.extend(collect_key_paths_recursive(nested, &current_path)),
+            }
 
-        acc
-    })
+            key_paths
+        },
+    )
 }
 
 #[cfg(test)]
 pub mod test {
+    use std::collections::HashSet;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
@@ -175,7 +198,7 @@ pub mod test {
     use sd_jwt::metadata::ClaimPath;
     use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 
-    use crate::attestation::attribute::collect_keys;
+    use crate::attestation::attribute::collect_key_paths;
     use crate::AttestationAttribute;
 
     pub static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
@@ -315,7 +338,7 @@ pub mod test {
     }
 
     #[test]
-    fn test_collect_keys() {
+    fn test_collect_key_paths() {
         let json = json!({
             "birthdate": "1963-08-12",
             "place_of_birth": {
@@ -328,16 +351,13 @@ pub mod test {
         });
         let attributes: IndexMap<String, Attribute> = serde_json::from_value(json).unwrap();
         assert_eq!(
-            vec![
+            collect_key_paths(&attributes),
+            HashSet::from([
                 vec!["birthdate"],
                 vec!["place_of_birth", "locality"],
                 vec!["place_of_birth", "country", "name"],
                 vec!["place_of_birth", "country", "area_code"],
-            ],
-            collect_keys(&attributes)
-                .iter()
-                .map(|keys| keys.iter().map(String::as_str).collect::<Vec<_>>())
-                .collect::<Vec<_>>()
+            ])
         );
     }
 }

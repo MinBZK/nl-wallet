@@ -37,6 +37,8 @@ impl Attestation {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
 
@@ -159,7 +161,8 @@ mod test {
 
         assert_matches!(
             attestation,
-            Err(AttestationError::AttributeNotProcessedByClaim(claims)) if claims == vec![vec!["namespace1", "entry2"]]
+            Err(AttestationError::AttributeNotProcessedByClaim(claims))
+                if claims == HashSet::from([vec![String::from("namespace1"), String::from("entry2")]])
         );
     }
 }

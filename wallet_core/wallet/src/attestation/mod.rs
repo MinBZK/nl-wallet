@@ -2,6 +2,8 @@ mod attribute;
 mod disclosure;
 mod issuance;
 
+use std::collections::HashSet;
+
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -21,7 +23,7 @@ pub enum AttestationError {
 
     #[error("some attributes not processed by claim: {0:?}")]
     #[category(pd)]
-    AttributeNotProcessedByClaim(Vec<Vec<String>>),
+    AttributeNotProcessedByClaim(HashSet<Vec<String>>),
 
     #[error("error converting from mdoc attribute: {0}")]
     #[category(pd)]

@@ -31,6 +31,8 @@ impl Attestation {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use assert_matches::assert_matches;
     use chrono::Utc;
     use http::Uri;
@@ -132,7 +134,8 @@ mod test {
         );
         assert_matches!(
             attestation,
-            Err(AttestationError::AttributeNotProcessedByClaim(keys)) if keys == vec![vec![String::from("single")]]
+            Err(AttestationError::AttributeNotProcessedByClaim(keys))
+                if keys == HashSet::from([vec![String::from("single")]])
         );
     }
 }

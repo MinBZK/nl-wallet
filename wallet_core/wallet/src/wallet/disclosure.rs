@@ -918,8 +918,9 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::AttestationAttributes(
-                AttestationsError::Attestation(
-                    AttestationError::AttributeNotProcessedByClaim(keys))) if keys == vec![vec![String::from("foo")]]
+                AttestationsError::Attestation(AttestationError::AttributeNotProcessedByClaim(keys)))
+                    if keys == HashSet::from([vec![String::from("foo")]]
+            )
         );
         assert!(wallet.disclosure_session.is_none());
     }
