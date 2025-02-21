@@ -17,13 +17,12 @@ use openid4vc::server_state::Progress;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc_server::store::postgres;
 use openid4vc_server::store::postgres::PostgresSessionStore;
-#[cfg(feature = "issuance")]
-use openid4vc_server::store::postgres::PostgresWteTracker;
 use openid4vc_server::store::SessionDataType;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::utils;
-use wallet_server::settings::Settings;
+use wallet_server::settings::ServerSettings;
 use wallet_server::settings::Storage;
+use wallet_server::settings::VerifierSettings;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -84,8 +83,9 @@ impl SessionDataType for MockSessionData {
 }
 
 fn storage_settings() -> Storage {
-    Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+    VerifierSettings::new_custom("ws_integration_test.toml", "ws_integration_test")
         .unwrap()
+        .server_settings
         .storage
 }
 
@@ -120,20 +120,6 @@ async fn test_get_write() {
     let session_store = postgres_session_store().await;
 
     test::test_session_store_get_write::<MockSessionData>(&session_store).await;
-}
-
-#[cfg(feature = "issuance")]
-#[tokio::test]
-async fn test_wte_tracker() {
-    let time_generator = MockTimeGenerator::default();
-    let mock_time = Arc::clone(&time_generator.time);
-
-    let wte_tracker = PostgresWteTracker::new_with_time(
-        postgres::new_connection(storage_settings().url).await.unwrap(),
-        time_generator,
-    );
-
-    test::test_wte_tracker(&wte_tracker, mock_time.as_ref()).await;
 }
 
 #[tokio::test]

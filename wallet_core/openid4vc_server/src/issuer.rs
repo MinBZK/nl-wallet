@@ -36,6 +36,9 @@ use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::Dpop;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
+use openid4vc::issuer::AttributeService;
+use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionStore;
@@ -48,12 +51,7 @@ use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
-
-use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::IssuanceData;
-use openid4vc::issuer::Issuer;
-
-use crate::urls::Urls;
+use wallet_common::urls::BaseUrl;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,
@@ -90,7 +88,7 @@ impl IssuerKeyRing<SigningKey> {
 }
 
 pub fn create_issuance_router<A, K, S, W>(
-    urls: &Urls,
+    public_url: &BaseUrl,
     private_keys: K,
     sessions: S,
     attr_service: A,
@@ -110,7 +108,7 @@ where
             sessions,
             attr_service,
             private_keys,
-            &urls.public_url,
+            public_url,
             wallet_client_ids,
             wte_issuer_pubkey,
             wte_tracker,

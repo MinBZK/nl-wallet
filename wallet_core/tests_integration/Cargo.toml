@@ -213,7 +213,7 @@ wallet_common = { path = "../wallet_common", optional = true, features = ["mock_
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }
-wallet_server = { path = "../wallet_server", optional = true, features = ["issuance", "disclosure", "mock"] }
+wallet_server = { path = "../wallet_server", optional = true, features = ["disclosure", "mock"] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
@@ -226,4 +226,4 @@ dotenvy = { workspace = true, optional = true }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
 wallet_account = { path = "../wallet_account", features = ["integration_test"] }
-wallet_server = { path = "../wallet_server", features = ["issuance", "integration_test"] }
+wallet_server = { path = "../wallet_server", features = ["integration_test"] }

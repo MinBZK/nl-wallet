@@ -18,14 +18,10 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use parking_lot::RwLock;
-#[cfg(feature = "issuance")]
-use rand_core::OsRng;
 use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
-#[cfg(feature = "issuance")]
-use std::num::NonZeroU8;
 use tokio::time;
 use url::Url;
 
@@ -61,14 +57,11 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
-use openid4vc_server::urls::Urls;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
-#[cfg(feature = "issuance")]
-use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
@@ -78,15 +71,11 @@ use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_server::settings::Authentication;
-#[cfg(feature = "issuance")]
-use wallet_server::settings::Digid;
-#[cfg(feature = "issuance")]
-use wallet_server::settings::Issuer;
 use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;
 use wallet_server::settings::Settings;
 use wallet_server::settings::Storage;
-use wallet_server::settings::Verifier;
+use wallet_server::settings::VerifierSettings;
 use wallet_server::settings::VerifierUseCase;
 
 const USECASE_NAME: &str = "usecase";
@@ -117,29 +106,7 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-#[cfg(feature = "issuance")]
-fn fake_issuer_settings() -> Issuer {
-    let url: BaseUrl = "http://fake.fake".parse().unwrap();
-
-    Issuer {
-        private_keys: Default::default(),
-        metadata: Default::default(),
-        wallet_client_ids: Default::default(),
-        digid: Digid {
-            bsn_privkey: Default::default(),
-            http_config: TlsPinningConfig {
-                base_url: url.clone(),
-                trust_anchors: Default::default(),
-            },
-        },
-        brp_server: url,
-        wte_issuer_pubkey: (*SigningKey::random(&mut OsRng).verifying_key()).into(),
-        valid_days: 1,
-        copy_count: NonZeroU8::new(1).unwrap(),
-    }
-}
-
-fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'static>) {
+fn wallet_server_settings() -> (VerifierSettings, KeyPair<SigningKey>, TrustAnchor<'static>) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -182,14 +149,9 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'stat
             ip: localhost,
             port: ws_port,
         },
-        requester_server: RequesterAuth::InternalEndpoint(Server {
-            ip: localhost,
-            port: rp_port,
-        }),
-        urls: Urls {
-            public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
-            universal_link_base_url: "http://universal.link/".parse().unwrap(),
-        },
+
+        public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
+
         log_requests: true,
         structured_logging: false,
         storage: Storage {
@@ -202,26 +164,33 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'stat
                 .try_into()
                 .unwrap(),
         },
-        #[cfg(feature = "issuance")]
-        issuer: fake_issuer_settings(),
         issuer_trust_anchors,
-        verifier: Verifier {
-            usecases,
-            ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
-            allow_origins: None,
-        },
-        #[cfg(feature = "disclosure")]
+    };
+
+    let settings = VerifierSettings {
+        usecases,
+        ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
+
+        allow_origins: None,
         reader_trust_anchors,
+        requester_server: RequesterAuth::InternalEndpoint(Server {
+            ip: localhost,
+            port: rp_port,
+        }),
+
+        universal_link_base_url: "http://universal.link/".parse().unwrap(),
+
+        server_settings: settings,
     };
 
     (settings, issuer_key_pair, rp_trust_anchor)
 }
 
-async fn start_wallet_server<S>(settings: Settings, disclosure_sessions: S)
+async fn start_wallet_server<S>(settings: VerifierSettings, disclosure_sessions: S)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let public_url = settings.urls.public_url.clone();
+    let public_url = settings.server_settings.public_url.clone();
 
     tokio::spawn(async move {
         if let Err(error) = wallet_server::server::verification_server::serve(settings, disclosure_sessions).await {
@@ -280,7 +249,7 @@ fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let (mut settings, _, _) = wallet_server_settings();
-    let internal_url = internal_url(&auth, &settings.urls.public_url);
+    let internal_url = internal_url(&auth, &settings.server_settings.public_url);
     settings.requester_server = auth.clone();
 
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
@@ -290,7 +259,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     // check if using no token returns a 401 on the (public) start URL if an API key is used and a 404 otherwise
     // (because it is served on the internal URL)
     let response = client
-        .post(settings.urls.public_url.join("disclosure/sessions"))
+        .post(settings.server_settings.public_url.join("disclosure/sessions"))
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
         .await
@@ -317,7 +286,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     // check if using a token returns a 200 on the (public) start URL if an API key is used and a 404 otherwise (because
     // it is served on the internal URL)
     let response = client
-        .post(settings.urls.public_url.join("disclosure/sessions"))
+        .post(settings.server_settings.public_url.join("disclosure/sessions"))
         .header("Authorization", "Bearer secret_key")
         .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
         .send()
@@ -342,7 +311,7 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
 
     let session_token = response.json::<StartDisclosureResponse>().await.unwrap().session_token;
     let public_disclosed_attributes_url = settings
-        .urls
+        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
     let internal_disclosed_attributes_url =
@@ -431,7 +400,7 @@ async fn test_error_response(response: Response, status_code: StatusCode, error_
 #[tokio::test]
 async fn test_new_session_parameters_error() {
     let (settings, _, _) = wallet_server_settings();
-    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+    let internal_url = internal_url(&settings.requester_server, &settings.server_settings.public_url);
     start_wallet_server(settings, MemorySessionStore::default()).await;
     let client = default_reqwest_client_builder().build().unwrap();
 
@@ -468,26 +437,32 @@ async fn test_new_session_parameters_error() {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let (settings, _, _) = wallet_server_settings();
-    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+    let internal_url = internal_url(&settings.requester_server, &settings.server_settings.public_url);
     start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
     // check if a non-existent token returns a 404 on the status URL
-    let status_url = settings.urls.public_url.join("disclosure/sessions/nonexistent_session");
+    let status_url = settings
+        .server_settings
+        .public_url
+        .join("disclosure/sessions/nonexistent_session");
     let response = client.get(status_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the cancel URL
-    let cancel_url = settings.urls.public_url.join("disclosure/sessions/nonexistent_session");
+    let cancel_url = settings
+        .server_settings
+        .public_url
+        .join("disclosure/sessions/nonexistent_session");
     let response = client.delete(cancel_url).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
     // check if a non-existent token returns a 404 on the wallet URL
     let mut request_uri = settings
-        .urls
+        .server_settings
         .public_url
         .join("disclosure/sessions/nonexistent_session/request_uri");
     request_uri.set_query(
@@ -540,7 +515,7 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
 async fn start_disclosure<S>(
     disclosure_sessions: S,
 ) -> (
-    Settings,
+    VerifierSettings,
     Client,
     SessionToken,
     BaseUrl,
@@ -551,7 +526,7 @@ where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let (settings, issuer_key_pair, rp_trust_anchor) = wallet_server_settings();
-    let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
+    let internal_url = internal_url(&settings.requester_server, &settings.server_settings.public_url);
 
     start_wallet_server(settings.clone(), disclosure_sessions).await;
 
@@ -581,7 +556,7 @@ async fn test_disclosure_missing_session_type() {
     let (settings, client, session_token, _, _, _) = start_disclosure(MemorySessionStore::default()).await;
 
     // Check if requesting the session status without a session_type returns a 200, but without the universal link.
-    let status_url = format_status_url(&settings.urls.public_url, &session_token, None);
+    let status_url = format_status_url(&settings.server_settings.public_url, &session_token, None);
 
     assert_matches!(
         get_status_ok(&client, status_url).await,
@@ -594,7 +569,11 @@ async fn test_disclosure_cancel() {
     let (settings, client, session_token, internal_url, _, _) = start_disclosure(MemorySessionStore::default()).await;
 
     // Fetching the status should return OK and be in the Created state.
-    let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
+    let status_url = format_status_url(
+        &settings.server_settings.public_url,
+        &session_token,
+        Some(SessionType::SameDevice),
+    );
 
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
@@ -603,7 +582,7 @@ async fn test_disclosure_cancel() {
 
     // Cancel the newly created session, which should return 204 and no body.
     let cancel_url = settings
-        .urls
+        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
@@ -616,7 +595,7 @@ async fn test_disclosure_cancel() {
 
     // Cancelling the session again should return a 400.
     let cancel_url = settings
-        .urls
+        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let response = client.delete(cancel_url).send().await.unwrap();
@@ -641,7 +620,7 @@ async fn test_disclosure_cancel() {
 }
 
 async fn test_disclosure_expired<S, F, Fut>(
-    settings: Settings,
+    settings: VerifierSettings,
     session_store: S,
     mock_time: &RwLock<DateTime<Utc>>,
     create_cleanup_awaiter: F,
@@ -650,12 +629,16 @@ async fn test_disclosure_expired<S, F, Fut>(
     F: Fn() -> Fut,
     Fut: Future<Output = ()>,
 {
-    let timeouts = SessionStoreTimeouts::from(&settings.storage);
+    let timeouts = SessionStoreTimeouts::from(&settings.server_settings.storage);
 
     let (settings, client, session_token, internal_url, _, _) = start_disclosure(session_store).await;
 
     // Fetch the status, this should return OK and be in the Created state.
-    let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(SessionType::SameDevice));
+    let status_url = format_status_url(
+        &settings.server_settings.public_url,
+        &session_token,
+        Some(SessionType::SameDevice),
+    );
     assert_matches!(
         get_status_ok(&client, status_url.clone()).await,
         StatusResponse::Created { ul: Some(_) }
@@ -720,7 +703,7 @@ async fn test_disclosure_expired<S, F, Fut>(
 async fn test_disclosure_expired_memory() {
     let (settings, _, _) = wallet_server_settings();
 
-    let timeouts = SessionStoreTimeouts::from(&settings.storage);
+    let timeouts = SessionStoreTimeouts::from(&settings.server_settings.storage);
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
     let session_store = MemorySessionStore::new_with_time(timeouts, time_generator);
@@ -749,7 +732,8 @@ mod db_test {
     use openid4vc_server::store::postgres;
     use openid4vc_server::store::postgres::PostgresSessionStore;
     use wallet_common::generator::mock::MockTimeGenerator;
-    use wallet_server::settings::Settings;
+    use wallet_server::settings::ServerSettings;
+    use wallet_server::settings::VerifierSettings;
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;
@@ -826,22 +810,25 @@ mod db_test {
     async fn test_disclosure_expired_postgres() {
         // Combine the generated settings with the storage settings from the configuration file.
         let (mut settings, _, _) = wallet_server_settings();
-        let storage_settings = Settings::new_custom("ws_integration_test.toml", "ws_integration_test")
+        let storage_settings = VerifierSettings::new_custom("ws_integration_test.toml", "ws_integration_test")
             .unwrap()
+            .server_settings
             .storage;
-        settings.storage = storage_settings;
+        settings.server_settings.storage = storage_settings;
 
         assert_eq!(
-            settings.storage.url.scheme(),
+            settings.server_settings.storage.url.scheme(),
             "postgres",
             "should be configured to use PostgreSQL storage"
         );
 
-        let timeouts = SessionStoreTimeouts::from(&settings.storage);
+        let timeouts = SessionStoreTimeouts::from(&settings.server_settings.storage);
         let time_generator = MockTimeGenerator::default();
         let mock_time = Arc::clone(&time_generator.time);
         let session_store = PostgresSessionStore::new_with_time(
-            postgres::new_connection(settings.storage.url.clone()).await.unwrap(),
+            postgres::new_connection(settings.server_settings.storage.url.clone())
+                .await
+                .unwrap(),
             timeouts,
             time_generator,
         );
@@ -920,7 +907,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         start_disclosure(MemorySessionStore::default()).await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
-    let status_url = format_status_url(&settings.urls.public_url, &session_token, Some(session_type));
+    let status_url = format_status_url(&settings.server_settings.public_url, &session_token, Some(session_type));
 
     let StatusResponse::Created { ul: Some(ul) } = get_status_ok(&client, status_url.clone()).await else {
         panic!("session should be in CREATED state and a universal link should be provided")
@@ -932,6 +919,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(
         &issuer_key_pair,
         &settings
+            .server_settings
             .issuer_trust_anchors
             .iter()
             .map(|anchor| anchor.as_trust_anchor().clone())
@@ -1060,7 +1048,7 @@ async fn test_disclosed_attributes_failed_session() {
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
     let status_url = format_status_url(
-        &settings.urls.public_url,
+        &settings.server_settings.public_url,
         &session_token,
         Some(SessionType::CrossDevice),
     );

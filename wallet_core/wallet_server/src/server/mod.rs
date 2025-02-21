@@ -1,6 +1,3 @@
-#[cfg(feature = "issuance")]
-pub mod pid_issuer;
-
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
         pub mod verification_server;
@@ -10,9 +7,6 @@ cfg_if::cfg_if! {
         use crate::settings::{Authentication, RequesterAuth};
     }
 }
-
-#[cfg(all(feature = "disclosure", feature = "issuance"))]
-pub mod wallet_server;
 
 use std::future::Future;
 use std::io;
@@ -34,7 +28,7 @@ use openid4vc_server::log_requests::log_request_response;
 use wallet_common::built_info::version_string;
 
 use crate::settings::Server;
-use crate::settings::Settings;
+use crate::settings::ServerSettings;
 
 fn health_router() -> Router {
     Router::new().route("/health", get(|| async {}))
@@ -54,7 +48,7 @@ pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
 }
 
 /// Create Wallet listener from [settings].
-async fn create_wallet_listener(wallet_server: Server) -> Result<TcpListener, io::Error> {
+pub async fn create_wallet_listener(wallet_server: Server) -> Result<TcpListener, io::Error> {
     TcpListener::bind((wallet_server.ip, wallet_server.port)).await
 }
 
@@ -134,29 +128,13 @@ async fn listen(
     Ok(())
 }
 
-#[cfg(feature = "issuance")]
-async fn listen_wallet_only(wallet_server: Server, mut wallet_router: Router, log_requests: bool) -> Result<()> {
-    wallet_router = decorate_router(wallet_router, log_requests);
-
-    let wallet_listener = create_wallet_listener(wallet_server).await?;
-
-    info!("{}", version_string());
-
-    info!("listening for wallet on {}", wallet_listener.local_addr()?);
-    axum::serve(wallet_listener, wallet_router)
-        .await
-        .expect("wallet server should be started");
-
-    Ok(())
-}
-
 /// Setup tracing and read settings, then run `app`.
-pub async fn wallet_server_main<Fut: Future<Output = Result<()>>>(
+pub async fn wallet_server_main<S: ServerSettings, Fut: Future<Output = Result<()>>>(
     config_file: &str,
     env_prefix: &str,
-    app: impl FnOnce(Settings) -> Fut,
+    app: impl FnOnce(S) -> Fut,
 ) -> Result<()> {
-    let settings = Settings::new_custom(config_file, env_prefix)?;
+    let settings = S::new_custom(config_file, env_prefix)?;
 
     // Initialize tracing.
     let builder = tracing_subscriber::fmt().with_env_filter(
@@ -164,7 +142,7 @@ pub async fn wallet_server_main<Fut: Future<Output = Result<()>>>(
             .with_default_directive(LevelFilter::INFO.into())
             .from_env_lossy(),
     );
-    if settings.structured_logging {
+    if settings.structured_logging() {
         builder.json().init();
     } else {
         builder.init();
