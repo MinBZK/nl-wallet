@@ -1,6 +1,3 @@
-use std::env;
-use std::path::PathBuf;
-
 use aes_gcm::Aes256Gcm;
 use anyhow::anyhow;
 use anyhow::bail;
@@ -9,6 +6,7 @@ use clap::Parser;
 use clio::ClioPath;
 
 use wallet_common::built_info::version_string;
+use wallet_common::utils;
 
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::client::HttpGbavClient;
@@ -30,11 +28,7 @@ struct Cli {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let base_path = env::var("CARGO_MANIFEST_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_default()
-        .join(cli.output.path());
-
+    let base_path = utils::prefix_local_path(cli.output.path());
     let settings = Settings::new()?;
 
     let (gbav_settings, preloaded_settings) = match settings.run_mode {
@@ -55,7 +49,7 @@ async fn main() -> Result<()> {
         preloaded_settings.encryption_key.key::<Aes256Gcm>(),
         preloaded_settings.hmac_key.key::<HmacSha256>(),
         xml.as_bytes(),
-        &base_path,
+        base_path.as_ref(),
         bsn.as_ref(),
     )
     .await?;

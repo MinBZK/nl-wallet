@@ -1,6 +1,4 @@
-use std::env;
 use std::io::Read;
-use std::path::PathBuf;
 
 use aes_gcm::Aes256Gcm;
 use anyhow::bail;
@@ -10,6 +8,7 @@ use clio::ClioPath;
 use clio::Input;
 
 use wallet_common::built_info::version_string;
+use wallet_common::utils;
 
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;
@@ -39,10 +38,7 @@ async fn main() -> Result<()> {
     let mut bytes: Vec<u8> = vec![];
     cli.input.read_to_end(&mut bytes)?;
 
-    let base_path = env::var("CARGO_MANIFEST_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_default()
-        .join(cli.output.path());
+    let base_path = utils::prefix_local_path(cli.output.path());
 
     let settings = Settings::new()?;
 
@@ -56,7 +52,7 @@ async fn main() -> Result<()> {
         preloaded_settings.encryption_key.key::<Aes256Gcm>(),
         preloaded_settings.hmac_key.key::<HmacSha256>(),
         &bytes,
-        &base_path,
+        base_path.as_ref(),
         &cli.basename,
     )
     .await?;

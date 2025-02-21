@@ -40,10 +40,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         } else {
             use android_attest::play_integrity::client::PlayIntegrityClient;
             use android_attest::play_integrity::client::ServiceAccountAuthenticator;
+            use wallet_common::utils;
 
+            let credentials_file_path = utils::prefix_local_path(&settings.android.credentials_file);
             let play_integrity_client = PlayIntegrityClient::new(
                 reqwest_client,
-                ServiceAccountAuthenticator::new(settings.android.credentials_file_path().as_ref()).await?,
+                ServiceAccountAuthenticator::new(credentials_file_path.as_ref()).await?,
                 &settings.android.package_name,
             )?;
         }
