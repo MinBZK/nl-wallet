@@ -149,7 +149,7 @@ impl<I> ProposedDocument<I> {
             issuer_signed,
             device_signed_challenge,
             issuer_certificate,
-            type_metadata: metadata.first().clone(), // TODO: handle chain: PVW-3824
+            type_metadata: metadata.into_first(), // TODO: handle chain: PVW-3824
         };
         Ok(proposed_document)
     }
