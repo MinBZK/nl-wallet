@@ -11,7 +11,7 @@ use tracing::info;
 
 use wallet_common::built_info::version_string;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
-use wallet_server::server::decorate_router;
+use wallet_server::server::{create_wallet_listener, decorate_router};
 use wallet_server::settings::{Authentication, RequesterAuth, Server};
 
 use crate::settings::VerifierSettings;
@@ -45,11 +45,6 @@ where
         log_requests,
     )
     .await
-}
-
-/// Create Wallet listener from [settings].
-pub async fn create_wallet_listener(wallet_server: Server) -> Result<TcpListener, io::Error> {
-    TcpListener::bind((wallet_server.ip, wallet_server.port)).await
 }
 
 /// Secure [requester_router] with an API key when required by [settings].
