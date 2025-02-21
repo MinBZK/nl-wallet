@@ -6,6 +6,8 @@ use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::oidc::HttpOidcClient;
+use pid_issuer::pid::attributes::BrpPidAttributeService;
+use pid_issuer::pid::brp::client::HttpBrpClient;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::wallet_deps::default_wallet_config;
@@ -14,8 +16,6 @@ use wallet::wallet_deps::HttpDigidSession;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use wallet_server::pid::attributes::BrpPidAttributeService;
-use wallet_server::pid::brp::client::HttpBrpClient;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
 /// (Haal-Centraal). This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max
@@ -33,17 +33,17 @@ use wallet_server::pid::brp::client::HttpBrpClient;
 /// - `accept_issuance()` in the `openid4vc` integration tests, which also mocks the HTTP server and client.
 #[tokio::test]
 async fn test_pid_issuance_digid_bridge() {
-    let settings = wallet_server_settings();
+    let settings = pid_issuer_settings();
     let attr_service = BrpPidAttributeService::new(
-        HttpBrpClient::new(settings.issuer.brp_server.clone()),
-        &settings.issuer.digid.bsn_privkey,
-        settings.issuer.digid.http_config.clone(),
-        settings.issuer.metadata(),
+        HttpBrpClient::new(settings.brp_server.clone()),
+        &settings.digid.bsn_privkey,
+        settings.digid.http_config.clone(),
+        settings.metadata(),
         Days::new(1),
         NonZeroU8::new(2).unwrap(),
     )
     .unwrap();
-    start_wallet_server(settings.clone(), attr_service).await;
+    start_issuer_server(settings.clone(), attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
@@ -67,7 +67,7 @@ async fn test_pid_issuance_digid_bridge() {
     .await;
     let token_request = digid_session.into_token_request(redirect_url).await.unwrap();
 
-    let server_url = local_pid_base_url(&settings.urls.public_url.as_ref().port().unwrap());
+    let server_url = local_pid_base_url(&settings.server_settings.public_url.as_ref().port().unwrap());
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(

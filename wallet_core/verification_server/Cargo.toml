@@ -36,8 +36,6 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 postgres = ["openid4vc_server/postgres"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
-# TODO remove?
-mock = []
 # Enable integration tests
 integration_test = ["allow_insecure_url", "wallet_server/integration_test"]
 
