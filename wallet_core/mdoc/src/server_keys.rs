@@ -115,6 +115,7 @@ pub mod generate {
     use rcgen::DnType;
     use rcgen::IsCa;
     use rcgen::SanType;
+    use rcgen::SubjectPublicKeyInfo;
     use rcgen::PKCS_ECDSA_P256_SHA256;
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
@@ -238,6 +239,19 @@ pub mod generate {
             Self::new(certificate, key_pair)
         }
 
+        fn certificate_params_for(
+            common_name: &str,
+            certificate_type: &CertificateType,
+            configuration: CertificateConfiguration,
+        ) -> Result<CertificateParams, CertificateError> {
+            let mut params = CertificateParams::from(configuration);
+            params.is_ca = IsCa::NoCa;
+            params.distinguished_name.push(DnType::CommonName, common_name);
+            params.subject_alt_names.push(SanType::DnsName(common_name.try_into()?));
+            params.custom_extensions.extend(certificate_type.to_custom_exts()?);
+            Ok(params)
+        }
+
         /// Generate a new key pair signed with the specified CA.
         pub fn generate_key_pair(
             &self,
@@ -245,16 +259,11 @@ pub mod generate {
             certificate_type: &CertificateType,
             configuration: CertificateConfiguration,
         ) -> Result<KeyPair, CertificateError> {
-            let mut params = CertificateParams::from(configuration);
-            params.is_ca = IsCa::NoCa;
-            params.distinguished_name.push(DnType::CommonName, common_name);
-            params.subject_alt_names.push(SanType::DnsName(common_name.try_into()?));
-            params.custom_extensions.extend(certificate_type.to_custom_exts()?);
-
             let key_pair = rcgen::KeyPair::generate()?;
-            let certificate = params.signed_by(&key_pair, &self.certificate, &self.key_pair)?;
-
             let private_key = rcgen_cert_privkey(&key_pair)?;
+
+            let params = Self::certificate_params_for(common_name, certificate_type, configuration)?;
+            let certificate = params.signed_by(&key_pair, &self.certificate, &self.key_pair)?;
             let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
 
             let key_pair = KeyPair {
@@ -263,6 +272,23 @@ pub mod generate {
             };
 
             Ok(key_pair)
+        }
+
+        /// Generate a new key pair signed with the specified CA.
+        pub fn generate_certificate(
+            &self,
+            public_key: &[u8],
+            common_name: &str,
+            certificate_type: &CertificateType,
+            configuration: CertificateConfiguration,
+        ) -> Result<BorrowingCertificate, CertificateError> {
+            let public_key = SubjectPublicKeyInfo::from_der(public_key)?;
+
+            let params = Self::certificate_params_for(common_name, certificate_type, configuration)?;
+            let certificate = params.signed_by(&public_key, &self.certificate, &self.key_pair)?;
+            let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
+
+            Ok(certificate)
         }
     }
 
