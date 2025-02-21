@@ -19,6 +19,7 @@ members = [
     "sd_jwt",
     "tests_integration",
     "update_policy_server",
+    "verification_server",
     "wallet",
     "wallet/entity",
     "wallet/migrations",

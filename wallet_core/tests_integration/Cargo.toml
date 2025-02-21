@@ -91,7 +91,7 @@ test_common = [
 # Include the fake_digid submodule
 fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common"]
 # Include and run test that depend on an external PostgreSQL database
-db_test = ["wallet_provider_persistence?/db_test", "wallet_provider_service?/db_test", "wallet_server?/db_test"]
+db_test = ["wallet_provider_persistence?/db_test", "wallet_provider_service?/db_test"]
 # Include and run test that depend on a configured HSM
 hsm_test = ["wallet_provider?/hsm_test"]
 # Feature used for enabling all integration tests
@@ -213,7 +213,7 @@ wallet_common = { path = "../wallet_common", optional = true, features = ["mock_
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }
-wallet_server = { path = "../wallet_server", optional = true, features = ["disclosure", "mock"] }
+wallet_server = { path = "../wallet_server", optional = true }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
@@ -226,4 +226,4 @@ dotenvy = { workspace = true, optional = true }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
 wallet_account = { path = "../wallet_account", features = ["integration_test"] }
-wallet_server = { path = "../wallet_server", features = ["integration_test"] }
+wallet_server = { path = "../wallet_server" }

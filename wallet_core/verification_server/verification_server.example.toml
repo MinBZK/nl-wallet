@@ -1,0 +1,27 @@
+# Example config
+
+public_url = 'http://localhost:3001/'
+internal_url = 'http://${SERVICES_HOST}:3002/'
+store_url = 'postgres://postgres:postgres@localhost/wallet_server' # or 'memory://'
+
+[wallet_server]
+ip = '127.0.0.1'
+port = 3001
+
+[requester_server]
+ip = "127.0.0.1"
+port = 3002
+
+# [requester_server.authentication]
+# api_key = "your_secret_key"
+
+[verifier]
+trust_anchors = []
+
+[verifier.usecases.driving_license]
+certificate = "MIIBUTCB96ADAgECAhRl6OcmpjijxCkA1a76/tIvYLtmLDAKBggqhkjOPQQDAjAZMRcwFQYDVQQDDA5jYS5leGFtcGxlLmNvbTAgFw03NTAxMDEwMDAwMDBaGA80MDk2MDEwMTAwMDAwMFowGzEZMBcGA1UEAwwQY2VydC5leGFtcGxlLmNvbTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJ/4iuWfQiqAh8PRmfUiM3wj/YMKwLsJ6xTYvT+2rdPW6SXqCOUOcqv7saSirWMKdjzYdfxKqAfSO9SI1Fv8my6jGTAXMBUGA1UdJQEB/wQLMAkGByiBjF0FAQIwCgYIKoZIzj0EAwIDSQAwRgIhAOKwEjS0R06oplVv1BNLNvd0U6cN/IedFLLpRbiIbyLBAiEApVM0esHuTunDjTkStRhlaTA/LFhjYhC+LOpNu5RFXfQ="
+private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgeWoxq6+7o1oiBXZvSfl91r1DaLWKJHjamWIOEY7aH0WhRANCAASf+Irln0IqgIfD0Zn1IjN8I/2DCsC7CesU2L0/tq3T1ukl6gjlDnKr+7Gkoq1jCnY82HX8SqgH0jvUiNRb/Jsu"
+
+[verifier.usecases.parking_permit]
+certificate = "MIIBUTCB+KADAgECAhUA11suNYBz8xIKnCjrw0S0aTzCMQIwCgYIKoZIzj0EAwIwGTEXMBUGA1UEAwwOY2EuZXhhbXBsZS5jb20wIBcNNzUwMTAxMDAwMDAwWhgPNDA5NjAxMDEwMDAwMDBaMBsxGTAXBgNVBAMMEGNlcnQuZXhhbXBsZS5jb20wWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQYYLYHnaX7w16lkSAdAqzqKlf1q+UAiZHj8SYVs8QCmqyCXbVOYaqENLpDzTpdpB8SXI8kCFaE8/u2sphRpKQdoxkwFzAVBgNVHSUBAf8ECzAJBgcogYxdBQECMAoGCCqGSM49BAMCA0gAMEUCIEZInaMVd267PbZkUrPhC+wKJ8i8OTx2sNU1k4QgIdbvAiEArj1ikPO4pBkbzy8H8SdueMKtDT4O70Qn9llNvmultTk="
+private_key = "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg/q/O39cBrXSmlATl7C3bcuPfikwuLkj0LSXVpdOdOwyhRANCAAQYYLYHnaX7w16lkSAdAqzqKlf1q+UAiZHj8SYVs8QCmqyCXbVOYaqENLpDzTpdpB8SXI8kCFaE8/u2sphRpKQd"

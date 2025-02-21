@@ -3,65 +3,22 @@ name = "wallet_server"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-exclude = ["resources"]
 
 [lints]
 workspace = true
 
-[[bin]]
-name = "verification_server"
-required-features = ["disclosure"]
-
 [lib]
 doctest = false
 
-[[test]]
-name = "verifier_api"
-path = "tests/verifier_api.rs"
-required-features = ["integration_test"]
-
-[[test]]
-name = "postgres"
-path = "tests/postgres.rs"
-required-features = ["db_test"]
-
-[[test]]
-name = "wallet_server_settings"
-path = "tests/wallet_server_settings.rs"
-required-features = ["integration_test"]
-
 [features]
-default = ["disclosure", "postgres"]
-# Allow the disclosure return URL and its prefix to use http://
-allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url"]
-# Include session storage in PostgreSQL
-postgres = ["openid4vc_server/postgres", "dep:serde_json"]
-# Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
-# Enable disclosure
-disclosure = [
-    "openid4vc_server/disclosure",
-    "serde_with/hex",
-    "wallet_common/axum",
-    "dep:ring",
-    "dep:serde_json"
-]
-# TODO remove?
-mock = []
-# Enable integration tests
-integration_test = ["disclosure", "allow_insecure_url"]
+integration_test = []
 
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
-base64.workspace = true
-cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 http.workspace = true
-nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
@@ -81,32 +38,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
-futures = { workspace = true, optional = true, features = ["std", "async-await"] }
-indexmap = { workspace = true, optional = true, features = ["serde"] }
-itertools = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
-ring = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-serde_urlencoded = { workspace = true, optional = true }
-serial_test = { workspace = true, optional = true }
-
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../openid4vc_server" }
-sd_jwt.path = "../sd_jwt"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
-
-[dev-dependencies]
-assert_matches.workspace = true
-indexmap.workspace = true
-itertools.workspace = true
-parking_lot.workspace = true
-rand_core.workspace = true
-reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
-rstest.workspace = true
-serde_urlencoded.workspace = true
-tokio = { workspace = true, features = ["macros", "test-util"] }
-
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors"] }
-sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
-wallet_common = { path = "../wallet_common", features = ["insecure_http_client", "mock_remote_key", "mock_time"] }

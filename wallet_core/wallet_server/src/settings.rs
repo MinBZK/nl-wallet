@@ -4,10 +4,7 @@ use std::time::Duration;
 
 use chrono::DateTime;
 use chrono::Utc;
-use config::Config;
 use config::ConfigError;
-use config::Environment;
-use config::File;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -21,19 +18,9 @@ use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::generator::Generator;
-use wallet_common::generator::TimeGenerator;
 use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils;
-
-cfg_if::cfg_if! {
-    if #[cfg(feature = "disclosure")] {
-        mod disclosure;
-        pub use disclosure::*;
-        use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-    }
-}
 
 #[serde_as]
 #[derive(Clone, Deserialize)]

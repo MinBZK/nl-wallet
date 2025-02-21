@@ -1,20 +1,38 @@
 use std::collections::HashMap;
 
+use config::Config;
+use config::ConfigError;
+use config::Environment;
+use config::File;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::IntoIterator;
+use nl_wallet_mdoc::utils::x509::CertificateType;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use nutype::nutype;
+use openid4vc::server_state::SessionStoreTimeouts;
 use ring::hmac;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
+use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
+use wallet_common::generator::TimeGenerator;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
+use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
-
-use super::*;
+use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use wallet_common::utils;
+use wallet_server::settings::verify_key_pairs;
+use wallet_server::settings::CertificateVerificationError;
+use wallet_server::settings::KeyPair;
+use wallet_server::settings::RequesterAuth;
+use wallet_server::settings::ServerSettings;
+use wallet_server::settings::Settings;
 
 const MIN_KEY_LENGTH_BYTES: usize = 16;
 
@@ -34,7 +52,6 @@ pub struct VerifierSettings {
     // used by the application, SHOULD be reachable only by the application.
     // if not configured the wallet_server will be used, but an api_key is required in that case
     // if it conflicts with wallet_server, the application will crash on startup
-    #[cfg(feature = "disclosure")]
     pub requester_server: RequesterAuth,
 
     pub universal_link_base_url: BaseUrl,

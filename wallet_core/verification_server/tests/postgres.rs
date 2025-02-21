@@ -18,11 +18,11 @@ use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc_server::store::postgres;
 use openid4vc_server::store::postgres::PostgresSessionStore;
 use openid4vc_server::store::SessionDataType;
+use verification_server::settings::VerifierSettings;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::utils;
 use wallet_server::settings::ServerSettings;
 use wallet_server::settings::Storage;
-use wallet_server::settings::VerifierSettings;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

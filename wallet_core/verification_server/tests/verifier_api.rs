@@ -62,6 +62,9 @@ use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
+use verification_server::server;
+use verification_server::settings::VerifierSettings;
+use verification_server::settings::VerifierUseCase;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
@@ -75,8 +78,6 @@ use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;
 use wallet_server::settings::Settings;
 use wallet_server::settings::Storage;
-use wallet_server::settings::VerifierSettings;
-use wallet_server::settings::VerifierUseCase;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -193,7 +194,7 @@ where
     let public_url = settings.server_settings.public_url.clone();
 
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::verification_server::serve(settings, disclosure_sessions).await {
+        if let Err(error) = server::serve(settings, disclosure_sessions).await {
             println!("Could not start wallet_server: {error:?}");
 
             process::exit(1);
@@ -731,9 +732,9 @@ mod db_test {
     use openid4vc::verifier::DisclosureData;
     use openid4vc_server::store::postgres;
     use openid4vc_server::store::postgres::PostgresSessionStore;
+    use verification_server::settings::VerifierSettings;
     use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_server::settings::ServerSettings;
-    use wallet_server::settings::VerifierSettings;
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;

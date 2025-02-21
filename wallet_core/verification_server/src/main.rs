@@ -2,9 +2,9 @@ use anyhow::Result;
 
 use openid4vc_server::store::DatabaseConnection;
 use openid4vc_server::store::SessionStoreVariant;
-use wallet_server::server;
+use verification_server::server;
+use verification_server::settings::VerifierSettings;
 use wallet_server::server::wallet_server_main;
-use wallet_server::settings::VerifierSettings;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -19,5 +19,5 @@ async fn main_impl(settings: VerifierSettings) -> Result<()> {
     );
 
     // This will block until the server shuts down.
-    server::verification_server::serve(settings, sessions).await
+    server::serve(settings, sessions).await
 }
