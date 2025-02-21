@@ -12,5 +12,3 @@ pub mod verifier;
 
 #[cfg(feature = "postgres")]
 pub mod entity;
-
-pub mod urls;
