@@ -811,7 +811,7 @@ mod db_test {
     async fn test_disclosure_expired_postgres() {
         // Combine the generated settings with the storage settings from the configuration file.
         let (mut settings, _, _) = wallet_server_settings();
-        let storage_settings = VerifierSettings::new_custom("verification_server.toml", "verification_server")
+        let storage_settings = VerifierSettings::new("verification_server.toml", "verification_server")
             .unwrap()
             .server_settings
             .storage;

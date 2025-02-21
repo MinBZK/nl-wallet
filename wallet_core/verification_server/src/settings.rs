@@ -109,7 +109,9 @@ impl From<&EphemeralIdSecret> for hmac::Key {
 }
 
 impl ServerSettings for VerifierSettings {
-    fn new_custom(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
+    type ValidationError = CertificateVerificationError;
+
+    fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
 
         let config_builder = Config::builder()
@@ -156,7 +158,7 @@ impl ServerSettings for VerifierSettings {
         Ok(config)
     }
 
-    fn verify_key_pairs(&self) -> Result<(), CertificateVerificationError> {
+    fn validate(&self) -> Result<(), CertificateVerificationError> {
         tracing::debug!("verifying verifier.usecases certificates");
 
         let time = TimeGenerator;
@@ -185,7 +187,7 @@ impl ServerSettings for VerifierSettings {
         Ok(())
     }
 
-    fn structured_logging(&self) -> bool {
-        self.server_settings.structured_logging
+    fn server_settings(&self) -> &Settings {
+        &self.server_settings
     }
 }

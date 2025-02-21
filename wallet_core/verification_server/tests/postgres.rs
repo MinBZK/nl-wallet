@@ -83,7 +83,7 @@ impl SessionDataType for MockSessionData {
 }
 
 fn storage_settings() -> Storage {
-    VerifierSettings::new_custom("verification_server.toml", "verification_server")
+    VerifierSettings::new("verification_server.toml", "verification_server")
         .unwrap()
         .server_settings
         .storage

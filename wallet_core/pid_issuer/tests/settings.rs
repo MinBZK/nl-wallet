@@ -7,7 +7,7 @@ use wallet_server::settings::{CertificateVerificationError, ServerSettings};
 
 #[test]
 fn test_settings_success() {
-    let mut settings = IssuerSettings::new_custom("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
     let issuer_cert_valid = issuer_ca
@@ -20,14 +20,14 @@ fn test_settings_success() {
         .private_keys
         .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
-    settings.verify_key_pairs().expect("should succeed");
+    settings.validate().expect("should succeed");
 }
 
 #[test]
 fn test_settings_no_issuer_trust_anchors() {
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 
-    let mut settings = IssuerSettings::new_custom("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
     let issuer_cert_valid = issuer_ca
@@ -40,7 +40,7 @@ fn test_settings_no_issuer_trust_anchors() {
         .private_keys
         .insert("com.example.valid".to_string(), issuer_cert_valid.into());
 
-    let error = settings.verify_key_pairs().expect_err("should fail");
+    let error = settings.validate().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
 }
 
@@ -48,7 +48,7 @@ fn test_settings_no_issuer_trust_anchors() {
 fn test_settings_no_issuer_registration() {
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 
-    let mut settings = IssuerSettings::new_custom("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
     let issuer_cert_valid = issuer_ca
@@ -69,7 +69,7 @@ fn test_settings_no_issuer_registration() {
         issuer_cert_no_registration.into(),
     );
 
-    let error = settings.verify_key_pairs().expect_err("should fail");
+    let error = settings.validate().expect_err("should fail");
     assert_matches!(
         error,
         CertificateVerificationError::IncompleteCertificateType(key) if key == "com.example.no_registration"

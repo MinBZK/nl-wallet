@@ -10,7 +10,7 @@ use wallet_server::settings::ServerSettings;
 use wallet_server::settings::Storage;
 
 fn storage_settings() -> Storage {
-    IssuerSettings::new_custom("pid_issuer.toml", "pid_issuer")
+    IssuerSettings::new("pid_issuer.toml", "pid_issuer")
         .unwrap()
         .server_settings
         .storage

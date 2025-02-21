@@ -352,7 +352,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTr
 }
 
 pub fn pid_issuer_settings() -> IssuerSettings {
-    let mut settings = IssuerSettings::new_custom("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
+    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
     let port = find_listener_port();
 
     settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
@@ -363,8 +363,8 @@ pub fn pid_issuer_settings() -> IssuerSettings {
 }
 
 pub fn verification_server_settings() -> VerifierSettings {
-    let mut settings = VerifierSettings::new_custom("verification_server.toml", "verification_server")
-        .expect("Could not read settings");
+    let mut settings =
+        VerifierSettings::new("verification_server.toml", "verification_server").expect("Could not read settings");
     let port = find_listener_port();
 
     settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();

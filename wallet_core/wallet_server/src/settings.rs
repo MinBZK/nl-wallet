@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
@@ -22,6 +23,7 @@ use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
+/// Settings shared by all variants of issuer/verifier servers.
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Settings {
@@ -36,7 +38,7 @@ pub struct Settings {
 
     pub storage: Storage,
 
-    /// Issuer trust anchors are used to validate the keys and certificates in the `issuer.private_keys` configuration
+    /// Issuer trust anchors are used to validate the keys and certificates in the issuer's private_keys configuration
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
     #[serde_as(as = "Vec<Base64>")]
     pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
@@ -129,9 +131,11 @@ pub enum CertificateVerificationError {
 }
 
 pub trait ServerSettings: Sized {
-    fn new_custom(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError>;
-    fn verify_key_pairs(&self) -> Result<(), CertificateVerificationError>;
-    fn structured_logging(&self) -> bool;
+    type ValidationError: std::error::Error + Send + Sync + 'static;
+
+    fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError>;
+    fn validate(&self) -> Result<(), Self::ValidationError>;
+    fn server_settings(&self) -> &Settings;
 }
 
 pub fn verify_key_pairs<F>(

@@ -46,7 +46,7 @@ pub async fn wallet_server_main<S: ServerSettings, Fut: Future<Output = Result<(
     env_prefix: &str,
     app: impl FnOnce(S) -> Fut,
 ) -> Result<()> {
-    let settings = S::new_custom(config_file, env_prefix)?;
+    let settings = S::new(config_file, env_prefix)?;
 
     // Initialize tracing.
     let builder = tracing_subscriber::fmt().with_env_filter(
@@ -54,15 +54,15 @@ pub async fn wallet_server_main<S: ServerSettings, Fut: Future<Output = Result<(
             .with_default_directive(LevelFilter::INFO.into())
             .from_env_lossy(),
     );
-    if settings.structured_logging() {
+    if settings.server_settings().structured_logging {
         builder.json().init();
     } else {
         builder.init();
     }
 
     // Verify the settings here, now that we've setup tracing.
-    if let Err(error) = settings.verify_key_pairs() {
-        error!("invalid certificate configuration: {error}");
+    if let Err(error) = settings.validate() {
+        error!("invalid configuration: {error}");
         return Err(error.into());
     }
 

@@ -26,6 +26,7 @@ use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 use wallet_server::settings::verify_key_pairs;
+use wallet_server::settings::CertificateVerificationError;
 use wallet_server::settings::KeyPair;
 use wallet_server::settings::ServerSettings;
 use wallet_server::settings::Settings;
@@ -114,7 +115,9 @@ impl TryFrom<&IssuerSettings> for BrpPidAttributeService {
 }
 
 impl ServerSettings for IssuerSettings {
-    fn new_custom(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
+    type ValidationError = CertificateVerificationError;
+
+    fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
 
         let config_builder = Config::builder()
@@ -167,7 +170,7 @@ impl ServerSettings for IssuerSettings {
         Ok(config)
     }
 
-    fn verify_key_pairs(&self) -> Result<(), wallet_server::settings::CertificateVerificationError> {
+    fn validate(&self) -> Result<(), CertificateVerificationError> {
         tracing::debug!("verifying issuer.private_keys certificates");
 
         let time = TimeGenerator;
@@ -194,7 +197,7 @@ impl ServerSettings for IssuerSettings {
         )
     }
 
-    fn structured_logging(&self) -> bool {
-        self.server_settings.structured_logging
+    fn server_settings(&self) -> &Settings {
+        &self.server_settings
     }
 }

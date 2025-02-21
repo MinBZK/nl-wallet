@@ -22,7 +22,7 @@ fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
 #[test]
 fn test_settings_success() {
     let mut settings =
-        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
+        VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca
@@ -35,13 +35,13 @@ fn test_settings_success() {
     settings.usecases = usecases.into();
     settings.reader_trust_anchors = vec![reader_ca.as_borrowing_trust_anchor().clone()];
 
-    settings.verify_key_pairs().expect("should succeed");
+    settings.validate().expect("should succeed");
 }
 
 #[test]
 fn test_settings_no_reader_trust_anchors() {
     let mut settings =
-        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
+        VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca
@@ -54,14 +54,14 @@ fn test_settings_no_reader_trust_anchors() {
     settings.usecases = usecases.into();
     settings.reader_trust_anchors = vec![];
 
-    let error = settings.verify_key_pairs().expect_err("should fail");
+    let error = settings.validate().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
 }
 
 #[test]
 fn test_settings_no_reader_registration() {
     let mut settings =
-        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
+        VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca
@@ -78,14 +78,14 @@ fn test_settings_no_reader_registration() {
     settings.usecases = usecases.into();
     settings.reader_trust_anchors = vec![reader_ca.as_borrowing_trust_anchor().clone()];
 
-    let error = settings.verify_key_pairs().expect_err("should fail");
+    let error = settings.validate().expect_err("should fail");
     assert_matches!(error, CertificateVerificationError::IncompleteCertificateType(key) if key == "no_registration");
 }
 
 #[test]
 fn test_settings_wrong_reader_ca() {
     let mut settings =
-        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
+        VerifierSettings::new("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca
@@ -103,7 +103,7 @@ fn test_settings_wrong_reader_ca() {
     settings.usecases = usecases.into();
     settings.reader_trust_anchors = vec![reader_ca.as_borrowing_trust_anchor().clone()];
 
-    let error = settings.verify_key_pairs().expect_err("should fail");
+    let error = settings.validate().expect_err("should fail");
     assert_matches!(
         error,
         CertificateVerificationError::InvalidCertificate(CertificateError::Verification(_), key) if key == "wrong_ca"
