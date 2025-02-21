@@ -1,7 +1,9 @@
-# Example config
 public_url = 'http://${SERVICES_HOST}:${MOCK_RP_WS_PORT}/'
 issuer_trust_anchors = ["${PID_CA_CRT}"]
 reader_trust_anchors = ["${RP_CA_CRT}"]
+
+ephemeral_id_secret = "${MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
+allow_origins = ["http://${SERVICES_HOST}:${MOCK_RP_PORT}"]
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server'
@@ -14,22 +16,34 @@ port = ${MOCK_RP_WS_PORT}
 ip = '0.0.0.0'
 port = ${MOCK_RP_RS_PORT}
 
-[verifier]
-ephemeral_id_secret = "${MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
-allow_origins = ["http://${SERVICES_HOST}:${MOCK_RP_PORT}"]
-
-[verifier.usecases.mijn_amsterdam]
+[usecases.mijn_amsterdam]
 certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
 
-[verifier.usecases.online_marketplace]
+[usecases.online_marketplace]
 certificate = "${MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
 
-[verifier.usecases.xyz_bank]
+[usecases.xyz_bank]
 certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
 
-[verifier.usecases.monkey_bike]
+[usecases.monkey_bike]
 certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
+
+# Integration test cases
+[usecases.multiple_cards]
+session_type_return_url = "neither"
+certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
+private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
+
+[usecases.xyz_bank_no_return_url]
+session_type_return_url = "neither"
+certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
+
+[usecases.xyz_bank_all_return_url]
+session_type_return_url = "both"
+certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"

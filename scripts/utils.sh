@@ -108,15 +108,6 @@ function render_template {
     envsubst < "$1" > "$2"
 }
 
-# Execute envsubst on TEMPLATE and append the result to TARGET
-#
-# $1 - TEMPLATE: Template file
-# $2 - TARGET: Target file
-function render_template_append {
-    echo -e "Appending to ${CYAN}$2${NC} from template ${CYAN}$1${NC}"
-    envsubst < "$1" >> "$2"
-}
-
 # Generate n random bytes.
 #
 # $1 n: how many random bytes to generate

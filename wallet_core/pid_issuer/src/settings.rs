@@ -118,8 +118,8 @@ impl ServerSettings for IssuerSettings {
         let default_store_timeouts = SessionStoreTimeouts::default();
 
         let config_builder = Config::builder()
-            .set_default("pid_issuer.ip", "0.0.0.0")?
-            .set_default("pid_issuer.port", 3001)?
+            .set_default("wallet_server.ip", "0.0.0.0")?
+            .set_default("wallet_server.port", 3001)?
             .set_default("public_url", "http://localhost:3001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
@@ -139,12 +139,12 @@ impl ServerSettings for IssuerSettings {
 
         let config_builder = config_builder
             .set_default(
-                "issuer.wallet_client_ids",
+                "wallet_client_ids",
                 vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
             )?
-            .set_default("issuer.brp_server", "http://localhost:3007/")?
-            .set_default("issuer.valid_days", 365)?
-            .set_default("issuer.copy_count", 4)?;
+            .set_default("brp_server", "http://localhost:3007/")?
+            .set_default("valid_days", 365)?
+            .set_default("copy_count", 4)?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.

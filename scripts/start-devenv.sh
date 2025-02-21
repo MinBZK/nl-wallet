@@ -277,7 +277,7 @@ then
     echo
     echo -e "${SECTION}Manage pid_issuer${NC}"
 
-    cd "${WALLET_SERVER_DIR}"
+    cd "${PID_ISSUER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
@@ -308,7 +308,7 @@ then
     echo
     echo -e "${SECTION}Manage verification_server${NC}"
 
-    cd "${WALLET_SERVER_DIR}"
+    cd "${VERIFICATION_SERVER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then

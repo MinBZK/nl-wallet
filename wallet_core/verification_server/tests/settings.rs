@@ -22,7 +22,7 @@ fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
 #[test]
 fn test_settings_success() {
     let mut settings =
-        VerifierSettings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
+        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca
@@ -41,7 +41,7 @@ fn test_settings_success() {
 #[test]
 fn test_settings_no_reader_trust_anchors() {
     let mut settings =
-        VerifierSettings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
+        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca
@@ -61,7 +61,7 @@ fn test_settings_no_reader_trust_anchors() {
 #[test]
 fn test_settings_no_reader_registration() {
     let mut settings =
-        VerifierSettings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
+        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca
@@ -85,7 +85,7 @@ fn test_settings_no_reader_registration() {
 #[test]
 fn test_settings_wrong_reader_ca() {
     let mut settings =
-        VerifierSettings::new_custom("ws_integration_test.toml", "ws_integration_test").expect("default settings");
+        VerifierSettings::new_custom("verification_server.toml", "verification_server").expect("default settings");
 
     let reader_ca = Ca::generate_reader_mock_ca().expect("generate reader CA");
     let reader_cert_valid = reader_ca

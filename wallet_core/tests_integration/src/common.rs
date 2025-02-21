@@ -192,8 +192,7 @@ pub async fn setup_wallet_and_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_issuance.pid_issuer_url =
-        local_pid_base_url(&verifier_settings.server_settings.wallet_server.port);
+    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&issuer_settings.server_settings.wallet_server.port);
     wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
     wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
     wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
@@ -201,7 +200,7 @@ pub async fn setup_wallet_and_env(
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
     served_wallet_config.pid_issuance.pid_issuer_url =
-        local_pid_base_url(&verifier_settings.server_settings.wallet_server.port);
+        local_pid_base_url(&issuer_settings.server_settings.wallet_server.port);
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];

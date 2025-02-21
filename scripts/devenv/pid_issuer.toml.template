@@ -1,7 +1,11 @@
-# Example config
-
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
 issuer_trust_anchors = ["${PID_CA_CRT}"]
+
+wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
+metadata = [
+    "${ISSUER_METADATA_PID_PATH}",
+    "${ISSUER_METADATA_ADDRESS_PATH}"
+]
 
 [storage]
 url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
@@ -10,23 +14,16 @@ url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
 ip = '0.0.0.0'
 port = ${PID_ISSUER_WS_PORT}
 
-[issuer]
-wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
-metadata = [
-    "${ISSUER_METADATA_PID_PATH}",
-    "${ISSUER_METADATA_ADDRESS_PATH}"
-]
-
-[issuer.digid]
+[digid]
 bsn_privkey = '${BSN_PRIVKEY}'
 
-[issuer.digid.http_config]
+[digid.http_config]
 base_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 trust_anchors = ["${DIGID_CA_CRT}"]
 
-[issuer.private_keys."com.example.pid"]
+[private_keys."com.example.pid"]
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
-[issuer.private_keys."com.example.address"]
+[private_keys."com.example.address"]
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
