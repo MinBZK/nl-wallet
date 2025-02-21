@@ -130,9 +130,7 @@ impl ServerSettings for VerifierSettings {
             .set_default(
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
-            )?;
-
-        let config_builder = config_builder
+            )?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("requester_server.ip", "0.0.0.0")?
             .set_default("requester_server.port", 3002)?;
@@ -144,10 +142,9 @@ impl ServerSettings for VerifierSettings {
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
             .prefix_separator("__")
-            .list_separator(",");
-
-        let environment_parser = environment_parser.with_list_parse_key("reader_trust_anchors");
-        let environment_parser = environment_parser.try_parsing(true);
+            .list_separator(",")
+            .with_list_parse_key("reader_trust_anchors")
+            .try_parsing(true);
 
         let config = config_builder
             .add_source(File::from(config_source.as_ref()).required(false))

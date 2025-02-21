@@ -135,9 +135,7 @@ impl ServerSettings for IssuerSettings {
             .set_default(
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
-            )?;
-
-        let config_builder = config_builder
+            )?
             .set_default(
                 "wallet_client_ids",
                 vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
@@ -153,13 +151,11 @@ impl ServerSettings for IssuerSettings {
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
             .prefix_separator("__")
-            .list_separator(",");
-
-        let environment_parser = environment_parser.with_list_parse_key("issuer_trust_anchors");
-        let environment_parser = environment_parser.with_list_parse_key("issuer.digid.http_config.trust_anchors");
-        let environment_parser = environment_parser.with_list_parse_key("issuer.metadata");
-
-        let environment_parser = environment_parser.try_parsing(true);
+            .list_separator(",")
+            .with_list_parse_key("issuer_trust_anchors")
+            .with_list_parse_key("digid.http_config.trust_anchors")
+            .with_list_parse_key("metadata")
+            .try_parsing(true);
 
         let config = config_builder
             .add_source(File::from(config_source.as_ref()).required(false))
