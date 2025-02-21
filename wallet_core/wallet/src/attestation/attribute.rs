@@ -19,7 +19,7 @@ use crate::AttestationIdentity;
 use crate::LocalizedString;
 
 impl Attestation {
-    pub(crate) fn create_from_attributes(
+    pub(super) fn create_from_attributes(
         identity: AttestationIdentity,
         attestation_type: String,
         display_metadata: Vec<DisplayMetadata>,
@@ -89,7 +89,7 @@ impl<'a> AttributeSelectionResult<'a> {
 }
 
 impl AttestationAttribute {
-    pub(crate) fn from_attributes(
+    pub(super) fn from_attributes(
         attributes: &IndexMap<String, Attribute>,
         metadata: &TypeMetadata,
         selection_mode: &AttributeSelectionMode,

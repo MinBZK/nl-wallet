@@ -28,7 +28,7 @@ pub enum AttestationError {
     Attribute(#[from] AttributeError),
 }
 
-pub enum AttributeSelectionMode {
+enum AttributeSelectionMode {
     Issuance,
     Disclosure,
 }
