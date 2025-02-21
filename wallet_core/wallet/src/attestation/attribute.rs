@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::collections::VecDeque;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -7,45 +6,63 @@ use itertools::Itertools;
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use sd_jwt::metadata::ClaimMetadata;
 use sd_jwt::metadata::ClaimPath;
-use sd_jwt::metadata::DisplayMetadata;
 use sd_jwt::metadata::TypeMetadata;
+use wallet_common::vec_at_least::VecNonEmpty;
 
-use crate::attestation::AttestationError;
-use crate::attestation::AttributeSelectionMode;
-use crate::Attestation;
-use crate::AttestationAttribute;
-use crate::AttestationIdentity;
-use crate::LocalizedString;
+use super::Attestation;
+use super::AttestationAttribute;
+use super::AttestationError;
+use super::AttestationIdentity;
+use super::AttributeSelectionMode;
+use super::LocalizedString;
 
 impl Attestation {
+    // Construct a new `Attestation` from a combination of metadata and nested attributes.
+    // This method has different behaviour depending on the `selection_mode` parameter.
     pub(super) fn create_from_attributes(
         identity: AttestationIdentity,
         attestation_type: String,
-        display_metadata: Vec<DisplayMetadata>,
+        metadata: TypeMetadata,
         issuer: Organization,
-        attributes: Vec<AttestationAttribute>,
-        nested_attributes: &IndexMap<String, Attribute>,
+        mut nested_attributes: IndexMap<String, Attribute>,
+        selection_mode: AttributeSelectionMode,
     ) -> Result<Self, AttestationError> {
-        // Check that all attributes have been processed by the metadata claims.
-        let processed_key_paths = attributes
-            .iter()
-            .map(|attr| attr.key.iter().map(String::as_str).collect())
-            .collect();
-        let original_key_paths = collect_key_paths(nested_attributes);
-        let difference = original_key_paths
-            .difference(&processed_key_paths)
-            .map(|key_path| key_path.iter().map(|key| key.to_string()).collect_vec())
-            .collect::<HashSet<_>>();
+        // For every claim in the metadata, traverse the nested attributes to find it,
+        // then convert it to a `AttestationAttribute` value.
+        let attributes_iter = metadata.claims.into_iter().map(|claim| {
+            match take_attribute_value_at_key_path(&mut nested_attributes, claim.path.clone()) {
+                Some((path, value)) => Ok(AttestationAttribute {
+                    key: path,
+                    value,
+                    labels: claim.display.into_iter().map(LocalizedString::from).collect(),
+                }),
+                None => Err(AttestationError::AttributeNotFoundForClaim(claim.path)),
+            }
+        });
 
-        if !difference.is_empty() {
-            return Err(AttestationError::AttributeNotProcessedByClaim(difference));
+        let attributes = match selection_mode {
+            // During issuance, an attribute that is in the metadata but not in the nested
+            // tree of attributes received from the issuer will result in an error.
+            AttributeSelectionMode::Issuance => attributes_iter.try_collect()?,
+            // Because of selective disclosure, an attribute that is in the metadata but
+            // not in the proposal for which attributes to disclose can simply be ignored.
+            AttributeSelectionMode::Disclosure => attributes_iter.flatten().collect(),
+        };
+
+        // The nested attributes should now be fully drained of any attribute values.
+        // If this is not the case, we were provided an attribute
+        // that is not covered by the metadata, which is an error.
+        let remaining_key_paths = collect_key_paths(&nested_attributes);
+
+        if !remaining_key_paths.is_empty() {
+            return Err(AttestationError::AttributeNotProcessedByClaim(remaining_key_paths));
         }
 
+        // Finally, construct the `Attestation` type.
         let attestation = Attestation {
             identity,
-            display_metadata,
+            display_metadata: metadata.display,
             attestation_type,
             issuer,
             attributes,
@@ -55,132 +72,75 @@ impl Attestation {
     }
 }
 
-enum AttributeSelectionResult<'a> {
-    Found(Vec<String>, &'a AttributeValue, &'a ClaimMetadata),
-    NotFound(&'a ClaimMetadata),
+/// Look for an [`AttributeValue`] within a nested tree of attributes by traversing a particular key path within that
+/// tree. If this value is found, remove it from its `IndexMap` and return both the exact path and the value itself.
+fn take_attribute_value_at_key_path(
+    attributes: &mut IndexMap<String, Attribute>,
+    path: VecNonEmpty<ClaimPath>,
+) -> Option<(Vec<String>, AttributeValue)> {
+    // First, confirm that the path is made up of key entries by converting to a `Vec<String>`.
+    // This will return `None` if any of the elements of the path is not an index.
+    let key_path = path
+        .into_iter()
+        .map(|path| match path {
+            ClaimPath::SelectByKey(key) => Some(key),
+            _ => None,
+        })
+        .collect::<Option<Vec<_>>>()?;
+
+    // Iterate over the path to first find the correct `IndexMap` and then look for the value in it.
+    key_path
+        .iter()
+        // This is guaranteed not to underflow because the key path has at least one entry.
+        .take(key_path.len() - 1)
+        // For all entries in the path but the last, start traversing the path
+        // and expect to find another nested IndexMap every step along the way.
+        // Note that for a path length of 1, this will result in the input IndexMap.
+        .try_fold(attributes, |attributes, key| match attributes.get_mut(key) {
+            Some(Attribute::Nested(nested_attributes)) => Some(nested_attributes),
+            _ => None,
+        })
+        // For the last entry in the path, if the IndexMap found in the last step
+        // contains a value for that key, remove it and return it.
+        .and_then(|attributes| match attributes.swap_remove(key_path.last().unwrap()) {
+            Some(Attribute::Single(value)) => Some(value),
+            _ => None,
+        })
+        // Combine the resulting value with the full path created earlier.
+        .map(|value| (key_path, value))
 }
 
-impl<'a> AttributeSelectionResult<'a> {
-    fn into_attribute(self) -> Option<AttestationAttribute> {
-        match self {
-            AttributeSelectionResult::Found(key, attribute_value, claim) => {
-                Some(Self::to_attribute(key, attribute_value, claim))
-            }
-            AttributeSelectionResult::NotFound(_) => None,
-        }
-    }
-
-    fn try_into_attribute(self) -> Result<AttestationAttribute, AttestationError> {
-        match self {
-            AttributeSelectionResult::Found(key, attribute_value, claim) => {
-                Ok(Self::to_attribute(key, attribute_value, claim))
-            }
-            AttributeSelectionResult::NotFound(claim) => {
-                Err(AttestationError::AttributeNotFoundForClaim(claim.clone()))
-            }
-        }
-    }
-
-    fn to_attribute(
-        key: Vec<String>,
-        attribute_value: &'a AttributeValue,
-        claim: &'a ClaimMetadata,
-    ) -> AttestationAttribute {
-        AttestationAttribute {
-            key,
-            value: attribute_value.clone(),
-            labels: claim.display.clone().into_iter().map(LocalizedString::from).collect(),
-        }
-    }
-}
-
-impl AttestationAttribute {
-    pub(super) fn from_attributes(
-        attributes: &IndexMap<String, Attribute>,
-        metadata: &TypeMetadata,
-        selection_mode: &AttributeSelectionMode,
-    ) -> Result<Vec<Self>, AttestationError> {
-        let selection = metadata
-            .claims
-            .iter()
-            .map(|claim| {
-                let key = claim.path.iter().map(|cp| cp.to_string()).collect();
-                let mut paths = claim.path.iter().collect::<VecDeque<_>>();
-                let attribute = Self::select_attribute(&mut paths, attributes);
-                match attribute {
-                    Some(Attribute::Single(value)) => AttributeSelectionResult::Found(key, value, claim),
-                    _ => AttributeSelectionResult::NotFound(claim),
-                }
-            })
-            .collect::<Vec<_>>();
-
-        let attributes = match selection_mode {
-            AttributeSelectionMode::Issuance => selection
-                .into_iter()
-                .map(|selection| selection.try_into_attribute())
-                .collect::<Result<_, _>>()?,
-            AttributeSelectionMode::Disclosure => selection
-                .into_iter()
-                .filter_map(|selection| selection.into_attribute())
-                .collect(),
-        };
-
-        Ok(attributes)
-    }
-
-    fn select_attribute<'a>(
-        paths: &mut VecDeque<&ClaimPath>,
-        attributes: &'a IndexMap<String, Attribute>,
-    ) -> Option<&'a Attribute> {
-        if let Some(path) = paths.pop_front() {
-            let attribute = match path {
-                ClaimPath::SelectByKey(key) => attributes.get(key),
-                _ => None,
-            }?;
-
-            match attribute {
-                Attribute::Single(_) if paths.is_empty() => Some(attribute),
-                Attribute::Nested(nested_attrs) if !paths.is_empty() => Self::select_attribute(paths, nested_attrs),
-                _ => None,
-            }
-        } else {
-            None
-        }
-    }
-}
-
-/// Collect all of full key paths present in `attributes` by unrolling any nested attribute paths.
-fn collect_key_paths(attributes: &IndexMap<String, Attribute>) -> HashSet<Vec<&str>> {
+/// Collect all full key paths present in `attributes` by unrolling any nested attribute paths.
+fn collect_key_paths(attributes: &IndexMap<String, Attribute>) -> HashSet<Vec<String>> {
     collect_key_paths_recursive(attributes, &[])
 }
 
-fn collect_key_paths_recursive<'a>(
-    attributes: &'a IndexMap<String, Attribute>,
-    parent_path: &[&'a str],
-) -> HashSet<Vec<&'a str>> {
-    // The minimum amount of paths is when all of the attributes are single,
-    // so this fold reserves at least that amount as the accumulator.
-    attributes.iter().fold(
-        HashSet::with_capacity(attributes.len()),
-        |mut key_paths, (key, attribute)| {
+fn collect_key_paths_recursive(attributes: &IndexMap<String, Attribute>, parent_path: &[&str]) -> HashSet<Vec<String>> {
+    // Prepare a `Vec`` with the current path by prepending it with the parent path.
+    let mut current_path = Vec::with_capacity(parent_path.len() + 1);
+    current_path.extend_from_slice(parent_path);
+
+    // Collect all of the leaf nodes encountered into a `HashSet`` accumulator, while recursing all nested values.
+    attributes
+        .iter()
+        .fold(HashSet::new(), |mut key_paths, (key, attribute)| {
             // Construct how we got here by appending the iteration's key to the path of our caller.
-            let mut current_path = Vec::with_capacity(parent_path.len() + 1);
-            current_path.extend_from_slice(parent_path);
             current_path.push(key);
 
             match attribute {
-                // This is a leaf node, so simply add the current path to the accumulator.
+                // This is a leaf node, so add allocated strings of the current path to the accumulator.
                 Attribute::Single(_) => {
-                    key_paths.insert(current_path);
+                    key_paths.insert(current_path.iter().map(|key| key.to_string()).collect());
                 }
                 // If this is not a leaf node, prove the current path to a recursive
                 // call of this function and extend the accumulator with the result.
                 Attribute::Nested(nested) => key_paths.extend(collect_key_paths_recursive(nested, &current_path)),
             }
 
+            current_path.pop();
+
             key_paths
-        },
-    )
+        })
 }
 
 #[cfg(test)]
@@ -199,7 +159,7 @@ pub mod test {
     use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 
     use crate::attestation::attribute::collect_key_paths;
-    use crate::AttestationAttribute;
+    use crate::attestation::attribute::take_attribute_value_at_key_path;
 
     pub static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
         IndexMap::from([
@@ -235,32 +195,31 @@ pub mod test {
     }
 
     #[test]
-    fn test_select_single_attribute_happy() {
-        let attributes = &*ATTRIBUTES;
-
-        let result = AttestationAttribute::select_attribute(
-            &mut vec![&ClaimPath::SelectByKey(String::from("single"))].into(),
-            attributes,
+    fn test_take_attribute_value_at_path_single() {
+        let result = take_attribute_value_at_key_path(
+            &mut ATTRIBUTES.clone(),
+            vec![ClaimPath::SelectByKey(String::from("single"))].try_into().unwrap(),
         );
+
         assert_matches!(
             result,
-            Some(Attribute::Single(AttributeValue::Text(value))) if value.as_str() == "single",
+            Some((path, AttributeValue::Text(value))) if path == vec!["single"] && value == "single",
             "selecting single attribute by key should find attribute"
         );
     }
 
     #[test]
-    fn test_select_nested_attribute_for_single() {
-        let attributes = &*ATTRIBUTES;
-
-        let result = AttestationAttribute::select_attribute(
-            &mut vec![
-                &ClaimPath::SelectByKey(String::from("single")),
-                &ClaimPath::SelectByKey(String::from("not_found")),
+    fn test_take_attribute_value_at_path_single_not_found() {
+        let result = take_attribute_value_at_key_path(
+            &mut ATTRIBUTES.clone(),
+            vec![
+                ClaimPath::SelectByKey(String::from("single")),
+                ClaimPath::SelectByKey(String::from("not_found")),
             ]
-            .into(),
-            attributes,
+            .try_into()
+            .unwrap(),
         );
+
         assert_matches!(
             result,
             None,
@@ -269,38 +228,39 @@ pub mod test {
     }
 
     #[test]
-    fn test_select_nested_attribute_happy() {
-        let attributes = &*ATTRIBUTES;
-
-        let result = AttestationAttribute::select_attribute(
-            &mut vec![
-                &ClaimPath::SelectByKey(String::from("nested_1a")),
-                &ClaimPath::SelectByKey(String::from("nested_1b")),
-                &ClaimPath::SelectByKey(String::from("nested_1c")),
+    fn test_take_attribute_value_at_path_single_nested() {
+        let result = take_attribute_value_at_key_path(
+            &mut ATTRIBUTES.clone(),
+            vec![
+                ClaimPath::SelectByKey(String::from("nested_1a")),
+                ClaimPath::SelectByKey(String::from("nested_1b")),
+                ClaimPath::SelectByKey(String::from("nested_1c")),
             ]
-            .into(),
-            attributes,
+            .try_into()
+            .unwrap(),
         );
+
         assert_matches!(
             result,
-            Some(Attribute::Single(AttributeValue::Text(value))) if value.as_str() == "nested_value",
+            Some((path, AttributeValue::Text(value)))
+                if path == vec!["nested_1a", "nested_1b", "nested_1c"] && value == "nested_value",
             "selecting nested attribute by keys should find attribute"
         );
     }
 
     #[test]
-    fn test_select_nested_attribute_unknown_key() {
-        let attributes = &*ATTRIBUTES;
-
-        let result = AttestationAttribute::select_attribute(
-            &mut vec![
-                &ClaimPath::SelectByKey(String::from("nested_1a")),
-                &ClaimPath::SelectByKey(String::from("nested_1b")),
-                &ClaimPath::SelectByKey(String::from("not_found")),
+    fn test_take_attribute_value_at_path_single_nested_not_found() {
+        let result = take_attribute_value_at_key_path(
+            &mut ATTRIBUTES.clone(),
+            vec![
+                ClaimPath::SelectByKey(String::from("nested_1a")),
+                ClaimPath::SelectByKey(String::from("nested_1b")),
+                ClaimPath::SelectByKey(String::from("not_found")),
             ]
-            .into(),
-            attributes,
+            .try_into()
+            .unwrap(),
         );
+
         assert_matches!(
             result,
             None,
@@ -309,32 +269,24 @@ pub mod test {
     }
 
     #[test]
-    fn test_select_nested_attribute_too_deep() {
-        let attributes = &*ATTRIBUTES;
-
-        let result = AttestationAttribute::select_attribute(
-            &mut vec![
-                &ClaimPath::SelectByKey(String::from("nested_1a")),
-                &ClaimPath::SelectByKey(String::from("nested_1b")),
-                &ClaimPath::SelectByKey(String::from("nested_1c")),
-                &ClaimPath::SelectByKey(String::from("nested_1d")),
+    fn test_take_attribute_value_at_path_too_deep() {
+        let result = take_attribute_value_at_key_path(
+            &mut ATTRIBUTES.clone(),
+            vec![
+                ClaimPath::SelectByKey(String::from("nested_1a")),
+                ClaimPath::SelectByKey(String::from("nested_1b")),
+                ClaimPath::SelectByKey(String::from("nested_1c")),
+                ClaimPath::SelectByKey(String::from("nested_1d")),
             ]
-            .into(),
-            attributes,
+            .try_into()
+            .unwrap(),
         );
+
         assert_matches!(
             result,
             None,
             "selecting by more keys than attributes are nested should find nothing"
         );
-    }
-
-    #[test]
-    fn test_select_attribute_with_empty_paths() {
-        let attributes = &*ATTRIBUTES;
-
-        let result = AttestationAttribute::select_attribute(&mut vec![].into(), attributes);
-        assert_matches!(result, None, "selecting nothing should find nothing");
     }
 
     #[test]
@@ -353,10 +305,14 @@ pub mod test {
         assert_eq!(
             collect_key_paths(&attributes),
             HashSet::from([
-                vec!["birthdate"],
-                vec!["place_of_birth", "locality"],
-                vec!["place_of_birth", "country", "name"],
-                vec!["place_of_birth", "country", "area_code"],
+                vec!["birthdate".to_string()],
+                vec!["place_of_birth".to_string(), "locality".to_string()],
+                vec!["place_of_birth".to_string(), "country".to_string(), "name".to_string()],
+                vec![
+                    "place_of_birth".to_string(),
+                    "country".to_string(),
+                    "area_code".to_string()
+                ],
             ])
         );
     }

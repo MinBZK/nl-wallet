@@ -6,31 +6,28 @@ use nl_wallet_mdoc::NameSpace;
 use openid4vc::attributes::Attribute;
 use sd_jwt::metadata::TypeMetadata;
 
-use crate::attestation::AttestationError;
-use crate::attestation::AttributeSelectionMode;
-use crate::Attestation;
-use crate::AttestationAttribute;
-use crate::AttestationIdentity;
+use super::Attestation;
+use super::AttestationError;
+use super::AttestationIdentity;
+use super::AttributeSelectionMode;
 
 impl Attestation {
     pub(crate) fn create_for_disclosure(
         identity: AttestationIdentity,
         attestation_type: String,
-        mdoc_attributes: &IndexMap<NameSpace, Vec<Entry>>,
         metadata: TypeMetadata,
         issuer_organization: Organization,
+        mdoc_attributes: &IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
-        let attributes_by_key = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
-        let attributes =
-            AttestationAttribute::from_attributes(&attributes_by_key, &metadata, &AttributeSelectionMode::Disclosure)?;
+        let nested_attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
 
         Self::create_from_attributes(
             identity,
             attestation_type,
-            metadata.display,
+            metadata,
             issuer_organization,
-            attributes,
-            &attributes_by_key,
+            nested_attributes,
+            AttributeSelectionMode::Disclosure,
         )
     }
 }
@@ -78,9 +75,9 @@ mod test {
         let attestation = Attestation::create_for_disclosure(
             AttestationIdentity::Ephemeral,
             String::from("example_attestation_type"),
-            &mdoc_attributes,
             metadata,
             Organization::new_mock(),
+            &mdoc_attributes,
         )
         .unwrap();
 
@@ -124,9 +121,9 @@ mod test {
         let attestation = Attestation::create_for_disclosure(
             AttestationIdentity::Ephemeral,
             String::from("example_attestation_type"),
-            &mdoc_attributes,
             metadata,
             Organization::new_mock(),
+            &mdoc_attributes,
         );
 
         assert!(attestation.is_ok());
@@ -154,9 +151,9 @@ mod test {
         let attestation = Attestation::create_for_disclosure(
             AttestationIdentity::Ephemeral,
             String::from("example_attestation_type"),
-            &mdoc_attributes,
             metadata,
             Organization::new_mock(),
+            &mdoc_attributes,
         );
 
         assert_matches!(

@@ -2,11 +2,10 @@ use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::credential_payload::CredentialPayload;
 use sd_jwt::metadata::TypeMetadata;
 
-use crate::attestation::AttestationError;
-use crate::attestation::AttestationIdentity;
-use crate::attestation::AttributeSelectionMode;
-use crate::Attestation;
-use crate::AttestationAttribute;
+use super::Attestation;
+use super::AttestationError;
+use super::AttestationIdentity;
+use super::AttributeSelectionMode;
 
 impl Attestation {
     pub(crate) fn create_for_issuance(
@@ -15,16 +14,13 @@ impl Attestation {
         metadata: TypeMetadata,
         issuer_organization: Organization,
     ) -> Result<Self, AttestationError> {
-        let attributes =
-            AttestationAttribute::from_attributes(&payload.attributes, &metadata, &AttributeSelectionMode::Issuance)?;
-
         Self::create_from_attributes(
             identity,
             payload.attestation_type,
-            metadata.display,
+            metadata,
             issuer_organization,
-            attributes,
-            &payload.attributes,
+            payload.attributes,
+            AttributeSelectionMode::Issuance,
         )
     }
 }

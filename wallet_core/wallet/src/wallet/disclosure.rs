@@ -249,9 +249,9 @@ where
                 Attestation::create_for_disclosure(
                     AttestationIdentity::Ephemeral,
                     doc_type,
-                    &attributes.attributes,
                     attributes.type_metadata,
                     session.reader_registration().organization.clone(),
+                    &attributes.attributes,
                 )
                 .map_err(AttestationsError::Attestation)
             })

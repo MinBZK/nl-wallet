@@ -12,14 +12,15 @@ use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
-use sd_jwt::metadata::ClaimMetadata;
+use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
     #[error("error selecting attribute for claim: {0:?}")]
     #[category(pd)]
-    AttributeNotFoundForClaim(ClaimMetadata),
+    AttributeNotFoundForClaim(VecNonEmpty<ClaimPath>),
 
     #[error("some attributes not processed by claim: {0:?}")]
     #[category(pd)]
@@ -30,6 +31,7 @@ pub enum AttestationError {
     Attribute(#[from] AttributeError),
 }
 
+#[derive(Debug, Clone, Copy)]
 enum AttributeSelectionMode {
     Issuance,
     Disclosure,
