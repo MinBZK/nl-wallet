@@ -166,10 +166,6 @@ impl<I> ProposedDocument<I> {
         }
     }
 
-    pub fn type_metadata(&self) -> &TypeMetadata {
-        &self.type_metadata
-    }
-
     /// Convert multiple [`ProposedDocument`] to [`Document`] by signing the challenge using the provided `key_factory`.
     pub(super) async fn sign_multiple<KF, K>(
         key_factory: &KF,
