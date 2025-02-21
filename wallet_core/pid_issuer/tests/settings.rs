@@ -3,7 +3,8 @@ use assert_matches::assert_matches;
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use pid_issuer::settings::IssuerSettings;
-use wallet_server::settings::{CertificateVerificationError, ServerSettings};
+use wallet_server::settings::CertificateVerificationError;
+use wallet_server::settings::ServerSettings;
 
 #[test]
 fn test_settings_success() {

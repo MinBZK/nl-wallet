@@ -11,8 +11,11 @@ use tracing::info;
 
 use wallet_common::built_info::version_string;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
-use wallet_server::server::{create_wallet_listener, decorate_router};
-use wallet_server::settings::{Authentication, RequesterAuth, Server};
+use wallet_server::server::create_wallet_listener;
+use wallet_server::server::decorate_router;
+use wallet_server::settings::Authentication;
+use wallet_server::settings::RequesterAuth;
+use wallet_server::settings::Server;
 
 use crate::settings::VerifierSettings;
 
