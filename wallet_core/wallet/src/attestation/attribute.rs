@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 
 use indexmap::IndexMap;
+
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;

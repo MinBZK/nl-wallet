@@ -25,6 +25,8 @@ use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
+use crate::attestation::Attestation;
+use crate::attestation::AttestationIdentity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
@@ -48,10 +50,8 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
 use crate::storage::WalletEvent;
-use crate::wallet::attestations::AttestationsError;
-use crate::Attestation;
-use crate::AttestationIdentity;
 
+use super::attestations::AttestationsError;
 use super::history::EventStorageError;
 use super::Wallet;
 
@@ -578,7 +578,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::attestation::AttestationError;
     use std::sync::atomic::Ordering;
     use std::sync::Arc;
     use std::sync::LazyLock;
@@ -603,6 +602,7 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use sd_jwt::metadata::TypeMetadata;
 
+    use crate::attestation::AttestationError;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
     use crate::disclosure::MockMdocDisclosureProposal;

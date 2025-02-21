@@ -39,6 +39,7 @@ impl Attestation {
 mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
+
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::utils::auth::Organization;
     use nl_wallet_mdoc::DataElementValue;
@@ -46,8 +47,8 @@ mod test {
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
+    use crate::attestation::Attestation;
     use crate::attestation::AttestationError;
-    use crate::Attestation;
     use crate::AttestationIdentity;
 
     #[test]

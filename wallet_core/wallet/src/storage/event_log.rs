@@ -19,10 +19,10 @@ use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::DocType;
 use nl_wallet_mdoc::NameSpace;
 
-use crate::document::DisclosureType;
+use entity::disclosure_history_event;
+use entity::issuance_history_event;
 
-pub use entity::disclosure_history_event;
-pub use entity::issuance_history_event;
+use crate::document::DisclosureType;
 
 // TODO: Think about refactoring/renaming EventStatus.
 // For rationale, see comment for DisclosureType in mdoc.rs.
