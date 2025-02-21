@@ -8,9 +8,8 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::auth::WalletCertificateClaims;
-use wallet_common::account::serialization::DerVerifyingKey;
+use wallet_account::messages::registration::WalletCertificate;
+use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_common::jwt::EcdsaDecodingKey;
 use wallet_common::jwt::Jwt;
 use wallet_provider_domain::model::wallet_user::WalletUser;
@@ -100,7 +99,7 @@ pub async fn verify_wallet_certificate_public_keys<H>(
     claims: WalletCertificateClaims,
     pin_public_disclosure_protection_key_identifier: &str,
     encryption_key_identifier: &str,
-    hw_pubkey: &DerVerifyingKey,
+    hw_pubkey: &VerifyingKey,
     encrypted_pin_pubkey: Encrypted<VerifyingKey>,
     hsm: &H,
 ) -> Result<(), WalletCertificateError>
@@ -123,7 +122,7 @@ where
 
     if pin_hash_verification.is_err() {
         Err(WalletCertificateError::PinPubKeyMismatch)
-    } else if *hw_pubkey != claims.hw_pubkey {
+    } else if hw_pubkey != claims.hw_pubkey.as_inner() {
         Err(WalletCertificateError::HwPubKeyMismatch)
     } else {
         Ok(())

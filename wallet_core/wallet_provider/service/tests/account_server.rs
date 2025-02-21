@@ -1,3 +1,4 @@
+use base64::prelude::*;
 use p256::ecdsa::SigningKey;
 use rand::rngs::OsRng;
 use rstest::rstest;
@@ -5,12 +6,12 @@ use rstest::rstest;
 use android_attest::attestation_extension::key_description::KeyDescription;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
-use wallet_common::account::messages::auth::Registration;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::auth::WalletCertificateClaims;
-use wallet_common::account::messages::instructions::CheckPin;
-use wallet_common::account::signed::ChallengeResponse;
-use wallet_common::apple::MockAppleAttestedKey;
+use platform_support::attested_key::mock::MockAppleAttestedKey;
+use wallet_account::messages::instructions::CheckPin;
+use wallet_account::messages::registration::Registration;
+use wallet_account::messages::registration::WalletCertificate;
+use wallet_account::messages::registration::WalletCertificateClaims;
+use wallet_account::signed::ChallengeResponse;
 use wallet_common::utils;
 use wallet_provider_database_settings::Settings;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -79,14 +80,14 @@ async fn do_registration(
             (registration_message, MockHardwareKey::Apple(attested_key))
         }
         AttestationCa::Google(android_mock_ca_chain) => {
+            let integrity_token = BASE64_STANDARD.encode(&challenge_hash);
             let key_description = KeyDescription::new_valid_mock(challenge_hash);
             let (attested_certificate_chain, attested_private_key) =
                 android_mock_ca_chain.generate_attested_leaf_certificate(&key_description);
-            let app_attestation_token = utils::random_bytes(32);
             let registration_message = ChallengeResponse::new_google(
                 &attested_private_key,
                 attested_certificate_chain.try_into().unwrap(),
-                app_attestation_token,
+                integrity_token,
                 pin_privkey,
                 challenge,
             )

@@ -122,7 +122,10 @@
         "type": "string"
       },
       "resident_city": {
-        "type": "boolean"
+        "type": "string"
+      },
+      "resident_country": {
+        "type": "string"
       },
       "vct": {
         "type": "string"
@@ -134,10 +137,13 @@
         "type": "string"
       },
       "iat": {
-        "type": "string"
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
       },
       "exp": {
-        "type": "string"
+        "type": "number"
       }
     },
     "required": [

@@ -1,5 +1,4 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,9 +14,9 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/focus_builder.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/url_span.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import 'argument/organization_detail_screen_argument.dart';
 import 'bloc/organization_detail_bloc.dart';
@@ -303,34 +302,23 @@ class OrganizationDetailScreen extends StatelessWidget {
     required String semanticsLabel,
     required VoidCallback onTap,
   }) {
-    return FocusBuilder(
-      onEnterPressed: onTap,
-      builder: (context, hasFocus) {
-        return Semantics(
-          onTapHint: context.l10n.generalWCAGOpenLink,
-          excludeSemantics: true,
-          attributedLabel: semanticsLabel.toAttributedString(context),
-          button: false,
-          onTap: onTap,
-          child: _buildInfoRow(
-            context,
-            icon: icon,
-            title: Text(title),
-            subtitle: Text.rich(
-              TextSpan(
-                text: url,
-                style: context.textTheme.bodyLarge!.copyWith(
-                  fontWeight: FontWeight.w400,
-                  decoration: TextDecoration.underline,
-                  backgroundColor: hasFocus ? context.theme.focusColor : null,
-                  color: context.colorScheme.primary,
-                ),
-                recognizer: TapGestureRecognizer()..onTap = onTap,
-              ),
-            ),
+    return Semantics(
+      onTapHint: context.l10n.generalWCAGOpenLink,
+      excludeSemantics: true,
+      attributedLabel: semanticsLabel.toAttributedString(context),
+      link: true,
+      onTap: onTap,
+      child: _buildInfoRow(
+        context,
+        icon: icon,
+        title: Text(title),
+        subtitle: Text.rich(
+          UrlSpan(
+            ctaText: url,
+            onPressed: onTap,
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 

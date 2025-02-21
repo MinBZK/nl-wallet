@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
-use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_account::messages::registration::WalletCertificate;
 use wallet_common::jwt::JwtError;
 
 use crate::errors::InstructionError;
@@ -131,7 +131,7 @@ impl<'a, C, S> BeginChangePinOperation<'a, C, S> {
             .parse_and_verify_with_sub(&self.certificate_public_key.into())
             .map_err(ChangePinError::CertificateValidation)?;
 
-        if &cert_claims.hw_pubkey.0 != self.hw_pubkey {
+        if cert_claims.hw_pubkey.as_inner() != self.hw_pubkey {
             return Err(ChangePinError::PublicKeyMismatch);
         }
 
@@ -325,7 +325,7 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use wallet_common::account::messages::auth::WalletCertificateClaims;
+    use wallet_account::messages::registration::WalletCertificateClaims;
     use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 

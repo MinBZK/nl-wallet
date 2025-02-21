@@ -15,7 +15,7 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 backtrace.workspace = true
-flutter_rust_bridge = "=2.7.1"
+flutter_rust_bridge = "=2.8.0"
 itertools.workspace = true
 parking_lot.workspace = true
 sentry = { workspace = true, features = ["backtrace", "contexts", "panic", "debug-images", "reqwest", "rustls"] }
@@ -30,6 +30,9 @@ url.workspace = true
 error_category.path = "../error_category"
 flutter_api_macros.path = "flutter_api_macros"
 wallet.path = "../wallet"
+
+[dev-dependencies]
+rstest.workspace = true
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger.workspace = true

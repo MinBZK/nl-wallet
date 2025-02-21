@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use cfg_if::cfg_if;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -23,7 +24,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
         builder.init();
     }
 
-    let google_crl_client = GoogleRevocationListClient::new(default_reqwest_client_builder().build()?);
+    let reqwest_client = default_reqwest_client_builder().build()?;
+    let google_crl_client = GoogleRevocationListClient::new(reqwest_client.clone());
 
-    server::serve(settings, google_crl_client).await
+    cfg_if! {
+        if #[cfg(feature = "mock_android_integrity_verdict")] {
+            use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
+
+            tracing::warn!("DANGEROUS - Android integrity verdicts are mocked. This should NOT be used in production!");
+
+            let play_integrity_client = MockPlayIntegrityClient::new(
+                settings.android.package_name.clone(),
+                settings.android.play_store_certificate_hashes.clone()
+            );
+        } else {
+            use android_attest::play_integrity::client::PlayIntegrityClient;
+            use android_attest::play_integrity::client::ServiceAccountAuthenticator;
+            use wallet_common::utils;
+
+            let credentials_file_path = utils::prefix_local_path(&settings.android.credentials_file);
+            let play_integrity_client = PlayIntegrityClient::new(
+                reqwest_client,
+                ServiceAccountAuthenticator::new(credentials_file_path.as_ref()).await?,
+                &settings.android.package_name,
+            )?;
+        }
+    }
+
+    server::serve(settings, google_crl_client, play_integrity_client).await
 }

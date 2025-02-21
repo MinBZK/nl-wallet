@@ -1,10 +1,9 @@
+use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
-use wallet_common::account::errors::Error as AccountError;
-use wallet_common::account::messages::auth::WalletCertificate;
-use wallet_common::account::messages::instructions::ChangePinCommit;
-use wallet_common::account::messages::instructions::ChangePinRollback;
-use wallet_common::account::messages::instructions::ChangePinStart;
-use wallet_common::apple::AppleAttestedKey;
+use wallet_account::messages::instructions::ChangePinCommit;
+use wallet_account::messages::instructions::ChangePinRollback;
+use wallet_account::messages::instructions::ChangePinStart;
+use wallet_account::messages::registration::WalletCertificate;
 use wallet_common::keys::EcdsaKey;
 
 use crate::account_provider::AccountProviderClient;
@@ -78,11 +77,11 @@ where
                 let new_pin_key_pop = new_pin_key
                     .try_sign(&challenge)
                     .await
-                    .map_err(|e| InstructionError::Signing(AccountError::Signing(e.into())))?;
+                    .map_err(|e| InstructionError::Signing(wallet_account::error::EncodeError::Signing(e.into())))?;
                 let instruction = ChangePinStart {
                     pin_pubkey: new_pin_key
                         .verifying_key()
-                        .map_err(|e| InstructionError::Signing(AccountError::Signing(e.into())))?
+                        .map_err(|e| InstructionError::Signing(wallet_account::error::EncodeError::Signing(e.into())))?
                         .into(),
                     pop_pin_pubkey: new_pin_key_pop.into(),
                 };

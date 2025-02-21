@@ -395,7 +395,7 @@ impl SecurityLevel {
         cfg_if::cfg_if! {
             if #[cfg(feature = "allow_emulator_keys")] {
                 // Allow any security level on the emulator.
-                tracing::debug!("Allowing all security levels on android emulator");
+                tracing::warn!("Allowing all security levels on Android emulator");
             } else {
                 if !match self {
                     SecurityLevel::Software => false,

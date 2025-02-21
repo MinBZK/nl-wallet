@@ -11,14 +11,16 @@ use uuid::Uuid;
 use android_attest::root_public_key::RootPublicKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
-use wallet_common::account::messages::instructions::Instruction;
-use wallet_common::account::messages::instructions::InstructionAndResult;
-use wallet_common::account::messages::instructions::InstructionResultMessage;
+use wallet_account::messages::instructions::Instruction;
+use wallet_account::messages::instructions::InstructionAndResult;
+use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_common::generator::Generator;
 use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
+use wallet_provider_service::account_server::AccountServerKeys;
+use wallet_provider_service::account_server::AndroidAttestationConfiguration;
 use wallet_provider_service::account_server::AppleAttestationConfiguration;
 use wallet_provider_service::account_server::UserState;
 use wallet_provider_service::instructions::HandleInstruction;
@@ -31,19 +33,20 @@ use wallet_provider_service::wte_issuer::HsmWteIssuer;
 use crate::errors::WalletProviderError;
 use crate::settings::Settings;
 
-pub struct RouterState<GC> {
-    pub account_server: AccountServer<GC>,
+pub struct RouterState<GRC, PIC> {
+    pub account_server: AccountServer<GRC, PIC>,
     pub pin_policy: PinPolicy,
     pub instruction_result_signing_key: InstructionResultSigning,
     pub certificate_signing_key: WalletCertificateSigning,
     pub user_state: UserState<Repositories, Pkcs11Hsm, HsmWteIssuer<Pkcs11Hsm>>,
 }
 
-impl<GC> RouterState<GC> {
+impl<GRC, PIC> RouterState<GRC, PIC> {
     pub async fn new_from_settings(
         settings: Settings,
-        google_crl_client: GC,
-    ) -> Result<RouterState<GC>, Box<dyn Error>> {
+        google_crl_client: GRC,
+        play_integrity_client: PIC,
+    ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
         let hsm = Pkcs11Hsm::from_settings(settings.hsm)?;
 
         let certificate_signing_key = WalletCertificateSigning(HsmEcdsaKey::new(
@@ -57,35 +60,46 @@ impl<GC> RouterState<GC> {
 
         let certificate_signing_pubkey = certificate_signing_key.verifying_key().await?;
 
-        let apple_config = AppleAttestationConfiguration::new(
-            settings.ios.team_identifier,
-            settings.ios.bundle_identifier,
-            settings.ios.environment.into(),
-        );
         let apple_trust_anchors = settings
             .ios
             .root_certificates
             .into_iter()
             .map(|anchor| anchor.to_owned_trust_anchor())
             .collect();
+        let apple_config = AppleAttestationConfiguration::new(
+            settings.ios.team_identifier,
+            settings.ios.bundle_identifier,
+            settings.ios.environment.into(),
+            apple_trust_anchors,
+        );
 
+        let android_installation_method = settings.android.installation_method();
         let android_root_public_keys = settings
             .android
             .root_public_keys
             .into_iter()
             .map(RootPublicKey::from)
             .collect();
+        let android_config = AndroidAttestationConfiguration {
+            root_public_keys: android_root_public_keys,
+            package_name: settings.android.package_name,
+            installation_method: android_installation_method,
+            certificate_hashes: settings.android.play_store_certificate_hashes,
+        };
 
         let account_server = AccountServer::new(
-            settings.instruction_challenge_timeout,
             "account_server".into(),
-            (&certificate_signing_pubkey).into(),
-            settings.pin_pubkey_encryption_key_identifier,
-            settings.pin_public_disclosure_protection_key_identifier,
+            settings.instruction_challenge_timeout,
+            AccountServerKeys {
+                wallet_certificate_signing_pubkey: (&certificate_signing_pubkey).into(),
+                encryption_key_identifier: settings.pin_pubkey_encryption_key_identifier,
+                pin_public_disclosure_protection_key_identifier: settings
+                    .pin_public_disclosure_protection_key_identifier,
+            },
             apple_config,
-            apple_trust_anchors,
-            android_root_public_keys,
+            android_config,
             google_crl_client,
+            play_integrity_client,
         )?;
 
         let db = Db::new(
@@ -154,13 +168,13 @@ impl<GC> RouterState<GC> {
     }
 }
 
-impl<GC> Generator<uuid::Uuid> for RouterState<GC> {
+impl<GRC, PIC> Generator<uuid::Uuid> for RouterState<GRC, PIC> {
     fn generate(&self) -> Uuid {
         Uuid::new_v4()
     }
 }
 
-impl<GC> Generator<DateTime<Utc>> for RouterState<GC> {
+impl<GRC, PIC> Generator<DateTime<Utc>> for RouterState<GRC, PIC> {
     fn generate(&self) -> DateTime<Utc> {
         Utc::now()
     }

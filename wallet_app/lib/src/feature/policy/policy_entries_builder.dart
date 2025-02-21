@@ -7,6 +7,7 @@ import '../../domain/model/organization.dart';
 import '../../domain/model/policy/policy.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/duration_extension.dart';
+import '../common/widget/url_span.dart';
 import 'model/policy_entry.dart';
 
 /// Helper class to organize all the provided policy attributes into a render-able list of [PolicyEntry]s
@@ -151,6 +152,10 @@ class PolicyEntriesBuilder {
         locale: context.activeLocale,
         children: [
           TextSpan(text: prefix),
+          UrlSpan(
+            ctaText: policyCta,
+            onPressed: () => launchUrlString(privacyPolicyUrl, mode: LaunchMode.externalApplication),
+          ),
           TextSpan(
             text: policyCta,
             recognizer: TapGestureRecognizer()

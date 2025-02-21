@@ -25,7 +25,6 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypted::InitializationVector;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_provider_domain::model::wallet_user::InstructionChallenge;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
@@ -68,7 +67,10 @@ where
 
             (Some(id), None)
         }
-        WalletUserAttestationCreate::Android { certificate_chain } => {
+        WalletUserAttestationCreate::Android {
+            certificate_chain,
+            integrity_verdict_json,
+        } => {
             let id = Uuid::new_v4();
 
             wallet_user_android_attestation::ActiveModel {
@@ -77,6 +79,7 @@ where
                     .into_iter()
                     .map(|cert| BASE64_STANDARD_NO_PAD.encode(cert))
                     .collect()),
+                integrity_verdict_json: Set(integrity_verdict_json),
             }
             .insert(connection)
             .await
@@ -211,7 +214,7 @@ where
                     wallet_id: joined_model.wallet_id,
                     encrypted_pin_pubkey,
                     encrypted_previous_pin_pubkey,
-                    hw_pubkey: DerVerifyingKey(VerifyingKey::from_public_key_der(&joined_model.hw_pubkey_der).unwrap()),
+                    hw_pubkey: VerifyingKey::from_public_key_der(&joined_model.hw_pubkey_der).unwrap(),
                     unsuccessful_pin_entries: joined_model.pin_entries.try_into().ok().unwrap_or(u8::MAX),
                     last_unsuccessful_pin_entry: joined_model.last_unsuccessful_pin.map(DateTime::<Utc>::from),
                     instruction_challenge,

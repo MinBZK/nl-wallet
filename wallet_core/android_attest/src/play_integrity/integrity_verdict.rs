@@ -4,7 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
 use serde_with::base64::Base64;
-use serde_with::hex::Hex;
+use serde_with::base64::UrlSafe;
 use serde_with::serde_as;
 use serde_with::TimestampMilliSeconds;
 
@@ -30,51 +30,47 @@ pub struct IntegrityVerdict {
 #[serde(rename_all = "camelCase")]
 pub struct RequestDetails {
     pub request_package_name: String,
-    #[serde_as(as = "Base64")]
-    pub request_hash: Vec<u8>,
+    pub request_hash: String,
     #[serde(rename = "timestampMillis")]
     #[serde_as(as = "TimestampMilliSeconds<String>")]
     pub timestamp: DateTime<Utc>,
 }
 
+#[serde_as]
 #[cfg_attr(feature = "encode", serde_with::skip_serializing_none)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct AppIntegrity {
     pub app_recognition_verdict: AppRecognitionVerdict,
-    // These fields are not set when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
-    #[serde(flatten)]
-    pub details: Option<AppIntegrityDetails>,
+    // These field is not present when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
+    pub package_name: Option<String>,
+    // These field is not present when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
+    #[serde_as(as = "Option<HashSet<Base64<UrlSafe>>>")]
+    pub certificate_sha256_digest: Option<HashSet<Vec<u8>>>,
+    // These field is not present when `app_recognition_verdict` is `AppRecognitionVerdict::Unevaluated`.
+    pub version_code: Option<String>,
 }
 
-#[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[cfg_attr(feature = "encode", derive(serde::Serialize))]
-#[serde(rename_all = "camelCase")]
-pub struct AppIntegrityDetails {
-    pub package_name: String,
-    #[serde_as(as = "HashSet<Hex>")]
-    pub certificate_sha256_digest: HashSet<Vec<u8>>,
-    pub version_code: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, strum::Display)]
+// Note that the order of this enum is relevant, as we derive Ord.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, strum::Display)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppRecognitionVerdict {
-    PlayRecognized,
-    UnrecognizedVersion,
     Unevaluated,
+    UnrecognizedVersion,
+    PlayRecognized,
 }
 
+#[serde_as]
 #[cfg_attr(feature = "encode", serde_with::skip_serializing_none)]
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceIntegrity {
-    pub device_recognition_verdict: HashSet<DeviceRecognitionVerdict>,
+    // This field is not present on verdicts generated for the emulator.
+    pub device_recognition_verdict: Option<HashSet<DeviceRecognitionVerdict>>,
     // Opt-in field.
     pub recent_device_activity: Option<RecentDeviceActivity>,
     // Opt-in field.
@@ -132,14 +128,15 @@ pub struct AccountDetails {
     pub app_licensing_verdict: AppLicensingVerdict,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, strum::Display)]
+// Note that the order of this enum is relevant, as we derive Ord.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, strum::Display)]
 #[cfg_attr(feature = "encode", derive(serde::Serialize))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppLicensingVerdict {
-    Licensed,
-    Unlicensed,
     Unevaluated,
+    Unlicensed,
+    Licensed,
 }
 
 #[cfg(feature = "encode")]
@@ -192,6 +189,38 @@ pub enum PlayProtectVerdict {
     MediumRisk,
     HighRisk,
     Unevaluated,
+}
+
+#[cfg(feature = "mock")]
+mod mock {
+    use super::*;
+
+    impl IntegrityVerdict {
+        pub fn new_mock(package_name: String, request_hash: String, certificate_hashes: HashSet<Vec<u8>>) -> Self {
+            Self {
+                request_details: RequestDetails {
+                    request_package_name: package_name.clone(),
+                    request_hash,
+                    timestamp: Utc::now(),
+                },
+                app_integrity: AppIntegrity {
+                    app_recognition_verdict: AppRecognitionVerdict::PlayRecognized,
+                    package_name: Some(package_name),
+                    certificate_sha256_digest: Some(certificate_hashes),
+                    version_code: Some("42".to_string()),
+                },
+                device_integrity: DeviceIntegrity {
+                    device_recognition_verdict: Some(HashSet::from([DeviceRecognitionVerdict::MeetsDeviceIntegrity])),
+                    recent_device_activity: None,
+                    device_attributes: None,
+                },
+                account_details: AccountDetails {
+                    app_licensing_verdict: AppLicensingVerdict::Licensed,
+                },
+                environment_details: None,
+            }
+        }
+    }
 }
 
 #[cfg(test)]

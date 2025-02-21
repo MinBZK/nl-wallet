@@ -27,7 +27,6 @@ class ChangeLanguageTests : TestBase() {
 
     private lateinit var changeLanguageScreen: ChangeLanguageScreen
 
-    @BeforeEach
     fun setUp() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
 
@@ -40,12 +39,14 @@ class ChangeLanguageTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 App settings menu displays option to change language. [$JIRA_ID]")
     fun verifyChangeLanguageScreen() {
+        setUp()
         assertTrue(changeLanguageScreen.visible(), "change language screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 Language screen offers two options: English & Dutch. [$JIRA_ID]")
     fun verifyLanguageButtonsVisible() {
+        setUp()
         assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible")
     }
 
@@ -57,6 +58,7 @@ class ChangeLanguageTests : TestBase() {
         @Tags(Tag("english"))
         @DisplayName("$USE_CASE.3.1 When the User selects Dutch, the app immediately uses Dutch. [$JIRA_ID]")
         fun verifyDutchLanguageSelect() {
+            setUp()
             assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible")
             changeLanguageScreen.clickDutchButton()
 
@@ -67,6 +69,7 @@ class ChangeLanguageTests : TestBase() {
         @Tags(Tag("dutch"), Tag("smoke"))
         @DisplayName("$USE_CASE.3.2 When the User selects English, the app immediately uses English. [$JIRA_ID]")
         fun verifyEnglishLanguageSelect() {
+            setUp()
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
             changeLanguageScreen.clickEnglishButton()
 

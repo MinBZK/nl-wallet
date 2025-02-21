@@ -85,7 +85,7 @@ async fn main() {
     let wallet_config = default_wallet_config();
 
     let config_repository = HttpConfigurationRepository::new(
-        (&config_server_config.signing_public_key.0).into(),
+        config_server_config.signing_public_key.as_inner().into(),
         temp_path.to_path_buf(),
         wallet_config,
     )

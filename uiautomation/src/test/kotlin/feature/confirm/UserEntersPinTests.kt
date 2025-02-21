@@ -25,16 +25,15 @@ class UserEntersPinTests : TestBase() {
 
     private lateinit var pinScreen: PinScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizeConfirmIssuance)
-
         pinScreen = PinScreen()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The user can go back from the PIN screen. [${JIRA_ID}]")
     fun verifyBackButton() {
+        setUp()
         pinScreen.clickBackButton()
 
         val personalizePidPreviewScreen = PersonalizePidPreviewScreen()
@@ -44,6 +43,7 @@ class UserEntersPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 The User can enter a six digit PIN on an in-app keyboard. [${JIRA_ID}]")
     fun verifyPinScreenVisible() {
+        setUp()
         assertTrue(pinScreen.personalizeConfirmPinScreenVisible(), "personalize confirm pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
     }
@@ -51,6 +51,7 @@ class UserEntersPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The PIN is not visible at any time, only the length of the entered PIN. [${JIRA_ID}]")
     fun verifyHiddenPin() {
+        setUp()
         val pin = "34567"
         pinScreen.enterPin(pin)
         assertTrue(pinScreen.enteredPinAbsent(pin), "entered pin is not absent")
@@ -84,6 +85,7 @@ class UserEntersPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.9 The app offers an entry to the ‘Forgot PIN’ flow. [${JIRA_ID}]")
     fun verifyForgotPinEntry() {
+        setUp()
         pinScreen.clickForgotPinButton()
 
         val forgotPinScreen = ForgotPinScreen()
@@ -93,6 +95,7 @@ class UserEntersPinTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.10 Upon valid PIN entry, the procedure is confirmed. [${JIRA_ID}]")
     fun verifyProcedureConfirmScreen() {
+        setUp()
         pinScreen.enterPin(OnboardingNavigator.PIN)
 
         val personalizeSuccessScreen = PersonalizeSuccessScreen()

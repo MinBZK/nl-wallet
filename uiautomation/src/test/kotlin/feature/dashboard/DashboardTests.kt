@@ -25,7 +25,6 @@ class DashboardTests : TestBase() {
 
     private lateinit var dashboardScreen: DashboardScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
 
@@ -36,6 +35,7 @@ class DashboardTests : TestBase() {
     @DisplayName("$USE_CASE.1 The card overview page displays all cards currently available in the app. [${JIRA_ID}]")
     @Tags(Tag("smoke"))
     fun verifyIssuedCardsVisible() {
+        setUp()
         assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible")
     }
 
@@ -48,12 +48,14 @@ class DashboardTests : TestBase() {
     @DisplayName("$USE_CASE.3 The card information (and images) is displayed in the active language. [${JIRA_ID}]")
     @Tags(Tag("english"))
     fun verifyActiveLanguage() {
+        setUp()
         assertTrue(dashboardScreen.cardFaceTextsInActiveLanguage(), "Card face texts are not in active language")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 Tapping the card opens the card's details. [${JIRA_ID}]")
     fun verifyCardDetailScreen() {
+        setUp()
         dashboardScreen.clickPidCard()
 
         val cardDetailScreen = CardDetailScreen()
@@ -63,6 +65,7 @@ class DashboardTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5 The card sorting is initially fixed: PID is first, Address is second. [${JIRA_ID}]")
     fun verifyCardsFixedSorting() {
+        setUp()
         assertTrue(dashboardScreen.checkCardSorting(), "card sorting not as expected")
     }
 }

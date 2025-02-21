@@ -20,6 +20,9 @@ impl MigrationTrait for Migration {
                         WalletUserAndroidAttestation::CertificateChain,
                         ColumnType::String(StringLen::default()),
                     ))
+                    // This data is stored as a string, so that the original JSON response
+                    // body as returned by the Google Play Integrity API can be preserved.
+                    .col(string(WalletUserAndroidAttestation::IntegrityVerdictJson))
                     .to_owned(),
             )
             .await?;
@@ -33,4 +36,5 @@ pub enum WalletUserAndroidAttestation {
     Table,
     Id,
     CertificateChain,
+    IntegrityVerdictJson,
 }

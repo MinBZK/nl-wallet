@@ -121,6 +121,9 @@ dependencies = [
  "const-decoder",
  "der",
  "derive_more",
+ "futures",
+ "gcloud-auth",
+ "http",
  "http-cache-reqwest",
  "int-enum",
  "num-bigint",
@@ -1778,6 +1781,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edd0f118536f44f5ccd48bcb8b111bdc3de888b58c74639dfb034a357d0f206d"
 
 [[package]]
+name = "encoding_rs"
+version = "0.8.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "entity"
 version = "0.3.0-dev"
 dependencies = [
@@ -1980,6 +1992,7 @@ dependencies = [
  "itertools 0.14.0",
  "oslog 0.2.0",
  "parking_lot",
+ "rstest",
  "sentry",
  "serde",
  "serde_json",
@@ -2001,9 +2014,9 @@ dependencies = [
 
 [[package]]
 name = "flutter_rust_bridge"
-version = "2.7.1"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "131b0bebc810a966ead8541d5911ab4815b1c227e8bdc91a6c21e3b4f69427fb"
+checksum = "fdc62f583dff79c7ea34b775b2cc4158adc17cb69ad4c1d276be7fe95c63d597"
 dependencies = [
  "allo-isolate",
  "android_logger 0.13.3",
@@ -2030,9 +2043,9 @@ dependencies = [
 
 [[package]]
 name = "flutter_rust_bridge_macros"
-version = "2.7.1"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2610593cdcdd7073d790f45ece3d336ba86bc90fa5a6eaee2ae9d6721a7d481d"
+checksum = "ac75354933904c334c13a7c9e08c65be528f0820ab587e03f255203a28d5efec"
 dependencies = [
  "hex",
  "md-5",
@@ -2263,6 +2276,48 @@ dependencies = [
  "tracing-subscriber",
  "trait-variant",
  "wallet_common",
+]
+
+[[package]]
+name = "gcloud-auth"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "059e4cb9bbfb037d0dc0ddce9d55debbec7615b0580322b454a8512b26e76ba8"
+dependencies = [
+ "async-trait",
+ "base64 0.21.7",
+ "gcloud-metadata",
+ "gcloud-token",
+ "home",
+ "jsonwebtoken",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "time",
+ "tokio",
+ "tracing",
+ "urlencoding",
+]
+
+[[package]]
+name = "gcloud-metadata"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d575310b4546530f6b21ee000c20155f11f9291fa0b67ea0949fd48aa49ed70"
+dependencies = [
+ "reqwest",
+ "thiserror 1.0.69",
+ "tokio",
+]
+
+[[package]]
+name = "gcloud-token"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84e20db637faf228be7bbf39a9e3ea3e36e6ead323662974f53926f21dcee39e"
+dependencies = [
+ "async-trait",
 ]
 
 [[package]]
@@ -4073,10 +4128,12 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 name = "platform_support"
 version = "0.3.0-dev"
 dependencies = [
+ "aes-gcm",
  "android_attest",
  "android_logger 0.14.1",
  "apple_app_attest",
  "async-trait",
+ "base64 0.22.1",
  "cfg-if",
  "derive_more",
  "error_category",
@@ -4533,6 +4590,7 @@ checksum = "43e734407157c3c2034e0258f5e4473ddb361b1e85f95a66690d67264d7cd1da"
 dependencies = [
  "base64 0.22.1",
  "bytes",
+ "encoding_rs",
  "futures-channel",
  "futures-core",
  "futures-util",
@@ -5966,6 +6024,7 @@ dependencies = [
  "url",
  "uuid",
  "wallet",
+ "wallet_account",
  "wallet_common",
  "wallet_provider",
  "wallet_provider_persistence",
@@ -6840,8 +6899,31 @@ dependencies = [
  "trait-variant",
  "url",
  "uuid",
+ "wallet_account",
  "wallet_common",
  "wiremock",
+]
+
+[[package]]
+name = "wallet_account"
+version = "0.3.0-dev"
+dependencies = [
+ "android_attest",
+ "apple_app_attest",
+ "assert_matches",
+ "error_category",
+ "futures",
+ "p256",
+ "platform_support",
+ "rand_core",
+ "rstest",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+ "wallet_common",
 ]
 
 [[package]]
@@ -6870,9 +6952,7 @@ name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
- "android_attest",
  "anyhow",
- "apple_app_attest",
  "assert_matches",
  "axum",
  "axum-server",
@@ -6880,8 +6960,6 @@ dependencies = [
  "built",
  "cfg-if",
  "chrono",
- "ciborium",
- "config",
  "derive_more",
  "error_category",
  "etag",
@@ -6926,6 +7004,7 @@ dependencies = [
  "apple_app_attest",
  "axum",
  "axum-server",
+ "cfg-if",
  "chrono",
  "config",
  "derive_more",
@@ -6948,6 +7027,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "uuid",
+ "wallet_account",
  "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
@@ -7036,6 +7116,7 @@ dependencies = [
  "jsonwebtoken",
  "nl_wallet_mdoc",
  "p256",
+ "platform_support",
  "rand",
  "rand_core",
  "rstest",
@@ -7051,6 +7132,7 @@ dependencies = [
  "tracing-subscriber",
  "trait-variant",
  "uuid",
+ "wallet_account",
  "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",

@@ -14,15 +14,7 @@ required-features = ["mock"]
 
 [features]
 encode = []
-mock = [
-    "encode",
-    "dep:der",
-    "dep:rand",
-    "dep:rcgen",
-    "dep:time",
-    "dep:x509-cert",
-    "derive_more/debug",
-]
+mock = ["encode", "dep:der", "dep:rand", "dep:rcgen", "dep:time", "dep:x509-cert"]
 network_test = []
 # Accept attested keys from the emulator. This allows software security level.
 allow_emulator_keys = ["dep:tracing"]
@@ -32,7 +24,10 @@ bitflags.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["serde", "now"] }
 const-decoder.workspace = true
-derive_more = { workspace = true, features = ["as_ref"] }
+derive_more = { workspace = true, features = ["debug", "as_ref"] }
+futures.workspace = true
+gcloud-auth = { workspace = true, features = ["rustls-tls"] }
+http.workspace = true
 http-cache-reqwest = { workspace = true, features = ["manager-moka"] }
 int-enum.workspace = true
 num-bigint.workspace = true
@@ -41,17 +36,18 @@ nutype = { workspace = true, features = ["regex", "serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pkcs8"] }
 rasn = { workspace = true, features = ["std"] }
 regex.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest = { workspace = true, features = ["json", "rustls-tls-webpki-roots"] }
 reqwest-middleware.workspace = true
 rsa = { workspace = true, features = ["std"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-serde_with = { workspace = true, features = ["chrono", "base64", "hex"] }
+serde_with = { workspace = true, features = ["chrono", "base64"] }
 spki = { workspace = true, features = ["std"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
+tokio = { workspace = true, features = ["fs", "sync", "parking_lot"] }
 url.workspace = true
 x509-parser.workspace = true
 
@@ -67,5 +63,5 @@ assert_matches.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa", "pem", "pkcs8"] }
 rand.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["macros", "parking_lot"] }
 wiremock.workspace = true

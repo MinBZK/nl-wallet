@@ -7,11 +7,14 @@ use indexmap::IndexMap;
 use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
+use serde_with::base64::Base64;
+use serde_with::serde_as;
 
 use sd_jwt::metadata::TypeMetadata;
-use wallet_common::account::serialization::DerVerifyingKey;
 use wallet_common::config::http::TlsPinningConfig;
+use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
 
 use crate::pid::attributes::BrpPidAttributeService;
 use crate::pid::attributes::Error as BrpError;
@@ -19,6 +22,7 @@ use crate::pid::brp::client::HttpBrpClient;
 
 use super::*;
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct Issuer {
     /// Issuer private keys index per doctype
@@ -38,6 +42,7 @@ pub struct Issuer {
 
     pub brp_server: BaseUrl,
 
+    #[serde_as(as = "Base64")]
     pub wte_issuer_pubkey: DerVerifyingKey,
 
     pub valid_days: u64,
@@ -49,13 +54,12 @@ fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<Vec<TypeMetadata
 where
     D: Deserializer<'de>,
 {
-    let base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
     let path = Vec::<String>::deserialize(deserializer)?;
 
     let metadatas = path
         .iter()
         .map(|path| {
-            let metadata_file = fs::read(base_path.join(path)).map_err(de::Error::custom)?;
+            let metadata_file = fs::read(utils::prefix_local_path(path.as_ref())).map_err(de::Error::custom)?;
             serde_json::from_slice(metadata_file.as_slice())
         })
         .collect::<Result<_, _>>()

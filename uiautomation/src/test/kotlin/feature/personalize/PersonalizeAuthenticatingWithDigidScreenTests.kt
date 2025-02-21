@@ -23,7 +23,6 @@ class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
 
     private lateinit var personalizeAuthenticatingWithDigidScreen: PersonalizeAuthenticatingWithDigidScreen
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizeInform)
 
@@ -35,6 +34,7 @@ class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The App displays a loading screen whilst this process is pending. [$JIRA_ID]")
     fun verifyPersonalizeAuthenticatingWithDigidScreen() {
+        setUp()
         assertTrue(
             personalizeAuthenticatingWithDigidScreen.visible(),
             "personalize authenticating with digid screen is not visible"

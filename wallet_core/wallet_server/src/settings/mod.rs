@@ -1,7 +1,5 @@
-use std::env;
 use std::net::IpAddr;
 use std::num::NonZeroU64;
-use std::path::PathBuf;
 use std::time::Duration;
 
 use chrono::DateTime;
@@ -23,11 +21,12 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
-use wallet_common::account::serialization::DerSigningKey;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
+use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
 
 use crate::keys::KeyError;
 use crate::keys::PrivateKeyType;
@@ -138,10 +137,11 @@ pub struct KeyPair {
     pub private_key: PrivateKey,
 }
 
+#[serde_as]
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum PrivateKey {
-    Software(DerSigningKey),
+    Software(#[serde_as(as = "Base64")] DerSigningKey),
     Hardware(String),
 }
 
@@ -175,7 +175,7 @@ impl From<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
     fn from(value: nl_wallet_mdoc::server_keys::KeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
-            private_key: PrivateKey::Software(DerSigningKey(value.private_key().clone())),
+            private_key: PrivateKey::Software(value.private_key().clone().into()),
         }
     }
 }
@@ -240,8 +240,7 @@ impl Settings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-        let config_source = config_path.join(config_file);
+        let config_source = utils::prefix_local_path(config_file.as_ref());
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")
@@ -261,8 +260,8 @@ impl Settings {
         let environment_parser = environment_parser.try_parsing(true);
 
         let config = config_builder
-            .add_source(File::from(config_source).required(false))
-            .add_source(File::from(PathBuf::from(config_file)).required(false))
+            .add_source(File::from(config_source.as_ref()).required(false))
+            .add_source(File::from(config_file.as_ref()).required(false))
             .add_source(environment_parser)
             .build()?
             .try_deserialize()?;

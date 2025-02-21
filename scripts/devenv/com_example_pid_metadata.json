@@ -118,7 +118,7 @@
       "family_name": {
         "type": "string"
       },
-      "birthdate": {
+      "birth_date": {
         "type": "string",
         "format": "date"
       },
@@ -138,6 +138,9 @@
         "type": "string"
       },
       "iat": {
+        "type": "number"
+      },
+      "nbf": {
         "type": "number"
       },
       "exp": {

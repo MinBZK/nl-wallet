@@ -12,8 +12,8 @@ use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
-use wallet_common::account::messages::auth::Registration;
-use wallet_common::account::signed::ChallengeResponse;
+use wallet_account::messages::registration::Registration;
+use wallet_account::signed::ChallengeResponse;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::jwt::JwtError;
@@ -65,7 +65,7 @@ pub enum WalletRegistrationError {
     #[error("could not get attested public key: {0}")]
     AttestedPublicKey(#[source] Box<dyn Error + Send + Sync>),
     #[error("could not sign registration message: {0}")]
-    Signing(#[source] wallet_common::account::errors::Error),
+    Signing(#[source] wallet_account::error::EncodeError),
     #[error("could not request registration from Wallet Provider: {0}")]
     RegistrationRequest(#[source] AccountProviderError),
     #[error("could not validate registration certificate received from Wallet Provider: {0}")]
@@ -246,7 +246,7 @@ where
                 certificate_chain
                     .try_into()
                     .map_err(WalletRegistrationError::AndroidCertificateChain)?,
-                app_attestation_token.into(),
+                app_attestation_token,
                 &pin_key,
                 challenge,
             )
@@ -267,7 +267,7 @@ where
         // Double check that the public key returned in the wallet certificate matches that of our hardware key.
         // Note that this public key is only available on Android, on iOS all we have is opaque attestation data.
         let cert_claims = wallet_certificate
-            .parse_and_verify_with_sub(&config.account_server.certificate_public_key.clone().into())
+            .parse_and_verify_with_sub(&config.account_server.certificate_public_key.as_inner().into())
             .map_err(WalletRegistrationError::CertificateValidation)?;
 
         if let AttestedKey::Google(key) = &attested_key {
@@ -276,7 +276,7 @@ where
                 .await
                 .map_err(|error| WalletRegistrationError::AttestedPublicKey(Box::new(error)))?;
 
-            if cert_claims.hw_pubkey.0 != attested_pub_key {
+            if cert_claims.hw_pubkey.as_inner() != &attested_pub_key {
                 return Err(WalletRegistrationError::PublicKeyMismatch);
             }
         }
@@ -331,9 +331,9 @@ mod tests {
     use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
-    use wallet_common::account::messages::auth::RegistrationAttestation;
-    use wallet_common::account::messages::auth::WalletCertificate;
-    use wallet_common::account::signed::SequenceNumberComparison;
+    use wallet_account::messages::registration::RegistrationAttestation;
+    use wallet_account::messages::registration::WalletCertificate;
+    use wallet_account::signed::SequenceNumberComparison;
     use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 
@@ -411,7 +411,7 @@ mod tests {
                                 &attested_public_key,
                                 &app_identifier,
                                 AssertionCounter::default(),
-                                &registration.payload.pin_pubkey.0,
+                                registration.payload.pin_pubkey.as_inner(),
                             )
                             .expect("registration message should verify");
 

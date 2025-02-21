@@ -22,7 +22,9 @@ class BottomBackButton extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         iconPosition: IconPosition.start,
         dividerSide: DividerSide.top,
-        text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
+        text: Text.rich(
+          context.l10n.generalBottomBackCta.toTextSpan(context),
+        ),
       ),
     );
   }

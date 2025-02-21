@@ -5,21 +5,27 @@ use tracing::info;
 
 use wallet_common::built_info::version_string;
 use wallet_provider_service::account_server::GoogleCrlProvider;
+use wallet_provider_service::account_server::IntegrityTokenDecoder;
 
 use super::router;
 use super::router_state::RouterState;
 use super::settings::Settings;
 
-pub async fn serve<GC>(settings: Settings, google_crl_client: GC) -> Result<(), Box<dyn Error>>
+pub async fn serve<GRC, PIC>(
+    settings: Settings,
+    google_crl_client: GRC,
+    play_integrity_client: PIC,
+) -> Result<(), Box<dyn Error>>
 where
-    GC: GoogleCrlProvider + Send + Sync + 'static,
+    GRC: GoogleCrlProvider + Send + Sync + 'static,
+    PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
     let socket = SocketAddr::new(settings.webserver.ip, settings.webserver.port);
     info!("{}", version_string());
     info!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
 
     let tls_config = settings.tls_config.clone();
-    let router_state = RouterState::new_from_settings(settings, google_crl_client).await?;
+    let router_state = RouterState::new_from_settings(settings, google_crl_client, play_integrity_client).await?;
     let app = router::router(router_state);
 
     if let Some(tls_config) = tls_config {

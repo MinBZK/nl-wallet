@@ -10,10 +10,10 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use crate::account::serialization::DerVerifyingKey;
 use crate::config::digid::DigidApp2AppConfiguration;
 use crate::config::http::TlsPinningConfig;
 use crate::config::EnvironmentSpecific;
+use crate::p256_der::DerVerifyingKey;
 use crate::trust_anchor::BorrowingTrustAnchor;
 use crate::urls::BaseUrl;
 
@@ -77,14 +77,18 @@ impl Default for LockTimeoutConfiguration {
     }
 }
 
+#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AccountServerConfiguration {
     pub http_config: TlsPinningConfig,
     #[debug(skip)]
+    #[serde_as(as = "Base64")]
     pub certificate_public_key: DerVerifyingKey,
     #[debug(skip)]
+    #[serde_as(as = "Base64")]
     pub instruction_result_public_key: DerVerifyingKey,
     #[debug(skip)]
+    #[serde_as(as = "Base64")]
     pub wte_public_key: DerVerifyingKey,
 }
 

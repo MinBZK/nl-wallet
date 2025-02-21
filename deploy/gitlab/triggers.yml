@@ -1,0 +1,27 @@
+build-mock-trigger:
+  rules:
+    - !reference [.default-or-release, rules]
+  needs:
+    - job: test-flutter
+      artifacts: false
+    - job: test-flutter-ui
+      artifacts: false
+    - job: test-codegen
+      artifacts: false
+    - job: test-rust
+      artifacts: false
+    - job: test-rust-doctest
+      artifacts: false
+    - job: test-rust-compilation-android
+      artifacts: false
+    - job: test-ios
+      artifacts: false
+    - job: test-rust-compilation-ios
+      artifacts: false
+  trigger:
+    include:
+      - local: .gitlab-ci.yml
+  variables:
+    BUILD: 'mock'
+  when: manual
+  allow_failure: true

@@ -49,6 +49,9 @@ spec:
             - name: pkcs11-config-volume
               mountPath: /cs_pkcs11_R3.cfg
               subPath: cs_pkcs11_R3.cfg
+            - name: wallet-provider-gcloud-service-account
+              mountPath: /google-cloud-service-account.json
+              subPath: google-cloud-service-account.json
           env:
             - name: WALLET_PROVIDER__WEBSERVER__PORT
               value: "3000"
@@ -75,9 +78,16 @@ spec:
               value: ${IOS_TEAM_IDENTIFIER}
             - name: WALLET_PROVIDER__IOS__BUNDLE_IDENTIFIER
               value: ${APP_IDENTIFIER}
+            - name: WALLET_PROVIDER__ANDROID__PACKAGE_NAME
+              value: ${APP_IDENTIFIER}
+            - name: WALLET_PROVIDER__ANDROID__CREDENTIALS_FILE
+              value: "/google-cloud-service-account.json"
             - name: CS_PKCS11_R3_CFG
               value: "/cs_pkcs11_R3.cfg"
       volumes:
         - name: pkcs11-config-volume
           configMap:
             name: nl-wallet-hsm-pkcs11
+        - name: wallet-provider-gcloud-service-account
+          secret:
+            secretName: nl-wallet-gcloud-service-account

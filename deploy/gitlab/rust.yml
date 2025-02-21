@@ -55,8 +55,6 @@ test-rust:
 test-rust-doctest:
   extends: .rust
   rules: !reference [.default-or-release-or-merge-request, rules]
-  tags:
-    - wallet-ci
   before_script:
     - set -euxo pipefail
     - cd wallet_core
@@ -65,13 +63,11 @@ test-rust-doctest:
 
 .test-rust-compilation:
   rules: !reference [.default-or-release-or-merge-request, rules]
-  tags:
-    - wallet-ci
   variables:
     RUSTFLAGS: "-D warnings"
     CONFIG_ENV: "dev"
 
-test-rust-compilation-android-linux:
+test-rust-compilation-android:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
   extends: [.test-rust-compilation]
   script:

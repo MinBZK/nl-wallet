@@ -7,8 +7,8 @@ use derive_more::FromStr;
 use http::StatusCode;
 
 use hsm::service::HsmError;
-use wallet_common::account::messages::errors::AccountError;
-use wallet_common::account::messages::errors::AccountErrorType;
+use wallet_account::messages::errors::AccountError;
+use wallet_account::messages::errors::AccountErrorType;
 use wallet_common::http_error::HttpJsonError;
 use wallet_common::http_error::HttpJsonErrorType;
 use wallet_provider_service::account_server::ChallengeError;
@@ -77,7 +77,8 @@ impl From<WalletProviderError> for AccountError {
                 RegistrationError::ChallengeDecoding(_) => Self::ChallengeValidation,
                 RegistrationError::ChallengeValidation(_) => Self::ChallengeValidation,
                 RegistrationError::AppleAttestation(_) => Self::AttestationValidation,
-                RegistrationError::AndroidAttestation(_) => Self::AttestationValidation,
+                RegistrationError::AndroidKeyAttestation(_) => Self::AttestationValidation,
+                RegistrationError::AndroidAppAttestation(_) => Self::AttestationValidation,
                 RegistrationError::MessageParsing(_) => Self::RegistrationParsing,
                 RegistrationError::MessageValidation(_) => Self::RegistrationParsing,
                 RegistrationError::SerialNumberMismatch { .. } => Self::RegistrationParsing,

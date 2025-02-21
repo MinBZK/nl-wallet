@@ -8,12 +8,12 @@ use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
+use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
-use wallet_common::account::messages::instructions::ConstructPoa;
-use wallet_common::account::messages::instructions::GenerateKey;
-use wallet_common::account::messages::instructions::GenerateKeyResult;
-use wallet_common::account::messages::instructions::Sign;
-use wallet_common::apple::AppleAttestedKey;
+use wallet_account::messages::instructions::ConstructPoa;
+use wallet_account::messages::instructions::GenerateKey;
+use wallet_account::messages::instructions::GenerateKeyResult;
+use wallet_account::messages::instructions::Sign;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::CredentialEcdsaKey;
@@ -21,6 +21,7 @@ use wallet_common::keys::CredentialKeyType;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::keys::WithIdentifier;
+use wallet_common::p256_der::DerSignature;
 use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
@@ -91,7 +92,7 @@ where
             .into_iter()
             .map(|(identifier, public_key)| RemoteEcdsaKey {
                 identifier,
-                public_key: public_key.0,
+                public_key: public_key.into_inner(),
                 instruction_client: self.instruction_client.clone(),
             })
             .collect();
@@ -151,7 +152,7 @@ where
         let signatures = sign_result
             .signatures
             .into_iter()
-            .map(|signatures| signatures.into_iter().map(|signature| signature.0).collect())
+            .map(|signatures| signatures.into_iter().map(DerSignature::into_inner).collect())
             .collect();
 
         Ok(signatures)
@@ -212,13 +213,15 @@ where
 
         let signature = result
             .signatures
-            .first()
-            .and_then(|r| r.first())
+            .into_iter()
+            .next()
+            .and_then(|r| r.into_iter().next())
+            .map(DerSignature::into_inner)
             .ok_or(RemoteEcdsaKeyError::KeyNotFound(self.identifier.clone()))?;
 
-        self.public_key.verify(msg, &signature.0)?;
+        self.public_key.verify(msg, &signature)?;
 
-        Ok(signature.0)
+        Ok(signature)
     }
 }
 

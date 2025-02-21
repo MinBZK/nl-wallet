@@ -4,7 +4,7 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use wallet_common::account::messages::auth::WalletCertificate;
+use wallet_account::messages::registration::WalletCertificate;
 
 use crate::pin::change::State;
 

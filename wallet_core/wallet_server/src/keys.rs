@@ -5,7 +5,6 @@ use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
 use nl_wallet_mdoc::utils::x509::CertificateError;
-use wallet_common::account::serialization::DerSigningKey;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::EcdsaKeySend;
 
@@ -54,7 +53,7 @@ pub enum KeyError {
 impl PrivateKeyType {
     pub fn from_settings(settings: PrivateKey, hsm: Option<&Pkcs11Hsm>) -> Result<Self, KeyError> {
         let pk = match settings {
-            PrivateKey::Software(DerSigningKey(signing_key)) => Self::Software(signing_key),
+            PrivateKey::Software(signing_key) => Self::Software(signing_key.into_inner()),
             PrivateKey::Hardware(identifier) => {
                 let hsm = hsm.ok_or(KeyError::MissingHsmSettings(identifier.clone()))?;
                 Self::Hardware(HsmEcdsaKey::new(identifier, hsm.clone()))

@@ -1,4 +1,3 @@
-use std::env;
 use std::path::Path;
 use std::path::PathBuf;
 use std::str;
@@ -13,6 +12,7 @@ use tracing::info;
 
 use wallet_common::reqwest::tls_pinned_client_builder;
 use wallet_common::urls::BaseUrl;
+use wallet_common::utils;
 
 use crate::gba::encryption::decrypt_bytes_from_dir;
 use crate::gba::encryption::HmacSha256;
@@ -50,10 +50,7 @@ impl HttpGbavClient {
         let key = Pem::new("PRIVATE KEY", client_cert_key);
         let cert_buf = pem::encode(&key) + &pem::encode(&cert);
 
-        let vraag_request_template_path = env::var("CARGO_MANIFEST_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_default()
-            .join("resources/remote/bsn_zoeken_template.xml");
+        let vraag_request_template_path = utils::prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
 
         let http_client = tls_pinned_client_builder(vec![trust_anchor])
@@ -117,8 +114,8 @@ pub struct FileGbavClient<T> {
 
 impl<T> FileGbavClient<T> {
     pub fn new(path: &Path, decryption_key: SymmetricKey, hmac_key: SymmetricKey, client: T) -> Self {
-        let mut base_path = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from).unwrap_or_default();
-        base_path.push(path);
+        let base_path = utils::prefix_local_path(path).into_owned();
+
         Self {
             base_path,
             decryption_key,

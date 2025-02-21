@@ -23,7 +23,6 @@ class HistoryOverviewTests : TestBase() {
 
     private lateinit var historyOverviewScreen: HistoryOverviewScreen
 
-    @BeforeEach
     fun setUp() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickHistoryButton()
@@ -34,6 +33,7 @@ class HistoryOverviewTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.A log entry is added for the PID issuance event. [${JIRA_ID}]")
     fun verifyIssuanceHistoryEntries() {
+        setUp()
         assertTrue(historyOverviewScreen.visible(), "history overview screen is not visible")
         assertTrue(
             historyOverviewScreen.pidIssuanceLogEntryVisible(),

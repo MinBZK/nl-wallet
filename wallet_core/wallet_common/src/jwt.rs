@@ -30,7 +30,6 @@ use x509_parser::x509::AlgorithmIdentifier;
 
 use error_category::ErrorCategory;
 
-use crate::account::serialization::DerVerifyingKey;
 use crate::keys::factory::KeyFactory;
 use crate::keys::CredentialEcdsaKey;
 use crate::keys::EcdsaKey;
@@ -157,12 +156,6 @@ pub struct EcdsaDecodingKey(pub DecodingKey);
 impl From<DecodingKey> for EcdsaDecodingKey {
     fn from(value: DecodingKey) -> Self {
         EcdsaDecodingKey(value)
-    }
-}
-
-impl From<DerVerifyingKey> for EcdsaDecodingKey {
-    fn from(value: DerVerifyingKey) -> Self {
-        (&value.0).into()
     }
 }
 
