@@ -13,8 +13,7 @@ use tracing::error;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
-use openid4vc_server::log_requests::log_request_response;
-
+use crate::log_requests::log_request_response;
 use crate::settings::Server;
 use crate::settings::ServerSettings;
 

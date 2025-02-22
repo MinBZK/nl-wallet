@@ -18,6 +18,7 @@ postgres = ["dep:serde_json", "dep:sea-orm", "dep:strum"]
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
+base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true

@@ -3840,7 +3840,6 @@ version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-extra",
- "base64 0.22.1",
  "cfg-if",
  "chrono",
  "derive_more",
@@ -5549,6 +5548,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "chrono",
  "config",
  "http",
