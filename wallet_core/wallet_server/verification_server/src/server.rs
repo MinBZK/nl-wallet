@@ -2,20 +2,20 @@ use std::io;
 
 use anyhow::Result;
 use axum::Router;
-use openid4vc::server_state::SessionStore;
-use openid4vc::verifier::DisclosureData;
-use openid4vc_server::verifier;
 use tokio::net::TcpListener;
 use tower_http::validate_request::ValidateRequestHeaderLayer;
 use tracing::info;
 
-use wallet_common::built_info::version_string;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
+use openid4vc::server_state::SessionStore;
+use openid4vc::verifier::DisclosureData;
+use openid4vc_server::verifier;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
+use wallet_common::built_info::version_string;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use crate::settings::VerifierSettings;
 

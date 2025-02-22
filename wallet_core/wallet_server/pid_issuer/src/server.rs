@@ -7,10 +7,10 @@ use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
 use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::issuer::IssuerKeyRing;
-use wallet_common::built_info::version_string;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Server;
+use wallet_common::built_info::version_string;
 
 use crate::settings::IssuerSettings;
 

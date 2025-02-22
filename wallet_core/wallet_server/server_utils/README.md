@@ -1,3 +1,8 @@
+# server_utils
+
+This crate contains variouus tooling and utilities for server side implementation of
+OpenID4VCI and/or OpenID4VP.
+
 ## Migrate database
 
 This package comes with a separate binary to update the postgres database
