@@ -579,6 +579,7 @@ mod tests {
 
     use nl_wallet_mdoc::holder::Mdoc;
     use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
+    use nl_wallet_mdoc::test::data::PID;
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
     use openid4vc::disclosure_session::VpMessageClientError;
@@ -1602,8 +1603,8 @@ mod tests {
         let wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
 
         // Create some fake `Mdoc` entries to place into wallet storage.
-        let mdoc1 = Mdoc::new_example();
-        let mdoc2 = Mdoc::new_example_with_doctype("com.example.doc_type");
+        let mdoc1 = Mdoc::new_mock().await;
+        let mdoc2 = Mdoc::new_mock_with_doctype("com.example.doc_type").await;
 
         // Place 3 copies of each `Mdoc` into `MockStorage`.
         wallet
@@ -1619,7 +1620,7 @@ mod tests {
 
         // Call the `MdocDataSource.mdoc_by_doc_types()` method on the `Wallet`.
         let mdoc_by_doc_types = wallet
-            .mdoc_by_doc_types(&["com.example.doc_type", "org.iso.18013.5.1.mDL"].into())
+            .mdoc_by_doc_types(&["com.example.doc_type", PID].into())
             .await
             .expect("Could not get mdocs by doc types from wallet");
 

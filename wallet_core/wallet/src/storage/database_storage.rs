@@ -648,6 +648,7 @@ pub(crate) mod tests {
     use nl_wallet_mdoc::holder::Mdoc;
     use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
+    use nl_wallet_mdoc::test::data::PID;
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
@@ -877,8 +878,13 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        // Create MdocsMap from example Mdoc
-        let mdoc = Mdoc::new_example();
+        // Create MdocsMap from mock Mdoc
+        let mdoc = Mdoc::new_mock().await;
+
+        // The Mock Mdoc is never deserialized, so it contains  ProtectedHeader { original_data: None, .. }, while the
+        // inserted Mdoc is deserialized on read. The line below fixes that
+        let mdoc: Mdoc = cbor_deserialize(cbor_serialize(&mdoc).unwrap().as_slice()).unwrap();
+
         let mdoc_copies = MdocCopies::try_from([mdoc.clone(), mdoc.clone(), mdoc].to_vec()).unwrap();
 
         // Insert mdocs
@@ -906,7 +912,7 @@ pub(crate) mod tests {
 
         // Fetch unique mdocs based on doctype
         let fetched_unique_doctype = storage
-            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", "org.iso.18013.5.1.mDL"]))
+            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", PID]))
             .await
             .expect("Could not fetch unique mdocs by doctypes");
 
