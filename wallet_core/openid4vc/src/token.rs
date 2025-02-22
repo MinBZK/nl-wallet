@@ -187,7 +187,7 @@ impl CredentialPreview {
                 issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
 
                 // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
-                if issuer_certificate
+                if !issuer_certificate
                     .san_dns_name_or_uris()?
                     .as_ref()
                     .contains(&unsigned_mdoc.issuer_uri)
