@@ -211,20 +211,20 @@ android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
-pid_issuer = { path = "../pid_issuer", optional = true, features = ["mock"] }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
 openid4vc_server = { path = "../openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
+pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
 platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", optional = true, features = ["example_constructors"] }
+server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 update_policy_server = { path = "../update_policy_server", optional = true }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
 wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }
-server_utils = { path = "../server_utils", optional = true, features = [] }
-verification_server = { path = "../verification_server", optional = true, features = [] }
+verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
@@ -235,8 +235,8 @@ dotenvy = { workspace = true, optional = true }
 # * hsm_test
 # * db_test
 openid4vc = { path = "../openid4vc", features = ["integration"] }
-pid_issuer = { path = "../pid_issuer", features = ["integration_test"] }
+pid_issuer = { path = "../wallet_server/pid_issuer", features = ["integration_test"] }
 platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
 wallet_account = { path = "../wallet_account", features = ["integration_test"] }
-server_utils = { path = "../server_utils", features = ["integration_test"] }
-verification_server = { path = "../verification_server", features = ["integration_test"] }
+server_utils = { path = "../wallet_server/server_utils", features = ["integration_test"] }
+verification_server = { path = "../wallet_server/verification_server", features = ["integration_test"] }
