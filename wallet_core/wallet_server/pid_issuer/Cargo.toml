@@ -29,7 +29,7 @@ default = ["postgres"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url"]
 # Include session storage in PostgreSQL
-postgres = ["openid4vc_server/postgres"]
+postgres = ["server_utils/postgres", "dep:sea-orm"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["postgres", "allow_insecure_url", "dep:serial_test", "openid4vc/test", "tokio/sync"]
 # Enable mock PID issuance
@@ -49,6 +49,13 @@ http.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rustls-pki-types.workspace = true
+sea-orm = { workspace = true, optional = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-json",
+] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true

@@ -12,13 +12,11 @@ workspace = true
 doctest = false
 
 [features]
-default = ["disclosure", "postgres"]
-# Include session storage in PostgreSQL
-postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
+default = ["disclosure"]
 # Enable issuance
-issuance = ["axum/form", "dep:axum-extra", "dep:serde_json"]
+issuance = ["axum/form", "dep:axum-extra"]
 # Enable disclosure
-disclosure = ["dep:ring", "dep:strum"]
+disclosure = ["dep:ring"]
 
 [dependencies]
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tower-log", "tracing"] }
@@ -37,15 +35,6 @@ url = { workspace = true, features = ["serde"] }
 
 axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 ring = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true, features = [
-    "macros",
-    "runtime-tokio-rustls",
-    "sqlx-postgres",
-    "with-chrono",
-    "with-json",
-] }
-serde_json = { workspace = true, optional = true }
-strum = { workspace = true, optional = true, features = ["derive"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }

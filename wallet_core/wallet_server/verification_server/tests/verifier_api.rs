@@ -62,6 +62,11 @@ use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
+use server_utils::settings::Authentication;
+use server_utils::settings::RequesterAuth;
+use server_utils::settings::Server;
+use server_utils::settings::Settings;
+use server_utils::settings::Storage;
 use verification_server::server;
 use verification_server::settings::VerifierSettings;
 use verification_server::settings::VerifierUseCase;
@@ -73,11 +78,6 @@ use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
-use server_utils::settings::Authentication;
-use server_utils::settings::RequesterAuth;
-use server_utils::settings::Server;
-use server_utils::settings::Settings;
-use server_utils::settings::Storage;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -730,11 +730,11 @@ mod db_test {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureData;
-    use openid4vc_server::store::postgres;
-    use openid4vc_server::store::postgres::PostgresSessionStore;
+    use server_utils::settings::ServerSettings;
+    use server_utils::store::postgres;
+    use server_utils::store::postgres::PostgresSessionStore;
     use verification_server::settings::VerifierSettings;
     use wallet_common::generator::mock::MockTimeGenerator;
-    use server_utils::settings::ServerSettings;
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;

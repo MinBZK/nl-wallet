@@ -1,6 +1,6 @@
 use sea_orm_migration::prelude::*;
 
-use openid4vc_server_migrations::Migrator;
+use wallet_server_migrations::Migrator;
 
 #[tokio::main]
 async fn main() {

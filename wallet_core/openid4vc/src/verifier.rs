@@ -49,6 +49,7 @@ use crate::return_url::ReturnUrlTemplate;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
+use crate::server_state::SessionDataType;
 use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
@@ -283,6 +284,10 @@ pub enum DisclosureData {
     Created(Created),
     WaitingForResponse(Box<WaitingForResponse>),
     Done(Done),
+}
+
+impl SessionDataType for DisclosureData {
+    const TYPE: &'static str = "mdoc_disclosure";
 }
 
 impl HasProgress for DisclosureData {

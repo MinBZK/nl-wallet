@@ -3851,23 +3851,12 @@ dependencies = [
  "ring",
  "rustls-pki-types",
  "sd_jwt",
- "sea-orm",
  "serde",
- "serde_json",
- "strum 0.26.3",
  "thiserror 2.0.11",
  "tower-http",
  "tracing",
  "url",
  "wallet_common",
-]
-
-[[package]]
-name = "openid4vc_server_migrations"
-version = "0.3.0-dev"
-dependencies = [
- "sea-orm-migration",
- "tokio",
 ]
 
 [[package]]
@@ -4123,6 +4112,7 @@ dependencies = [
  "rstest",
  "rustls-pki-types",
  "sd_jwt",
+ "sea-orm",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5566,8 +5556,11 @@ dependencies = [
  "openid4vc",
  "openid4vc_server",
  "rustls-pki-types",
+ "sea-orm",
  "serde",
+ "serde_json",
  "serde_with",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",
  "tower-http",
@@ -7287,6 +7280,14 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "x509-parser 0.17.0",
+]
+
+[[package]]
+name = "wallet_server_migrations"
+version = "0.3.0-dev"
+dependencies = [
+ "sea-orm-migration",
+ "tokio",
 ]
 
 [[package]]

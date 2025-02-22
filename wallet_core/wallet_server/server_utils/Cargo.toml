@@ -12,6 +12,8 @@ doctest = false
 
 [features]
 integration_test = []
+# Include session storage in PostgreSQL
+postgres = ["dep:serde_json", "dep:sea-orm", "dep:strum"]
 
 [dependencies]
 anyhow.workspace = true
@@ -20,8 +22,17 @@ chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 http.workspace = true
 rustls-pki-types.workspace = true
+sea-orm = { workspace = true, optional = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-json",
+] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
+serde_json = { workspace = true, optional = true }
+strum = { workspace = true, optional = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }

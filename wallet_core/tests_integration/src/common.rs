@@ -14,14 +14,15 @@ use ctor::ctor;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
-use openid4vc_server::store::WteTrackerVariant;
 use pid_issuer::pid::mock::MockAttributesLookup;
 use pid_issuer::settings::IssuerSettings;
+use pid_issuer::wte_tracker::WteTrackerVariant;
 use reqwest::Certificate;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
+use server_utils::store::SessionStoreVariant;
 use tokio::time;
 use url::Url;
 use uuid::Uuid;
@@ -39,11 +40,13 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
-use openid4vc_server::store::SessionStoreVariant;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
+use server_utils::settings::RequesterAuth;
+use server_utils::settings::Server;
+use server_utils::settings::ServerSettings;
 use update_policy_server::settings::Settings as UpsSettings;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
@@ -70,9 +73,6 @@ use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
-use server_utils::settings::RequesterAuth;
-use server_utils::settings::Server;
-use server_utils::settings::ServerSettings;
 
 use crate::logging::init_logging;
 use crate::utils::read_file;
@@ -398,7 +398,7 @@ pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
     let storage_settings = &settings.server_settings.storage;
     let public_url = settings.server_settings.public_url.clone();
 
-    let db_connection = openid4vc_server::store::DatabaseConnection::try_new(storage_settings.url.clone())
+    let db_connection = server_utils::store::DatabaseConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 
@@ -420,7 +420,7 @@ pub async fn start_verification_server(settings: VerifierSettings) {
     let storage_settings = &settings.server_settings.storage;
     let public_url = settings.server_settings.public_url.clone();
 
-    let db_connection = openid4vc_server::store::DatabaseConnection::try_new(storage_settings.url.clone())
+    let db_connection = server_utils::store::DatabaseConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 

@@ -1,8 +1,8 @@
 use anyhow::Result;
 
-use openid4vc_server::store::DatabaseConnection;
-use openid4vc_server::store::SessionStoreVariant;
 use server_utils::server::wallet_server_main;
+use server_utils::store::DatabaseConnection;
+use server_utils::store::SessionStoreVariant;
 use verification_server::server;
 use verification_server::settings::VerifierSettings;
 

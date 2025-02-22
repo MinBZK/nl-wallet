@@ -1,14 +1,12 @@
 use anyhow::Result;
 
-use openid4vc_server::store::DatabaseConnection;
-use openid4vc_server::store::SessionStoreVariant;
-use openid4vc_server::store::WteTrackerVariant;
-
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::server;
-
 use pid_issuer::settings::IssuerSettings;
+use pid_issuer::wte_tracker::WteTrackerVariant;
 use server_utils::server::wallet_server_main;
+use server_utils::store::DatabaseConnection;
+use server_utils::store::SessionStoreVariant;
 
 #[tokio::main]
 async fn main() -> Result<()> {

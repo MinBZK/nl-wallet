@@ -14,15 +14,15 @@ use openid4vc::server_state::test::RandomData;
 use openid4vc::server_state::Expirable;
 use openid4vc::server_state::HasProgress;
 use openid4vc::server_state::Progress;
+use openid4vc::server_state::SessionDataType;
 use openid4vc::server_state::SessionStoreTimeouts;
-use openid4vc_server::store::postgres;
-use openid4vc_server::store::postgres::PostgresSessionStore;
-use openid4vc_server::store::SessionDataType;
+use server_utils::settings::ServerSettings;
+use server_utils::settings::Storage;
+use server_utils::store::postgres;
+use server_utils::store::postgres::PostgresSessionStore;
 use verification_server::settings::VerifierSettings;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::utils;
-use server_utils::settings::ServerSettings;
-use server_utils::settings::Storage;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

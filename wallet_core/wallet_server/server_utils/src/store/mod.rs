@@ -1,9 +1,7 @@
-cfg_if::cfg_if! {
-    if #[cfg(feature = "postgres")] {
-        pub mod postgres;
-        use postgres::PostgresSessionStore;
-    }
-}
+#[cfg(feature = "postgres")]
+pub mod postgres;
+#[cfg(feature = "postgres")]
+use postgres::PostgresSessionStore;
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -12,33 +10,12 @@ use url::Url;
 use openid4vc::server_state::Expirable;
 use openid4vc::server_state::HasProgress;
 use openid4vc::server_state::MemorySessionStore;
+use openid4vc::server_state::SessionDataType;
 use openid4vc::server_state::SessionState;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreError;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
-
-pub trait SessionDataType {
-    const TYPE: &'static str;
-}
-
-cfg_if::cfg_if! {
-    if #[cfg(feature = "disclosure")] {
-        use openid4vc::verifier::DisclosureData;
-        impl SessionDataType for DisclosureData {
-            const TYPE: &'static str = "mdoc_disclosure";
-        }
-    }
-}
-
-cfg_if::cfg_if! {
-    if #[cfg(feature = "issuance")] {
-        use openid4vc::issuer::IssuanceData;
-        impl SessionDataType for IssuanceData {
-            const TYPE: &'static str = "openid4vci_issuance";
-        }
-    }
-}
 
 /// This enum effectively switches between the different types that implement `DisclosureSessionStore`,
 /// by implementing this trait itself and forwarding the calls to the type contained in the invariant.
@@ -112,65 +89,6 @@ where
                 <PostgresSessionStore as SessionStore<T>>::cleanup(postgres).await
             }
             SessionStoreVariant::Memory(memory) => memory.cleanup().await,
-        }
-    }
-}
-
-#[cfg(feature = "issuance")]
-pub use wte_tracker::WteTrackerVariant;
-
-#[cfg(feature = "issuance")]
-mod wte_tracker {
-    use openid4vc::server_state::MemoryWteTracker;
-    use openid4vc::server_state::WteTracker;
-    use wallet_common::jwt::JwtCredentialClaims;
-    use wallet_common::jwt::VerifiedJwt;
-    use wallet_common::wte::WteClaims;
-
-    use super::DatabaseConnection;
-    use super::DatabaseError;
-
-    #[cfg(feature = "postgres")]
-    use super::postgres::PostgresWteTracker;
-
-    pub enum WteTrackerVariant {
-        #[cfg(feature = "postgres")]
-        Postgres(PostgresWteTracker),
-        Memory(MemoryWteTracker),
-    }
-
-    impl WteTrackerVariant {
-        pub fn new(connection: DatabaseConnection) -> Self {
-            match connection {
-                #[cfg(feature = "postgres")]
-                DatabaseConnection::Postgres(connection) => Self::Postgres(PostgresWteTracker::new(connection)),
-                DatabaseConnection::Memory => Self::Memory(MemoryWteTracker::new()),
-            }
-        }
-    }
-
-    impl WteTracker for WteTrackerVariant {
-        type Error = DatabaseError;
-
-        async fn track_wte(&self, wte: &VerifiedJwt<JwtCredentialClaims<WteClaims>>) -> Result<bool, Self::Error> {
-            match self {
-                #[cfg(feature = "postgres")]
-                WteTrackerVariant::Postgres(postgres_wte_tracker) => Ok(postgres_wte_tracker.track_wte(wte).await?),
-                WteTrackerVariant::Memory(memory_wte_tracker) => {
-                    Ok(memory_wte_tracker.track_wte(wte).await.unwrap()) // this implementation is infallible
-                }
-            }
-        }
-
-        async fn cleanup(&self) -> Result<(), Self::Error> {
-            match self {
-                #[cfg(feature = "postgres")]
-                WteTrackerVariant::Postgres(postgres_wte_tracker) => Ok(postgres_wte_tracker.cleanup().await?),
-                WteTrackerVariant::Memory(memory_wte_tracker) => {
-                    memory_wte_tracker.cleanup().await.unwrap(); // this implementation is infallible
-                    Ok(())
-                }
-            }
         }
     }
 }
