@@ -183,7 +183,6 @@ impl<I> ProposedDocument<I> {
             .iter()
             .map(|doc| {
                 let public_key = doc.issuer_signed.public_key()?;
-                dbg!(&doc.private_key_id);
                 let key: K = key_factory.generate_existing(&doc.private_key_id, public_key);
                 let challenge = doc.device_signed_challenge.as_slice();
                 Ok((key, challenge))
@@ -222,7 +221,12 @@ mod examples {
             Self::new_inner(mdoc)
         }
 
-        pub async fn new_mock(key: &MockRemoteEcdsaKey) -> Self {
+        pub async fn new_mock() -> Self {
+            let key = MockRemoteEcdsaKey::new_random("identifier".to_string());
+            Self::new_mock_with_key(&key).await
+        }
+
+        pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
             let mdoc = Mdoc::new_mock_with_key(key).await;
             Self::new_inner(mdoc)
         }
@@ -346,7 +350,6 @@ mod tests {
             )
             .unwrap();
 
-        dbg!(&missing_attributes);
         assert_eq!(proposed_documents.len(), 2);
 
         proposed_documents
@@ -385,7 +388,7 @@ mod tests {
         // Create a `ProposedDocument`.
         let key_factory = MockRemoteKeyFactory::default();
         let key = key_factory.generate_new().await.unwrap();
-        let proposed_document = ProposedDocument::new_mock(&key).await;
+        let proposed_document = ProposedDocument::new_mock_with_key(&key).await;
 
         // Collect all of the expected values.
         let expected_doc_type = proposed_document.doc_type.clone();
@@ -427,7 +430,7 @@ mod tests {
         };
 
         let key = key_factory.generate_new().await.unwrap();
-        let proposed_document = ProposedDocument::new_mock(&key).await;
+        let proposed_document = ProposedDocument::new_mock_with_key(&key).await;
 
         // Conversion to `Document` should simply forward the signing error.
         let error = ProposedDocument::sign_multiple(&key_factory, vec![proposed_document])

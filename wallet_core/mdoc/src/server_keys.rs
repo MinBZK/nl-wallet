@@ -317,7 +317,6 @@ pub mod generate {
 
     #[cfg(any(test, feature = "mock"))]
     pub mod mock {
-
         use rcgen::SubjectPublicKeyInfo;
 
         use crate::examples::IsoCertTimeGenerator;

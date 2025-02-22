@@ -121,6 +121,7 @@ impl IssuerSigned {
         Ok(TypeMetadataChain::create(root, chain.into())?)
     }
 
+    #[cfg(any(test, feature = "test"))]
     pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
         let mut mso = self.issuer_auth.dangerous_parse_unverified()?.0;
 
