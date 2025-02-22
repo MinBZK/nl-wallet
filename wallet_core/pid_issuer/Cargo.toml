@@ -35,7 +35,7 @@ db_test = ["postgres", "allow_insecure_url", "dep:serial_test", "openid4vc/test"
 # Enable mock PID issuance
 mock = []
 # Enable integration tests
-integration_test = ["allow_insecure_url", "wallet_server/integration_test"]
+integration_test = ["allow_insecure_url", "server_utils/integration_test"]
 
 [dependencies]
 anyhow.workspace = true
@@ -81,7 +81,7 @@ openid4vc = { path = "../openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../openid4vc_server", features = ["issuance"] }
 sd_jwt.path = "../sd_jwt"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
-wallet_server.path = "../wallet_server"
+server_utils.path = "../server_utils"
 
 [dev-dependencies]
 assert_matches.workspace = true

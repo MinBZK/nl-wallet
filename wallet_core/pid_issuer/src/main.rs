@@ -8,7 +8,7 @@ use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::server;
 
 use pid_issuer::settings::IssuerSettings;
-use wallet_server::server::wallet_server_main;
+use server_utils::server::wallet_server_main;
 
 #[tokio::main]
 async fn main() -> Result<()> {

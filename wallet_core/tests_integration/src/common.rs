@@ -70,9 +70,9 @@ use wallet_provider::settings::Ios;
 use wallet_provider::settings::Settings as WpSettings;
 use wallet_provider_persistence::entity::wallet_user;
 use wallet_provider_service::account_server::mock_play_integrity::MockPlayIntegrityClient;
-use wallet_server::settings::RequesterAuth;
-use wallet_server::settings::Server;
-use wallet_server::settings::ServerSettings;
+use server_utils::settings::RequesterAuth;
+use server_utils::settings::Server;
+use server_utils::settings::ServerSettings;
 
 use crate::logging::init_logging;
 use crate::utils::read_file;

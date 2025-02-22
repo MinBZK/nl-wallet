@@ -21,18 +21,18 @@ use serde_with::serde_as;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
+use server_utils::settings::verify_key_pairs;
+use server_utils::settings::CertificateVerificationError;
+use server_utils::settings::KeyPair;
+use server_utils::settings::RequesterAuth;
+use server_utils::settings::ServerSettings;
+use server_utils::settings::Settings;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use wallet_common::utils;
-use wallet_server::settings::verify_key_pairs;
-use wallet_server::settings::CertificateVerificationError;
-use wallet_server::settings::KeyPair;
-use wallet_server::settings::RequesterAuth;
-use wallet_server::settings::ServerSettings;
-use wallet_server::settings::Settings;
 
 const MIN_KEY_LENGTH_BYTES: usize = 16;
 

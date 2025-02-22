@@ -6,8 +6,8 @@ use openid4vc::server_state::test;
 use openid4vc_server::store::postgres;
 use openid4vc_server::store::postgres::PostgresWteTracker;
 use wallet_common::generator::mock::MockTimeGenerator;
-use wallet_server::settings::ServerSettings;
-use wallet_server::settings::Storage;
+use server_utils::settings::ServerSettings;
+use server_utils::settings::Storage;
 
 fn storage_settings() -> Storage {
     IssuerSettings::new("pid_issuer.toml", "pid_issuer")

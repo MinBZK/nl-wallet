@@ -4128,6 +4128,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
+ "server_utils",
  "thiserror 2.0.11",
  "tokio",
  "tower-http",
@@ -4135,7 +4136,6 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wallet_common",
- "wallet_server",
 ]
 
 [[package]]
@@ -5554,6 +5554,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "server_utils"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "axum",
+ "chrono",
+ "config",
+ "http",
+ "nl_wallet_mdoc",
+ "openid4vc",
+ "openid4vc_server",
+ "rustls-pki-types",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6097,6 +6121,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serial_test",
+ "server_utils",
  "tempfile",
  "tokio",
  "tracing",
@@ -6111,7 +6136,6 @@ dependencies = [
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
- "wallet_server",
 ]
 
 [[package]]
@@ -6928,6 +6952,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
+ "server_utils",
  "thiserror 2.0.11",
  "tokio",
  "tower-http",
@@ -6935,7 +6960,6 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wallet_common",
- "wallet_server",
 ]
 
 [[package]]
@@ -7263,30 +7287,6 @@ dependencies = [
  "wallet_provider_domain",
  "wallet_provider_persistence",
  "x509-parser 0.17.0",
-]
-
-[[package]]
-name = "wallet_server"
-version = "0.3.0-dev"
-dependencies = [
- "anyhow",
- "axum",
- "chrono",
- "config",
- "http",
- "nl_wallet_mdoc",
- "openid4vc",
- "openid4vc_server",
- "rustls-pki-types",
- "serde",
- "serde_with",
- "thiserror 2.0.11",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "wallet_common",
 ]
 
 [[package]]

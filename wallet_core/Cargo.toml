@@ -17,6 +17,7 @@ members = [
     "pid_issuer",
     "platform_support",
     "sd_jwt",
+    "server_utils",
     "tests_integration",
     "update_policy_server",
     "verification_server",
@@ -32,7 +33,6 @@ members = [
     "wallet_provider/migrations",
     "wallet_provider/persistence",
     "wallet_provider/service",
-    "wallet_server",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"

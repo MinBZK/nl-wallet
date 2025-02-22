@@ -21,8 +21,8 @@ use openid4vc_server::store::SessionDataType;
 use verification_server::settings::VerifierSettings;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::utils;
-use wallet_server::settings::ServerSettings;
-use wallet_server::settings::Storage;
+use server_utils::settings::ServerSettings;
+use server_utils::settings::Storage;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

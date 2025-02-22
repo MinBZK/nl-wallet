@@ -25,11 +25,11 @@ use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
-use wallet_server::settings::verify_key_pairs;
-use wallet_server::settings::CertificateVerificationError;
-use wallet_server::settings::KeyPair;
-use wallet_server::settings::ServerSettings;
-use wallet_server::settings::Settings;
+use server_utils::settings::verify_key_pairs;
+use server_utils::settings::CertificateVerificationError;
+use server_utils::settings::KeyPair;
+use server_utils::settings::ServerSettings;
+use server_utils::settings::Settings;
 
 use crate::pid::attributes::BrpPidAttributeService;
 use crate::pid::attributes::Error as BrpError;

@@ -73,11 +73,11 @@ use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
-use wallet_server::settings::Authentication;
-use wallet_server::settings::RequesterAuth;
-use wallet_server::settings::Server;
-use wallet_server::settings::Settings;
-use wallet_server::settings::Storage;
+use server_utils::settings::Authentication;
+use server_utils::settings::RequesterAuth;
+use server_utils::settings::Server;
+use server_utils::settings::Settings;
+use server_utils::settings::Storage;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -734,7 +734,7 @@ mod db_test {
     use openid4vc_server::store::postgres::PostgresSessionStore;
     use verification_server::settings::VerifierSettings;
     use wallet_common::generator::mock::MockTimeGenerator;
-    use wallet_server::settings::ServerSettings;
+    use server_utils::settings::ServerSettings;
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;
