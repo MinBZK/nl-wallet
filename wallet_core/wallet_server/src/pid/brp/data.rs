@@ -352,7 +352,7 @@ mod tests {
 
         assert_eq!(
             json!({
-                "issuer_uri": "cert.issuer.example.com",
+                "issuer_uri": "https://cert.issuer.example.com/",
                 "attestation_type": "com.example.pid",
                 "attributes": {
                     "bsn": "999991772",
@@ -368,7 +368,7 @@ mod tests {
 
         assert_eq!(
             json!({
-                "issuer_uri": "cert.issuer.example.com",
+                "issuer_uri": "https://cert.issuer.example.com/",
                 "attestation_type": "com.example.address",
                 "attributes": {
                     "resident_country": "Nederland",
