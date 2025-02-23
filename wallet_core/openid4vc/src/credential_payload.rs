@@ -273,7 +273,6 @@ impl CredentialPayload {
 
 #[cfg(test)]
 mod test {
-
     use assert_matches::assert_matches;
     use chrono::TimeZone;
     use chrono::Utc;

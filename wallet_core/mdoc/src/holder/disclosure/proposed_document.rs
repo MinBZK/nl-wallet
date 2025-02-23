@@ -231,7 +231,7 @@ mod examples {
             Self::new_inner(mdoc)
         }
 
-        pub fn new_inner(mdoc: Mdoc) -> Self {
+        fn new_inner(mdoc: Mdoc) -> Self {
             let issuer_certificate = mdoc.issuer_certificate().unwrap();
 
             Self {
