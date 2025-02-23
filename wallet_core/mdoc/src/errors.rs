@@ -2,6 +2,7 @@ use error_category::ErrorCategory;
 use sd_jwt::metadata::TypeMetadataError;
 
 use crate::holder::HolderError;
+use crate::issuer::IssuanceError;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::KeysError;
 use crate::utils::crypto::CryptoError;
@@ -22,6 +23,9 @@ pub enum Error {
     Cbor(#[from] CborError),
     #[error("holder error: {0}")]
     Holder(#[from] HolderError),
+    #[error("issuance error: {0}")]
+    #[category(unexpected)]
+    Issuance(#[from] IssuanceError),
     #[error("verification error: {0}")]
     #[category(unexpected)]
     Verification(#[from] VerificationError),

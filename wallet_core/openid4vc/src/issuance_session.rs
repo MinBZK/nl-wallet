@@ -5,7 +5,6 @@ use derive_more::Debug;
 use futures::future::try_join_all;
 use futures::future::OptionFuture;
 use futures::TryFutureExt;
-use http::Uri;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -815,7 +814,7 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
                 // Verify and parse the type metadata
-                let credential_payload = CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                let credential_payload = CredentialPayload::from_mdoc(&mdoc)?;
                 credential_payload.validate(metadata_chain)?;
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))

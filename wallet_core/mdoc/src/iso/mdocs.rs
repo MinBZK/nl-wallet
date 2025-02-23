@@ -12,6 +12,7 @@ use chrono::ParseError;
 use chrono::Utc;
 use ciborium::tag;
 use ciborium::value::Value;
+use http::Uri;
 use indexmap::IndexMap;
 use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
@@ -161,6 +162,10 @@ pub struct MobileSecurityObject {
     pub device_key_info: DeviceKeyInfo,
     pub doc_type: String,
     pub validity_info: ValidityInfo,
+
+    /// The common name of the issuer, as it appears in the issuer's certificate
+    #[serde(with = "http_serde::uri")]
+    pub issuer_common_name: Uri,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

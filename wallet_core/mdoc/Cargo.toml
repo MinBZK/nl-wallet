@@ -28,6 +28,8 @@ coset = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["as_ref", "debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
+http.workspace = true
+http-serde.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 nutype = { workspace = true, features = ["serde"] }

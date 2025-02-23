@@ -2,6 +2,7 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::Utc;
+use http::Uri;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
@@ -65,6 +66,10 @@ impl Mdoc {
 
     pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
+    }
+
+    pub fn issuer_common_name(&self) -> &Uri {
+        &self.mso.issuer_common_name
     }
 
     pub fn doc_type(&self) -> &String {

@@ -98,11 +98,11 @@ impl CredentialPayload {
         )
     }
 
-    pub fn from_mdoc(mdoc: &Mdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: &Mdoc) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
             mdoc.doc_type().to_string(),
             &mdoc.attributes(),
-            issuer,
+            mdoc.issuer_common_name().clone(),
             Some((&mdoc.validity_info().signed).try_into()?),
             Some((&mdoc.validity_info().valid_until).try_into()?),
             Some((&mdoc.validity_info().valid_from).try_into()?),
