@@ -60,9 +60,14 @@ impl Attestation {
         }
 
         // Finally, construct the `Attestation` type.
+        let display_metadata = metadata
+            .display
+            .into_iter()
+            .map(|metadata| (metadata.lang.clone(), metadata))
+            .collect();
         let attestation = Attestation {
             identity,
-            display_metadata: metadata.display,
+            display_metadata,
             attestation_type,
             issuer,
             attributes,

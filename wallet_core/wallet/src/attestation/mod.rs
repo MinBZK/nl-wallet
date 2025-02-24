@@ -2,6 +2,7 @@ mod attribute;
 mod disclosure;
 mod issuance;
 
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use serde::Deserialize;
@@ -41,7 +42,7 @@ enum AttributeSelectionMode {
 pub struct Attestation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
-    pub display_metadata: Vec<DisplayMetadata>,
+    pub display_metadata: HashMap<String, DisplayMetadata>,
     pub issuer: Organization,
     pub attributes: Vec<AttestationAttribute>,
 }

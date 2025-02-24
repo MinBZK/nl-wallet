@@ -185,7 +185,11 @@ impl From<Attestation> for DisclosureCard {
             issuer: value.issuer.into(),
             doc_type: value.attestation_type,
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
-            display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
+            display_metadata: value
+                .display_metadata
+                .into_values()
+                .map(DisplayMetadata::from)
+                .collect(),
         }
     }
 }

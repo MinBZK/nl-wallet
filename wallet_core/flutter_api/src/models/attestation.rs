@@ -17,7 +17,11 @@ impl From<wallet::Attestation> for Attestation {
         Self {
             identity: value.identity.into(),
             attestation_type: value.attestation_type,
-            display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
+            display_metadata: value
+                .display_metadata
+                .into_values()
+                .map(DisplayMetadata::from)
+                .collect(),
             issuer: value.issuer.into(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
