@@ -40,6 +40,10 @@ pub enum AttestationsError {
     #[category(defer)]
     CredentialPayload(#[from] CredentialPayloadError),
 
+    #[error("could not extract type metadata from mdoc: {0}")]
+    #[category(defer)]
+    Metadata(#[source] nl_wallet_mdoc::Error),
+
     #[error("error converting credential payload to attestation: {0}")]
     #[category(defer)]
     Attestation(#[from] AttestationError),
@@ -70,8 +74,10 @@ where
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },
-                    CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?, // TODO: PVW-3823
-                    mdoc.type_metadata().unwrap().first().clone(),                     // TODO: PVW-3812
+                    // TODO: PVW-3823
+                    CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?,
+                    // TODO: PVW-3812
+                    mdoc.type_metadata().map_err(AttestationsError::Metadata)?.into_first(),
                     issuer_registration.organization,
                 )?;
                 Ok(attestation)
