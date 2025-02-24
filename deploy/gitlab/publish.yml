@@ -1,0 +1,4 @@
+publish-code:
+  rules: !reference [.default-branch, rules]
+  trigger:
+    project: logius/wallet/publication-guard
