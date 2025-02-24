@@ -3,7 +3,6 @@ import { defineConfig } from "@playwright/test"
 
 export default defineConfig({
   testDir: "../tests/unauthenticated",
-
   reporter: [
     ["list"],
     ["junit", { outputFile: "../test-results-unauthenticated/results_unauthenticated.xml" }],

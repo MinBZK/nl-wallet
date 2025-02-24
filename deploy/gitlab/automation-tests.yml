@@ -124,8 +124,7 @@ run-automation-tests-publish-results:
     - { job: run-automation-tests-suite-lock }
     - { job: run-automation-tests-suite-web }
   script:
-    - zip e2e.zip uiautomation/build/test-results/test/*.xml
-    - deploy/bin/store-artifact.sh e2e.zip qt/quality-time/junit-results/
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
@@ -234,12 +233,11 @@ run-gba-fetch-browsertest-test-ont:
     npm run test:authenticated
     npm run test:unauthenticated
   after_script:
-    - zip -r browsertest-gbafetch.zip browsertests/packages/gba-fetch/ -i "*.xml"
-    - deploy/bin/store-artifact.sh browsertest-gbafetch.zip qt/quality-time/junit-results/browsertest-gbafetch.zip
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/test-results-*/*.xml
   artifacts:
     when: always
     paths:
-      - browsertests/packages/gba-fetch/test-results*/
+      - browsertests/packages/gba-fetch/test-results-*/*.xml
     reports:
       junit: browsertests/packages/gba-fetch/test-results*/*.xml
   allow_failure: false
