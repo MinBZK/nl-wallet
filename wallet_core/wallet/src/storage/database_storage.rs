@@ -881,8 +881,10 @@ pub(crate) mod tests {
         // Create MdocsMap from mock Mdoc
         let mdoc = Mdoc::new_mock().await;
 
-        // The Mock Mdoc is never deserialized, so it contains  ProtectedHeader { original_data: None, .. }, while the
-        // inserted Mdoc is deserialized on read. The line below fixes that
+        // The mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`.
+        // When this mdoc is serialized, stored, fetched, and then deserialized again, it will contain
+        // `ProtectedHeader { original_data: Some(..), .. }` so the equality check below will fail.
+        // This line fixes that.
         let mdoc: Mdoc = cbor_deserialize(cbor_serialize(&mdoc).unwrap().as_slice()).unwrap();
 
         let mdoc_copies = MdocCopies::try_from([mdoc.clone(), mdoc.clone(), mdoc].to_vec()).unwrap();
