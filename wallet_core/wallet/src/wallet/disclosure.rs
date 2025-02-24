@@ -26,6 +26,7 @@ use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::Attestation;
+use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::disclosure::DisclosureUriError;
@@ -51,7 +52,6 @@ use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
 use crate::storage::WalletEvent;
 
-use super::attestations::AttestationsError;
 use super::history::EventStorageError;
 use super::Wallet;
 
@@ -93,10 +93,10 @@ pub enum DisclosureError {
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
-    #[error("could not interpret (missing) mdoc attributes: {0}")]
+    #[error("could not interpret missing mdoc attributes: {0}")]
     MdocAttributes(#[source] DocumentMdocError),
-    #[error("could not interpret (missing) attestation attributes: {0}")]
-    AttestationAttributes(#[source] AttestationsError),
+    #[error("could not interpret attestation attributes: {0}")]
+    AttestationAttributes(#[source] AttestationError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -253,7 +253,6 @@ where
                     session.reader_registration().organization.clone(),
                     &attributes.attributes,
                 )
-                .map_err(AttestationsError::Attestation)
             })
             .collect::<Result<_, _>>()
             .map_err(DisclosureError::AttestationAttributes)?;
@@ -918,7 +917,7 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::AttestationAttributes(
-                AttestationsError::Attestation(AttestationError::AttributeNotProcessedByClaim(keys)))
+                AttestationError::AttributeNotProcessedByClaim(keys))
                     if keys == HashSet::from([vec![String::from("foo")]]
             )
         );
