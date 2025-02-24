@@ -108,7 +108,7 @@ enum Command {
         /// Path to Issuer Authentication file in JSON format
         #[arg(short, long, value_parser)]
         issuer_auth_file: CachedInput,
-        /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
+        /// Prefix to use for the generated files: <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
         /// Duration for which the certificate will be valid
@@ -135,7 +135,7 @@ enum Command {
         /// Path to Reader Authentication file in JSON format
         #[arg(short, long, value_parser)]
         reader_auth_file: CachedInput,
-        /// Prefix to use for the generated files: <FILE_PREFIX>.key.pem and <FILE_PREFIX>.crt.pem
+        /// Prefix to use for the generated files: <FILE_PREFIX>.crt.pem
         #[arg(short, long)]
         file_prefix: String,
         /// Duration for which the certificate will be valid

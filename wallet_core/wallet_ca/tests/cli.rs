@@ -103,12 +103,12 @@ fn predicate_missing_key_file(path: &Path) -> StartsWithPredicate {
     ))
 }
 
-// fn predicate_missing_public_key_file(path: &Path) -> StartsWithPredicate {
-//     predicate::str::starts_with(format!(
-//         r#"error: Invalid value for --public-key-file <PUBLIC_KEY_FILE>: Could not open "{}": No such file or directory"#,
-//         path.display()
-//     ))
-// }
+fn predicate_missing_public_key_file(path: &Path) -> StartsWithPredicate {
+    predicate::str::starts_with(format!(
+        r#"error: Invalid value for --public-key-file <PUBLIC_KEY_FILE>: Could not open "{}": No such file or directory"#,
+        path.display()
+    ))
+}
 
 fn assert_generated_key(key_file: &ChildPath) -> Result<()> {
     // Read key and verify algorithm
@@ -284,7 +284,7 @@ fn keypair_paths(temp: &TempDir, prefix: &str) -> (ChildPath, ChildPath, ChildPa
     )
 }
 
-fn certificate_path(temp: &TempDir, prefix: &str) -> ChildPath {
+fn public_key_path(temp: &TempDir, prefix: &str) -> ChildPath {
     temp.child(format!("{}.pk.pem", prefix))
 }
 
@@ -356,8 +356,9 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Generate issuer registration JSON input file
         issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
-        let public_key_path = certificate_path(&temp, "test-mdl-crt");
+        let public_key_path = public_key_path(&temp, "test-mdl-crt");
         generate_public_key(&public_key_path);
+
         // Execute command and assert success and stderr output
         Command::cargo_bin("wallet_ca")?
             .generate_issuer_cert(&public_key_path, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
@@ -407,7 +408,7 @@ fn happy_flow_with_default_lifetime() -> Result<()> {
         // Generate reader registration JSON input file
         rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
 
-        let public_key_path = certificate_path(&temp, "test-reader-auth-crt");
+        let public_key_path = public_key_path(&temp, "test-reader-auth-crt");
         generate_public_key(&public_key_path);
 
         // Execute command and assert success and stderr output
@@ -489,8 +490,9 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         // Generate issuer registration JSON input file
         issuer_auth_json.write_str(&serde_json::to_string(&IssuerRegistration::new_mock())?)?;
 
-        let public_key_path = certificate_path(&temp, "test-mdl-crt");
+        let public_key_path = public_key_path(&temp, "test-mdl-crt");
         generate_public_key(&public_key_path);
+
         // Execute command and assert success and stderr output
         Command::cargo_bin("wallet_ca")?
             .generate_issuer_cert(&public_key_path, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
@@ -543,7 +545,7 @@ fn happy_flow_with_custom_lifetime() -> Result<()> {
         // Generate reader registration JSON input file
         rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
 
-        let public_key_path = certificate_path(&temp, "test-reader-auth-crt");
+        let public_key_path = public_key_path(&temp, "test-reader-auth-crt");
         generate_public_key(&public_key_path);
 
         // Execute command and assert success and stderr output
@@ -731,6 +733,15 @@ fn setup_issuer_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath
     Ok((ca_crt, ca_key, mdl_prefix, issuer_auth_json))
 }
 
+fn setup_issuer_pubkey_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath, ChildPath)> {
+    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(temp)?;
+
+    let public_key_path = public_key_path(temp, "test-mdl-crt");
+    generate_public_key(&public_key_path);
+
+    Ok((public_key_path, ca_crt, ca_key, mdl_prefix, issuer_auth_json))
+}
+
 #[test]
 fn missing_input_files_issuer() -> Result<()> {
     let temp = assert_fs::TempDir::new()?;
@@ -774,6 +785,60 @@ fn missing_input_files_issuer() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn missing_input_files_issuer_pubkey() -> Result<()> {
+    let temp = assert_fs::TempDir::new()?;
+
+    // Setup files without CA key
+    let (public_key_file, ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_pubkey_files(&temp)?;
+    std::fs::remove_file(&ca_key)?;
+
+    // Generate issuer should fail when missing CA key file
+    Command::cargo_bin("wallet_ca")?
+        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_key_file(&ca_key));
+
+    // Setup files without CA crt
+    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(&temp)?;
+    std::fs::remove_file(&ca_crt)?;
+
+    // Execute command and assert failure and stderr output
+    Command::cargo_bin("wallet_ca")?
+        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_crt_file(&ca_crt));
+
+    // Setup files without issuer registration JSON file
+    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(&temp)?;
+    std::fs::remove_file(&issuer_auth_json)?;
+
+    // Generate issuer should fail when missing JSON file
+    Command::cargo_bin("wallet_ca")?
+        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_issuer_json_file(&issuer_auth_json));
+
+    // Setup files without issuer registration JSON file
+    let (ca_crt, ca_key, mdl_prefix, issuer_auth_json) = setup_issuer_files(&temp)?;
+    std::fs::remove_file(&public_key_file)?;
+
+    // Generate issuer should fail when missing JSON file
+    Command::cargo_bin("wallet_ca")?
+        .generate_issuer_cert(&public_key_file, &ca_crt, &ca_key, &issuer_auth_json, &mdl_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_public_key_file(&public_key_file));
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
 fn setup_reader_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath)> {
     let (ca_prefix, ca_crt, ca_key) = keypair_paths(temp, "test-ca");
     let (rp_auth_prefix, _rp_auth_crt, _rp_auth_key) = keypair_paths(temp, "test-reader-auth-kp");
@@ -790,6 +855,15 @@ fn setup_reader_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath
     rp_auth_json.write_str(&serde_json::to_string(&ReaderRegistration::new_mock())?)?;
 
     Ok((ca_crt, ca_key, rp_auth_prefix, rp_auth_json))
+}
+
+fn setup_reader_pubkey_files(temp: &TempDir) -> Result<(ChildPath, ChildPath, ChildPath, ChildPath, ChildPath)> {
+    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(temp)?;
+
+    let public_key_path = public_key_path(temp, "test-reader-auth-crt");
+    generate_public_key(&public_key_path);
+
+    Ok((public_key_path, ca_crt, ca_key, rp_auth_prefix, rp_auth_json))
 }
 
 #[test]
@@ -827,6 +901,59 @@ fn missing_input_files_reader() -> Result<()> {
         .assert()
         .failure()
         .stderr(predicate_missing_reader_json_file(&rp_auth_json));
+
+    // Explicitly close the temp folder, for better error reporting
+    temp.close()?;
+
+    Ok(())
+}
+
+#[test]
+fn missing_input_files_reader_pubkey() -> Result<()> {
+    let temp = assert_fs::TempDir::new()?;
+
+    // Setup files without CA key
+    let (public_key_file, ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_pubkey_files(&temp)?;
+    std::fs::remove_file(&ca_key)?;
+
+    // Generate reader should fail on missing CA key
+    Command::cargo_bin("wallet_ca")?
+        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_key_file(&ca_key));
+
+    // Setup files without CA crt
+    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(&temp)?;
+    std::fs::remove_file(&ca_crt)?;
+
+    Command::cargo_bin("wallet_ca")?
+        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_crt_file(&ca_crt));
+
+    // Setup files without reader registration JSON file
+    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(&temp)?;
+    std::fs::remove_file(&rp_auth_json)?;
+
+    // Generate reader_auth should fail when missing JSON file
+    Command::cargo_bin("wallet_ca")?
+        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_reader_json_file(&rp_auth_json));
+
+    // Setup files without reader registration JSON file
+    let (ca_crt, ca_key, rp_auth_prefix, rp_auth_json) = setup_reader_files(&temp)?;
+    std::fs::remove_file(&public_key_file)?;
+
+    // Generate reader_auth should fail when missing JSON file
+    Command::cargo_bin("wallet_ca")?
+        .generate_reader_cert(&public_key_file, &ca_crt, &ca_key, &rp_auth_json, &rp_auth_prefix)
+        .assert()
+        .failure()
+        .stderr(predicate_missing_public_key_file(&public_key_file));
 
     // Explicitly close the temp folder, for better error reporting
     temp.close()?;
