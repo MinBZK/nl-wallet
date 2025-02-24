@@ -16,7 +16,7 @@ default = ["disclosure", "postgres"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Enable issuance
-issuance = ["axum/form", "dep:axum-extra", "dep:serde_json"]
+issuance = ["dep:axum-extra", "dep:serde_json"]
 # Enable disclosure
 disclosure = ["dep:ring", "dep:strum"]
 
