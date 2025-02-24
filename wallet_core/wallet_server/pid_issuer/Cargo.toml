@@ -31,7 +31,7 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres", "dep:sea-orm"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "allow_insecure_url", "dep:serial_test", "openid4vc/test", "tokio/sync"]
+db_test = ["postgres", "allow_insecure_url", "openid4vc/test", "tokio/sync"]
 # Enable mock PID issuance
 mock = []
 # Enable integration tests
@@ -41,12 +41,9 @@ integration_test = ["allow_insecure_url", "server_utils/integration_test"]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
-cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 http.workspace = true
-nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rustls-pki-types.workspace = true
 sea-orm = { workspace = true, optional = true, features = [
@@ -62,26 +59,13 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = [
-    "std",
-    "env-filter",
-    "fmt",
-    "json",
-    "ansi",
-    "smallvec",
-    "tracing-log",
-    "parking_lot",
-] }
 url = { workspace = true, features = ["serde"] }
 
 futures = { workspace = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, features = ["serde"] }
-itertools = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
-ring = { workspace = true, optional = true }
 serde_json = { workspace = true }
 serde_urlencoded = { workspace = true }
-serial_test = { workspace = true, optional = true }
 
 nl_wallet_mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }

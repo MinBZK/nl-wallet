@@ -43,7 +43,6 @@ integration_test = ["allow_insecure_url", "server_utils/integration_test"]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
-cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
@@ -57,16 +56,6 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = [
-    "std",
-    "env-filter",
-    "fmt",
-    "json",
-    "ansi",
-    "smallvec",
-    "tracing-log",
-    "parking_lot",
-] }
 url = { workspace = true, features = ["serde"] }
 
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }
