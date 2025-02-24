@@ -98,11 +98,9 @@ pub enum CertificateError {
     MissingCommonName,
     #[error("missing SAN extension")]
     MissingSan,
-    #[category(pd)]
     #[error("missing SAN DNS name or URI, found: {0:?}")]
     MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
     #[error("SAN DNS name is not a URI: {0}")]
-    #[category(pd)]
     SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriParseError),
 }
 
