@@ -1,3 +1,4 @@
 #browsertests
 /node_modules/
 /**/test-results*/
+allure-results/
