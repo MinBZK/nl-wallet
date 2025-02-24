@@ -83,22 +83,13 @@ build-mock-relying-party-image:
     DOCKER_FILE_TO_BUILD: wallet_core/mock_relying_party/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-mock-relying-party
 
-build-wallet-server-image:
-  extends: .build-docker-image
-  needs:
-    - job: build-wallet-server-binary
-      artifacts: true
-  variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.wallet_server
-    DOCKER_IMAGE_NAME: nl-wallet-server
-
 build-verification-server-image:
   extends: .build-docker-image
   needs:
     - job: build-verification-server-binary
       artifacts: true
   variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.verification_server
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/verification_server/Dockerfile
     DOCKER_IMAGE_NAME: nl-verification-server
 
 build-pid-issuer-image:
@@ -107,7 +98,7 @@ build-pid-issuer-image:
     - job: build-pid-issuer-binary
       artifacts: true
   variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/Dockerfile.pid_issuer
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/pid_issuer/Dockerfile
     DOCKER_IMAGE_NAME: nl-pid-issuer
 
 build-ws-migrations-image:
@@ -116,7 +107,7 @@ build-ws-migrations-image:
     - job: build-wallet-server-migrations-binary
       artifacts: true
   variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/migrations/Dockerfile
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/server_utils/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-server-migrations
 
 build-gba-hc-converter-image:

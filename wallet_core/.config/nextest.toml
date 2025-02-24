@@ -6,7 +6,7 @@ mock-digid-session = { max-threads = 1 }
 mock-issuance-session = { max-threads = 1 }
 
 [[profile.default.overrides]]
-filter = 'package(/^tests_integration/) | (kind(test) & (package(wallet_provider*) | package(wallet_server)))'
+filter = 'package(/^tests_integration/) | (kind(test) & (package(wallet_provider*) | package(pid_issuer) | package(verification_server)))'
 test-group = 'db-hsm'
 
 [[profile.default.overrides]]

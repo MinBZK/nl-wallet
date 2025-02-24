@@ -23,21 +23,23 @@ test-rust:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
     WALLET_PROVIDER_DATABASE__HOST: "postgres"
-    WALLET_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
+    VERIFICATION_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
+    PID_ISSUER_STORE_URL: "postgres://postgres:postgres@postgres:5432/pid_issuer"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
       variables:
         POSTGRESQL_USER: "postgres"
         POSTGRESQL_PASSWORD: "postgres"
-        POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server"
+        POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server,pid_issuer"
   before_script:
     - set -euxo pipefail
     - ./scripts/setup-devenv.sh
     - cd wallet_core
   script:
     - cargo run --bin wallet_provider_migrations --locked -- up
-    - DATABASE_URL="${WALLET_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
+    - DATABASE_URL="${VERIFICATION_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
+    - DATABASE_URL="${PID_ISSUER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
     - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   after_script:
@@ -128,8 +130,8 @@ build-wallet-provider-migrations-binary:
 build-pid-issuer-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package wallet_server --bin pid_issuer --no-default-features --features postgres,issuance
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package wallet_server --bin pid_issuer --no-default-features --features postgres,issuance
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres
   artifacts:
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/pid_issuer
@@ -138,22 +140,12 @@ build-pid-issuer-binary:
 build-verification-server-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package wallet_server --bin verification_server --no-default-features --features postgres,disclosure
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package wallet_server --bin verification_server --no-default-features --features postgres,disclosure
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package verification_server --bin verification_server --no-default-features --features postgres
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package verification_server --bin verification_server --no-default-features --features postgres
   artifacts:
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/verification_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/verification_server
-
-build-wallet-server-binary:
-  extends: .build-binary
-  script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package wallet_server --bin wallet_server --no-default-features --features postgres,issuance,disclosure
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package wallet_server --bin wallet_server --no-default-features --features postgres,issuance,disclosure
-  artifacts:
-    paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/wallet_server
-      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server
 
 build-wallet-server-migrations-binary:
   extends: .build-binary
