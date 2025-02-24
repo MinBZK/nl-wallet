@@ -27,7 +27,6 @@ use wallet_common::urls;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::Attestation;
 use crate::attestation::AttestationError;
-use crate::attestation::AttestationIdentity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
@@ -247,7 +246,6 @@ where
             .into_iter()
             .map(|(doc_type, attributes)| {
                 Attestation::create_for_disclosure(
-                    AttestationIdentity::Ephemeral,
                     doc_type,
                     attributes.type_metadata,
                     session.reader_registration().organization.clone(),

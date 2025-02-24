@@ -13,7 +13,6 @@ use super::AttributeSelectionMode;
 
 impl Attestation {
     pub(crate) fn create_for_disclosure(
-        identity: AttestationIdentity,
         attestation_type: String,
         metadata: TypeMetadata,
         issuer_organization: Organization,
@@ -22,7 +21,7 @@ impl Attestation {
         let nested_attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
 
         Self::create_from_attributes(
-            identity,
+            AttestationIdentity::Ephemeral,
             attestation_type,
             metadata,
             issuer_organization,
@@ -48,7 +47,6 @@ mod test {
     use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::Attestation;
     use crate::attestation::AttestationError;
-    use crate::AttestationIdentity;
 
     #[test]
     fn test_happy() {
@@ -73,7 +71,6 @@ mod test {
         )]);
 
         let attestation = Attestation::create_for_disclosure(
-            AttestationIdentity::Ephemeral,
             String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
@@ -119,7 +116,6 @@ mod test {
         )]);
 
         let attestation = Attestation::create_for_disclosure(
-            AttestationIdentity::Ephemeral,
             String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
@@ -149,7 +145,6 @@ mod test {
         )]);
 
         let attestation = Attestation::create_for_disclosure(
-            AttestationIdentity::Ephemeral,
             String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
