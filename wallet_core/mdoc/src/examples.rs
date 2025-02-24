@@ -301,6 +301,12 @@ pub mod mock {
             Self::new_mock_with_ca(&ca).await
         }
 
+        pub async fn new_mock_with_doctype(doc_type: &str) -> Self {
+            let mut mdoc = Self::new_mock().await;
+            mdoc.mso.doc_type = String::from(doc_type);
+            mdoc
+        }
+
         pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
             Self::new_mock_inner(&ca, key).await

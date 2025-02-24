@@ -317,9 +317,6 @@ pub mod generate {
 
     #[cfg(any(test, feature = "mock"))]
     pub mod mock {
-        use rcgen::SubjectPublicKeyInfo;
-
-        use crate::examples::IsoCertTimeGenerator;
         use crate::server_keys::KeyPair;
         use crate::utils::issuer_auth::IssuerRegistration;
         use crate::utils::reader_auth::ReaderRegistration;
