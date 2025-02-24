@@ -216,7 +216,7 @@ impl BorrowingCertificate {
             .collect::<Result<_, _>>()
     }
 
-    pub fn issuer_uris(&self) -> Result<Vec<&str>, CertificateError> {
+    pub fn issuer_common_names(&self) -> Result<Vec<&str>, CertificateError> {
         x509_common_names(&self.x509_certificate().issuer)
     }
 

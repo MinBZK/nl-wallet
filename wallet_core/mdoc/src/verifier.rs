@@ -220,7 +220,7 @@ impl IssuerSigned {
             .unwrap_or_default();
 
         let signing_cert = self.issuer_auth.signing_cert()?;
-        let mut ca_cns = signing_cert.issuer_uris()?;
+        let mut ca_cns = signing_cert.issuer_common_names()?;
         if ca_cns.len() != 1 {
             return Err(VerificationError::UnexpectedCACommonNameCount(ca_cns.len()).into());
         }
