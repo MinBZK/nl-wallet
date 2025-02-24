@@ -247,10 +247,8 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use rustls_pki_types::TrustAnchor;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
-    use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::WithIdentifier;
@@ -273,21 +271,11 @@ pub mod mock {
         /// construct the example mdoc with all attributes present.
         ///
         /// Using tests should not rely on all attributes being present.
-        pub fn new_example() -> Self {
-            let issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
-                .issuer_signed
-                .clone();
-            Self::new_example_with_issuer_signed(issuer_signed, Examples::iaca_trust_anchors())
-        }
-
         pub async fn new_example_resigned(ca: &Ca) -> Self {
-            let issuer_signed = DeviceResponse::example_resigned(ca).await.documents.as_ref().unwrap()[0]
+            let mut issuer_signed = DeviceResponse::example_resigned(ca).await.documents.as_ref().unwrap()[0]
                 .issuer_signed
                 .clone();
-            Self::new_example_with_issuer_signed(issuer_signed, &[ca.to_trust_anchor()])
-        }
 
-        fn new_example_with_issuer_signed(mut issuer_signed: IssuerSigned, trust_anchors: &[TrustAnchor<'_>]) -> Self {
             let x5chain = issuer_signed
                 .issuer_auth
                 .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))
@@ -303,26 +291,14 @@ pub mod mock {
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,
-                trust_anchors,
+                &[ca.to_trust_anchor()],
             )
             .unwrap()
-        }
-
-        pub fn new_example_with_doctype(doc_type: &str) -> Self {
-            let mut mdoc = Self::new_example();
-            mdoc.mso.doc_type = String::from(doc_type);
-            mdoc
         }
 
         pub async fn new_mock() -> Self {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
             Self::new_mock_with_ca(&ca).await
-        }
-
-        pub async fn new_mock_with_doctype(doc_type: &str) -> Self {
-            let mut mdoc = Self::new_mock().await;
-            mdoc.mso.doc_type = String::from(doc_type);
-            mdoc
         }
 
         pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {

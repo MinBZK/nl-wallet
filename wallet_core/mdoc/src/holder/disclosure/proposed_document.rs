@@ -216,16 +216,6 @@ mod examples {
     use super::ProposedDocument;
 
     impl ProposedDocument<String> {
-        pub fn new_example() -> Self {
-            let mdoc = Mdoc::new_example();
-            Self::new_inner(mdoc)
-        }
-
-        pub async fn new_mock() -> Self {
-            let key = MockRemoteEcdsaKey::new_random("identifier".to_string());
-            Self::new_mock_with_key(&key).await
-        }
-
         pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
             let mdoc = Mdoc::new_mock_with_key(key).await;
             Self::new_inner(mdoc)
