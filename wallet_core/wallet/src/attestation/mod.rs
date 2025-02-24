@@ -5,9 +5,6 @@ mod issuance;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use serde::Deserialize;
-use serde::Serialize;
-
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::AttributeError;
@@ -38,7 +35,7 @@ enum AttributeSelectionMode {
     Disclosure,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attestation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
@@ -47,13 +44,13 @@ pub struct Attestation {
     pub attributes: Vec<AttestationAttribute>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AttestationIdentity {
     Ephemeral,
     Fixed { id: String },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttestationAttribute {
     pub key: Vec<String>,
     pub metadata: HashMap<String, ClaimDisplayMetadata>,
