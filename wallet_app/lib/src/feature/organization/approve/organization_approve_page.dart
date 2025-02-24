@@ -169,9 +169,9 @@ class OrganizationApprovePage extends StatelessWidget {
         const SizedBox(height: 8),
         TextWithLink(
           fullText: fraudTextPart2,
-          ctaText: originUrl,
+          linkText: originUrl,
           onTapHint: context.l10n.generalWCAGOpenLink,
-          onCtaPressed: () => launchUrlStringCatching(originUrl),
+          onLinkPressed: () => launchUrlStringCatching(originUrl),
         ),
       ],
     );

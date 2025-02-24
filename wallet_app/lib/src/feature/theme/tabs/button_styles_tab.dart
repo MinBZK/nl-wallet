@@ -49,8 +49,8 @@ class ButtonStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'TextWithLink'),
         TextWithLink(
           fullText: 'This is the full text {WITH} a clickable placeholder.',
-          ctaText: 'WITH',
-          onCtaPressed: () {},
+          linkText: 'WITH',
+          onLinkPressed: () {},
         ),
         const ThemeSectionSubHeader(title: 'ListButton'),
         ListButton(

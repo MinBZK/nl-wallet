@@ -25,6 +25,8 @@ test-ios:
   needs:
     - job: test-flutter
       artifacts: false
+    - job: test-flutter-ui
+      artifacts: false
     - job: test-codegen
       artifacts: false
     - job: test-rust
@@ -59,7 +61,7 @@ test-ios:
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION:-}"
+        version:"${CI_COMMIT_TAG:-}"
 
 .build-ios-app-ont:
   extends: .build-ios-app
@@ -96,16 +98,15 @@ build-ios-app-ont-profile:
 .build-ios-app-release-tag:
   extends: .build-ios-app
   rules: !reference [.release-tag, rules]
-  before_script:
-    - !reference [.release-tag, before_script]
   variables:
     APP_MOCK: "false"
     APP_BUILD_MODE: "release"
 
 build-ios-app-mock:
   extends: .build-ios-app-release-tag
-  needs:
-    - !reference [.build-ios-app, needs]
+  rules:
+    - !reference [.on-mock-build, rules]
+  needs: []
   variables:
     APP_MOCK: "true" # override .build-ios-app-release-tag
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
@@ -222,6 +223,8 @@ deploy-ios-app-ont:
 
 deploy-ios-app-mock:
   extends: .deploy-ios-app-release-tag
+  rules:
+    - !reference [.on-mock-build, rules]
   needs:
     - job: build-ios-app-mock
       artifacts: true

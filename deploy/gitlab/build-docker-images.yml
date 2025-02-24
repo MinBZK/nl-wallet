@@ -9,11 +9,8 @@
 .build-docker-image:
   extends: .kaniko
   rules: !reference [.default-or-release-or-merge-request-manual, rules]
-  before_script:
-    - !reference [.kaniko, before_script]
-    - !reference [.release-tag, before_script]
   script:
-    - TAG=${RELEASE_VERSION:-latest}
+    - TAG=${CI_COMMIT_TAG:-latest}
     - /kaniko/executor
       --context wallet_core
       --dockerfile $DOCKER_FILE_TO_BUILD
@@ -53,7 +50,7 @@ build-wp-migrations-image:
 .build-docker-image-mrp:
   extends: .build-docker-image
   script:
-    - TAG=${RELEASE_VERSION:-latest}
+    - TAG=${CI_COMMIT_TAG:-latest}
     - /kaniko/executor
       --context wallet_core
       --dockerfile $DOCKER_FILE_TO_BUILD

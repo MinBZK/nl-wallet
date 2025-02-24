@@ -1,6 +1,10 @@
 .default-sonar:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules: !reference [.default-or-merge-request, rules]
+  variables:
+    GIT_STRATEGY: clone
+  before_script:
+    QUALITY_GATE_WAIT=$(if [[ -z $CI_COMMIT_BRANCH || $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then echo 'false'; else 'true'; fi)
 
 sonar-rust:
   extends: .default-sonar
@@ -9,11 +13,8 @@ sonar-rust:
       artifacts: true
     - job: test-rust-doctest
       artifacts: false
-  variables:
-    GIT_STRATEGY: clone
-  before_script:
-    - cd wallet_core
   script:
+    - cd wallet_core
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
@@ -31,16 +32,14 @@ sonar-flutter:
       artifacts: true
     - job: dependency-check
       artifacts: true
-  variables:
-    GIT_STRATEGY: clone
-  before_script:
-    - cd wallet_app
   script:
+    - cd wallet_app
     - flutter pub get --enforce-lockfile
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
+      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=.
       -Dsonar.exclusions=android/**,ios/**,test/**,**/*.freezed.dart,**/*.g.dart,**/frb_generated*.dart
       -Dsonar.coverage.exclusions=**/frb_generated*.dart,**/*.freezed.dart
@@ -54,16 +53,13 @@ sonar-wallet-web:
   needs:
     - job: build-wallet-web
       artifacts: true
-  variables:
-    GIT_STRATEGY: clone
-  before_script:
-    - cd wallet_web
-    - set -euxo pipefail
   script:
+    - cd wallet_web
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-web
+      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=lib/
       -Dsonar.exclusions=lib/__tests__/**/*,lib/util/qrcodegen.ts
       -Dsonar.tests=lib/
@@ -76,15 +72,13 @@ sonar-ios:
   needs:
     - job: test-ios
       artifacts: true
-  variables:
-    GIT_STRATEGY: clone
-  before_script:
-    - cd wallet_core/platform_support/ios
   script:
+    - cd wallet_core/platform_support/ios
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
+      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.exclusions="*Tests*/**"
       -Dsonar.c.file.suffixes=-
       -Dsonar.cpp.file.suffixes=-
@@ -96,15 +90,13 @@ sonar-android:
   #  needs:
   #    - job: test-android
   #      artifacts: true
-  variables:
-    GIT_STRATEGY: clone
-  before_script:
-    - cd wallet_core/platform_support/android
   script:
+    - cd wallet_core/platform_support/android
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
+      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**"
       -Dsonar.findbugs.allowuncompiledcode=true
 #      -Dsonar.junit.reportPaths="platform_support/build/outputs/androidTest-results/*/*.xml"

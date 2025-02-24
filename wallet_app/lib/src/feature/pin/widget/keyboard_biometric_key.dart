@@ -17,27 +17,30 @@ class KeyboardBiometricKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: FutureBuilder<Biometrics>(
-        future: context.read<GetSupportedBiometricsUseCase>().invoke(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const SizedBox.shrink();
-          final biometrics = snapshot.data ?? Biometrics.none;
-
-          return Semantics(
-            keyboardKey: true,
-            attributedLabel: biometrics.prettyPrint(context).toAttributedString(context),
-            child: TextButton.icon(
-              onPressed: onPressed,
-              label: const SizedBox.shrink(),
-              style: context.theme.iconButtonTheme.style?.copyWith(
-                shape: WidgetStateProperty.all(
-                  const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      child: MergeSemantics(
+        child: FutureBuilder<Biometrics>(
+          future: context.read<GetSupportedBiometricsUseCase>().invoke(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const SizedBox.shrink();
+            final biometrics = snapshot.data ?? Biometrics.none;
+            return Semantics(
+              keyboardKey: true,
+              button: true,
+              onTap: onPressed,
+              attributedLabel: biometrics.prettyPrint(context).toAttributedString(context),
+              child: TextButton.icon(
+                onPressed: onPressed,
+                label: const SizedBox.shrink(),
+                style: context.theme.iconButtonTheme.style?.copyWith(
+                  shape: WidgetStateProperty.all(
+                    const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                  ),
                 ),
+                icon: Icon(biometrics.icon),
               ),
-              icon: Icon(biometrics.icon),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
