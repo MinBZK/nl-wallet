@@ -33,6 +33,8 @@
   needs:
     - job: test-flutter
       artifacts: false
+    - job: test-flutter-ui
+      artifacts: false
     - job: test-codegen
       artifacts: false
     - job: test-rust
@@ -65,7 +67,7 @@
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${RELEASE_VERSION:-}"
+        version:"${CI_COMMIT_TAG:-}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -105,8 +107,6 @@ build-android-app-ont-profile:
 .build-android-app-release-tag:
   extends: [.env-ont-k8s, .build-android-app]
   rules: !reference [.release-tag, rules]
-  before_script:
-    - !reference [.release-tag, before_script]
   variables:
     APP_MOCK: "false"
     APP_FILE_FORMAT: "aab"
@@ -114,12 +114,14 @@ build-android-app-ont-profile:
 
 build-android-app-mock:
   extends: .build-android-app-release-tag
-  needs:
-    - !reference [.build-android-app, needs]
+  rules:
+    - !reference [.on-mock-build, rules]
+  needs: []
   variables:
     APP_MOCK: "true" # override .build-android-app-release-tag
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
+    CONFIG_ENV: "dev"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
@@ -225,7 +227,7 @@ build-android-app-production:
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"${RELEASE_VERSION}"
+        version:"${CI_COMMIT_TAG}"
 
 deploy-android-app-ont:
   extends: .deploy-android-app
@@ -239,11 +241,11 @@ deploy-android-app-ont:
 .deploy-android-app-release-tag:
   extends: .deploy-android-app
   rules: !reference [.release-tag, rules]
-  before_script:
-    - !reference [.release-tag, before_script]
 
 deploy-android-app-mock:
   extends: .deploy-android-app-release-tag
+  rules:
+    - !reference [.on-mock-build, rules]
   needs:
     - job: build-android-app-mock
       artifacts: true

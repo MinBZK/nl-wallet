@@ -33,11 +33,13 @@ class StackedWalletCards extends StatelessWidget {
             BuildContext toHeroContext,
           ) =>
               WalletCardItem.buildShuttleCard(animation, cards[index].front, ctaAnimation: CtaAnimation.fadeIn),
-          child: Semantics(
-            button: onCardPressed != null,
-            child: GestureDetector(
-              child: WalletCardItem.fromCardFront(context: context, front: cards[index].front),
-              onTap: () => onCardPressed?.call(cards[index]),
+          child: MergeSemantics(
+            child: Semantics(
+              button: onCardPressed != null,
+              child: GestureDetector(
+                child: WalletCardItem.fromCardFront(context: context, front: cards[index].front),
+                onTap: () => onCardPressed?.call(cards[index]),
+              ),
             ),
           ),
         ),

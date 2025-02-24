@@ -188,10 +188,10 @@ class DashboardScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
       child: TextWithLink(
-        ctaText: cta,
+        linkText: cta,
         fullText: fullString,
         textAlign: TextAlign.center,
-        onCtaPressed: () => Navigator.pushNamed(context, WalletRoutes.aboutRoute),
+        onLinkPressed: () => Navigator.pushNamed(context, WalletRoutes.aboutRoute),
         style: context.textTheme.bodyMedium,
       ),
     );

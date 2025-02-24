@@ -89,9 +89,9 @@ class AboutScreen extends StatelessWidget {
         if (paragraph.contains(url)) {
           return TextWithLink(
             fullText: paragraph,
-            ctaText: url,
+            linkText: url,
             onTapHint: context.l10n.generalWCAGOpenLink,
-            onCtaPressed: () {
+            onLinkPressed: () {
               final urlString = url.startsWith('http') ? url : 'https://$url';
               launchUrlStringCatching(urlString, mode: LaunchMode.externalApplication);
             },

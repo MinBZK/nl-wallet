@@ -494,7 +494,7 @@
     "generalWCAGLanguageUpdatedAnnouncement": "Language has been changed to {language}",
     "generalWCAGLogoutAnnouncement": "You've been logged out",
     "generalWCAGMenu": "Menu",
-    "generalWCAGOpenLink": "Open link",
+    "generalWCAGOpenLink": "navigate",
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "See all activities",
     "generalWCAGStepper": "Step {current} out of {total}.",
