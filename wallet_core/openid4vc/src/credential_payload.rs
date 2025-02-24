@@ -47,9 +47,9 @@ pub enum CredentialPayloadError {
     #[category(critical)]
     DateConversion(#[from] ParseError),
 
-    #[error("missing issuer common name in mdoc")]
-    #[category(critical)]
-    MissingIssuerCommonName,
+    #[error("mdoc error: {0}")]
+    #[category(defer)]
+    Mdoc(#[from] nl_wallet_mdoc::Error),
 
     #[error("attribute error: {0}")]
     #[category(pd)]
@@ -106,9 +106,7 @@ impl CredentialPayload {
         Self::from_mdoc_attributes(
             mdoc.doc_type().to_string(),
             &mdoc.attributes(),
-            mdoc.issuer_uri()
-                .ok_or(CredentialPayloadError::MissingIssuerCommonName)?
-                .clone(),
+            mdoc.issuer_uri()?.clone(),
             Some((&mdoc.validity_info().signed).try_into()?),
             Some((&mdoc.validity_info().valid_until).try_into()?),
             Some((&mdoc.validity_info().valid_from).try_into()?),
