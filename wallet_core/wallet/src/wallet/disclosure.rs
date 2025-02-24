@@ -684,9 +684,8 @@ mod tests {
         assert_matches!(
             document.attributes.first().unwrap(),
             AttestationAttribute {
-                key: _,
-                labels: _,
-                value: AttributeValue::Bool(true)
+                value: AttributeValue::Bool(true),
+                ..
             }
         );
 

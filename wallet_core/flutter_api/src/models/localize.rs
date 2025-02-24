@@ -1,14 +1,16 @@
+use wallet::sd_jwt::ClaimDisplayMetadata;
+
 #[derive(Clone)]
 pub struct LocalizedString {
     pub language: String,
     pub value: String,
 }
 
-impl From<wallet::LocalizedString> for LocalizedString {
-    fn from(value: wallet::LocalizedString) -> Self {
+impl From<ClaimDisplayMetadata> for LocalizedString {
+    fn from(value: ClaimDisplayMetadata) -> Self {
         Self {
-            language: value.language,
-            value: value.value,
+            language: value.lang,
+            value: value.label,
         }
     }
 }

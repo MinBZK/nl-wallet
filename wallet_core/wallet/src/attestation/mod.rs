@@ -56,21 +56,6 @@ pub enum AttestationIdentity {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
     pub key: Vec<String>,
-    pub labels: Vec<LocalizedString>,
+    pub metadata: HashMap<String, ClaimDisplayMetadata>,
     pub value: AttributeValue,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LocalizedString {
-    pub language: String,
-    pub value: String,
-}
-
-impl From<ClaimDisplayMetadata> for LocalizedString {
-    fn from(value: ClaimDisplayMetadata) -> Self {
-        Self {
-            language: value.lang,
-            value: value.label,
-        }
-    }
 }

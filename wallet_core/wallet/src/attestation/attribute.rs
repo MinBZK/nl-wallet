@@ -15,7 +15,6 @@ use super::AttestationAttribute;
 use super::AttestationError;
 use super::AttestationIdentity;
 use super::AttributeSelectionMode;
-use super::LocalizedString;
 
 impl Attestation {
     // Construct a new `Attestation` from a combination of metadata and nested attributes.
@@ -32,11 +31,20 @@ impl Attestation {
         // then convert it to a `AttestationAttribute` value.
         let attributes_iter = metadata.claims.into_iter().map(|claim| {
             match take_attribute_value_at_key_path(&mut nested_attributes, claim.path.clone()) {
-                Some((path, value)) => Ok(AttestationAttribute {
-                    key: path,
-                    value,
-                    labels: claim.display.into_iter().map(LocalizedString::from).collect(),
-                }),
+                Some((path, value)) => {
+                    let metadata = claim
+                        .display
+                        .into_iter()
+                        .map(|metadata| (metadata.lang.clone(), metadata))
+                        .collect();
+                    let attribute = AttestationAttribute {
+                        key: path,
+                        metadata,
+                        value,
+                    };
+
+                    Ok(attribute)
+                }
                 None => Err(AttestationError::AttributeNotFoundForClaim(claim.path)),
             }
         });

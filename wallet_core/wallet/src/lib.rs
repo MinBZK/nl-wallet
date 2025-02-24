@@ -18,7 +18,6 @@ pub mod errors;
 pub use crate::attestation::Attestation;
 pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationIdentity;
-pub use crate::attestation::LocalizedString;
 pub use crate::disclosure::DisclosureUriSource;
 pub use crate::document::Attribute;
 pub use crate::document::AttributeKey;
@@ -60,6 +59,7 @@ pub mod openid4vc {
 }
 
 pub mod sd_jwt {
+    pub use sd_jwt::metadata::ClaimDisplayMetadata;
     pub use sd_jwt::metadata::DisplayMetadata;
     pub use sd_jwt::metadata::LogoMetadata;
     pub use sd_jwt::metadata::RenderingMetadata;
