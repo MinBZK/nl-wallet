@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::IntoIterator;
+use futures::future::join_all;
 use nutype::nutype;
 use ring::hmac;
 use serde::Deserialize;
@@ -48,13 +49,15 @@ impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyType> {
     type Error = anyhow::Error;
 
     async fn try_from_key_settings(value: VerifierUseCases, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        // TODO: rewrite using join_all
-        let mut use_cases = HashMap::new();
+        let iter = value.into_iter().map(|(id, use_case)| async move {
+            let result = (id, UseCase::try_from_key_settings(use_case, hsm).await?);
+            Ok(result)
+        });
 
-        for (id, use_case) in value {
-            let use_case = UseCase::try_from_key_settings(use_case, hsm).await?;
-            use_cases.insert(id, use_case);
-        }
+        let use_cases = join_all(iter)
+            .await
+            .into_iter()
+            .collect::<Result<HashMap<String, UseCase<_>>, Self::Error>>()?;
 
         Ok(use_cases.into())
     }

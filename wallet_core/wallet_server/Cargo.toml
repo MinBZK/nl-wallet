@@ -45,13 +45,22 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
+db_test = [
+    "postgres",
+    "allow_insecure_url",
+    "dep:serial_test",
+    "futures/std",
+    "futures/async-await",
+    "openid4vc/test",
+    "tokio/sync"
+]
 # Enable issuance
 issuance = [
     "axum/form",
+    "futures/async-await",
+    "futures/std",
     "dep:axum-extra",
     "dep:ciborium",
-    "dep:futures",
     "dep:indexmap",
     "dep:reqwest",
     "dep:serde_json",
@@ -72,6 +81,7 @@ cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
+futures.workspace = true
 http.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
@@ -96,7 +106,6 @@ url = { workspace = true, features = ["serde"] }
 
 axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 ciborium = { workspace = true, optional = true }
-futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 itertools = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }

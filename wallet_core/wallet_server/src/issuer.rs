@@ -21,6 +21,7 @@ use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use derive_more::AsRef;
 use derive_more::From;
+use futures::future::join_all;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use tracing::warn;
@@ -79,13 +80,15 @@ impl TryFromKeySettings<HashMap<String, settings::KeyPair>> for IssuerKeyRing<Pr
         private_keys: HashMap<String, settings::KeyPair>,
         hsm: Option<&Pkcs11Hsm>,
     ) -> Result<Self, Self::Error> {
-        // TODO: rewrite using join_all
-        let mut issuer_keys: HashMap<_, _> = HashMap::new();
+        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async move {
+            let result = (doctype, KeyPair::try_from_key_settings(key_pair, hsm).await?);
+            Ok(result)
+        });
 
-        for (doctype, key_pair) in private_keys {
-            let key_pair = KeyPair::try_from_key_settings(key_pair, hsm).await?;
-            issuer_keys.insert(doctype, key_pair);
-        }
+        let issuer_keys = join_all(iter)
+            .await
+            .into_iter()
+            .collect::<Result<HashMap<String, KeyPair<PrivateKeyType>>, Self::Error>>()?;
 
         Ok(issuer_keys.into())
     }
