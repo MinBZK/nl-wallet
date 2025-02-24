@@ -14,7 +14,7 @@ doctest = false
 [features]
 default = ["disclosure"]
 # Enable issuance
-issuance = ["axum/form", "dep:axum-extra"]
+issuance = ["dep:axum-extra"]
 # Enable disclosure
 disclosure = ["dep:ring"]
 
