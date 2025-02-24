@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
+use itertools::Itertools;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
@@ -14,8 +15,11 @@ use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::StoredMdoc;
 use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -94,6 +98,11 @@ pub enum DisclosureError {
     },
     #[error("could not interpret missing mdoc attributes: {0}")]
     MdocAttributes(#[source] DocumentMdocError),
+    #[error("could not extract issuer registration from stored mdoc certificate: {0}")]
+    IssuerRegistration(#[source] CertificateError),
+    #[error("stored mdoc certificate does not contain issuer registration")]
+    #[category(critical)]
+    MissingIssuerRegistration,
     #[error("could not interpret attestation attributes: {0}")]
     AttestationAttributes(#[source] AttestationError),
     #[error("error sending instruction to Wallet Provider: {0}")]
@@ -245,15 +254,19 @@ where
         let attestations: Vec<Attestation> = proposed_attributes
             .into_iter()
             .map(|(doc_type, attributes)| {
+                let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
+                    .map_err(DisclosureError::IssuerRegistration)?
+                    .ok_or(DisclosureError::MissingIssuerRegistration)?;
+
                 Attestation::create_for_disclosure(
                     doc_type,
                     attributes.type_metadata,
-                    session.reader_registration().organization.clone(),
+                    issuer_registration.organization,
                     &attributes.attributes,
                 )
+                .map_err(DisclosureError::AttestationAttributes)
             })
-            .collect::<Result<_, _>>()
-            .map_err(DisclosureError::AttestationAttributes)?;
+            .try_collect()?;
 
         // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.
         let proposal = DisclosureProposal {
