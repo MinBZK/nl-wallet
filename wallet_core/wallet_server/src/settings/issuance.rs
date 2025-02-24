@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU8;
+use std::num::NonZeroUsize;
 
 use chrono::Days;
 use indexmap::IndexMap;
@@ -14,6 +15,7 @@ use sd_jwt::metadata::TypeMetadata;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::urls::BaseUrl;
+use wallet_common::urls::HttpsUri;
 use wallet_common::utils;
 
 use crate::pid::attributes::BrpPidAttributeService;
@@ -75,6 +77,21 @@ pub struct Digid {
 }
 
 impl Issuer {
+    pub fn issuer_uris(&self) -> Result<IndexMap<String, HttpsUri>, BrpError> {
+        self.private_keys
+            .iter()
+            .map(|(doctype, key_pair)| {
+                let issuer_san_dns_name_or_uris = key_pair.certificate.san_dns_name_or_uris()?;
+                let issuer_uri = match issuer_san_dns_name_or_uris.len() {
+                    NonZeroUsize::MIN => Ok(issuer_san_dns_name_or_uris.into_first()),
+                    n => Err(BrpError::UnexpectedIssuerSanDnsNameOrUrisCount(n)),
+                }?;
+
+                Ok((doctype.to_owned(), issuer_uri))
+            })
+            .collect::<Result<IndexMap<_, _>, _>>()
+    }
+
     pub fn metadata(&self) -> IndexMap<String, TypeMetadata> {
         self.metadata
             .iter()
@@ -91,6 +108,7 @@ impl TryFrom<&Issuer> for BrpPidAttributeService {
             HttpBrpClient::new(issuer.brp_server.clone()),
             &issuer.digid.bsn_privkey,
             issuer.digid.http_config.clone(),
+            issuer.issuer_uris()?,
             issuer.metadata(),
             Days::new(issuer.valid_days),
             issuer.copy_count,

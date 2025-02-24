@@ -1,3 +1,4 @@
+use std::num::NonZero;
 use std::num::NonZeroU8;
 use std::ops::Add;
 
@@ -6,7 +7,8 @@ use chrono::Utc;
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
-use openid4vc::attributes::IssuableDocuments;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use openid4vc::attributes::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
@@ -19,6 +21,7 @@ use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
+use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::pid::brp::client::BrpClient;
@@ -42,9 +45,11 @@ pub enum Error {
     UrlEncoding(#[from] serde_urlencoded::ser::Error),
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
-    #[error("could not find type metadata for doctype {0}")]
+    #[error("could not find type metadata for doctype: {0}")]
     NoMetadataFound(String),
-    #[error("missing certificate for issuance of doctype {0}")]
+    #[error("could not find issuer URI for doctype: {0}")]
+    NoIssuerUriFound(String),
+    #[error("missing certificate for issuance of doctype: {0}")]
     MissingCertificate(String),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
@@ -52,12 +57,19 @@ pub enum Error {
     UnsignedAttributes(#[from] UnsignedAttributesError),
     #[error("error signing metadata: {0}")]
     MetadataSigning(#[from] TypeMetadataError),
+    #[error("error creating issuable documents")]
+    InvalidIssuableDocuments,
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
+    #[error("unexpected number of SAN DNS names or URIs in issuer certificate; expected: 0, found {0}")]
+    UnexpectedIssuerSanDnsNameOrUrisCount(NonZero<usize>),
 }
 
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient<TlsPinningConfig>,
     metadata_by_doctype: IndexMap<String, TypeMetadata>,
+    issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
     valid_days: Days,
     copy_count: NonZeroU8,
 }
@@ -67,6 +79,7 @@ impl BrpPidAttributeService {
         brp_client: HttpBrpClient,
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
+        issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
         metadata_by_doctype: IndexMap<String, TypeMetadata>,
         valid_days: Days,
         copy_count: NonZeroU8,
@@ -74,6 +87,7 @@ impl BrpPidAttributeService {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
+            issuer_uri_by_doctype,
             metadata_by_doctype,
             valid_days,
             copy_count,
@@ -100,10 +114,22 @@ impl AttributeService for BrpPidAttributeService {
         }
 
         let person = persons.persons.remove(0);
-        let issuable_attributes: IssuableDocuments = person.into();
-
-        issuable_attributes
+        let issuable_documents = person
+            .into_issuable()
             .into_inner()
+            .into_iter()
+            .map(|(attestation_type, attributes)| {
+                let issuer_uri = self
+                    .issuer_uri_by_doctype
+                    .get(&attestation_type)
+                    .ok_or(Error::NoIssuerUriFound(attestation_type.clone()))?;
+
+                IssuableDocument::try_new(issuer_uri.clone(), attestation_type, attributes)
+                    .map_err(|_| Error::InvalidIssuableDocuments)
+            })
+            .collect::<Result<Vec<_>, Error>>()?;
+
+        issuable_documents
             .into_iter()
             .map(|document| {
                 let metadata = self
@@ -121,7 +147,7 @@ impl AttributeService for BrpPidAttributeService {
                 })
             })
             .collect::<Result<Vec<_>, _>>()
-            .map(|vec| vec.try_into().unwrap()) // safe because issuable_attributes is non-empty
+            .map(|vec| vec.try_into().unwrap()) // safe because into_issuable return a VecNonEmpty
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {
