@@ -5,7 +5,7 @@
 # - nl-rdo-max (digid-connector)
 # - wallet_provider
 # - wallet
-# - wallet_server
+# - pid_issuer and verification_server
 # - mock_relying_party
 # - softhsm2
 #
@@ -195,11 +195,11 @@ fi
 
 
 ########################################################################
-# Configure wallet_server and mock_relying_party
+# Configure verification_server and mock_relying_party
 ########################################################################
 
 echo
-echo -e "${SECTION}Configure wallet_server and mock_relying_party${NC}"
+echo -e "${SECTION}Configure verification_server and mock_relying_party${NC}"
 
 cd "${BASE_DIR}"
 
@@ -291,7 +291,7 @@ export ISSUER_METADATA_PID_PATH
 ISSUER_METADATA_ADDRESS_PATH="com_example_address_metadata.json"
 export ISSUER_METADATA_ADDRESS_PATH
 
-# And the mrp's wallet_server config
+# And the mrp's verification_server config
 render_template "${DEVENV}/mrp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
 render_template "${DEVENV}/mrp_verification_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/verification_server.toml"
 

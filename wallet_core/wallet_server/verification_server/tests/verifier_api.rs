@@ -903,7 +903,7 @@ async fn prepare_example_holder_mocks(
 }
 
 async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
-    // Start the wallet_server and create a disclosure request.
+    // Start the verification_server and create a disclosure request.
     let (settings, client, session_token, internal_url, issuer_key_pair, rp_trust_anchor) =
         start_disclosure(MemorySessionStore::default()).await;
 
@@ -953,7 +953,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         StatusResponse::WaitingForResponse
     );
 
-    // Have the holder actually disclosure the example attributes to the wallet_server,
+    // Have the holder actually disclosure the example attributes to the verification_server,
     // after which the status endpoint should report that the session is Done.
     let return_url = proposal
         .disclose(&key_factory)
@@ -1043,7 +1043,7 @@ async fn test_disclosed_attributes_with_nonce() {
 
 #[tokio::test]
 async fn test_disclosed_attributes_failed_session() {
-    // Start the wallet_server and create a disclosure request.
+    // Start the verification_server and create a disclosure request.
     let (settings, client, session_token, internal_url, _, rp_trust_anchor) =
         start_disclosure(MemorySessionStore::default()).await;
 

@@ -388,9 +388,9 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
     }
 }
 
-/// Session status as returned by the `status_response()` method and eventually the status endpoint in `wallet_server`.
-/// As this endpoint is meant to be public, it contains no other data than the (flattened) state, plus a potential
-/// universal link that the wallet app can use to start disclosure.
+/// Session status as returned by the `status_response()` method and eventually the status endpoint in the
+/// `verification_server`. As this endpoint is meant to be public, it contains no other data than the (flattened) state,
+/// plus a potential universal link that the wallet app can use to start disclosure.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
@@ -406,7 +406,7 @@ pub enum StatusResponse {
 /// Session status as contained in `SessionError::UnexpectedState`. This has the same flattened structure as
 /// [`StatusResponse`], but is meant for internal use only to indicate the current state of the session.
 /// Note that the error reason included in the `Failed` state is only meant to be included in an error response
-/// from the `disclosed_attributes` endpoint in `wallet_server`, not any other endpoint.
+/// from the `disclosed_attributes` endpoint in `verification_server`, not any other endpoint.
 #[derive(Debug, Clone, strum::Display)]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum SessionStatus {

@@ -2,7 +2,7 @@ openapi: '3.1.0'
 info:
   title: 'Wallet Server Disclosure API, Public Endpoint (Wallet)'
   description:
-    The API for the wallet_server's public endpoint. Not authenticated,
+    The API for the verification_server's public endpoint. Not authenticated,
     reachable by wallet mobile app and relying party's application. It
     exposes the status, cancellation and OpenID4VP request/response functions.
   version: '1.0.0'

@@ -407,7 +407,7 @@ pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
 
     tokio::spawn(async move {
         if let Err(error) = pid_issuer::server::serve(attr_service, settings, issuance_sessions, wte_tracker).await {
-            println!("Could not start wallet_server: {:?}", error);
+            println!("Could not start pid_issuer: {:?}", error);
 
             process::exit(1);
         }
@@ -428,7 +428,7 @@ pub async fn start_verification_server(settings: VerifierSettings) {
 
     tokio::spawn(async move {
         if let Err(error) = verification_server::server::serve(settings, disclosure_sessions).await {
-            println!("Could not start wallet_server: {:?}", error);
+            println!("Could not start verification_server: {:?}", error);
 
             process::exit(1);
         }

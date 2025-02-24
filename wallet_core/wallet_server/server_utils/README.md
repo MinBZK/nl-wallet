@@ -1,6 +1,6 @@
 # server_utils
 
-This crate contains variouus tooling and utilities for server side implementation of
+This crate contains various tooling and utilities for server side implementations of
 OpenID4VCI and/or OpenID4VP.
 
 ## Migrate database
