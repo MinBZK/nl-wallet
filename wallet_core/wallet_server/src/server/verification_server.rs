@@ -5,8 +5,9 @@ use openid4vc::verifier::DisclosureData;
 use openid4vc_server::verifier;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
-use super::*;
 use crate::settings::Settings;
+
+use super::*;
 
 pub async fn serve<S>(settings: Settings, disclosure_sessions: S) -> Result<()>
 where

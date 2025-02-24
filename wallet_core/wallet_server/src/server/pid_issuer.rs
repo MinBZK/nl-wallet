@@ -6,9 +6,9 @@ use openid4vc::server_state::WteTracker;
 use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::issuer::IssuerKeyRing;
 
-use super::*;
-
 use crate::settings::Settings;
+
+use super::*;
 
 pub async fn serve<A, IS, W>(attr_service: A, settings: Settings, issuance_sessions: IS, wte_tracker: W) -> Result<()>
 where
