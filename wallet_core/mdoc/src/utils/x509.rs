@@ -5,7 +5,6 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Debug;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
 use p256::pkcs8::der::asn1::Utf8StringRef;
@@ -232,24 +231,16 @@ impl BorrowingCertificate {
             .subject_alternative_name()?
             .ok_or(CertificateError::MissingSan)?;
 
-        let san_dns_name_or_uri: VecNonEmpty<_> = san_ext
-            .value
-            .general_names
-            .iter()
-            .filter_map(|name| match name {
-                GeneralName::DNSName(name) => Some(format!("https://{name}")),
-                GeneralName::URI(uri) => Some(uri.to_string()),
-                _ => None,
-            })
-            .collect_vec()
-            .try_into()?;
+        let san_dns_name_or_uri = san_ext.value.general_names.iter().filter_map(|name| match name {
+            GeneralName::DNSName(name) => Some(format!("https://{name}")),
+            GeneralName::URI(uri) => Some(uri.to_string()),
+            _ => None,
+        });
 
         let san_https_uris = san_dns_name_or_uri
-            .iter()
             .map(|san| san.parse().map_err(CertificateError::SanDnsNameOrUriIsNotAnHttpsUri))
             .collect::<Result<Vec<_>, _>>()?
-            .try_into()
-            .unwrap(); // we come from a VecNonEmpty<_>, so this is safe
+            .try_into()?;
 
         Ok(san_https_uris)
     }
