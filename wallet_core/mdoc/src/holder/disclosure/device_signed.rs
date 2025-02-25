@@ -78,13 +78,16 @@ mod tests {
     use crate::examples::Example;
     use crate::examples::IsoCertTimeGenerator;
     use crate::holder::Mdoc;
+    use crate::server_keys::generate::Ca;
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceSigned;
     use crate::Document;
 
-    #[test]
-    fn test_mac_device_signed() {
-        let mdoc = Mdoc::new_example_mock();
+    #[tokio::test]
+    async fn test_mac_device_signed() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let mdoc = Mdoc::new_example_resigned(&ca).await;
+
         let eph_reader_key = Examples::ephemeral_reader_key();
         let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
 
@@ -112,7 +115,7 @@ mod tests {
                 Some(&eph_reader_key),
                 &session_transcript,
                 &IsoCertTimeGenerator,
-                Examples::iaca_trust_anchors(),
+                &[ca.to_trust_anchor()],
             )
             .unwrap();
     }

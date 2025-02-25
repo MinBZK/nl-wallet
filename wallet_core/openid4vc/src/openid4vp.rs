@@ -1157,12 +1157,15 @@ mod tests {
         device_response
     }
 
-    /// Helper function to use `setup_device_response`, given the examples from ISO 18013-5.
+    /// Helper function to use `setup_device_response`, given the examples from ISO 18013-5, resigned with a newly
+    /// generated CA.
     async fn example_device_response(
         auth_request: &IsoVpAuthorizationRequest,
         mdoc_nonce: &str,
+        ca: &Ca,
     ) -> (DeviceResponse, Option<Poa>) {
-        let issuer_signed_and_keys = DeviceResponse::example()
+        let issuer_signed_and_keys = DeviceResponse::example_resigned(ca)
+            .await
             .documents
             .unwrap()
             .iter()
@@ -1178,7 +1181,7 @@ mod tests {
             auth_request,
             mdoc_nonce,
             &issuer_signed_and_keys,
-            Examples::iaca_trust_anchors(),
+            &[ca.to_trust_anchor()],
             &IsoCertTimeGenerator,
         )
         .await
@@ -1240,7 +1243,8 @@ mod tests {
         let mdoc_nonce = "mdoc_nonce";
 
         let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
-        let (device_response, poa) = example_device_response(&auth_request, mdoc_nonce).await;
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let (device_response, poa) = example_device_response(&auth_request, mdoc_nonce, &ca).await;
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
 
         auth_response
@@ -1248,7 +1252,7 @@ mod tests {
                 &auth_request,
                 mdoc_nonce,
                 &IsoCertTimeGenerator,
-                Examples::iaca_trust_anchors(),
+                &[ca.to_trust_anchor()],
             )
             .unwrap();
     }

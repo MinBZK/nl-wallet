@@ -20,6 +20,7 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 
+use wallet_common::urls::HttpsUri;
 use wallet_common::utils::random_bytes;
 
 use crate::unsigned::Entry;
@@ -43,6 +44,7 @@ pub type DigestID = u64;
 /// A map containing attribute digests keyed by the attribute ID (an incrementing integer).
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DigestIDs(pub IndexMap<DigestID, Digest>);
+
 impl TryFrom<&Attributes> for DigestIDs {
     type Error = CborError;
     fn try_from(val: &Attributes) -> Result<Self, Self::Error> {
@@ -60,6 +62,7 @@ impl TryFrom<&Attributes> for DigestIDs {
 /// Digests of the attributes, grouped per [`NameSpace`].
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ValueDigests(pub IndexMap<NameSpace, DigestIDs>);
+
 impl TryFrom<&IssuerNameSpaces> for ValueDigests {
     type Error = CborError;
     fn try_from(val: &IssuerNameSpaces) -> Result<Self, Self::Error> {
@@ -161,6 +164,10 @@ pub struct MobileSecurityObject {
     pub device_key_info: DeviceKeyInfo,
     pub doc_type: String,
     pub validity_info: ValidityInfo,
+
+    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate. Optional because it is not in
+    /// the spec.
+    pub issuer_uri: Option<HttpsUri>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

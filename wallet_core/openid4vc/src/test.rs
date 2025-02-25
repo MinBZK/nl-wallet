@@ -256,8 +256,9 @@ where
         session: Arc::clone(&verifier_session),
     };
 
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
     // Set up the mock data source.
-    let mdoc_data_source = transform_mdoc(MockMdocDataSource::new_with_example());
+    let mdoc_data_source = transform_mdoc(MockMdocDataSource::new_example_resigned(&ca).await);
 
     // Starting disclosure and return the result.
     let result = DisclosureSession::start(

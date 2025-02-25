@@ -209,15 +209,19 @@ impl<I> ProposedDocument<I> {
 #[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
     use sd_jwt::metadata::TypeMetadata;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
 
     use super::ProposedDocument;
 
     impl ProposedDocument<String> {
-        pub fn new_example() -> Self {
-            let mdoc = Mdoc::new_example_mock();
+        pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
+            let mdoc = Mdoc::new_mock_with_key(key).await;
+            Self::new_inner(mdoc)
+        }
 
+        fn new_inner(mdoc: Mdoc) -> Self {
             let issuer_certificate = mdoc.issuer_certificate().unwrap();
 
             Self {
@@ -238,35 +242,34 @@ mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
 
-    use wallet_common::keys::examples::Examples;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::Error;
-    use crate::examples::EXAMPLE_NAMESPACE;
     use crate::holder::Mdoc;
     use crate::iso::disclosure::DeviceAuth;
-    use crate::utils::cose;
+    use crate::test::data::PID;
     use crate::utils::cose::CoseError;
+    use crate::utils::cose::{self};
     use crate::utils::serialization::TaggedBytes;
 
     use super::*;
 
-    #[test]
-    fn test_proposed_document_from_stored_mdoc() {
+    #[tokio::test]
+    async fn test_proposed_document_from_stored_mdoc() {
         let stored_mdoc = StoredMdoc {
             id: "id_1234",
-            mdoc: Mdoc::new_example_mock(),
+            mdoc: Mdoc::new_mock().await,
         };
         let id = stored_mdoc.id;
         let doc_type = stored_mdoc.mdoc.mso.doc_type.clone();
         let private_key_id = stored_mdoc.mdoc.private_key_id.clone();
         let issuer_auth = stored_mdoc.mdoc.issuer_signed.issuer_auth.clone();
 
-        let requested_attributes = AttributeIdentifier::new_example_index_set_from_attributes([
-            "driving_privileges",
-            "family_name",
-            "document_number",
-        ]);
+        let requested_attributes = AttributeIdentifier::new_index_set_from_attributes_doc_type_and_namespace(
+            PID,
+            PID,
+            ["bsn", "given_name", "family_name"],
+        );
 
         let proposed_document =
             ProposedDocument::try_from_stored_mdoc(stored_mdoc, &requested_attributes, b"foobar".to_vec()).unwrap();
@@ -280,7 +283,7 @@ mod tests {
             .issuer_signed
             .name_spaces
             .as_ref()
-            .and_then(|name_spaces| name_spaces.as_ref().get(EXAMPLE_NAMESPACE))
+            .and_then(|name_spaces| name_spaces.as_ref().get(PID))
             .map(|attributes| {
                 attributes
                     .as_ref()
@@ -290,22 +293,19 @@ mod tests {
             })
             .expect("Could not get expected attributes from proposed document");
 
-        assert_eq!(
-            attributes_identifiers,
-            ["family_name", "document_number", "driving_privileges"]
-        );
+        assert_eq!(attributes_identifiers, ["bsn", "given_name", "family_name"]);
         assert_eq!(proposed_document.issuer_signed.issuer_auth, issuer_auth);
     }
 
-    #[test]
-    fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
-        let mdoc1 = Mdoc::new_example_mock();
+    #[tokio::test]
+    async fn test_proposed_document_candidates_and_missing_attributes_from_mdocs() {
+        let mdoc1 = Mdoc::new_mock().await;
         let mdoc2 = {
             let mut mdoc = mdoc1.clone();
             let name_spaces = mdoc.issuer_signed.name_spaces.as_mut().unwrap();
 
-            name_spaces.modify_attributes(EXAMPLE_NAMESPACE, |attributes| {
-                // Remove `issue_date` and `expiry_date`.
+            name_spaces.modify_attributes(PID, |attributes| {
+                // Remove `family_name` and `given_name`
                 attributes.remove(1);
                 attributes.remove(1);
             });
@@ -317,11 +317,11 @@ mod tests {
         let doc_type = mdoc1.mso.doc_type.clone();
         let private_key_id = mdoc1.private_key_id.clone();
 
-        let requested_attributes = AttributeIdentifier::new_example_index_set_from_attributes([
-            "driving_privileges",
-            "issue_date",
-            "expiry_date",
-        ]);
+        let requested_attributes = AttributeIdentifier::new_index_set_from_attributes_doc_type_and_namespace(
+            PID,
+            PID,
+            ["bsn", "given_name", "family_name"],
+        );
 
         let stored_mdocs = vec![mdoc1, mdoc2, mdoc3]
             .into_iter()
@@ -355,7 +355,7 @@ mod tests {
                         .name_spaces
                         .unwrap()
                         .as_ref()
-                        .get(EXAMPLE_NAMESPACE)
+                        .get(PID)
                         .unwrap()
                         .as_ref()
                         .len(),
@@ -369,21 +369,22 @@ mod tests {
                 .iter()
                 .map(|attribute| attribute.attribute.as_str())
                 .collect::<Vec<_>>(),
-            ["issue_date", "expiry_date"]
+            ["given_name", "family_name"]
         );
     }
 
     #[tokio::test]
     async fn test_proposed_document_sign_multiple() {
-        // Create a `ProposedDocument` from the example `Mdoc`.
-        let proposed_document = ProposedDocument::new_example();
+        // Create a `ProposedDocument`.
+        let key_factory = MockRemoteKeyFactory::default();
+        let key = key_factory.generate_new().await.unwrap();
+        let proposed_document = ProposedDocument::new_mock_with_key(&key).await;
 
         // Collect all of the expected values.
         let expected_doc_type = proposed_document.doc_type.clone();
         let expected_issuer_signed = proposed_document.issuer_signed.clone();
 
-        // The example proposed document should be signed with the example static key.
-        let key = Examples::static_device_key();
+        // The proposed document should be signed with the generated key.
         let expected_cose = cose::sign_cose(
             &proposed_document.device_signed_challenge,
             Header::default(),
@@ -393,10 +394,9 @@ mod tests {
         .await
         .unwrap();
 
-        let (mut documents, _) =
-            ProposedDocument::sign_multiple(&MockRemoteKeyFactory::default(), vec![proposed_document])
-                .await
-                .expect("Could not sign ProposedDocument");
+        let (mut documents, _) = ProposedDocument::sign_multiple(&key_factory, vec![proposed_document])
+            .await
+            .expect("Could not sign ProposedDocument");
 
         let document = documents.remove(0);
 
@@ -413,13 +413,14 @@ mod tests {
     #[tokio::test]
     async fn test_proposed_document_sign_error() {
         // Set up a `KeyFactory` that returns keys that fail at signing.
-        let proposed_document = ProposedDocument::new_example();
         let key_factory = {
             let mut key_factory = MockRemoteKeyFactory::default();
             key_factory.has_multi_key_signing_error = true;
-
             key_factory
         };
+
+        let key = key_factory.generate_new().await.unwrap();
+        let proposed_document = ProposedDocument::new_mock_with_key(&key).await;
 
         // Conversion to `Document` should simply forward the signing error.
         let error = ProposedDocument::sign_multiple(&key_factory, vec![proposed_document])
