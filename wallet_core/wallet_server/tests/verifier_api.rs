@@ -60,6 +60,10 @@ use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::ErrorResponse;
+use openid4vc_server::urls::Urls;
+use openid4vc_server::verifier::StartDisclosureRequest;
+use openid4vc_server::verifier::StartDisclosureResponse;
+use openid4vc_server::verifier::StatusParams;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 #[cfg(feature = "issuance")]
@@ -81,12 +85,8 @@ use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;
 use wallet_server::settings::Settings;
 use wallet_server::settings::Storage;
-use wallet_server::settings::Urls;
 use wallet_server::settings::Verifier;
 use wallet_server::settings::VerifierUseCase;
-use wallet_server::verifier::StartDisclosureRequest;
-use wallet_server::verifier::StartDisclosureResponse;
-use wallet_server::verifier::StatusParams;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -735,10 +735,10 @@ mod db_test {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureData;
+    use openid4vc_server::store::postgres;
+    use openid4vc_server::store::postgres::PostgresSessionStore;
     use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_server::settings::Settings;
-    use wallet_server::store::postgres;
-    use wallet_server::store::postgres::PostgresSessionStore;
 
     use super::test_disclosure_expired;
     use super::wallet_server_settings;

@@ -49,12 +49,11 @@ use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings;
-use crate::settings::Urls;
-
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+
+use crate::urls::Urls;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,
@@ -71,18 +70,19 @@ impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
     }
 }
 
-impl TryFrom<HashMap<String, settings::KeyPair>> for IssuerKeyRing<SigningKey> {
-    type Error = CertificateError;
-
-    fn try_from(private_keys: HashMap<String, settings::KeyPair>) -> Result<Self, Self::Error> {
+impl IssuerKeyRing<SigningKey> {
+    pub fn try_new<T>(private_keys: HashMap<String, T>) -> Result<Self, CertificateError>
+    where
+        T: TryInto<KeyPair<SigningKey>>,
+        CertificateError: From<T::Error>,
+    {
         let key_ring = private_keys
             .into_iter()
             .map(|(doctype, key_pair)| {
-                let key_pair = key_pair.try_into_mdoc_key_pair()?;
-
+                let key_pair = key_pair.try_into()?;
                 Ok((doctype, key_pair))
             })
-            .collect::<Result<HashMap<_, _>, Self::Error>>()?
+            .collect::<Result<HashMap<_, _>, CertificateError>>()?
             .into();
 
         Ok(key_ring)
@@ -97,7 +97,7 @@ pub fn create_issuance_router<A, K, S, W>(
     wallet_client_ids: Vec<String>,
     wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
-) -> anyhow::Result<Router>
+) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
     K: KeyRing + Send + Sync + 'static,
@@ -117,7 +117,7 @@ where
         ),
     });
 
-    let issuance_router = Router::new()
+    Router::new()
         .route("/.well-known/openid-credential-issuer", get(metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/token", post(token))
@@ -125,9 +125,7 @@ where
         .route("/credential", delete(reject_issuance))
         .route("/batch_credential", post(batch_credential))
         .route("/batch_credential", delete(reject_issuance))
-        .with_state(application_state);
-
-    Ok(issuance_router)
+        .with_state(application_state)
 }
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`

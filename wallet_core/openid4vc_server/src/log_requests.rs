@@ -18,7 +18,7 @@ use wallet_common::http_error::APPLICATION_PROBLEM_JSON;
 
 const MAX_BODY_SIZE: usize = 8 * 1024 * 1024; // 8 MiB
 
-pub(crate) async fn log_request_response(req: Request, next: Next) -> Result<impl IntoResponse, (StatusCode, String)> {
+pub async fn log_request_response(req: Request, next: Next) -> Result<impl IntoResponse, (StatusCode, String)> {
     let (parts, body) = req.into_parts();
     let bytes = log_request(body, &parts.method, &parts.uri, &parts.headers, &parts.version).await?;
     let req = Request::from_parts(parts, Body::from(bytes));
