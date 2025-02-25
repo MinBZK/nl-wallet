@@ -27,11 +27,6 @@
 #
 #     brew install gnu-sed
 #
-# Before running this script
-# - Android Emulator configuration
-#
-#     ./scripts/map_android_ports.sh
-#
 
 set -e # break on error
 set -u # warn against undefined variables
