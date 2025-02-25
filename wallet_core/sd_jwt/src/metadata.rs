@@ -375,10 +375,6 @@ pub mod mock {
             }
         }
 
-        pub fn bsn_only_example() -> Self {
-            Self::example_with_claim_name("bsn")
-        }
-
         pub fn example_with_claim_name(name: &str) -> Self {
             Self::example_with_claim_names(&[name])
         }

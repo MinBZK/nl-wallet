@@ -494,7 +494,8 @@ fn mock_issuable_attestation(
             valid_from: Utc::now(),
             valid_until: Utc::now().add(Days::new(365)),
             copy_count,
-            metadata_chain: TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap(),
+            // NOTE: This metadata does not match the attributes.
+            metadata_chain: TypeMetadataChain::create(TypeMetadata::empty_example(), vec![]).unwrap(),
         })
         .collect::<Vec<_>>()
         .try_into()

@@ -59,11 +59,13 @@ mod test {
 
     #[test]
     fn test_happy() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![
-            claim_metadata(&["single"]),
-            claim_metadata(&["nested_1a", "nested_1b", "nested_1c"]),
-        ];
+        let metadata = TypeMetadata {
+            claims: vec![
+                claim_metadata(&["single"]),
+                claim_metadata(&["nested_1a", "nested_1b", "nested_1c"]),
+            ],
+            ..TypeMetadata::empty_example()
+        };
 
         let payload = example_credential_payload();
 
@@ -101,8 +103,10 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![claim_metadata(&["not_found"])];
+        let metadata = TypeMetadata {
+            claims: vec![claim_metadata(&["not_found"])],
+            ..TypeMetadata::empty_example()
+        };
 
         let payload = example_credential_payload();
 
@@ -117,8 +121,10 @@ mod test {
 
     #[test]
     fn test_attribute_not_processed() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![claim_metadata(&["nested_1a", "nested_1b", "nested_1c"])];
+        let metadata = TypeMetadata {
+            claims: vec![claim_metadata(&["nested_1a", "nested_1b", "nested_1c"])],
+            ..TypeMetadata::empty_example()
+        };
 
         let payload = example_credential_payload();
 

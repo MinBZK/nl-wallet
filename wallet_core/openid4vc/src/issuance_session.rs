@@ -912,7 +912,8 @@ mod tests {
         let trust_anchor = ca.to_trust_anchor().to_owned();
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
-        let metadata = TypeMetadata::bsn_only_example();
+        // NOTE: This metadata does not match the attributes.
+        let metadata = TypeMetadata::empty_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
         let preview = CredentialPreview::MsoMdoc {
@@ -956,7 +957,8 @@ mod tests {
                 // HttpIssuanceSession::start_issuance() will accept
                 let ca = Ca::generate_issuer_mock_ca().unwrap();
                 let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
-                let metadata = TypeMetadata::bsn_only_example();
+                // NOTE: This metadata does not match the attributes.
+                let metadata = TypeMetadata::empty_example();
                 let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
                 let preview = CredentialPreview::MsoMdoc {

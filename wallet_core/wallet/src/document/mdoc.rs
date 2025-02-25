@@ -391,7 +391,7 @@ pub mod tests {
                 .try_into()
                 .unwrap(),
             },
-            TypeMetadata::bsn_only_example(),
+            TypeMetadata::example_with_claim_name("bsn"),
         )
     }
 
@@ -1033,13 +1033,13 @@ pub mod tests {
         #[case] input: (UnsignedMdoc, TypeMetadata),
         #[case] expected: DisclosureType,
     ) {
-        let (unsigned_mdoc, _metadata) = input;
+        let (unsigned_mdoc, type_metadata) = input;
         let pa = ProposedAttributes::from([(
             PID_DOCTYPE.to_string(),
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
-                type_metadata: TypeMetadata::bsn_only_example(),
+                type_metadata,
             },
         )]);
 

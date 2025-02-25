@@ -50,11 +50,13 @@ mod test {
 
     #[test]
     fn test_happy() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![
-            claim_metadata(&["namespace1", "entry1"]),
-            claim_metadata(&["namespace1", "entry2"]),
-        ];
+        let metadata = TypeMetadata {
+            claims: vec![
+                claim_metadata(&["namespace1", "entry1"]),
+                claim_metadata(&["namespace1", "entry2"]),
+            ],
+            ..TypeMetadata::empty_example()
+        };
 
         let mdoc_attributes = IndexMap::from([(
             String::from("example_attestation_type.namespace1"),
@@ -101,11 +103,13 @@ mod test {
 
     #[test]
     fn test_not_all_claims_need_to_match_attributes() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![
-            claim_metadata(&["namespace1", "entry1"]),
-            claim_metadata(&["namespace1", "entry2"]),
-        ];
+        let metadata = TypeMetadata {
+            claims: vec![
+                claim_metadata(&["namespace1", "entry1"]),
+                claim_metadata(&["namespace1", "entry2"]),
+            ],
+            ..TypeMetadata::empty_example()
+        };
 
         let mdoc_attributes = IndexMap::from([(
             String::from("example_attestation_type.namespace1"),
@@ -127,8 +131,10 @@ mod test {
 
     #[test]
     fn test_attributes_not_processed() {
-        let mut metadata = TypeMetadata::bsn_only_example();
-        metadata.claims = vec![claim_metadata(&["namespace1", "entry1"])];
+        let metadata = TypeMetadata {
+            claims: vec![claim_metadata(&["namespace1", "entry1"])],
+            ..TypeMetadata::empty_example()
+        };
 
         let mdoc_attributes = IndexMap::from([(
             String::from("example_attestation_type.namespace1"),

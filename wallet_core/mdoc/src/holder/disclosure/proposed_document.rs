@@ -223,7 +223,8 @@ mod examples {
                 issuer_signed: mdoc.issuer_signed,
                 device_signed_challenge: b"signing_challenge".to_vec(),
                 issuer_certificate,
-                type_metadata: TypeMetadata::bsn_only_example(),
+                // NOTE: This metadata does not match the attributes.
+                type_metadata: TypeMetadata::empty_example(),
             }
         }
     }
