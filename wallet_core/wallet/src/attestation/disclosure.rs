@@ -16,7 +16,7 @@ impl Attestation {
         attestation_type: String,
         metadata: TypeMetadata,
         issuer_organization: Organization,
-        mdoc_attributes: &IndexMap<NameSpace, Vec<Entry>>,
+        mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
         let nested_attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
 
@@ -76,7 +76,7 @@ mod test {
             String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-            &mdoc_attributes,
+            mdoc_attributes,
         )
         .unwrap();
 
@@ -123,7 +123,7 @@ mod test {
             String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-            &mdoc_attributes,
+            mdoc_attributes,
         );
 
         assert!(attestation.is_ok());
@@ -154,7 +154,7 @@ mod test {
             String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-            &mdoc_attributes,
+            mdoc_attributes,
         );
 
         assert_matches!(

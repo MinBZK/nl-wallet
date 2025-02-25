@@ -49,14 +49,13 @@ pub struct Entry {
     pub value: DataElementValue,
 }
 
-impl From<&Attributes> for Vec<Entry> {
-    fn from(attrs: &Attributes) -> Self {
-        attrs
-            .as_ref()
-            .iter()
+impl From<Attributes> for Vec<Entry> {
+    fn from(attributes: Attributes) -> Self {
+        attributes
+            .into_iter()
             .map(|TaggedBytes(item)| Entry {
-                name: item.element_identifier.clone(),
-                value: item.element_value.clone(),
+                name: item.element_identifier,
+                value: item.element_value,
             })
             .collect()
     }

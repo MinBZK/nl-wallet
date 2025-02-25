@@ -74,25 +74,25 @@ pub struct CredentialPayload {
 }
 
 impl CredentialPayload {
-    pub fn from_unsigned_mdoc(mdoc: &UnsignedMdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+    pub fn from_unsigned_mdoc(unsigned_mdoc: UnsignedMdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            mdoc.doc_type.to_string(),
-            mdoc.attributes.as_ref(),
+            unsigned_mdoc.doc_type,
+            unsigned_mdoc.attributes.into(),
             issuer,
             Some(Utc::now()),
-            Some((&mdoc.valid_until).try_into()?),
-            Some((&mdoc.valid_from).try_into()?),
+            Some((&unsigned_mdoc.valid_until).try_into()?),
+            Some((&unsigned_mdoc.valid_from).try_into()?),
         )
     }
 
-    pub fn from_mdoc(mdoc: &Mdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            mdoc.doc_type().to_string(),
-            &mdoc.attributes(),
+            mdoc.mso.doc_type,
+            mdoc.issuer_signed.into_entries_by_namespace(),
             issuer,
-            Some((&mdoc.validity_info().signed).try_into()?),
-            Some((&mdoc.validity_info().valid_until).try_into()?),
-            Some((&mdoc.validity_info().valid_from).try_into()?),
+            Some((&mdoc.mso.validity_info.signed).try_into()?),
+            Some((&mdoc.mso.validity_info.valid_until).try_into()?),
+            Some((&mdoc.mso.validity_info.valid_from).try_into()?),
         )
     }
 
@@ -133,7 +133,7 @@ impl CredentialPayload {
     /// root level of the output.
     pub fn from_mdoc_attributes(
         doc_type: String,
-        mdoc_attributes: &IndexMap<NameSpace, Vec<Entry>>,
+        mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: Uri,
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,

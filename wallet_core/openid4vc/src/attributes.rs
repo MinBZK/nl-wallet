@@ -72,7 +72,7 @@ pub enum Attribute {
 impl Attribute {
     pub fn from_mdoc_attributes(
         doc_type: &str,
-        attributes: &IndexMap<NameSpace, Vec<Entry>>,
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<IndexMap<String, Self>, AttributeError> {
         let mut attrs = IndexMap::new();
         Self::traverse_attributes(doc_type, attributes, &mut attrs)?;
@@ -81,14 +81,14 @@ impl Attribute {
 
     fn traverse_attributes(
         doc_type: &str,
-        attributes: &IndexMap<String, Vec<Entry>>,
+        attributes: IndexMap<String, Vec<Entry>>,
         result: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
         for (namespace, entries) in attributes {
             if namespace == doc_type {
                 Self::insert_entries(entries, result)?;
             } else {
-                let mut groups: VecDeque<String> = Self::split_namespace(namespace, doc_type)?.into();
+                let mut groups: VecDeque<String> = Self::split_namespace(&namespace, doc_type)?.into();
                 Self::traverse_groups(entries, &mut groups, result)?;
             }
         }
@@ -97,7 +97,7 @@ impl Attribute {
     }
 
     fn traverse_groups(
-        entries: &[Entry],
+        entries: Vec<Entry>,
         groups: &mut VecDeque<String>,
         current_group: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
@@ -119,15 +119,15 @@ impl Attribute {
         Ok(())
     }
 
-    fn insert_entries(entries: &[Entry], group: &mut IndexMap<String, Attribute>) -> Result<(), AttributeError> {
-        for entry in entries.iter() {
-            let key = entry.name.to_string();
+    fn insert_entries(entries: Vec<Entry>, group: &mut IndexMap<String, Attribute>) -> Result<(), AttributeError> {
+        for entry in entries {
+            let key = entry.name;
 
             if group.contains_key(&key) {
-                return Err(AttributeError::DuplicateAttribute(key.clone()));
+                return Err(AttributeError::DuplicateAttribute(key));
             }
 
-            group.insert(key, Attribute::Single(entry.value.clone().try_into()?));
+            group.insert(key, Attribute::Single(entry.value.try_into()?));
         }
 
         Ok(())
@@ -221,7 +221,7 @@ mod test {
             ),
         ]);
         let result = &mut IndexMap::new();
-        Attribute::traverse_attributes("com.example.pid", &mdoc_attributes, result).unwrap();
+        Attribute::traverse_attributes("com.example.pid", mdoc_attributes, result).unwrap();
 
         let expected_json = json!({
             "birthdate": "1963-08-12",
@@ -268,7 +268,7 @@ mod test {
             ),
         ]);
 
-        let result = Attribute::traverse_attributes("com.example.pid", &mdoc_attributes, &mut IndexMap::new());
+        let result = Attribute::traverse_attributes("com.example.pid", mdoc_attributes, &mut IndexMap::new());
         assert_matches!(result, Err(AttributeError::DuplicateAttribute(key)) if key == *"c");
     }
 }

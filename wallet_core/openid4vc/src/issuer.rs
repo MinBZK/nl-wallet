@@ -624,7 +624,7 @@ impl Session<Created> {
                     doc.document
                         .to_unsigned_mdoc(doc.valid_from.into(), doc.valid_until.into(), doc.copy_count)?;
                 let credential_payload =
-                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                    CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), Uri::from_static("org_uri"))?; // TODO: PVW-3823
                 credential_payload.validate(&doc.metadata_chain)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)
@@ -998,7 +998,7 @@ impl CredentialResponse {
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
 
                 let credential_payload =
-                    CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                    CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), Uri::from_static("org_uri"))?; // TODO: PVW-3823
                 credential_payload.validate(&metadata_chain)?;
 
                 let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)

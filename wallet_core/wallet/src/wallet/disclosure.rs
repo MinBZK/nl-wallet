@@ -262,7 +262,7 @@ where
                     doc_type,
                     attributes.type_metadata,
                     issuer_registration.organization,
-                    &attributes.attributes,
+                    attributes.attributes,
                 )
                 .map_err(DisclosureError::AttestationAttributes)
             })

@@ -256,9 +256,9 @@ impl TryFrom<Vec<Mdoc>> for EventDocuments {
         let doc_type_map = source
             .into_iter()
             .map(|mdoc| {
-                let doc_type = mdoc.doc_type().clone();
                 let issuer = mdoc.issuer_certificate()?;
-                let attributes = mdoc.attributes();
+                let doc_type = mdoc.mso.doc_type;
+                let attributes = mdoc.issuer_signed.into_entries_by_namespace();
                 Ok((doc_type, (issuer, attributes).into()))
             })
             .collect::<Result<IndexMap<_, _>, CoseError>>()?;

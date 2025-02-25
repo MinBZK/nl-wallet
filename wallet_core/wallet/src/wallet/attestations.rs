@@ -70,14 +70,15 @@ where
                 let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
                     .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
+                // TODO: PVW-3812
+                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?.into_first();
                 let attestation = Attestation::create_for_issuance(
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },
                     // TODO: PVW-3823
-                    CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?,
-                    // TODO: PVW-3812
-                    mdoc.type_metadata().map_err(AttestationsError::Metadata)?.into_first(),
+                    CredentialPayload::from_mdoc(mdoc, Uri::from_static("org_uri"))?,
+                    metadata,
                     issuer_registration.organization,
                 )?;
                 Ok(attestation)

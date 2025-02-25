@@ -72,14 +72,13 @@ pub struct IssuerSigned {
 }
 
 impl IssuerSigned {
-    pub fn to_entries_by_namespace(&self) -> IndexMap<NameSpace, Vec<Entry>> {
+    /// Get a list of attributes ([`Entry`] instances) contained in the mdoc, mapped per [`NameSpace`].
+    pub fn into_entries_by_namespace(self) -> IndexMap<NameSpace, Vec<Entry>> {
         self.name_spaces
-            .as_ref()
             .map(|name_spaces| {
                 name_spaces
-                    .as_ref()
-                    .iter()
-                    .map(|(name_space, attributes)| (name_space.clone(), attributes.into()))
+                    .into_iter()
+                    .map(|(name_space, attributes)| (name_space, attributes.into()))
                     .collect()
             })
             .unwrap_or_default()

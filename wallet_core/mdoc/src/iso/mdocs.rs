@@ -213,7 +213,7 @@ pub type DocType = String;
 
 /// [`Attributes`], which contains [`IssuerSignedItem`]s, grouped per [`NameSpace`].
 #[nutype(
-    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
     validate(predicate = |name_spaces| !name_spaces.is_empty()),
 )]
 pub struct IssuerNameSpaces(IndexMap<NameSpace, Attributes>);
@@ -235,7 +235,7 @@ impl From<UnsignedAttributes> for IssuerNameSpaces {
 /// A `Vec` of [`IssuerSignedItemBytes`], i.e., attributes. In the [`IssuerNameSpaces`] map,
 /// this is used as the type of the keys. (This datastructure is itself not named in the spec.)
 #[nutype(
-    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
     validate(predicate = |items| !items.is_empty()),
 )]
 pub struct Attributes(Vec<IssuerSignedItemBytes>);

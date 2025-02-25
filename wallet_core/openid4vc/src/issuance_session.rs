@@ -815,7 +815,7 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuedMdocAttributesMismatch)?;
 
                 // Verify and parse the type metadata
-                let credential_payload = CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                let credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), Uri::from_static("org_uri"))?; // TODO: PVW-3823
                 credential_payload.validate(metadata_chain)?;
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
