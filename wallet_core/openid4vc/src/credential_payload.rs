@@ -3,7 +3,6 @@ use chrono::ParseError;
 use chrono::Utc;
 use http::Uri;
 use indexmap::IndexMap;
-use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -49,7 +48,8 @@ pub enum CredentialPayloadError {
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub struct CredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
