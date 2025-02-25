@@ -22,6 +22,7 @@ use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::generator::TimeGenerator;
+use wallet_common::urls::HttpsUri;
 use wallet_common::utils::random_string;
 use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -167,9 +168,13 @@ impl CredentialPreview {
         }
     }
 
-    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
+    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CredentialPreviewError> {
         match self {
-            CredentialPreview::MsoMdoc { issuer_certificate, .. } => {
+            CredentialPreview::MsoMdoc {
+                issuer_certificate,
+                unsigned_mdoc,
+                ..
+            } => {
                 // Verify the issuer certificates that the issuer presents for each credential to be issued.
                 // NB: this only proves the authenticity of the data inside the certificates (the
                 // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
@@ -179,7 +184,21 @@ impl CredentialPreview {
                 // protocol each mdoc is verified against the corresponding certificate in the
                 // credential preview, which implicitly authenticates the issuer because only it could
                 // have produced an mdoc against that certificate.
-                issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)
+                issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
+
+                // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
+                if !issuer_certificate
+                    .san_dns_name_or_uris()?
+                    .as_ref()
+                    .contains(&unsigned_mdoc.issuer_uri)
+                {
+                    return Err(CredentialPreviewError::IssuerUriNotFoundInSan(
+                        unsigned_mdoc.issuer_uri.clone(),
+                        issuer_certificate.san_dns_name_or_uris()?,
+                    ));
+                }
+
+                Ok(())
             }
         }
     }
@@ -212,6 +231,9 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
+    #[error("issuer URI {0} not found in SAN {1:?}")]
+    #[category(pd)]
+    IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]

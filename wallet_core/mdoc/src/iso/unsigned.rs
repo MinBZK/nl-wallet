@@ -5,6 +5,8 @@ use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 
+use wallet_common::urls::HttpsUri;
+
 use crate::utils::serialization::TaggedBytes;
 use crate::Attributes;
 use crate::DataElementIdentifier;
@@ -37,6 +39,9 @@ pub struct UnsignedMdoc {
 
     /// The amount of copies of this mdoc that the holder will receive.
     pub copy_count: NonZeroU8,
+
+    /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate.
+    pub issuer_uri: HttpsUri,
 }
 
 /// An attribute name and value.

@@ -82,12 +82,15 @@ pub enum CoseError {
 
 impl Cose for CoseSign1 {
     type Key = VerifyingKey;
+
     fn payload(&self) -> Option<&[u8]> {
         self.payload.as_deref()
     }
+
     fn unprotected(&self) -> &Header {
         &self.unprotected
     }
+
     fn verify(&self, key: &VerifyingKey) -> Result<(), CoseError> {
         self.verify_signature(b"", |sig, data| {
             if self.payload.is_none() {
@@ -104,12 +107,15 @@ impl Cose for CoseSign1 {
 
 impl Cose for CoseMac0 {
     type Key = hmac::Key;
+
     fn payload(&self) -> Option<&[u8]> {
         self.payload.as_deref()
     }
+
     fn unprotected(&self) -> &Header {
         &self.unprotected
     }
+
     fn verify(&self, key: &hmac::Key) -> Result<(), CoseError> {
         if self.payload.is_none() {
             return Err(CoseError::MissingPayload);

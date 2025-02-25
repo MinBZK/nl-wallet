@@ -13,6 +13,7 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::test::SingleKeyRing;
 use nl_wallet_mdoc::server_keys::KeyPair;
@@ -482,6 +483,7 @@ fn mock_issuable_attestation(
     (0..attestation_count.get())
         .map(|i| IssuableCredential {
             document: IssuableDocument::try_new(
+                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 MOCK_DOCTYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (

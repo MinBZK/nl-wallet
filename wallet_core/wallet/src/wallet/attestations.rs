@@ -1,4 +1,3 @@
-use http::Uri;
 use tracing::info;
 
 use error_category::sentry_capture_error;
@@ -65,8 +64,8 @@ where
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },
-                    CredentialPayload::from_mdoc(&mdoc, Uri::from_static("org_uri"))?, // TODO: PVW-3823
-                    mdoc.type_metadata().unwrap().first().clone(),                     // TODO: PVW-3812
+                    CredentialPayload::from_mdoc(&mdoc)?,
+                    mdoc.type_metadata().unwrap().first().clone(), // TODO: PVW-3812
                     issuer_registration.organization,
                 )?;
                 Ok(attestation)
