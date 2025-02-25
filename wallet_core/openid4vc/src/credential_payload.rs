@@ -1,7 +1,6 @@
 use chrono::DateTime;
 use chrono::ParseError;
 use chrono::Utc;
-use http::Uri;
 use indexmap::IndexMap;
 use serde::Serialize;
 use serde_with::serde_as;
@@ -15,6 +14,7 @@ use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::NameSpace;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
+use wallet_common::urls::HttpsUri;
 
 use crate::attributes::Attribute;
 use crate::attributes::AttributeError;
@@ -37,6 +37,10 @@ pub enum CredentialPayloadError {
     #[category(critical)]
     DateConversion(#[from] ParseError),
 
+    #[error("mdoc error: {0}")]
+    #[category(defer)]
+    Mdoc(#[from] nl_wallet_mdoc::Error),
+
     #[error("attribute error: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
@@ -54,8 +58,8 @@ pub struct CredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
 
-    #[serde(rename = "iss", with = "http_serde::uri")]
-    pub issuer: Uri,
+    #[serde(rename = "iss")]
+    pub issuer: HttpsUri,
 
     #[serde(rename = "iat")]
     #[serde_as(as = "Option<TimestampSeconds<i64>>")]
@@ -74,22 +78,23 @@ pub struct CredentialPayload {
 }
 
 impl CredentialPayload {
-    pub fn from_unsigned_mdoc(unsigned_mdoc: UnsignedMdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+    pub fn from_unsigned_mdoc(unsigned_mdoc: UnsignedMdoc) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
             unsigned_mdoc.doc_type,
             unsigned_mdoc.attributes.into(),
-            issuer,
+            unsigned_mdoc.issuer_uri,
             Some(Utc::now()),
             Some((&unsigned_mdoc.valid_until).try_into()?),
             Some((&unsigned_mdoc.valid_from).try_into()?),
         )
     }
 
-    pub fn from_mdoc(mdoc: Mdoc, issuer: Uri) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
             mdoc.mso.doc_type,
             mdoc.issuer_signed.into_entries_by_namespace(),
-            issuer,
+            // TODO: Improve after merge.
+            mdoc.mso.issuer_uri.ok_or(nl_wallet_mdoc::Error::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
             Some((&mdoc.mso.validity_info.valid_until).try_into()?),
             Some((&mdoc.mso.validity_info.valid_from).try_into()?),
@@ -134,7 +139,7 @@ impl CredentialPayload {
     pub fn from_mdoc_attributes(
         doc_type: String,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
-        issuer: Uri,
+        issuer: HttpsUri,
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,
         not_before: Option<DateTime<Utc>>,
@@ -164,7 +169,6 @@ impl CredentialPayload {
 mod test {
     use chrono::TimeZone;
     use chrono::Utc;
-    use http::Uri;
     use indexmap::IndexMap;
     use serde_json::json;
     use serde_valid::json::ToJsonString;
@@ -180,7 +184,7 @@ mod test {
     fn test_serialize_deserialize_and_validate() {
         let payload = CredentialPayload {
             attestation_type: String::from("com.example.pid"),
-            issuer: Uri::from_static("https://com.example.org/pid/issuer"),
+            issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
             issued_at: Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap()),
             expires: None,
             not_before: None,

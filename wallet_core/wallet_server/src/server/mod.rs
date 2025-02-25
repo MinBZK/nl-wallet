@@ -30,9 +30,9 @@ use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
+use openid4vc_server::log_requests::log_request_response;
 use wallet_common::built_info::version_string;
 
-use crate::log_requests::log_request_response;
 use crate::settings::Server;
 use crate::settings::Settings;
 

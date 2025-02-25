@@ -13,6 +13,9 @@ use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use openid4vc_server::verifier::StartDisclosureRequest;
+use openid4vc_server::verifier::StartDisclosureResponse;
+use openid4vc_server::verifier::StatusParams;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
@@ -30,9 +33,6 @@ use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
 use wallet_common::config::http::TlsPinningConfig;
-use wallet_server::verifier::StartDisclosureRequest;
-use wallet_server::verifier::StartDisclosureResponse;
-use wallet_server::verifier::StatusParams;
 
 #[ctor]
 fn init() {

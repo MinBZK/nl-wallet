@@ -8,6 +8,7 @@ use serde_valid::Validate;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::Tdate;
+use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::attributes::Attribute;
@@ -28,16 +29,19 @@ use crate::attributes::AttributeError;
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 #[validate(custom = IssuableDocument::validate)]
 pub struct IssuableDocument {
+    issuer_uri: HttpsUri,
     attestation_type: String,
     attributes: IndexMap<String, Attribute>,
 }
 
 impl IssuableDocument {
     pub fn try_new(
+        issuer_uri: HttpsUri,
         attestation_type: String,
         attributes: IndexMap<String, Attribute>,
     ) -> Result<Self, serde_valid::validation::Error> {
         let document = Self {
+            issuer_uri,
             attestation_type,
             attributes,
         };
@@ -122,6 +126,7 @@ impl IssuableDocument {
             valid_from,
             valid_until,
             copy_count,
+            issuer_uri: self.issuer_uri.clone(),
         })
     }
 
@@ -179,6 +184,7 @@ mod test {
 
     fn setup_issuable_attributes() -> IssuableDocuments {
         vec![IssuableDocument {
+            issuer_uri: "https://pid.example.com".parse().unwrap(),
             attestation_type: "com.example.address".to_string(),
             attributes: IndexMap::from_iter(vec![
                 (
@@ -211,6 +217,7 @@ mod test {
         assert_eq!(
             serde_json::to_value(attributes).unwrap(),
             json!([{
+                "issuer_uri": "https://pid.example.com/",
                 "attestation_type": "com.example.address",
                 "attributes": {
                     "city": "The Capital",
@@ -228,6 +235,9 @@ mod test {
     fn test_issuable_attributes_to_unsigned_mdoc() {
         let attributes = setup_issuable_attributes();
         let unsigned_mdoc = issuable_attrs_to_unsigned_mdocs(&attributes).unwrap().remove(0);
+
+        assert_eq!(unsigned_mdoc.issuer_uri.to_string(), "https://pid.example.com/");
+        assert_eq!(unsigned_mdoc.doc_type, "com.example.address");
         assert_eq!(
             serde_json::to_value(readable_attrs(unsigned_mdoc.attributes.as_ref())).unwrap(),
             json!({

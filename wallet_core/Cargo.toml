@@ -12,6 +12,8 @@ members = [
     "mdoc",
     "mock_relying_party",
     "openid4vc",
+    "openid4vc_server",
+    "openid4vc_server/migrations",
     "platform_support",
     "sd_jwt",
     "tests_integration",
@@ -29,7 +31,6 @@ members = [
     "wallet_provider/persistence",
     "wallet_provider/service",
     "wallet_server",
-    "wallet_server/migrations",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"

@@ -1,10 +1,11 @@
 use itertools::Itertools;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
+
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::token::CredentialPreview;
+use crate::token::CredentialPreviewError;
 use crate::Format;
 
 pub trait CredentialFormat {
@@ -32,6 +33,7 @@ impl CredentialType for CredentialPreview {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[cfg_attr(test, derive(PartialEq, Eq))]
 pub enum CredentialFormatsError {
     #[error("duplicate credential formats not allowed")]
     DuplicateFormats,
@@ -89,12 +91,12 @@ impl<T: CredentialType> CredentialFormats<T> {
 }
 
 impl CredentialFormats<CredentialPreview> {
-    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CertificateError> {
+    pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CredentialPreviewError> {
         self.as_ref()
             .as_slice()
             .iter()
             .map(|preview| preview.verify(trust_anchors))
-            .collect::<Result<Vec<()>, CertificateError>>()?;
+            .collect::<Result<Vec<()>, CredentialPreviewError>>()?;
 
         Ok(())
     }
@@ -107,5 +109,65 @@ impl CredentialFormats<CredentialPreview> {
             .collect_vec()
             .try_into()
             .unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use crate::Format;
+
+    use super::*;
+
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct TestCredential {
+        format: Format,
+        credential_type: String,
+    }
+
+    impl CredentialFormat for TestCredential {
+        fn format(&self) -> Format {
+            self.format
+        }
+    }
+
+    impl CredentialType for TestCredential {
+        fn credential_type(&self) -> String {
+            self.credential_type.clone()
+        }
+    }
+
+    #[rstest]
+    #[case(vec![TestCredential {
+        format: Format::MsoMdoc,
+        credential_type: "type1".to_string(),
+    }, TestCredential {
+        format: Format::Jwt,
+        credential_type: "type1".to_string(),
+    }].try_into().unwrap(), Ok(()))]
+    #[case(vec![TestCredential {
+        format: Format::MsoMdoc,
+        credential_type: "type1".to_string(),
+    }, TestCredential {
+        format: Format::Jwt,
+        credential_type: "type1".to_string(),
+    }, TestCredential {
+        format: Format::MsoMdoc,
+        credential_type: "type1".to_string(),
+    }].try_into().unwrap(), Err(CredentialFormatsError::DuplicateFormats))]
+    #[case(vec![TestCredential {
+        format: Format::MsoMdoc,
+        credential_type: "credential_type".to_string(),
+    }, TestCredential {
+        format: Format::Jwt,
+        credential_type: "different_credential_type".to_string(),
+    }].try_into().unwrap(), Err(CredentialFormatsError::DifferentCredentialTypes))]
+    fn test_credential_formats(
+        #[case] credentials: VecNonEmpty<TestCredential>,
+        #[case] expected: Result<(), CredentialFormatsError>,
+    ) {
+        let formats = CredentialFormats::validate(&credentials);
+        assert_eq!(formats, expected);
     }
 }

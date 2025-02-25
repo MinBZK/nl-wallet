@@ -4,8 +4,7 @@ use serde::Deserialize;
 
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuable_document::IssuableDocuments;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::pid::constants::*;
 
@@ -45,25 +44,22 @@ impl BrpPerson {
     }
 }
 
-impl From<BrpPerson> for IssuableDocuments {
-    fn from(value: BrpPerson) -> Self {
-        let given_names = value.name.given_names.clone();
-        let is_over_18 = value.is_over_18();
-        let family_name = value.name.into_name_with_prefix();
-        let birth_country = value.birth.country;
-        let birth_place = value.birth.place;
-        let street = value.residence.address.street().map(String::from);
-        let house_number = value.residence.address.locator_designator();
+impl BrpPerson {
+    pub fn into_issuable(self) -> VecNonEmpty<(String, IndexMap<String, Attribute>)> {
+        let given_names = self.name.given_names.clone();
+        let is_over_18 = self.is_over_18();
+        let family_name = self.name.into_name_with_prefix();
+        let birth_country = self.birth.country;
+        let birth_place = self.birth.place;
+        let street = self.residence.address.street().map(String::from);
+        let house_number = self.residence.address.locator_designator();
 
         vec![
-            IssuableDocument::try_new(
+            (
                 String::from(MOCK_PID_DOCTYPE),
                 IndexMap::from_iter(
                     vec![
-                        Some((
-                            String::from(PID_BSN),
-                            Attribute::Single(AttributeValue::Text(value.bsn)),
-                        )),
+                        Some((String::from(PID_BSN), Attribute::Single(AttributeValue::Text(self.bsn)))),
                         Some((
                             String::from(PID_FAMILY_NAME),
                             Attribute::Single(AttributeValue::Text(family_name)),
@@ -77,7 +73,7 @@ impl From<BrpPerson> for IssuableDocuments {
                         Some((
                             String::from(PID_BIRTH_DATE),
                             Attribute::Single(AttributeValue::Text(
-                                value.birth.date.date.format("%Y-%m-%d").to_string(),
+                                self.birth.date.date.format("%Y-%m-%d").to_string(),
                             )),
                         )),
                         birth_country.map(|country| {
@@ -96,23 +92,20 @@ impl From<BrpPerson> for IssuableDocuments {
                             String::from(PID_AGE_OVER_18),
                             Attribute::Single(AttributeValue::Bool(is_over_18)),
                         )),
-                        value
-                            .gender
-                            .map(|gender| (String::from(PID_GENDER), gender.code.into())),
+                        self.gender.map(|gender| (String::from(PID_GENDER), gender.code.into())),
                     ]
                     .into_iter()
                     .flatten()
                     .collect::<Vec<(String, Attribute)>>(),
                 ),
-            )
-            .unwrap(),
-            IssuableDocument::try_new(
+            ),
+            (
                 String::from(MOCK_ADDRESS_DOCTYPE),
                 IndexMap::from_iter(
                     vec![
                         Some((
                             String::from(PID_RESIDENT_COUNTRY),
-                            Attribute::Single(AttributeValue::Text(value.residence.address.country.description)),
+                            Attribute::Single(AttributeValue::Text(self.residence.address.country.description)),
                         )),
                         street.map(|street| {
                             (
@@ -122,7 +115,7 @@ impl From<BrpPerson> for IssuableDocuments {
                         }),
                         Some((
                             String::from(PID_RESIDENT_POSTAL_CODE),
-                            Attribute::Single(AttributeValue::Text(value.residence.address.postal_code)),
+                            Attribute::Single(AttributeValue::Text(self.residence.address.postal_code)),
                         )),
                         Some((
                             String::from(PID_RESIDENT_HOUSE_NUMBER),
@@ -130,15 +123,14 @@ impl From<BrpPerson> for IssuableDocuments {
                         )),
                         Some((
                             String::from(PID_RESIDENT_CITY),
-                            Attribute::Single(AttributeValue::Text(value.residence.address.city)),
+                            Attribute::Single(AttributeValue::Text(self.residence.address.city)),
                         )),
                     ]
                     .into_iter()
                     .flatten()
                     .collect::<Vec<(String, Attribute)>>(),
                 ),
-            )
-            .unwrap(),
+            ),
         ]
         .try_into()
         .unwrap()
@@ -287,7 +279,6 @@ mod tests {
 
     use serde_json::json;
 
-    use openid4vc::issuable_document::IssuableDocuments;
     use wallet_common::utils;
 
     use crate::pid::brp::data::BrpPersons;
@@ -338,9 +329,9 @@ mod tests {
     }
 
     #[test]
-    fn should_convert_brp_person_to_issuable_attributes() {
+    fn should_convert_brp_person_to_issuable_vec() {
         let mut brp_persons: BrpPersons = serde_json::from_str(&read_json("frouke")).unwrap();
-        let issuable: IssuableDocuments = brp_persons.persons.remove(0).into();
+        let issuable = brp_persons.persons.remove(0).into_issuable();
 
         assert_eq!(2, issuable.as_ref().len());
 
@@ -348,9 +339,9 @@ mod tests {
         let address_card = &issuable.as_ref()[1];
 
         assert_eq!(
-            json!({
-                "attestation_type": "com.example.pid",
-                "attributes": {
+            json!([
+                "com.example.pid",
+                {
                     "bsn": "999991772",
                     "family_name": "Jansen",
                     "given_name": "Frouke",
@@ -358,21 +349,21 @@ mod tests {
                     "age_over_18": true,
                     "gender": 2,
                 },
-            }),
+            ]),
             serde_json::to_value(pid_card).unwrap()
         );
 
         assert_eq!(
-            json!({
-                "attestation_type": "com.example.address",
-                "attributes": {
+            json!([
+                "com.example.address",
+                {
                     "resident_country": "Nederland",
                     "resident_street": "Van Wijngaerdenstraat",
                     "resident_postal_code": "2596TW",
                     "resident_house_number": "1",
                     "resident_city": "Toetsoog",
                 },
-            }),
+            ]),
             serde_json::to_value(address_card).unwrap()
         );
     }

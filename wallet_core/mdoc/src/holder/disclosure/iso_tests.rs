@@ -15,6 +15,7 @@ use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::engagement::DeviceAuthenticationBytes;
+use crate::server_keys::generate::Ca;
 use crate::test;
 use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
@@ -31,14 +32,13 @@ use super::DisclosureRequestMatch;
 async fn create_example_device_response(
     device_request: &DeviceRequest,
     session_transcript: &SessionTranscript,
+    ca: &Ca,
 ) -> Result<DeviceResponse> {
-    let request_match = DisclosureRequestMatch::new(
-        device_request.items_requests(),
-        &MockMdocDataSource::new_with_example(),
-        session_transcript,
-    )
-    .await
-    .unwrap();
+    let mdoc_data_source = MockMdocDataSource::new_example_resigned(ca).await;
+    let request_match =
+        DisclosureRequestMatch::new(device_request.items_requests(), &mdoc_data_source, session_transcript)
+            .await
+            .unwrap();
     let proposed_document = match request_match {
         DisclosureRequestMatch::Candidates(mut candidates) => {
             candidates.swap_remove(EXAMPLE_DOC_TYPE).unwrap().pop().unwrap()
@@ -47,7 +47,7 @@ async fn create_example_device_response(
     };
 
     let (device_response, _) =
-        DeviceResponse::from_proposed_documents(vec![proposed_document], &MockRemoteKeyFactory::default())
+        DeviceResponse::from_proposed_documents(vec![proposed_document], &MockRemoteKeyFactory::new_example())
             .await
             .unwrap();
 
@@ -89,7 +89,8 @@ async fn do_and_verify_iso_example_disclosure() {
     println!("Reader: {:#?}", reader_x509_subject);
 
     // Construct a new `DeviceResponse`, based on the mdoc from the example device response in the standard.
-    let resp = create_example_device_response(&device_request, &session_transcript)
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let resp = create_example_device_response(&device_request, &session_transcript, &ca)
         .await
         .unwrap();
     println!("DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));
@@ -100,7 +101,7 @@ async fn do_and_verify_iso_example_disclosure() {
             None,
             &session_transcript,
             &IsoCertTimeGenerator,
-            Examples::iaca_trust_anchors(),
+            &[ca.to_trust_anchor()],
         )
         .unwrap();
     println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));
@@ -129,7 +130,8 @@ async fn iso_examples_custom_disclosure() {
     println!("My Request: {:#?}", DebugCollapseBts::from(&request));
 
     let session_transcript = DeviceAuthenticationBytes::example().0 .0.session_transcript;
-    let resp = create_example_device_response(&request, &session_transcript)
+    let ca = Ca::generate_issuer_mock_ca().unwrap();
+    let resp = create_example_device_response(&request, &session_transcript, &ca)
         .await
         .unwrap();
     println!("My DeviceResponse: {:#?}", DebugCollapseBts::from(&resp));
@@ -139,7 +141,7 @@ async fn iso_examples_custom_disclosure() {
             None,
             &session_transcript,
             &IsoCertTimeGenerator,
-            Examples::iaca_trust_anchors(),
+            &[ca.to_trust_anchor()],
         )
         .unwrap();
     println!("My Disclosure: {:#?}", DebugCollapseBts::from(&disclosed_attrs));

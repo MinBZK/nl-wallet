@@ -340,6 +340,7 @@ pub mod tests {
     use rstest::rstest;
 
     use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
+    use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
@@ -390,6 +391,7 @@ pub mod tests {
                 )])
                 .try_into()
                 .unwrap(),
+                issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             },
             TypeMetadata::example_with_claim_name("bsn"),
         )
@@ -631,6 +633,7 @@ pub mod tests {
             )])
             .try_into()
             .unwrap(),
+            issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
         };
 
         let mut metadata = TypeMetadata::empty_example();

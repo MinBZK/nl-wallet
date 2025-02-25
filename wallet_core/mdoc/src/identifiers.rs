@@ -103,11 +103,19 @@ mod examples {
         pub fn new_example_index_set_from_attributes(
             attributes: impl IntoIterator<Item = impl Into<String>>,
         ) -> IndexSet<Self> {
+            Self::new_index_set_from_attributes_doc_type_and_namespace(EXAMPLE_DOC_TYPE, EXAMPLE_NAMESPACE, attributes)
+        }
+
+        pub fn new_index_set_from_attributes_doc_type_and_namespace(
+            credential_type: &str,
+            namespace: &str,
+            attributes: impl IntoIterator<Item = impl Into<String>>,
+        ) -> IndexSet<Self> {
             attributes
                 .into_iter()
                 .map(|attribute| AttributeIdentifier {
-                    credential_type: EXAMPLE_DOC_TYPE.to_string(),
-                    namespace: EXAMPLE_NAMESPACE.to_string(),
+                    credential_type: credential_type.to_owned(),
+                    namespace: namespace.to_owned(),
                     attribute: attribute.into(),
                 })
                 .collect()

@@ -10,14 +10,19 @@ use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::generator::Generator;
 
+use crate::server_keys::generate::Ca;
+use crate::utils::issuer_auth::IssuerRegistration;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 use crate::verifier::ItemsRequests;
 use crate::DeviceAuthenticationBytes;
 use crate::DeviceRequest;
 use crate::DeviceResponse;
+use crate::IssuerSigned;
 use crate::ItemsRequest;
 use crate::ReaderAuthenticationBytes;
 
@@ -66,6 +71,29 @@ where
         assert_eq!(serialized, bts);
 
         deserialized
+    }
+}
+
+impl DeviceResponse {
+    pub async fn example_resigned(ca: &Ca) -> Self {
+        let mut device_response = Self::example();
+
+        // Re sign document with a newly generated certificate that includes a SAN DNS name
+        for doc in device_response.documents.as_mut().unwrap().iter_mut() {
+            let new_key = ca.generate_issuer_mock(Some(IssuerRegistration::new_mock())).unwrap();
+            let new_cert = new_key.certificate();
+
+            // NOTE: This metadata does not match the attributes.
+            let metadata_chain = TypeMetadataChain::create(TypeMetadata::empty_example(), vec![]).unwrap();
+            let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
+
+            doc.issuer_signed.issuer_auth.0.unprotected =
+                IssuerSigned::create_unprotected_header(new_cert.to_vec(), chain, integrity).unwrap();
+
+            doc.issuer_signed.resign(&new_key).await.unwrap();
+        }
+
+        device_response
     }
 }
 
@@ -138,6 +166,7 @@ impl Example<DeviceResponse> for DeviceResponse {
          5820e99521a85ad7891b806a07f8b5388a332d92c189a7bf293ee1f543405ae6824d6673746174757300"
     }
 }
+
 impl Example<DeviceAuthenticationBytes<'_>> for DeviceAuthenticationBytes<'_> {
     fn example_hex() -> &'static str {
         "d818590271847444657669636541757468656e7469636174696f6e83d8185858a20063312e30018201d818584ba4010220012158205a8\
@@ -154,6 +183,7 @@ impl Example<DeviceAuthenticationBytes<'_>> for DeviceAuthenticationBytes<'_> {
          a6b020414756f72672e69736f2e31383031332e352e312e6d444cd81841a0"
     }
 }
+
 impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
     fn example_hex() -> &'static str {
         "d8185902ee837452656164657241757468656e7469636174696f6e83d8185858a20063312e30018201d818584ba4010220012158205a8\
@@ -172,6 +202,7 @@ impl Example<ReaderAuthenticationBytes<'_>> for ReaderAuthenticationBytes<'_> {
          f70726976696c65676573f56a69737375655f64617465f56b6578706972795f64617465f568706f727472616974f4"
     }
 }
+
 impl Example<DeviceRequest> for DeviceRequest {
     fn example_hex() -> &'static str {
         "a26776657273696f6e63312e306b646f63526571756573747381a26c6974656d7352657175657374d8185893a267646f6354797065756\
@@ -214,14 +245,20 @@ pub fn example_items_requests() -> ItemsRequests {
 pub mod mock {
     use coset::Label;
 
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
-    use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::keys::WithIdentifier;
 
     use crate::holder::Mdoc;
+    use crate::test::data::pid_example;
+    use crate::utils::cose::CoseKey;
     use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
+    use crate::utils::issuer_auth::IssuerRegistration;
     use crate::IssuerSigned;
 
     use super::*;
@@ -235,9 +272,8 @@ pub mod mock {
         /// construct the example mdoc with all attributes present.
         ///
         /// Using tests should not rely on all attributes being present.
-        pub fn new_example_mock() -> Self {
-            let trust_anchors = Examples::iaca_trust_anchors();
-            let mut issuer_signed = DeviceResponse::example().documents.as_ref().unwrap()[0]
+        pub async fn new_example_resigned(ca: &Ca) -> Self {
+            let mut issuer_signed = DeviceResponse::example_resigned(ca).await.documents.as_ref().unwrap()[0]
                 .issuer_signed
                 .clone();
 
@@ -257,15 +293,60 @@ pub mod mock {
                 EXAMPLE_KEY_IDENTIFIER.to_string(),
                 issuer_signed,
                 &IsoCertTimeGenerator,
-                trust_anchors,
+                &[ca.to_trust_anchor()],
             )
             .unwrap()
         }
 
-        pub fn new_example_mock_with_doctype(doc_type: &str) -> Self {
-            let mut mdoc = Self::new_example_mock();
+        pub async fn new_mock() -> Self {
+            let ca = Ca::generate_issuer_mock_ca().unwrap();
+            Self::new_mock_with_ca(&ca).await
+        }
+
+        pub async fn new_mock_with_doctype(doc_type: &str) -> Self {
+            let mut mdoc = Self::new_mock().await;
             mdoc.mso.doc_type = String::from(doc_type);
             mdoc
+        }
+
+        pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
+            let ca = Ca::generate_issuer_mock_ca().unwrap();
+            Self::new_mock_inner(&ca, key).await
+        }
+
+        pub async fn new_mock_with_ca(ca: &Ca) -> Self {
+            let key = MockRemoteEcdsaKey::new("identifier".to_owned(), SigningKey::random(&mut OsRng));
+            Self::new_mock_inner(ca, &key).await
+        }
+
+        async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
+            let device_key = CoseKey::try_from(key.verifying_key()).unwrap();
+            let issuer_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+            let unsigned_mdoc = pid_example().0.remove(0).into();
+            let metadata_chain = TypeMetadataChain::create(TypeMetadata::pid_example(), vec![]).unwrap();
+            let mut issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, device_key, &issuer_keypair)
+                .await
+                .unwrap();
+
+            let x5chain = issuer_signed
+                .issuer_auth
+                .unprotected_header_item(&Label::Int(COSE_X5CHAIN_HEADER_LABEL))
+                .unwrap();
+            // NOTE: This metadata does not match the attributes.
+            let metadata_chain = TypeMetadataChain::create(TypeMetadata::empty_example(), vec![]).unwrap();
+            let (chain, integrity) = metadata_chain.verify_and_destructure().unwrap();
+
+            issuer_signed.issuer_auth.0.unprotected =
+                IssuerSigned::create_unprotected_header(x5chain.clone().into_bytes().unwrap(), chain, integrity)
+                    .unwrap();
+
+            Mdoc::new::<MockRemoteEcdsaKey>(
+                key.identifier().to_owned(),
+                issuer_signed,
+                &IsoCertTimeGenerator,
+                &[ca.to_trust_anchor()],
+            )
+            .unwrap()
         }
     }
 }

@@ -15,7 +15,6 @@ base64.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str", "into"] }
 http.workspace = true
 http-serde.workspace = true
-josekit = { workspace = true, features = ["vendored"] }
 jsonwebtoken.workspace = true
 jsonschema.workspace = true
 nutype.workspace = true
