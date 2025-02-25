@@ -307,6 +307,55 @@ function generate_mock_relying_party_key_pair {
         -in "${TARGET_DIR}/mock_relying_party/$1.key.pem" -out "${TARGET_DIR}/mock_relying_party/$1.key.der" -nocrypt
 }
 
+# Generate an EC key pair for the mock_relying_party in the HSM.
+# The label of the key is "${READER_NAME}_key"
+#
+# $1 - READER_NAME: Name of the Relying Party
+function generate_mock_relying_party_hsm_key_pair {
+    # Generate EC key pair in the HSM
+    pkcs11-tool \
+        --login \
+        --pin "${HSM_USER_PIN}" \
+        --label "$1_key" \
+        --module "${HSM_LIBRARY_PATH}" \
+        --keypairgen \
+        --key-type EC:secp256r1
+
+    # Export the public key as DER
+    pkcs11-tool \
+        --module "${HSM_LIBRARY_PATH}" \
+        --read-object \
+        --type pubkey \
+        --label "$1_key" \
+        --output-file "${TARGET_DIR}/mock_relying_party/$1.pub.der"
+
+    # Convert the DER public key to PEM format
+    openssl ec \
+        -in "${TARGET_DIR}/mock_relying_party/$1.pub.der" \
+        -pubin \
+        -inform DER \
+        -outform PEM \
+        -out "${TARGET_DIR}/mock_relying_party/$1.pub.pem"
+
+    # Generate a certificate for the public key
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+          --bin wallet_ca reader-cert \
+          --public-key-file "${TARGET_DIR}/mock_relying_party/$1.pub.pem" \
+          --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
+          --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+          --common-name "$1.example.com" \
+          --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
+          --file-prefix "${TARGET_DIR}/mock_relying_party/$1" \
+          --force
+
+    # Convert the PEM certificate to DER format
+    openssl x509 \
+            -in "${TARGET_DIR}/mock_relying_party/$1.crt.pem" \
+            -inform PEM \
+            -outform DER \
+            -out "${TARGET_DIR}/mock_relying_party/$1.crt.der"
+}
+
 function encrypt_gba_v_responses {
     mkdir -p "${GBA_HC_CONVERTER_DIR}/resources/encrypted-gba-v-responses"
     for file in "${GBA_HC_CONVERTER_DIR}"/resources/gba-v-responses/*; do
