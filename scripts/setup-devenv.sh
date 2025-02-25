@@ -247,9 +247,9 @@ generate_pid_issuer_key_pair
 
 PID_CA_CRT=$(< "${TARGET_DIR}/pid_issuer/ca_cert.der" ${BASE64})
 export PID_CA_CRT
-PID_ISSUER_KEY=$(< "${TARGET_DIR}/pid_issuer/issuer_key.der" ${BASE64})
+PID_ISSUER_KEY=pid_issuer_key
 export PID_ISSUER_KEY
-PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer_crt.der" ${BASE64})
+PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
 export PID_ISSUER_CRT
 
 # Generate MRP root CA
@@ -442,7 +442,6 @@ softhsm2-util --import "${WP_WTE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id
 softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
 softhsm2-util --import "${WP_ATTESTATION_WRAPPING_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "attestation_wrapping" | xxd -p)" --label "attestation_wrapping_key" --token "test_token"
 softhsm2-util --import "${WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH}" --aes --pin "${HSM_USER_PIN}" --id "$(echo -n "pin_pubkey_encryption" | xxd -p)" --label "pin_pubkey_encryption_key" --token "test_token"
-softhsm2-util --import "${TARGET_DIR}/pid_issuer/issuer.key.pem" --pin "${HSM_USER_PIN}" --id "$(echo -n "pid_issuer_key" | xxd -p)" --label "pid_issuer_key" --token "test_token"
 
 p11tool --login --write \
   --secret-key="$(openssl rand 32 | od -A n -v -t x1 | tr -d ' \n')" \
