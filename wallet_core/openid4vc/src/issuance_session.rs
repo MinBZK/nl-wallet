@@ -1246,11 +1246,12 @@ mod tests {
         // in the preview than are contained within the response should fail.
         let preview = match preview {
             CredentialPreview::MsoMdoc {
-                unsigned_mdoc: _,
+                mut unsigned_mdoc,
                 issuer_certificate,
                 metadata_chain,
             } => {
-                let unsigned_mdoc = UnsignedMdoc::from(data::pid_full_name().into_first().unwrap());
+                let attributes = UnsignedMdoc::from(data::pid_full_name().into_first().unwrap()).attributes;
+                unsigned_mdoc.attributes = attributes;
                 CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer_certificate,
