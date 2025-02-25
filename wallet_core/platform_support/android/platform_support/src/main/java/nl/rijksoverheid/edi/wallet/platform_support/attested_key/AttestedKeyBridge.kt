@@ -53,7 +53,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
 
         Log.d("attest", "beginning app and key attestation process")
 
-        // TODO: PVW-4069: Handle non-existent or erronuous cloud project identifier numbers
+        // TODO: PVW-4069: Handle non-existent or erroneous cloud project identifier numbers
 
         // Configure cloud project number, initialize manager and token provider request.
         Log.d("attest", "initializing using google cloud project number: $googleCloudProjectNumber")
