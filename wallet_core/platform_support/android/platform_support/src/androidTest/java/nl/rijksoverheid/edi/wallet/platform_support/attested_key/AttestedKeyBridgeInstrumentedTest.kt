@@ -34,7 +34,7 @@ import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
 
 
-// TODO: PVW-4070: Handle play integrity enablement/disablement here (also google_cloud_project_id)
+// TODO: PVW-4070: Handle play integrity enablement/disablement here (also google_cloud_project_number)
 
 @RunWith(AndroidJUnit4::class)
 @DelicateCoroutinesApi // Needed for `newSingleThreadContext`
@@ -42,7 +42,7 @@ import java.security.spec.X509EncodedKeySpec
 class AttestedKeyBridgeInstrumentedTest {
     companion object {
         const val CHALLENGE: String = "test-challenge"
-        const val GOOGLE_CLOUD_PROJECT_ID: ULong = 0u
+        const val GOOGLE_CLOUD_PROJECT_NUMBER: ULong = 0u
 
         @JvmStatic
         external fun attested_key_test()
@@ -96,7 +96,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val challenge = CHALLENGE.toByteArray().toUByteList()
 
         // Generate a new key using `attest`
-        val attestationData = attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
+        val attestationData = attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_NUMBER)
 
         // Note: Below we check the appAttestationToken. The current assumption is that the data is opaque. but
         // https://developer.android.com/google/play/integrity/standard#protect-requests seems to hint that you
@@ -127,11 +127,11 @@ class AttestedKeyBridgeInstrumentedTest {
         val id = "id"
         val challenge = CHALLENGE.toByteArray().toUByteList()
 
-        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_NUMBER)
         assertFails<AttestedKeyException.Other>(
             "reason=precondition failed: A key already exists with alias: `ecdsa_id`"
         ) {
-            attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
+            attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_NUMBER)
         }
     }
 
@@ -146,7 +146,7 @@ class AttestedKeyBridgeInstrumentedTest {
         }
 
         // Generate new key via `attest`
-        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_NUMBER)
 
         // Verify public key for 'id' does exist
         val publicKeyBytes = attestedKeyBridge.publicKey(id).toByteArray()
@@ -185,7 +185,7 @@ class AttestedKeyBridgeInstrumentedTest {
         val valueToSign = "value to sign".toByteArray().toUByteList()
 
         // Generate a new key
-        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_ID)
+        attestedKeyBridge.attest(id, challenge, GOOGLE_CLOUD_PROJECT_NUMBER)
 
         // Sign the valueToSign
         val signature = attestedKeyBridge.sign(id, valueToSign)

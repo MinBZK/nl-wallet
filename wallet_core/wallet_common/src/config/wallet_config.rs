@@ -29,7 +29,7 @@ pub struct WalletConfiguration {
     #[serde_as(as = "Vec<Base64>")]
     pub mdoc_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub update_policy_server: UpdatePolicyServerConfiguration,
-    pub google_cloud_project_id: u64,
+    pub google_cloud_project_number: u64,
     pub version: u64,
 }
 
