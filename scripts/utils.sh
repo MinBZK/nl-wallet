@@ -313,29 +313,22 @@ function generate_mock_relying_party_key_pair {
 # $1 - READER_NAME: Name of the Relying Party
 function generate_mock_relying_party_hsm_key_pair {
     # Generate EC key pair in the HSM
-    pkcs11-tool \
+    p11tool \
+        --provider "${HSM_LIBRARY_PATH}" \
         --login \
-        --pin "${HSM_USER_PIN}" \
+        --set-pin "${HSM_USER_PIN}" \
         --label "$1_key" \
-        --module "${HSM_LIBRARY_PATH}" \
-        --keypairgen \
-        --key-type EC:secp256r1
+        --generate-ecc \
+        --curve secp256r1
 
-    # Export the public key as DER
-    pkcs11-tool \
-        --module "${HSM_LIBRARY_PATH}" \
-        --read-object \
-        --type pubkey \
+    # Export the public key as PEM
+    p11tool \
+        --provider "${HSM_LIBRARY_PATH}" \
+        --login \
+        --set-pin "${HSM_USER_PIN}" \
+        --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" --list-all --only-urls | grep "$1_key" | grep public)" \
         --label "$1_key" \
-        --output-file "${TARGET_DIR}/mock_relying_party/$1.pub.der"
-
-    # Convert the DER public key to PEM format
-    openssl ec \
-        -in "${TARGET_DIR}/mock_relying_party/$1.pub.der" \
-        -pubin \
-        -inform DER \
-        -outform PEM \
-        -out "${TARGET_DIR}/mock_relying_party/$1.pub.pem"
+        --outfile "${TARGET_DIR}/mock_relying_party/$1.pub.pem"
 
     # Generate a certificate for the public key
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
