@@ -1,6 +1,9 @@
 use std::num::NonZeroU8;
 
 use chrono::Days;
+use hsm::service::Pkcs11Hsm;
+use serial_test::serial;
+
 use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
@@ -32,8 +35,11 @@ use wallet_server::pid::brp::client::HttpBrpClient;
 /// - `test_pid_ok()`, which uses the WP but mocks the OIDC part,
 /// - `accept_issuance()` in the `openid4vc` integration tests, which also mocks the HTTP server and client.
 #[tokio::test]
+#[serial(hsm)]
 async fn test_pid_issuance_digid_bridge() {
     let settings = wallet_server_settings();
+    let hsm = settings.hsm.clone().map(Pkcs11Hsm::from_settings).transpose().unwrap();
+
     let attr_service = BrpPidAttributeService::new(
         HttpBrpClient::new(settings.issuer.brp_server.clone()),
         &settings.issuer.digid.bsn_privkey,
@@ -43,7 +49,7 @@ async fn test_pid_issuance_digid_bridge() {
         NonZeroU8::new(2).unwrap(),
     )
     .unwrap();
-    start_wallet_server(settings.clone(), attr_service).await;
+    start_wallet_server(settings.clone(), hsm, attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 

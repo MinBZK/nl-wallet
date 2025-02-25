@@ -51,12 +51,12 @@ pub enum KeyError {
 }
 
 impl PrivateKeyType {
-    pub fn from_settings(settings: PrivateKey, hsm: Option<&Pkcs11Hsm>) -> Result<Self, KeyError> {
+    pub fn from_settings(settings: PrivateKey, hsm: Option<Pkcs11Hsm>) -> Result<Self, KeyError> {
         let pk = match settings {
             PrivateKey::Software(signing_key) => Self::Software(signing_key.into_inner()),
             PrivateKey::Hardware(identifier) => {
                 let hsm = hsm.ok_or(KeyError::MissingHsmSettings(identifier.clone()))?;
-                Self::Hardware(HsmEcdsaKey::new(identifier, hsm.clone()))
+                Self::Hardware(HsmEcdsaKey::new(identifier, hsm))
             }
         };
         Ok(pk)

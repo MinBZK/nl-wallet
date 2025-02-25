@@ -48,9 +48,9 @@ pub struct VerifierUseCase {
 impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyType> {
     type Error = anyhow::Error;
 
-    async fn try_from_key_settings(value: VerifierUseCases, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let iter = value.into_iter().map(|(id, use_case)| async move {
-            let result = (id, UseCase::try_from_key_settings(use_case, hsm).await?);
+    async fn try_from_key_settings(value: VerifierUseCases, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
+        let iter = value.into_iter().map(|(id, use_case)| async {
+            let result = (id, UseCase::try_from_key_settings(use_case, hsm.clone()).await?);
             Ok(result)
         });
 
@@ -66,7 +66,7 @@ impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyType> {
 impl TryFromKeySettings<VerifierUseCase> for UseCase<PrivateKeyType> {
     type Error = anyhow::Error;
 
-    async fn try_from_key_settings(value: VerifierUseCase, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error> {
+    async fn try_from_key_settings(value: VerifierUseCase, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
         let use_case = UseCase::try_new(
             server_keys::KeyPair::try_from_key_settings(value.key_pair, hsm).await?,
             value.session_type_return_url,

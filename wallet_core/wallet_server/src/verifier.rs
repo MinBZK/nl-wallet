@@ -63,7 +63,7 @@ async fn create_application_state<S>(
     verifier: settings::Verifier,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
-    hsm: Option<&Pkcs11Hsm>,
+    hsm: Option<Pkcs11Hsm>,
 ) -> anyhow::Result<ApplicationState<S>>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -92,7 +92,7 @@ pub async fn create_routers<S>(
     verifier: settings::Verifier,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
-    hsm: Option<&Pkcs11Hsm>,
+    hsm: Option<Pkcs11Hsm>,
 ) -> anyhow::Result<(Router, Router)>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,

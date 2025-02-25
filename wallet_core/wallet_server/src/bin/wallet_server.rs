@@ -1,5 +1,6 @@
 use anyhow::Result;
 
+use hsm::service::Pkcs11Hsm;
 use wallet_server::pid::attributes::BrpPidAttributeService;
 use wallet_server::server;
 use wallet_server::server::wallet_server_main;
@@ -14,6 +15,8 @@ async fn main() -> Result<()> {
 }
 
 async fn main_impl(settings: Settings) -> Result<()> {
+    let hsm = settings.hsm.clone().map(Pkcs11Hsm::from_settings).transpose()?;
+
     let storage_settings = &settings.storage;
     let db_connection = DatabaseConnection::try_new(storage_settings.url.clone()).await?;
 
@@ -25,6 +28,7 @@ async fn main_impl(settings: Settings) -> Result<()> {
     server::wallet_server::serve(
         BrpPidAttributeService::try_from(&settings.issuer)?,
         settings,
+        hsm,
         disclosure_sessions,
         issuance_sessions,
         wte_tracker,

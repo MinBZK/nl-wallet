@@ -5998,6 +5998,7 @@ dependencies = [
  "ctor",
  "dotenvy",
  "gba_hc_converter",
+ "hsm",
  "indexmap 2.7.1",
  "insta",
  "jsonwebtoken",

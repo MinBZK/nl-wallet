@@ -78,10 +78,10 @@ impl TryFromKeySettings<HashMap<String, settings::KeyPair>> for IssuerKeyRing<Pr
 
     async fn try_from_key_settings(
         private_keys: HashMap<String, settings::KeyPair>,
-        hsm: Option<&Pkcs11Hsm>,
+        hsm: Option<Pkcs11Hsm>,
     ) -> Result<Self, Self::Error> {
-        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async move {
-            let result = (doctype, KeyPair::try_from_key_settings(key_pair, hsm).await?);
+        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async {
+            let result = (doctype, KeyPair::try_from_key_settings(key_pair, hsm.clone()).await?);
             Ok(result)
         });
 

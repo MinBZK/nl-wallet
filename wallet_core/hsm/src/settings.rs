@@ -6,7 +6,7 @@ use serde_with::serde_as;
 use serde_with::DurationSeconds;
 
 #[serde_as]
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
 pub struct Hsm {
     pub library_path: PathBuf,
     pub user_pin: String,

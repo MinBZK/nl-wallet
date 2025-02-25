@@ -157,13 +157,13 @@ impl From<&Storage> for SessionStoreTimeouts {
 
 pub trait TryFromKeySettings<SRC>: Sized {
     type Error;
-    async fn try_from_key_settings(source: SRC, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error>;
+    async fn try_from_key_settings(source: SRC, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error>;
 }
 
 impl TryFromKeySettings<KeyPair> for nl_wallet_mdoc::server_keys::KeyPair<PrivateKeyType> {
     type Error = KeyError;
 
-    async fn try_from_key_settings(source: KeyPair, hsm: Option<&Pkcs11Hsm>) -> Result<Self, Self::Error> {
+    async fn try_from_key_settings(source: KeyPair, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
         let private_key = PrivateKeyType::from_settings(source.private_key, hsm)?;
         let key_pair = nl_wallet_mdoc::server_keys::KeyPair::new(private_key, source.certificate).await?;
         Ok(key_pair)

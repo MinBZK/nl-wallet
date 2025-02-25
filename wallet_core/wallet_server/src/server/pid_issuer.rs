@@ -12,16 +12,21 @@ use crate::settings::TryFromKeySettings;
 
 use super::*;
 
-pub async fn serve<A, IS, W>(attr_service: A, settings: Settings, issuance_sessions: IS, wte_tracker: W) -> Result<()>
+pub async fn serve<A, IS, W>(
+    attr_service: A,
+    settings: Settings,
+    hsm: Option<Pkcs11Hsm>,
+    issuance_sessions: IS,
+    wte_tracker: W,
+) -> Result<()>
 where
     A: AttributeService + Send + Sync + 'static,
     IS: SessionStore<openid4vc::issuer::IssuanceData> + Send + Sync + 'static,
     W: WteTracker + Send + Sync + 'static,
 {
     let log_requests = settings.log_requests;
-    let hsm = settings.hsm.map(Pkcs11Hsm::from_settings).transpose()?;
 
-    let private_keys = IssuerKeyRing::try_from_key_settings(settings.issuer.private_keys, hsm.as_ref()).await?;
+    let private_keys = IssuerKeyRing::try_from_key_settings(settings.issuer.private_keys, hsm).await?;
     let wallet_issuance_router = create_issuance_router(
         &settings.urls,
         private_keys,

@@ -18,6 +18,7 @@ use super::*;
 pub async fn serve<A, DS, IS, W>(
     attr_service: A,
     settings: Settings,
+    hsm: Option<Pkcs11Hsm>,
     disclosure_sessions: DS,
     issuance_sessions: IS,
     wte_tracker: W,
@@ -29,9 +30,8 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     let log_requests = settings.log_requests;
-    let hsm = settings.hsm.map(Pkcs11Hsm::from_settings).transpose()?;
 
-    let private_keys = IssuerKeyRing::try_from_key_settings(settings.issuer.private_keys, hsm.as_ref()).await?;
+    let private_keys = IssuerKeyRing::try_from_key_settings(settings.issuer.private_keys, hsm.clone()).await?;
     let wallet_issuance_router = create_issuance_router(
         &settings.urls,
         private_keys,
@@ -50,7 +50,7 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         disclosure_sessions,
-        hsm.as_ref(),
+        hsm,
     )
     .await?;
 

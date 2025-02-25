@@ -13,6 +13,7 @@ use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Days;
 use chrono::Utc;
+use hsm::service::Pkcs11Hsm;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -218,14 +219,15 @@ fn wallet_server_settings() -> (Settings, KeyPair<SigningKey>, TrustAnchor<'stat
     (settings, issuer_key_pair, rp_trust_anchor)
 }
 
-async fn start_wallet_server<S>(settings: Settings, disclosure_sessions: S)
+async fn start_wallet_server<S>(settings: Settings, hsm: Option<Pkcs11Hsm>, disclosure_sessions: S)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let public_url = settings.urls.public_url.clone();
 
     tokio::spawn(async move {
-        if let Err(error) = wallet_server::server::verification_server::serve(settings, disclosure_sessions).await {
+        if let Err(error) = wallet_server::server::verification_server::serve(settings, hsm, disclosure_sessions).await
+        {
             println!("Could not start wallet_server: {error:?}");
 
             process::exit(1);
@@ -281,10 +283,12 @@ fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
 #[tokio::test]
 async fn test_requester_authentication(#[case] auth: RequesterAuth) {
     let (mut settings, _, _) = wallet_server_settings();
+    let hsm = settings.hsm.clone().map(Pkcs11Hsm::from_settings).transpose().unwrap();
+
     let internal_url = internal_url(&auth, &settings.urls.public_url);
     settings.requester_server = auth.clone();
 
-    start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
+    start_wallet_server(settings.clone(), hsm, MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
@@ -432,8 +436,10 @@ async fn test_error_response(response: Response, status_code: StatusCode, error_
 #[tokio::test]
 async fn test_new_session_parameters_error() {
     let (settings, _, _) = wallet_server_settings();
+    let hsm = settings.hsm.clone().map(Pkcs11Hsm::from_settings).transpose().unwrap();
+
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
-    start_wallet_server(settings, MemorySessionStore::default()).await;
+    start_wallet_server(settings, hsm, MemorySessionStore::default()).await;
     let client = default_reqwest_client_builder().build().unwrap();
 
     let bad_use_case_request = {
@@ -469,8 +475,10 @@ async fn test_new_session_parameters_error() {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let (settings, _, _) = wallet_server_settings();
+    let hsm = settings.hsm.clone().map(Pkcs11Hsm::from_settings).transpose().unwrap();
+
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
-    start_wallet_server(settings.clone(), MemorySessionStore::default()).await;
+    start_wallet_server(settings.clone(), hsm, MemorySessionStore::default()).await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
@@ -552,9 +560,11 @@ where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let (settings, issuer_key_pair, rp_trust_anchor) = wallet_server_settings();
+    let hsm = settings.hsm.clone().map(Pkcs11Hsm::from_settings).transpose().unwrap();
+
     let internal_url = internal_url(&settings.requester_server, &settings.urls.public_url);
 
-    start_wallet_server(settings.clone(), disclosure_sessions).await;
+    start_wallet_server(settings.clone(), hsm, disclosure_sessions).await;
 
     // Create a new disclosure session, which should return 200.
     let client = default_reqwest_client_builder().build().unwrap();
