@@ -113,7 +113,7 @@ build-ws-migrations-image:
     - job: build-wallet-server-migrations-binary
       artifacts: true
   variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/migrations/Dockerfile
+    DOCKER_FILE_TO_BUILD: wallet_core/openid4vc_server/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-server-migrations
 
 build-gba-hc-converter-image:
