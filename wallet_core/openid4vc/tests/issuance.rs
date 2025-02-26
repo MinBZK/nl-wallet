@@ -480,6 +480,7 @@ fn mock_issuable_attestation(
     attestation_count: NonZeroUsize,
     copy_count: NonZeroU8,
 ) -> VecNonEmpty<IssuableCredential> {
+    let now = Utc::now();
     (0..attestation_count.get())
         .map(|i| IssuableCredential {
             document: IssuableDocument::try_new(
@@ -493,8 +494,8 @@ fn mock_issuable_attestation(
                 })),
             )
             .unwrap(),
-            valid_from: Utc::now(),
-            valid_until: Utc::now().add(Days::new(365)),
+            valid_from: now,
+            valid_until: now.add(Days::new(365)),
             copy_count,
             metadata_chain: TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap(),
         })

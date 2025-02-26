@@ -228,11 +228,12 @@ impl TestDocument {
 
 impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
+        let now = chrono::Utc::now();
         Self {
             doc_type: value.doc_type,
             copy_count: NonZeroU8::new(1).unwrap(),
-            valid_from: chrono::Utc::now().into(),
-            valid_until: (chrono::Utc::now() + chrono::Duration::days(365)).into(),
+            valid_from: now.into(),
+            valid_until: (now + chrono::Duration::days(365)).into(),
             attributes: value.namespaces.try_into().unwrap(),
             issuer_uri: value.issuer_uri,
         }
