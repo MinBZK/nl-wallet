@@ -16,7 +16,6 @@ use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use p256::ecdsa::SigningKey;
 use parking_lot::RwLock;
 use reqwest::Client;
 use reqwest::Response;
@@ -33,7 +32,6 @@ use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
 use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -107,7 +105,7 @@ fn find_listener_port() -> u16 {
         .port()
 }
 
-fn wallet_server_settings() -> (VerifierSettings, KeyPair<SigningKey>, TrustAnchor<'static>) {
+fn wallet_server_settings() -> (VerifierSettings, Ca, TrustAnchor<'static>) {
     // Set up the hostname and ports.
     let localhost = IpAddr::from_str("127.0.0.1").unwrap();
     let ws_port = find_listener_port();
@@ -118,9 +116,6 @@ fn wallet_server_settings() -> (VerifierSettings, KeyPair<SigningKey>, TrustAnch
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuer_key_pair = issuer_ca
-        .generate_issuer_mock(IssuerRegistration::new_mock().into())
-        .unwrap();
     let issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
 
     // Create the RP CA, derive the trust anchor from it and generate
@@ -184,7 +179,7 @@ fn wallet_server_settings() -> (VerifierSettings, KeyPair<SigningKey>, TrustAnch
         server_settings: settings,
     };
 
-    (settings, issuer_key_pair, rp_trust_anchor)
+    (settings, issuer_ca, rp_trust_anchor)
 }
 
 async fn start_wallet_server<S>(settings: VerifierSettings, disclosure_sessions: S)
@@ -520,13 +515,13 @@ async fn start_disclosure<S>(
     Client,
     SessionToken,
     BaseUrl,
-    KeyPair<SigningKey>,
+    Ca,
     TrustAnchor<'static>,
 )
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let (settings, issuer_key_pair, rp_trust_anchor) = wallet_server_settings();
+    let (settings, issuer_ca, rp_trust_anchor) = wallet_server_settings();
     let internal_url = internal_url(&settings.requester_server, &settings.server_settings.public_url);
 
     start_wallet_server(settings.clone(), disclosure_sessions).await;
@@ -547,7 +542,7 @@ where
         client,
         disclosure_response.session_token,
         internal_url,
-        issuer_key_pair,
+        issuer_ca,
         rp_trust_anchor,
     )
 }
@@ -846,10 +841,7 @@ mod db_test {
 /// It will populate a [`MockMdocDataSource`] with a single [`Mdoc`] that is based on the
 /// attributes in the example from the ISO spec, resigned with the keys generated during test
 /// setup. The private key used to sign this [`Mdoc`] is placed in a [`SoftwareKeyFactory`].
-async fn prepare_example_holder_mocks(
-    issuer_key_pair: &KeyPair<SigningKey>,
-    issuer_trust_anchors: &[TrustAnchor<'_>],
-) -> (MockMdocDataSource, MockRemoteKeyFactory) {
+async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, MockRemoteKeyFactory) {
     // Extract the the attributes from the example DeviceResponse in the ISO specs.
     let example_document = DeviceResponse::example().documents.unwrap().into_iter().next().unwrap();
     let example_attributes = example_document
@@ -872,6 +864,9 @@ async fn prepare_example_holder_mocks(
         })
         .collect::<IndexMap<_, Vec<_>>>();
 
+    let issuer_key_pair = issuer_ca
+        .generate_issuer_mock(Some(IssuerRegistration::new_mock()))
+        .unwrap();
     // Use these attributes to create an unsigned Mdoc.
     let unsigned_mdoc = UnsignedMdoc {
         doc_type: example_document.doc_type,
@@ -879,6 +874,11 @@ async fn prepare_example_holder_mocks(
         valid_until: (Utc::now() + Days::new(365)).into(),
         attributes: example_attributes.try_into().unwrap(),
         copy_count: 1.try_into().unwrap(),
+        issuer_uri: issuer_key_pair
+            .certificate()
+            .san_dns_name_or_uris()
+            .unwrap()
+            .into_first(),
     };
 
     let metadata = TypeMetadata::bsn_only_example();
@@ -888,12 +888,16 @@ async fn prepare_example_holder_mocks(
     let mdoc_private_key_id = utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
     let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, issuer_key_pair)
+    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, &issuer_key_pair)
         .await
         .unwrap();
-    let mdoc =
-        Mdoc::new::<MockRemoteEcdsaKey>(mdoc_private_key_id, issuer_signed, &TimeGenerator, issuer_trust_anchors)
-            .unwrap();
+    let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(
+        mdoc_private_key_id,
+        issuer_signed,
+        &TimeGenerator,
+        &[issuer_ca.to_trust_anchor()],
+    )
+    .unwrap();
 
     // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
     let mdoc_data_source = MockMdocDataSource::new(vec![mdoc]);
@@ -904,7 +908,7 @@ async fn prepare_example_holder_mocks(
 
 async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
     // Start the verification_server and create a disclosure request.
-    let (settings, client, session_token, internal_url, issuer_key_pair, rp_trust_anchor) =
+    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) =
         start_disclosure(MemorySessionStore::default()).await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
@@ -917,16 +921,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     // Prepare a holder with a valid example Mdoc. Use the query portion of the
     // universal link to have holder code contact the wallet_sever and start disclosure.
     // This should result in a proposal to disclosure for the holder.
-    let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(
-        &issuer_key_pair,
-        &settings
-            .server_settings
-            .issuer_trust_anchors
-            .iter()
-            .map(|anchor| anchor.as_trust_anchor().clone())
-            .collect_vec(),
-    )
-    .await;
+    let (mdoc_data_source, key_factory) = prepare_example_holder_mocks(&issuer_ca).await;
 
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let uri_source = match session_type {
@@ -1044,7 +1039,7 @@ async fn test_disclosed_attributes_with_nonce() {
 #[tokio::test]
 async fn test_disclosed_attributes_failed_session() {
     // Start the verification_server and create a disclosure request.
-    let (settings, client, session_token, internal_url, _, rp_trust_anchor) =
+    let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) =
         start_disclosure(MemorySessionStore::default()).await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
@@ -1061,11 +1056,12 @@ async fn test_disclosed_attributes_failed_session() {
     // Start a disclosure session with the default MockMdocDataSource, which contains expired
     // attestations from the examples in the ISO specifications, then disclose those.
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
+    let mdocs = MockMdocDataSource::new_example_resigned(&issuer_ca).await;
     let disclosure_session = DisclosureSession::start(
         HttpVpMessageClient::from(client.clone()),
         &request_uri_query,
         DisclosureUriSource::QrCode,
-        &MockMdocDataSource::new_with_example(),
+        &mdocs,
         &[rp_trust_anchor],
     )
     .await
@@ -1076,7 +1072,7 @@ async fn test_disclosed_attributes_failed_session() {
     };
 
     proposal
-        .disclose(&MockRemoteKeyFactory::default())
+        .disclose(&MockRemoteKeyFactory::new_example())
         .await
         .expect_err("disclosing attributes should result in an error");
 

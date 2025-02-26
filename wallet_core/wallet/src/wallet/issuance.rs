@@ -4,7 +4,6 @@ use std::sync::Arc;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
-use http::Uri;
 use p256::ecdsa::signature;
 use tracing::info;
 use tracing::instrument;
@@ -14,6 +13,7 @@ use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
 use openid4vc::credential_payload::CredentialPayload;
@@ -128,6 +128,8 @@ pub enum PidIssuanceError {
     #[error("error converting credential payload to attestation: {0}")]
     #[category(critical)]
     Attestation(#[from] AttestationError),
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -316,8 +318,7 @@ where
                         let (metadata, _) = metadata_chain.verify_and_destructure()?;
                         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
-                        let credential_payload =
-                            CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc, Uri::from_static("org_uri"))?; // TODO: PVW-3823
+                        let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
                         let attestation = Attestation::from_credential_payload(
                             AttestationIdentity::Ephemeral,
                             credential_payload,
