@@ -1,15 +1,17 @@
-import { test, expect } from "@playwright/test"
+import { test as base, expect } from "@playwright/test"
 import { MockRelyingPartyPage } from "../pages/mockRelyingPartyPage.js"
 
-test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end to User", () => {
-  let mockRelyingPartyPage
-  test.beforeEach(async ({ page, baseURL }) => {
-    mockRelyingPartyPage = new MockRelyingPartyPage(page)
+const test = base.extend({
+  mockRelyingPartyPage: async ({ page, baseURL }, use) => {
     await page.goto(baseURL)
-  })
+    await use(new MockRelyingPartyPage(page))
+  },
+})
 
+test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end to User", () => {
   test("The library offers a standardized Start-button, the Verifier decides which button text to display.", async ({
     page,
+    mockRelyingPartyPage,
   }) => {
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     expect(await mockRelyingPartyPage.getWalletButtonText()).toContain("Login with NL Wallet")
@@ -27,6 +29,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test("When a user clicks one of these buttons, the library requests a new disclosure session from the Relying Party backend (to be implemented by the RP). The RP backend should request a new session from the OV and return the information to the library.", async ({
     page,
+    mockRelyingPartyPage,
   }) => {
     const requestPromise = page.waitForRequest(
       (request) => request.url().includes("/disclosure/sessions/") && request.method() === "GET",
@@ -47,6 +50,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
   test("When the frontend library tries to fetch the session status, but this takes too long or fails, the user is warned that they may not have a good internet connection and offers to try again.", async ({
     context,
     page,
+    mockRelyingPartyPage,
   }) => {
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await page.route("**/disclosure/sessions/**", async (route) => {
@@ -65,8 +69,9 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
-  // eslint-disable-next-line no-empty-pattern
-  test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({}, testInfo) => {
+  test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
+    mockRelyingPartyPage,
+  }, testInfo) => {
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
     const screenSizeName = testInfo.project.name.split("-")[1]
@@ -90,6 +95,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test("The QR is automatically refreshed every 2 second to prevent a passive attacker from just relaying the QR code to (potential) victims.", async ({
     page,
+    mockRelyingPartyPage,
   }, testInfo) => {
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
@@ -107,6 +113,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test('The library polls the status of this session. Upon "failed", the library informs the user that something went wrong and offers the option to try again, which leads to a new session.', async ({
     page,
+    mockRelyingPartyPage,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -128,6 +135,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test('The library polls the status of this session. Upon "waiting for response", the library hides the QR code (when in cross-device) and tells the User to follow the instructions on their mobile device.', async ({
     page,
+    mockRelyingPartyPage,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -148,6 +156,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test('The library polls the status of this session. Upon "expired", the library informs the user that the session was expired and offers them the option to try again, which leads to a new session.', async ({
     page,
+    mockRelyingPartyPage,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -169,6 +178,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test('The library polls the status of this session. Upon "cancelled", the library confirms to the user that they have aborted the session and offers them the option to try again, which leads to a new session.', async ({
     page,
+    mockRelyingPartyPage,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -188,8 +198,9 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
-  // eslint-disable-next-line no-empty-pattern
-  test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({}, testInfo) => {
+  test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
+    mockRelyingPartyPage,
+  }, testInfo) => {
     await mockRelyingPartyPage.setDutchLanguage()
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
