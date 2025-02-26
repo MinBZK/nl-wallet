@@ -79,7 +79,6 @@ assert_matches.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 parking_lot.workspace = true
-rand_core.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rstest.workspace = true
 serde_urlencoded.workspace = true
