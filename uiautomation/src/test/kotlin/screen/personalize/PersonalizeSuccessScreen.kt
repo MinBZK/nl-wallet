@@ -8,7 +8,7 @@ class PersonalizeSuccessScreen : MobileActions() {
 
     private val successTitleText = find.byText(l10n.getString("walletPersonalizeSuccessPageTitle"))
     private val successDescriptionText = find.byText(l10n.getString("walletPersonalizeSuccessPageDescription"))
-    private val pidIdCardSubtitleText = find.byText("Froukje")
+    private val pidIdCardSubtitleText = find.byText("Jansen")
     private val pidAddressCardTitleText = find.byText(l10n.getString("pidAddressCardTitle"))
 
     private val nextButton = find.byValueKey("primaryButtonCta")
