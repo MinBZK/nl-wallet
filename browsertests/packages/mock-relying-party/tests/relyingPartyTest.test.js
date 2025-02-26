@@ -65,21 +65,20 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
-  test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
-    page,
-  }, testInfo) => {
+  // eslint-disable-next-line no-empty-pattern
+  test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({}, testInfo) => {
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
     const screenSizeName = testInfo.project.name.split("-")[1]
     if (screenSizeName === "Mobile") {
       await expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeVisible()
       await expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
-      await expect(await mockRelyingPartyPage.getQrCode()).not.toBeVisible()
+      await expect(await mockRelyingPartyPage.getQrCode()).toBeHidden()
       await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
       expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
     } else {
-      await expect(await mockRelyingPartyPage.getSameDeviceButton()).not.toBeVisible()
-      await expect(await mockRelyingPartyPage.getCrossDeviceButton()).not.toBeVisible()
+      await expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeHidden()
+      await expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeHidden()
       await expect(await mockRelyingPartyPage.getQrCode()).toBeVisible()
       await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
       expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
@@ -101,7 +100,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
       await mockRelyingPartyPage.startCrossDeviceFlow()
     }
     const initialQrScreenshot = await mockRelyingPartyPage.getQrScreenshot()
-    await page.waitForTimeout(2100)
+    await page.waitForTimeout(2100) // eslint-disable-line playwright/no-wait-for-timeout
     const newQrScreenshot = await mockRelyingPartyPage.getQrScreenshot()
     expect(newQrScreenshot).not.toEqual(initialQrScreenshot)
   })
@@ -189,9 +188,8 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
-  test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
-    page,
-  }, testInfo) => {
+  // eslint-disable-next-line no-empty-pattern
+  test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({}, testInfo) => {
     await mockRelyingPartyPage.setDutchLanguage()
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()

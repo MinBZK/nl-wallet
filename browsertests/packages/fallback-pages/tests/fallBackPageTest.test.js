@@ -14,6 +14,6 @@ test.describe("Universal link fallback page", () => {
     await expect(fallbackPage.getStoreBanners()).toBeVisible()
     await page.goto(baseURL + "dummy-deep-link?retry=true")
     expect(await fallbackPage.getPageTitle()).toBe("Download de NL Wallet app")
-    await expect(fallbackPage.getDeeplink()).not.toBeVisible()
+    await expect(fallbackPage.getDeeplink()).toBeHidden()
   })
 })
