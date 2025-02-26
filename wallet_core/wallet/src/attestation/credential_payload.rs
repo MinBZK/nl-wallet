@@ -89,9 +89,11 @@ impl Attestation {
 
 #[cfg(test)]
 mod test {
+    use std::ops::Add;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use chrono::Days;
     use chrono::Utc;
     use indexmap::IndexMap;
 
@@ -130,11 +132,12 @@ mod test {
     fn example_credential_payload() -> CredentialPayload {
         let attributes = &*ATTRIBUTES;
 
+        let now = Utc::now();
         CredentialPayload {
             attestation_type: String::from("pid123"),
             issuer: "https://org.example.com/org2".parse().unwrap(),
-            issued_at: Some(Utc::now()),
-            expires: Some(Utc::now()),
+            issued_at: Some(now),
+            expires: Some(now.add(Days::new(1))),
             not_before: None,
             attributes: attributes.clone(),
         }

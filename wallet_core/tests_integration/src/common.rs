@@ -499,14 +499,15 @@ impl AttributeService for MockAttributeService {
 
         let metadata = vec![TypeMetadata::pid_example(), TypeMetadata::address_example()];
 
+        let now = Utc::now();
         let attributes = issuable_documents
             .into_iter()
             .zip(metadata.into_iter())
             .map(|(document, metadata)| IssuableCredential {
                 document,
                 metadata_chain: TypeMetadataChain::create(metadata, vec![]).unwrap(),
-                valid_from: Utc::now(),
-                valid_until: Utc::now().add(Days::new(1)),
+                valid_from: now,
+                valid_until: now.add(Days::new(1)),
                 copy_count: NonZeroU8::new(1).unwrap(),
             })
             .collect::<Vec<_>>();
