@@ -109,7 +109,10 @@ export class MockRelyingPartyPage {
 
   async startCrossDeviceFlow() {
     await this.waitForModalLoad()
-    await this.page.locator(this.nlWalletButtonTag).locator(this.crossDeviceButton).click()
+    const button = this.page.locator(this.nlWalletButtonTag).locator(this.crossDeviceButton)
+    if (await button.isVisible()) {
+      await button.click()
+    }
   }
 
   async setDutchLanguage() {

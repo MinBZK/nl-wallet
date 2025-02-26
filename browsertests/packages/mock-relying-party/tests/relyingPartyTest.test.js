@@ -6,6 +6,11 @@ const test = base.extend({
     await page.goto(baseURL)
     await use(new MockRelyingPartyPage(page))
   },
+
+  // eslint-disable-next-line no-empty-pattern -- fixtures require destructuring
+  isMobileDevice: async ({}, use, testInfo) => {
+    await use(testInfo.project.name.split("-")[1] === "Mobile")
+  },
 })
 
 test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end to User", () => {
@@ -71,11 +76,13 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
     mockRelyingPartyPage,
-  }, testInfo) => {
+    isMobileDevice,
+  }) => {
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
-    const screenSizeName = testInfo.project.name.split("-")[1]
-    if (screenSizeName === "Mobile") {
+    /* eslint-disable playwright/no-conditional-expect */
+    // eslint-disable-next-line playwright/no-conditional-in-test,
+    if (isMobileDevice) {
       await expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeVisible()
       await expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
       await expect(await mockRelyingPartyPage.getQrCode()).toBeHidden()
@@ -91,20 +98,16 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
         "Scan the QR code with your NL Wallet app",
       )
     }
+    /* eslint-enable */
   })
 
   test("The QR is automatically refreshed every 2 second to prevent a passive attacker from just relaying the QR code to (potential) victims.", async ({
     page,
     mockRelyingPartyPage,
-  }, testInfo) => {
+  }) => {
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
-    const screenSizeName = testInfo.project.name.split("-")[1]
-    if (screenSizeName === "Mobile") {
-      await expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeVisible()
-      await expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
-      await mockRelyingPartyPage.startCrossDeviceFlow()
-    }
+    await mockRelyingPartyPage.startCrossDeviceFlow()
     const initialQrScreenshot = await mockRelyingPartyPage.getQrScreenshot()
     await page.waitForTimeout(2100) // eslint-disable-line playwright/no-wait-for-timeout
     const newQrScreenshot = await mockRelyingPartyPage.getQrScreenshot()
@@ -200,19 +203,15 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
     mockRelyingPartyPage,
-  }, testInfo) => {
+    isMobileDevice,
+  }) => {
     await mockRelyingPartyPage.setDutchLanguage()
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
-    const screenSizeName = testInfo.project.name.split("-")[1]
-    if (screenSizeName === "Mobile") {
-      expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
-        "Op welk apparaat staat je NL Wallet app?",
-      )
-    } else {
-      expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
-        "Scan de QR-code met je NL Wallet app",
-      )
-    }
+    expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
+      isMobileDevice
+        ? "Op welk apparaat staat je NL Wallet app?"
+        : "Scan de QR-code met je NL Wallet app",
+    )
   })
 })
