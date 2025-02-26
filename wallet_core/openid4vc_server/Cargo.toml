@@ -12,7 +12,6 @@ workspace = true
 doctest = false
 
 [features]
-default = ["disclosure"]
 # Enable issuance
 issuance = ["dep:axum-extra"]
 # Enable disclosure

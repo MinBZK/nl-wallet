@@ -3,6 +3,7 @@ use std::future;
 use std::future::Future;
 use std::net::IpAddr;
 use std::net::TcpListener;
+use std::ops::Add;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -868,10 +869,11 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
         .generate_issuer_mock(Some(IssuerRegistration::new_mock()))
         .unwrap();
     // Use these attributes to create an unsigned Mdoc.
+    let now = Utc::now();
     let unsigned_mdoc = UnsignedMdoc {
         doc_type: example_document.doc_type,
-        valid_from: Utc::now().into(),
-        valid_until: (Utc::now() + Days::new(365)).into(),
+        valid_from: now.into(),
+        valid_until: now.add(Days::new(365)).into(),
         attributes: example_attributes.try_into().unwrap(),
         copy_count: 1.try_into().unwrap(),
         issuer_uri: issuer_key_pair
