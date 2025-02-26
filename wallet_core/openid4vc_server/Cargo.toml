@@ -12,7 +12,6 @@ workspace = true
 doctest = false
 
 [features]
-default = ["disclosure", "postgres"]
 # Include session storage in PostgreSQL
 postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
 # Enable issuance
