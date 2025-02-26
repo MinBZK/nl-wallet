@@ -7,7 +7,7 @@ test.describe("GBA Fetch when no client certificate is provided", () => {
     baseURL,
   }) => {
     await page.goto(baseURL)
-    let gbaFetchPage = new GbaFetchPage(page)
+    const gbaFetchPage = new GbaFetchPage(page)
     expect(await gbaFetchPage.getPageTitle()).toBe("400 Bad Request")
   })
 })

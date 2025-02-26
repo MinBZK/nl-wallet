@@ -61,8 +61,8 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
       "Your internet connection seems to be down or too slow. Check your connection and try again.",
     )
     expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
-    expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
-    expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
   test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
@@ -71,17 +71,17 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
     const screenSizeName = testInfo.project.name.split("-")[1]
-    if (screenSizeName == "Mobile") {
-      expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeVisible()
-      expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
-      expect(await mockRelyingPartyPage.getQrCode()).not.toBeVisible()
-      expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
+    if (screenSizeName === "Mobile") {
+      await expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeVisible()
+      await expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
+      await expect(await mockRelyingPartyPage.getQrCode()).not.toBeVisible()
+      await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
       expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
     } else {
-      expect(await mockRelyingPartyPage.getSameDeviceButton()).not.toBeVisible()
-      expect(await mockRelyingPartyPage.getCrossDeviceButton()).not.toBeVisible()
-      expect(await mockRelyingPartyPage.getQrCode()).toBeVisible()
-      expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
+      await expect(await mockRelyingPartyPage.getSameDeviceButton()).not.toBeVisible()
+      await expect(await mockRelyingPartyPage.getCrossDeviceButton()).not.toBeVisible()
+      await expect(await mockRelyingPartyPage.getQrCode()).toBeVisible()
+      await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
       expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
       expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
         "Scan the QR code with your NL Wallet app",
@@ -95,9 +95,9 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
     const screenSizeName = testInfo.project.name.split("-")[1]
-    if (screenSizeName == "Mobile") {
-      expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeVisible()
-      expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
+    if (screenSizeName === "Mobile") {
+      await expect(await mockRelyingPartyPage.getSameDeviceButton()).toBeVisible()
+      await expect(await mockRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
       await mockRelyingPartyPage.startCrossDeviceFlow()
     }
     const initialQrScreenshot = await mockRelyingPartyPage.getQrScreenshot()
@@ -122,9 +122,9 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(await mockRelyingPartyPage.getModalMessageText()).toBe(
       "This action was unsuccessful. This may have several reasons. Please try again.",
     )
-    expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
     expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
-    expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
   test('The library polls the status of this session. Upon "waiting for response", the library hides the QR code (when in cross-device) and tells the User to follow the instructions on their mobile device.', async ({
@@ -142,9 +142,9 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
       "Follow the steps in your NL Wallet app",
     )
-    expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
     expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
-    expect(await mockRelyingPartyPage.getCancelButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getCancelButton()).toBeVisible()
   })
 
   test('The library polls the status of this session. Upon "expired", the library informs the user that the session was expired and offers them the option to try again, which leads to a new session.', async ({
@@ -163,9 +163,9 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(await mockRelyingPartyPage.getModalMessageText()).toBe(
       "This action has been stopped because too much time has passed. This happens to keep your data safe. Please try again.",
     )
-    expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
-    expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
-    expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
   test('The library polls the status of this session. Upon "cancelled", the library confirms to the user that they have aborted the session and offers them the option to try again, which leads to a new session.', async ({
@@ -184,9 +184,9 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(await mockRelyingPartyPage.getModalMessageText()).toBe(
       "Because you have stopped, no data has been shared.",
     )
-    expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
-    expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
-    expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
+    await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
   })
 
   test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
@@ -196,7 +196,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
     const screenSizeName = testInfo.project.name.split("-")[1]
-    if (screenSizeName == "Mobile") {
+    if (screenSizeName === "Mobile") {
       expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
         "Op welk apparaat staat je NL Wallet app?",
       )

@@ -14,19 +14,19 @@ test.describe("GBA Fetch BRP preloading", () => {
     expect(await gbaFetchPage.getStatusInfoLabel()).toBe("Number of preloaded BSNs: ")
     expect(await gbaFetchPage.getStatusInfoPreloadedCount()).toMatch(/^\d+$/)
 
-    expect(await gbaFetchPage.getBsnInput()).toBeVisible()
-    expect(await gbaFetchPage.getRepeatBsnInput()).toBeVisible()
-    expect(await gbaFetchPage.getPreloadButton()).toBeVisible()
+    await expect(gbaFetchPage.getBsnInput()).toBeVisible()
+    await expect(gbaFetchPage.getRepeatBsnInput()).toBeVisible()
+    await expect(gbaFetchPage.getPreloadButton()).toBeVisible()
 
-    expect(await gbaFetchPage.getClearDataLabel()).toBeVisible()
-    expect(await gbaFetchPage.getClearDataInput()).toBeVisible()
-    expect(await gbaFetchPage.getClearDataButton()).toBeVisible()
+    await expect(gbaFetchPage.getClearDataLabel()).toBeVisible()
+    await expect(gbaFetchPage.getClearDataInput()).toBeVisible()
+    await expect(gbaFetchPage.getClearDataButton()).toBeVisible()
   })
 
   test("The load data form has two password inputs (i.e. not showing the value) that take a BSN and a submit button.", async () => {
-    expect(await gbaFetchPage.getBsnInput()).toHaveAttribute("type", "password")
-    expect(await gbaFetchPage.getBsnInput()).toHaveAttribute("type", "password")
-    expect(await gbaFetchPage.getPreloadButton()).toHaveAttribute("type", "submit")
+    await expect(gbaFetchPage.getBsnInput()).toHaveAttribute("type", "password")
+    await expect(gbaFetchPage.getBsnInput()).toHaveAttribute("type", "password")
+    await expect(gbaFetchPage.getPreloadButton()).toHaveAttribute("type", "submit")
   })
 
   test("On submitting the load data form, the system validates that both BSN entries match", async () => {
@@ -89,7 +89,7 @@ test.describe("GBA Fetch BRP preloading", () => {
     await gbaFetchPage.repeatBsn("999994906")
     await gbaFetchPage.preload()
     await gbaFetchPage.goBack()
-    let preloadedBsnCount = await gbaFetchPage.getStatusInfoPreloadedCount()
+    expect(await gbaFetchPage.getStatusInfoPreloadedCount()).toBe("1")
     expect(await gbaFetchPage.getClearDataLabelText()).toBe(
       'Enter the text "clear all data" for confirmation: ',
     )
