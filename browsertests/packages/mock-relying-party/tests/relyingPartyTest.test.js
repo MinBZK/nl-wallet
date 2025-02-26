@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-const { MockRelyingPartyPage } = require("../pages/mockRelyingPartyPage").default
+import { MockRelyingPartyPage } from "../pages/mockRelyingPartyPage.js"
 
 test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end to User", () => {
   let mockRelyingPartyPage

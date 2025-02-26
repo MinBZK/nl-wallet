@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-const { GbaFetchPage } = require("../../pages/gbaFetchPage").default
+import { GbaFetchPage } from "../../pages/gbaFetchPage.js"
 
 test.describe("GBA Fetch when no client certificate is provided", () => {
   test("The webpage can only be accessed via VPN and using an approved user certificate.", async ({

@@ -1,4 +1,4 @@
-class FallbackPage {
+export class FallbackPage {
   constructor(page) {
     this.page = page
 
@@ -24,5 +24,3 @@ class FallbackPage {
     return this.page.locator(this.storeBanners)
   }
 }
-
-export default { FallbackPage: FallbackPage }

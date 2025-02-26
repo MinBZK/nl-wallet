@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-const { FallbackPage } = require("../pages/fallbackPage").default
+import { FallbackPage } from "../pages/fallbackPage.js"
 
 test.describe("Universal link fallback page", () => {
   test("When wallet app is not installed opening a universal link will open the fallback page", async ({

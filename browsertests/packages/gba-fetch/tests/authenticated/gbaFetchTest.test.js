@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test"
-const { GbaFetchPage } = require("../../pages/gbaFetchPage").default
+import { GbaFetchPage } from "../../pages/gbaFetchPage.js"
 
 test.describe("GBA Fetch BRP preloading", () => {
   let gbaFetchPage

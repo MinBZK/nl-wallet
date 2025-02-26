@@ -1,4 +1,4 @@
-class GbaFetchPage {
+export class GbaFetchPage {
   constructor(page) {
     this.page = page
 
@@ -90,5 +90,3 @@ class GbaFetchPage {
     return await this.page.locator(this.bsnInput).evaluate((el) => el.validationMessage)
   }
 }
-
-export default { GbaFetchPage }

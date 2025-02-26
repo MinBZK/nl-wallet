@@ -1,6 +1,6 @@
 import { expect } from "@playwright/test"
 
-class MockRelyingPartyPage {
+export class MockRelyingPartyPage {
   constructor(page) {
     this.page = page
 
@@ -128,4 +128,3 @@ class MockRelyingPartyPage {
     ).not.toContainText(/(Please wait|Even geduld)/)
   }
 }
-export default { MockRelyingPartyPage: MockRelyingPartyPage }
