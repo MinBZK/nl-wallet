@@ -5,7 +5,7 @@ build-wallet-web:
     VITE_HELP_BASE_URL: https://$EXTERNAL_HOSTNAME_PROD
   script:
     - set -euxo pipefail
-    - (cd wallet_web; npm ci && npm run type-check && npm run coverage -- --run)
+    - (cd wallet_web; npm ci && npm run format-check && npm run lint && npm run type-check && npm run coverage -- --run)
     - (cd wallet_web; CUSTOM_ELEMENT=false npm run build)
     - (cd wallet_web; EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build)
     - WALLET_WEB_SHA256_FILENAME=$(cat wallet_web/dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64 | tr '/+' '_-' | tr -d '=\n') # url safe to prevent '/' to appear in filename

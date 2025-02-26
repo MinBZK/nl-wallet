@@ -1,5 +1,4 @@
 import DeviceChoice from "@/components/DeviceChoice.vue"
-import { type SessionType } from "@/models/status"
 import { translations, translationsKey } from "@/util/translations"
 import { mount } from "@vue/test-utils"
 import { describe, expect, it, vi } from "vitest"

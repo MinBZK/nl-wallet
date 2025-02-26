@@ -11,6 +11,8 @@
     "prettier": "^3.5.0"
   },
   "scripts": {
-    "format": "prettier --config ../.prettierrc.json --write \"**/*.{js,json,md}\""
+    "lint": "eslint",
+    "format-check": "prettier --check \"**/*.{js,json,md}\"",
+    "format": "prettier --write \"**/*.{js,json,md}\""
   }
 }

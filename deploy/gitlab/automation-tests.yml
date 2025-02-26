@@ -149,6 +149,15 @@ run-automation-smoke-test-ont:
       -Dfile.encoding=UTF-8
   variables: !reference [.run-automation-tests-default, variables]
 
+browsertests-format-lint:
+  rules: !reference [.default-or-merge-request, rules]
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-web:${BUILD_TAG}"
+  script:
+    - cd browsertests
+    - npm ci
+    - npm run format-check
+    - npm run lint
+
 .run-browsertest-common:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
   extends: .env-ont-k8s

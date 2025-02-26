@@ -20,6 +20,7 @@
     "coverage": "vitest run --coverage",
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "format-check": "prettier --check lib/",
     "format": "prettier --write lib/"
   },
   "devDependencies": {
