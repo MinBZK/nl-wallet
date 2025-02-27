@@ -119,6 +119,7 @@ impl From<wallet::sd_jwt::LogoMetadata> for LogoMetadata {
 
 pub struct AttestationAttribute {
     pub key: String,
+    // TODO: Use ClaimDisplayMetadata type instead, once Document is removed.
     pub labels: Vec<LocalizedString>,
     pub value: AttributeValue,
 }
