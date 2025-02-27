@@ -79,7 +79,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JsonSerialization(_)
                 | CredentialRequestError::WteTracking(_)
-                | CredentialRequestError::CredentialPayload(_)
                 | CredentialRequestError::TypeMetadata(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)

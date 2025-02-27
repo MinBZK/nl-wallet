@@ -173,8 +173,6 @@ pub enum CredentialRequestError {
     MissingPoa,
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
-    #[error("error converting unsigned mdoc to credential_payload: {0}")]
-    CredentialPayload(#[from] CredentialPayloadError),
     #[error("error verifying type metadata integrity: {0}")]
     TypeMetadata(#[from] TypeMetadataError),
 }
@@ -997,9 +995,6 @@ impl CredentialResponse {
                 let cose_pubkey = (&holder_pubkey)
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
-
-                let credential_payload = CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?;
-                credential_payload.validate(&metadata_chain)?;
 
                 let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)
                     .await
