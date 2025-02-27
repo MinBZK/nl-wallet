@@ -114,6 +114,7 @@ pub mod generate {
     use rcgen::CustomExtension;
     use rcgen::DnType;
     use rcgen::IsCa;
+    use rcgen::PublicKeyData;
     use rcgen::SanType;
     use rcgen::SubjectPublicKeyInfo;
     use rcgen::PKCS_ECDSA_P256_SHA256;
@@ -239,17 +240,22 @@ pub mod generate {
             Self::new(certificate, key_pair)
         }
 
-        fn certificate_params_for(
+        fn certificate_for(
+            &self,
+            pk: &impl PublicKeyData,
             common_name: &str,
             certificate_type: &CertificateType,
             configuration: CertificateConfiguration,
-        ) -> Result<CertificateParams, CertificateError> {
+        ) -> Result<BorrowingCertificate, CertificateError> {
             let mut params = CertificateParams::from(configuration);
             params.is_ca = IsCa::NoCa;
             params.distinguished_name.push(DnType::CommonName, common_name);
             params.subject_alt_names.push(SanType::DnsName(common_name.try_into()?));
             params.custom_extensions.extend(certificate_type.to_custom_exts()?);
-            Ok(params)
+
+            let certificate = params.signed_by(pk, &self.certificate, &self.key_pair)?;
+            let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
+            Ok(certificate)
         }
 
         /// Generate a new key pair signed with the specified CA.
@@ -261,10 +267,7 @@ pub mod generate {
         ) -> Result<KeyPair, CertificateError> {
             let key_pair = rcgen::KeyPair::generate()?;
             let private_key = rcgen_cert_privkey(&key_pair)?;
-
-            let params = Self::certificate_params_for(common_name, certificate_type, configuration)?;
-            let certificate = params.signed_by(&key_pair, &self.certificate, &self.key_pair)?;
-            let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
+            let certificate = self.certificate_for(&key_pair, common_name, certificate_type, configuration)?;
 
             let key_pair = KeyPair {
                 private_key,
@@ -283,12 +286,7 @@ pub mod generate {
             configuration: CertificateConfiguration,
         ) -> Result<BorrowingCertificate, CertificateError> {
             let public_key = SubjectPublicKeyInfo::from_der(public_key)?;
-
-            let params = Self::certificate_params_for(common_name, certificate_type, configuration)?;
-            let certificate = params.signed_by(&public_key, &self.certificate, &self.key_pair)?;
-            let certificate = BorrowingCertificate::from_certificate_der(certificate.into())?;
-
-            Ok(certificate)
+            self.certificate_for(&public_key, common_name, certificate_type, configuration)
         }
     }
 
