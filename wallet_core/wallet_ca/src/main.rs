@@ -91,7 +91,7 @@ enum Command {
         #[arg(long, default_value = "false")]
         force: bool,
     },
-    /// Generate an Mdl private key and certificate
+    /// Generate an Mdl certificate based on a public key
     IssuerCert {
         /// Path to the public key for which the certificate should be generated
         #[arg(short = 'p', long, value_parser)]
@@ -118,7 +118,7 @@ enum Command {
         #[arg(long, default_value = "false")]
         force: bool,
     },
-    /// Generate a private key and certificate for Relying Party Authentication
+    /// Generate a certificate for Relying Party Authentication based on a public key
     ReaderCert {
         /// Path to the public key for which the certificate should be generated
         #[arg(short = 'p', long, value_parser)]

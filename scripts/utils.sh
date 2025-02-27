@@ -278,7 +278,7 @@ function generate_pid_issuer_key_pair {
         --provider "${HSM_LIBRARY_PATH}" \
         --login \
         --set-pin "${HSM_USER_PIN}" \
-        --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" --list-all --only-urls | grep "pid_issuer_key" | grep public)" \
+        --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="${HSM_LIBRARY_PATH}" --list-all --only-urls | grep "pid_issuer_key" | grep public)" \
         --label "pid_issuer_key" \
         --outfile "${TARGET_DIR}/pid_issuer/issuer.pub.pem"
 
