@@ -4,6 +4,7 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 
 use chrono::Days;
+use futures::future::join_all;
 use indexmap::IndexMap;
 use serde::de;
 use serde::Deserialize;
@@ -11,6 +12,7 @@ use serde::Deserializer;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use openid4vc_server::issuer::IssuerKeyRing;
 use sd_jwt::metadata::TypeMetadata;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::p256_der::DerVerifyingKey;
@@ -113,5 +115,29 @@ impl TryFrom<&Issuer> for BrpPidAttributeService {
             Days::new(issuer.valid_days),
             issuer.copy_count,
         )
+    }
+}
+
+impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyType> {
+    type Error = KeyError;
+
+    async fn try_from_key_settings(
+        private_keys: HashMap<String, KeyPair>,
+        hsm: Option<Pkcs11Hsm>,
+    ) -> Result<Self, Self::Error> {
+        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async {
+            let result = (
+                doctype,
+                ParsedKeyPair::try_from_key_settings(key_pair, hsm.clone()).await?,
+            );
+            Ok(result)
+        });
+
+        let issuer_keys = join_all(iter)
+            .await
+            .into_iter()
+            .collect::<Result<HashMap<String, ParsedKeyPair<PrivateKeyType>>, Self::Error>>()?;
+
+        Ok(issuer_keys.into())
     }
 }

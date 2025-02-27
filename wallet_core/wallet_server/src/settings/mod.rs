@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
@@ -9,8 +8,6 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use futures::future::join_all;
-use openid4vc_server::issuer::IssuerKeyRing;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -162,30 +159,6 @@ impl TryFromKeySettings<KeyPair> for ParsedKeyPair<PrivateKeyType> {
         let private_key = PrivateKeyType::from_settings(source.private_key, hsm)?;
         let key_pair = ParsedKeyPair::new(private_key, source.certificate).await?;
         Ok(key_pair)
-    }
-}
-
-impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyType> {
-    type Error = KeyError;
-
-    async fn try_from_key_settings(
-        private_keys: HashMap<String, KeyPair>,
-        hsm: Option<Pkcs11Hsm>,
-    ) -> Result<Self, Self::Error> {
-        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async {
-            let result = (
-                doctype,
-                ParsedKeyPair::try_from_key_settings(key_pair, hsm.clone()).await?,
-            );
-            Ok(result)
-        });
-
-        let issuer_keys = join_all(iter)
-            .await
-            .into_iter()
-            .collect::<Result<HashMap<String, ParsedKeyPair<PrivateKeyType>>, Self::Error>>()?;
-
-        Ok(issuer_keys.into())
     }
 }
 
