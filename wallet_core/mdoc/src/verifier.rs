@@ -15,6 +15,8 @@ use tracing::debug;
 use tracing::warn;
 
 use wallet_common::generator::Generator;
+use wallet_common::urls::HttpsUri;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -37,7 +39,7 @@ use crate::Result;
 pub struct DocumentDisclosedAttributes {
     #[serde_as(as = "IfIsHumanReadable<IndexMap<_, IndexMap<_, FromInto<JsonCborValue>>>>")]
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
-    pub issuer: String,
+    pub issuer_uri: HttpsUri,
     pub ca: String,
     pub validity_info: ValidityInfo,
 }
@@ -68,8 +70,10 @@ pub enum VerificationError {
     MissingAttributes(Vec<AttributeIdentifier>),
     #[error("unexpected amount of CA Common Names in issuer certificate: expected 1, found {0}")]
     UnexpectedCACommonNameCount(usize),
-    #[error("unexpected amount of Common Names in issuer certificate: expected 1, found {0}")]
-    UnexpectedIssuerCommonNameCount(usize),
+    #[error("issuer URI {0} not found in SAN {1:?}")]
+    IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),
+    #[error("missing issuer URI")]
+    MissingIssuerUri,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, AsRef)]
@@ -126,6 +130,7 @@ impl DeviceResponse {
         if let Some(errors) = &self.document_errors {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }
+
         if self.status != 0 {
             return Err(VerificationError::UnexpectedStatus(self.status).into());
         }
@@ -201,7 +206,7 @@ impl IssuerSigned {
             .verify_is_valid_at(time.generate(), validity)
             .map_err(VerificationError::Validity)?;
 
-        let attrs = self
+        let attributes = self
             .name_spaces
             .as_ref()
             .map(|name_spaces| {
@@ -220,15 +225,17 @@ impl IssuerSigned {
             return Err(VerificationError::UnexpectedCACommonNameCount(ca_cns.len()).into());
         }
 
-        let mut issuer_cns = signing_cert.common_names()?;
-        if issuer_cns.len() != 1 {
-            return Err(VerificationError::UnexpectedIssuerCommonNameCount(issuer_cns.len()).into());
-        }
+        let san_dns_name_or_uris = signing_cert.san_dns_name_or_uris()?;
+        let issuer_uri = match mso.issuer_uri {
+            Some(ref uri) if san_dns_name_or_uris.as_ref().contains(uri) => uri.to_owned(),
+            Some(uri) => return Err(VerificationError::IssuerUriNotFoundInSan(uri, san_dns_name_or_uris).into()),
+            None => return Err(VerificationError::MissingIssuerUri.into()),
+        };
 
         Ok((
             DocumentDisclosedAttributes {
-                attributes: attrs,
-                issuer: String::from(issuer_cns.pop().unwrap()),
+                attributes,
+                issuer_uri,
                 ca: String::from(ca_cns.pop().unwrap()),
                 validity_info: mso.validity_info.clone(),
             },
@@ -356,6 +363,7 @@ mod tests {
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::identifiers::AttributeIdentifierHolder;
+    use crate::server_keys::generate::Ca;
     use crate::test;
     use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;
@@ -407,9 +415,11 @@ mod tests {
     }
 
     /// Verify the example disclosure from the standard.
-    #[test]
-    fn verify_iso_example_disclosure() {
-        let device_response = DeviceResponse::example();
+    #[tokio::test]
+    async fn verify_iso_example_disclosure() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let device_response = DeviceResponse::example_resigned(&ca).await;
+
         println!("DeviceResponse: {:#?} ", DebugCollapseBts::from(&device_response));
 
         // Examine the first attribute in the device response
@@ -424,14 +434,13 @@ mod tests {
 
         // Do the verification
         let eph_reader_key = Examples::ephemeral_reader_key();
-        let trust_anchors = Examples::iaca_trust_anchors();
+
         let disclosed_attrs = device_response
             .verify(
                 Some(&eph_reader_key),
-                // To be signed by device key found in MSO
                 &DeviceAuthenticationBytes::example().0 .0.session_transcript,
                 &IsoCertTimeGenerator,
-                trust_anchors,
+                &[ca.to_trust_anchor()],
             )
             .unwrap();
         println!("DisclosedAttributes: {:#?}", DebugCollapseBts::from(&disclosed_attrs));

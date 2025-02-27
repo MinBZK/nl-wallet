@@ -262,6 +262,8 @@ function generate_pid_issuer_root_ca {
 
 # Generate an EC key pair for the pid_issuer
 function generate_pid_issuer_key_pair {
+    echo -e "${INFO}Generating PID Issuer key pair in HSM${NC}"
+
     # Generate EC key pair in the HSM
     p11tool \
         --provider "${HSM_LIBRARY_PATH}" \
@@ -282,14 +284,14 @@ function generate_pid_issuer_key_pair {
 
     # Generate a certificate for the public key including issuer authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-          --bin wallet_ca issuer-cert \
-          --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
-          --ca-key-file "${TARGET_DIR}/pid_issuer/ca.key.pem" \
-          --ca-crt-file "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
-          --common-name "pid.example.com" \
-          --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
-          --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
-          --force
+        --bin wallet_ca issuer-cert \
+        --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
+        --ca-key-file "${TARGET_DIR}/pid_issuer/ca.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
+        --common-name "cert.issuer.example.com" \
+        --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
+        --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
+        --force
 
     # Convert the PEM certificate to DER format
     openssl x509 \
@@ -298,7 +300,6 @@ function generate_pid_issuer_key_pair {
             -outform DER \
             -out "${TARGET_DIR}/pid_issuer/issuer.crt.der"
 }
-
 
 # Generate an EC root CA for the mock_relying_party
 function generate_mock_relying_party_root_ca {

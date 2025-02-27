@@ -93,7 +93,6 @@ mod test {
 
     use assert_matches::assert_matches;
     use chrono::Utc;
-    use http::Uri;
     use indexmap::IndexMap;
 
     use nl_wallet_mdoc::utils::auth::Organization;
@@ -133,7 +132,7 @@ mod test {
 
         CredentialPayload {
             attestation_type: String::from("pid123"),
-            issuer: Uri::from_static("data://org.example.com/org2"),
+            issuer: "https://org.example.com/org2".parse().unwrap(),
             issued_at: Some(Utc::now()),
             expires: Some(Utc::now()),
             not_before: None,

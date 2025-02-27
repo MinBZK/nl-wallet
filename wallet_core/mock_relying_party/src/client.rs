@@ -6,11 +6,11 @@ use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionToken;
+use openid4vc_server::verifier::DisclosedAttributesParams;
+use openid4vc_server::verifier::StartDisclosureRequest;
+use openid4vc_server::verifier::StartDisclosureResponse;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::urls::BaseUrl;
-use wallet_server::verifier::DisclosedAttributesParams;
-use wallet_server::verifier::StartDisclosureRequest;
-use wallet_server::verifier::StartDisclosureResponse;
 
 pub struct WalletServerClient {
     client: Client,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::num::NonZeroU64;
 use std::time::Duration;
@@ -8,6 +9,8 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use futures::future::join_all;
+use openid4vc_server::issuer::IssuerKeyRing;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -16,20 +19,21 @@ use url::Url;
 
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
+use nl_wallet_mdoc::server_keys::KeyPair as ParsedKeyPair;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc_server::urls::Urls;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
-use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 
-use crate::keys::KeyError;
-use crate::keys::PrivateKeyType;
+use crate::server::keys::KeyError;
+use crate::server::keys::PrivateKeyType;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
@@ -44,15 +48,6 @@ cfg_if::cfg_if! {
         mod issuance;
         pub use issuance::*;
     }
-}
-
-#[derive(Clone, Deserialize)]
-pub struct Urls {
-    // used by the wallet
-    pub public_url: BaseUrl,
-
-    #[cfg(feature = "disclosure")]
-    pub universal_link_base_url: BaseUrl,
 }
 
 #[serde_as]
@@ -160,19 +155,43 @@ pub trait TryFromKeySettings<SRC>: Sized {
     async fn try_from_key_settings(source: SRC, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error>;
 }
 
-impl TryFromKeySettings<KeyPair> for nl_wallet_mdoc::server_keys::KeyPair<PrivateKeyType> {
+impl TryFromKeySettings<KeyPair> for ParsedKeyPair<PrivateKeyType> {
     type Error = KeyError;
 
     async fn try_from_key_settings(source: KeyPair, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
         let private_key = PrivateKeyType::from_settings(source.private_key, hsm)?;
-        let key_pair = nl_wallet_mdoc::server_keys::KeyPair::new(private_key, source.certificate).await?;
+        let key_pair = ParsedKeyPair::new(private_key, source.certificate).await?;
         Ok(key_pair)
     }
 }
 
+impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyType> {
+    type Error = KeyError;
+
+    async fn try_from_key_settings(
+        private_keys: HashMap<String, KeyPair>,
+        hsm: Option<Pkcs11Hsm>,
+    ) -> Result<Self, Self::Error> {
+        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async {
+            let result = (
+                doctype,
+                ParsedKeyPair::try_from_key_settings(key_pair, hsm.clone()).await?,
+            );
+            Ok(result)
+        });
+
+        let issuer_keys = join_all(iter)
+            .await
+            .into_iter()
+            .collect::<Result<HashMap<String, ParsedKeyPair<PrivateKeyType>>, Self::Error>>()?;
+
+        Ok(issuer_keys.into())
+    }
+}
+
 #[cfg(feature = "integration_test")]
-impl From<nl_wallet_mdoc::server_keys::KeyPair> for KeyPair {
-    fn from(value: nl_wallet_mdoc::server_keys::KeyPair) -> Self {
+impl From<ParsedKeyPair> for KeyPair {
+    fn from(value: ParsedKeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
             private_key: PrivateKey::Software(value.private_key().clone().into()),

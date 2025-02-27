@@ -74,6 +74,7 @@ test_common = [
     "dep:gba_hc_converter",
     "dep:nl_wallet_mdoc",
     "dep:openid4vc",
+    "dep:openid4vc_server",
     "dep:platform_support",
     "dep:semver",
     "dep:sd_jwt",
@@ -205,6 +206,7 @@ gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../hsm", optional = true }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
+openid4vc_server = { path = "../openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
 platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", optional = true, features = ["example_constructors"] }
 update_policy_server = { path = "../update_policy_server", optional = true }

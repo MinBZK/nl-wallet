@@ -21,12 +21,10 @@ use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use derive_more::AsRef;
 use derive_more::From;
-use futures::future::join_all;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use tracing::warn;
 
-use hsm::service::Pkcs11Hsm;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
 use openid4vc::credential::CredentialRequest;
@@ -52,11 +50,7 @@ use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::keys::KeyError;
-use crate::keys::PrivateKeyType;
-use crate::settings;
-use crate::settings::TryFromKeySettings;
-use crate::settings::Urls;
+use crate::urls::Urls;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,
@@ -73,27 +67,6 @@ impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
     }
 }
 
-impl TryFromKeySettings<HashMap<String, settings::KeyPair>> for IssuerKeyRing<PrivateKeyType> {
-    type Error = KeyError;
-
-    async fn try_from_key_settings(
-        private_keys: HashMap<String, settings::KeyPair>,
-        hsm: Option<Pkcs11Hsm>,
-    ) -> Result<Self, Self::Error> {
-        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async {
-            let result = (doctype, KeyPair::try_from_key_settings(key_pair, hsm.clone()).await?);
-            Ok(result)
-        });
-
-        let issuer_keys = join_all(iter)
-            .await
-            .into_iter()
-            .collect::<Result<HashMap<String, KeyPair<PrivateKeyType>>, Self::Error>>()?;
-
-        Ok(issuer_keys.into())
-    }
-}
-
 pub fn create_issuance_router<A, K, S, W>(
     urls: &Urls,
     private_keys: K,
@@ -102,7 +75,7 @@ pub fn create_issuance_router<A, K, S, W>(
     wallet_client_ids: Vec<String>,
     wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
-) -> anyhow::Result<Router>
+) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
     K: KeyRing + Send + Sync + 'static,
@@ -122,7 +95,7 @@ where
         ),
     });
 
-    let issuance_router = Router::new()
+    Router::new()
         .route("/.well-known/openid-credential-issuer", get(metadata))
         .route("/.well-known/oauth-authorization-server", get(oauth_metadata))
         .route("/token", post(token))
@@ -130,9 +103,7 @@ where
         .route("/credential", delete(reject_issuance))
         .route("/batch_credential", post(batch_credential))
         .route("/batch_credential", delete(reject_issuance))
-        .with_state(application_state);
-
-    Ok(issuance_router)
+        .with_state(application_state)
 }
 
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`

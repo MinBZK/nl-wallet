@@ -35,6 +35,10 @@ use yoke::Yokeable;
 
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
+use wallet_common::urls::HttpsUri;
+use wallet_common::urls::HttpsUriParseError;
+use wallet_common::vec_at_least::VecAtLeastNError;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use super::issuer_auth::IssuerRegistration;
 use super::reader_auth::ReaderRegistration;
@@ -89,6 +93,14 @@ pub enum CertificateError {
     KeyMismatch,
     #[error("failed to get public key from private key: {0}")]
     PublicKeyFromPrivate(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("missing Common Name")]
+    MissingCommonName,
+    #[error("missing SAN extension")]
+    MissingSan,
+    #[error("missing SAN DNS name or URI, found: {0:?}")]
+    MissingSanDnsNameOrUri(#[from] VecAtLeastNError),
+    #[error("SAN DNS name is not a URI: {0}")]
+    SanDnsNameOrUriIsNotAnHttpsUri(HttpsUriParseError),
 }
 
 /// An x509 certificate, unifying functionality from the following crates:
@@ -210,6 +222,27 @@ impl BorrowingCertificate {
 
     pub fn common_names(&self) -> Result<Vec<&str>, CertificateError> {
         x509_common_names(&self.x509_certificate().subject)
+    }
+
+    /// Returns the SAN DNS names and URIs from the certificate, as an HTTPS URI.
+    pub fn san_dns_name_or_uris(&self) -> Result<VecNonEmpty<HttpsUri>, CertificateError> {
+        let san_ext = self
+            .x509_certificate()
+            .subject_alternative_name()?
+            .ok_or(CertificateError::MissingSan)?;
+
+        let san_dns_name_or_uri = san_ext.value.general_names.iter().filter_map(|name| match name {
+            GeneralName::DNSName(name) => Some(format!("https://{name}")),
+            GeneralName::URI(uri) => Some(uri.to_string()),
+            _ => None,
+        });
+
+        let san_https_uris = san_dns_name_or_uri
+            .map(|san| san.parse().map_err(CertificateError::SanDnsNameOrUriIsNotAnHttpsUri))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()?;
+
+        Ok(san_https_uris)
     }
 
     /// Returns the first DNS SAN, if any, from the certificate.

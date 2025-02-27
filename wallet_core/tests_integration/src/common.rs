@@ -37,6 +37,8 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
+use openid4vc_server::store::SessionStoreVariant;
+use openid4vc_server::store::WteTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use sd_jwt::metadata::TypeMetadata;
@@ -70,8 +72,6 @@ use wallet_server::pid::mock::MockAttributesLookup;
 use wallet_server::settings::RequesterAuth;
 use wallet_server::settings::Server;
 use wallet_server::settings::Settings as WsSettings;
-use wallet_server::store::SessionStoreVariant;
-use wallet_server::store::WteTrackerVariant;
 
 use crate::logging::init_logging;
 use crate::utils::read_file;
@@ -386,7 +386,7 @@ pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(
     let storage_settings = &settings.storage;
     let public_url = settings.urls.public_url.clone();
 
-    let db_connection = wallet_server::store::DatabaseConnection::try_new(storage_settings.url.clone())
+    let db_connection = openid4vc_server::store::DatabaseConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 

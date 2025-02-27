@@ -15,16 +15,16 @@ use nl_wallet_mdoc::ItemsRequest;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use openid4vc_server::verifier::DisclosedAttributesParams;
+use openid4vc_server::verifier::StartDisclosureRequest;
+use openid4vc_server::verifier::StartDisclosureResponse;
+use openid4vc_server::verifier::StatusParams;
 use tests_integration::common::*;
 use wallet::errors::DisclosureError;
 use wallet::mock::MockDigidSession;
 use wallet::DisclosureUriSource;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_server::verifier::DisclosedAttributesParams;
-use wallet_server::verifier::StartDisclosureRequest;
-use wallet_server::verifier::StartDisclosureResponse;
-use wallet_server::verifier::StatusParams;
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
     let response = client.get(status_url).send().await.unwrap();

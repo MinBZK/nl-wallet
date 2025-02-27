@@ -44,6 +44,7 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.issuer.brp_server.clone()),
         &settings.issuer.digid.bsn_privkey,
         settings.issuer.digid.http_config.clone(),
+        settings.issuer.issuer_uris().unwrap(),
         settings.issuer.metadata(),
         Days::new(1),
         NonZeroU8::new(2).unwrap(),

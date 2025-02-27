@@ -67,7 +67,6 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VpAuthorizationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
-use wallet_common::keys::examples::Examples;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
@@ -98,7 +97,8 @@ async fn disclosure_direct() {
     let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
-    let jwe = disclosure_jwe(auth_request_jws, &[ca.to_trust_anchor()]).await;
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let jwe = disclosure_jwe(auth_request_jws, &[ca.to_trust_anchor()], &issuer_ca).await;
 
     // RP decrypts the response JWE and verifies the contained Authorization Response.
     let (auth_response, mdoc_nonce) = VpAuthorizationResponse::decrypt(&jwe, &encryption_keypair, &nonce).unwrap();
@@ -107,7 +107,7 @@ async fn disclosure_direct() {
             &iso_auth_request,
             &mdoc_nonce,
             &IsoCertTimeGenerator,
-            Examples::iaca_trust_anchors(),
+            &[issuer_ca.to_trust_anchor()],
         )
         .unwrap();
 
@@ -118,8 +118,12 @@ async fn disclosure_direct() {
 }
 
 /// The wallet side: verify the Authorization Request, compute the disclosure, and encrypt it into a JWE.
-async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors: &[TrustAnchor<'_>]) -> String {
-    let mdocs = IsoMockMdocDataSource::new_with_example();
+async fn disclosure_jwe(
+    auth_request: Jwt<VpAuthorizationRequest>,
+    trust_anchors: &[TrustAnchor<'_>],
+    issuer_ca: &Ca,
+) -> String {
+    let mdocs = IsoMockMdocDataSource::new_example_resigned(issuer_ca).await;
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -145,7 +149,7 @@ async fn disclosure_jwe(auth_request: Jwt<VpAuthorizationRequest>, trust_anchors
     let to_disclose = candidates.into_values().map(|mut docs| docs.pop().unwrap()).collect();
 
     // Compute the disclosure.
-    let key_factory = MockRemoteKeyFactory::default();
+    let key_factory = MockRemoteKeyFactory::new_example();
     let (device_response, keys) = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
         .await
         .unwrap();
@@ -176,10 +180,11 @@ async fn disclosure_using_message_client() {
         .unwrap();
 
     // Initialize the "wallet"
-    let mdocs = IsoMockMdocDataSource::new_with_example();
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let mdocs = IsoMockMdocDataSource::new_example_resigned(&issuer_ca).await;
 
     // Start a session at the "RP"
-    let message_client = DirectMockVpMessageClient::new(rp_keypair);
+    let message_client = DirectMockVpMessageClient::new(rp_keypair, vec![issuer_ca.to_trust_anchor().to_owned()]);
     let request_uri = message_client.start_session();
 
     // Perform the first part of the session, resulting in the proposed disclosure.
@@ -198,7 +203,7 @@ async fn disclosure_using_message_client() {
     };
 
     // Finish the disclosure.
-    let key_factory = MockRemoteKeyFactory::default();
+    let key_factory = MockRemoteKeyFactory::new_example();
     proposal.disclose(&key_factory).await.unwrap();
 }
 
@@ -211,10 +216,11 @@ struct DirectMockVpMessageClient {
     auth_request: VpAuthorizationRequest,
     request_uri: BaseUrl,
     response_uri: BaseUrl,
+    trust_anchors: Vec<TrustAnchor<'static>>,
 }
 
 impl DirectMockVpMessageClient {
-    fn new(auth_keypair: KeyPair) -> Self {
+    fn new(auth_keypair: KeyPair, trust_anchors: Vec<TrustAnchor<'static>>) -> Self {
         let query = serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
             ephemeral_id: vec![42],
@@ -247,6 +253,7 @@ impl DirectMockVpMessageClient {
             auth_request,
             request_uri,
             response_uri,
+            trust_anchors,
         }
     }
 
@@ -288,7 +295,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
                 &self.auth_request.clone().try_into().unwrap(),
                 &mdoc_nonce,
                 &IsoCertTimeGenerator,
-                Examples::iaca_trust_anchors(),
+                &self.trust_anchors,
             )
             .unwrap();
 

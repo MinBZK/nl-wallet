@@ -5,13 +5,14 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
 use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::UseCases;
+use openid4vc_server::issuer::create_issuance_router;
+use openid4vc_server::issuer::IssuerKeyRing;
+use openid4vc_server::verifier;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
-use crate::issuer::create_issuance_router;
-use crate::issuer::IssuerKeyRing;
 use crate::settings::Settings;
 use crate::settings::TryFromKeySettings;
-use crate::verifier;
 
 use super::*;
 
@@ -40,19 +41,19 @@ where
         settings.issuer.wallet_client_ids,
         settings.issuer.wte_issuer_pubkey.into_inner(),
         wte_tracker,
-    )?;
+    );
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.urls,
-        settings.verifier,
+        UseCases::try_from_key_settings(settings.verifier.usecases, hsm.clone()).await?,
+        (&settings.verifier.ephemeral_id_secret).into(),
         settings
             .issuer_trust_anchors
             .iter()
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
+        settings.verifier.allow_origins,
         disclosure_sessions,
-        hsm,
-    )
-    .await?;
+    );
 
     listen(
         settings.wallet_server,

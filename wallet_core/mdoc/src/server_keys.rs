@@ -342,7 +342,7 @@ pub mod generate {
     }
 
     #[cfg(any(test, feature = "mock"))]
-    mod mock {
+    pub mod mock {
         use crate::server_keys::KeyPair;
         use crate::utils::issuer_auth::IssuerRegistration;
         use crate::utils::reader_auth::ReaderRegistration;
@@ -350,7 +350,7 @@ pub mod generate {
         use super::*;
 
         const ISSUANCE_CA_CN: &str = "ca.issuer.example.com";
-        const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
+        pub const ISSUANCE_CERT_CN: &str = "cert.issuer.example.com";
 
         const RP_CA_CN: &str = "ca.rp.example.com";
         const RP_CERT_CN: &str = "cert.rp.example.com";

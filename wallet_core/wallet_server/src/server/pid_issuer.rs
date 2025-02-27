@@ -4,9 +4,9 @@ use hsm::service::Pkcs11Hsm;
 use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
+use openid4vc_server::issuer::create_issuance_router;
+use openid4vc_server::issuer::IssuerKeyRing;
 
-use crate::issuer::create_issuance_router;
-use crate::issuer::IssuerKeyRing;
 use crate::settings::Settings;
 use crate::settings::TryFromKeySettings;
 
@@ -35,7 +35,7 @@ where
         settings.issuer.wallet_client_ids,
         settings.issuer.wte_issuer_pubkey.into_inner(),
         wte_tracker,
-    )?;
+    );
 
     listen_wallet_only(
         settings.wallet_server,

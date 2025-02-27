@@ -16,7 +16,7 @@ use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
 use wallet_common::urls::CorsOrigin;
 
-use crate::keys::PrivateKeyType;
+use crate::server::keys::PrivateKeyType;
 
 use super::*;
 

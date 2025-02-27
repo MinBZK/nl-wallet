@@ -735,6 +735,7 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
 #[cfg(test)]
 mod tests {
     use std::convert::identity;
+    use std::iter;
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
@@ -860,7 +861,7 @@ mod tests {
             .collect();
 
         let redirect_uri = proposal
-            .disclose(&MockRemoteKeyFactory::default())
+            .disclose(&MockRemoteKeyFactory::new_example())
             .await
             .expect("Could not disclose DisclosureSession");
 
@@ -1488,8 +1489,9 @@ mod tests {
     }
 
     #[allow(clippy::type_complexity)]
-    fn create_disclosure_session_proposal<F>(
+    async fn create_disclosure_session_proposal<F>(
         response_factory: F,
+        device_key: &MockRemoteEcdsaKey,
     ) -> (
         DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         Arc<Mutex<Vec<WalletMessage>>>,
@@ -1521,7 +1523,7 @@ mod tests {
                 session_type,
                 auth_request: iso_auth_request(),
             },
-            proposed_documents: vec![ProposedDocument::new_example()],
+            proposed_documents: vec![ProposedDocument::new_mock_with_key(device_key).await],
             mdoc_nonce,
         });
 
@@ -1530,7 +1532,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_proposal_terminate() {
-        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None);
+        let key_factory = MockRemoteKeyFactory::default();
+        let device_key = key_factory.generate_new().await.unwrap();
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None, &device_key).await;
 
         // Terminating a `DisclosureSession` with a proposal should succeed.
         test_disclosure_session_terminate(proposal_session, wallet_messages)
@@ -1540,8 +1544,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_proposal_terminate_json_error() {
-        let (proposal_session, wallet_messages) =
-            create_disclosure_session_proposal(|| Some(VpMessageClientError::Json(serde_json::Error::custom(""))));
+        let key_factory = MockRemoteKeyFactory::default();
+        let device_key = key_factory.generate_new().await.unwrap();
+
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(
+            || Some(VpMessageClientError::Json(serde_json::Error::custom(""))),
+            &device_key,
+        )
+        .await;
 
         // Terminating a `DisclosureSession` with a proposal where the `VpMessageClient`
         // gives an error should result in that error being forwarded.
@@ -1660,8 +1670,12 @@ mod tests {
                 unimplemented!()
             }
 
-            async fn generate_new_multiple(&self, _: u64) -> Result<Vec<Self::Key>, Self::Error> {
-                unimplemented!()
+            async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+                let keys =
+                    iter::repeat_with(|| MockRemoteEcdsaKey::new(random_string(32), SigningKey::random(&mut OsRng)))
+                        .take(count as usize)
+                        .collect::<Vec<_>>();
+                Ok(keys)
             }
 
             async fn poa(
@@ -1674,10 +1688,13 @@ mod tests {
             }
         }
 
+        let key_factory = MockKeyFactory;
+        let device_key = key_factory.generate_new().await.unwrap();
+
         // Attempting to create a disclosure with a malfunctioning key store should result in an error.
-        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None);
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None, &device_key).await;
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &MockKeyFactory, false).await,
+            try_disclose(proposal_session, wallet_messages, &key_factory, false).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::DeviceResponse(_)
@@ -1687,8 +1704,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_proposal_disclose_error_invalid_encryption_key() {
+        let key_factory = MockRemoteKeyFactory::default();
+        let device_key = key_factory.generate_new().await.unwrap();
+
         // Attempting to encrypt a disclosure to a malformed encryption key should result in an error.
-        let (mut proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None);
+        let (mut proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None, &device_key).await;
 
         let DisclosureSession::Proposal(ref mut proposal) = proposal_session else {
             panic!("disclosure session should have been a proposal")
@@ -1701,7 +1721,7 @@ mod tests {
             .unwrap();
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &MockRemoteKeyFactory::default(), false).await,
+            try_disclose(proposal_session, wallet_messages, &key_factory, false).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::AuthResponseEncryption(_)
@@ -1711,20 +1731,27 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_proposal_disclose_error_http_client_request() {
+        let key_factory = MockRemoteKeyFactory::default();
+        let device_key = key_factory.generate_new().await.unwrap();
+
         // Create a `DisclosureSession` containing a proposal
         // and a `VpMessageClient` that will return a `reqwest::Error`.
-        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| {
-            let response = http::Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body("")
-                .unwrap();
-            let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(
+            || {
+                let response = http::Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body("")
+                    .unwrap();
+                let reqwest_error = reqwest::Response::from(response).error_for_status().unwrap_err();
 
-            Some(VpMessageClientError::Http(reqwest_error))
-        });
+                Some(VpMessageClientError::Http(reqwest_error))
+            },
+            &device_key,
+        )
+        .await;
 
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &MockRemoteKeyFactory::default(), true).await,
+            try_disclose(proposal_session, wallet_messages, &key_factory, true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
@@ -1734,20 +1761,27 @@ mod tests {
 
     #[tokio::test]
     async fn test_disclosure_session_proposal_disclose_error_http_client_connection() {
+        let key_factory = MockRemoteKeyFactory::default();
+        let device_key = key_factory.generate_new().await.unwrap();
+
         // Create a `DisclosureSession` containing a proposal
         // and a `VpMessageClient` that will return an error.
-        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(|| {
-            Some(VpMessageClientError::Http(futures::executor::block_on(async {
-                // This seems to be the only way to create a reqwest::Error whose is_connect() method returns true.
-                reqwest::get("http://asdfasdf-nonexisting-domain-name")
-                    .await
-                    .unwrap_err()
-            })))
-        });
+        let (proposal_session, wallet_messages) = create_disclosure_session_proposal(
+            || {
+                Some(VpMessageClientError::Http(futures::executor::block_on(async {
+                    // This seems to be the only way to create a reqwest::Error whose is_connect() method returns true.
+                    reqwest::get("http://asdfasdf-nonexisting-domain-name")
+                        .await
+                        .unwrap_err()
+                })))
+            },
+            &device_key,
+        )
+        .await;
 
         // No data should have been shared in this case
         assert_matches!(
-            try_disclose(proposal_session, wallet_messages, &MockRemoteKeyFactory::default(), true).await,
+            try_disclose(proposal_session, wallet_messages, &key_factory, true).await,
             DisclosureError {
                 data_shared,
                 error: VpClientError::Request(VpMessageClientError::Http(_))
