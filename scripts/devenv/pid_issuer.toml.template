@@ -31,8 +31,8 @@ max_sessions = 3
 max_session_lifetime_in_sec = 900
 
 [issuer.private_keys."com.example.pid"]
-private_key = "pid_issuer_key"
+private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 [issuer.private_keys."com.example.address"]
-private_key = "pid_issuer_key"
+private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
