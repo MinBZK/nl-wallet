@@ -58,6 +58,7 @@ allow_insecure_url = ["openid4vc?/allow_insecure_url"]
 logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
+    "hsm",
     "logging",
     "dep:android_attest",
     "dep:apple_app_attest",
@@ -202,6 +203,7 @@ android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
+hsm = { path = "../hsm", optional = true, features = ["test"] }
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
 openid4vc_server = { path = "../openid4vc_server", optional = true, features = ["issuance", "disclosure"] }

@@ -183,6 +183,30 @@ fi
 
 
 ########################################################################
+# Initialize HSM
+########################################################################
+
+echo
+echo -e "${SECTION}Initialize HSM${NC}"
+
+if [[ ! -f "$HSM_LIBRARY_PATH" ]]; then
+    error "No valid HSM library path configured: $HSM_LIBRARY_PATH"
+    exit 1
+fi
+
+mkdir -p "${HOME}/.config/softhsm2"
+if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
+  mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"
+fi
+
+render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
+
+softhsm2-util --delete-token --token test_token --force > /dev/null || true
+softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
+
+render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/hsm/hsm.toml"
+
+########################################################################
 # Configure wallet_server and mock_relying_party
 ########################################################################
 
@@ -212,9 +236,9 @@ generate_pid_issuer_key_pair
 
 PID_CA_CRT=$(< "${TARGET_DIR}/pid_issuer/ca_cert.der" ${BASE64})
 export PID_CA_CRT
-PID_ISSUER_KEY=$(< "${TARGET_DIR}/pid_issuer/issuer_key.der" ${BASE64})
+PID_ISSUER_KEY=pid_issuer_key
 export PID_ISSUER_KEY
-PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer_crt.der" ${BASE64})
+PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
 export PID_ISSUER_CRT
 
 # Generate MRP root CA
@@ -231,8 +255,8 @@ RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
 export RP_CA_CRT
 
 # Generate relying party key and cert
-generate_mock_relying_party_key_pair mijn_amsterdam
-MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/mock_relying_party/mijn_amsterdam.key.der" ${BASE64})
+generate_mock_relying_party_hsm_key_pair mijn_amsterdam
+MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
 export MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM
 MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/mock_relying_party/mijn_amsterdam.crt.der" ${BASE64})
 export MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM
@@ -402,23 +426,6 @@ render_template "${DEVENV}/wallet-config.json.template" "${TARGET_DIR}/wallet-co
 # Configure HSM
 ########################################################################
 
-echo
-echo -e "${SECTION}Configure HSM${NC}"
-
-if [[ ! -f "$HSM_LIBRARY_PATH" ]]; then
-    error "No valid HSM library path configured: $HSM_LIBRARY_PATH"
-    exit 1
-fi
-
-mkdir -p "${HOME}/.config/softhsm2"
-if [ "${HSM_TOKEN_DIR}" = "${DEFAULT_HSM_TOKEN_DIR}" ]; then
-  mkdir -p "${DEFAULT_HSM_TOKEN_DIR}"
-fi
-
-render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/softhsm2/softhsm2.conf"
-
-softhsm2-util --delete-token --token test_token --force > /dev/null || true
-softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
 softhsm2-util --import "${WP_CERTIFICATE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "certificate_signing" | xxd -p)" --label "certificate_signing_key" --token "test_token"
 softhsm2-util --import "${WP_WTE_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "wte_signing" | xxd -p)" --label "wte_signing_key" --token "test_token"
 softhsm2-util --import "${WP_INSTRUCTION_RESULT_SIGNING_KEY_PATH}" --pin "${HSM_USER_PIN}" --id "$(echo -n "instruction_result_signing" | xxd -p)" --label "instruction_result_signing_key" --token "test_token"
@@ -431,8 +438,6 @@ p11tool --login --write \
   --label="pin_public_disclosure_protection_key" \
   --provider="${HSM_LIBRARY_PATH}" \
   "$(p11tool --list-token-urls --provider="${HSM_LIBRARY_PATH}" | grep "SoftHSM")"
-
-render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/hsm/hsm.toml"
 
 ########################################################################
 # Configure configuration-server

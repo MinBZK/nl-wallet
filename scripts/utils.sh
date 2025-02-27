@@ -262,9 +262,30 @@ function generate_pid_issuer_root_ca {
 
 # Generate an EC key pair for the pid_issuer
 function generate_pid_issuer_key_pair {
-    echo -e "${INFO}Generating PID Issuer key pair${NC}"
+    echo -e "${INFO}Generating PID Issuer key pair in HSM${NC}"
+
+    # Generate EC key pair in the HSM
+    p11tool \
+        --provider "${HSM_LIBRARY_PATH}" \
+        --login \
+        --set-pin "${HSM_USER_PIN}" \
+        --label "pid_issuer_key" \
+        --generate-ecc \
+        --curve secp256r1
+
+    # Export the public key as PEM
+    p11tool \
+        --provider "${HSM_LIBRARY_PATH}" \
+        --login \
+        --set-pin "${HSM_USER_PIN}" \
+        --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="${HSM_LIBRARY_PATH}" --list-all --only-urls | grep "pid_issuer_key" | grep public)" \
+        --label "pid_issuer_key" \
+        --outfile "${TARGET_DIR}/pid_issuer/issuer.pub.pem"
+
+    # Generate a certificate for the public key including issuer authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
-        --bin wallet_ca issuer \
+        --bin wallet_ca issuer-cert \
+        --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
         --ca-key-file "${TARGET_DIR}/pid_issuer/ca.key.pem" \
         --ca-crt-file "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
         --common-name "cert.issuer.example.com" \
@@ -272,11 +293,12 @@ function generate_pid_issuer_key_pair {
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
         --force
 
-    openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/pid_issuer/issuer.key.pem" -out "${TARGET_DIR}/pid_issuer/issuer_key.der" -nocrypt
-
-    openssl x509 -in "${TARGET_DIR}/pid_issuer/issuer.crt.pem" \
-        -outform der -out "${TARGET_DIR}/pid_issuer/issuer_crt.der"
+    # Convert the PEM certificate to DER format
+    openssl x509 \
+            -in "${TARGET_DIR}/pid_issuer/issuer.crt.pem" \
+            -inform PEM \
+            -outform DER \
+            -out "${TARGET_DIR}/pid_issuer/issuer.crt.der"
 }
 
 # Generate an EC root CA for the mock_relying_party
@@ -305,6 +327,48 @@ function generate_mock_relying_party_key_pair {
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
         -in "${TARGET_DIR}/mock_relying_party/$1.key.pem" -out "${TARGET_DIR}/mock_relying_party/$1.key.der" -nocrypt
+}
+
+# Generate an EC key pair for the mock_relying_party in the HSM.
+# The label of the key is "${READER_NAME}_key"
+#
+# $1 - READER_NAME: Name of the Relying Party
+function generate_mock_relying_party_hsm_key_pair {
+    # Generate EC key pair in the HSM
+    p11tool \
+        --provider "${HSM_LIBRARY_PATH}" \
+        --login \
+        --set-pin "${HSM_USER_PIN}" \
+        --label "$1_key" \
+        --generate-ecc \
+        --curve secp256r1
+
+    # Export the public key as PEM
+    p11tool \
+        --provider "${HSM_LIBRARY_PATH}" \
+        --login \
+        --set-pin "${HSM_USER_PIN}" \
+        --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="/usr/lib/x86_64-linux-gnu/softhsm/libsofthsm2.so" --list-all --only-urls | grep "$1_key" | grep public)" \
+        --label "$1_key" \
+        --outfile "${TARGET_DIR}/mock_relying_party/$1.pub.pem"
+
+    # Generate a certificate for the public key including reader authentication
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+          --bin wallet_ca reader-cert \
+          --public-key-file "${TARGET_DIR}/mock_relying_party/$1.pub.pem" \
+          --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
+          --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+          --common-name "$1.example.com" \
+          --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
+          --file-prefix "${TARGET_DIR}/mock_relying_party/$1" \
+          --force
+
+    # Convert the PEM certificate to DER format
+    openssl x509 \
+            -in "${TARGET_DIR}/mock_relying_party/$1.crt.pem" \
+            -inform PEM \
+            -outform DER \
+            -out "${TARGET_DIR}/mock_relying_party/$1.crt.der"
 }
 
 function encrypt_gba_v_responses {
