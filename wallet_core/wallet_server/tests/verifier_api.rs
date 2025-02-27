@@ -13,7 +13,6 @@ use assert_matches::assert_matches;
 use chrono::DateTime;
 use chrono::Days;
 use chrono::Utc;
-use hsm::service::Pkcs11Hsm;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -30,6 +29,7 @@ use std::num::NonZeroU8;
 use tokio::time;
 use url::Url;
 
+use hsm::service::Pkcs11Hsm;
 use nl_wallet_mdoc::examples::Example;
 use nl_wallet_mdoc::examples::EXAMPLE_ATTR_NAME;
 use nl_wallet_mdoc::examples::EXAMPLE_ATTR_VALUE;

@@ -29,8 +29,8 @@ use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 
-use crate::server::keys::KeyError;
-use crate::server::keys::PrivateKeyType;
+use crate::server::keys::PrivateKeySettingsError;
+use crate::server::keys::PrivateKeyVariant;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "disclosure")] {
@@ -152,11 +152,11 @@ pub trait TryFromKeySettings<SRC>: Sized {
     async fn try_from_key_settings(source: SRC, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error>;
 }
 
-impl TryFromKeySettings<KeyPair> for ParsedKeyPair<PrivateKeyType> {
-    type Error = KeyError;
+impl TryFromKeySettings<KeyPair> for ParsedKeyPair<PrivateKeyVariant> {
+    type Error = PrivateKeySettingsError;
 
     async fn try_from_key_settings(source: KeyPair, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let private_key = PrivateKeyType::from_settings(source.private_key, hsm)?;
+        let private_key = PrivateKeyVariant::from_settings(source.private_key, hsm)?;
         let key_pair = ParsedKeyPair::new(private_key, source.certificate).await?;
         Ok(key_pair)
     }
@@ -348,15 +348,14 @@ where
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        let certificate = &key_pair.certificate;
-
         if !trust_anchors.is_empty() {
-            certificate
+            key_pair
+                .certificate
                 .verify(usage, &[], time, trust_anchors)
                 .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.clone()))?;
         }
 
-        let certificate_type = CertificateType::from_certificate(certificate)
+        let certificate_type = CertificateType::from_certificate(&key_pair.certificate)
             .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.clone()))?;
 
         if !has_usage_registration(certificate_type) {

@@ -1,9 +1,9 @@
 use std::num::NonZeroU8;
 
 use chrono::Days;
-use hsm::service::Pkcs11Hsm;
 use serial_test::serial;
 
+use hsm::service::Pkcs11Hsm;
 use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;

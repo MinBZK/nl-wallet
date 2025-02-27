@@ -202,7 +202,7 @@ async fn status<S, K>(
     Query(query): Query<StatusParams>,
 ) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
-    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    S: SessionStore<DisclosureData>,
     K: EcdsaKeySend,
 {
     let response = state

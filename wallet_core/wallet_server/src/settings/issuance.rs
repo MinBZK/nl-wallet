@@ -118,8 +118,8 @@ impl TryFrom<&Issuer> for BrpPidAttributeService {
     }
 }
 
-impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyType> {
-    type Error = KeyError;
+impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyVariant> {
+    type Error = PrivateKeySettingsError;
 
     async fn try_from_key_settings(
         private_keys: HashMap<String, KeyPair>,
@@ -136,7 +136,7 @@ impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyTy
         let issuer_keys = join_all(iter)
             .await
             .into_iter()
-            .collect::<Result<HashMap<String, ParsedKeyPair<PrivateKeyType>>, Self::Error>>()?;
+            .collect::<Result<HashMap<String, ParsedKeyPair<PrivateKeyVariant>>, Self::Error>>()?;
 
         Ok(issuer_keys.into())
     }

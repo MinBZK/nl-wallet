@@ -16,7 +16,7 @@ use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
 use wallet_common::urls::CorsOrigin;
 
-use crate::server::keys::PrivateKeyType;
+use crate::server::keys::PrivateKeyVariant;
 
 use super::*;
 
@@ -45,7 +45,7 @@ pub struct VerifierUseCase {
     pub key_pair: KeyPair,
 }
 
-impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyType> {
+impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyVariant> {
     type Error = anyhow::Error;
 
     async fn try_from_key_settings(value: VerifierUseCases, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
@@ -63,7 +63,7 @@ impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyType> {
     }
 }
 
-impl TryFromKeySettings<VerifierUseCase> for UseCase<PrivateKeyType> {
+impl TryFromKeySettings<VerifierUseCase> for UseCase<PrivateKeyVariant> {
     type Error = anyhow::Error;
 
     async fn try_from_key_settings(value: VerifierUseCase, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
