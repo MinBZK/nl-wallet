@@ -328,12 +328,12 @@ async fn test_disclosure_without_pid() {
     assert_matches!(
         error,
         DisclosureError::AttributesNotAvailable {
-            missing_attributes: attrs,
+            missing_attributes,
             ..
-        } if attrs
-            .iter()
-            .flat_map(|attr| attr.attributes.keys().map(|k| k.to_owned()).collect::<Vec<&str>>())
-            .collect::<Vec<&str>>() == vec!["given_name", "family_name"]
+        } if missing_attributes == vec![
+            "com.example.pid/com.example.pid/given_name",
+            "com.example.pid/com.example.pid/family_name"
+        ]
     );
 
     wallet.cancel_disclosure().await.expect("Could not cancel disclosure");

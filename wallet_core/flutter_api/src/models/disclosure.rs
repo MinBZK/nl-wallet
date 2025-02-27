@@ -5,7 +5,6 @@ use wallet::mdoc::ReaderRegistration;
 use wallet::openid4vc::SessionType;
 use wallet::Attestation;
 use wallet::DisclosureProposal;
-use wallet::MissingDisclosureAttributes;
 
 use crate::models::attestation::AttestationAttribute;
 use crate::models::attestation::DisplayMetadata;
@@ -204,23 +203,21 @@ impl From<bool> for DisclosureType {
     }
 }
 
-impl MissingAttribute {
-    fn from_missing_disclosure_attributes(attributes: Vec<MissingDisclosureAttributes>) -> Vec<Self> {
-        attributes
-            .into_iter()
-            .flat_map(|doc_attributes| doc_attributes.attributes.into_iter())
-            .map(|(_, labels)| {
-                let labels = labels
-                    .into_iter()
-                    .map(|(language, value)| LocalizedString {
-                        language: language.to_string(),
-                        value: value.to_string(),
-                    })
-                    .collect::<Vec<_>>();
+// TODO (PVW-3813): Actually translate the missing attributes using the TAS cache.
+impl From<String> for MissingAttribute {
+    fn from(value: String) -> Self {
+        const LANGUAGES: &[&str] = &["nl", "en"];
 
-                MissingAttribute { labels }
+        let labels = LANGUAGES
+            .iter()
+            .zip(itertools::repeat_n(value, LANGUAGES.len()))
+            .map(|(language, value)| LocalizedString {
+                language: language.to_string(),
+                value,
             })
-            .collect::<Vec<_>>()
+            .collect();
+
+        Self { labels }
     }
 }
 
@@ -255,7 +252,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 } => {
                     let request_purpose: Vec<LocalizedString> =
                         RPLocalizedStrings(reader_registration.purpose_statement).into();
-                    let missing_attributes = MissingAttribute::from_missing_disclosure_attributes(missing_attributes);
+                    let missing_attributes = missing_attributes.into_iter().map(MissingAttribute::from).collect();
                     let result = StartDisclosureResult::RequestAttributesMissing {
                         relying_party: reader_registration.organization.into(),
                         missing_attributes,

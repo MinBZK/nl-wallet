@@ -31,7 +31,6 @@ pub use crate::document::DocumentAttributes;
 pub use crate::document::DocumentPersistence;
 pub use crate::document::DocumentType;
 pub use crate::document::GenderAttributeValue;
-pub use crate::document::MissingDisclosureAttributes;
 pub use crate::pin::validation::validate_pin;
 pub use crate::wallet::DisclosureProposal;
 pub use crate::wallet::EventStatus;

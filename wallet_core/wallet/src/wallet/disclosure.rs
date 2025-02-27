@@ -40,8 +40,6 @@ use crate::disclosure::MdocDisclosureProposal;
 use crate::disclosure::MdocDisclosureSession;
 use crate::disclosure::MdocDisclosureSessionState;
 use crate::document::DisclosureType;
-use crate::document::DocumentMdocError;
-use crate::document::MissingDisclosureAttributes;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
@@ -92,12 +90,10 @@ pub enum DisclosureError {
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
-        missing_attributes: Vec<MissingDisclosureAttributes>,
+        missing_attributes: Vec<String>,
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
-    #[error("could not interpret missing mdoc attributes: {0}")]
-    MdocAttributes(#[source] DocumentMdocError),
     #[error("could not extract issuer registration from stored mdoc certificate: {0}")]
     IssuerRegistration(#[source] CertificateError),
     #[error("stored mdoc certificate does not contain issuer registration")]
@@ -206,39 +202,30 @@ where
 
         let proposal_session = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
-                // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
-                // If this fails, return `DisclosureError::AttributeMdoc` instead.
-                info!(
-                    "At least one attribute is missing in order to satisfy the disclosure request, attempting to \
-                     translate to MissingDisclosureAttributes"
-                );
+                // TODO (PVW-3813): Attempt to translate the missing attributes using the TAS cache.
+                //                  If translation fails, the missing attributes cannot be presented to
+                //                  the user and we should simply never respond to the verifier in order
+                //                  to prevent gleaning of absence of attestation.
+                info!("At least one attribute is missing in order to satisfy the disclosure request");
 
-                let missing_attributes = missing_attr_session.missing_attributes().to_vec();
+                let reader_registration = session.reader_registration().clone().into();
+                let missing_attributes = missing_attr_session
+                    .missing_attributes()
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect();
                 let session_type = session.session_type();
-                let error = match MissingDisclosureAttributes::from_mdoc_missing_attributes(missing_attributes) {
-                    Ok(attributes) => {
-                        // If the missing attributes can be translated and shown to the user,
-                        // store the session so that it will only be terminated on user interaction.
-                        // This prevents gleaning of missing attributes by a verifier.
-                        let reader_registration = session.reader_registration().clone().into();
-                        self.disclosure_session.replace(session);
 
-                        DisclosureError::AttributesNotAvailable {
-                            reader_registration,
-                            missing_attributes: attributes,
-                            shared_data_with_relying_party_before,
-                            session_type,
-                        }
-                    }
-                    // NB: It is a known limitation that, if the missing attributes cannot be
-                    //     translated, the missing attributes cannot be presented to the user,
-                    //     thus user interaction cannot terminate the disclosure session. As
-                    //     a precaution to prevent gleaning of missing attributes we will
-                    //     simply never respond to the verifier in this case.
-                    Err(error) => DisclosureError::MdocAttributes(error),
-                };
+                // Store the session so that it will only be terminated on user interaction.
+                // This prevents gleaning of missing attributes by a verifier.
+                self.disclosure_session.replace(session);
 
-                return Err(error);
+                return Err(DisclosureError::AttributesNotAvailable {
+                    reader_registration,
+                    missing_attributes,
+                    shared_data_with_relying_party_before,
+                    session_type,
+                });
             }
             MdocDisclosureSessionState::Proposal(proposal_session) => proposal_session,
         };
@@ -845,47 +832,10 @@ mod tests {
                 missing_attributes,
                 shared_data_with_relying_party_before,
                 session_type: SessionType::SameDevice,
-            } if !shared_data_with_relying_party_before && missing_attributes[0].doc_type == "com.example.pid" &&
-                 *missing_attributes[0].attributes.first().unwrap().0 == "age_over_18"
+            } if !shared_data_with_relying_party_before &&
+                missing_attributes == vec!["com.example.pid/com.example.pid/age_over_18"]
         );
         assert!(wallet.disclosure_session.is_some());
-    }
-
-    #[tokio::test]
-    #[serial(MockMdocDisclosureSession)]
-    async fn test_wallet_start_disclosure_error_mdoc_attributes_not_available() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-
-        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
-        let missing_attributes = vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()];
-        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
-        missing_attr_session
-            .expect_missing_attributes()
-            .return_const(missing_attributes);
-
-        MockMdocDisclosureSession::next_fields(
-            ReaderRegistration::new_mock(),
-            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
-            None,
-        );
-
-        // Starting disclosure where an attribute that is both unavailable
-        // and unknown is requested should result in an error.
-        let error = wallet
-            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
-            .await
-            .expect_err("Starting disclosure should have resulted in an error");
-
-        assert_matches!(
-            error,
-            DisclosureError::MdocAttributes(DocumentMdocError::UnknownAttribute {
-                doc_type,
-                name_space,
-                name,
-                value: None,
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foobar"
-        );
-        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]

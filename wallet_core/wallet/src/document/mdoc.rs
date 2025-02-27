@@ -5,7 +5,6 @@ use itertools::Itertools;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::ProposedAttributes;
-use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -23,7 +22,6 @@ use super::Document;
 use super::DocumentAttributes;
 use super::DocumentPersistence;
 use super::GenderAttributeValue;
-use super::MissingDisclosureAttributes;
 use super::PID_DOCTYPE;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -275,55 +273,6 @@ impl TryFrom<Integer> for GenderAttributeValue {
             9 => Ok(Self::NotApplicable),
             _ => Err(()),
         }
-    }
-}
-
-impl MissingDisclosureAttributes {
-    // Use the Mdoc document mapping to translate a `Vec<AttributeIdentifier>` to
-    // a `Vec<MissingDisclosureAttributes>`. If any attribute cannot be found a
-    // `DocumentMdocError` is returned.
-    pub(crate) fn from_mdoc_missing_attributes(
-        missing_attributes: Vec<AttributeIdentifier>,
-    ) -> Result<Vec<Self>, DocumentMdocError> {
-        // Create an `IndexMap` that contains `IndexMap`s of attributes per doc type.
-        let attributes_by_doc_type =
-            missing_attributes
-                .into_iter()
-                .try_fold(IndexMap::<_, IndexMap<_, _>>::new(), {
-                    |mut attributes_by_doc_type, missing_attribute| {
-                        let (doc_type, attribute_mapping) =
-                            mapping_for_doc_type(missing_attribute.credential_type.as_str())?;
-                        let value_mapping = attribute_mapping
-                            .get(&(
-                                missing_attribute.namespace.as_str(),
-                                missing_attribute.attribute.as_str(),
-                            ))
-                            .ok_or_else(|| DocumentMdocError::UnknownAttribute {
-                                doc_type: missing_attribute.credential_type,
-                                name_space: missing_attribute.namespace.clone(),
-                                name: missing_attribute.attribute.clone(),
-                                value: None,
-                            })?;
-
-                        attributes_by_doc_type
-                            .entry(doc_type)
-                            .or_default()
-                            .insert(value_mapping.key, value_mapping.key_labels.clone());
-
-                        Ok(attributes_by_doc_type)
-                    }
-                })?;
-
-        // Convert these `IndexMap`s to a `Vec<MissingDisclosureAttributes>`.
-        let mut missing_disclosure_attributes = attributes_by_doc_type
-            .into_iter()
-            .map(|(doc_type, attributes)| MissingDisclosureAttributes { doc_type, attributes })
-            .collect::<Vec<_>>();
-
-        // Make sure that the resulting doc types are sorted canonically.
-        missing_disclosure_attributes.sort_by_key(|attributes| super::doc_type_priority(attributes.doc_type));
-
-        Ok(missing_disclosure_attributes)
     }
 }
 
@@ -972,63 +921,6 @@ pub mod tests {
             }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
                   name == "foobar" && value == Some(DataElementValue::Text("Foo Bar".to_string()))
         );
-    }
-
-    #[rstest]
-    #[case(vec![], vec![].into())]
-    #[case(vec!["com.example.pid/com.example.pid/bsn"], vec![("com.example.pid", vec!["bsn"])].into())]
-    #[case(
-        vec!["com.example.pid/com.example.pid/bsn", "com.example.pid/com.example.pid/age_over_18"],
-        vec![("com.example.pid", vec!["bsn", "age_over_18"])].into())
-    ]
-    #[case(
-        vec![
-            "com.example.address/com.example.address/resident_country",
-            "com.example.pid/com.example.pid/bsn",
-            "com.example.address/com.example.address/resident_state",
-            "com.example.pid/com.example.pid/gender",
-        ],
-        vec![
-            ("com.example.pid", vec!["bsn", "gender"]),
-            ("com.example.address", vec!["resident_country", "resident_state"])
-        ].into())
-    ]
-    #[case(vec!["com.example.foo/com.example.bar/something"], None)] // DocumentMdocError::UnknownDocType
-    #[case(vec!["com.example.pid/com.example.pid/favorite_colour"], None)] // DocumentMdocError::UnknownAttribute
-    fn test_missing_disclosure_attributes_from_mdoc_missing_attributes(
-        #[case] attribute_identifiers: Vec<&str>,
-        #[case] expected_result: Option<Vec<(&str, Vec<&str>)>>,
-    ) {
-        // Convert the input attribute identifier strings to actual `AttributeIdentifier`s.
-        let attribute_identifiers: Vec<AttributeIdentifier> = attribute_identifiers
-            .into_iter()
-            .map(|attribute| attribute.parse().unwrap())
-            .collect();
-
-        // Attempt to convert the identifiers to a `Vec<MissingDisclosureAttributes>`.
-        let result = MissingDisclosureAttributes::from_mdoc_missing_attributes(attribute_identifiers);
-
-        // If `expected_result` contains a `Vec`, match the expected `doc_type` and keys against the result.
-        // Note that the returned order is relevant.
-        if let Some(expected_result) = expected_result {
-            let missing = result.expect("Could not convert attribute identifiers to missing disclosure attributes");
-
-            assert_eq!(missing.len(), expected_result.len());
-            missing.into_iter().zip(expected_result).for_each(
-                |(missing_attributes, (expected_doc_type, expected_attributes))| {
-                    assert_eq!(missing_attributes.doc_type, expected_doc_type);
-                    assert_eq!(
-                        missing_attributes.attributes.into_keys().collect::<Vec<_>>(),
-                        expected_attributes
-                    );
-                },
-            );
-
-            return;
-        }
-
-        // If `expected_result` is None, the result should be an error.
-        assert!(result.is_err());
     }
 
     #[rstest]

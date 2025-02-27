@@ -73,12 +73,6 @@ pub enum GenderAttributeValue {
     NotApplicable,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MissingDisclosureAttributes {
-    pub doc_type: DocumentType,
-    pub attributes: IndexMap<AttributeKey, AttributeLabels>,
-}
-
 /// A lower priority means that this `doc_type` should be displayed above others.
 fn doc_type_priority(doc_type: &str) -> usize {
     match doc_type {
