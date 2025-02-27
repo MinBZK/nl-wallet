@@ -139,6 +139,7 @@ mod tests {
     use std::num::NonZeroU8;
     use std::ops::Add;
 
+    use chrono::Days;
     use ciborium::Value;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
@@ -168,11 +169,12 @@ mod tests {
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
+        let now = chrono::Utc::now();
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
             copy_count: NonZeroU8::new(2).unwrap(),
-            valid_from: chrono::Utc::now().into(),
-            valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
+            valid_from: now.into(),
+            valid_until: now.add(Days::new(365)).into(),
             attributes: IndexMap::from([(
                 ISSUANCE_NAME_SPACE.to_string(),
                 ISSUANCE_ATTRS

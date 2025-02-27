@@ -332,6 +332,7 @@ pub mod tests {
     use std::collections::HashMap;
     use std::mem;
     use std::num::NonZeroU8;
+    use std::ops::Add;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
@@ -344,7 +345,6 @@ pub mod tests {
     use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-    use nl_wallet_mdoc::Tdate;
     use sd_jwt::metadata::ClaimDisplayMetadata;
     use sd_jwt::metadata::ClaimMetadata;
     use sd_jwt::metadata::ClaimPath;
@@ -376,12 +376,14 @@ pub mod tests {
 
     /// This creates an `UnsignedMdoc` that only contains a bsn entry.
     pub fn create_bsn_only_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+        let now = Utc::now();
+
         (
             UnsignedMdoc {
                 doc_type: PID_DOCTYPE.to_string(),
                 copy_count: NonZeroU8::new(1).unwrap(),
-                valid_from: Tdate::now(),
-                valid_until: (Utc::now() + Days::new(365)).into(),
+                valid_from: now.into(),
+                valid_until: now.add(Days::new(365)).into(),
                 attributes: IndexMap::from([(
                     PID_DOCTYPE.to_string(),
                     vec![Entry {
@@ -605,11 +607,12 @@ pub mod tests {
 
     /// This creates a minimal `UnsignedMdoc` that is valid.
     pub fn create_minimal_unsigned_address_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+        let now = Utc::now();
         let unsigned_mdoc = UnsignedMdoc {
             doc_type: ADDRESS_DOCTYPE.to_string(),
             copy_count: NonZeroU8::new(1).unwrap(),
-            valid_from: Tdate::now(),
-            valid_until: (Utc::now() + Days::new(365)).into(),
+            valid_from: now.into(),
+            valid_until: now.add(Days::new(365)).into(),
             attributes: IndexMap::from([(
                 ADDRESS_DOCTYPE.to_string(),
                 vec![

@@ -138,11 +138,12 @@ impl AttributeService for BrpPidAttributeService {
                     .ok_or(Error::NoMetadataFound(document.attestation_type().to_string()))?;
                 let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![])?;
 
+                let now = Utc::now();
                 Ok(IssuableCredential {
                     document,
                     metadata_chain,
-                    valid_from: Utc::now(),
-                    valid_until: Utc::now().add(self.valid_days),
+                    valid_from: now,
+                    valid_until: now.add(self.valid_days),
                     copy_count: self.copy_count,
                 })
             })
