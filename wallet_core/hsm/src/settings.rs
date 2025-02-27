@@ -6,7 +6,8 @@ use serde_with::serde_as;
 use serde_with::DurationSeconds;
 
 #[serde_as]
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Deserialize)]
+#[cfg_attr(feature = "test", derive(Debug, PartialEq, Eq))]
 pub struct Hsm {
     pub library_path: PathBuf,
     pub user_pin: String,
