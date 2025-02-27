@@ -134,7 +134,7 @@ pub struct KeyPair {
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
-#[serde(untagged)]
+#[serde(untagged)] // TODO: replace this with `#[serde(rename_all = "snake_case")]` when implementing PVW-4007
 pub enum PrivateKey {
     Software(#[serde_as(as = "Base64")] DerSigningKey),
     Hardware(String),
