@@ -43,14 +43,13 @@ default = ["disclosure", "postgres"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url"]
 # Include session storage in PostgreSQL
-postgres = ["dep:sea-orm", "dep:serde_json", "dep:strum"]
+postgres = ["openid4vc_server/postgres", "dep:serde_json"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
 # Enable issuance
 issuance = [
     "axum/form",
-    "dep:axum-extra",
-    "dep:ciborium",
+    "openid4vc_server/issuance",
     "dep:futures",
     "dep:indexmap",
     "dep:reqwest",
@@ -58,7 +57,13 @@ issuance = [
     "dep:serde_urlencoded",
 ]
 # Enable disclosure
-disclosure = ["serde_with/hex", "wallet_common/axum", "dep:ring", "dep:serde_json", "dep:strum"]
+disclosure = [
+    "openid4vc_server/disclosure",
+    "serde_with/hex",
+    "wallet_common/axum",
+    "dep:ring",
+    "dep:serde_json"
+]
 # Enable mock PID issuance
 mock = ["issuance"]
 # Enable integration tests
@@ -94,27 +99,18 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
-axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
-ciborium = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 itertools = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
 ring = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true, features = [
-    "macros",
-    "runtime-tokio-rustls",
-    "sqlx-postgres",
-    "with-chrono",
-    "with-json",
-] }
 serde_json = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
-strum = { workspace = true, optional = true, features = ["derive"] }
 
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
+openid4vc_server = { path = "../openid4vc_server" }
 sd_jwt.path = "../sd_jwt"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 

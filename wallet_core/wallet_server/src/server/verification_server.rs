@@ -2,11 +2,12 @@ use anyhow::Result;
 
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
+use openid4vc_server::verifier;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
-use super::*;
 use crate::settings::Settings;
-use crate::verifier;
+
+use super::*;
 
 pub async fn serve<S>(settings: Settings, disclosure_sessions: S) -> Result<()>
 where
@@ -16,14 +17,16 @@ where
 
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.urls,
-        settings.verifier,
+        settings.verifier.usecases.try_into()?,
+        (&settings.verifier.ephemeral_id_secret).into(),
         settings
             .issuer_trust_anchors
             .iter()
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
+        settings.verifier.allow_origins,
         disclosure_sessions,
-    )?;
+    );
 
     listen(
         settings.wallet_server,

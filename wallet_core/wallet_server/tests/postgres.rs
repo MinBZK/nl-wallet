@@ -15,15 +15,15 @@ use openid4vc::server_state::Expirable;
 use openid4vc::server_state::HasProgress;
 use openid4vc::server_state::Progress;
 use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc_server::store::postgres;
+use openid4vc_server::store::postgres::PostgresSessionStore;
+#[cfg(feature = "issuance")]
+use openid4vc_server::store::postgres::PostgresWteTracker;
+use openid4vc_server::store::SessionDataType;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::utils;
 use wallet_server::settings::Settings;
 use wallet_server::settings::Storage;
-use wallet_server::store::postgres;
-use wallet_server::store::postgres::PostgresSessionStore;
-#[cfg(feature = "issuance")]
-use wallet_server::store::postgres::PostgresWteTracker;
-use wallet_server::store::SessionDataType;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

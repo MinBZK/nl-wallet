@@ -13,6 +13,7 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::test::SingleKeyRing;
 use nl_wallet_mdoc::server_keys::KeyPair;
@@ -479,9 +480,11 @@ fn mock_issuable_attestation(
     attestation_count: NonZeroUsize,
     copy_count: NonZeroU8,
 ) -> VecNonEmpty<IssuableCredential> {
+    let now = Utc::now();
     (0..attestation_count.get())
         .map(|i| IssuableCredential {
             document: IssuableDocument::try_new(
+                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 MOCK_DOCTYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (
@@ -491,8 +494,8 @@ fn mock_issuable_attestation(
                 })),
             )
             .unwrap(),
-            valid_from: Utc::now(),
-            valid_until: Utc::now().add(Days::new(365)),
+            valid_from: now,
+            valid_until: now.add(Days::new(365)),
             copy_count,
             metadata_chain: TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap(),
         })

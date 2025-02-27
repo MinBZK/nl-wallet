@@ -1,10 +1,10 @@
 use anyhow::Result;
 
+use openid4vc_server::store::DatabaseConnection;
+use openid4vc_server::store::SessionStoreVariant;
 use wallet_server::server;
 use wallet_server::server::wallet_server_main;
 use wallet_server::settings::Settings;
-use wallet_server::store::DatabaseConnection;
-use wallet_server::store::SessionStoreVariant;
 
 #[tokio::main]
 async fn main() -> Result<()> {

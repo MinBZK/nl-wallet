@@ -158,7 +158,8 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 | TokenRequestError::CredentialTypeNotOffered(_)
                 | TokenRequestError::Attribute(_)
                 | TokenRequestError::CredentialPayload(_)
-                | TokenRequestError::TypeMetadata(_) => TokenErrorCode::ServerError,
+                | TokenRequestError::TypeMetadata(_)
+                | TokenRequestError::Certificate(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
             },

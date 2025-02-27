@@ -52,6 +52,7 @@ impl IssuerSigned {
             value_digests: (&attrs).try_into()?,
             device_key_info: device_public_key.into(),
             validity_info: validity,
+            issuer_uri: Some(unsigned_mdoc.issuer_uri),
         };
 
         let (metadata, integrity) = type_metadata.verify_and_destructure()?;
@@ -109,9 +110,7 @@ impl IssuerSigned {
         let mut chain = encoded_chain
             .iter()
             .map(|value| {
-                let encoded = value
-                    .as_text()
-                    .ok_or(Error::Cose(CoseError::MissingLabel(metadata_label.clone())))?;
+                let encoded = value.as_text().ok_or(CoseError::MissingLabel(metadata_label.clone()))?;
                 let type_metadata = TypeMetadata::try_from_base64(encoded).map_err(Error::TypeMetadata)?;
                 Ok(type_metadata)
             })
@@ -121,6 +120,18 @@ impl IssuerSigned {
 
         Ok(TypeMetadataChain::create(root, chain.into())?)
     }
+
+    #[cfg(any(test, feature = "test"))]
+    pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
+        let mut mso = self.issuer_auth.dangerous_parse_unverified()?.0;
+
+        // Update (fill) the issuer_uri to match the new key
+        mso.issuer_uri = Some(key.certificate().san_dns_name_or_uris()?.into_first());
+
+        self.issuer_auth = MdocCose::sign(&mso.into(), self.issuer_auth.0.unprotected.clone(), key, true).await?;
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -128,6 +139,7 @@ mod tests {
     use std::num::NonZeroU8;
     use std::ops::Add;
 
+    use chrono::Days;
     use ciborium::Value;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
@@ -157,11 +169,12 @@ mod tests {
         let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
+        let now = chrono::Utc::now();
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
             copy_count: NonZeroU8::new(2).unwrap(),
-            valid_from: chrono::Utc::now().into(),
-            valid_until: chrono::Utc::now().add(chrono::Duration::days(365)).into(),
+            valid_from: now.into(),
+            valid_until: now.add(Days::new(365)).into(),
             attributes: IndexMap::from([(
                 ISSUANCE_NAME_SPACE.to_string(),
                 ISSUANCE_ATTRS
@@ -174,9 +187,9 @@ mod tests {
             )])
             .try_into()
             .unwrap(),
+            issuer_uri: issuance_key.certificate().san_dns_name_or_uris().unwrap().into_first(),
         };
-        let metadata = TypeMetadata::bsn_only_example();
-        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+        let metadata_chain = TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap();
 
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
         let issuer_signed = IssuerSigned::sign(unsigned.clone(), metadata_chain, device_key, &issuance_key)
