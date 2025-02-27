@@ -174,7 +174,7 @@ pub mod test {
     use crate::attestation::attribute::collect_key_paths;
     use crate::attestation::attribute::take_attribute_value_at_key_path;
 
-    pub static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
+    static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
         IndexMap::from([
             (
                 String::from("single"),

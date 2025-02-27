@@ -6,7 +6,6 @@ use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
-use openid4vc::credential_payload::CredentialPayload;
 use openid4vc::credential_payload::CredentialPayloadError;
 use platform_support::attested_key::AttestedKeyHolder;
 
@@ -75,9 +74,10 @@ where
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },
-                    CredentialPayload::from_mdoc(mdoc)?,
+                    mdoc.mso.doc_type,
                     metadata,
                     issuer_registration.organization,
+                    mdoc.issuer_signed.into_entries_by_namespace(),
                 )?;
                 Ok(attestation)
             })

@@ -1,5 +1,9 @@
+use indexmap::IndexMap;
+
+use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::utils::auth::Organization;
-use openid4vc::credential_payload::CredentialPayload;
+use nl_wallet_mdoc::NameSpace;
+use openid4vc::attributes::Attribute;
 use sd_jwt::metadata::TypeMetadata;
 
 use super::Attestation;
@@ -10,16 +14,19 @@ use super::AttributeSelectionMode;
 impl Attestation {
     pub(crate) fn create_for_issuance(
         identity: AttestationIdentity,
-        payload: CredentialPayload,
+        attestation_type: String,
         metadata: TypeMetadata,
         issuer_organization: Organization,
+        mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
+        let nested_attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
+
         Self::create_from_attributes(
             identity,
-            payload.attestation_type,
+            attestation_type,
             metadata,
             issuer_organization,
-            payload.attributes,
+            nested_attributes,
             AttributeSelectionMode::Issuance,
         )
     }
@@ -28,56 +35,55 @@ impl Attestation {
 #[cfg(test)]
 mod test {
     use std::collections::HashSet;
-    use std::ops::Add;
 
     use assert_matches::assert_matches;
-    use chrono::Days;
-    use chrono::Utc;
+    use indexmap::IndexMap;
 
+    use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::utils::auth::Organization;
+    use nl_wallet_mdoc::DataElementValue;
     use openid4vc::attributes::AttributeValue;
-    use openid4vc::credential_payload::CredentialPayload;
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
-    use crate::attestation::attribute::test::ATTRIBUTES;
     use crate::attestation::AttestationError;
     use crate::Attestation;
     use crate::AttestationIdentity;
 
-    fn example_credential_payload() -> CredentialPayload {
-        let attributes = &*ATTRIBUTES;
-
-        let now = Utc::now();
-        CredentialPayload {
-            attestation_type: String::from("pid123"),
-            issuer: "https://org.example.com/org2".parse().unwrap(),
-            issued_at: Some(now),
-            expires: Some(now.add(Days::new(1))),
-            not_before: None,
-            attributes: attributes.clone(),
-        }
+    fn example_mdoc_attributes() -> IndexMap<String, Vec<Entry>> {
+        IndexMap::from([(
+            String::from("example_attestation_type.namespace1"),
+            vec![
+                Entry {
+                    name: String::from("entry1"),
+                    value: DataElementValue::Text(String::from("value1")),
+                },
+                Entry {
+                    name: String::from("entry2"),
+                    value: DataElementValue::Bool(true),
+                },
+            ],
+        )])
     }
 
     #[test]
     fn test_happy() {
         let metadata = TypeMetadata {
             claims: vec![
-                claim_metadata(&["single"]),
-                claim_metadata(&["nested_1a", "nested_1b", "nested_1c"]),
+                claim_metadata(&["namespace1", "entry1"]),
+                claim_metadata(&["namespace1", "entry2"]),
             ],
             ..TypeMetadata::empty_example()
         };
 
-        let payload = example_credential_payload();
-
         let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            payload,
+            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
+            example_mdoc_attributes(),
         )
-        .unwrap();
+        .expect("creating new Attestation should be successful");
 
         let attrs = attestation
             .attributes
@@ -88,16 +94,13 @@ mod test {
         assert_eq!(
             [
                 (
-                    vec![String::from("single")],
-                    AttributeValue::Text(String::from("single"))
+                    vec![String::from("namespace1"), String::from("entry1")],
+                    AttributeValue::Text(String::from("value1"))
                 ),
                 (
-                    vec!["nested_1a", "nested_1b", "nested_1c"]
-                        .into_iter()
-                        .map(String::from)
-                        .collect(),
-                    AttributeValue::Text(String::from("nested_value")),
-                )
+                    vec![String::from("namespace1"), String::from("entry2")],
+                    AttributeValue::Bool(true)
+                ),
             ],
             attrs.as_slice()
         );
@@ -110,36 +113,38 @@ mod test {
             ..TypeMetadata::empty_example()
         };
 
-        let payload = example_credential_payload();
-
-        let attestation = Attestation::create_for_issuance(
+        let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            payload,
+            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-        );
-        assert_matches!(attestation, Err(AttestationError::AttributeNotFoundForClaim(_)));
+            example_mdoc_attributes(),
+        )
+        .expect_err("creating new Attestation should not be successful");
+
+        assert_matches!(error, AttestationError::AttributeNotFoundForClaim(_));
     }
 
     #[test]
     fn test_attribute_not_processed() {
         let metadata = TypeMetadata {
-            claims: vec![claim_metadata(&["nested_1a", "nested_1b", "nested_1c"])],
+            claims: vec![claim_metadata(&["namespace1", "entry1"])],
             ..TypeMetadata::empty_example()
         };
 
-        let payload = example_credential_payload();
-
-        let attestation = Attestation::create_for_issuance(
+        let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            payload,
+            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-        );
+            example_mdoc_attributes(),
+        )
+        .expect_err("creating new Attestation should not be successful");
+
         assert_matches!(
-            attestation,
-            Err(AttestationError::AttributeNotProcessedByClaim(keys))
-                if keys == HashSet::from([vec![String::from("single")]])
+            error,
+            AttestationError::AttributeNotProcessedByClaim(keys)
+                if keys == HashSet::from([vec![String::from("namespace1"), String::from("entry2")]])
         );
     }
 }
