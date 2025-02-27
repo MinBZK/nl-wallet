@@ -37,9 +37,9 @@ pub enum CredentialPayloadError {
     #[category(critical)]
     DateConversion(#[from] ParseError),
 
-    #[error("mdoc error: {0}")]
-    #[category(defer)]
-    Mdoc(#[from] nl_wallet_mdoc::Error),
+    #[error("mdoc is missing issuer URI")]
+    #[category(critical)]
+    MissingIssuerUri,
 
     #[error("attribute error: {0}")]
     #[category(pd)]
@@ -93,8 +93,7 @@ impl CredentialPayload {
         Self::from_mdoc_attributes(
             mdoc.mso.doc_type,
             mdoc.issuer_signed.into_entries_by_namespace(),
-            // TODO: Improve after merge.
-            mdoc.mso.issuer_uri.ok_or(nl_wallet_mdoc::Error::MissingIssuerUri)?,
+            mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
             Some((&mdoc.mso.validity_info.valid_until).try_into()?),
             Some((&mdoc.mso.validity_info.valid_from).try_into()?),

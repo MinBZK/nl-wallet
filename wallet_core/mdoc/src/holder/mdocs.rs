@@ -63,10 +63,6 @@ impl Mdoc {
         self.issuer_signed.issuer_auth.signing_cert()
     }
 
-    pub fn issuer_uri(&self) -> crate::Result<&HttpsUri> {
-        self.mso.issuer_uri.as_ref().ok_or(crate::Error::MissingIssuerUri)
-    }
-
     pub fn doc_type(&self) -> &String {
         &self.mso.doc_type
     }
