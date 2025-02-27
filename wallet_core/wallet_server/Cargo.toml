@@ -41,7 +41,7 @@ required-features = ["integration_test"]
 [features]
 default = ["disclosure", "postgres"]
 # Allow the disclosure return URL and its prefix to use http://
-allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url",]
+allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url"]
 # Include session storage in PostgreSQL
 postgres = ["openid4vc_server/postgres", "dep:serde_json"]
 # Include and run integration tests that depend on an external PostgreSQL database
@@ -52,7 +52,7 @@ db_test = [
     "futures/async-await",
     "dep:serial_test",
     "openid4vc/test",
-    "tokio/sync"
+    "tokio/sync",
 ]
 # Enable issuance
 issuance = [
@@ -63,7 +63,7 @@ issuance = [
     "dep:indexmap",
     "dep:reqwest",
     "dep:serde_json",
-    "dep:serde_urlencoded"
+    "dep:serde_urlencoded",
 ]
 # Enable disclosure
 disclosure = ["openid4vc_server/disclosure", "serde_with/hex", "wallet_common/axum", "dep:ring", "dep:serde_json"]
@@ -99,7 +99,7 @@ tracing-subscriber = { workspace = true, features = [
     "ansi",
     "smallvec",
     "tracing-log",
-    "parking_lot"
+    "parking_lot",
 ] }
 url = { workspace = true, features = ["serde"] }
 
@@ -110,7 +110,6 @@ ring = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
-strum = { workspace = true, optional = true, features = ["derive"] }
 
 hsm = { path = "../hsm", features = ["settings"] }
 nl_wallet_mdoc.path = "../mdoc"

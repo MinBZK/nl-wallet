@@ -53,7 +53,7 @@ required-features = ["integration_test"]
 
 [features]
 # Allow the disclosure return URL and its prefix to use http://
-allow_insecure_url = ["openid4vc?/allow_insecure_url", "wallet_common?/allow_insecure_url"]
+allow_insecure_url = ["openid4vc?/allow_insecure_url"]
 # Initialize global logging using tracing-subscriber
 logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
