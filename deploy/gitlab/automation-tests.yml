@@ -151,7 +151,7 @@ run-automation-smoke-test-ont:
 
 browsertests-format-lint:
   rules: !reference [.default-or-merge-request, rules]
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-web:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - cd browsertests
     - npm ci

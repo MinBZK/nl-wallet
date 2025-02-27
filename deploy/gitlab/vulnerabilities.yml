@@ -107,7 +107,7 @@ trivy-scan:
       )
       CI_IMAGES=(
       "nl-wallet-app-builder-ci-base"
-      "nl-wallet-app-builder-ci-web"
+      "nl-wallet-app-builder-ci-node"
       "nl-wallet-app-builder-ci-rust"
       "nl-wallet-app-builder-ci-flutter"
       "nl-wallet-app-builder-ci-android"
