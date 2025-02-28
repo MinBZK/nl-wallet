@@ -91,9 +91,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionError dco_decode_box_autoadd_wallet_instruction_error(dynamic raw);
 
   @protected
-  DisclosureCard dco_decode_disclosure_card(dynamic raw);
-
-  @protected
   DisclosureSessionType dco_decode_disclosure_session_type(dynamic raw);
 
   @protected
@@ -128,9 +125,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw);
-
-  @protected
-  List<DisclosureCard> dco_decode_list_disclosure_card(dynamic raw);
 
   @protected
   List<DisplayMetadata> dco_decode_list_display_metadata(dynamic raw);
@@ -172,7 +166,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
-  List<DisclosureCard>? dco_decode_opt_list_disclosure_card(dynamic raw);
+  List<Attestation>? dco_decode_opt_list_attestation(dynamic raw);
 
   @protected
   List<LocalizedString>? dco_decode_opt_list_localized_string(dynamic raw);
@@ -277,9 +271,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionError sse_decode_box_autoadd_wallet_instruction_error(SseDeserializer deserializer);
 
   @protected
-  DisclosureCard sse_decode_disclosure_card(SseDeserializer deserializer);
-
-  @protected
   DisclosureSessionType sse_decode_disclosure_session_type(SseDeserializer deserializer);
 
   @protected
@@ -314,9 +305,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer);
-
-  @protected
-  List<DisclosureCard> sse_decode_list_disclosure_card(SseDeserializer deserializer);
 
   @protected
   List<DisplayMetadata> sse_decode_list_display_metadata(SseDeserializer deserializer);
@@ -358,7 +346,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
-  List<DisclosureCard>? sse_decode_opt_list_disclosure_card(SseDeserializer deserializer);
+  List<Attestation>? sse_decode_opt_list_attestation(SseDeserializer deserializer);
 
   @protected
   List<LocalizedString>? sse_decode_opt_list_localized_string(SseDeserializer deserializer);
@@ -556,16 +544,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_disclosure_card> cst_encode_list_disclosure_card(List<DisclosureCard> raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    final ans = wire.cst_new_list_disclosure_card(raw.length);
-    for (var i = 0; i < raw.length; ++i) {
-      cst_api_fill_to_wire_disclosure_card(raw[i], ans.ref.ptr[i]);
-    }
-    return ans;
-  }
-
-  @protected
   ffi.Pointer<wire_cst_list_display_metadata> cst_encode_list_display_metadata(List<DisplayMetadata> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_display_metadata(raw.length);
@@ -644,9 +622,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_disclosure_card> cst_encode_opt_list_disclosure_card(List<DisclosureCard>? raw) {
+  ffi.Pointer<wire_cst_list_attestation> cst_encode_opt_list_attestation(List<Attestation>? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? ffi.nullptr : cst_encode_list_disclosure_card(raw);
+    return raw == null ? ffi.nullptr : cst_encode_list_attestation(raw);
   }
 
   @protected
@@ -767,14 +745,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_box_autoadd_wallet_instruction_error(
       WalletInstructionError apiObj, ffi.Pointer<wire_cst_wallet_instruction_error> wireObj) {
     cst_api_fill_to_wire_wallet_instruction_error(apiObj, wireObj.ref);
-  }
-
-  @protected
-  void cst_api_fill_to_wire_disclosure_card(DisclosureCard apiObj, wire_cst_disclosure_card wireObj) {
-    cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
-    wireObj.doc_type = cst_encode_String(apiObj.docType);
-    wireObj.attributes = cst_encode_list_attestation_attribute(apiObj.attributes);
-    wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
   }
 
   @protected
@@ -911,7 +881,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     if (apiObj is StartDisclosureResult_Request) {
       var pre_relying_party = cst_encode_box_autoadd_organization(apiObj.relyingParty);
       var pre_policy = cst_encode_box_autoadd_request_policy(apiObj.policy);
-      var pre_requested_cards = cst_encode_list_disclosure_card(apiObj.requestedCards);
+      var pre_requested_attestations = cst_encode_list_attestation(apiObj.requestedAttestations);
       var pre_shared_data_with_relying_party_before = cst_encode_bool(apiObj.sharedDataWithRelyingPartyBefore);
       var pre_session_type = cst_encode_disclosure_session_type(apiObj.sessionType);
       var pre_request_purpose = cst_encode_list_localized_string(apiObj.requestPurpose);
@@ -920,7 +890,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.tag = 0;
       wireObj.kind.Request.relying_party = pre_relying_party;
       wireObj.kind.Request.policy = pre_policy;
-      wireObj.kind.Request.requested_cards = pre_requested_cards;
+      wireObj.kind.Request.requested_attestations = pre_requested_attestations;
       wireObj.kind.Request.shared_data_with_relying_party_before = pre_shared_data_with_relying_party_before;
       wireObj.kind.Request.session_type = pre_session_type;
       wireObj.kind.Request.request_purpose = pre_request_purpose;
@@ -953,7 +923,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       var pre_date_time = cst_encode_String(apiObj.dateTime);
       var pre_relying_party = cst_encode_box_autoadd_organization(apiObj.relyingParty);
       var pre_purpose = cst_encode_list_localized_string(apiObj.purpose);
-      var pre_requested_cards = cst_encode_opt_list_disclosure_card(apiObj.requestedCards);
+      var pre_requested_attestations = cst_encode_opt_list_attestation(apiObj.requestedAttestations);
       var pre_request_policy = cst_encode_box_autoadd_request_policy(apiObj.requestPolicy);
       var pre_status = cst_encode_disclosure_status(apiObj.status);
       var pre_typ = cst_encode_disclosure_type(apiObj.typ);
@@ -961,7 +931,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Disclosure.date_time = pre_date_time;
       wireObj.kind.Disclosure.relying_party = pre_relying_party;
       wireObj.kind.Disclosure.purpose = pre_purpose;
-      wireObj.kind.Disclosure.requested_cards = pre_requested_cards;
+      wireObj.kind.Disclosure.requested_attestations = pre_requested_attestations;
       wireObj.kind.Disclosure.request_policy = pre_request_policy;
       wireObj.kind.Disclosure.status = pre_status;
       wireObj.kind.Disclosure.typ = pre_typ;
@@ -1111,9 +1081,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_wallet_instruction_error(WalletInstructionError self, SseSerializer serializer);
 
   @protected
-  void sse_encode_disclosure_card(DisclosureCard self, SseSerializer serializer);
-
-  @protected
   void sse_encode_disclosure_session_type(DisclosureSessionType self, SseSerializer serializer);
 
   @protected
@@ -1148,9 +1115,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_list_disclosure_card(List<DisclosureCard> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_display_metadata(List<DisplayMetadata> self, SseSerializer serializer);
@@ -1192,7 +1156,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_list_disclosure_card(List<DisclosureCard>? self, SseSerializer serializer);
+  void sse_encode_opt_list_attestation(List<Attestation>? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_list_localized_string(List<LocalizedString>? self, SseSerializer serializer);
@@ -1808,18 +1772,6 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_list_attestation_attribute = _cst_new_list_attestation_attributePtr
       .asFunction<ffi.Pointer<wire_cst_list_attestation_attribute> Function(int)>();
 
-  ffi.Pointer<wire_cst_list_disclosure_card> cst_new_list_disclosure_card(
-    int len,
-  ) {
-    return _cst_new_list_disclosure_card(len);
-  }
-
-  late final _cst_new_list_disclosure_cardPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_disclosure_card> Function(ffi.Int32)>>(
-          'frbgen_wallet_core_cst_new_list_disclosure_card');
-  late final _cst_new_list_disclosure_card =
-      _cst_new_list_disclosure_cardPtr.asFunction<ffi.Pointer<wire_cst_list_disclosure_card> Function(int)>();
-
   ffi.Pointer<wire_cst_list_display_metadata> cst_new_list_display_metadata(
     int len,
   ) {
@@ -2129,23 +2081,6 @@ final class wire_cst_list_attestation extends ffi.Struct {
   external int len;
 }
 
-final class wire_cst_disclosure_card extends ffi.Struct {
-  external wire_cst_organization issuer;
-
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> doc_type;
-
-  external ffi.Pointer<wire_cst_list_attestation_attribute> attributes;
-
-  external ffi.Pointer<wire_cst_list_display_metadata> display_metadata;
-}
-
-final class wire_cst_list_disclosure_card extends ffi.Struct {
-  external ffi.Pointer<wire_cst_disclosure_card> ptr;
-
-  @ffi.Int32()
-  external int len;
-}
-
 final class wire_cst_missing_attribute extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_localized_string> labels;
 }
@@ -2164,7 +2099,7 @@ final class wire_cst_WalletEvent_Disclosure extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_localized_string> purpose;
 
-  external ffi.Pointer<wire_cst_list_disclosure_card> requested_cards;
+  external ffi.Pointer<wire_cst_list_attestation> requested_attestations;
 
   external ffi.Pointer<wire_cst_request_policy> request_policy;
 
@@ -2254,7 +2189,7 @@ final class wire_cst_StartDisclosureResult_Request extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_request_policy> policy;
 
-  external ffi.Pointer<wire_cst_list_disclosure_card> requested_cards;
+  external ffi.Pointer<wire_cst_list_attestation> requested_attestations;
 
   @ffi.Bool()
   external bool shared_data_with_relying_party_before;

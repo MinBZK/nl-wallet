@@ -3,12 +3,9 @@ use url::Url;
 use wallet::errors::DisclosureError;
 use wallet::mdoc::ReaderRegistration;
 use wallet::openid4vc::SessionType;
-use wallet::Attestation;
 use wallet::DisclosureProposal;
 
-use crate::models::attestation::AttestationAttribute;
-use crate::models::attestation::DisplayMetadata;
-
+use super::attestation::Attestation;
 use super::instruction::WalletInstructionError;
 use super::localize::LocalizedString;
 
@@ -46,13 +43,6 @@ pub struct MissingAttribute {
     pub labels: Vec<LocalizedString>,
 }
 
-pub struct DisclosureCard {
-    pub issuer: Organization,
-    pub doc_type: String,
-    pub attributes: Vec<AttestationAttribute>,
-    pub display_metadata: Vec<DisplayMetadata>,
-}
-
 pub enum DisclosureStatus {
     Success,
     Cancelled,
@@ -82,7 +72,7 @@ pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
         policy: RequestPolicy,
-        requested_cards: Vec<DisclosureCard>,
+        requested_attestations: Vec<Attestation>,
         shared_data_with_relying_party_before: bool,
         session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
@@ -172,27 +162,6 @@ impl From<&ReaderRegistration> for RequestPolicy {
     }
 }
 
-impl DisclosureCard {
-    fn from_disclosure_documents(attestations: Vec<Attestation>) -> Vec<Self> {
-        attestations.into_iter().map(DisclosureCard::from).collect()
-    }
-}
-
-impl From<Attestation> for DisclosureCard {
-    fn from(value: Attestation) -> Self {
-        DisclosureCard {
-            issuer: value.issuer.into(),
-            doc_type: value.attestation_type,
-            attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
-            display_metadata: value
-                .display_metadata
-                .into_values()
-                .map(DisplayMetadata::from)
-                .collect(),
-        }
-    }
-}
-
 impl From<bool> for DisclosureType {
     fn from(value: bool) -> Self {
         if value {
@@ -233,7 +202,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_cards: DisclosureCard::from_disclosure_documents(proposal.attestations),
+                    requested_attestations: proposal.attestations.into_iter().map(Attestation::from).collect(),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     session_type: proposal.session_type.into(),
                     request_purpose,

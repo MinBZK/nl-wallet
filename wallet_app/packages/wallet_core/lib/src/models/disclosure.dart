@@ -23,33 +23,6 @@ sealed class AcceptDisclosureResult with _$AcceptDisclosureResult {
   }) = AcceptDisclosureResult_InstructionError;
 }
 
-class DisclosureCard {
-  final Organization issuer;
-  final String docType;
-  final List<AttestationAttribute> attributes;
-  final List<DisplayMetadata> displayMetadata;
-
-  const DisclosureCard({
-    required this.issuer,
-    required this.docType,
-    required this.attributes,
-    required this.displayMetadata,
-  });
-
-  @override
-  int get hashCode => issuer.hashCode ^ docType.hashCode ^ attributes.hashCode ^ displayMetadata.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is DisclosureCard &&
-          runtimeType == other.runtimeType &&
-          issuer == other.issuer &&
-          docType == other.docType &&
-          attributes == other.attributes &&
-          displayMetadata == other.displayMetadata;
-}
-
 enum DisclosureSessionType {
   SameDevice,
   CrossDevice,
@@ -199,7 +172,7 @@ sealed class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.request({
     required Organization relyingParty,
     required RequestPolicy policy,
-    required List<DisclosureCard> requestedCards,
+    required List<Attestation> requestedAttestations,
     required bool sharedDataWithRelyingPartyBefore,
     required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,

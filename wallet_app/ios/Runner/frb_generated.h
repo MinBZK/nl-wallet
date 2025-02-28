@@ -190,18 +190,6 @@ typedef struct wire_cst_list_attestation {
   int32_t len;
 } wire_cst_list_attestation;
 
-typedef struct wire_cst_disclosure_card {
-  struct wire_cst_organization issuer;
-  struct wire_cst_list_prim_u_8_strict *doc_type;
-  struct wire_cst_list_attestation_attribute *attributes;
-  struct wire_cst_list_display_metadata *display_metadata;
-} wire_cst_disclosure_card;
-
-typedef struct wire_cst_list_disclosure_card {
-  struct wire_cst_disclosure_card *ptr;
-  int32_t len;
-} wire_cst_list_disclosure_card;
-
 typedef struct wire_cst_missing_attribute {
   struct wire_cst_list_localized_string *labels;
 } wire_cst_missing_attribute;
@@ -215,7 +203,7 @@ typedef struct wire_cst_WalletEvent_Disclosure {
   struct wire_cst_list_prim_u_8_strict *date_time;
   struct wire_cst_organization *relying_party;
   struct wire_cst_list_localized_string *purpose;
-  struct wire_cst_list_disclosure_card *requested_cards;
+  struct wire_cst_list_attestation *requested_attestations;
   struct wire_cst_request_policy *request_policy;
   int32_t status;
   int32_t typ;
@@ -281,7 +269,7 @@ typedef struct wire_cst_flutter_version_state {
 typedef struct wire_cst_StartDisclosureResult_Request {
   struct wire_cst_organization *relying_party;
   struct wire_cst_request_policy *policy;
-  struct wire_cst_list_disclosure_card *requested_cards;
+  struct wire_cst_list_attestation *requested_attestations;
   bool shared_data_with_relying_party_before;
   int32_t session_type;
   struct wire_cst_list_localized_string *request_purpose;
@@ -434,8 +422,6 @@ struct wire_cst_list_attestation *frbgen_wallet_core_cst_new_list_attestation(in
 
 struct wire_cst_list_attestation_attribute *frbgen_wallet_core_cst_new_list_attestation_attribute(int32_t len);
 
-struct wire_cst_list_disclosure_card *frbgen_wallet_core_cst_new_list_disclosure_card(int32_t len);
-
 struct wire_cst_list_display_metadata *frbgen_wallet_core_cst_new_list_display_metadata(int32_t len);
 
 struct wire_cst_list_localized_string *frbgen_wallet_core_cst_new_list_localized_string(int32_t len);
@@ -457,7 +443,6 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_attribute);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_disclosure_card);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_display_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_localized_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_missing_attribute);
