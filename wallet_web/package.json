@@ -20,12 +20,13 @@
     "coverage": "vitest run --coverage",
     "type-check": "vue-tsc --build --force",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
+    "format-check": "prettier --check lib/",
     "format": "prettier --write lib/"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.8.0",
-    "@tsconfig/node20": "^20.1.4",
-    "@types/node": "^20.12.5",
+    "@tsconfig/node22": "^22.0.0",
+    "@types/node": "^22.13.5",
     "@vitejs/plugin-vue": "^5.0.5",
     "@vitest/coverage-v8": "^2.1.9",
     "@vue/eslint-config-prettier": "^9.0.0",

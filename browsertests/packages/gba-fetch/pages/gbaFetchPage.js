@@ -1,4 +1,4 @@
-class GbaFetchPage {
+export class GbaFetchPage {
   constructor(page) {
     this.page = page
 
@@ -30,19 +30,19 @@ class GbaFetchPage {
     return this.page.textContent(this.StatusInfoPreloadedCount)
   }
 
-  async getBsnInput() {
+  getBsnInput() {
     return this.page.locator(this.bsnInput)
   }
 
-  async getRepeatBsnInput() {
+  getRepeatBsnInput() {
     return this.page.locator(this.repeatBsnInput)
   }
 
-  async getPreloadButton() {
+  getPreloadButton() {
     return this.page.locator(this.preloadButton)
   }
 
-  async getClearDataLabel() {
+  getClearDataLabel() {
     return this.page.locator(this.clearDataLabel)
   }
 
@@ -50,11 +50,11 @@ class GbaFetchPage {
     return this.page.textContent(this.clearDataLabel)
   }
 
-  async getClearDataInput() {
+  getClearDataInput() {
     return this.page.locator(this.clearDataInput)
   }
 
-  async getClearDataButton() {
+  getClearDataButton() {
     return this.page.locator(this.clearDataButton)
   }
 
@@ -87,8 +87,6 @@ class GbaFetchPage {
   }
 
   async getBsnValidationMessage() {
-    return await this.page.locator(this.bsnInput).evaluate((el) => el.validationMessage)
+    return this.page.locator(this.bsnInput).evaluate((el) => el.validationMessage)
   }
 }
-
-export default { GbaFetchPage }
