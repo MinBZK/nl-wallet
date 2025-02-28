@@ -12,13 +12,11 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<RequestPolicy, Policy> _policyMapper;
   final Mapper<Attestation, WalletCard> _cardMapper;
-  final Mapper<DisclosureCard, WalletCard> _disclosureCardMapper;
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
   final Mapper<core.DisclosureType, DisclosureType> _disclosureTypeMapper;
 
   WalletEventMapper(
     this._cardMapper,
-    this._disclosureCardMapper,
     this._relyingPartyMapper,
     this._policyMapper,
     this._localizedStringMapper,
@@ -29,7 +27,7 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
   WalletEvent map(core.WalletEvent input) {
     return input.map(
       disclosure: (disclosure) {
-        final cards = _disclosureCardMapper.mapList(disclosure.requestedCards ?? []);
+        final cards = _cardMapper.mapList(disclosure.requestedAttestations ?? []);
         return WalletEvent.disclosure(
           dateTime: DateTime.parse(disclosure.dateTime).toLocal(),
           relyingParty: _relyingPartyMapper.map(disclosure.relyingParty),

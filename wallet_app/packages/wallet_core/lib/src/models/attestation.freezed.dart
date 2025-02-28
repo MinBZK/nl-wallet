@@ -58,7 +58,8 @@ mixin _$AttestationIdentity {
 
 /// @nodoc
 abstract class $AttestationIdentityCopyWith<$Res> {
-  factory $AttestationIdentityCopyWith(AttestationIdentity value, $Res Function(AttestationIdentity) then) =
+  factory $AttestationIdentityCopyWith(
+          AttestationIdentity value, $Res Function(AttestationIdentity) then) =
       _$AttestationIdentityCopyWithImpl<$Res, AttestationIdentity>;
 }
 
@@ -79,16 +80,19 @@ class _$AttestationIdentityCopyWithImpl<$Res, $Val extends AttestationIdentity>
 /// @nodoc
 abstract class _$$AttestationIdentity_EphemeralImplCopyWith<$Res> {
   factory _$$AttestationIdentity_EphemeralImplCopyWith(
-          _$AttestationIdentity_EphemeralImpl value, $Res Function(_$AttestationIdentity_EphemeralImpl) then) =
+          _$AttestationIdentity_EphemeralImpl value,
+          $Res Function(_$AttestationIdentity_EphemeralImpl) then) =
       __$$AttestationIdentity_EphemeralImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$AttestationIdentity_EphemeralImplCopyWithImpl<$Res>
-    extends _$AttestationIdentityCopyWithImpl<$Res, _$AttestationIdentity_EphemeralImpl>
+    extends _$AttestationIdentityCopyWithImpl<$Res,
+        _$AttestationIdentity_EphemeralImpl>
     implements _$$AttestationIdentity_EphemeralImplCopyWith<$Res> {
   __$$AttestationIdentity_EphemeralImplCopyWithImpl(
-      _$AttestationIdentity_EphemeralImpl _value, $Res Function(_$AttestationIdentity_EphemeralImpl) _then)
+      _$AttestationIdentity_EphemeralImpl _value,
+      $Res Function(_$AttestationIdentity_EphemeralImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of AttestationIdentity
@@ -97,7 +101,8 @@ class __$$AttestationIdentity_EphemeralImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$AttestationIdentity_EphemeralImpl extends AttestationIdentity_Ephemeral {
+class _$AttestationIdentity_EphemeralImpl
+    extends AttestationIdentity_Ephemeral {
   const _$AttestationIdentity_EphemeralImpl() : super._();
 
   @override
@@ -107,7 +112,9 @@ class _$AttestationIdentity_EphemeralImpl extends AttestationIdentity_Ephemeral 
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$AttestationIdentity_EphemeralImpl);
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$AttestationIdentity_EphemeralImpl);
   }
 
   @override
@@ -177,14 +184,16 @@ class _$AttestationIdentity_EphemeralImpl extends AttestationIdentity_Ephemeral 
 }
 
 abstract class AttestationIdentity_Ephemeral extends AttestationIdentity {
-  const factory AttestationIdentity_Ephemeral() = _$AttestationIdentity_EphemeralImpl;
+  const factory AttestationIdentity_Ephemeral() =
+      _$AttestationIdentity_EphemeralImpl;
   const AttestationIdentity_Ephemeral._() : super._();
 }
 
 /// @nodoc
 abstract class _$$AttestationIdentity_FixedImplCopyWith<$Res> {
   factory _$$AttestationIdentity_FixedImplCopyWith(
-          _$AttestationIdentity_FixedImpl value, $Res Function(_$AttestationIdentity_FixedImpl) then) =
+          _$AttestationIdentity_FixedImpl value,
+          $Res Function(_$AttestationIdentity_FixedImpl) then) =
       __$$AttestationIdentity_FixedImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String id});
@@ -192,10 +201,12 @@ abstract class _$$AttestationIdentity_FixedImplCopyWith<$Res> {
 
 /// @nodoc
 class __$$AttestationIdentity_FixedImplCopyWithImpl<$Res>
-    extends _$AttestationIdentityCopyWithImpl<$Res, _$AttestationIdentity_FixedImpl>
+    extends _$AttestationIdentityCopyWithImpl<$Res,
+        _$AttestationIdentity_FixedImpl>
     implements _$$AttestationIdentity_FixedImplCopyWith<$Res> {
   __$$AttestationIdentity_FixedImplCopyWithImpl(
-      _$AttestationIdentity_FixedImpl _value, $Res Function(_$AttestationIdentity_FixedImpl) _then)
+      _$AttestationIdentity_FixedImpl _value,
+      $Res Function(_$AttestationIdentity_FixedImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of AttestationIdentity
@@ -243,8 +254,9 @@ class _$AttestationIdentity_FixedImpl extends AttestationIdentity_Fixed {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$AttestationIdentity_FixedImplCopyWith<_$AttestationIdentity_FixedImpl> get copyWith =>
-      __$$AttestationIdentity_FixedImplCopyWithImpl<_$AttestationIdentity_FixedImpl>(this, _$identity);
+  _$$AttestationIdentity_FixedImplCopyWith<_$AttestationIdentity_FixedImpl>
+      get copyWith => __$$AttestationIdentity_FixedImplCopyWithImpl<
+          _$AttestationIdentity_FixedImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -310,7 +322,8 @@ class _$AttestationIdentity_FixedImpl extends AttestationIdentity_Fixed {
 }
 
 abstract class AttestationIdentity_Fixed extends AttestationIdentity {
-  const factory AttestationIdentity_Fixed({required final String id}) = _$AttestationIdentity_FixedImpl;
+  const factory AttestationIdentity_Fixed({required final String id}) =
+      _$AttestationIdentity_FixedImpl;
   const AttestationIdentity_Fixed._() : super._();
 
   String get id;
@@ -318,8 +331,8 @@ abstract class AttestationIdentity_Fixed extends AttestationIdentity {
   /// Create a copy of AttestationIdentity
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttestationIdentity_FixedImplCopyWith<_$AttestationIdentity_FixedImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$AttestationIdentity_FixedImplCopyWith<_$AttestationIdentity_FixedImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -373,12 +386,14 @@ mixin _$AttributeValue {
 
 /// @nodoc
 abstract class $AttributeValueCopyWith<$Res> {
-  factory $AttributeValueCopyWith(AttributeValue value, $Res Function(AttributeValue) then) =
+  factory $AttributeValueCopyWith(
+          AttributeValue value, $Res Function(AttributeValue) then) =
       _$AttributeValueCopyWithImpl<$Res, AttributeValue>;
 }
 
 /// @nodoc
-class _$AttributeValueCopyWithImpl<$Res, $Val extends AttributeValue> implements $AttributeValueCopyWith<$Res> {
+class _$AttributeValueCopyWithImpl<$Res, $Val extends AttributeValue>
+    implements $AttributeValueCopyWith<$Res> {
   _$AttributeValueCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -393,7 +408,8 @@ class _$AttributeValueCopyWithImpl<$Res, $Val extends AttributeValue> implements
 /// @nodoc
 abstract class _$$AttributeValue_StringImplCopyWith<$Res> {
   factory _$$AttributeValue_StringImplCopyWith(
-          _$AttributeValue_StringImpl value, $Res Function(_$AttributeValue_StringImpl) then) =
+          _$AttributeValue_StringImpl value,
+          $Res Function(_$AttributeValue_StringImpl) then) =
       __$$AttributeValue_StringImplCopyWithImpl<$Res>;
   @useResult
   $Res call({String value});
@@ -403,8 +419,8 @@ abstract class _$$AttributeValue_StringImplCopyWith<$Res> {
 class __$$AttributeValue_StringImplCopyWithImpl<$Res>
     extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_StringImpl>
     implements _$$AttributeValue_StringImplCopyWith<$Res> {
-  __$$AttributeValue_StringImplCopyWithImpl(
-      _$AttributeValue_StringImpl _value, $Res Function(_$AttributeValue_StringImpl) _then)
+  __$$AttributeValue_StringImplCopyWithImpl(_$AttributeValue_StringImpl _value,
+      $Res Function(_$AttributeValue_StringImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of AttributeValue
@@ -452,8 +468,9 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl> get copyWith =>
-      __$$AttributeValue_StringImplCopyWithImpl<_$AttributeValue_StringImpl>(this, _$identity);
+  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl>
+      get copyWith => __$$AttributeValue_StringImplCopyWithImpl<
+          _$AttributeValue_StringImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -525,7 +542,8 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
 }
 
 abstract class AttributeValue_String extends AttributeValue {
-  const factory AttributeValue_String({required final String value}) = _$AttributeValue_StringImpl;
+  const factory AttributeValue_String({required final String value}) =
+      _$AttributeValue_StringImpl;
   const AttributeValue_String._() : super._();
 
   @override
@@ -534,13 +552,15 @@ abstract class AttributeValue_String extends AttributeValue {
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$AttributeValue_BooleanImplCopyWith<$Res> {
   factory _$$AttributeValue_BooleanImplCopyWith(
-          _$AttributeValue_BooleanImpl value, $Res Function(_$AttributeValue_BooleanImpl) then) =
+          _$AttributeValue_BooleanImpl value,
+          $Res Function(_$AttributeValue_BooleanImpl) then) =
       __$$AttributeValue_BooleanImplCopyWithImpl<$Res>;
   @useResult
   $Res call({bool value});
@@ -551,7 +571,8 @@ class __$$AttributeValue_BooleanImplCopyWithImpl<$Res>
     extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_BooleanImpl>
     implements _$$AttributeValue_BooleanImplCopyWith<$Res> {
   __$$AttributeValue_BooleanImplCopyWithImpl(
-      _$AttributeValue_BooleanImpl _value, $Res Function(_$AttributeValue_BooleanImpl) _then)
+      _$AttributeValue_BooleanImpl _value,
+      $Res Function(_$AttributeValue_BooleanImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of AttributeValue
@@ -599,8 +620,9 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl> get copyWith =>
-      __$$AttributeValue_BooleanImplCopyWithImpl<_$AttributeValue_BooleanImpl>(this, _$identity);
+  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl>
+      get copyWith => __$$AttributeValue_BooleanImplCopyWithImpl<
+          _$AttributeValue_BooleanImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -672,7 +694,8 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
 }
 
 abstract class AttributeValue_Boolean extends AttributeValue {
-  const factory AttributeValue_Boolean({required final bool value}) = _$AttributeValue_BooleanImpl;
+  const factory AttributeValue_Boolean({required final bool value}) =
+      _$AttributeValue_BooleanImpl;
   const AttributeValue_Boolean._() : super._();
 
   @override
@@ -681,14 +704,15 @@ abstract class AttributeValue_Boolean extends AttributeValue {
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$AttributeValue_NumberImplCopyWith<$Res> {
   factory _$$AttributeValue_NumberImplCopyWith(
-          _$AttributeValue_NumberImpl value, $Res Function(_$AttributeValue_NumberImpl) then) =
+          _$AttributeValue_NumberImpl value,
+          $Res Function(_$AttributeValue_NumberImpl) then) =
       __$$AttributeValue_NumberImplCopyWithImpl<$Res>;
   @useResult
   $Res call({int value});
@@ -698,8 +722,8 @@ abstract class _$$AttributeValue_NumberImplCopyWith<$Res> {
 class __$$AttributeValue_NumberImplCopyWithImpl<$Res>
     extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_NumberImpl>
     implements _$$AttributeValue_NumberImplCopyWith<$Res> {
-  __$$AttributeValue_NumberImplCopyWithImpl(
-      _$AttributeValue_NumberImpl _value, $Res Function(_$AttributeValue_NumberImpl) _then)
+  __$$AttributeValue_NumberImplCopyWithImpl(_$AttributeValue_NumberImpl _value,
+      $Res Function(_$AttributeValue_NumberImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of AttributeValue
@@ -747,8 +771,9 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl> get copyWith =>
-      __$$AttributeValue_NumberImplCopyWithImpl<_$AttributeValue_NumberImpl>(this, _$identity);
+  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl>
+      get copyWith => __$$AttributeValue_NumberImplCopyWithImpl<
+          _$AttributeValue_NumberImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -820,7 +845,8 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
 }
 
 abstract class AttributeValue_Number extends AttributeValue {
-  const factory AttributeValue_Number({required final int value}) = _$AttributeValue_NumberImpl;
+  const factory AttributeValue_Number({required final int value}) =
+      _$AttributeValue_NumberImpl;
   const AttributeValue_Number._() : super._();
 
   @override
@@ -829,26 +855,33 @@ abstract class AttributeValue_Number extends AttributeValue {
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 mixin _$RenderingMetadata {
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor) simple,
+    required TResult Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)
+        simple,
     required TResult Function() svgTemplates,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult? Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)?
+        simple,
     TResult? Function()? svgTemplates,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)?
+        simple,
     TResult Function()? svgTemplates,
     required TResult orElse(),
   }) =>
@@ -856,7 +889,8 @@ mixin _$RenderingMetadata {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(RenderingMetadata_Simple value) simple,
-    required TResult Function(RenderingMetadata_SvgTemplates value) svgTemplates,
+    required TResult Function(RenderingMetadata_SvgTemplates value)
+        svgTemplates,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -876,7 +910,8 @@ mixin _$RenderingMetadata {
 
 /// @nodoc
 abstract class $RenderingMetadataCopyWith<$Res> {
-  factory $RenderingMetadataCopyWith(RenderingMetadata value, $Res Function(RenderingMetadata) then) =
+  factory $RenderingMetadataCopyWith(
+          RenderingMetadata value, $Res Function(RenderingMetadata) then) =
       _$RenderingMetadataCopyWithImpl<$Res, RenderingMetadata>;
 }
 
@@ -897,7 +932,8 @@ class _$RenderingMetadataCopyWithImpl<$Res, $Val extends RenderingMetadata>
 /// @nodoc
 abstract class _$$RenderingMetadata_SimpleImplCopyWith<$Res> {
   factory _$$RenderingMetadata_SimpleImplCopyWith(
-          _$RenderingMetadata_SimpleImpl value, $Res Function(_$RenderingMetadata_SimpleImpl) then) =
+          _$RenderingMetadata_SimpleImpl value,
+          $Res Function(_$RenderingMetadata_SimpleImpl) then) =
       __$$RenderingMetadata_SimpleImplCopyWithImpl<$Res>;
   @useResult
   $Res call({LogoMetadata? logo, String? backgroundColor, String? textColor});
@@ -905,10 +941,12 @@ abstract class _$$RenderingMetadata_SimpleImplCopyWith<$Res> {
 
 /// @nodoc
 class __$$RenderingMetadata_SimpleImplCopyWithImpl<$Res>
-    extends _$RenderingMetadataCopyWithImpl<$Res, _$RenderingMetadata_SimpleImpl>
+    extends _$RenderingMetadataCopyWithImpl<$Res,
+        _$RenderingMetadata_SimpleImpl>
     implements _$$RenderingMetadata_SimpleImplCopyWith<$Res> {
   __$$RenderingMetadata_SimpleImplCopyWithImpl(
-      _$RenderingMetadata_SimpleImpl _value, $Res Function(_$RenderingMetadata_SimpleImpl) _then)
+      _$RenderingMetadata_SimpleImpl _value,
+      $Res Function(_$RenderingMetadata_SimpleImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of RenderingMetadata
@@ -940,7 +978,9 @@ class __$$RenderingMetadata_SimpleImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$RenderingMetadata_SimpleImpl extends RenderingMetadata_Simple {
-  const _$RenderingMetadata_SimpleImpl({this.logo, this.backgroundColor, this.textColor}) : super._();
+  const _$RenderingMetadata_SimpleImpl(
+      {this.logo, this.backgroundColor, this.textColor})
+      : super._();
 
   @override
   final LogoMetadata? logo;
@@ -960,25 +1000,31 @@ class _$RenderingMetadata_SimpleImpl extends RenderingMetadata_Simple {
         (other.runtimeType == runtimeType &&
             other is _$RenderingMetadata_SimpleImpl &&
             (identical(other.logo, logo) || other.logo == logo) &&
-            (identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor) &&
-            (identical(other.textColor, textColor) || other.textColor == textColor));
+            (identical(other.backgroundColor, backgroundColor) ||
+                other.backgroundColor == backgroundColor) &&
+            (identical(other.textColor, textColor) ||
+                other.textColor == textColor));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, logo, backgroundColor, textColor);
+  int get hashCode =>
+      Object.hash(runtimeType, logo, backgroundColor, textColor);
 
   /// Create a copy of RenderingMetadata
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$RenderingMetadata_SimpleImplCopyWith<_$RenderingMetadata_SimpleImpl> get copyWith =>
-      __$$RenderingMetadata_SimpleImplCopyWithImpl<_$RenderingMetadata_SimpleImpl>(this, _$identity);
+  _$$RenderingMetadata_SimpleImplCopyWith<_$RenderingMetadata_SimpleImpl>
+      get copyWith => __$$RenderingMetadata_SimpleImplCopyWithImpl<
+          _$RenderingMetadata_SimpleImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor) simple,
+    required TResult Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)
+        simple,
     required TResult Function() svgTemplates,
   }) {
     return simple(logo, backgroundColor, textColor);
@@ -987,7 +1033,9 @@ class _$RenderingMetadata_SimpleImpl extends RenderingMetadata_Simple {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult? Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)?
+        simple,
     TResult? Function()? svgTemplates,
   }) {
     return simple?.call(logo, backgroundColor, textColor);
@@ -996,7 +1044,9 @@ class _$RenderingMetadata_SimpleImpl extends RenderingMetadata_Simple {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)?
+        simple,
     TResult Function()? svgTemplates,
     required TResult orElse(),
   }) {
@@ -1010,7 +1060,8 @@ class _$RenderingMetadata_SimpleImpl extends RenderingMetadata_Simple {
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(RenderingMetadata_Simple value) simple,
-    required TResult Function(RenderingMetadata_SvgTemplates value) svgTemplates,
+    required TResult Function(RenderingMetadata_SvgTemplates value)
+        svgTemplates,
   }) {
     return simple(this);
   }
@@ -1052,23 +1103,26 @@ abstract class RenderingMetadata_Simple extends RenderingMetadata {
   /// Create a copy of RenderingMetadata
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$RenderingMetadata_SimpleImplCopyWith<_$RenderingMetadata_SimpleImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$RenderingMetadata_SimpleImplCopyWith<_$RenderingMetadata_SimpleImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$RenderingMetadata_SvgTemplatesImplCopyWith<$Res> {
   factory _$$RenderingMetadata_SvgTemplatesImplCopyWith(
-          _$RenderingMetadata_SvgTemplatesImpl value, $Res Function(_$RenderingMetadata_SvgTemplatesImpl) then) =
+          _$RenderingMetadata_SvgTemplatesImpl value,
+          $Res Function(_$RenderingMetadata_SvgTemplatesImpl) then) =
       __$$RenderingMetadata_SvgTemplatesImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$RenderingMetadata_SvgTemplatesImplCopyWithImpl<$Res>
-    extends _$RenderingMetadataCopyWithImpl<$Res, _$RenderingMetadata_SvgTemplatesImpl>
+    extends _$RenderingMetadataCopyWithImpl<$Res,
+        _$RenderingMetadata_SvgTemplatesImpl>
     implements _$$RenderingMetadata_SvgTemplatesImplCopyWith<$Res> {
   __$$RenderingMetadata_SvgTemplatesImplCopyWithImpl(
-      _$RenderingMetadata_SvgTemplatesImpl _value, $Res Function(_$RenderingMetadata_SvgTemplatesImpl) _then)
+      _$RenderingMetadata_SvgTemplatesImpl _value,
+      $Res Function(_$RenderingMetadata_SvgTemplatesImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of RenderingMetadata
@@ -1077,7 +1131,8 @@ class __$$RenderingMetadata_SvgTemplatesImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplates {
+class _$RenderingMetadata_SvgTemplatesImpl
+    extends RenderingMetadata_SvgTemplates {
   const _$RenderingMetadata_SvgTemplatesImpl() : super._();
 
   @override
@@ -1088,7 +1143,8 @@ class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplate
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$RenderingMetadata_SvgTemplatesImpl);
+        (other.runtimeType == runtimeType &&
+            other is _$RenderingMetadata_SvgTemplatesImpl);
   }
 
   @override
@@ -1097,7 +1153,9 @@ class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplate
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor) simple,
+    required TResult Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)
+        simple,
     required TResult Function() svgTemplates,
   }) {
     return svgTemplates();
@@ -1106,7 +1164,9 @@ class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplate
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult? Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)?
+        simple,
     TResult? Function()? svgTemplates,
   }) {
     return svgTemplates?.call();
@@ -1115,7 +1175,9 @@ class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplate
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
+    TResult Function(
+            LogoMetadata? logo, String? backgroundColor, String? textColor)?
+        simple,
     TResult Function()? svgTemplates,
     required TResult orElse(),
   }) {
@@ -1129,7 +1191,8 @@ class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplate
   @optionalTypeArgs
   TResult map<TResult extends Object?>({
     required TResult Function(RenderingMetadata_Simple value) simple,
-    required TResult Function(RenderingMetadata_SvgTemplates value) svgTemplates,
+    required TResult Function(RenderingMetadata_SvgTemplates value)
+        svgTemplates,
   }) {
     return svgTemplates(this);
   }
@@ -1158,6 +1221,7 @@ class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplate
 }
 
 abstract class RenderingMetadata_SvgTemplates extends RenderingMetadata {
-  const factory RenderingMetadata_SvgTemplates() = _$RenderingMetadata_SvgTemplatesImpl;
+  const factory RenderingMetadata_SvgTemplates() =
+      _$RenderingMetadata_SvgTemplatesImpl;
   const RenderingMetadata_SvgTemplates._() : super._();
 }

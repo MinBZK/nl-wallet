@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wallet_core/core.dart' as core;
-import 'package:wallet_core/core.dart' show DisclosureCard, LocalizedString, PinValidationResult;
+import 'package:wallet_core/core.dart' show LocalizedString, PinValidationResult;
 import 'package:wallet_mock/mock.dart' as core show Document;
 
 import '../domain/model/app_image_data.dart';
@@ -25,7 +25,6 @@ import '../util/mapper/card/card_config_mapper.dart';
 import '../util/mapper/card/card_front_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
 import '../util/mapper/card/card_subtitle_mapper.dart';
-import '../util/mapper/card/disclosure_card_mapper.dart';
 import '../util/mapper/context_mapper.dart';
 import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
 import '../util/mapper/disclosure/disclosure_type_mapper.dart';
@@ -91,9 +90,6 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<core.Attestation, WalletCard>>(
           create: (context) => CardMapper(context.read(), context.read(), context.read(), context.read()),
         ),
-        RepositoryProvider<Mapper<DisclosureCard, WalletCard>>(
-          create: (context) => DisclosureCardMapper(context.read()),
-        ),
 
         /// Policy
         RepositoryProvider<Mapper<core.RequestPolicy, Policy>>(
@@ -124,7 +120,6 @@ class WalletMapperProvider extends StatelessWidget {
         /// Event mapper
         RepositoryProvider<Mapper<core.WalletEvent, WalletEvent>>(
           create: (context) => WalletEventMapper(
-            context.read(),
             context.read(),
             context.read(),
             context.read(),

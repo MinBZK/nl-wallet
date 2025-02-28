@@ -23,12 +23,13 @@ mixin _$WalletEvent {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)
         disclosure,
-    required TResult Function(String dateTime, Attestation attestation) issuance,
+    required TResult Function(String dateTime, Attestation attestation)
+        issuance,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -37,7 +38,7 @@ mixin _$WalletEvent {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -51,7 +52,7 @@ mixin _$WalletEvent {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -83,19 +84,22 @@ mixin _$WalletEvent {
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $WalletEventCopyWith<WalletEvent> get copyWith => throw _privateConstructorUsedError;
+  $WalletEventCopyWith<WalletEvent> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class $WalletEventCopyWith<$Res> {
-  factory $WalletEventCopyWith(WalletEvent value, $Res Function(WalletEvent) then) =
+  factory $WalletEventCopyWith(
+          WalletEvent value, $Res Function(WalletEvent) then) =
       _$WalletEventCopyWithImpl<$Res, WalletEvent>;
   @useResult
   $Res call({String dateTime});
 }
 
 /// @nodoc
-class _$WalletEventCopyWithImpl<$Res, $Val extends WalletEvent> implements $WalletEventCopyWith<$Res> {
+class _$WalletEventCopyWithImpl<$Res, $Val extends WalletEvent>
+    implements $WalletEventCopyWith<$Res> {
   _$WalletEventCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
@@ -120,9 +124,11 @@ class _$WalletEventCopyWithImpl<$Res, $Val extends WalletEvent> implements $Wall
 }
 
 /// @nodoc
-abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEventCopyWith<$Res> {
+abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res>
+    implements $WalletEventCopyWith<$Res> {
   factory _$$WalletEvent_DisclosureImplCopyWith(
-          _$WalletEvent_DisclosureImpl value, $Res Function(_$WalletEvent_DisclosureImpl) then) =
+          _$WalletEvent_DisclosureImpl value,
+          $Res Function(_$WalletEvent_DisclosureImpl) then) =
       __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>;
   @override
   @useResult
@@ -130,7 +136,7 @@ abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEve
       {String dateTime,
       Organization relyingParty,
       List<LocalizedString> purpose,
-      List<DisclosureCard>? requestedCards,
+      List<Attestation>? requestedAttestations,
       RequestPolicy requestPolicy,
       DisclosureStatus status,
       DisclosureType typ});
@@ -141,7 +147,8 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
     extends _$WalletEventCopyWithImpl<$Res, _$WalletEvent_DisclosureImpl>
     implements _$$WalletEvent_DisclosureImplCopyWith<$Res> {
   __$$WalletEvent_DisclosureImplCopyWithImpl(
-      _$WalletEvent_DisclosureImpl _value, $Res Function(_$WalletEvent_DisclosureImpl) _then)
+      _$WalletEvent_DisclosureImpl _value,
+      $Res Function(_$WalletEvent_DisclosureImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of WalletEvent
@@ -152,7 +159,7 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
     Object? dateTime = null,
     Object? relyingParty = null,
     Object? purpose = null,
-    Object? requestedCards = freezed,
+    Object? requestedAttestations = freezed,
     Object? requestPolicy = null,
     Object? status = null,
     Object? typ = null,
@@ -170,10 +177,10 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
           ? _value._purpose
           : purpose // ignore: cast_nullable_to_non_nullable
               as List<LocalizedString>,
-      requestedCards: freezed == requestedCards
-          ? _value._requestedCards
-          : requestedCards // ignore: cast_nullable_to_non_nullable
-              as List<DisclosureCard>?,
+      requestedAttestations: freezed == requestedAttestations
+          ? _value._requestedAttestations
+          : requestedAttestations // ignore: cast_nullable_to_non_nullable
+              as List<Attestation>?,
       requestPolicy: null == requestPolicy
           ? _value.requestPolicy
           : requestPolicy // ignore: cast_nullable_to_non_nullable
@@ -197,12 +204,12 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
       {required this.dateTime,
       required this.relyingParty,
       required final List<LocalizedString> purpose,
-      final List<DisclosureCard>? requestedCards,
+      final List<Attestation>? requestedAttestations,
       required this.requestPolicy,
       required this.status,
       required this.typ})
       : _purpose = purpose,
-        _requestedCards = requestedCards,
+        _requestedAttestations = requestedAttestations,
         super._();
 
   @override
@@ -217,12 +224,13 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
     return EqualUnmodifiableListView(_purpose);
   }
 
-  final List<DisclosureCard>? _requestedCards;
+  final List<Attestation>? _requestedAttestations;
   @override
-  List<DisclosureCard>? get requestedCards {
-    final value = _requestedCards;
+  List<Attestation>? get requestedAttestations {
+    final value = _requestedAttestations;
     if (value == null) return null;
-    if (_requestedCards is EqualUnmodifiableListView) return _requestedCards;
+    if (_requestedAttestations is EqualUnmodifiableListView)
+      return _requestedAttestations;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(value);
   }
@@ -236,7 +244,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
 
   @override
   String toString() {
-    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
+    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedAttestations: $requestedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
   }
 
   @override
@@ -244,26 +252,38 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletEvent_DisclosureImpl &&
-            (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
-            (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
+            (identical(other.dateTime, dateTime) ||
+                other.dateTime == dateTime) &&
+            (identical(other.relyingParty, relyingParty) ||
+                other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._purpose, _purpose) &&
-            const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
-            (identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy) &&
+            const DeepCollectionEquality()
+                .equals(other._requestedAttestations, _requestedAttestations) &&
+            (identical(other.requestPolicy, requestPolicy) ||
+                other.requestPolicy == requestPolicy) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.typ, typ) || other.typ == typ));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
-      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, typ);
+  int get hashCode => Object.hash(
+      runtimeType,
+      dateTime,
+      relyingParty,
+      const DeepCollectionEquality().hash(_purpose),
+      const DeepCollectionEquality().hash(_requestedAttestations),
+      requestPolicy,
+      status,
+      typ);
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
-      __$$WalletEvent_DisclosureImplCopyWithImpl<_$WalletEvent_DisclosureImpl>(this, _$identity);
+  _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl>
+      get copyWith => __$$WalletEvent_DisclosureImplCopyWithImpl<
+          _$WalletEvent_DisclosureImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -272,14 +292,16 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)
         disclosure,
-    required TResult Function(String dateTime, Attestation attestation) issuance,
+    required TResult Function(String dateTime, Attestation attestation)
+        issuance,
   }) {
-    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
+    return disclosure(dateTime, relyingParty, purpose, requestedAttestations,
+        requestPolicy, status, typ);
   }
 
   @override
@@ -289,14 +311,15 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
     TResult? Function(String dateTime, Attestation attestation)? issuance,
   }) {
-    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
+    return disclosure?.call(dateTime, relyingParty, purpose,
+        requestedAttestations, requestPolicy, status, typ);
   }
 
   @override
@@ -306,7 +329,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -315,7 +338,8 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
     required TResult orElse(),
   }) {
     if (disclosure != null) {
-      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
+      return disclosure(dateTime, relyingParty, purpose, requestedAttestations,
+          requestPolicy, status, typ);
     }
     return orElse();
   }
@@ -357,7 +381,7 @@ abstract class WalletEvent_Disclosure extends WalletEvent {
       {required final String dateTime,
       required final Organization relyingParty,
       required final List<LocalizedString> purpose,
-      final List<DisclosureCard>? requestedCards,
+      final List<Attestation>? requestedAttestations,
       required final RequestPolicy requestPolicy,
       required final DisclosureStatus status,
       required final DisclosureType typ}) = _$WalletEvent_DisclosureImpl;
@@ -367,7 +391,7 @@ abstract class WalletEvent_Disclosure extends WalletEvent {
   String get dateTime;
   Organization get relyingParty;
   List<LocalizedString> get purpose;
-  List<DisclosureCard>? get requestedCards;
+  List<Attestation>? get requestedAttestations;
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
   DisclosureType get typ;
@@ -376,14 +400,15 @@ abstract class WalletEvent_Disclosure extends WalletEvent {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$WalletEvent_DisclosureImplCopyWith<_$WalletEvent_DisclosureImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$WalletEvent_IssuanceImplCopyWith<$Res> implements $WalletEventCopyWith<$Res> {
-  factory _$$WalletEvent_IssuanceImplCopyWith(
-          _$WalletEvent_IssuanceImpl value, $Res Function(_$WalletEvent_IssuanceImpl) then) =
+abstract class _$$WalletEvent_IssuanceImplCopyWith<$Res>
+    implements $WalletEventCopyWith<$Res> {
+  factory _$$WalletEvent_IssuanceImplCopyWith(_$WalletEvent_IssuanceImpl value,
+          $Res Function(_$WalletEvent_IssuanceImpl) then) =
       __$$WalletEvent_IssuanceImplCopyWithImpl<$Res>;
   @override
   @useResult
@@ -391,10 +416,11 @@ abstract class _$$WalletEvent_IssuanceImplCopyWith<$Res> implements $WalletEvent
 }
 
 /// @nodoc
-class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWithImpl<$Res, _$WalletEvent_IssuanceImpl>
+class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res>
+    extends _$WalletEventCopyWithImpl<$Res, _$WalletEvent_IssuanceImpl>
     implements _$$WalletEvent_IssuanceImplCopyWith<$Res> {
-  __$$WalletEvent_IssuanceImplCopyWithImpl(
-      _$WalletEvent_IssuanceImpl _value, $Res Function(_$WalletEvent_IssuanceImpl) _then)
+  __$$WalletEvent_IssuanceImplCopyWithImpl(_$WalletEvent_IssuanceImpl _value,
+      $Res Function(_$WalletEvent_IssuanceImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of WalletEvent
@@ -421,7 +447,9 @@ class __$$WalletEvent_IssuanceImplCopyWithImpl<$Res> extends _$WalletEventCopyWi
 /// @nodoc
 
 class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
-  const _$WalletEvent_IssuanceImpl({required this.dateTime, required this.attestation}) : super._();
+  const _$WalletEvent_IssuanceImpl(
+      {required this.dateTime, required this.attestation})
+      : super._();
 
   @override
   final String dateTime;
@@ -438,8 +466,10 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$WalletEvent_IssuanceImpl &&
-            (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
-            (identical(other.attestation, attestation) || other.attestation == attestation));
+            (identical(other.dateTime, dateTime) ||
+                other.dateTime == dateTime) &&
+            (identical(other.attestation, attestation) ||
+                other.attestation == attestation));
   }
 
   @override
@@ -450,8 +480,10 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl> get copyWith =>
-      __$$WalletEvent_IssuanceImplCopyWithImpl<_$WalletEvent_IssuanceImpl>(this, _$identity);
+  _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl>
+      get copyWith =>
+          __$$WalletEvent_IssuanceImplCopyWithImpl<_$WalletEvent_IssuanceImpl>(
+              this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -460,12 +492,13 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)
         disclosure,
-    required TResult Function(String dateTime, Attestation attestation) issuance,
+    required TResult Function(String dateTime, Attestation attestation)
+        issuance,
   }) {
     return issuance(dateTime, attestation);
   }
@@ -477,7 +510,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -494,7 +527,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -541,8 +574,9 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
 }
 
 abstract class WalletEvent_Issuance extends WalletEvent {
-  const factory WalletEvent_Issuance({required final String dateTime, required final Attestation attestation}) =
-      _$WalletEvent_IssuanceImpl;
+  const factory WalletEvent_Issuance(
+      {required final String dateTime,
+      required final Attestation attestation}) = _$WalletEvent_IssuanceImpl;
   const WalletEvent_Issuance._() : super._();
 
   @override
@@ -553,5 +587,6 @@ abstract class WalletEvent_Issuance extends WalletEvent {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl> get copyWith => throw _privateConstructorUsedError;
+  _$$WalletEvent_IssuanceImplCopyWith<_$WalletEvent_IssuanceImpl>
+      get copyWith => throw _privateConstructorUsedError;
 }
