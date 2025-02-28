@@ -1,7 +1,8 @@
+use std::collections::HashSet;
+
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
@@ -9,6 +10,8 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use uuid::Uuid;
 
+use entity::disclosure_history_event::EventStatus;
+use entity::disclosure_history_event::EventType;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
@@ -20,13 +23,10 @@ use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::DocType;
 use nl_wallet_mdoc::NameSpace;
 
-use entity::disclosure_history_event;
-use entity::issuance_history_event;
-
 const PID_DOCTYPE: &str = "com.example.pid";
 
-pub type DisclosureStatus = disclosure_history_event::EventStatus;
-pub type DisclosureType = disclosure_history_event::EventType;
+pub type DisclosureStatus = EventStatus;
+pub type DisclosureType = EventType;
 
 /// Something is a login flow if the `proposed_attributes` map has exactly one element with a
 /// `doc_type` of `PID_DOCTYPE`, with a `doc_attributes` map where `namespace` is `PID_DOCTYPE`
@@ -44,7 +44,7 @@ pub fn disclosure_type_for_proposed_attributes(proposed_attributes: &ProposedAtt
         .unwrap_or(DisclosureType::Regular)
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum WalletEvent {
     Issuance {
         id: Uuid,
@@ -87,7 +87,7 @@ impl WalletEvent {
     }
 
     /// Returns the associated doc_types for this event. Will return an empty set if there are no attributes.
-    pub fn associated_doc_types(&self) -> IndexSet<&str> {
+    pub(super) fn associated_doc_types(&self) -> HashSet<&str> {
         match self {
             Self::Issuance {
                 mdocs: EventDocuments(mdocs),
@@ -106,33 +106,6 @@ impl WalletEvent {
             Self::Issuance { timestamp, .. } => timestamp,
             Self::Disclosure { timestamp, .. } => timestamp,
         }
-    }
-}
-
-impl TryFrom<disclosure_history_event::Model> for WalletEvent {
-    type Error = serde_json::Error;
-    fn try_from(event: disclosure_history_event::Model) -> Result<Self, Self::Error> {
-        let result = Self::Disclosure {
-            id: event.id,
-            status: event.status,
-            r#type: event.r#type,
-            documents: event.attributes.map(serde_json::from_value).transpose()?,
-            timestamp: event.timestamp,
-            reader_certificate: Box::new(BorrowingCertificate::from_der(event.relying_party_certificate).unwrap()), /* Unwrapping here is safe since the certificate has been parsed before */
-        };
-        Ok(result)
-    }
-}
-
-impl TryFrom<issuance_history_event::Model> for WalletEvent {
-    type Error = serde_json::Error;
-    fn try_from(event: issuance_history_event::Model) -> Result<Self, Self::Error> {
-        let result = Self::Issuance {
-            id: event.id,
-            mdocs: serde_json::from_value(event.attributes)?,
-            timestamp: event.timestamp,
-        };
-        Ok(result)
     }
 }
 

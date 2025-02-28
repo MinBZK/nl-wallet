@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 
 use futures::try_join;
+use itertools::Itertools;
 use sea_orm::sea_query::Alias;
 use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
@@ -96,6 +97,34 @@ impl WalletEventModel {
             }),
         };
         Ok(result)
+    }
+}
+
+/// Convert the database model to a [`WalletEvent`].
+impl WalletEvent {
+    fn from_issuance_model(event: issuance_history_event::Model) -> Result<Self, serde_json::Error> {
+        let wallet_event = Self::Issuance {
+            id: event.id,
+            mdocs: serde_json::from_value(event.attributes)?,
+            timestamp: event.timestamp,
+        };
+
+        Ok(wallet_event)
+    }
+
+    fn from_disclosure_model(event: disclosure_history_event::Model) -> Result<Self, serde_json::Error> {
+        // Unwrapping here is safe since the certificate has been parsed before
+        let reader_certificate = BorrowingCertificate::from_der(event.relying_party_certificate).unwrap();
+        let wallet_event = Self::Disclosure {
+            id: event.id,
+            status: event.status,
+            r#type: event.r#type,
+            documents: event.attributes.map(serde_json::from_value).transpose()?,
+            timestamp: event.timestamp,
+            reader_certificate: Box::new(reader_certificate),
+        };
+
+        Ok(wallet_event)
     }
 }
 
@@ -285,18 +314,15 @@ impl<K> DatabaseStorage<K> {
         issuance_events: Vec<issuance_history_event::Model>,
         disclosure_events: Vec<disclosure_history_event::Model>,
     ) -> StorageResult<Vec<WalletEvent>> {
-        let mut issuance_events: Vec<WalletEvent> = issuance_events
+        let mut events: Vec<WalletEvent> = issuance_events
             .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<Vec<_>, _>>()?;
-        let mut disclosure_events: Vec<WalletEvent> = disclosure_events
-            .into_iter()
-            .map(WalletEvent::try_from)
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(WalletEvent::from_issuance_model)
+            .chain(disclosure_events.into_iter().map(WalletEvent::from_disclosure_model))
+            .try_collect()?;
 
-        issuance_events.append(&mut disclosure_events);
-        issuance_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
-        Ok(issuance_events)
+        events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
+
+        Ok(events)
     }
 }
 
