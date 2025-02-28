@@ -43,6 +43,7 @@ axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio"
 base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
+derive_more = { workspace = true, features = ["as_ref", "from"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }

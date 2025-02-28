@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -19,13 +18,10 @@ use axum_extra::headers::authorization::Credentials;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
-use derive_more::AsRef;
-use derive_more::From;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use tracing::warn;
 
-use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
@@ -48,22 +44,10 @@ use openid4vc::CredentialErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
-use wallet_common::keys::EcdsaKeySend;
 use wallet_common::urls::BaseUrl;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,
-}
-
-#[derive(From, AsRef)]
-pub struct IssuerKeyRing<K>(HashMap<String, KeyPair<K>>);
-
-impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
-    type Key = K;
-
-    fn key_pair(&self, id: &str) -> Option<&KeyPair<K>> {
-        self.as_ref().get(id)
-    }
 }
 
 pub fn create_issuance_router<A, K, S, W>(

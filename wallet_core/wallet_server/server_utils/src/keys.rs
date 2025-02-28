@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use futures::future::join_all;
 use p256::ecdsa;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
@@ -9,15 +6,11 @@ use p256::ecdsa::VerifyingKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::server_keys::KeyPair as ParsedKeyPair;
 use nl_wallet_mdoc::utils::x509::CertificateError;
-use openid4vc_server::issuer::IssuerKeyRing;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::EcdsaKeySend;
 
-use crate::settings::KeyPair;
 use crate::settings::PrivateKey;
-use crate::settings::TryFromKeySettings;
 
 pub enum PrivateKeyVariant {
     Software(SigningKey),
@@ -69,29 +62,5 @@ impl PrivateKeyVariant {
             }
         };
         Ok(pk)
-    }
-}
-
-impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyVariant> {
-    type Error = PrivateKeySettingsError;
-
-    async fn try_from_key_settings(
-        private_keys: HashMap<String, KeyPair>,
-        hsm: Option<Pkcs11Hsm>,
-    ) -> Result<Self, Self::Error> {
-        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async {
-            let result = (
-                doctype,
-                ParsedKeyPair::try_from_key_settings(key_pair, hsm.clone()).await?,
-            );
-            Ok(result)
-        });
-
-        let issuer_keys = join_all(iter)
-            .await
-            .into_iter()
-            .collect::<Result<HashMap<String, ParsedKeyPair<PrivateKeyVariant>>, Self::Error>>()?;
-
-        Ok(issuer_keys.into())
     }
 }

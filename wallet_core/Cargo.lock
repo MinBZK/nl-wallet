@@ -4093,6 +4093,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "derive_more",
  "futures",
  "hsm",
  "http",
