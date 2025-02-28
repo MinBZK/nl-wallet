@@ -2,24 +2,27 @@ use std::io;
 
 use anyhow::Result;
 use axum::Router;
+use hsm::service::Pkcs11Hsm;
 use tokio::net::TcpListener;
 use tower_http::validate_request::ValidateRequestHeaderLayer;
 use tracing::info;
 
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::UseCases;
 use openid4vc_server::verifier;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
+use server_utils::settings::TryFromKeySettings;
 use wallet_common::built_info::version_string;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use crate::settings::VerifierSettings;
 
-pub async fn serve<S>(settings: VerifierSettings, disclosure_sessions: S) -> Result<()>
+pub async fn serve<S>(settings: VerifierSettings, hsm: Option<Pkcs11Hsm>, disclosure_sessions: S) -> Result<()>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
@@ -28,7 +31,7 @@ where
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.server_settings.public_url,
         settings.universal_link_base_url,
-        settings.usecases.try_into()?,
+        UseCases::try_from_key_settings(settings.usecases, hsm).await?,
         (&settings.ephemeral_id_secret).into(),
         settings
             .server_settings

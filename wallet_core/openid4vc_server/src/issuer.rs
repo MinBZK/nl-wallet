@@ -21,14 +21,12 @@ use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use derive_more::AsRef;
 use derive_more::From;
-use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 use tracing::warn;
 
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::server_keys::KeyRing;
-use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -65,25 +63,6 @@ impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
 
     fn key_pair(&self, id: &str) -> Option<&KeyPair<K>> {
         self.as_ref().get(id)
-    }
-}
-
-impl IssuerKeyRing<SigningKey> {
-    pub fn try_new<T>(private_keys: HashMap<String, T>) -> Result<Self, CertificateError>
-    where
-        T: TryInto<KeyPair<SigningKey>>,
-        CertificateError: From<T::Error>,
-    {
-        let key_ring = private_keys
-            .into_iter()
-            .map(|(doctype, key_pair)| {
-                let key_pair = key_pair.try_into()?;
-                Ok((doctype, key_pair))
-            })
-            .collect::<Result<HashMap<_, _>, CertificateError>>()?
-            .into();
-
-        Ok(key_ring)
     }
 }
 

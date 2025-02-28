@@ -43,26 +43,28 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonError;
+use wallet_common::keys::EcdsaKeySend;
 use wallet_common::urls;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 
-struct ApplicationState<S> {
-    verifier: Verifier<S>,
+struct ApplicationState<S, K> {
+    verifier: Verifier<S, K>,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
 }
 
-fn create_application_state<S>(
+fn create_application_state<S, K>(
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
-    use_cases: UseCases,
+    use_cases: UseCases<K>,
     ephemeral_id_secret: hmac::Key,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     sessions: S,
-) -> ApplicationState<S>
+) -> ApplicationState<S, K>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    K: EcdsaKeySend,
 {
     ApplicationState {
         verifier: Verifier::new(use_cases, sessions, issuer_trust_anchors, ephemeral_id_secret),
@@ -77,10 +79,10 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
         .allow_methods([Method::GET, Method::DELETE])
 }
 
-pub fn create_routers<S>(
+pub fn create_routers<S, K>(
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
-    use_cases: UseCases,
+    use_cases: UseCases<K>,
     ephemeral_id_secret: hmac::Key,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     allow_origins: Option<CorsOrigin>,
@@ -88,6 +90,7 @@ pub fn create_routers<S>(
 ) -> (Router, Router)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    K: EcdsaKeySend + Sync + 'static,
 {
     let application_state = Arc::new(create_application_state(
         public_url,
@@ -99,8 +102,8 @@ where
     ));
 
     let mut wallet_web = Router::new()
-        .route("/{session_token}", get(status::<S>))
-        .route("/{session_token}", delete(cancel::<S>));
+        .route("/{session_token}", get(status::<S, K>))
+        .route("/{session_token}", delete(cancel::<S, K>));
 
     if let Some(cors_origin) = allow_origins {
         // The CORS headers should be set for these routes, so that any web browser may call them.
@@ -111,15 +114,18 @@ where
     // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
     // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
     let wallet_router = Router::new()
-        .route("/{session_token}/request_uri", get(retrieve_request::<S>))
-        .route("/{session_token}/request_uri", post(retrieve_request::<S>))
-        .route("/{session_token}/response_uri", post(post_response::<S>))
+        .route("/{session_token}/request_uri", get(retrieve_request::<S, K>))
+        .route("/{session_token}/request_uri", post(retrieve_request::<S, K>))
+        .route("/{session_token}/response_uri", post(post_response::<S, K>))
         .merge(wallet_web)
         .with_state(Arc::clone(&application_state));
 
     let requester_router = Router::new()
-        .route("/", post(start::<S>))
-        .route("/{session_token}/disclosed_attributes", get(disclosed_attributes::<S>))
+        .route("/", post(start::<S, K>))
+        .route(
+            "/{session_token}/disclosed_attributes",
+            get(disclosed_attributes::<S, K>),
+        )
         .with_state(application_state);
 
     (
@@ -128,14 +134,15 @@ where
     )
 }
 
-async fn retrieve_request<S>(
+async fn retrieve_request<S, K>(
     uri: Uri,
-    State(state): State<Arc<ApplicationState<S>>>,
+    State(state): State<Arc<ApplicationState<S, K>>>,
     Path(session_token): Path<SessionToken>,
     Form(wallet_request): Form<WalletRequest>,
 ) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    K: EcdsaKeySend,
 {
     info!("process request for Authorization Request JWT");
 
@@ -163,13 +170,14 @@ where
     Ok((headers, response.0))
 }
 
-async fn post_response<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+async fn post_response<S, K>(
+    State(state): State<Arc<ApplicationState<S, K>>>,
     Path(session_token): Path<SessionToken>,
     Form(wallet_response): Form<WalletAuthResponse>,
 ) -> Result<Json<VpResponse>, DisclosureErrorResponse<PostAuthResponseErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    K: EcdsaKeySend,
 {
     info!("process Verifiable Presentation");
 
@@ -189,13 +197,14 @@ pub struct StatusParams {
     pub session_type: Option<SessionType>,
 }
 
-async fn status<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+async fn status<S, K>(
+    State(state): State<Arc<ApplicationState<S, K>>>,
     Path(session_token): Path<SessionToken>,
     Query(query): Query<StatusParams>,
 ) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
-    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+    S: SessionStore<DisclosureData>,
+    K: EcdsaKeySend,
 {
     let response = state
         .verifier
@@ -214,12 +223,13 @@ where
     Ok(Json(response))
 }
 
-async fn cancel<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+async fn cancel<S, K>(
+    State(state): State<Arc<ApplicationState<S, K>>>,
     Path(session_token): Path<SessionToken>,
 ) -> Result<StatusCode, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    K: EcdsaKeySend,
 {
     state
         .verifier
@@ -242,12 +252,13 @@ pub struct StartDisclosureResponse {
     pub session_token: SessionToken,
 }
 
-async fn start<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+async fn start<S, K>(
+    State(state): State<Arc<ApplicationState<S, K>>>,
     Json(start_request): Json<StartDisclosureRequest>,
 ) -> Result<Json<StartDisclosureResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    K: EcdsaKeySend,
 {
     let session_token = state
         .verifier
@@ -267,13 +278,14 @@ pub struct DisclosedAttributesParams {
     pub nonce: Option<String>,
 }
 
-async fn disclosed_attributes<S>(
-    State(state): State<Arc<ApplicationState<S>>>,
+async fn disclosed_attributes<S, K>(
+    State(state): State<Arc<ApplicationState<S, K>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Json<DisclosedAttributes>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    K: EcdsaKeySend,
 {
     let disclosed_attributes = state
         .verifier

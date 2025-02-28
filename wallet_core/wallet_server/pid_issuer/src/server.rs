@@ -2,6 +2,7 @@ use anyhow::Result;
 use axum::Router;
 use tracing::info;
 
+use hsm::service::Pkcs11Hsm;
 use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
@@ -10,6 +11,7 @@ use openid4vc_server::issuer::IssuerKeyRing;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Server;
+use server_utils::settings::TryFromKeySettings;
 use wallet_common::built_info::version_string;
 
 use crate::settings::IssuerSettings;
@@ -17,6 +19,7 @@ use crate::settings::IssuerSettings;
 pub async fn serve<A, IS, W>(
     attr_service: A,
     settings: IssuerSettings,
+    hsm: Option<Pkcs11Hsm>,
     issuance_sessions: IS,
     wte_tracker: W,
 ) -> Result<()>
@@ -27,7 +30,7 @@ where
 {
     let log_requests = settings.server_settings.log_requests;
 
-    let private_keys = IssuerKeyRing::try_new(settings.private_keys)?;
+    let private_keys = IssuerKeyRing::try_from_key_settings(settings.private_keys, hsm).await?;
     let wallet_issuance_router = create_issuance_router(
         &settings.server_settings.public_url,
         private_keys,

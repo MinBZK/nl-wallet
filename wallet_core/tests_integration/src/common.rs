@@ -30,6 +30,7 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
+use hsm::service::Pkcs11Hsm;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
@@ -207,11 +208,16 @@ pub async fn setup_wallet_and_env(
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
+    assert_eq!(Some(wp_settings.hsm.clone()), verifier_settings.server_settings.hsm);
+    assert_eq!(Some(wp_settings.hsm.clone()), issuer_settings.server_settings.hsm);
+
+    let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
+
     start_config_server(cs_settings, cs_root_ca).await;
     start_update_policy_server(ups_settings, ups_root_ca).await;
-    start_wallet_provider(wp_settings, wp_root_ca).await;
-    start_verification_server(verifier_settings).await;
-    start_issuer_server(issuer_settings, MockAttributeService).await;
+    start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
+    start_verification_server(verifier_settings, Some(hsm.clone())).await;
+    start_issuer_server(issuer_settings, Some(hsm), MockAttributeService).await;
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
@@ -330,7 +336,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
-pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
+pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_wp_base_url(&settings.webserver.port);
 
     let play_integrity_client = MockPlayIntegrityClient::new(
@@ -340,7 +346,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTr
 
     tokio::spawn(async {
         if let Err(error) =
-            wallet_provider::server::serve(settings, RevocationStatusList::default(), play_integrity_client).await
+            wallet_provider::server::serve(settings, hsm, RevocationStatusList::default(), play_integrity_client).await
         {
             println!("Could not start wallet_provider: {:?}", error);
 
@@ -393,6 +399,7 @@ pub fn wallet_server_internal_url(auth: &RequesterAuth, public_url: &BaseUrl) ->
 
 pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
     settings: IssuerSettings,
+    hsm: Option<Pkcs11Hsm>,
     attr_service: A,
 ) {
     let storage_settings = &settings.server_settings.storage;
@@ -406,7 +413,8 @@ pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
     let wte_tracker = WteTrackerVariant::new(db_connection);
 
     tokio::spawn(async move {
-        if let Err(error) = pid_issuer::server::serve(attr_service, settings, issuance_sessions, wte_tracker).await {
+        if let Err(error) = pid_issuer::server::serve(attr_service, settings, hsm, issuance_sessions, wte_tracker).await
+        {
             println!("Could not start pid_issuer: {:?}", error);
 
             process::exit(1);
@@ -416,7 +424,7 @@ pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
     wait_for_server(public_url, vec![]).await;
 }
 
-pub async fn start_verification_server(settings: VerifierSettings) {
+pub async fn start_verification_server(settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) {
     let storage_settings = &settings.server_settings.storage;
     let public_url = settings.server_settings.public_url.clone();
 
@@ -427,7 +435,7 @@ pub async fn start_verification_server(settings: VerifierSettings) {
     let disclosure_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
 
     tokio::spawn(async move {
-        if let Err(error) = verification_server::server::serve(settings, disclosure_sessions).await {
+        if let Err(error) = verification_server::server::serve(settings, hsm, disclosure_sessions).await {
             println!("Could not start verification_server: {:?}", error);
 
             process::exit(1);

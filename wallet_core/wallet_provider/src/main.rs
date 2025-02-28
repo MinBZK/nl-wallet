@@ -5,6 +5,7 @@ use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
 use android_attest::android_crl::GoogleRevocationListClient;
+use hsm::service::Pkcs11Hsm;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_provider::server;
 use wallet_provider::settings::Settings;
@@ -23,6 +24,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     } else {
         builder.init();
     }
+
+    let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone())?;
 
     let reqwest_client = default_reqwest_client_builder().build()?;
     let google_crl_client = GoogleRevocationListClient::new(reqwest_client.clone());
@@ -51,5 +54,5 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    server::serve(settings, google_crl_client, play_integrity_client).await
+    server::serve(settings, hsm, google_crl_client, play_integrity_client).await
 }

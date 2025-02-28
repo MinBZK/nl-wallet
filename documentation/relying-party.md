@@ -275,6 +275,10 @@ PKI-Overheid).
 When you send us your certificate request, we will send you a signed certificate
 and a copy of our certificate authority certificate.
 
+Note that the verification server supports both software private keys and
+hardware private keys located in an HSM. The remainder of this document assumes
+software keys.
+
 Without further ado, let's create a private key, an `openssl` config and a
 certificate request:
 
@@ -659,6 +663,24 @@ certificate = '$WAUSECASECERT'
 private_key = '$WAUSECASEKEY'
 EOF
 ```
+
+Note: when using an HSM key, the `private_key` field of the usecase should be
+the HSM key label, and the configuration must contain an `[hsm]` section, with
+the following structure.
+
+```toml
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = ${HSM_MAX_SESSIONS}
+max_session_lifetime_in_sec = "${HSM_SESSION_LIFETIME}"
+```
+
+It is possible to use both hardware and software private keys in the same
+verification server instance. When the `private_key` contains a Base64 DER-
+encoded private key, it's used as software key, otherwise it will use the
+value of `private_key` as the HSM key label. The configuration is verified
+at startup, so invalid (key) configuration will be reported immediately.
 
 You should now have a configuration file in the current directory called
 `verification_server.toml`. Feel free to check the file to see if everything

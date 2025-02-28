@@ -44,11 +44,10 @@ pub struct RouterState<GRC, PIC> {
 impl<GRC, PIC> RouterState<GRC, PIC> {
     pub async fn new_from_settings(
         settings: Settings,
+        hsm: Pkcs11Hsm,
         google_crl_client: GRC,
         play_integrity_client: PIC,
     ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
-        let hsm = Pkcs11Hsm::from_settings(settings.hsm)?;
-
         let certificate_signing_key = WalletCertificateSigning(HsmEcdsaKey::new(
             settings.certificate_signing_key_identifier,
             hsm.clone(),

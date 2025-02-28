@@ -12,6 +12,8 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
+use hsm::service::Pkcs11Hsm;
+use hsm::settings::Hsm;
 use nl_wallet_mdoc::server_keys::KeyPair as ParsedKeyPair;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -22,6 +24,9 @@ use wallet_common::generator::Generator;
 use wallet_common::p256_der::DerSigningKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
+
+use crate::keys::PrivateKeySettingsError;
+use crate::keys::PrivateKeyVariant;
 
 /// Settings shared by all variants of issuer/verifier servers.
 #[serde_as]
@@ -42,6 +47,9 @@ pub struct Settings {
     /// on application startup and the issuer of the disclosed attributes during disclosure sessions.
     #[serde_as(as = "Vec<Base64>")]
     pub issuer_trust_anchors: Vec<BorrowingTrustAnchor>,
+
+    /// Optional HSM settings in which private keys can be stored
+    pub hsm: Option<Hsm>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -84,8 +92,15 @@ pub struct Storage {
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
     pub certificate: BorrowingCertificate,
-    #[serde_as(as = "Base64")]
-    pub private_key: DerSigningKey,
+    pub private_key: PrivateKey,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+#[serde(untagged)] // TODO: replace this with `#[serde(rename_all = "snake_case")]` when implementing PVW-4007
+pub enum PrivateKey {
+    Software(#[serde_as(as = "Base64")] DerSigningKey),
+    Hardware(String),
 }
 
 impl From<&Storage> for SessionStoreTimeouts {
@@ -98,11 +113,18 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
-impl TryFrom<KeyPair> for ParsedKeyPair {
-    type Error = CertificateError;
+pub trait TryFromKeySettings<SRC>: Sized {
+    type Error;
+    async fn try_from_key_settings(source: SRC, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error>;
+}
 
-    fn try_from(value: KeyPair) -> Result<Self, Self::Error> {
-        ParsedKeyPair::new_from_signing_key(value.private_key.into_inner(), value.certificate)
+impl TryFromKeySettings<KeyPair> for ParsedKeyPair<PrivateKeyVariant> {
+    type Error = PrivateKeySettingsError;
+
+    async fn try_from_key_settings(source: KeyPair, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
+        let private_key = PrivateKeyVariant::from_settings(source.private_key, hsm)?;
+        let key_pair = ParsedKeyPair::new(private_key, source.certificate).await?;
+        Ok(key_pair)
     }
 }
 
@@ -111,7 +133,7 @@ impl From<ParsedKeyPair> for KeyPair {
     fn from(value: ParsedKeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
-            private_key: DerSigningKey::from(value.private_key().clone()),
+            private_key: PrivateKey::Software(value.private_key().clone().into()),
         }
     }
 }
@@ -155,20 +177,14 @@ where
     for (key_pair_id, key_pair) in key_pairs {
         tracing::debug!("verifying certificate of {key_pair_id}");
 
-        let key_pair: ParsedKeyPair = key_pair
-            .clone()
-            .try_into()
-            .map_err(|error| CertificateVerificationError::InvalidKeyPair(error, key_pair_id.clone()))?;
-
-        let certificate = key_pair.certificate();
-
         if !trust_anchors.is_empty() {
-            certificate
+            key_pair
+                .certificate
                 .verify(usage, &[], time, trust_anchors)
                 .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.clone()))?;
         }
 
-        let certificate_type = CertificateType::from_certificate(certificate)
+        let certificate_type = CertificateType::from_certificate(&key_pair.certificate)
             .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.clone()))?;
 
         if !has_usage_registration(certificate_type) {

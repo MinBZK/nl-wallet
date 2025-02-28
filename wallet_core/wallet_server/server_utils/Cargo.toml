@@ -21,7 +21,9 @@ axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio"
 base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
+futures.workspace = true
 http.workspace = true
+p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rustls-pki-types.workspace = true
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
@@ -50,6 +52,8 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
+hsm.path = "../../hsm"
 nl_wallet_mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }
+openid4vc_server.path = "../../openid4vc_server"
 wallet_common = { path = "../../wallet_common", features = ["axum"] }

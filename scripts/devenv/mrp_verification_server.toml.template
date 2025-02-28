@@ -16,6 +16,12 @@ port = ${MOCK_RP_WS_PORT}
 ip = '0.0.0.0'
 port = ${MOCK_RP_RS_PORT}
 
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
 [usecases.mijn_amsterdam]
 certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"

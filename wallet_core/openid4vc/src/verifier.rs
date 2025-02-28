@@ -33,6 +33,7 @@ use nl_wallet_mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtError;
+use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -453,18 +454,18 @@ pub enum SessionTypeReturnUrl {
 }
 
 #[derive(Debug, From, AsRef)]
-pub struct UseCases(HashMap<String, UseCase>);
+pub struct UseCases<K>(HashMap<String, UseCase<K>>);
 
 #[derive(Debug)]
-pub struct UseCase {
-    pub key_pair: KeyPair,
+pub struct UseCase<K> {
+    pub key_pair: KeyPair<K>,
     pub client_id: String,
     pub session_type_return_url: SessionTypeReturnUrl,
 }
 
-impl UseCase {
+impl<K> UseCase<K> {
     pub fn try_new(
-        key_pair: KeyPair,
+        key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = String::from(
@@ -484,24 +485,25 @@ impl UseCase {
 }
 
 #[derive(Debug)]
-pub struct Verifier<S> {
-    use_cases: UseCases,
+pub struct Verifier<S, K> {
+    use_cases: UseCases<K>,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<TrustAnchor<'static>>,
     ephemeral_id_secret: hmac::Key,
 }
 
-impl<S> Drop for Verifier<S> {
+impl<S, K> Drop for Verifier<S, K> {
     fn drop(&mut self) {
         // Stop the task at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<S> Verifier<S>
+impl<S, K> Verifier<S, K>
 where
     S: SessionStore<DisclosureData>,
+    K: EcdsaKey,
 {
     /// Create a new [`Verifier`].
     ///
@@ -513,7 +515,7 @@ where
     ///   CAs.
     /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
     pub fn new(
-        use_cases: UseCases,
+        use_cases: UseCases<K>,
         sessions: S,
         trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: hmac::Key,
@@ -789,7 +791,7 @@ where
     }
 }
 
-impl<S> Verifier<S> {
+impl<S, K> Verifier<S, K> {
     fn generate_ephemeral_id(
         ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
@@ -898,17 +900,20 @@ impl Session<Created> {
 
     /// Process the device's request for the Authorization Request,
     /// returning a response to answer the device with and the next session state.
-    async fn process_get_request(
+    async fn process_get_request<K>(
         self,
         session_token: &SessionToken,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
-        use_cases: &UseCases,
+        use_cases: &UseCases<K>,
     ) -> Result<
         (Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
         (WithRedirectUri<GetAuthRequestError>, Session<Done>),
-    > {
+    >
+    where
+        K: EcdsaKey,
+    {
         info!("Session({}): process get request", self.state.token);
 
         let (response, next) = match self
@@ -938,13 +943,13 @@ impl Session<Created> {
     }
 
     // Helper function that returns ordinary errors instead of `Session<...>`
-    async fn process_get_request_inner(
+    async fn process_get_request_inner<K>(
         &self,
         session_token: &SessionToken,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
-        use_cases: &UseCases,
+        use_cases: &UseCases<K>,
     ) -> Result<
         (
             Jwt<VpAuthorizationRequest>,
@@ -953,7 +958,10 @@ impl Session<Created> {
             EcKeyPair,
         ),
         WithRedirectUri<GetAuthRequestError>,
-    > {
+    >
+    where
+        K: EcdsaKey,
+    {
         let usecase_id = &self.state().usecase_id;
         let usecase = use_cases.as_ref().get(usecase_id);
         let Some(usecase) = usecase else {
@@ -1124,6 +1132,7 @@ mod tests {
     use chrono::Utc;
     use indexmap::IndexMap;
     use itertools::Itertools;
+    use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::rand;
     use rstest::rstest;
@@ -1185,7 +1194,7 @@ mod tests {
         .into()
     }
 
-    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>> {
+    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>, SigningKey> {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
@@ -1260,7 +1269,7 @@ mod tests {
     async fn init_and_start_disclosure(
         time: &impl Generator<DateTime<Utc>>,
     ) -> (
-        Verifier<MemorySessionStore<DisclosureData>>,
+        Verifier<MemorySessionStore<DisclosureData>, SigningKey>,
         SessionToken,
         VpRequestUriObject,
     ) {
@@ -1513,11 +1522,11 @@ mod tests {
         let time = time_str.parse().unwrap();
 
         // Create a UL for the wallet, given the provided parameters.
-        let verifier_url = Verifier::<()>::format_ul(
+        let verifier_url = Verifier::<(), ()>::format_ul(
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             time,
-            Verifier::<()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
+            Verifier::<(), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
             SessionType::CrossDevice,
             "client_id".to_string(),
         )
