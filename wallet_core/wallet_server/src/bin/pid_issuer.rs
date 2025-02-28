@@ -1,5 +1,6 @@
 use anyhow::Result;
 
+use hsm::service::Pkcs11Hsm;
 use openid4vc_server::store::DatabaseConnection;
 use openid4vc_server::store::SessionStoreVariant;
 use openid4vc_server::store::WteTrackerVariant;
@@ -14,6 +15,8 @@ async fn main() -> Result<()> {
 }
 
 async fn main_impl(settings: Settings) -> Result<()> {
+    let hsm = settings.hsm.clone().map(Pkcs11Hsm::from_settings).transpose()?;
+
     let storage_settings = &settings.storage;
     let db_connection = DatabaseConnection::try_new(storage_settings.url.clone()).await?;
 
@@ -24,6 +27,7 @@ async fn main_impl(settings: Settings) -> Result<()> {
     server::pid_issuer::serve(
         BrpPidAttributeService::try_from(&settings.issuer)?,
         settings,
+        hsm,
         sessions,
         wte_tracker,
     )

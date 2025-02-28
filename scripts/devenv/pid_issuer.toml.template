@@ -24,6 +24,12 @@ bsn_privkey = '${BSN_PRIVKEY}'
 base_url = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
 trust_anchors = ["${DIGID_CA_CRT}"]
 
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
 [issuer.private_keys."com.example.pid"]
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"

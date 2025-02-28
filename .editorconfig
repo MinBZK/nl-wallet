@@ -20,5 +20,5 @@ indent_size = 2
 [Fastfile]
 indent_size = 2
 
-[{*.xml,*.yml,*.yaml,*.json,*.json.template}]
+[{*.xml,*.yml,*.yaml,*.js,*.json,*.json.template}]
 indent_size = 2
