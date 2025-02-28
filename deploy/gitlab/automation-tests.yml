@@ -7,6 +7,7 @@
     when: always
     paths:
       - uiautomation/build/test-results/**/*.xml
+      - uiautomation/build/allure-results
       - uiautomation/build/reports
     reports:
       junit: uiautomation/build/test-results/**/*.xml
@@ -125,6 +126,7 @@ run-automation-tests-publish-results:
     - { job: run-automation-tests-suite-web }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
