@@ -76,8 +76,7 @@ mixin _$FlutterVersionState {
 
 /// @nodoc
 abstract class $FlutterVersionStateCopyWith<$Res> {
-  factory $FlutterVersionStateCopyWith(
-          FlutterVersionState value, $Res Function(FlutterVersionState) then) =
+  factory $FlutterVersionStateCopyWith(FlutterVersionState value, $Res Function(FlutterVersionState) then) =
       _$FlutterVersionStateCopyWithImpl<$Res, FlutterVersionState>;
 }
 
@@ -98,19 +97,16 @@ class _$FlutterVersionStateCopyWithImpl<$Res, $Val extends FlutterVersionState>
 /// @nodoc
 abstract class _$$FlutterVersionState_OkImplCopyWith<$Res> {
   factory _$$FlutterVersionState_OkImplCopyWith(
-          _$FlutterVersionState_OkImpl value,
-          $Res Function(_$FlutterVersionState_OkImpl) then) =
+          _$FlutterVersionState_OkImpl value, $Res Function(_$FlutterVersionState_OkImpl) then) =
       __$$FlutterVersionState_OkImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$FlutterVersionState_OkImplCopyWithImpl<$Res>
-    extends _$FlutterVersionStateCopyWithImpl<$Res,
-        _$FlutterVersionState_OkImpl>
+    extends _$FlutterVersionStateCopyWithImpl<$Res, _$FlutterVersionState_OkImpl>
     implements _$$FlutterVersionState_OkImplCopyWith<$Res> {
   __$$FlutterVersionState_OkImplCopyWithImpl(
-      _$FlutterVersionState_OkImpl _value,
-      $Res Function(_$FlutterVersionState_OkImpl) _then)
+      _$FlutterVersionState_OkImpl _value, $Res Function(_$FlutterVersionState_OkImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of FlutterVersionState
@@ -129,9 +125,7 @@ class _$FlutterVersionState_OkImpl extends FlutterVersionState_Ok {
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$FlutterVersionState_OkImpl);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$FlutterVersionState_OkImpl);
   }
 
   @override
@@ -226,19 +220,16 @@ abstract class FlutterVersionState_Ok extends FlutterVersionState {
 /// @nodoc
 abstract class _$$FlutterVersionState_NotifyImplCopyWith<$Res> {
   factory _$$FlutterVersionState_NotifyImplCopyWith(
-          _$FlutterVersionState_NotifyImpl value,
-          $Res Function(_$FlutterVersionState_NotifyImpl) then) =
+          _$FlutterVersionState_NotifyImpl value, $Res Function(_$FlutterVersionState_NotifyImpl) then) =
       __$$FlutterVersionState_NotifyImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$FlutterVersionState_NotifyImplCopyWithImpl<$Res>
-    extends _$FlutterVersionStateCopyWithImpl<$Res,
-        _$FlutterVersionState_NotifyImpl>
+    extends _$FlutterVersionStateCopyWithImpl<$Res, _$FlutterVersionState_NotifyImpl>
     implements _$$FlutterVersionState_NotifyImplCopyWith<$Res> {
   __$$FlutterVersionState_NotifyImplCopyWithImpl(
-      _$FlutterVersionState_NotifyImpl _value,
-      $Res Function(_$FlutterVersionState_NotifyImpl) _then)
+      _$FlutterVersionState_NotifyImpl _value, $Res Function(_$FlutterVersionState_NotifyImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of FlutterVersionState
@@ -257,9 +248,7 @@ class _$FlutterVersionState_NotifyImpl extends FlutterVersionState_Notify {
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$FlutterVersionState_NotifyImpl);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$FlutterVersionState_NotifyImpl);
   }
 
   @override
@@ -354,19 +343,16 @@ abstract class FlutterVersionState_Notify extends FlutterVersionState {
 /// @nodoc
 abstract class _$$FlutterVersionState_RecommendImplCopyWith<$Res> {
   factory _$$FlutterVersionState_RecommendImplCopyWith(
-          _$FlutterVersionState_RecommendImpl value,
-          $Res Function(_$FlutterVersionState_RecommendImpl) then) =
+          _$FlutterVersionState_RecommendImpl value, $Res Function(_$FlutterVersionState_RecommendImpl) then) =
       __$$FlutterVersionState_RecommendImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$FlutterVersionState_RecommendImplCopyWithImpl<$Res>
-    extends _$FlutterVersionStateCopyWithImpl<$Res,
-        _$FlutterVersionState_RecommendImpl>
+    extends _$FlutterVersionStateCopyWithImpl<$Res, _$FlutterVersionState_RecommendImpl>
     implements _$$FlutterVersionState_RecommendImplCopyWith<$Res> {
   __$$FlutterVersionState_RecommendImplCopyWithImpl(
-      _$FlutterVersionState_RecommendImpl _value,
-      $Res Function(_$FlutterVersionState_RecommendImpl) _then)
+      _$FlutterVersionState_RecommendImpl _value, $Res Function(_$FlutterVersionState_RecommendImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of FlutterVersionState
@@ -375,8 +361,7 @@ class __$$FlutterVersionState_RecommendImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$FlutterVersionState_RecommendImpl
-    extends FlutterVersionState_Recommend {
+class _$FlutterVersionState_RecommendImpl extends FlutterVersionState_Recommend {
   const _$FlutterVersionState_RecommendImpl() : super._();
 
   @override
@@ -386,9 +371,7 @@ class _$FlutterVersionState_RecommendImpl
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$FlutterVersionState_RecommendImpl);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$FlutterVersionState_RecommendImpl);
   }
 
   @override
@@ -476,16 +459,14 @@ class _$FlutterVersionState_RecommendImpl
 }
 
 abstract class FlutterVersionState_Recommend extends FlutterVersionState {
-  const factory FlutterVersionState_Recommend() =
-      _$FlutterVersionState_RecommendImpl;
+  const factory FlutterVersionState_Recommend() = _$FlutterVersionState_RecommendImpl;
   const FlutterVersionState_Recommend._() : super._();
 }
 
 /// @nodoc
 abstract class _$$FlutterVersionState_WarnImplCopyWith<$Res> {
   factory _$$FlutterVersionState_WarnImplCopyWith(
-          _$FlutterVersionState_WarnImpl value,
-          $Res Function(_$FlutterVersionState_WarnImpl) then) =
+          _$FlutterVersionState_WarnImpl value, $Res Function(_$FlutterVersionState_WarnImpl) then) =
       __$$FlutterVersionState_WarnImplCopyWithImpl<$Res>;
   @useResult
   $Res call({BigInt expiresInSeconds});
@@ -493,12 +474,10 @@ abstract class _$$FlutterVersionState_WarnImplCopyWith<$Res> {
 
 /// @nodoc
 class __$$FlutterVersionState_WarnImplCopyWithImpl<$Res>
-    extends _$FlutterVersionStateCopyWithImpl<$Res,
-        _$FlutterVersionState_WarnImpl>
+    extends _$FlutterVersionStateCopyWithImpl<$Res, _$FlutterVersionState_WarnImpl>
     implements _$$FlutterVersionState_WarnImplCopyWith<$Res> {
   __$$FlutterVersionState_WarnImplCopyWithImpl(
-      _$FlutterVersionState_WarnImpl _value,
-      $Res Function(_$FlutterVersionState_WarnImpl) _then)
+      _$FlutterVersionState_WarnImpl _value, $Res Function(_$FlutterVersionState_WarnImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of FlutterVersionState
@@ -520,8 +499,7 @@ class __$$FlutterVersionState_WarnImplCopyWithImpl<$Res>
 /// @nodoc
 
 class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
-  const _$FlutterVersionState_WarnImpl({required this.expiresInSeconds})
-      : super._();
+  const _$FlutterVersionState_WarnImpl({required this.expiresInSeconds}) : super._();
 
   @override
   final BigInt expiresInSeconds;
@@ -536,8 +514,7 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is _$FlutterVersionState_WarnImpl &&
-            (identical(other.expiresInSeconds, expiresInSeconds) ||
-                other.expiresInSeconds == expiresInSeconds));
+            (identical(other.expiresInSeconds, expiresInSeconds) || other.expiresInSeconds == expiresInSeconds));
   }
 
   @override
@@ -548,9 +525,8 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$FlutterVersionState_WarnImplCopyWith<_$FlutterVersionState_WarnImpl>
-      get copyWith => __$$FlutterVersionState_WarnImplCopyWithImpl<
-          _$FlutterVersionState_WarnImpl>(this, _$identity);
+  _$$FlutterVersionState_WarnImplCopyWith<_$FlutterVersionState_WarnImpl> get copyWith =>
+      __$$FlutterVersionState_WarnImplCopyWithImpl<_$FlutterVersionState_WarnImpl>(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -634,9 +610,7 @@ class _$FlutterVersionState_WarnImpl extends FlutterVersionState_Warn {
 }
 
 abstract class FlutterVersionState_Warn extends FlutterVersionState {
-  const factory FlutterVersionState_Warn(
-          {required final BigInt expiresInSeconds}) =
-      _$FlutterVersionState_WarnImpl;
+  const factory FlutterVersionState_Warn({required final BigInt expiresInSeconds}) = _$FlutterVersionState_WarnImpl;
   const FlutterVersionState_Warn._() : super._();
 
   BigInt get expiresInSeconds;
@@ -644,26 +618,23 @@ abstract class FlutterVersionState_Warn extends FlutterVersionState {
   /// Create a copy of FlutterVersionState
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$FlutterVersionState_WarnImplCopyWith<_$FlutterVersionState_WarnImpl>
-      get copyWith => throw _privateConstructorUsedError;
+  _$$FlutterVersionState_WarnImplCopyWith<_$FlutterVersionState_WarnImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
 abstract class _$$FlutterVersionState_BlockImplCopyWith<$Res> {
   factory _$$FlutterVersionState_BlockImplCopyWith(
-          _$FlutterVersionState_BlockImpl value,
-          $Res Function(_$FlutterVersionState_BlockImpl) then) =
+          _$FlutterVersionState_BlockImpl value, $Res Function(_$FlutterVersionState_BlockImpl) then) =
       __$$FlutterVersionState_BlockImplCopyWithImpl<$Res>;
 }
 
 /// @nodoc
 class __$$FlutterVersionState_BlockImplCopyWithImpl<$Res>
-    extends _$FlutterVersionStateCopyWithImpl<$Res,
-        _$FlutterVersionState_BlockImpl>
+    extends _$FlutterVersionStateCopyWithImpl<$Res, _$FlutterVersionState_BlockImpl>
     implements _$$FlutterVersionState_BlockImplCopyWith<$Res> {
   __$$FlutterVersionState_BlockImplCopyWithImpl(
-      _$FlutterVersionState_BlockImpl _value,
-      $Res Function(_$FlutterVersionState_BlockImpl) _then)
+      _$FlutterVersionState_BlockImpl _value, $Res Function(_$FlutterVersionState_BlockImpl) _then)
       : super(_value, _then);
 
   /// Create a copy of FlutterVersionState
@@ -682,9 +653,7 @@ class _$FlutterVersionState_BlockImpl extends FlutterVersionState_Block {
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$FlutterVersionState_BlockImpl);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is _$FlutterVersionState_BlockImpl);
   }
 
   @override
