@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
-import '../../../util/extension/text_style_extension.dart';
+import 'default_text_and_focus_style.dart';
 
 const _kIconSize = 24.0;
 
@@ -47,7 +47,7 @@ class _InfoRowState extends State<InfoRow> {
 
   @override
   Widget build(BuildContext context) {
-    final pressedForegroundColor = context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
+    final textPressedColor = context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
     return Semantics(
       button: widget.onTap != null,
       child: TextButton.icon(
@@ -82,17 +82,17 @@ class _InfoRowState extends State<InfoRow> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (widget.title != null)
-                      DefaultTextStyle(
-                        style: context.textTheme.titleMedium!
-                            .colorWhenPressedOrFocused(_statesController.value, pressedForegroundColor!)
-                            .underlineWhenPressedOrFocused(_statesController.value),
+                      DefaultTextAndFocusStyle(
+                        statesController: _statesController,
+                        textStyle: context.textTheme.titleMedium,
+                        pressedOrFocusedColor: textPressedColor,
                         child: widget.title!,
                       ),
                     if (widget.subtitle != null)
-                      DefaultTextStyle(
-                        style: context.textTheme.bodyMedium!
-                            .colorWhenPressedOrFocused(_statesController.value, pressedForegroundColor!)
-                            .underlineWhenPressedOrFocused(_statesController.value),
+                      DefaultTextAndFocusStyle(
+                        statesController: _statesController,
+                        textStyle: context.textTheme.bodyMedium,
+                        pressedOrFocusedColor: textPressedColor,
                         child: widget.subtitle!,
                       ),
                   ],

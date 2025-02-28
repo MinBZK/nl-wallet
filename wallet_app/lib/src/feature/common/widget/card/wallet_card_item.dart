@@ -336,7 +336,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
 
   Widget _buildShowDetailsCta(BuildContext context) {
     return Focus(
-      // Prevents the card content from being focused
+      // Prevents the button from being focused
       canRequestFocus: false,
       descendantsAreFocusable: false,
       child: Row(
