@@ -51,7 +51,6 @@ use super::data::KeyedData;
 use super::database::Database;
 use super::database::SqliteUrl;
 use super::event_log::WalletEvent;
-use super::event_log::WalletEventModel;
 use super::key_file;
 use super::sql_cipher_key::SqlCipherKey;
 use super::Storage;
@@ -64,6 +63,41 @@ const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
 const DATABASE_FILE_EXT: &str = "db";
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
+
+/// Enumerates the different database models for a [`WalletEvent`].
+enum WalletEventModel {
+    Issuance(issuance_history_event::Model),
+    Disclosure(disclosure_history_event::Model),
+}
+
+impl WalletEventModel {
+    /// Convert a [`WalletEvent`] to one of two database models.
+    fn from_wallet_event(wallet_event: WalletEvent) -> Result<Self, serde_json::Error> {
+        let result = match wallet_event {
+            WalletEvent::Issuance { id, mdocs, timestamp } => Self::Issuance(issuance_history_event::Model {
+                attributes: serde_json::to_value(mdocs)?,
+                id,
+                timestamp,
+            }),
+            WalletEvent::Disclosure {
+                id,
+                status,
+                documents,
+                timestamp,
+                reader_certificate,
+                r#type,
+            } => Self::Disclosure(disclosure_history_event::Model {
+                attributes: documents.map(serde_json::to_value).transpose()?,
+                id,
+                timestamp,
+                relying_party_certificate: (*reader_certificate).into(),
+                status: status.into(),
+                r#type: r#type.into(),
+            }),
+        };
+        Ok(result)
+    }
+}
 
 fn key_file_alias_for_name(database_name: &str) -> String {
     // Append suffix to database name to get key file alias
@@ -521,7 +555,7 @@ where
             .collect::<Vec<_>>();
 
         // Insert the history event
-        match WalletEventModel::try_from(event)? {
+        match WalletEventModel::from_wallet_event(event)? {
             WalletEventModel::Issuance(event_entity) => {
                 Self::insert_history_event_and_doc_type_mappings(
                     &transaction,

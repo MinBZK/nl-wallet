@@ -163,41 +163,6 @@ impl TryFrom<issuance_history_event::Model> for WalletEvent {
     }
 }
 
-/// Enumerates the different database models for a [`WalletEvent`].
-pub(crate) enum WalletEventModel {
-    Issuance(issuance_history_event::Model),
-    Disclosure(disclosure_history_event::Model),
-}
-
-impl TryFrom<WalletEvent> for WalletEventModel {
-    type Error = serde_json::Error;
-    fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
-        let result = match source {
-            WalletEvent::Issuance { id, mdocs, timestamp } => Self::Issuance(issuance_history_event::Model {
-                attributes: serde_json::to_value(mdocs)?,
-                id,
-                timestamp,
-            }),
-            WalletEvent::Disclosure {
-                id,
-                status,
-                documents,
-                timestamp,
-                reader_certificate,
-                r#type,
-            } => Self::Disclosure(disclosure_history_event::Model {
-                attributes: documents.map(serde_json::to_value).transpose()?,
-                id,
-                timestamp,
-                relying_party_certificate: (*reader_certificate).into(),
-                status: status.into(),
-                r#type: r#type.into(),
-            }),
-        };
-        Ok(result)
-    }
-}
-
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EventAttributes {
