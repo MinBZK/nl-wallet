@@ -92,7 +92,7 @@ impl WalletEventModel {
                 timestamp,
                 relying_party_certificate: (*reader_certificate).into(),
                 status,
-                r#type: r#type.into(),
+                r#type,
             }),
         };
         Ok(result)

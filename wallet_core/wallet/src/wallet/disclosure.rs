@@ -39,7 +39,6 @@ use crate::disclosure::MdocDisclosureMissingAttributes;
 use crate::disclosure::MdocDisclosureProposal;
 use crate::disclosure::MdocDisclosureSession;
 use crate::disclosure::MdocDisclosureSessionState;
-use crate::document::DisclosureType;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
@@ -47,7 +46,9 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
+use crate::storage;
 use crate::storage::DisclosureStatus;
+use crate::storage::DisclosureType;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
@@ -62,7 +63,7 @@ pub struct DisclosureProposal {
     pub reader_registration: ReaderRegistration,
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
-    pub is_login_flow: bool,
+    pub disclosure_type: DisclosureType,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -235,7 +236,7 @@ where
         // Prepare a `IndexMap<DocType, ProposedDocumentAttributes>`.
         let proposed_attributes = proposal_session.proposed_attributes();
 
-        let is_login_flow = DisclosureType::from_proposed_attributes(&proposed_attributes).is_login_flow();
+        let disclosure_type = storage::disclosure_type_for_proposed_attributes(&proposed_attributes);
 
         // Prepare a list of proposed attestations to report to the caller.
         let attestations: Vec<Attestation> = proposed_attributes
@@ -261,7 +262,7 @@ where
             reader_registration: session.reader_registration().clone(),
             shared_data_with_relying_party_before,
             session_type: session.session_type(),
-            is_login_flow,
+            disclosure_type,
         };
 
         // Retain the session as `Wallet` state.
@@ -279,9 +280,10 @@ where
             MdocDisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
         };
 
+        // If no attributes are available, do not record that this disclosure was for the purposes of logging in.
         let disclosure_type = proposed_attributes
             .as_ref()
-            .map(DisclosureType::from_proposed_attributes)
+            .map(storage::disclosure_type_for_proposed_attributes)
             .unwrap_or(DisclosureType::Regular);
 
         let event = WalletEvent::new_disclosure(
@@ -357,7 +359,7 @@ where
         data_shared: bool,
         remote_party_certificate: BorrowingCertificate,
     ) -> Result<(), DisclosureError> {
-        let disclosure_type = DisclosureType::from_proposed_attributes(&proposed_attributes);
+        let disclosure_type = storage::disclosure_type_for_proposed_attributes(&proposed_attributes);
         let event = WalletEvent::new_disclosure(
             data_shared.then(|| proposed_attributes.into()),
             remote_party_certificate,
@@ -511,8 +513,8 @@ where
         // errors that occur after this point will result in the `Wallet` not having
         // an active disclosure session anymore.
         let proposed_attributes = session_proposal.proposed_attributes();
-        let disclosure_type = DisclosureType::from_proposed_attributes(&proposed_attributes);
         let rp_certificate = session.rp_certificate().clone();
+        let disclosure_type = storage::disclosure_type_for_proposed_attributes(&proposed_attributes);
 
         self.disclosure_session.take();
 

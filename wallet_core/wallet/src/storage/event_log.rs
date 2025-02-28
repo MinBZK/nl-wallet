@@ -2,6 +2,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -22,26 +23,25 @@ use nl_wallet_mdoc::NameSpace;
 use entity::disclosure_history_event;
 use entity::issuance_history_event;
 
-use crate::document::DisclosureType;
+const PID_DOCTYPE: &str = "com.example.pid";
 
 pub type DisclosureStatus = disclosure_history_event::EventStatus;
+pub type DisclosureType = disclosure_history_event::EventType;
 
-impl From<DisclosureType> for disclosure_history_event::EventType {
-    fn from(source: DisclosureType) -> Self {
-        match source {
-            DisclosureType::Login => Self::Login,
-            DisclosureType::Regular => Self::Regular,
-        }
-    }
-}
-
-impl From<&disclosure_history_event::Model> for DisclosureType {
-    fn from(source: &disclosure_history_event::Model) -> Self {
-        match source.r#type {
-            disclosure_history_event::EventType::Login => Self::Login,
-            disclosure_history_event::EventType::Regular => Self::Regular,
-        }
-    }
+/// Something is a login flow if the `proposed_attributes` map has exactly one element with a
+/// `doc_type` of `PID_DOCTYPE`, with a `doc_attributes` map where `namespace` is `PID_DOCTYPE`
+/// also, with an entry vec of exactly one entry, where the `DataElementIdentifier` string is "bsn".
+pub fn disclosure_type_for_proposed_attributes(proposed_attributes: &ProposedAttributes) -> DisclosureType {
+    proposed_attributes
+        .iter()
+        .exactly_one()
+        .ok()
+        .and_then(|(doc_type, doc_attributes)| (doc_type == PID_DOCTYPE).then_some(doc_attributes))
+        .and_then(|doc_attributes| doc_attributes.attributes.iter().exactly_one().ok())
+        .and_then(|(namespace, entries)| (namespace == PID_DOCTYPE).then_some(entries))
+        .and_then(|entries| entries.iter().exactly_one().ok())
+        .and_then(|entry| (entry.name == "bsn").then_some(DisclosureType::Login))
+        .unwrap_or(DisclosureType::Regular)
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -115,7 +115,7 @@ impl TryFrom<disclosure_history_event::Model> for WalletEvent {
         let result = Self::Disclosure {
             id: event.id,
             status: event.status,
-            r#type: DisclosureType::from(&event),
+            r#type: event.r#type,
             documents: event.attributes.map(serde_json::from_value).transpose()?,
             timestamp: event.timestamp,
             reader_certificate: Box::new(BorrowingCertificate::from_der(event.relying_party_certificate).unwrap()), /* Unwrapping here is safe since the certificate has been parsed before */
@@ -216,15 +216,50 @@ impl From<ProposedAttributes> for EventDocuments {
 
 #[cfg(test)]
 mod test {
-    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-    use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+    use std::sync::LazyLock;
 
+    use rstest::rstest;
+
+    use nl_wallet_mdoc::server_keys::generate::Ca;
+    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+    use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+    use sd_jwt::metadata::TypeMetadata;
+
+    use crate::document::create_bsn_only_unsigned_pid_mdoc;
     use crate::document::create_full_unsigned_address_mdoc;
     use crate::document::create_full_unsigned_pid_mdoc;
     use crate::document::create_minimal_unsigned_address_mdoc;
     use crate::document::create_minimal_unsigned_pid_mdoc;
 
     use super::*;
+
+    static ISSUER_CERTIFICATE: LazyLock<BorrowingCertificate> = LazyLock::new(|| {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_key_pair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+
+        issuer_key_pair.certificate().clone()
+    });
+
+    #[rstest]
+    #[case(create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
+    #[case(create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
+    #[case(create_full_unsigned_pid_mdoc(), DisclosureType::Regular)]
+    fn test_disclosure_type_from_proposed_attributes(
+        #[case] (unsigned_mdoc, type_metadata): (UnsignedMdoc, TypeMetadata),
+        #[case] expected: DisclosureType,
+    ) {
+        let proposed_attributes = ProposedAttributes::from([(
+            PID_DOCTYPE.to_string(),
+            ProposedDocumentAttributes {
+                attributes: unsigned_mdoc.attributes.into_inner(),
+                issuer: ISSUER_CERTIFICATE.clone(),
+                type_metadata,
+            },
+        )]);
+
+        assert_eq!(disclosure_type_for_proposed_attributes(&proposed_attributes), expected);
+    }
 
     fn from_unsigned_mdocs_filtered(
         docs: Vec<UnsignedMdoc>,

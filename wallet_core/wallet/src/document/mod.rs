@@ -12,9 +12,10 @@ use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use serde::Serialize;
 
 pub use mdoc::AttributeValueType;
-pub use mdoc::DisclosureType;
 pub use mdoc::DocumentMdocError;
 
+#[cfg(test)]
+pub use mdoc::tests::create_bsn_only_unsigned_pid_mdoc;
 #[cfg(test)]
 pub use mdoc::tests::create_full_unsigned_address_mdoc;
 #[cfg(test)]

@@ -1,10 +1,8 @@
 use chrono::NaiveDate;
 use ciborium::value::Integer;
 use indexmap::IndexMap;
-use itertools::Itertools;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -22,7 +20,6 @@ use super::Document;
 use super::DocumentAttributes;
 use super::DocumentPersistence;
 use super::GenderAttributeValue;
-use super::PID_DOCTYPE;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -70,41 +67,6 @@ pub enum AttributeValueType {
     Bool,
     Date,
     Gender,
-}
-
-// TODO: Think about refactoring/renaming DisclosureType. We currently have
-// DisclosureType here, *and* in disclosure_history_event.rs, EventType, *and*
-// in flutter_api's disclosure.rs again as DisclosureType. Things to think about
-// when refactoring: why this many and not just one.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum DisclosureType {
-    Login,
-    Regular,
-}
-
-impl DisclosureType {
-    /// Something is a login flow if the `proposed_attributes` map has exactly one element with a
-    /// `doc_type` of `PID_DOCTYPE`, with a `doc_attributes` map where `namespace` is `PID_DOCTYPE`
-    /// also, with an entry vec of exactly one entry, where the `DataElementIdentifier` string is "bsn".
-    pub fn from_proposed_attributes(proposed_attributes: &ProposedAttributes) -> Self {
-        proposed_attributes
-            .iter()
-            .exactly_one()
-            .ok()
-            .and_then(|(doc_type, doc_attributes)| (doc_type == PID_DOCTYPE).then_some(doc_attributes))
-            .and_then(|doc_attributes| doc_attributes.attributes.iter().exactly_one().ok())
-            .and_then(|(namespace, entries)| (namespace == PID_DOCTYPE).then_some(entries))
-            .and_then(|entries| entries.iter().exactly_one().ok())
-            .and_then(|entry| (entry.name == "bsn").then_some(Self::Login))
-            .unwrap_or(Self::Regular)
-    }
-
-    pub fn is_login_flow(&self) -> bool {
-        match self {
-            Self::Login => true,
-            Self::Regular => false,
-        }
-    }
 }
 
 /// Get the correct `AttributeMapping` or return an error if it cannot be found for the `doc_type`.
@@ -282,17 +244,12 @@ pub mod tests {
     use std::mem;
     use std::num::NonZeroU8;
     use std::ops::Add;
-    use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
     use chrono::Days;
     use chrono::Utc;
-    use rstest::rstest;
 
-    use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
     use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::server_keys::KeyPair;
     use nl_wallet_mdoc::unsigned::UnsignedMdoc;
     use sd_jwt::metadata::ClaimDisplayMetadata;
     use sd_jwt::metadata::ClaimMetadata;
@@ -303,11 +260,6 @@ pub mod tests {
     use super::super::ADDRESS_DOCTYPE;
     use super::super::PID_DOCTYPE;
     use super::*;
-
-    static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap()
-    });
 
     impl Document {
         pub(crate) fn from_unsigned_mdoc(
@@ -921,26 +873,5 @@ pub mod tests {
             }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
                   name == "foobar" && value == Some(DataElementValue::Text("Foo Bar".to_string()))
         );
-    }
-
-    #[rstest]
-    #[case(create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
-    #[case(create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
-    #[case(create_full_unsigned_pid_mdoc(), DisclosureType::Regular)]
-    fn test_disclosure_type_from_proposed_attributes(
-        #[case] input: (UnsignedMdoc, TypeMetadata),
-        #[case] expected: DisclosureType,
-    ) {
-        let (unsigned_mdoc, type_metadata) = input;
-        let pa = ProposedAttributes::from([(
-            PID_DOCTYPE.to_string(),
-            ProposedDocumentAttributes {
-                attributes: unsigned_mdoc.attributes.into_inner(),
-                issuer: ISSUER_KEY.certificate().clone(),
-                type_metadata,
-            },
-        )]);
-
-        assert_eq!(DisclosureType::from_proposed_attributes(&pa), expected);
     }
 }

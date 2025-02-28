@@ -13,13 +13,13 @@ use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::update_policy::VersionState;
 
 use crate::attestation::Attestation;
-use crate::document::DisclosureType;
 use crate::document::Document;
 use crate::document::DocumentMdocError;
 use crate::document::DocumentPersistence;
 use crate::errors::StorageError;
 use crate::repository::Repository;
 use crate::storage::DisclosureStatus;
+use crate::storage::DisclosureType;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
 

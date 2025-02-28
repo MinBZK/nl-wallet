@@ -84,12 +84,3 @@ impl From<wallet::DisclosureStatus> for DisclosureStatus {
         }
     }
 }
-
-impl From<wallet::DisclosureType> for DisclosureType {
-    fn from(source: wallet::DisclosureType) -> Self {
-        match source {
-            wallet::DisclosureType::Login => DisclosureType::Login,
-            wallet::DisclosureType::Regular => DisclosureType::Regular,
-        }
-    }
-}
