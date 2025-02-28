@@ -12,8 +12,6 @@ use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::update_policy::VersionState;
 
-pub use crate::storage::EventStatus;
-
 use crate::attestation::Attestation;
 use crate::document::DisclosureType;
 use crate::document::Document;
@@ -21,6 +19,7 @@ use crate::document::DocumentMdocError;
 use crate::document::DocumentPersistence;
 use crate::errors::StorageError;
 use crate::repository::Repository;
+use crate::storage::DisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
 
@@ -196,7 +195,7 @@ pub enum HistoryEvent {
         mdocs: Vec<Document>,
     },
     Disclosure {
-        status: EventStatus,
+        status: DisclosureStatus,
         r#type: DisclosureType,
         timestamp: DateTime<Utc>,
         reader_registration: Box<ReaderRegistration>,

@@ -47,7 +47,7 @@ use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
-use crate::storage::EventStatus;
+use crate::storage::DisclosureStatus;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
@@ -287,7 +287,7 @@ where
         let event = WalletEvent::new_disclosure(
             None,
             session.rp_certificate().clone(),
-            EventStatus::Cancelled,
+            DisclosureStatus::Cancelled,
             disclosure_type,
         );
 
@@ -361,7 +361,7 @@ where
         let event = WalletEvent::new_disclosure(
             data_shared.then(|| proposed_attributes.into()),
             remote_party_certificate,
-            EventStatus::Error,
+            DisclosureStatus::Error,
             disclosure_type,
         );
         self.store_history_event(event)
@@ -520,7 +520,7 @@ where
         let event = WalletEvent::new_disclosure(
             Some(proposed_attributes.into()),
             rp_certificate,
-            EventStatus::Success,
+            DisclosureStatus::Success,
             disclosure_type,
         );
         self.store_history_event(event)
@@ -605,8 +605,8 @@ mod tests {
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
     use crate::disclosure::MockMdocDisclosureProposal;
     use crate::disclosure::MockMdocDisclosureSession;
+    use crate::storage::DisclosureStatus;
     use crate::AttestationAttribute;
-    use crate::EventStatus;
     use crate::HistoryEvent;
 
     use super::super::test;
@@ -942,7 +942,7 @@ mod tests {
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
-                status: EventStatus::Cancelled,
+                status: DisclosureStatus::Cancelled,
                 ..
             }
         );
@@ -1010,7 +1010,7 @@ mod tests {
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
-                status: EventStatus::Cancelled,
+                status: DisclosureStatus::Cancelled,
                 ..
             }
         );
@@ -1124,7 +1124,7 @@ mod tests {
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
-                status: EventStatus::Success,
+                status: DisclosureStatus::Success,
                 attributes: None,
                 ..
             }
@@ -1333,7 +1333,7 @@ mod tests {
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
-                status: EventStatus::Error,
+                status: DisclosureStatus::Error,
                 attributes: None,
                 ..
             }
@@ -1390,7 +1390,7 @@ mod tests {
         assert_matches!(
             &events[1],
             WalletEvent::Disclosure {
-                status: EventStatus::Error,
+                status: DisclosureStatus::Error,
                 documents: None,
                 ..
             }
@@ -1472,14 +1472,14 @@ mod tests {
                 assert_matches!(
                     &events[0],
                     HistoryEvent::Disclosure {
-                        status: EventStatus::Cancelled,
+                        status: DisclosureStatus::Cancelled,
                         ..
                     }
                 );
                 assert_matches!(
                     &events[1],
                     HistoryEvent::Disclosure {
-                        status: EventStatus::Error,
+                        status: DisclosureStatus::Error,
                         attributes: None,
                         ..
                     }
@@ -1491,7 +1491,7 @@ mod tests {
                 assert_matches!(
                     &events[0],
                     HistoryEvent::Disclosure {
-                        status: EventStatus::Error,
+                        status: DisclosureStatus::Error,
                         attributes: None,
                         ..
                     }
@@ -1566,7 +1566,7 @@ mod tests {
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
-                status: EventStatus::Error,
+                status: DisclosureStatus::Error,
                 attributes: None,
                 ..
             }

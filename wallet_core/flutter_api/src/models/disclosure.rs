@@ -43,12 +43,6 @@ pub struct MissingAttribute {
     pub labels: Vec<LocalizedString>,
 }
 
-pub enum DisclosureStatus {
-    Success,
-    Cancelled,
-    Error,
-}
-
 pub enum DisclosureType {
     Login,
     Regular,

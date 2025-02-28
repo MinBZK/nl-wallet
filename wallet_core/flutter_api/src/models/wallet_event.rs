@@ -1,13 +1,13 @@
-use wallet::EventStatus;
 use wallet::HistoryEvent;
 
 use super::attestation::Attestation;
-use super::disclosure::DisclosureStatus;
 use super::disclosure::DisclosureType;
 use super::disclosure::Organization;
 use super::disclosure::RPLocalizedStrings;
 use super::disclosure::RequestPolicy;
 use super::localize::LocalizedString;
+
+pub struct WalletEvents(Vec<WalletEvent>);
 
 pub enum WalletEvent {
     Disclosure {
@@ -27,7 +27,11 @@ pub enum WalletEvent {
     },
 }
 
-pub struct WalletEvents(Vec<WalletEvent>);
+pub enum DisclosureStatus {
+    Success,
+    Cancelled,
+    Error,
+}
 
 impl IntoIterator for WalletEvents {
     type Item = WalletEvent;
@@ -71,12 +75,12 @@ impl From<HistoryEvent> for WalletEvents {
     }
 }
 
-impl From<EventStatus> for DisclosureStatus {
-    fn from(source: EventStatus) -> Self {
+impl From<wallet::DisclosureStatus> for DisclosureStatus {
+    fn from(source: wallet::DisclosureStatus) -> Self {
         match source {
-            EventStatus::Success => DisclosureStatus::Success,
-            EventStatus::Cancelled => DisclosureStatus::Cancelled,
-            EventStatus::Error => DisclosureStatus::Error,
+            wallet::DisclosureStatus::Success => DisclosureStatus::Success,
+            wallet::DisclosureStatus::Cancelled => DisclosureStatus::Cancelled,
+            wallet::DisclosureStatus::Error => DisclosureStatus::Error,
         }
     }
 }

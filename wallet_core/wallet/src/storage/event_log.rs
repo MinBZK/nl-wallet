@@ -24,34 +24,7 @@ use entity::issuance_history_event;
 
 use crate::document::DisclosureType;
 
-// TODO: Think about refactoring/renaming EventStatus.
-// For rationale, see comment for DisclosureType in mdoc.rs.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum EventStatus {
-    Success,
-    Error,
-    Cancelled,
-}
-
-impl From<EventStatus> for disclosure_history_event::EventStatus {
-    fn from(source: EventStatus) -> Self {
-        match source {
-            EventStatus::Success => Self::Success,
-            EventStatus::Error => Self::Error,
-            EventStatus::Cancelled => Self::Cancelled,
-        }
-    }
-}
-
-impl From<&disclosure_history_event::Model> for EventStatus {
-    fn from(source: &disclosure_history_event::Model) -> Self {
-        match source.status {
-            disclosure_history_event::EventStatus::Success => Self::Success,
-            disclosure_history_event::EventStatus::Error => Self::Error,
-            disclosure_history_event::EventStatus::Cancelled => Self::Cancelled,
-        }
-    }
-}
+pub type DisclosureStatus = disclosure_history_event::EventStatus;
 
 impl From<DisclosureType> for disclosure_history_event::EventType {
     fn from(source: DisclosureType) -> Self {
@@ -83,7 +56,7 @@ pub enum WalletEvent {
         documents: Option<EventDocuments>,
         timestamp: DateTime<Utc>,
         reader_certificate: Box<BorrowingCertificate>,
-        status: EventStatus,
+        status: DisclosureStatus,
         r#type: DisclosureType,
     },
 }
@@ -100,7 +73,7 @@ impl WalletEvent {
     pub fn new_disclosure(
         documents: Option<EventDocuments>,
         reader_certificate: BorrowingCertificate,
-        status: EventStatus,
+        status: DisclosureStatus,
         r#type: DisclosureType,
     ) -> Self {
         Self::Disclosure {
@@ -141,7 +114,7 @@ impl TryFrom<disclosure_history_event::Model> for WalletEvent {
     fn try_from(event: disclosure_history_event::Model) -> Result<Self, Self::Error> {
         let result = Self::Disclosure {
             id: event.id,
-            status: EventStatus::from(&event),
+            status: event.status,
             r#type: DisclosureType::from(&event),
             documents: event.attributes.map(serde_json::from_value).transpose()?,
             timestamp: event.timestamp,
@@ -307,7 +280,7 @@ mod test {
                 documents,
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
-                status: EventStatus::Success,
+                status: DisclosureStatus::Success,
                 r#type: DisclosureType::Regular,
             }
         }
@@ -330,7 +303,7 @@ mod test {
                 documents,
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
-                status: EventStatus::Error,
+                status: DisclosureStatus::Error,
                 r#type: DisclosureType::Regular,
             }
         }
@@ -341,7 +314,7 @@ mod test {
                 documents: None,
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
-                status: EventStatus::Cancelled,
+                status: DisclosureStatus::Cancelled,
                 r#type: DisclosureType::Regular,
             }
         }
@@ -352,7 +325,7 @@ mod test {
                 documents: None,
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
-                status: EventStatus::Error,
+                status: DisclosureStatus::Error,
                 r#type: DisclosureType::Regular,
             }
         }

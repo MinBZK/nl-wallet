@@ -40,7 +40,6 @@ use crate::wte::WpWteIssuanceClient;
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
 pub use self::history::EventConversionError;
-pub use self::history::EventStatus;
 pub use self::history::EventStorageError;
 pub use self::history::HistoryError;
 pub use self::history::HistoryEvent;
