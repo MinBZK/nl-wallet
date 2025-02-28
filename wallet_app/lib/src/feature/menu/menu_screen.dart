@@ -77,9 +77,9 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
   Widget _buildContentSliver(BuildContext context) {
     final menuItems = _buildMenuItems(context);
     final itemsList = SliverList.separated(
-      itemBuilder: (c, i) => menuItems[i],
-      separatorBuilder: (c, i) => const Divider(),
+      itemBuilder: (context, i) => menuItems[i],
       itemCount: menuItems.length,
+      separatorBuilder: (context, i) => const Divider(),
     );
     return SliverMainAxisGroup(
       slivers: [
