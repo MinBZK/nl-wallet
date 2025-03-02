@@ -65,7 +65,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         // Execute integrity token provider request, await result, fill integrityTokenProvider.
         var integrityTokenProvider: StandardIntegrityTokenProvider = Tasks.await(
             integrityManager.prepareIntegrityToken(integrityTokenProviderRequest)
-                .addOnSuccessListener { response ->
+                .addOnSuccessListener { _ ->
                     Log.d("attest", "configured integrity token provider")
                 }
                 .addOnFailureListener { exception ->
@@ -77,7 +77,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         // Execute integrity token request using provider.
         val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(Base64.Default.encode(challenge.toByteArray())).build()
         val integrityToken: StandardIntegrityToken = Tasks.await (integrityTokenProvider.request(integrityTokenRequest)
-            .addOnSuccessListener { response ->
+            .addOnSuccessListener { _ ->
                 Log.i("attest", "received an integrity token")
             }
             .addOnFailureListener { exception ->
