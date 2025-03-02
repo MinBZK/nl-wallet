@@ -2,6 +2,8 @@
 include: package:flutter_lints/flutter.yaml
 
 analyzer:
+  errors:
+    todo: ignore
   exclude:
     - "pub/core_domain/lib/src/core_domain/**.dart"
     - "**/**.g.dart"
