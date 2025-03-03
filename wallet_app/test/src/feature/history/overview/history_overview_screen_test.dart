@@ -18,6 +18,7 @@ class MockHistoryOverviewBloc extends MockBloc<HistoryOverviewEvent, HistoryOver
 void main() {
   final historyOverviewLoadSuccessMock = HistoryOverviewLoadSuccess([
     WalletMockData.disclosureEvent,
+    WalletMockData.disclosureEvent,
     WalletMockData.signEvent,
     WalletMockData.issuanceEvent,
   ]);
