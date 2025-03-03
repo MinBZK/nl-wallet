@@ -2,8 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import '../../../../domain/model/attribute/converter/localized_string_converter.dart';
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/localized_text.dart';
-import '../../../../domain/model/wallet_card.dart';
 
 part 'card_detail_screen_argument.g.dart';
 
@@ -18,7 +18,7 @@ class CardDetailScreenArgument extends Equatable {
   factory CardDetailScreenArgument.forCard(WalletCard card) => CardDetailScreenArgument(
         card: card,
         cardId: card.id,
-        cardTitle: card.front.title,
+        cardTitle: card.title,
       );
 
   factory CardDetailScreenArgument.fromJson(Map<String, dynamic> json) => _$CardDetailScreenArgumentFromJson(json);

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/page/check_data_offering_page.dart';
@@ -29,10 +29,9 @@ class IssuanceCheckCardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CheckDataOfferingPage(
       bottomSection: _buildBottomSection(context),
-      attributes: card.attributes,
+      offeredCard: card,
       title: context.l10n.issuanceCheckCardPageTitle,
       overline: context.l10n.issuanceCheckCardPageOverline(currentCardIndex + 1, totalNrOfCards),
-      cardFront: card.front,
       showHeaderAttributesDivider: false,
     );
   }

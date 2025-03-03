@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/wallet_card.dart';
+import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/feature/common/widget/select_card_row.dart';
 
 import '../../../../wallet_app_test_widget.dart';

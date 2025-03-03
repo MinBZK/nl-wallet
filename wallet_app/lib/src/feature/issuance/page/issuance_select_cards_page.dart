@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/screen/placeholder_screen.dart';

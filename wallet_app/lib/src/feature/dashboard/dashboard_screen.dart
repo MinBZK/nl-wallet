@@ -9,7 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../data/service/navigation_service.dart';
-import '../../domain/model/wallet_card.dart';
+import '../../domain/model/card/wallet_card.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -236,10 +236,10 @@ class DashboardScreen extends StatelessWidget {
   Widget _buildCardListItem(BuildContext context, WalletCard walletCard) {
     return Hero(
       tag: walletCard.id,
-      child: WalletCardItem.fromCardFront(
-        context: context,
+      child: WalletCardItem.fromWalletCard(
+        context,
+        walletCard,
         key: Key(walletCard.docType),
-        front: walletCard.front,
         onPressed: () => _onCardPressed(context, walletCard),
       ),
     );

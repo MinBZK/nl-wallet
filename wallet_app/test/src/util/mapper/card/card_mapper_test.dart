@@ -1,10 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card_config.dart';
-import 'package:wallet/src/domain/model/card_front.dart';
+import 'package:wallet/src/domain/model/card/card_config.dart';
+import 'package:wallet/src/domain/model/card/card_front.dart';
+import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
+import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/organization.dart';
-import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';
@@ -21,7 +22,7 @@ const _kSampleIssuer = CoreMockData.organization;
 const _kSampleCard = core.Attestation(
   identity: core.AttestationIdentity.ephemeral(),
   attestationType: 'com.example.pid',
-  displayMetadata: [CoreMockData.displayMetadata],
+  displayMetadata: [CoreMockData.enDisplayMetadata],
   attributes: [_kSampleAttributeName, _kSampleAttributeCity],
   issuer: _kSampleIssuer,
 );
@@ -31,6 +32,7 @@ void main() {
   late Mapper<CardAttributeWithDocType, DataAttribute> mockCardAttributeMapper;
   late Mapper<String, CardConfig> mockCardConfigMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
+  late Mapper<core.DisplayMetadata, CardDisplayMetadata> mockDisplayMetadataMapper;
 
   late Mapper<core.Attestation, WalletCard> mapper;
 
@@ -41,12 +43,14 @@ void main() {
     mockCardAttributeMapper = MockMapper();
     mockCardConfigMapper = MockMapper();
     mockOrganizationMapper = MockMapper();
+    mockDisplayMetadataMapper = MockMapper();
 
     mapper = CardMapper(
       mockCardFrontMapper,
       mockCardConfigMapper,
       mockCardAttributeMapper,
       mockOrganizationMapper,
+      mockDisplayMetadataMapper,
     );
   });
 
@@ -60,7 +64,7 @@ void main() {
       const input = core.Attestation(
         identity: core.AttestationIdentity.fixed(id: 'id-987'),
         attestationType: _kSampleDocType,
-        displayMetadata: [CoreMockData.displayMetadata],
+        displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );

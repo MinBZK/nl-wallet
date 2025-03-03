@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:intl/intl.dart';
 
 import '../extension/build_context_extension.dart';
 
@@ -8,8 +7,7 @@ class TimeAgoFormatter {
     final difference = DateTime.now().difference(dateTime);
 
     if (difference.inDays >= DateTime.daysPerWeek) {
-      final DateFormat dateFormat = DateFormat(DateFormat.MONTH_DAY, context.l10n.localeName);
-      return dateFormat.format(dateTime);
+      return context.l10n.generalTimeAgoMoreThanOneWeek;
     } else {
       String time = '';
       if (difference.inDays >= 1) {

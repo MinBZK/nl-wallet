@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import 'card/wallet_card_item.dart';
 
@@ -35,19 +35,16 @@ class SelectCardRow extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: SizedBox(
                     width: _kCardDisplayWidth,
-                    child: WalletCardItem.fromCardFront(
-                      context: context,
-                      front: card.front,
-                    ),
+                    child: WalletCardItem.fromWalletCard(context, card),
                   ),
                 ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(card.front.title.l10nValue(context), style: context.textTheme.titleMedium),
+                      Text(card.title.l10nValue(context), style: context.textTheme.titleMedium),
                       Text(
-                        card.front.subtitle?.l10nValue(context) ?? card.front.info?.l10nValue(context) ?? '',
+                        card.description.l10nValue(context),
                         style: context.textTheme.bodyLarge,
                       ),
                     ],

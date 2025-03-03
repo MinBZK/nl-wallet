@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/card_front.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/attribute/data_attribute_row.dart';
 import '../widget/button/list_button.dart';
@@ -12,22 +11,20 @@ import '../widget/wallet_scrollbar.dart';
 /// Generic Page that displays the attributes so the user can check them.
 /// Consumer needs to provide the [bottomSection] to handle any user actions.
 class CheckDataOfferingPage extends StatelessWidget {
-  final List<DataAttribute> attributes;
+  final WalletCard offeredCard;
   final Widget bottomSection;
   final String title;
   final String? overline, subtitle, footerCta;
-  final CardFront? cardFront;
   final bool showHeaderAttributesDivider;
 
   const CheckDataOfferingPage({
     required this.title,
     this.overline,
     this.subtitle,
-    this.cardFront,
     this.showHeaderAttributesDivider = true,
     this.footerCta,
     required this.bottomSection,
-    required this.attributes,
+    required this.offeredCard,
     super.key,
   });
 
@@ -54,11 +51,9 @@ class CheckDataOfferingPage extends StatelessWidget {
   }
 
   Widget _buildCardFront(BuildContext context) {
-    final cardFront = this.cardFront;
-    if (cardFront == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-      child: WalletCardItem.fromCardFront(context: context, front: cardFront),
+      child: WalletCardItem.fromWalletCard(context, offeredCard),
     );
   }
 
@@ -102,9 +97,9 @@ class CheckDataOfferingPage extends StatelessWidget {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: DataAttributeRow(attribute: attributes[index]),
+        child: DataAttributeRow(attribute: offeredCard.attributes[index]),
       ),
-      childCount: attributes.length,
+      childCount: offeredCard.attributes.length,
     );
   }
 

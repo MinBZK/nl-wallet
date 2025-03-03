@@ -1,8 +1,8 @@
 import '../attribute/attribute.dart';
+import '../card/wallet_card.dart';
 import '../document.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
-import '../wallet_card.dart';
 
 sealed class StartSignResult {
   final Organization relyingParty;

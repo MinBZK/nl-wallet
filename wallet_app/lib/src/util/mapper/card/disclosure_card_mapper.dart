@@ -1,6 +1,6 @@
 import 'package:wallet_core/core.dart';
 
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../mapper.dart';
 
 /// Maps a [DisclosureCard] to a [WalletCard] and enriches with (currently) hardcoded data.

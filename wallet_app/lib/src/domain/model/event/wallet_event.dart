@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
 
 import '../attribute/attribute.dart';
+import '../card/wallet_card.dart';
 import '../disclosure/disclosure_type.dart';
 import '../document.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
-import '../wallet_card.dart';
 
 export '../disclosure/disclosure_type.dart';
 

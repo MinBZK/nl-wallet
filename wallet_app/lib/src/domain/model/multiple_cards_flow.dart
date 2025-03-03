@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 
+import 'card/wallet_card.dart';
 import 'issuance_response.dart';
 import 'organization.dart';
-import 'wallet_card.dart';
 
 class MultipleCardsFlow extends Equatable {
   final int activeIndex;

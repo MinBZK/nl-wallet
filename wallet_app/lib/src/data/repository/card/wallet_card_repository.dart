@@ -1,4 +1,4 @@
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 
 abstract class WalletCardRepository {
   Stream<List<WalletCard>> observeWalletCards();
