@@ -520,10 +520,15 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                             "found revoked certificates while verifying Android attested key certificate chain: {}",
                             revocation_log.join(" ")
                         );
-
                         AndroidKeyAttestationError::RevokedCertificates
                     }
-                    error => AndroidKeyAttestationError::Verification(error),
+                    error => {
+                        warn!(
+                            "rejected Android attested key with leaf certificate: '{0}', cause: '{error}'",
+                            BASE64_STANDARD.encode(certificate_chain.first())
+                        );
+                        AndroidKeyAttestationError::Verification(error)
+                    }
                 })?;
 
                 // Extract the leaf certificate's verifying key
@@ -567,7 +572,13 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     self.android_config.installation_method,
                     attestation_timestamp,
                 )
-                .map_err(AndroidAppAttestationError::IntegrityVerdict)?;
+                .map_err(|error| {
+                    warn!(
+                        "rejected Android app attestation with integrity verdict: '{0}', cause: '{error}'",
+                        integrity_verdict_json,
+                    );
+                    AndroidAppAttestationError::IntegrityVerdict(error)
+                })?;
 
                 debug!("Checking registration signatures");
 
@@ -1722,6 +1733,7 @@ mod tests {
         assert_matches!(error, RegistrationError::AppleAttestation(_));
     }
 
+    #[tracing_test::traced_test]
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_android_key_attestation() {
@@ -1744,6 +1756,7 @@ mod tests {
         .expect_err("registering with an invalid Android attestation should fail");
 
         assert_matches!(error, RegistrationError::AndroidKeyAttestation(_));
+        assert!(logs_contain("rejected Android attested key with leaf certificate"));
     }
 
     #[tokio::test]
@@ -1773,6 +1786,7 @@ mod tests {
         );
     }
 
+    #[tracing_test::traced_test]
     #[tokio::test]
     #[rstest]
     async fn test_register_invalid_android_integrity_verdict() {
@@ -1801,6 +1815,7 @@ mod tests {
             error,
             RegistrationError::AndroidAppAttestation(AndroidAppAttestationError::IntegrityVerdict(_))
         );
+        assert!(logs_contain("rejected Android app attestation with integrity verdict"));
     }
 
     #[tokio::test]

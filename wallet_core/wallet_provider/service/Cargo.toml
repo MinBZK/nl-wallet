@@ -91,6 +91,7 @@ hmac = { workspace = true, features = ["std"] }
 rand.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
+tracing-test.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
 android_attest = { path = "../../android_attest", features = ["mock"] }
