@@ -24,7 +24,7 @@ class ShowDetailsCta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
-      icon: const Icon(Icons.arrow_forward_ios),
+      icon: const Icon(Icons.arrow_forward),
       iconAlignment: IconAlignment.end,
       style: _resolveButtonStyle(context),
       onPressed: onPressed,

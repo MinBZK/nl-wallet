@@ -3840,7 +3840,6 @@ version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-extra",
- "base64 0.22.1",
  "cfg-if",
  "chrono",
  "derive_more",
@@ -3851,23 +3850,12 @@ dependencies = [
  "ring",
  "rustls-pki-types",
  "sd_jwt",
- "sea-orm",
  "serde",
- "serde_json",
- "strum 0.26.3",
  "thiserror 2.0.11",
  "tower-http",
  "tracing",
  "url",
  "wallet_common",
-]
-
-[[package]]
-name = "openid4vc_server_migrations"
-version = "0.3.0-dev"
-dependencies = [
- "sea-orm-migration",
- "tokio",
 ]
 
 [[package]]
@@ -4094,6 +4082,43 @@ name = "percent-encoding"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
+
+[[package]]
+name = "pid_issuer"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "config",
+ "derive_more",
+ "futures",
+ "hsm",
+ "http",
+ "indexmap 2.7.1",
+ "nl_wallet_mdoc",
+ "openid4vc",
+ "openid4vc_server",
+ "p256",
+ "reqwest",
+ "rstest",
+ "rustls-pki-types",
+ "sd_jwt",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "server_utils",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "url",
+ "wallet_common",
+]
 
 [[package]]
 name = "pin-project"
@@ -5510,6 +5535,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "server_utils"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "config",
+ "futures",
+ "hsm",
+ "http",
+ "nl_wallet_mdoc",
+ "openid4vc",
+ "openid4vc_server",
+ "p256",
+ "rustls-pki-types",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6041,6 +6097,7 @@ dependencies = [
  "openid4vc",
  "openid4vc_server",
  "p256",
+ "pid_issuer",
  "platform_support",
  "rand_core",
  "regex",
@@ -6053,6 +6110,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serial_test",
+ "server_utils",
  "tempfile",
  "tokio",
  "tracing",
@@ -6060,13 +6118,13 @@ dependencies = [
  "update_policy_server",
  "url",
  "uuid",
+ "verification_server",
  "wallet",
  "wallet_account",
  "wallet_common",
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
- "wallet_server",
 ]
 
 [[package]]
@@ -6851,6 +6909,47 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
+name = "verification_server"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "axum",
+ "base64 0.22.1",
+ "chrono",
+ "config",
+ "derive_more",
+ "futures",
+ "hsm",
+ "http",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "nl_wallet_mdoc",
+ "nutype",
+ "openid4vc",
+ "openid4vc_server",
+ "p256",
+ "parking_lot",
+ "reqwest",
+ "ring",
+ "rstest",
+ "rustls-pki-types",
+ "sd_jwt",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "serial_test",
+ "server_utils",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7177,46 +7276,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "wallet_server"
+name = "wallet_server_migrations"
 version = "0.3.0-dev"
 dependencies = [
- "anyhow",
- "assert_matches",
- "axum",
- "base64 0.22.1",
- "cfg-if",
- "chrono",
- "config",
- "derive_more",
- "futures",
- "hsm",
- "http",
- "indexmap 2.7.1",
- "itertools 0.14.0",
- "nl_wallet_mdoc",
- "nutype",
- "openid4vc",
- "openid4vc_server",
- "p256",
- "parking_lot",
- "rand_core",
- "reqwest",
- "ring",
- "rstest",
- "rustls-pki-types",
- "sd_jwt",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "serde_with",
- "serial_test",
- "thiserror 2.0.11",
+ "sea-orm-migration",
  "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "wallet_common",
 ]
 
 [[package]]

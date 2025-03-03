@@ -115,8 +115,11 @@ async fn test_disclosure_usecases_ok(
     // retain [`MockDigidSession::Context`]
     let _context = setup_digid_context();
 
-    let ws_settings = wallet_server_settings();
-    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.urls.public_url);
+    let verifier_settings = verification_server_settings();
+    let ws_internal_url = wallet_server_internal_url(
+        &verifier_settings.requester_server,
+        &verifier_settings.server_settings.public_url,
+    );
 
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
@@ -124,7 +127,8 @@ async fn test_disclosure_usecases_ok(
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        ws_settings.clone(),
+        verifier_settings.clone(),
+        pid_issuer_settings(),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -142,8 +146,8 @@ async fn test_disclosure_usecases_ok(
     assert_eq!(response.status(), StatusCode::OK);
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
-    let mut status_url = ws_settings
-        .urls
+    let mut status_url = verifier_settings
+        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
@@ -245,8 +249,11 @@ async fn test_disclosure_without_pid() {
         Ok((session, Url::parse("http://localhost/").unwrap()))
     });
 
-    let ws_settings = wallet_server_settings();
-    let ws_internal_url = wallet_server_internal_url(&ws_settings.requester_server, &ws_settings.urls.public_url);
+    let verifier_settings = verification_server_settings();
+    let ws_internal_url = wallet_server_internal_url(
+        &verifier_settings.requester_server,
+        &verifier_settings.server_settings.public_url,
+    );
 
     let pin = "112233".to_string();
     let mut wallet = setup_wallet_and_env(
@@ -254,7 +261,8 @@ async fn test_disclosure_without_pid() {
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        ws_settings.clone(),
+        verifier_settings.clone(),
+        pid_issuer_settings(),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
@@ -290,8 +298,8 @@ async fn test_disclosure_without_pid() {
     // does it exist for the RP side of things?
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
-    let mut status_url = ws_settings
-        .urls
+    let mut status_url = verifier_settings
+        .server_settings
         .public_url
         .join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {

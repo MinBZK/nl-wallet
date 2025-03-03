@@ -62,6 +62,7 @@ use crate::oidc;
 use crate::server_state::Expirable;
 use crate::server_state::HasProgress;
 use crate::server_state::Progress;
+use crate::server_state::SessionDataType;
 use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
@@ -201,6 +202,10 @@ pub enum IssuanceData {
     Created(Created),
     WaitingForResponse(Box<WaitingForResponse>),
     Done(Done),
+}
+
+impl SessionDataType for IssuanceData {
+    const TYPE: &'static str = "openid4vci_issuance";
 }
 
 impl HasProgress for IssuanceData {

@@ -20,7 +20,8 @@ async fn test_wallet_registration(
         config_server_settings(),
         update_policy_server_settings(),
         settings_and_ca,
-        wallet_server_settings(),
+        verification_server_settings(),
+        pid_issuer_settings(),
     )
     .await;
 
@@ -43,7 +44,8 @@ async fn test_registration_blocked() {
         config_server_settings(),
         (settings, root_ca),
         wallet_provider_settings(),
-        wallet_server_settings(),
+        verification_server_settings(),
+        pid_issuer_settings(),
     )
     .await;
 

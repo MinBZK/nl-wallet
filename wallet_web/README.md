@@ -1,6 +1,6 @@
 # Wallet Web
 
-The Wallet Web library provides a custom element that aims to be the easiest way to communicate with the NL Wallet Verification Server (`wallet_server`), while providing a uniform user experience.
+The Wallet Web library provides a custom element that aims to be the easiest way to communicate with the NL Wallet Verification Server (`verification__server`), while providing a uniform user experience.
 
 ## Development
 

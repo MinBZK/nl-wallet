@@ -75,47 +75,47 @@ spec:
                 configMapKeyRef:
                   name: nl-wallet-server-trust-anchors
                   key: reader_trust_anchors
-            - name: VERIFICATION_SERVER__VERIFIER__EPHEMERAL_ID_SECRET
+            - name: VERIFICATION_SERVER__EPHEMERAL_ID_SECRET
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-ephemeral-id-secret
                   key: verifier_ephemeral_id_secret
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__mijn_amsterdam__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-mijn-amsterdam
                   key: certificate
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__mijn_amsterdam__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-mijn-amsterdam
                   key: private_key
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__monkey_bike__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-monkey-bike
                   key: certificate
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__monkey_bike__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-monkey-bike
                   key: private_key
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__online_marketplace__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-online-marketplace
                   key: certificate
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__online_marketplace__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-online-marketplace
                   key: private_key
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__xyz_bank__CERTIFICATE
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank__CERTIFICATE
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-xyz-bank
                   key: certificate
-            - name: VERIFICATION_SERVER__VERIFIER__USECASES__xyz_bank__PRIVATE_KEY
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY
               valueFrom:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-xyz-bank
