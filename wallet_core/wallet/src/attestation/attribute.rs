@@ -133,7 +133,7 @@ fn collect_key_paths_recursive(attributes: &IndexMap<String, Attribute>, parent_
     let mut current_path = Vec::with_capacity(parent_path.len() + 1);
     current_path.extend_from_slice(parent_path);
 
-    // Collect all of the leaf nodes encountered into a `HashSet`` accumulator, while recursing all nested values.
+    // Collect all of the leaf nodes encountered into a `HashSet` accumulator, while recursing all nested values.
     attributes
         .iter()
         .fold(HashSet::new(), |mut key_paths, (key, attribute)| {
