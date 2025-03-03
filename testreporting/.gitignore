@@ -1,2 +1,4 @@
 .allure/
 allure-report/
+allure-results/
+junit-results/

@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "generate": "node --disable-warning=ExperimentalWarning --experimental-strip-types generate.ts",
+    "fetch-history": "mkdir -p .allure && mc cat qt/quality-time/allure-history.jsonl.gz | gunzip -c > .allure/history.jsonl",
+    "fetch-results": "mc cp -r qt/quality-time/allure-results . && mc cp -r qt/quality-time/junit-results .",
     "lint": "eslint",
     "format-check": "prettier --check \"**/*.{js,json,md,mjs,ts}\"",
     "format": "prettier --write \"**/*.{js,json,md,mjs,ts}\"",
