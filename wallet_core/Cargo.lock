@@ -7265,6 +7265,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "tracing-test",
  "trait-variant",
  "uuid",
  "wallet_account",
