@@ -222,14 +222,14 @@ impl Storage for MockStorage {
         Ok(events)
     }
 
-    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_entity_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
         self.check_query_error()?;
 
         let mut events = self
             .event_log
             .clone()
             .into_iter()
-            .filter(|e| e.associated_doc_types().contains(doc_type))
+            .filter(|e| e.associated_attestation_types().contains(doc_type))
             .collect::<Vec<_>>();
         events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)
@@ -251,7 +251,7 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
-    use crate::storage::database_storage::tests::test_history_by_doc_type;
+    use crate::storage::database_storage::tests::test_history_by_entity_type;
     use crate::storage::database_storage::tests::test_history_ordering;
     use crate::storage::KeyedData;
     use crate::storage::Storage;
@@ -308,6 +308,6 @@ mod tests {
     async fn history_events_work() {
         let mut storage = MockStorage::default();
         storage.open().await.unwrap();
-        test_history_by_doc_type(&mut storage).await;
+        test_history_by_entity_type(&mut storage).await;
     }
 }

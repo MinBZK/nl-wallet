@@ -2,8 +2,8 @@ use chrono::DateTime;
 use chrono::Utc;
 use sea_orm::entity::prelude::*;
 
-use crate::disclosure_history_event_doc_type;
-use crate::history_doc_type;
+use crate::disclosure_history_event_attestation_type;
+use crate::history_attestation_type;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
@@ -42,12 +42,16 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-impl Related<history_doc_type::Entity> for Entity {
+impl Related<history_attestation_type::Entity> for Entity {
     fn to() -> RelationDef {
-        disclosure_history_event_doc_type::Relation::HistoryDocType.def()
+        disclosure_history_event_attestation_type::Relation::HistoryAttestationType.def()
     }
 
     fn via() -> Option<RelationDef> {
-        Some(disclosure_history_event_doc_type::Relation::HistoryEvent.def().rev())
+        Some(
+            disclosure_history_event_attestation_type::Relation::HistoryEvent
+                .def()
+                .rev(),
+        )
     }
 }

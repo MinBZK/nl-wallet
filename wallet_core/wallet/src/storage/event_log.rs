@@ -87,7 +87,7 @@ impl WalletEvent {
     }
 
     /// Returns the associated doc_types for this event. Will return an empty set if there are no attributes.
-    pub(super) fn associated_doc_types(&self) -> HashSet<&str> {
+    pub(super) fn associated_attestation_types(&self) -> HashSet<&str> {
         match self {
             Self::Issuance {
                 mdocs: EventDocuments(mdocs),

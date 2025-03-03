@@ -144,7 +144,7 @@ where
 
         info!("Retrieving Card history from storage");
         let storage = self.storage.read().await;
-        let events = storage.fetch_wallet_events_by_doc_type(doc_type).await?;
+        let events = storage.fetch_wallet_events_by_entity_type(doc_type).await?;
         let result = events.into_iter().map(TryFrom::try_from).collect::<Result<_, _>>()?;
         Ok(result)
     }
