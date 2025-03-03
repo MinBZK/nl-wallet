@@ -32,14 +32,9 @@ impl Attestation {
         let attributes_iter = metadata.claims.into_iter().map(|claim| {
             match take_attribute_value_at_key_path(&mut nested_attributes, claim.path.clone()) {
                 Some((path, value)) => {
-                    let metadata = claim
-                        .display
-                        .into_iter()
-                        .map(|metadata| (metadata.lang.clone(), metadata))
-                        .collect();
                     let attribute = AttestationAttribute {
                         key: path,
-                        metadata,
+                        metadata: claim.display,
                         value,
                     };
 
@@ -68,14 +63,9 @@ impl Attestation {
         }
 
         // Finally, construct the `Attestation` type.
-        let display_metadata = metadata
-            .display
-            .into_iter()
-            .map(|metadata| (metadata.lang.clone(), metadata))
-            .collect();
         let attestation = Attestation {
             identity,
-            display_metadata,
+            display_metadata: metadata.display,
             attestation_type,
             issuer,
             attributes,

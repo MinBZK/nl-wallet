@@ -2,7 +2,6 @@ mod attribute;
 mod disclosure;
 mod issuance;
 
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use error_category::ErrorCategory;
@@ -39,7 +38,7 @@ enum AttributeSelectionMode {
 pub struct Attestation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
-    pub display_metadata: HashMap<String, DisplayMetadata>,
+    pub display_metadata: Vec<DisplayMetadata>,
     pub issuer: Organization,
     pub attributes: Vec<AttestationAttribute>,
 }
@@ -53,6 +52,6 @@ pub enum AttestationIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttestationAttribute {
     pub key: Vec<String>,
-    pub metadata: HashMap<String, ClaimDisplayMetadata>,
+    pub metadata: Vec<ClaimDisplayMetadata>,
     pub value: AttributeValue,
 }
