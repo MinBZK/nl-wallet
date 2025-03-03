@@ -14,6 +14,12 @@ port = ${MOCK_RP_WS_PORT}
 ip = '0.0.0.0'
 port = ${MOCK_RP_RS_PORT}
 
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
 [verifier]
 ephemeral_id_secret = "${MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
 allow_origins = ["http://${SERVICES_HOST}:${MOCK_RP_PORT}"]

@@ -1,4 +1,5 @@
-const { defineConfig } = require("@playwright/test")
+import process from "node:process"
+import { defineConfig } from "@playwright/test"
 
 export default defineConfig({
   testDir: "../tests/authenticated",

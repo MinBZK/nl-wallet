@@ -1,4 +1,4 @@
-class FallbackPage {
+export class FallbackPage {
   constructor(page) {
     this.page = page
 
@@ -12,17 +12,15 @@ class FallbackPage {
     return this.page.textContent(this.pageTitle)
   }
 
-  async getDeeplink() {
+  getDeeplink() {
     return this.page.locator(this.deeplink)
   }
 
-  async getStoreBanners() {
+  getStoreBanners() {
     return this.page.locator(this.storeBanners)
   }
 
-  async getHelplink() {
-    return this.page.locator(this.storeBanners)
+  getHelpLink() {
+    return this.page.locator(this.helpLink)
   }
 }
-
-export default { FallbackPage: FallbackPage }

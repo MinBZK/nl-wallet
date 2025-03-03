@@ -45,25 +45,28 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insec
 # Include session storage in PostgreSQL
 postgres = ["openid4vc_server/postgres", "dep:serde_json"]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "allow_insecure_url", "dep:futures", "dep:serial_test", "openid4vc/test", "tokio/sync"]
+db_test = [
+    "postgres",
+    "allow_insecure_url",
+    "futures/std",
+    "futures/async-await",
+    "dep:serial_test",
+    "openid4vc/test",
+    "tokio/sync",
+]
 # Enable issuance
 issuance = [
     "axum/form",
+    "futures/std",
+    "futures/async-await",
     "openid4vc_server/issuance",
-    "dep:futures",
     "dep:indexmap",
     "dep:reqwest",
     "dep:serde_json",
     "dep:serde_urlencoded",
 ]
 # Enable disclosure
-disclosure = [
-    "openid4vc_server/disclosure",
-    "serde_with/hex",
-    "wallet_common/axum",
-    "dep:ring",
-    "dep:serde_json"
-]
+disclosure = ["openid4vc_server/disclosure", "serde_with/hex", "wallet_common/axum", "dep:ring", "dep:serde_json"]
 # Enable mock PID issuance
 mock = ["issuance"]
 # Enable integration tests
@@ -77,6 +80,7 @@ cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
+futures.workspace = true
 http.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
@@ -99,7 +103,6 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
-futures = { workspace = true, optional = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, optional = true, features = ["serde"] }
 itertools = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
@@ -108,6 +111,7 @@ serde_json = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 
+hsm = { path = "../hsm", features = ["settings"] }
 nl_wallet_mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../openid4vc_server" }

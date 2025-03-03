@@ -29,6 +29,7 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
+use hsm::service::Pkcs11Hsm;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
@@ -202,10 +203,14 @@ pub async fn setup_wallet_and_env(
 
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
 
+    assert_eq!(Some(wp_settings.hsm.clone()), ws_settings.hsm);
+
+    let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
+
     start_config_server(cs_settings, cs_root_ca).await;
     start_update_policy_server(ups_settings, ups_root_ca).await;
-    start_wallet_provider(wp_settings, wp_root_ca).await;
-    start_wallet_server(ws_settings, MockAttributeService).await;
+    start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
+    start_wallet_server(ws_settings, Some(hsm), MockAttributeService).await;
 
     let config_repository = HttpConfigurationRepository::new(
         config_server_config.signing_public_key.as_inner().into(),
@@ -324,7 +329,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
 }
 
-pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTrustAnchor) {
+pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) {
     let base_url = local_wp_base_url(&settings.webserver.port);
 
     let play_integrity_client = MockPlayIntegrityClient::new(
@@ -334,7 +339,7 @@ pub async fn start_wallet_provider(settings: WpSettings, trust_anchor: ReqwestTr
 
     tokio::spawn(async {
         if let Err(error) =
-            wallet_provider::server::serve(settings, RevocationStatusList::default(), play_integrity_client).await
+            wallet_provider::server::serve(settings, hsm, RevocationStatusList::default(), play_integrity_client).await
         {
             println!("Could not start wallet_provider: {:?}", error);
 
@@ -373,7 +378,11 @@ pub fn wallet_server_internal_url(auth: &RequesterAuth, public_url: &BaseUrl) ->
     }
 }
 
-pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(settings: WsSettings, attr_service: A) {
+pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(
+    settings: WsSettings,
+    hsm: Option<Pkcs11Hsm>,
+    attr_service: A,
+) {
     let storage_settings = &settings.storage;
     let public_url = settings.urls.public_url.clone();
 
@@ -389,6 +398,7 @@ pub async fn start_wallet_server<A: AttributeService + Send + Sync + 'static>(se
         if let Err(error) = wallet_server::server::wallet_server::serve(
             attr_service,
             settings,
+            hsm,
             disclosure_sessions,
             issuance_sessions,
             wte_tracker,

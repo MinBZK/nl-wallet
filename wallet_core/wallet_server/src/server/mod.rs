@@ -1,3 +1,5 @@
+pub mod keys;
+
 #[cfg(feature = "issuance")]
 pub mod pid_issuer;
 

@@ -20,18 +20,20 @@ class HistorySectionSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverStickyHeader(
       header: HistorySectionHeader(dateTime: section.dateTime),
-      sliver: SliverList.builder(
+      sliver: SliverList.separated(
+        itemCount: section.events.length + 1, // +1 for the divider (separator) at the end of the list
         itemBuilder: (context, i) {
-          final WalletEvent event = section.events[i];
-          return Semantics(
-            button: true,
-            child: WalletEventRow(
-              event: event,
-              onPressed: () => onRowPressed(event),
-            ),
-          );
+          return i < section.events.length
+              ? Semantics(
+                  button: true,
+                  child: WalletEventRow(
+                    event: section.events[i],
+                    onPressed: () => onRowPressed(section.events[i]),
+                  ),
+                )
+              : const SizedBox();
         },
-        itemCount: section.events.length,
+        separatorBuilder: (context, index) => const Divider(),
       ),
     );
   }

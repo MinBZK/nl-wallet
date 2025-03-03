@@ -8,9 +8,9 @@ extension TextStyleExtension on TextStyle {
 
   /// Checks the current state of the [_statesController] and returns an altered color [TextStyle] when
   /// this widget is pressed or focused.
-  TextStyle colorWhenPressedOrFocused(Set<WidgetState> states, Color pressedOrFocusedColor) {
+  TextStyle colorWhenPressedOrFocused(Set<WidgetState> states, Color? pressedOrFocusedColor) {
     final property = WidgetStateProperty.resolveWith((states) {
-      if (states.isPressedOrFocused) return copyWith(color: pressedOrFocusedColor);
+      if (states.isPressedOrFocused && pressedOrFocusedColor != null) return copyWith(color: pressedOrFocusedColor);
       return this;
     });
     return property.resolve(states);
