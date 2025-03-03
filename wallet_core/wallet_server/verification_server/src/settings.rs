@@ -154,6 +154,7 @@ impl ServerSettings for VerifierSettings {
             .prefix_separator("__")
             .list_separator(",")
             .with_list_parse_key("reader_trust_anchors")
+            .with_list_parse_key("issuer_trust_anchors")
             .try_parsing(true);
 
         let config = config_builder
