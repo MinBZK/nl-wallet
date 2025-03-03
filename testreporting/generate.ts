@@ -13,6 +13,7 @@ import { allure2, attachments, junitXml } from "@allurereport/reader"
 
 import { groupTestResult } from "./labels.ts"
 import { loadFromZip, ZipResultFile } from "./zip.ts"
+import { fileNameToGroup } from "./mapping.ts"
 
 // Reader that wraps ResultsReader and uses groupTestResult to group the results from the origin
 class GroupedReader implements ResultsReader {
@@ -23,10 +24,11 @@ class GroupedReader implements ResultsReader {
   }
 
   read(visitor: ResultsVisitor, data: ResultFile) {
-    const group = this.#groupOf(data)
-    if (!group) {
+    const originFileName = this.#originFileName(data)
+    if (!originFileName) {
       return this.#reader.read(visitor, data)
     }
+    const group = fileNameToGroup(originFileName)
 
     const wrappedVisitor = {
       visitTestResult: (result: RawTestResult, context: ReaderContext) =>
@@ -42,7 +44,7 @@ class GroupedReader implements ResultsReader {
     return this.#reader.readerId()
   }
 
-  #groupOf(resultFile: ResultFile) {
+  #originFileName(resultFile: ResultFile) {
     if (this.#reader.readerId() == "junit") {
       return resultFile.getOriginalFileName()
     } else if (resultFile instanceof ZipResultFile) {
