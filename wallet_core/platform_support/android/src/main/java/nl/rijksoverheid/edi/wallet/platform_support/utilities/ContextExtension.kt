@@ -1,4 +1,4 @@
-package nl.rijksoverheid.edi.wallet.platform_support.util
+package nl.rijksoverheid.edi.wallet.platform_support.utilities
 
 import android.app.KeyguardManager
 import android.content.Context

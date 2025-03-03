@@ -4,8 +4,8 @@ import android.security.keystore.KeyProperties
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
-import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
-import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toByteArray
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -8,7 +8,7 @@ import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
-import nl.rijksoverheid.edi.wallet.platform_support.util.DeviceUtils.isRunningOnEmulator
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.DeviceUtils.isRunningOnEmulator
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.cert.Certificate

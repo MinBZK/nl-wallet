@@ -7,8 +7,8 @@ import android.security.keystore.KeyProperties
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KEYSTORE_PROVIDER
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKey
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.setStrongBoxBackedCompat
-import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
-import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toByteArray
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.security.KeyStore

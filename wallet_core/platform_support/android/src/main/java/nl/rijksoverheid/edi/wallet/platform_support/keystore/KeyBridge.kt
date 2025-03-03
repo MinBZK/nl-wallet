@@ -2,7 +2,7 @@ package nl.rijksoverheid.edi.wallet.platform_support.keystore
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
-import nl.rijksoverheid.edi.wallet.platform_support.util.isDeviceLocked
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.isDeviceLocked
 import uniffi.platform_support.KeyStoreException
 import java.security.KeyStore
 

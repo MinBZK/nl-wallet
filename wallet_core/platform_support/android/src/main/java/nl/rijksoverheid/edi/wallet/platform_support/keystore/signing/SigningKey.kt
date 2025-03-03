@@ -2,7 +2,6 @@
 package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.content.Context
-import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
@@ -11,8 +10,8 @@ import nl.rijksoverheid.edi.wallet.platform_support.keystore.KEYSTORE_PROVIDER
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKey
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.setStrongBoxBackedCompat
-import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
-import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toByteArray
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
 import uniffi.platform_support.KeyStoreException.*
 import java.security.KeyFactory
 import java.security.KeyPairGenerator

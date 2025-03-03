@@ -2,7 +2,7 @@ package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test

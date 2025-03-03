@@ -1,4 +1,4 @@
-package nl.rijksoverheid.edi.wallet.platform_support.util
+package nl.rijksoverheid.edi.wallet.platform_support.utilities
 
 fun List<UByte>.toByteList(): List<Byte> = this.map { it.toByte() }
 

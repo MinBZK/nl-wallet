@@ -13,8 +13,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupport
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SIGNATURE_ALGORITHM
-import nl.rijksoverheid.edi.wallet.platform_support.util.toByteArray
-import nl.rijksoverheid.edi.wallet.platform_support.util.toUByteList
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toByteArray
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -42,7 +42,7 @@ import java.security.spec.X509EncodedKeySpec
 class AttestedKeyBridgeInstrumentedTest {
     companion object {
         const val CHALLENGE: String = "test-challenge"
-        const val GOOGLE_CLOUD_PROJECT_NUMBER: ULong = 0u
+        const val GOOGLE_CLOUD_PROJECT_NUMBER: ULong = 12143997365u
 
         @JvmStatic
         external fun attested_key_test()
