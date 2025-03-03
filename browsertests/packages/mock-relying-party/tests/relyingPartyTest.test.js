@@ -9,7 +9,7 @@ const test = base.extend({
 
   // eslint-disable-next-line no-empty-pattern -- fixtures require destructuring
   isMobileDevice: async ({}, use, testInfo) => {
-    await use(testInfo.project.name.split("-")[1] === "Mobile")
+    await use(testInfo.project.name.split("-")[1] === "mobile")
   },
 })
 
