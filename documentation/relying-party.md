@@ -98,7 +98,7 @@ getting some currently-private changes upstreamed, work in progress).
 The subsections below describe the decisions you need to make as a relying
 party with regards to attributes you want to verify, what data we require from
 you, how to create a certificate request for a certificate (which is configured
-for usage within the `wallet_server`), and how to file all of that with us.
+for usage within the `verification_server`), and how to file all of that with us.
 
 ## Decisions
 
@@ -113,11 +113,11 @@ Attributes in the wallet are grouped in things called attestations and the
 wallet app displays these attestations as cards. The attestations are stored in
 the `mdoc` format (see [ISO/IEC 18013-5:2021][8] and [ISO/IEC 23220-4][9]).
 
-In the `wallet_server` we have the concept of `usecases`, which encapsulate what
+In the `verification_server` we have the concept of `usecases`, which encapsulate what
 you want to use a disclosure for, for example to verify a legal age or to login
 to a website. Essentially, every certificate that you create to be able to
 verify attributes for some purpose, represent a certificate/key-pair, and the
-`wallet_server` can support multiple `usecases`. In this guide we will be
+`verification_server` can support multiple `usecases`. In this guide we will be
 creating a single certificate (so, for a single `usecase`), but there's nothing
 stopping you from creating/requesting multiple certificates for different
 `usecases`.
@@ -403,7 +403,7 @@ What you'll receive from us in reply to the above is:
    attributes.
 
 3. A universal link base URL for one of our environments, which you need to
-   configure when setting up de `wallet_server` in verifier mode (covered in
+   configure when setting up the `verification_server` (covered in
    the [Universal link base URL](#universal-link-base-url) section of the
    installation chapter).
 
@@ -411,22 +411,7 @@ What you'll receive from us in reply to the above is:
 
 After you have obtained a certificate for your `usecase`, following the
 previously documented steps, you are ready to setup and configure your
-`wallet_server`.
-
-Currently, the `wallet_server` is configured by compile-time feature flags to
-fulfil different roles:
-
-- `verification`: a.k.a. disclosure, i.e., for an "ontvangende voorziening",
-  an "OV", for "relying parties", which is what we're talking about in this
-  document;
-- `issuance`: i.e., for a "verstrekkende voorziening", a "VV", for parties
-  that issue attestations that can be verified/used by the former. Note that
-  as of this writing (2024-08-08), we only have one issuer, the so-called
-  `pid_issuer`.
-
-The `wallet_server` for verification is more specifically called
-`verification_server`, which is also the name of the binary you will be running
-and the name we'll be using in this installation section.
+`verification_server`.
 
 ## Obtaining the software
 
@@ -671,10 +656,9 @@ port = 3005
 ip = '0.0.0.0'
 port = 3006
 
-[verifier]
 ephemeral_id_secret = '$WAEPHEMERALIDSECRET'
 
-[verifier.usecases.$WAUSECASENAME]
+[usecases.$WAUSECASENAME]
 certificate = '$WAUSECASECERT'
 private_key = '$WAUSECASEKEY'
 EOF
@@ -797,8 +781,8 @@ the [API specifications](#api-specifications) section.
 Now that you can interact with the wallet platform, you are ready to start
 working on integration your own application with your "Ontvangende Voorziening".
 
-An "Ontvangende Voorziening" is realized by configuring the `wallet_server`
-in "OV" mode, which is a software component developed by the NL wallet team
+An "Ontvangende Voorziening" is realized by the `verification_server`,
+which is a software component developed by the NL wallet team
 which you as a relying party run on-premises or within your cloud environment
 in order to interact with the wallet platform.
 
@@ -830,14 +814,14 @@ Note the "actors/components" we distinguish between:
 
 - `user`: _user of the wallet_app, initiating an attribute disclosure session_
 - `wallet_app`: _the wallet app, running on a users' mobile phone_
-- `wallet_server`: _the wallet_server component of the OV_
+- `verification_server`: _the verification_server component of the OV_
 - `rp_frontend`: _the (JavaScript/HTML/CSS) frontend of the relying party app_
   _can be-or-use previously mentioned `wallet_web` JavaScript helper library_
 - `rp_backend`: _the (server) backend of the relying party application_
 
 In the diagram, the `user` is the small stick-figure at the top, the actor who
 initiates some task he/she wants to accomplish. the `wallet_app` is the blue box
-on the right. The `wallet_server` is the big block in the middle (shown as
+on the right. The `verification_server` is the big block in the middle (shown as
 "Verifier Service (Ontvangst Voorziening, OV)" containing the configuration, the
 verifier, and the validator components). The `rp_frontend` and `rp_backend` are
 represented by the big orange/beige block on the left (shown as "Relying Party
@@ -848,7 +832,7 @@ Overview of a flow for cross device attribute disclosure:
 1. `user` initiates action (i.e., clicks a button on web page of relying party
    in their desktop or mobile webbrowser);
 2. `rp_frontend` receives action, asks `rp_backend` to initiate session;
-3. `rp_backend` in turn calls `wallet_server` with a session initialization
+3. `rp_backend` in turn calls `verification_server` with a session initialization
    request, receiving a `session_url`, an `engagement_url`, and a
    `disclosed_attributes_url` as a response. The session initially has a
    `CREATED` status;
@@ -867,7 +851,7 @@ navigate to the universal link (UL). In parallel, `rp_frontend` will poll the
    status. The poll will terminate on `DONE`;
 7. After `user` completes the scanning of the QR or followed the universal
    link, `wallet_app` parses/extracts the QR/UL and starts a device engagement
-   session with `wallet_server`, which in turn returns the relying party
+   session with `verification_server`, which in turn returns the relying party
    details and the requested attributes to the `wallet_app`;
 8. The `wallet_app` shows the relying party details and the requested
    attributes to the `user` and gives the `user` the option to consent or
@@ -879,11 +863,11 @@ The `FAILED` status can occur when other, infrastructural and/or network-related
 problems are encountered. Assuming the `user` consented, let's continue:
 
 9. `wallet_app` sends a device response containing the disclosed
-   attributes and proofs_of_possession to the `wallet_server`;
-10. `wallet_server` validates if attributes are authentic and valid and if they
+   attributes and proofs_of_possession to the `verification_server`;
+10. `verification_server` validates if attributes are authentic and valid and if they
     belong together and returns an indication of success back to the
     `wallet_app`, which in turn confirms the success by displaying a dialog to
-    the `user`. `wallet_server` additionally updates the status of the session
+    the `user`. `verification_server` additionally updates the status of the session
     to `DONE` with the `SUCCESS` substate (assuming validation went fine);
 11. The poll running on the `rp_frontend` will terminate due to the `DONE`
     session state;
@@ -904,7 +888,7 @@ The `rp_frontend` detects the user-agent and from that determines if a
 Cross-device or Same-device flow is appropiate. When it encodes for a
 Same-device flow, the resulting Universal link can be directly opened by the
 `wallet_app` on the same device, which then starts device engagement towards
-the `wallet_server` (see step 7 above).
+the `verification_server` (see step 7 above).
 
 ## Notes on Requirements Applicable to Your Application
 
@@ -936,7 +920,7 @@ or disallow usage of (a part of) said application).
 
 To integrate with the "Ontvangende Voorziening", you modify your frontend and
 backend application, using the `wallet_web` frontend library, integrating with
-the `wallet_server` (the implementation of the "Ontvangende Voorziening" on
+the `verification_server` (the implementation of the "Ontvangende Voorziening" on
 your premises or in your cloud environment).
 
 In the disclosure flow diagram, on the right, where the "Relying Party
@@ -969,7 +953,7 @@ and [public][16] (also known as the `wallet`) endpoints are available in the
 
 ## Example calls
 
-The `wallet_server` has two ports: a "wallet server" port, which is a a "public"
+The `verification_server` has two ports: a "wallet server" port, which is a a "public"
 endpoint that can be queried for session status, usually running on TCP port
 `3005`, and a so-called "requester port" which is a "private" endpoint that can
 optionally be configured to have authentication mechanisms (or otherwise bind to
@@ -978,7 +962,7 @@ sensitive data, usually running on TCP port `3006`.
 
 Following is a collection of sample calls that illustrate how you interact with
 the OV. Note that we're using `localhost`, in your case it might be another
-hostname, FQDN or IP address, depending on how you've set-up `wallet_server`:
+hostname, FQDN or IP address, depending on how you've set-up `verification_server`:
 
 ### Initiate a Disclosure Session
 
@@ -1027,7 +1011,7 @@ Example responses:
 _(note that in the above response you see a `ul` universal link value with the_
 _scheme `walletdebuginteraction://`. In acceptance and (pre)production_
 _environments, you see a universal link based on the `universal_link_base_url`_
-_setting in the `wallet_server` configuration file.)_
+_setting in the `verification_server` configuration file.)_
 
 ```json
 {

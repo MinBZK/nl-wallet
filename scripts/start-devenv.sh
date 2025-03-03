@@ -277,7 +277,7 @@ then
     echo
     echo -e "${SECTION}Manage pid_issuer${NC}"
 
-    cd "${WALLET_SERVER_DIR}"
+    cd "${PID_ISSUER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
@@ -288,11 +288,11 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running pid_issuer database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin openid4vc_server_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "issuance,postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --no-default-features --features "postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
@@ -308,7 +308,7 @@ then
     echo
     echo -e "${SECTION}Manage verification_server${NC}"
 
-    cd "${WALLET_SERVER_DIR}"
+    cd "${VERIFICATION_SERVER_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
@@ -319,11 +319,11 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running verification_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin openid4vc_server_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,disclosure,postgres" --bin verification_server > "${TARGET_DIR}/mrp_verification_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin verification_server > "${TARGET_DIR}/mrp_verification_server.log" 2>&1 &
 
         echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_verification_server.log${NC}"
     fi

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/event/wallet_event.dart';
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/date_time_extension.dart';
 import '../../../util/extension/localized_text_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import 'default_text_and_focus_style.dart';
 
-class ActivitySummary extends StatelessWidget {
+class ActivitySummary extends StatefulWidget {
   final List<WalletEvent> events;
   final VoidCallback? onTap;
 
@@ -17,46 +19,81 @@ class ActivitySummary extends StatelessWidget {
   });
 
   @override
+  State<ActivitySummary> createState() => _ActivitySummaryState();
+
+  ActivityDisplayMode get mode {
+    if (events.isEmpty) return ActivityDisplayMode.lastMonth;
+    if (events.every((attribute) => attribute.dateTime.isToday)) return ActivityDisplayMode.today;
+    if (events.any((element) => element.dateTime.isInLastWeek)) return ActivityDisplayMode.lastWeek;
+    if (events.any((element) => element.dateTime.isInLastMonth)) return ActivityDisplayMode.lastMonth;
+    return ActivityDisplayMode.lastMonth;
+  }
+}
+
+class _ActivitySummaryState extends State<ActivitySummary> {
+  late WidgetStatesController _statesController;
+
+  @override
+  void initState() {
+    super.initState();
+    _statesController = WidgetStatesController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController.addListener(() => setState(() {})));
+  }
+
+  @override
+  void dispose() {
+    _statesController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final textPressedColor = context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
     return Semantics(
       button: true,
       attributedLabel: '${_resolveTitle(context)}\n${_resolveSubtitle(context)}'.toAttributedString(context),
       onTapHint: context.l10n.generalWCAGSeeAllActivities,
       excludeSemantics: true,
-      onTap: onTap,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            border: Border.all(color: context.colorScheme.outlineVariant),
-            borderRadius: BorderRadius.circular(14),
+      onTap: widget.onTap,
+      child: TextButton.icon(
+        onPressed: widget.onTap,
+        icon: const Icon(Icons.arrow_forward),
+        iconAlignment: IconAlignment.end,
+        statesController: _statesController,
+        style: context.theme.iconButtonTheme.style?.copyWith(
+          foregroundColor: WidgetStateProperty.resolveWith(
+            // Only override the color when the button is not pressed or focused
+            (states) => states.isPressedOrFocused ? null : context.colorScheme.onSurface,
           ),
-          padding: const EdgeInsets.all(24),
+          side: WidgetStateProperty.resolveWith(_resolveBorderSide),
+        ),
+        label: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _resolveTitle(context),
-                      style: context.textTheme.bodySmall?.copyWith(color: context.colorScheme.onSurfaceVariant),
+                    DefaultTextAndFocusStyle(
+                      statesController: _statesController,
+                      textStyle: context.textTheme.bodySmall,
+                      pressedOrFocusedColor: textPressedColor,
+                      child: Text(
+                        _resolveTitle(context),
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      _resolveSubtitle(context),
-                      style: context.textTheme.bodyLarge,
+                    DefaultTextAndFocusStyle(
+                      statesController: _statesController,
+                      textStyle: context.textTheme.bodyLarge,
+                      pressedOrFocusedColor: textPressedColor,
+                      child: Text(
+                        _resolveSubtitle(context),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward,
-                color: context.colorScheme.primary,
               ),
             ],
           ),
@@ -65,8 +102,18 @@ class ActivitySummary extends StatelessWidget {
     );
   }
 
+  BorderSide? _resolveBorderSide(Set<WidgetState> states) {
+    // Only override default state border side when the button is not pressed or focused
+    return !states.isPressedOrFocused
+        ? BaseWalletTheme.buttonBorderSideFocused.copyWith(
+            color: context.colorScheme.outlineVariant,
+            width: 1,
+          )
+        : null;
+  }
+
   String _resolveTitle(BuildContext context) {
-    switch (mode) {
+    switch (widget.mode) {
       case ActivityDisplayMode.today:
         return context.l10n.activitySummaryToday;
       case ActivityDisplayMode.lastWeek:
@@ -77,10 +124,10 @@ class ActivitySummary extends StatelessWidget {
   }
 
   String _resolveSubtitle(BuildContext context) {
-    final relevantEvents = switch (mode) {
-      ActivityDisplayMode.today => events.where((element) => element.dateTime.isToday),
-      ActivityDisplayMode.lastWeek => events.where((element) => element.dateTime.isInLastWeek),
-      ActivityDisplayMode.lastMonth => events.where((element) => element.dateTime.isInLastMonth),
+    final relevantEvents = switch (widget.mode) {
+      ActivityDisplayMode.today => widget.events.where((element) => element.dateTime.isToday),
+      ActivityDisplayMode.lastWeek => widget.events.where((element) => element.dateTime.isInLastWeek),
+      ActivityDisplayMode.lastMonth => widget.events.where((element) => element.dateTime.isInLastMonth),
     };
     return _resolveSubtitleForEvents(context, relevantEvents.toList());
   }
@@ -188,14 +235,6 @@ class ActivitySummary extends StatelessWidget {
         commaSeparatedOrganizations,
       );
     }
-  }
-
-  ActivityDisplayMode get mode {
-    if (events.isEmpty) return ActivityDisplayMode.lastMonth;
-    if (events.every((attribute) => attribute.dateTime.isToday)) return ActivityDisplayMode.today;
-    if (events.any((element) => element.dateTime.isInLastWeek)) return ActivityDisplayMode.lastWeek;
-    if (events.any((element) => element.dateTime.isInLastMonth)) return ActivityDisplayMode.lastMonth;
-    return ActivityDisplayMode.lastMonth;
   }
 }
 

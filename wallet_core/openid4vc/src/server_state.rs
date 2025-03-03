@@ -28,6 +28,10 @@ use wallet_common::wte::WteClaims;
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: Duration = Duration::from_secs(120);
 
+pub trait SessionDataType {
+    const TYPE: &'static str;
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Progress {
     Active,

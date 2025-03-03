@@ -4,7 +4,8 @@
 /update_policy_server.toml
 /wallet.toml
 /wallet_provider.toml
-/wallet_server.toml
+/verification_server.toml
+/pid_issuer.toml
 /wallet-config.json
 /*.der
 /*.pem

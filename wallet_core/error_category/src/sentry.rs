@@ -14,7 +14,7 @@ use crate::ErrorCategory;
 ///
 /// For errors that fall into the category `unexpected` an error message is logged.
 /// Unexpected errors should never occur in the wallet and point to a programming error, this can happen when
-/// the wallet uses code that is meant for an external service, like the wallet_provider or the wallet_server.
+/// the wallet uses code that is meant for an external service, like the wallet_provider or the verification_server.
 /// Otherwise the error classification is wrong.
 pub fn classify_mask_and_capture<T: ErrorCategory + Error + ?Sized>(error: &T) {
     let category = error.category();

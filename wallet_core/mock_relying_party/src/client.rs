@@ -34,9 +34,13 @@ impl WalletServerClient {
                     .as_deref()
                     .map(|detail| format!("({}) {}", body.r#type, detail))
                     .unwrap_or(body.r#type);
-                format!("wallet_server responded with error {}: {}", status.as_u16(), detail)
+                format!(
+                    "verification_server responded with error {}: {}",
+                    status.as_u16(),
+                    detail
+                )
             } else {
-                format!("wallet_server responded with error {}", status.as_u16())
+                format!("verification_server responded with error {}", status.as_u16())
             };
 
             return Err(anyhow::Error::msg(message));

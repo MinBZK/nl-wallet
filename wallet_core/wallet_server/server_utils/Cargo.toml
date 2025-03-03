@@ -1,0 +1,60 @@
+[package]
+name = "server_utils"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[features]
+integration_test = []
+# Include session storage in PostgreSQL
+postgres = ["dep:serde_json", "dep:sea-orm", "dep:strum"]
+
+[dependencies]
+anyhow.workspace = true
+axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
+base64.workspace = true
+chrono = { workspace = true, features = ["clock", "serde", "std"] }
+config = { workspace = true, features = ["toml"] }
+futures.workspace = true
+http.workspace = true
+p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
+rustls-pki-types.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["base64"] }
+thiserror.workspace = true
+tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
+tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = [
+    "std",
+    "env-filter",
+    "fmt",
+    "json",
+    "ansi",
+    "smallvec",
+    "tracing-log",
+    "parking_lot",
+] }
+url = { workspace = true, features = ["serde"] }
+
+sea-orm = { workspace = true, optional = true, features = [
+    "macros",
+    "runtime-tokio-rustls",
+    "sqlx-postgres",
+    "with-chrono",
+    "with-json",
+] }
+serde_json = { workspace = true, optional = true }
+strum = { workspace = true, optional = true, features = ["derive"] }
+
+hsm.path = "../../hsm"
+nl_wallet_mdoc.path = "../../mdoc"
+openid4vc = { path = "../../openid4vc", features = ["axum"] }
+openid4vc_server.path = "../../openid4vc_server"
+wallet_common = { path = "../../wallet_common", features = ["axum"] }
