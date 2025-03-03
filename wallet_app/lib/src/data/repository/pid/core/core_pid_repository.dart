@@ -4,7 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:wallet_core/core.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/wallet_card.dart';
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../pid_repository.dart';

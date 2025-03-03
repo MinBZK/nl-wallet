@@ -1,10 +1,10 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
-import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/feature/card/history/bloc/card_history_bloc.dart';
 
 import '../../../../mocks/wallet_mock_data.dart';

@@ -144,7 +144,7 @@ void main() {
       );
 
       // Validate that the widget exists
-      final titleFinder = find.text(WalletMockData.issuanceEvent.card.front.title.testValue);
+      final titleFinder = find.text(WalletMockData.issuanceEvent.card.title.testValue);
       // Finds both the row title and the title in the card thumbnail
       expect(titleFinder, findsNWidgets(2));
 

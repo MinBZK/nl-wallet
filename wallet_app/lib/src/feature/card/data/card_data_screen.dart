@@ -48,7 +48,7 @@ class CardDataScreen extends StatelessWidget {
   }
 
   String _generateTitle(BuildContext context, CardDataState state) {
-    final title = tryCast<CardDataLoadSuccess>(state)?.card.front.title.l10nValue(context) ?? cardTitle;
+    final title = tryCast<CardDataLoadSuccess>(state)?.card.title.l10nValue(context) ?? cardTitle;
     return context.l10n.cardDataScreenTitle(title);
   }
 

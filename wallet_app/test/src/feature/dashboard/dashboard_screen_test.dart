@@ -98,8 +98,8 @@ void main() {
       );
 
       // Validate that the widget exists
-      final cardTitleFinder = find.text(WalletMockData.card.front.title.testValue);
-      final altCardTitleFinder = find.text(WalletMockData.altCard.front.title.testValue);
+      final cardTitleFinder = find.text(WalletMockData.card.title.testValue);
+      final altCardTitleFinder = find.text(WalletMockData.altCard.title.testValue);
       expect(cardTitleFinder, findsOneWidget);
       expect(altCardTitleFinder, findsOneWidget);
     });

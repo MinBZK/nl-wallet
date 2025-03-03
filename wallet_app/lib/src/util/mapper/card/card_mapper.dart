@@ -1,10 +1,13 @@
 import 'package:wallet_core/core.dart' as core;
 
+import '../../../../environment.dart';
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/card_config.dart';
-import '../../../domain/model/card_front.dart';
+import '../../../domain/model/card/card_config.dart';
+import '../../../domain/model/card/card_front.dart';
+import '../../../domain/model/card/metadata/card_display_metadata.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/organization.dart';
-import '../../../domain/model/wallet_card.dart';
+import '../../extension/object_extension.dart';
 import '../mapper.dart';
 import 'attribute/card_attribute_mapper.dart';
 
@@ -14,8 +17,15 @@ class CardMapper extends Mapper<core.Attestation, WalletCard> {
   final Mapper<String /*docType*/, CardConfig> _cardConfigMapper;
   final Mapper<CardAttributeWithDocType, DataAttribute> _attributeMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
+  final Mapper<core.DisplayMetadata, CardDisplayMetadata> _displayMetadataMapper;
 
-  CardMapper(this._cardFrontMapper, this._cardConfigMapper, this._attributeMapper, this._organizationMapper);
+  CardMapper(
+    this._cardFrontMapper,
+    this._cardConfigMapper,
+    this._attributeMapper,
+    this._organizationMapper,
+    this._displayMetadataMapper,
+  );
 
   @override
   WalletCard map(core.Attestation input) {
@@ -27,12 +37,16 @@ class CardMapper extends Mapper<core.Attestation, WalletCard> {
       id: cardId,
       docType: input.attestationType,
       issuer: _organizationMapper.map(input.issuer),
-      front: _cardFrontMapper.map(input),
+      front: _cardFrontMapper.map(input).takeIf((_) => Environment.mockRepositories),
       attributes: _attributeMapper.mapList(
         input.attributes.map(
-          (attribute) => CardAttributeWithDocType(input.attestationType, attribute),
+          (attribute) => CardAttributeWithDocType(
+            input.attestationType,
+            attribute,
+          ),
         ),
       ),
+      metadata: _displayMetadataMapper.mapList(input.displayMetadata),
       config: _cardConfigMapper.map(input.attestationType),
     );
   }

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-02-14T15:23:54+01:00",
+    "@@last_modified": "2025-02-28T14:33:43+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -127,7 +127,7 @@
         }
     },
     "cardDetailScreenLatestIssuedOperationUnknown": "Latest update unknown",
-    "cardDetailScreenLatestSuccessInteraction": "{timeAgo} {shareStatus} with {organization}",
+    "cardDetailScreenLatestSuccessInteraction": "{shareStatus} {timeAgo} with {organization}",
     "@cardDetailScreenLatestSuccessInteraction": {
         "placeholders": {
             "organization": {
@@ -483,6 +483,7 @@
     "generalShowDetailsCta": "See details",
     "generalTimeAgo": "ago",
     "generalTimeAgoLessThenOneMinute": "less then a minute",
+    "generalTimeAgoMoreThanOneWeek": "more than a week ago",
     "generalToAppStoreCta": "To App Store",
     "generalToPlayStoreCta": "To Play Store",
     "generalVersionText": "App version:",
@@ -1101,7 +1102,7 @@
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login again",
     "walletPersonalizeDigidErrorPageNoDigidCta": "Need help with DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Login failed",
-    "walletPersonalizeIntroPageDescription": "Log in just once with your DigiD app to retrieve your personal cards.",
+    "walletPersonalizeIntroPageDescription": "Log in once with DigiD to receive your cards from the National Office for Identity Data (RvIG).",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open the DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "No DigiD?",
     "walletPersonalizeIntroPageTitle": "Add cards via DigiD",

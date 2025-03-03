@@ -13,7 +13,7 @@ void main() {
       ),
     );
 
-    expect(find.textContaining(WalletMockData.card.front.title.testValue), findsOneWidget);
+    expect(find.textContaining(WalletMockData.card.title.testValue), findsOneWidget);
   });
 
   testWidgets('card attribute labels are rendered', (WidgetTester tester) async {

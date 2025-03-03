@@ -2,10 +2,10 @@ import 'package:wallet_core/core.dart' as core show DisclosureStatus, Disclosure
 import 'package:wallet_core/core.dart' hide DisclosureStatus, DisclosureType, Organization, WalletEvent;
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/wallet_card.dart';
 import '../mapper.dart';
 
 class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {

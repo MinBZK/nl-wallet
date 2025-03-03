@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/model/attribute/attribute.dart';
-import '../../domain/model/wallet_card.dart';
+import '../../domain/model/card/wallet_card.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
@@ -180,7 +180,7 @@ class IssuanceScreen extends StatelessWidget {
         }
       },
       onAcceptPressed: () => context.bloc.add(const IssuanceCheckDataOfferingApproved()),
-      attributes: state.card.attributes,
+      offeredCard: state.card,
     );
   }
 

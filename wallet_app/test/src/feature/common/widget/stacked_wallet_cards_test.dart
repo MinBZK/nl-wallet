@@ -57,7 +57,7 @@ void main() {
       );
 
       // Validate that the widget exists
-      final widgetFinder = find.text(WalletMockData.card.front.title.testValue);
+      final widgetFinder = find.text(WalletMockData.card.title.testValue);
       expect(widgetFinder, findsNWidgets(2));
     });
   });

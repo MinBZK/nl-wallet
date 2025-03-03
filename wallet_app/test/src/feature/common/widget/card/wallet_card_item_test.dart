@@ -1,9 +1,13 @@
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/feature/common/widget/card/card_logo.dart';
+import 'package:wallet/src/feature/common/widget/card/mock_card_background.dart';
 import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
+import 'package:wallet/src/feature/common/widget/svg_or_image.dart';
+import 'package:wallet/src/theme/dark_wallet_theme.dart';
+import 'package:wallet/src/theme/light_wallet_theme.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
@@ -19,6 +23,34 @@ void main() {
 
   group('goldens', () {
     testGoldens(
+      'Card with simple rendering is rendered as expected',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: const Size(328, 192),
+          Builder(
+            builder: (context) {
+              return WalletCardItem.fromWalletCard(context, WalletMockData.simpleRenderingCard);
+            },
+          ),
+        );
+        await screenMatchesGolden(tester, 'wallet_card_item/simple_rendering');
+      },
+    );
+
+    testGoldens(
+      'Card with provided CardFront is rendered as expected',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: const Size(328, 192),
+          Builder(
+            builder: (context) => WalletCardItem.fromWalletCard(context, WalletMockData.altCard),
+          ),
+        );
+        await screenMatchesGolden(tester, 'wallet_card_item/mock_front_rendering');
+      },
+    );
+
+    testGoldens(
       'Cards adapt based on provided brightness',
       (tester) async {
         final builder = GoldenBuilder.column()
@@ -26,11 +58,10 @@ void main() {
             'dark',
             const WalletCardItem(
               title: 'Dark Card',
-              subtitle1: 'subtitle',
-              subtitle2: 'subtitle2',
-              brightness: Brightness.dark,
-              background: WalletAssets.svg_rijks_card_bg_dark,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              subtitle: 'subtitle',
+              background: MockCardBackground(front: WalletMockData.cardFront),
+              logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+              textColor: DarkWalletTheme.textColor,
               onPressed: _voidCallback,
             ),
           )
@@ -38,12 +69,10 @@ void main() {
             'light',
             const WalletCardItem(
               title: 'Light Card',
-              subtitle1: 'subtitle',
-              subtitle2: 'subtitle2',
-              holograph: WalletAssets.svg_rijks_card_holo,
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              subtitle: 'subtitle',
+              background: MockCardBackground(front: WalletMockData.altCardFront),
+              logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+              textColor: LightWalletTheme.textColor,
               onPressed: _voidCallback,
             ),
           );
@@ -67,12 +96,10 @@ void main() {
             'base case',
             const WalletCardItem(
               title: '50 characters looooooong title is consider the max',
-              subtitle1: '50 characters loong subtitle is considered the max',
-              subtitle2: '50 characters long subtitle2 is considered the max',
-              holograph: WalletAssets.svg_rijks_card_holo,
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              subtitle: '50 characters loong subtitle is considered the max',
+              background: MockCardBackground(front: WalletMockData.cardFront),
+              logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+              textColor: DarkWalletTheme.textColor,
               onPressed: _voidCallback,
             ),
           )
@@ -80,19 +107,17 @@ void main() {
             'maximum textScaling',
             const WalletCardItem(
               title: '50 characters looooooong title is consider the max',
-              subtitle1: '50 characters loong subtitle is considered the max',
-              subtitle2: '50 characters long subtitle2 is considered the max',
-              holograph: WalletAssets.svg_rijks_card_holo,
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              subtitle: '50 characters loong subtitle is considered the max',
+              background: MockCardBackground(front: WalletMockData.altCardFront),
+              logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+              textColor: LightWalletTheme.textColor,
               onPressed: _voidCallback,
             ),
           );
 
         await tester.pumpWidgetBuilder(
           builder.build(),
-          surfaceSize: const Size(344, 2135),
+          surfaceSize: const Size(344, 1500),
           wrapper: walletAppWrapper(),
         );
         await screenMatchesGolden(tester, 'wallet_card_item/scaling');
@@ -107,11 +132,10 @@ void main() {
             'base case',
             const WalletCardItem(
               title: 'TITLE',
-              subtitle1: 'SUBTITLE',
-              subtitle2: 'SUBTITLE - 2',
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              subtitle: 'SUBTITLE',
+              background: MockCardBackground(front: WalletMockData.altCardFront),
+              textColor: LightWalletTheme.textColor,
+              logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
               onPressed: _voidCallback,
             ),
           )
@@ -119,21 +143,9 @@ void main() {
             'no logo',
             const WalletCardItem(
               title: 'TITLE',
-              subtitle1: 'SUBTITLE',
-              subtitle2: 'SUBTITLE - 2',
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              onPressed: _voidCallback,
-            ),
-          )
-          ..addScenario(
-            'no subtitle 2',
-            const WalletCardItem(
-              title: 'TITLE - NO SUBTITLE 2',
-              subtitle1: 'SUBTITLE',
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              subtitle: 'SUBTITLE',
+              background: MockCardBackground(front: WalletMockData.altCardFront),
+              textColor: LightWalletTheme.textColor,
               onPressed: _voidCallback,
             ),
           )
@@ -141,20 +153,9 @@ void main() {
             'no subtitle',
             const WalletCardItem(
               title: 'TITLE - NO SUBTITLE',
-              subtitle2: 'SUBTITLE - 2',
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
-              onPressed: _voidCallback,
-            ),
-          )
-          ..addScenario(
-            'no subtitles',
-            const WalletCardItem(
-              title: 'TITLE - NO SUBTITLES',
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              background: MockCardBackground(front: WalletMockData.altCardFront),
+              textColor: LightWalletTheme.textColor,
+              logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
               onPressed: _voidCallback,
             ),
           )
@@ -162,15 +163,15 @@ void main() {
             'no show details',
             const WalletCardItem(
               title: 'TITLE - NO SHOW DETAILS',
-              brightness: Brightness.light,
-              background: WalletAssets.svg_rijks_card_bg_light,
-              logo: WalletAssets.logo_card_rijksoverheid,
+              background: MockCardBackground(front: WalletMockData.altCardFront),
+              textColor: LightWalletTheme.textColor,
+              logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
             ),
           );
 
         await tester.pumpWidgetBuilder(
           builder.build(),
-          surfaceSize: const Size(344, 1452),
+          surfaceSize: const Size(344, 968),
           wrapper: walletAppWrapper(),
         );
         await screenMatchesGolden(tester, 'wallet_card_item/content');
@@ -179,30 +180,26 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('verify title, subtitle, subtitle2 are shown', (tester) async {
+    testWidgets('verify title & subtitle are shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         WalletCardItem(
           title: 'title',
-          background: WalletAssets.svg_rijks_card_bg_dark,
-          brightness: Brightness.light,
+          background: const SvgOrImage(asset: WalletAssets.svg_rijks_card_bg_dark),
           onPressed: () {},
           ctaAnimation: CtaAnimation.visible,
-          holograph: WalletAssets.svg_rijks_card_holo,
-          logo: WalletAssets.logo_card_rijksoverheid,
-          subtitle1: 'subtitle1',
-          subtitle2: 'subtitle2',
+          logo: const SvgOrImage(asset: WalletAssets.logo_card_rijksoverheid),
+          subtitle: 'subtitle1',
         ),
       );
       expect(find.text('title'), findsOneWidget);
       expect(find.text('subtitle1'), findsOneWidget);
-      expect(find.text('subtitle2'), findsOneWidget);
     });
 
     testWidgets('verify title, subtitle are shown in shuttle card', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         WalletCardItem.buildShuttleCard(
           const AlwaysStoppedAnimation(0),
-          WalletMockData.cardFront,
+          WalletMockData.card,
         ),
       );
       expect(find.text(WalletMockData.cardFront.title.testValue), findsOneWidget);
