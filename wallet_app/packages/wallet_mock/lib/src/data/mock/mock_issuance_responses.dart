@@ -19,8 +19,6 @@ const _kMockBirthDateKey = 'mock.birthDate';
 const _kMockOtherKey = 'mock.other';
 const _kMockIssuanceDateKey = 'mock.issuanceDate';
 
-const _kMockDisplayMetadata = DisplayMetadata(lang: 'nl', name: 'card name');
-
 final kIssuanceResponses = [
   IssuanceResponse(
     id: _kPidId,
@@ -85,7 +83,7 @@ const _kPidId = 'PID_1';
 final _kMockPidWalletCard = Attestation(
   attestationType: kPidDocType,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
+  displayMetadata: [],
   attributes: _kMockPidDataAttributes,
   issuer: kOrganizations[kRvigId]!,
 );
@@ -93,8 +91,7 @@ final _kMockPidWalletCard = Attestation(
 final _kMockAddressWalletCard = Attestation(
   attestationType: kAddressDocType,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
-  // front: _kMockAddressCardFront,
+  displayMetadata: [],
   attributes: _kMockAddressDataAttributes,
   issuer: kOrganizations[kRvigId]!,
 );
@@ -103,8 +100,7 @@ const _kDiplomaId = 'DIPLOMA_1';
 final _kMockDiplomaWalletCard = Attestation(
   attestationType: _kDiplomaId,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
-  // front: _kMockDiplomaCardFront,
+  displayMetadata: [],
   attributes: _kMockDiplomaDataAttributes,
   issuer: kOrganizations[kDuoId]!,
 );
@@ -114,8 +110,7 @@ const _kMasterDiplomaId = 'DIPLOMA_2';
 final _kMockMasterDiplomaWalletCard = Attestation(
   attestationType: _kMasterDiplomaId,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
-  // front: _kMockMasterDiplomaCardFront,
+  displayMetadata: [],
   attributes: _kMockMasterDiplomaDataAttributes,
   issuer: kOrganizations[kDuoId]!,
 );
@@ -124,8 +119,7 @@ const _kDrivingLicenseId = 'DRIVING_LICENSE';
 final _kMockDrivingLicenseWalletCard = Attestation(
   attestationType: kDrivingLicenseDocType,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
-  // front: _kMockDrivingLicenseCardFront,
+  displayMetadata: [],
   attributes: _kMockDrivingLicenseDataAttributes,
   issuer: kOrganizations[kRdwId]!,
 );
@@ -134,8 +128,7 @@ const _kDrivingLicenseRenewedId = 'DRIVING_LICENSE_RENEWED'; // Used in issuance
 final _kMockDrivingLicenseRenewedWalletCard = Attestation(
   attestationType: kDrivingLicenseDocType,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
-  // front: _kMockDrivingLicenseRenewedCardFront,
+  displayMetadata: [],
   attributes: _kMockDrivingLicenseRenewedDataAttributes,
   issuer: kOrganizations[kRdwId]!,
 );
@@ -144,8 +137,7 @@ const _kHealthInsuranceId = 'HEALTH_INSURANCE';
 final _kMockHealthInsuranceWalletCard = Attestation(
   attestationType: _kHealthInsuranceId,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
-  // front: _kMockHealthInsuranceCardFront,
+  displayMetadata: [],
   attributes: _kMockHealthInsuranceDataAttributes,
   issuer: kOrganizations[kHealthInsuranceId]!,
 );
@@ -154,8 +146,7 @@ const _kVOGId = 'VOG';
 final _kMockVOGWalletCard = Attestation(
   attestationType: _kVOGId,
   identity: AttestationIdentity.ephemeral(),
-  displayMetadata: [_kMockDisplayMetadata],
-  // front: _kMockVOGCardFront,
+  displayMetadata: [],
   attributes: _kMockVOGDataAttributes,
   issuer: kOrganizations[kRvigId]!,
 );
