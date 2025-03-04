@@ -4,14 +4,13 @@ import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
-import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionPrivacyScreen
 import screen.privacy.PrivacyPolicyScreen
+import screen.security.PinScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${IntroductionPrivacyTests.USE_CASE} App displays privacy statement [${IntroductionPrivacyTests.JIRA_ID}]")
@@ -48,13 +47,13 @@ class IntroductionPrivacyTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The User can proceed to terms & conditions. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.3 The User can proceed to setup pin. [${JIRA_ID}]")
     fun verifyNextButton() {
         setUp()
         privacyScreen.clickNextButton()
 
-        val conditionsScreen = IntroductionConditionsScreen()
-        assertTrue(conditionsScreen.visible(), "conditions screen is not visible")
+        val pinScreen = PinScreen()
+        assertTrue(pinScreen.choosePinScreenVisible(), "choose pin screen is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

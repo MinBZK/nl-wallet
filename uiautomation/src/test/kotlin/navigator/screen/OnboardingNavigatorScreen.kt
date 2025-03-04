@@ -3,7 +3,6 @@ package navigator.screen
 enum class OnboardingNavigatorScreen {
     Introduction,
     IntroductionPrivacy,
-    IntroductionConditions,
     SecurityChoosePin,
     SecurityConfirmPin,
     SecuritySetupCompleted,
