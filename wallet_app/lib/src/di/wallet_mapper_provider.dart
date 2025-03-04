@@ -20,6 +20,7 @@ import '../domain/model/policy/policy.dart';
 import '../domain/model/update/version_state.dart';
 import '../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../util/mapper/card/attribute/card_attribute_value_mapper.dart';
+import '../util/mapper/card/attribute/claim_display_metadata_mapper.dart';
 import '../util/mapper/card/attribute/localized_labels_mapper.dart';
 import '../util/mapper/card/attribute/missing_attribute_mapper.dart';
 import '../util/mapper/card/card_config_mapper.dart';
@@ -63,6 +64,9 @@ class WalletMapperProvider extends StatelessWidget {
         /// Card attribute mappers
         RepositoryProvider<Mapper<List<LocalizedString>, LocalizedText>>(
           create: (context) => LocalizedLabelsMapper(),
+        ),
+        RepositoryProvider<Mapper<List<core.ClaimDisplayMetadata>, LocalizedText>>(
+          create: (context) => ClaimDisplayMetadataMapper(),
         ),
         RepositoryProvider<Mapper<core.AttributeValue, AttributeValue>>(
           create: (context) => CardAttributeValueMapper(),

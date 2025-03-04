@@ -6,7 +6,7 @@ import '../../mapper.dart';
 
 class CardAttributeMapper extends Mapper<CardAttributeWithDocType, DataAttribute> {
   final Mapper<core.AttributeValue, AttributeValue> _attributeValueMapper;
-  final Mapper<List<core.LocalizedString>, LocalizedText> _localizedLabelsMapper;
+  final Mapper<List<core.ClaimDisplayMetadata>, LocalizedText> _localizedLabelsMapper;
 
   CardAttributeMapper(this._attributeValueMapper, this._localizedLabelsMapper);
 

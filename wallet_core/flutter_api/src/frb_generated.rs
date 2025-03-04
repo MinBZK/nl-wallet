@@ -1082,7 +1082,7 @@ impl SseDecode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_key = <String>::sse_decode(deserializer);
-        let mut var_labels = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
+        let mut var_labels = <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_decode(deserializer);
         let mut var_value = <crate::models::attestation::AttributeValue>::sse_decode(deserializer);
         return crate::models::attestation::AttestationAttribute {
             key: var_key,
@@ -1139,6 +1139,20 @@ impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_u8().unwrap() != 0
+    }
+}
+
+impl SseDecode for crate::models::attestation::ClaimDisplayMetadata {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_lang = <String>::sse_decode(deserializer);
+        let mut var_label = <String>::sse_decode(deserializer);
+        let mut var_description = <Option<String>>::sse_decode(deserializer);
+        return crate::models::attestation::ClaimDisplayMetadata {
+            lang: var_lang,
+            label: var_label,
+            description: var_description,
+        };
     }
 }
 
@@ -1312,6 +1326,20 @@ impl SseDecode for Vec<crate::models::attestation::AttestationAttribute> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<crate::models::attestation::AttestationAttribute>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::models::attestation::ClaimDisplayMetadata> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::attestation::ClaimDisplayMetadata>::sse_decode(
                 deserializer,
             ));
         }
@@ -1883,6 +1911,25 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::AttributeValu
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::attestation::ClaimDisplayMetadata {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.lang.into_into_dart().into_dart(),
+            self.label.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::ClaimDisplayMetadata {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::ClaimDisplayMetadata>
+    for crate::models::attestation::ClaimDisplayMetadata
+{
+    fn into_into_dart(self) -> crate::models::attestation::ClaimDisplayMetadata {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureSessionType {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -2445,7 +2492,7 @@ impl SseEncode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.key, serializer);
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.labels, serializer);
+        <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_encode(self.labels, serializer);
         <crate::models::attestation::AttributeValue>::sse_encode(self.value, serializer);
     }
 }
@@ -2495,6 +2542,15 @@ impl SseEncode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u8(self as _).unwrap();
+    }
+}
+
+impl SseEncode for crate::models::attestation::ClaimDisplayMetadata {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.lang, serializer);
+        <String>::sse_encode(self.label, serializer);
+        <Option<String>>::sse_encode(self.description, serializer);
     }
 }
 
@@ -2666,6 +2722,16 @@ impl SseEncode for Vec<crate::models::attestation::AttestationAttribute> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::models::attestation::AttestationAttribute>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::models::attestation::ClaimDisplayMetadata> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::attestation::ClaimDisplayMetadata>::sse_encode(item, serializer);
         }
     }
 }
@@ -3265,6 +3331,16 @@ mod io {
             CstDecode::<crate::models::instruction::WalletInstructionError>::cst_decode(*wrap).into()
         }
     }
+    impl CstDecode<crate::models::attestation::ClaimDisplayMetadata> for wire_cst_claim_display_metadata {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::attestation::ClaimDisplayMetadata {
+            crate::models::attestation::ClaimDisplayMetadata {
+                lang: self.lang.cst_decode(),
+                label: self.label.cst_decode(),
+                description: self.description.cst_decode(),
+            }
+        }
+    }
     impl CstDecode<crate::models::attestation::DisplayMetadata> for wire_cst_display_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::DisplayMetadata {
@@ -3349,6 +3425,16 @@ mod io {
     impl CstDecode<Vec<crate::models::attestation::AttestationAttribute>> for *mut wire_cst_list_attestation_attribute {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> Vec<crate::models::attestation::AttestationAttribute> {
+            let vec = unsafe {
+                let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
+                flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
+            };
+            vec.into_iter().map(CstDecode::cst_decode).collect()
+        }
+    }
+    impl CstDecode<Vec<crate::models::attestation::ClaimDisplayMetadata>> for *mut wire_cst_list_claim_display_metadata {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> Vec<crate::models::attestation::ClaimDisplayMetadata> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -3639,6 +3725,20 @@ mod io {
         }
     }
     impl Default for wire_cst_attribute_value {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_claim_display_metadata {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                lang: core::ptr::null_mut(),
+                label: core::ptr::null_mut(),
+                description: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_claim_display_metadata {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -4143,6 +4243,20 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_claim_display_metadata(
+        len: i32,
+    ) -> *mut wire_cst_list_claim_display_metadata {
+        let wrap = wire_cst_list_claim_display_metadata {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_claim_display_metadata>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_display_metadata(
         len: i32,
     ) -> *mut wire_cst_list_display_metadata {
@@ -4241,7 +4355,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_attestation_attribute {
         key: *mut wire_cst_list_prim_u_8_strict,
-        labels: *mut wire_cst_list_localized_string,
+        labels: *mut wire_cst_list_claim_display_metadata,
         value: wire_cst_attribute_value,
     }
     #[repr(C)]
@@ -4289,6 +4403,13 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_AttributeValue_Number {
         value: i64,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_claim_display_metadata {
+        lang: *mut wire_cst_list_prim_u_8_strict,
+        label: *mut wire_cst_list_prim_u_8_strict,
+        description: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4367,6 +4488,12 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_list_attestation_attribute {
         ptr: *mut wire_cst_attestation_attribute,
+        len: i32,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_list_claim_display_metadata {
+        ptr: *mut wire_cst_claim_display_metadata,
         len: i32,
     }
     #[repr(C)]

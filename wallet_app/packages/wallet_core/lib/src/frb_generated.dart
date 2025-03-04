@@ -1053,7 +1053,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return AttestationAttribute(
       key: dco_decode_String(arr[0]),
-      labels: dco_decode_list_localized_string(arr[1]),
+      labels: dco_decode_list_claim_display_metadata(arr[1]),
       value: dco_decode_attribute_value(arr[2]),
     );
   }
@@ -1146,6 +1146,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   WalletInstructionError dco_decode_box_autoadd_wallet_instruction_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_wallet_instruction_error(raw);
+  }
+
+  @protected
+  ClaimDisplayMetadata dco_decode_claim_display_metadata(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return ClaimDisplayMetadata(
+      lang: dco_decode_String(arr[0]),
+      label: dco_decode_String(arr[1]),
+      description: dco_decode_opt_String(arr[2]),
+    );
   }
 
   @protected
@@ -1265,6 +1277,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_attestation_attribute).toList();
+  }
+
+  @protected
+  List<ClaimDisplayMetadata> dco_decode_list_claim_display_metadata(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_claim_display_metadata).toList();
   }
 
   @protected
@@ -1621,7 +1639,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   AttestationAttribute sse_decode_attestation_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_key = sse_decode_String(deserializer);
-    var var_labels = sse_decode_list_localized_string(deserializer);
+    var var_labels = sse_decode_list_claim_display_metadata(deserializer);
     var var_value = sse_decode_attribute_value(deserializer);
     return AttestationAttribute(key: var_key, labels: var_labels, value: var_value);
   }
@@ -1714,6 +1732,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   WalletInstructionError sse_decode_box_autoadd_wallet_instruction_error(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_wallet_instruction_error(deserializer));
+  }
+
+  @protected
+  ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_lang = sse_decode_String(deserializer);
+    var var_label = sse_decode_String(deserializer);
+    var var_description = sse_decode_opt_String(deserializer);
+    return ClaimDisplayMetadata(lang: var_lang, label: var_label, description: var_description);
   }
 
   @protected
@@ -1843,6 +1870,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var ans_ = <AttestationAttribute>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_attestation_attribute(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ClaimDisplayMetadata> sse_decode_list_claim_display_metadata(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ClaimDisplayMetadata>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_claim_display_metadata(deserializer));
     }
     return ans_;
   }
@@ -2365,7 +2404,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_attestation_attribute(AttestationAttribute self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.key, serializer);
-    sse_encode_list_localized_string(self.labels, serializer);
+    sse_encode_list_claim_display_metadata(self.labels, serializer);
     sse_encode_attribute_value(self.value, serializer);
   }
 
@@ -2449,6 +2488,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   void sse_encode_box_autoadd_wallet_instruction_error(WalletInstructionError self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_wallet_instruction_error(self, serializer);
+  }
+
+  @protected
+  void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.lang, serializer);
+    sse_encode_String(self.label, serializer);
+    sse_encode_opt_String(self.description, serializer);
   }
 
   @protected
@@ -2556,6 +2603,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_attestation_attribute(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_claim_display_metadata(List<ClaimDisplayMetadata> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_claim_display_metadata(item, serializer);
     }
   }
 

@@ -117,6 +117,17 @@ typedef struct wire_cst_organization {
   struct wire_cst_list_prim_u_8_strict *country_code;
 } wire_cst_organization;
 
+typedef struct wire_cst_claim_display_metadata {
+  struct wire_cst_list_prim_u_8_strict *lang;
+  struct wire_cst_list_prim_u_8_strict *label;
+  struct wire_cst_list_prim_u_8_strict *description;
+} wire_cst_claim_display_metadata;
+
+typedef struct wire_cst_list_claim_display_metadata {
+  struct wire_cst_claim_display_metadata *ptr;
+  int32_t len;
+} wire_cst_list_claim_display_metadata;
+
 typedef struct wire_cst_AttributeValue_String {
   struct wire_cst_list_prim_u_8_strict *value;
 } wire_cst_AttributeValue_String;
@@ -142,7 +153,7 @@ typedef struct wire_cst_attribute_value {
 
 typedef struct wire_cst_attestation_attribute {
   struct wire_cst_list_prim_u_8_strict *key;
-  struct wire_cst_list_localized_string *labels;
+  struct wire_cst_list_claim_display_metadata *labels;
   struct wire_cst_attribute_value value;
 } wire_cst_attestation_attribute;
 
@@ -422,6 +433,8 @@ struct wire_cst_list_attestation *frbgen_wallet_core_cst_new_list_attestation(in
 
 struct wire_cst_list_attestation_attribute *frbgen_wallet_core_cst_new_list_attestation_attribute(int32_t len);
 
+struct wire_cst_list_claim_display_metadata *frbgen_wallet_core_cst_new_list_claim_display_metadata(int32_t len);
+
 struct wire_cst_list_display_metadata *frbgen_wallet_core_cst_new_list_display_metadata(int32_t len);
 
 struct wire_cst_list_localized_string *frbgen_wallet_core_cst_new_list_localized_string(int32_t len);
@@ -443,6 +456,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_wallet_instruction_error);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_attestation_attribute);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_claim_display_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_display_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_localized_string);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_list_missing_attribute);
