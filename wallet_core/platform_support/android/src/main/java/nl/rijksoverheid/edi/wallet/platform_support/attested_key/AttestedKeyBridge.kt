@@ -4,27 +4,25 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.google.android.play.core.integrity.IntegrityManagerFactory
-import com.google.android.play.core.integrity.StandardIntegrityManager.PrepareIntegrityTokenRequest
-import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenProvider
-import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenRequest
+import com.google.android.play.core.integrity.StandardIntegrityManager.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.signing.SigningKey
+import nl.rijksoverheid.edi.wallet.platform_support.utilities.retryable
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
 import uniffi.platform_support.AttestationData
 import uniffi.platform_support.AttestedKeyException
 import uniffi.platform_support.AttestedKeyType
 import uniffi.platform_support.KeyStoreException
-import java.util.UUID
+import java.util.*
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
-import kotlinx.coroutines.tasks.await
-import nl.rijksoverheid.edi.wallet.platform_support.utilities.retryable
 import uniffi.platform_support.AttestedKeyBridge as RustAttestedKeyBridge
 
 // Note this prefix is almost the same as [SigningKeyBridge.SIGN_KEY_PREFIX], however this one ends with a hyphen '-'.
