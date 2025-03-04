@@ -106,15 +106,15 @@ flutter:
 
 # Generate with `dart run flutter_native_splash:create`
 flutter_native_splash:
-  image: assets/non-free/logos/3.0x/wallet.png
+  image: assets/non-free/logos/splash_logo.png
   color: "#FCFCFC"
   color_dark: "#1C1E25"
   android_gravity: center
   ios_content_mode: center
   android_12:
-    image: assets/non-free/logos/splash_logo.png
+    image: assets/non-free/logos/splash_logo_padded.png
     icon_background_color: "#FCFCFC"
-    image_dark: assets/non-free/logos/splash_logo.png
+    image_dark: assets/non-free/logos/splash_logo_padded.png
     icon_background_color_dark: "#1C1E25"
 
 # See: https://pub.dev/packages/sentry_dart_plugin
