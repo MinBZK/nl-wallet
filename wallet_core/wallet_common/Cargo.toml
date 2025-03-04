@@ -24,7 +24,7 @@ mock_secure_keys = []
 # Include MockTimeGenerator
 mock_time = ["dep:parking_lot"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
-mock_remote_key = ["dep:parking_lot", "dep:rand_core", "examples"] # TODO PVW-4130
+mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
 # Various test related functionality
 insecure_http_client = []
 
