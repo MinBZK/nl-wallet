@@ -101,6 +101,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
                     ?: throw AttestedKeyException.Other("failed to get certificate chain")
 
             val appAttestationToken = integrityToken.token()
+
             AttestationData.Google(certificateChain, appAttestationToken)
         } catch (e: Exception) {
             // Try to undo the creation of the signing key
