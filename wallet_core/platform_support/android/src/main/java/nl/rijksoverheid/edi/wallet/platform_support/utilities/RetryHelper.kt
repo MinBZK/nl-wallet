@@ -22,10 +22,10 @@ suspend fun <T> retryable(
             return block()
         } catch (e: Exception) {
             if (index + 1 == times) {
-                Log.d(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\"), giving up..")
+                Log.e(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message?.replace("\n", " ")}\"), giving up..")
                 throw e
             }
-            Log.d(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\", remaining times: ${times - index}, current delay: ${currentDelay}), retrying..")
+            Log.w(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message?.replace("\n", " ")}\", remaining times: ${times - index}, current delay: ${currentDelay}), retrying..")
         }
 
         delay(currentDelay)
