@@ -49,11 +49,13 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
     private lateinit var integrityTokenProvider : StandardIntegrityTokenProvider
     private var currentGoogleCloudProjectNumber: ULong = 0u
 
-    private suspend fun initAttest(googleCloudProjectNumber: ULong) {
+    private suspend fun initializeIntegrityTokenProvider(googleCloudProjectNumber: ULong) {
         mutex.withLock {
+            // Immediately return the integrity token provider if initialized and cloud project number is unchanged.
             if (::integrityTokenProvider.isInitialized && currentGoogleCloudProjectNumber == googleCloudProjectNumber) {
                 return@withLock
             }
+
             // Configure cloud project number, initialize manager and token provider request.
             Log.d("attest", "initializing integrity token provider using google cloud project number: $googleCloudProjectNumber")
 
@@ -85,7 +87,8 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
     @OptIn(ExperimentalUnsignedTypes::class, ExperimentalEncodingApi::class)
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>, googleCloudProjectNumber: ULong): AttestationData = withContext(Dispatchers.IO) {
-        initAttest(googleCloudProjectNumber)
+        // Initialize integrity token provider.
+        initializeIntegrityTokenProvider(googleCloudProjectNumber)
 
         // Retryably execute integrity token request using provider, await result, fill integrityToken.
         val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(Base64.Default.encode(challenge.toByteArray())).build()
