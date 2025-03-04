@@ -11,6 +11,8 @@ variables:
   CARGO_PROFILE_TEST_DEBUG: "line-tables-only"
   APP_BUILD_OFFSET: 861
   BUILD_TAG: 250227-d9afc7d1
+  BUNDLE_DEPLOYMENT: "true"
+  BUNDLE_RETRY: 10
 
 .env-ont:
   environment:
@@ -110,10 +112,7 @@ variables:
   cache:
     key: ruby-${CI_COMMIT_REF_SLUG}
     paths:
-      - "vendor/ruby"
-  before_script:
-    - ruby -v
-    - bundle config set --local path "vendor"
+      - "vendor/bundle"
 
 .ruby-cache-macos:
   extends: .ruby-cache
