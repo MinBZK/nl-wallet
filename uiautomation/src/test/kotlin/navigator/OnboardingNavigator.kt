@@ -1,7 +1,6 @@
 package navigator
 
 import navigator.screen.OnboardingNavigatorScreen
-import screen.introduction.IntroductionConditionsScreen
 import screen.introduction.IntroductionPrivacyScreen
 import screen.introduction.IntroductionScreen
 import screen.personalize.PersonalizeInformScreen
@@ -21,7 +20,6 @@ class OnboardingNavigator {
     fun toScreen(screen: OnboardingNavigatorScreen) {
         if (screen > OnboardingNavigatorScreen.Introduction) IntroductionScreen().clickSkipButton()
         if (screen > OnboardingNavigatorScreen.IntroductionPrivacy) IntroductionPrivacyScreen().clickNextButton()
-        if (screen > OnboardingNavigatorScreen.IntroductionConditions) IntroductionConditionsScreen().clickNextButton()
         if (screen > OnboardingNavigatorScreen.SecurityChoosePin) PinScreen().choosePin(PIN)
         if (screen > OnboardingNavigatorScreen.SecurityConfirmPin) PinScreen().confirmPin(PIN)
         if (screen > OnboardingNavigatorScreen.SecuritySetupCompleted) SecuritySetupCompletedScreen().clickNextButton()
