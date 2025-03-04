@@ -23,7 +23,7 @@ class WalletCoreForSigning {
   SignRequest? _activeSignRequest;
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeSignRequest], assumes [_activeSignRequest] is non null.
-  List<DisclosureCard> get _disclosureCardsForActiveRequest => _wallet.getDisclosureCards(
+  List<Attestation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
         _activeSignRequest!.requestedAttributes.map(
           (attribute) => attribute.key,
         ),
@@ -44,7 +44,7 @@ class WalletCoreForSigning {
         policy: request.policy,
         trustProvider: request.trustProvider,
         document: request.document,
-        disclosureCards: _disclosureCardsForActiveRequest,
+        requestedAttestations: _requestedAttestationsForActiveRequest,
       );
     } else {
       final requestedAttributesNotInWallet =
@@ -70,7 +70,7 @@ class WalletCoreForSigning {
       _eventLog.logDisclosureStep(
         _activeSignRequest!.organization,
         _activeSignRequest!.policy,
-        _disclosureCardsForActiveRequest,
+        _requestedAttestationsForActiveRequest,
         DisclosureStatus.Success,
         purpose: [
           LocalizedString(language: 'en', value: 'Signing'),
@@ -86,7 +86,7 @@ class WalletCoreForSigning {
       _eventLog.logDisclosureStep(
         _activeSignRequest!.organization,
         _activeSignRequest!.policy,
-        _disclosureCardsForActiveRequest,
+        _requestedAttestationsForActiveRequest,
         DisclosureStatus.Cancelled,
         purpose: [
           LocalizedString(language: 'en', value: 'Signing'),
@@ -113,14 +113,14 @@ sealed class StartSigningResult {
 }
 
 class StartSignResultReadyToDisclose extends StartSigningResult {
-  final List<DisclosureCard> disclosureCards;
+  final List<Attestation> requestedAttestations;
 
   StartSignResultReadyToDisclose({
     required super.organization,
     required super.policy,
     required super.trustProvider,
     required super.document,
-    required this.disclosureCards,
+    required this.requestedAttestations,
   });
 }
 

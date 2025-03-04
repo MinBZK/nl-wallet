@@ -13,14 +13,14 @@ import '../sign_repository.dart';
 class CoreSignRepository implements SignRepository {
   final WalletCoreForSigning _coreForSigning;
 
-  final Mapper<core.DisclosureCard, WalletCard> _disclosureCardMapper;
+  final Mapper<core.Attestation, WalletCard> _cardMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
   final Mapper<core.Document, Document> _documentMapper;
 
   CoreSignRepository(
     this._coreForSigning,
-    this._disclosureCardMapper,
+    this._cardMapper,
     this._organizationMapper,
     this._requestPolicyMapper,
     this._documentMapper,
@@ -31,7 +31,7 @@ class CoreSignRepository implements SignRepository {
     final result = await _coreForSigning.startSigning(signUri);
     switch (result) {
       case StartSignResultReadyToDisclose():
-        final cards = _disclosureCardMapper.mapList(result.disclosureCards);
+        final cards = _cardMapper.mapList(result.requestedAttestations);
         final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
         return StartSignReadyToSign(
           relyingParty: _organizationMapper.map(result.organization),

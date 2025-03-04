@@ -2,7 +2,6 @@ use wallet::Document;
 use wallet::DocumentPersistence;
 
 use crate::models::disclosure::Organization;
-use crate::models::localize::LocalizedString;
 
 pub struct Attestation {
     pub identity: AttestationIdentity,
@@ -113,9 +112,25 @@ impl From<wallet::sd_jwt::LogoMetadata> for LogoMetadata {
     }
 }
 
+pub struct ClaimDisplayMetadata {
+    pub lang: String,
+    pub label: String,
+    pub description: Option<String>,
+}
+
+impl From<wallet::sd_jwt::ClaimDisplayMetadata> for ClaimDisplayMetadata {
+    fn from(value: wallet::sd_jwt::ClaimDisplayMetadata) -> Self {
+        Self {
+            lang: value.lang,
+            label: value.label,
+            description: value.description,
+        }
+    }
+}
+
 pub struct AttestationAttribute {
     pub key: String,
-    pub labels: Vec<LocalizedString>,
+    pub labels: Vec<ClaimDisplayMetadata>,
     pub value: AttributeValue,
 }
 
@@ -123,7 +138,7 @@ impl From<wallet::AttestationAttribute> for AttestationAttribute {
     fn from(value: wallet::AttestationAttribute) -> Self {
         Self {
             key: value.key.join("__"),
-            labels: value.labels.into_iter().map(LocalizedString::from).collect(),
+            labels: value.metadata.into_iter().map(ClaimDisplayMetadata::from).collect(),
             value: value.value.into(),
         }
     }
@@ -136,9 +151,10 @@ impl From<(wallet::AttributeKey, wallet::Attribute)> for AttestationAttribute {
             labels: value
                 .key_labels
                 .into_iter()
-                .map(|(lang, label)| LocalizedString {
-                    language: lang.to_string(),
-                    value: label.to_string(),
+                .map(|(lang, label)| ClaimDisplayMetadata {
+                    lang: lang.to_string(),
+                    label: label.to_string(),
+                    description: None,
                 })
                 .collect(),
             value: match value.value {

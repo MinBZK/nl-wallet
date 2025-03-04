@@ -45,7 +45,7 @@ class WalletAssets {
   static const svg_sharing_success = 'assets/non-free/svg/NL_WALLET_sharing_success.svg';
   static const svg_signed = 'assets/non-free/svg/NL_WALLET_signed.svg';
   static const svg_stopped = 'assets/non-free/svg/NL_WALLET_stopped.svg';
-  static const svg_terms = 'assets/non-free/svg/NL_WALLET_terms.svg';
+  static const svg_terms = 'assets/non-free/svg/NL_WALLET_terms.svg'; // Not used at the moment due to PVW-4092
   static const svg_placeholder = 'assets/non-free/svg/NL_WALLET_placeholder.svg';
   static const svg_biometrics_finger = 'assets/non-free/svg/NL_WALLET_biometrics_finger.svg';
   static const svg_biometrics_face = 'assets/non-free/svg/NL_WALLET_biometrics_face.svg';

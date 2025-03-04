@@ -20,13 +20,13 @@ use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use openid4vc::attributes::IssuableDocument;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequestProof;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::Dpop;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuance_session::mock_wte;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
@@ -497,7 +497,8 @@ fn mock_issuable_attestation(
             valid_from: now,
             valid_until: now.add(Days::new(365)),
             copy_count,
-            metadata_chain: TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap(),
+            // NOTE: This metadata does not match the attributes.
+            metadata_chain: TypeMetadataChain::create(TypeMetadata::empty_example(), vec![]).unwrap(),
         })
         .collect::<Vec<_>>()
         .try_into()

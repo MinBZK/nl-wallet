@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-02-28T14:33:43+01:00",
+    "@@last_modified": "2025-03-03T16:33:57+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -593,9 +593,6 @@
     "historyDetailScreenTitleForIssuance": "Created {card} card",
     "historyDetailScreenTitleForLogin": "Logged in to {organization}",
     "historyOverviewScreenTitle": "Activities",
-    "introductionConditionsScreenBulletPoints": "You keep your PIN to yourself.\nYou decide who you share with.\nYou can stop at any time.",
-    "introductionConditionsScreenHeadline": "Remember this",
-    "introductionConditionsScreenNextCta": "Understood",
     "introductionNextPageCta": "Next",
     "introductionPage1Description": "This is your digital wallet. You can add cards with your details, such as your name and address.",
     "introductionPage1Title": "Welcome to the NL Wallet",
@@ -603,7 +600,7 @@
     "introductionPage2Title": "Secure login",
     "introductionPage3Description": "If an organization needs your postal code, you simply share your postal code.",
     "introductionPage3Title": "Easy data sharing",
-    "introductionPrivacyScreenBulletPoints": "Your data is secure on this device.\nYour data is protected by your PIN.",
+    "introductionPrivacyScreenBulletPoints": "Your data is secure on this device.\nYour data is protected by your PIN.\nYou decide who you share with.\nYou can stop at any time.",
     "introductionPrivacyScreenHeadline": "You have control over your privacy",
     "introductionPrivacyScreenNextCta": "Next",
     "introductionPrivacyScreenPrivacyCta": "Read the privacy statement",
@@ -988,7 +985,7 @@
     },
     "setupSecurityCompletedPageCreateWalletCta": "Next",
     "setupSecurityCompletedPageDescription": "Remember your PIN. You use it to open the app and share data.",
-    "setupSecurityCompletedPageTitle": "Success!",
+    "setupSecurityCompletedPageTitle": "Your NL Wallet is secured",
     "setupSecurityCompletedPageWithBiometricsDescription": "Remember your PIN. You use it to share data. {supportedBiometrics} only opens the app.",
     "@setupSecurityCompletedPageWithBiometricsDescription": {
         "placeholders": {

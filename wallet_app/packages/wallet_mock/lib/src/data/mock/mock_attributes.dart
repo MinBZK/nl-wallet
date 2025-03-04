@@ -8,72 +8,72 @@ final _kMockLastName = AttributeValue_String(value: 'De Bruijn');
 final kMockPidAttestationAttributes = [
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Voornamen'),
-      LocalizedString(language: 'en', value: 'First names'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Voornamen'),
+      ClaimDisplayMetadata(lang: 'en', label: 'First names'),
     ],
     value: _kMockFirstNames,
     key: 'mock.firstNames',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Achternaam'),
-      LocalizedString(language: 'en', value: 'Surname'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Achternaam'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Surname'),
     ],
     value: _kMockLastName,
     key: 'mock.lastName',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Naam bij geboorte'),
-      LocalizedString(language: 'en', value: 'Birth name'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Naam bij geboorte'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Birth name'),
     ],
     value: AttributeValue_String(value: 'Molenaar'),
     key: 'mock.birthName',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Geboortedatum'),
-      LocalizedString(language: 'en', value: 'Birth date'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Geboortedatum'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Birth date'),
     ],
     value: _kMockBirthDate,
     key: 'mock.birthDate',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Ouder dan 18'),
-      LocalizedString(language: 'en', value: 'Older than 18'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Ouder dan 18'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Older than 18'),
     ],
     value: AttributeValue_Boolean(value: true),
     key: 'mock.olderThan18',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Geboorteplaats'),
-      LocalizedString(language: 'en', value: 'Birthplace'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Geboorteplaats'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Birthplace'),
     ],
     value: _kMockBirthPlace,
     key: 'mock.birthPlace',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Geboorteland'),
-      LocalizedString(language: 'en', value: 'Country of birth'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Geboorteland'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Country of birth'),
     ],
     value: AttributeValue_String(value: 'Nederland'),
     key: 'mock.birthCountry',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Getrouwd of geregistreerd partnerschap'),
-      LocalizedString(language: 'en', value: 'Married or registered partnership'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Getrouwd of geregistreerd partnerschap'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Married or registered partnership'),
     ],
     value: AttributeValue_Boolean(value: true),
     key: 'mock.hasSpouseOrPartner',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Burger­service­nummer (BSN)'),
-      LocalizedString(language: 'en', value: 'BSN'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Burger­service­nummer (BSN)'),
+      ClaimDisplayMetadata(lang: 'en', label: 'BSN'),
     ],
     value: AttributeValue_String(value: '111222333'),
     key: 'mock.citizenshipNumber',
@@ -83,40 +83,40 @@ final kMockPidAttestationAttributes = [
 final kMockAddressAttestationAttributes = [
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Land'),
-      LocalizedString(language: 'en', value: 'Country'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Land'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Country'),
     ],
     value: AttributeValue_String(value: 'Nederland'),
     key: 'mock.country',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Straatnaam'),
-      LocalizedString(language: 'en', value: 'Street'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Straatnaam'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Street'),
     ],
     value: AttributeValue_String(value: 'Turfmarkt'),
     key: 'mock.streetName',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Huisnummer'),
-      LocalizedString(language: 'en', value: 'House number'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Huisnummer'),
+      ClaimDisplayMetadata(lang: 'en', label: 'House number'),
     ],
     value: AttributeValue_String(value: '147'),
     key: 'mock.houseNumber',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Postcode'),
-      LocalizedString(language: 'en', value: 'Postal code'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Postcode'),
+      ClaimDisplayMetadata(lang: 'en', label: 'Postal code'),
     ],
     value: AttributeValue_String(value: '2511 DP'),
     key: 'mock.postalCode',
   ),
   AttestationAttribute(
     labels: [
-      LocalizedString(language: 'nl', value: 'Woonplaats'),
-      LocalizedString(language: 'en', value: 'City, town or village'),
+      ClaimDisplayMetadata(lang: 'nl', label: 'Woonplaats'),
+      ClaimDisplayMetadata(lang: 'en', label: 'City, town or village'),
     ],
     value: AttributeValue_String(value: 'Den Haag'),
     key: 'mock.city',

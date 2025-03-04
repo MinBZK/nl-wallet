@@ -29,16 +29,16 @@ use crate::verifier::ValidityRequirement;
 pub struct Mdoc {
     /// Mobile Security Object of the mdoc. This is also present inside the `issuer_signed`; we include it here for
     /// convenience (fetching it from the `issuer_signed` would involve parsing the COSE inside it).
-    pub(crate) mso: MobileSecurityObject,
+    pub mso: MobileSecurityObject,
 
     /// Identifier of the mdoc's private key. Obtain a reference to it with [`Keyfactory::generate(private_key_id)`].
     // Note that even though these fields are not `pub`, to users of this package their data is still accessible
     // by serializing the mdoc and examining the serialized bytes. This is not a problem because it is essentially
     // unavoidable: when stored (i.e. serialized), we need to include all of this data to be able to recover a usable
     // mdoc after deserialization.
-    pub(crate) private_key_id: String,
-    pub(crate) issuer_signed: IssuerSigned,
-    pub(crate) key_type: CredentialKeyType,
+    pub private_key_id: String,
+    pub issuer_signed: IssuerSigned,
+    pub key_type: CredentialKeyType,
 }
 
 impl Mdoc {
@@ -59,17 +59,8 @@ impl Mdoc {
         Ok(mdoc)
     }
 
-    /// Get a list of attributes ([`Entry`] instances) contained in the mdoc, mapped per [`NameSpace`].
-    pub fn attributes(&self) -> IndexMap<NameSpace, Vec<Entry>> {
-        self.issuer_signed.to_entries_by_namespace()
-    }
-
     pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
-    }
-
-    pub fn issuer_uri(&self) -> crate::Result<&HttpsUri> {
-        self.mso.issuer_uri.as_ref().ok_or(crate::Error::MissingIssuerUri)
     }
 
     pub fn doc_type(&self) -> &String {
@@ -118,7 +109,7 @@ impl Mdoc {
             ));
         }
 
-        let our_attrs = self.attributes();
+        let our_attrs = self.issuer_signed.clone().into_entries_by_namespace();
         let our_attrs = &flatten_attributes(self.doc_type(), &our_attrs);
         let expected_attrs = &flatten_attributes(&unsigned.doc_type, unsigned.attributes.as_ref());
 

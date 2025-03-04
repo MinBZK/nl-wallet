@@ -2,8 +2,6 @@ import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet_core/core.dart';
 
-import '../data/mock/mock_organizations.dart';
-
 class Wallet {
   final BehaviorSubject<bool> _isLockedSubject = BehaviorSubject.seeded(true);
   final BehaviorSubject<List<Attestation>> _attestationsSubject = BehaviorSubject.seeded([]);
@@ -30,17 +28,18 @@ class Wallet {
   AttestationAttribute? findAttribute(String key) =>
       _allAttributes.firstWhereOrNull((attribute) => attribute.key == key);
 
-  List<DisclosureCard> getDisclosureCards(Iterable<String> keys) {
+  List<Attestation> getRequestedAttestations(Iterable<String> keys) {
     final allRequestedAttributes = keys.map(findAttribute).nonNulls;
     final cardToAttributes = allRequestedAttributes
         .groupListsBy((attribute) => _attestations.firstWhere((card) => card.attributes.contains(attribute)));
     return cardToAttributes.entries
         .map(
-          (e) => DisclosureCard(
-            docType: e.key.attestationType,
-            attributes: e.value,
+          (e) => Attestation(
+            identity: e.key.identity,
+            attestationType: e.key.attestationType,
             displayMetadata: e.key.displayMetadata,
-            issuer: kOrganizations[kRvigId]!,
+            issuer: e.key.issuer,
+            attributes: e.value,
           ),
         )
         .toList();

@@ -6,7 +6,6 @@ use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
-use openid4vc::credential_payload::CredentialPayload;
 use openid4vc::credential_payload::CredentialPayloadError;
 use platform_support::attested_key::AttestedKeyHolder;
 
@@ -24,16 +23,25 @@ use super::Wallet;
 pub enum AttestationsError {
     #[error("could not fetch documents from database storage: {0}")]
     Storage(#[from] StorageError),
+
     #[error("could not extract Mdl extension from X.509 certificate: {0}")]
     Certificate(#[from] CertificateError),
+
     #[error("could not interpret X.509 certificate: {0}")]
     Cose(#[from] CoseError),
+
     #[error("X.509 certificate does not contain IssuerRegistration")]
     #[category(critical)]
     MissingIssuerRegistration,
+
     #[error("error converting mdoc to credential payload: {0}")]
     #[category(defer)]
     CredentialPayload(#[from] CredentialPayloadError),
+
+    #[error("could not extract type metadata from mdoc: {0}")]
+    #[category(defer)]
+    Metadata(#[source] nl_wallet_mdoc::Error),
+
     #[error("error converting credential payload to attestation: {0}")]
     #[category(defer)]
     Attestation(#[from] AttestationError),
@@ -60,13 +68,16 @@ where
                 let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
                     .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                let attestation = Attestation::from_credential_payload(
+                // TODO: PVW-3812
+                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?.into_first();
+                let attestation = Attestation::create_for_issuance(
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },
-                    CredentialPayload::from_mdoc(&mdoc)?,
-                    mdoc.type_metadata().unwrap().first().clone(), // TODO: PVW-3812
+                    mdoc.mso.doc_type,
+                    metadata,
                     issuer_registration.organization,
+                    mdoc.issuer_signed.into_entries_by_namespace(),
                 )?;
                 Ok(attestation)
             })

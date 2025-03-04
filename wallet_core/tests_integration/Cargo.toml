@@ -89,7 +89,7 @@ test_common = [
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
     "dep:server_utils",
-    "dep:verification_server"
+    "dep:verification_server",
 ]
 # Include the fake_digid submodule
 fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common"]
@@ -98,7 +98,7 @@ db_test = [
     "pid_issuer?/db_test",
     "wallet_provider_persistence?/db_test",
     "wallet_provider_service?/db_test",
-    "verification_server?/db_test"
+    "verification_server?/db_test",
 ]
 # Include and run test that depend on a configured HSM
 hsm_test = ["wallet_provider?/hsm_test"]
@@ -135,6 +135,7 @@ performance_test = [
     "dep:uuid",
     "dep:nl_wallet_mdoc",
     "dep:openid4vc",
+    "dep:openid4vc_server",
     "dep:pid_issuer",
     "dep:platform_support",
     "dep:serde_urlencoded",

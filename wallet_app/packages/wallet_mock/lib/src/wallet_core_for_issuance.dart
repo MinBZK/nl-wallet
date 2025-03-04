@@ -22,7 +22,7 @@ class WalletCoreForIssuance {
   bool _itemsHaveBeenDisclosed = false;
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeIssuanceResponse], assumes [_activeIssuanceResponse] is non null.
-  List<DisclosureCard> get _disclosureCardsForActiveRequest => _wallet.getDisclosureCards(
+  List<Attestation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
         _activeIssuanceResponse!.requestedAttributes.map(
           (attribute) => attribute.key,
         ),
@@ -41,7 +41,7 @@ class WalletCoreForIssuance {
       return StartIssuanceResultReadyToDisclose(
         response.organization,
         response.policy,
-        _disclosureCardsForActiveRequest,
+        _requestedAttestationsForActiveRequest,
       );
     } else {
       final requestedAttributesNotInWallet =
@@ -66,7 +66,7 @@ class WalletCoreForIssuance {
       _eventLog.logDisclosureStep(
         _activeIssuanceResponse!.organization,
         _activeIssuanceResponse!.policy,
-        _disclosureCardsForActiveRequest,
+        _requestedAttestationsForActiveRequest,
         DisclosureStatus.Success,
         purpose: [
           LocalizedString(language: 'en', value: 'Issuance'),
@@ -98,7 +98,7 @@ class WalletCoreForIssuance {
       _eventLog.logDisclosureStep(
         _activeIssuanceResponse!.organization,
         _activeIssuanceResponse!.policy,
-        _disclosureCardsForActiveRequest,
+        _requestedAttestationsForActiveRequest,
         DisclosureStatus.Cancelled,
         purpose: [
           LocalizedString(language: 'en', value: 'Issuance'),
@@ -125,9 +125,9 @@ sealed class StartIssuanceResult {
 }
 
 class StartIssuanceResultReadyToDisclose extends StartIssuanceResult {
-  final List<DisclosureCard> disclosureCards;
+  final List<Attestation> requestedAttestations;
 
-  StartIssuanceResultReadyToDisclose(super.organization, super.policy, this.disclosureCards);
+  StartIssuanceResultReadyToDisclose(super.organization, super.policy, this.requestedAttestations);
 }
 
 class StartIssuanceResultRequestedAttributesMissing extends StartIssuanceResult {

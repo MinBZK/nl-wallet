@@ -1,14 +1,13 @@
 use wallet::EventStatus;
 use wallet::HistoryEvent;
 
-use crate::models::attestation::Attestation;
-use crate::models::disclosure::DisclosureCard;
-use crate::models::disclosure::DisclosureStatus;
-use crate::models::disclosure::DisclosureType;
-use crate::models::disclosure::Organization;
-use crate::models::disclosure::RPLocalizedStrings;
-use crate::models::disclosure::RequestPolicy;
-use crate::models::localize::LocalizedString;
+use super::attestation::Attestation;
+use super::disclosure::DisclosureStatus;
+use super::disclosure::DisclosureType;
+use super::disclosure::Organization;
+use super::disclosure::RPLocalizedStrings;
+use super::disclosure::RequestPolicy;
+use super::localize::LocalizedString;
 
 pub enum WalletEvent {
     Disclosure {
@@ -16,7 +15,7 @@ pub enum WalletEvent {
         date_time: String,
         relying_party: Organization,
         purpose: Vec<LocalizedString>,
-        requested_cards: Option<Vec<DisclosureCard>>,
+        requested_attestations: Option<Vec<Attestation>>,
         request_policy: RequestPolicy,
         status: DisclosureStatus,
         typ: DisclosureType,
@@ -61,7 +60,8 @@ impl From<HistoryEvent> for WalletEvents {
                     request_policy: RequestPolicy::from(&reader_registration),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
-                    requested_cards: attributes.map(|mdocs| mdocs.into_iter().map(DisclosureCard::from).collect()),
+                    requested_attestations: attributes
+                        .map(|attestations| attestations.into_iter().map(Attestation::from).collect()),
                     status: status.into(),
                     typ: r#type.into(),
                 }]

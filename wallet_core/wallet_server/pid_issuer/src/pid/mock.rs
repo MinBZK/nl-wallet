@@ -7,8 +7,8 @@ use serde::Deserialize;
 use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use openid4vc::attributes::IssuableDocument;
-use openid4vc::attributes::IssuableDocuments;
+use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::issuable_document::IssuableDocuments;
 
 use crate::pid::constants::*;
 

@@ -16,7 +16,6 @@ use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
-use openid4vc::credential_payload::CredentialPayload;
 use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
@@ -318,12 +317,12 @@ where
                         let (metadata, _) = metadata_chain.verify_and_destructure()?;
                         // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
 
-                        let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
-                        let attestation = Attestation::from_credential_payload(
+                        let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
-                            credential_payload,
-                            metadata.first().clone(), // TODO: PVW-3812
+                            unsigned_mdoc.doc_type,
+                            metadata.into_first(), // TODO: PVW-3812
                             issuer_registration.organization,
+                            unsigned_mdoc.attributes.into(),
                         )?;
 
                         Ok(attestation)

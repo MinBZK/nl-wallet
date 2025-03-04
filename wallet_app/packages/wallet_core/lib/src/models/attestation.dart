@@ -43,7 +43,7 @@ class Attestation {
 
 class AttestationAttribute {
   final String key;
-  final List<LocalizedString> labels;
+  final List<ClaimDisplayMetadata> labels;
   final AttributeValue value;
 
   const AttestationAttribute({
@@ -88,6 +88,30 @@ sealed class AttributeValue with _$AttributeValue {
   const factory AttributeValue.number({
     required PlatformInt64 value,
   }) = AttributeValue_Number;
+}
+
+class ClaimDisplayMetadata {
+  final String lang;
+  final String label;
+  final String? description;
+
+  const ClaimDisplayMetadata({
+    required this.lang,
+    required this.label,
+    this.description,
+  });
+
+  @override
+  int get hashCode => lang.hashCode ^ label.hashCode ^ description.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ClaimDisplayMetadata &&
+          runtimeType == other.runtimeType &&
+          lang == other.lang &&
+          label == other.label &&
+          description == other.description;
 }
 
 class DisplayMetadata {
