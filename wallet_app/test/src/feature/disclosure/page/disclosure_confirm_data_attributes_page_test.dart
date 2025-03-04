@@ -31,10 +31,10 @@ void main() {
     );
 
     // Check if the card title is shown
-    final cardFinder = find.textContaining(WalletMockData.card.front.title.testValue);
+    final cardFinder = find.textContaining(WalletMockData.card.title.testValue);
     expect(cardFinder, findsOneWidget);
     // Check if the altCard title is shown
-    final altCardFinder = find.textContaining(WalletMockData.altCard.front.title.testValue);
+    final altCardFinder = find.textContaining(WalletMockData.altCard.title.testValue);
     expect(altCardFinder, findsOneWidget);
   });
 

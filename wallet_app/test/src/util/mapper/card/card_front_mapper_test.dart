@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card_front.dart';
+import 'package:wallet/src/domain/model/card/card_front.dart';
 import 'package:wallet/src/domain/model/localized_text.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/mapper/card/card_front_mapper.dart';
@@ -31,7 +31,7 @@ void main() {
       const coreCard = Attestation(
         identity: AttestationIdentity.ephemeral(),
         attestationType: 'com.example.pid',
-        displayMetadata: [CoreMockData.displayMetadata],
+        displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );
@@ -60,7 +60,7 @@ void main() {
       const coreCard = Attestation(
         identity: AttestationIdentity.ephemeral(),
         attestationType: 'com.example.address',
-        displayMetadata: [CoreMockData.displayMetadata],
+        displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );
@@ -86,7 +86,7 @@ void main() {
       const input = Attestation(
         identity: AttestationIdentity.ephemeral(),
         attestationType: 'unknown',
-        displayMetadata: [CoreMockData.displayMetadata],
+        displayMetadata: [CoreMockData.enDisplayMetadata],
         attributes: [],
         issuer: _kSampleIssuer,
       );

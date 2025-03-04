@@ -1,0 +1,31 @@
+# Example config
+
+# The wallet must be able to reach the server at this URL
+public_url = 'http://localhost:3001/'
+
+issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
+wte_issuer_pubkey = "" # Public key of the WTE issuer
+
+# Files containing SD-JWT Type Metadata documents
+metadata = [
+    "com_example_pid_metadata.json",
+    "com_example_address_metadata.json"
+]
+
+[storage]
+url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
+
+[wallet_server]
+ip = '127.0.0.1'
+port = 3001
+
+[digid]
+bsn_privkey = ""
+
+[digid.http_config]
+base_url = "https://localhost:8006"
+trust_anchors = [""]
+
+[private_keys."com.example.pid"]
+private_key = "MI..."
+certificate = "MIJ..."

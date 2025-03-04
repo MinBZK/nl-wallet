@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 
 part 'dashboard_screen_argument.g.dart';
 

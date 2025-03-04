@@ -5,7 +5,7 @@
 # - nl-rdo-max (digid-connector)
 # - wallet_provider
 # - wallet
-# - wallet_server
+# - pid_issuer and verification_server
 # - mock_relying_party
 # - softhsm2
 #
@@ -96,6 +96,7 @@ fi
 mkdir -p "${TARGET_DIR}"
 mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
+mkdir -p "${TARGET_DIR}/verification_server"
 mkdir -p "${TARGET_DIR}/mock_relying_party"
 mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
@@ -207,11 +208,11 @@ softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token
 render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/hsm/hsm.toml"
 
 ########################################################################
-# Configure wallet_server and mock_relying_party
+# Configure verification_server and mock_relying_party
 ########################################################################
 
 echo
-echo -e "${SECTION}Configure wallet_server and mock_relying_party${NC}"
+echo -e "${SECTION}Configure verification_server and mock_relying_party${NC}"
 
 cd "${BASE_DIR}"
 
@@ -296,24 +297,20 @@ MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_part
 export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 # Base64 encode the Technical Attestation Schemas
-cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${WALLET_SERVER_DIR}"
+cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${PID_ISSUER_DIR}"
 cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${BASE_DIR}/wallet_core/tests_integration"
 ISSUER_METADATA_PID_PATH="com_example_pid_metadata.json"
 export ISSUER_METADATA_PID_PATH
 ISSUER_METADATA_ADDRESS_PATH="com_example_address_metadata.json"
 export ISSUER_METADATA_ADDRESS_PATH
 
-# And the mrp's wallet_server config
-render_template "${DEVENV}/mrp_verification_server.toml.template" "${WALLET_SERVER_DIR}/verification_server.toml"
+# And the mrp's verification_server config
+render_template "${DEVENV}/mrp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
+render_template "${DEVENV}/mrp_verification_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/verification_server.toml"
 
-render_template "${DEVENV}/mrp_verification_server.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
-render_template_append "${DEVENV}/mrp_verification_server.it.toml.template" "${WALLET_SERVER_DIR}/ws_integration_test.toml"
-
-render_template "${DEVENV}/mrp_verification_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
-render_template_append "${DEVENV}/mrp_verification_server.it.toml.template" "${BASE_DIR}/wallet_core/tests_integration/wallet_server.toml"
-
-# And the pid_issuer config, for integration tests append to `verification_server.toml`
-render_template "${DEVENV}/pid_issuer.toml.template" "${WALLET_SERVER_DIR}/pid_issuer.toml"
+# And the pid_issuer config
+render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
+render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

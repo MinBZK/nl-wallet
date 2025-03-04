@@ -7,9 +7,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/bloc/error_state.dart';
 import '../../../../domain/model/bloc/network_error_state.dart';
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../domain/model/result/application_error.dart';
-import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_cards_usecase.dart';
 import '../../../../domain/usecase/pid/cancel_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
@@ -19,6 +19,7 @@ import '../../../../wallet_constants.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
+
 part 'wallet_personalize_state.dart';
 
 class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonalizeState> {

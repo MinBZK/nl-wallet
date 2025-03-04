@@ -34,6 +34,7 @@ import 'package:wallet/src/data/repository/wallet/wallet_repository.dart' as _i2
 import 'package:wallet/src/data/service/navigation_service.dart' as _i32;
 import 'package:wallet/src/data/store/active_locale_provider.dart' as _i39;
 import 'package:wallet/src/domain/model/attribute/attribute.dart' as _i17;
+import 'package:wallet/src/domain/model/card/wallet_card.dart' as _i7;
 import 'package:wallet/src/domain/model/configuration/flutter_app_configuration.dart' as _i26;
 import 'package:wallet/src/domain/model/disclosure/start_disclosure_result.dart' as _i20;
 import 'package:wallet/src/domain/model/event/wallet_event.dart' as _i24;
@@ -43,7 +44,6 @@ import 'package:wallet/src/domain/model/result/result.dart' as _i42;
 import 'package:wallet/src/domain/model/start_sign_result/start_sign_result.dart' as _i73;
 import 'package:wallet/src/domain/model/update/update_notification.dart' as _i34;
 import 'package:wallet/src/domain/model/update/version_state.dart' as _i30;
-import 'package:wallet/src/domain/model/wallet_card.dart' as _i7;
 import 'package:wallet/src/domain/model/wallet_card_detail.dart' as _i68;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i43;
 import 'package:wallet/src/domain/usecase/biometrics/biometrics.dart' as _i87;

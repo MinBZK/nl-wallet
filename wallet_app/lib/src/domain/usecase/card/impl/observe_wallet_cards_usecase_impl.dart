@@ -1,5 +1,5 @@
 import '../../../../data/repository/card/wallet_card_repository.dart';
-import '../../../model/wallet_card.dart';
+import '../../../model/card/wallet_card.dart';
 import '../../wallet_usecase.dart';
 import '../observe_wallet_cards_usecase.dart';
 

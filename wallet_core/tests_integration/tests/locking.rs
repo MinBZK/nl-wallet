@@ -46,7 +46,8 @@ async fn test_block() {
         config_server_settings(),
         update_policy_server_settings(),
         (settings, wp_root_ca),
-        wallet_server_settings(),
+        verification_server_settings(),
+        pid_issuer_settings(),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;

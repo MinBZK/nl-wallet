@@ -1,7 +1,7 @@
 import '../attribute/attribute.dart';
+import '../card/wallet_card.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
-import '../wallet_card.dart';
 import 'disclosure_session_type.dart';
 import 'disclosure_type.dart';
 

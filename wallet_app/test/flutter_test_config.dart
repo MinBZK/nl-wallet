@@ -6,7 +6,7 @@ import 'package:mockito/mockito.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card_front.dart';
+import 'package:wallet/src/domain/model/card/card_front.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;

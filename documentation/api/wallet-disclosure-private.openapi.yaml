@@ -2,7 +2,7 @@ openapi: '3.1.0'
 info:
   title: 'Wallet Server Disclosure API, Private Endpoint (Requester)'
   description:
-    The API for the wallet_server's private endpoint. Optionally authenticated,
+    The API for the verification_server's private endpoint. Optionally authenticated,
     intended to be accessible only to the relying party's application. It is
     used for session initiation and disclosed attribute retrieval.
   version: '1.0.0'

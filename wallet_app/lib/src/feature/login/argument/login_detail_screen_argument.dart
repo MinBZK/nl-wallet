@@ -1,9 +1,9 @@
 import 'package:equatable/equatable.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/wallet_card.dart';
 
 class LoginDetailScreenArgument extends Equatable {
   final Organization organization;

@@ -1,0 +1,17 @@
+[package]
+name = "wallet_server_migrations"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+name = "wallet_server_migrations"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio-rustls", "sqlx-postgres"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "macros"] }

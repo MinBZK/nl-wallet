@@ -85,7 +85,7 @@ void main() {
       );
 
       // Operation renders the title of the card twice, once as the row title, and once inside the card thumbnail
-      expect(find.text(WalletMockData.issuanceEvent.card.front.title.testValue), findsNWidgets(2));
+      expect(find.text(WalletMockData.issuanceEvent.card.title.testValue), findsNWidgets(2));
     });
 
     testWidgets('SignAttribute renders the organization title', (tester) async {
@@ -186,7 +186,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.historyDetailScreenIssuanceSuccessDescription), findsOneWidget);
       expect(find.textContaining('December 1'), findsOneWidget);
-      expect(find.text(WalletMockData.issuanceEvent.card.front.title.testValue), findsAtLeast(1));
+      expect(find.text(WalletMockData.issuanceEvent.card.title.testValue), findsAtLeast(1));
       expect(find.byType(Image), findsOneWidget);
     });
 

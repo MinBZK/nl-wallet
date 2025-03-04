@@ -92,7 +92,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
 
       // Validate that the widget exists
-      final titleFinder = find.text(l10n.cardDataScreenTitle(WalletMockData.card.front.title.testValue));
+      final titleFinder = find.text(l10n.cardDataScreenTitle(WalletMockData.card.title.testValue));
       final labelFinder = find.text(WalletMockData.textDataAttribute.label.l10nValueForLanguageCode('en'));
       final valueFinder = find
           .text(AttributeValueFormatter.formatWithLocale(const Locale('en'), WalletMockData.textDataAttribute.value));

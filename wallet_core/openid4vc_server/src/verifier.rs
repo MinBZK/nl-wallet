@@ -48,8 +48,6 @@ use wallet_common::urls;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 
-use crate::urls::Urls;
-
 struct ApplicationState<S, K> {
     verifier: Verifier<S, K>,
     public_url: BaseUrl,
@@ -57,7 +55,8 @@ struct ApplicationState<S, K> {
 }
 
 fn create_application_state<S, K>(
-    urls: Urls,
+    public_url: BaseUrl,
+    universal_link_base_url: BaseUrl,
     use_cases: UseCases<K>,
     ephemeral_id_secret: hmac::Key,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
@@ -69,8 +68,8 @@ where
 {
     ApplicationState {
         verifier: Verifier::new(use_cases, sessions, issuer_trust_anchors, ephemeral_id_secret),
-        public_url: urls.public_url,
-        universal_link_base_url: urls.universal_link_base_url,
+        public_url,
+        universal_link_base_url,
     }
 }
 
@@ -81,7 +80,8 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
 }
 
 pub fn create_routers<S, K>(
-    urls: Urls,
+    public_url: BaseUrl,
+    universal_link_base_url: BaseUrl,
     use_cases: UseCases<K>,
     ephemeral_id_secret: hmac::Key,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
@@ -93,7 +93,8 @@ where
     K: EcdsaKeySend + Sync + 'static,
 {
     let application_state = Arc::new(create_application_state(
-        urls,
+        public_url,
+        universal_link_base_url,
         use_cases,
         ephemeral_id_secret,
         issuer_trust_anchors,

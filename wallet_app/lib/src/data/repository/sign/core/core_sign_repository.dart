@@ -2,11 +2,11 @@ import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' as core show Document;
 import 'package:wallet_mock/mock.dart' hide Document;
 
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/document.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../domain/model/start_sign_result/start_sign_result.dart';
-import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../sign_repository.dart';
 

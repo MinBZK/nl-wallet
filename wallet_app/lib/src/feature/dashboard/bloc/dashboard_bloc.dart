@@ -4,8 +4,8 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
-import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/card/observe_wallet_cards_usecase.dart';
 import '../../../domain/usecase/history/observe_recent_history_usecase.dart';
 

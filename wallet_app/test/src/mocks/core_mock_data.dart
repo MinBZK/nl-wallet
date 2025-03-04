@@ -4,13 +4,13 @@ abstract class CoreMockData {
   static const Attestation attestation = Attestation(
     identity: AttestationIdentity_Ephemeral(),
     attestationType: kPidDocType,
-    displayMetadata: [displayMetadata],
+    displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
     issuer: organization,
     attributes: [attestationAttributeName],
   );
 
-  static const displayMetadata =
-      DisplayMetadata(lang: 'en', name: 'PID attestation', rendering: RenderingMetadata_Simple());
+  static const enDisplayMetadata = DisplayMetadata(lang: 'en', name: 'PID attestation', rendering: null);
+  static const nlDisplayMetadata = DisplayMetadata(lang: 'nl', name: 'PID attestatie', rendering: null);
 
   static const AttestationAttribute attestationAttributeName =
       AttestationAttribute(key: 'name', labels: [], value: AttributeValue_String(value: 'Willeke'));
