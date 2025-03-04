@@ -5,7 +5,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../../../domain/model/wallet_card.dart';
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/wallet_card_detail.dart';
 import '../../../../domain/usecase/card/observe_wallet_card_detail_usecase.dart';
 

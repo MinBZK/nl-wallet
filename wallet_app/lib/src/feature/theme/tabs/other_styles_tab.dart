@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/card_front.dart';
+import '../../../domain/model/card/card_front.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../card/data/widget/data_privacy_banner.dart';
@@ -22,6 +22,7 @@ import '../../common/widget/bullet_list.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/button/icon/back_icon_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
+import '../../common/widget/card/card_logo.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -362,12 +363,9 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'WalletCardItem'),
         const WalletCardItem(
           title: 'Card Title',
-          background: WalletAssets.svg_rijks_card_bg_dark,
-          brightness: Brightness.dark,
-          subtitle1: 'Card subtitle1',
-          subtitle2: 'Card subtitle2',
-          logo: WalletAssets.logo_card_rijksoverheid,
-          holograph: WalletAssets.svg_rijks_card_holo,
+          background: DecoratedBox(decoration: BoxDecoration(color: Colors.orangeAccent)),
+          subtitle: 'Card subtitle1',
+          logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
         ),
         const ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(

@@ -2,8 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'app_image_data.dart';
-import 'attribute/converter/app_image_data_converter.dart';
 import 'attribute/converter/localized_string_converter.dart';
+import 'converter/app_image_data_converter.dart';
 import 'localized_text.dart';
 
 part 'organization.g.dart';

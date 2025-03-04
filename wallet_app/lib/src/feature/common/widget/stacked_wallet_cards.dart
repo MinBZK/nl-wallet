@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import 'card/wallet_card_item.dart';
 
@@ -32,12 +32,12 @@ class StackedWalletCards extends StatelessWidget {
             BuildContext fromHeroContext,
             BuildContext toHeroContext,
           ) =>
-              WalletCardItem.buildShuttleCard(animation, cards[index].front, ctaAnimation: CtaAnimation.fadeIn),
+              WalletCardItem.buildShuttleCard(animation, cards[index], ctaAnimation: CtaAnimation.fadeIn),
           child: MergeSemantics(
             child: Semantics(
               button: onCardPressed != null,
               child: GestureDetector(
-                child: WalletCardItem.fromCardFront(context: context, front: cards[index].front),
+                child: WalletCardItem.fromWalletCard(context, cards[index]),
                 onTap: () => onCardPressed?.call(cards[index]),
               ),
             ),

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/card_front.dart';
-import '../../../../domain/model/wallet_card.dart';
+import '../../../../domain/model/card/card_front.dart';
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../default_text_and_focus_style.dart';
-import '../svg_or_image.dart';
 import 'card_holograph.dart';
+import 'wallet_card_item.dart';
 
 const _kCornerRadius = Radius.circular(12);
 const _kBorderRadius = BorderRadius.all(_kCornerRadius);
@@ -74,7 +74,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
               SizedBox(
                 width: double.infinity,
                 height: _kHeaderStripHeight,
-                child: _buildHeaderStrip(),
+                child: _buildHeaderStrip(context),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -99,7 +99,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
           child: Text.rich(
             context.l10n
                 .sharedAttributesCardTitle(
-                  widget.card.front.title.l10nValue(context),
+                  widget.card.title.l10nValue(context),
                   widget.attributes.length,
                 )
                 .toTextSpan(context),
@@ -142,7 +142,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
     );
   }
 
-  Widget _buildHeaderStrip() {
+  Widget _buildHeaderStrip(BuildContext context) {
     return ClipRRect(
       borderRadius: const BorderRadius.only(
         topLeft: _kCornerRadius,
@@ -151,10 +151,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: SvgOrImage(
-              asset: widget.card.front.backgroundImage,
-              fit: BoxFit.cover,
-            ),
+            child: widget.card.getL10nBackground(context),
           ),
           _buildPositionedHolograph(),
         ],
@@ -163,15 +160,16 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
   }
 
   Widget _buildPositionedHolograph() {
-    if (widget.card.front.holoImage == null) return const SizedBox.shrink();
-    final holoBrightness = widget.card.front.theme == CardFrontTheme.light ? Brightness.light : Brightness.dark;
+    final front = widget.card.front;
+    if (front == null || front.holoImage == null) return const SizedBox.shrink();
+    final holoBrightness = front.theme == CardFrontTheme.light ? Brightness.light : Brightness.dark;
     return Positioned(
       right: 32,
       top: _kHolographSize / -3 /* Shift the holo so the center part is shown */,
       height: _kHolographSize,
       width: _kHolographSize,
       child: CardHolograph(
-        holograph: widget.card.front.holoImage!,
+        holograph: front.holoImage!,
         brightness: holoBrightness,
       ),
     );

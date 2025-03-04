@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/feature/common/page/check_data_offering_page.dart';
 import 'package:wallet/src/feature/common/widget/button/confirm/confirm_buttons.dart';
 import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
@@ -18,7 +19,6 @@ void main() {
           CheckDataOfferingPage(
             title: 'Title',
             subtitle: 'Subtitle',
-            cardFront: WalletMockData.cardFront,
             footerCta: 'Footer CTA',
             overline: 'Overline',
             showHeaderAttributesDivider: true,
@@ -30,11 +30,7 @@ void main() {
                 text: Text('Secondary'),
               ),
             ),
-            attributes: [
-              WalletMockData.textDataAttribute,
-              WalletMockData.textDataAttribute,
-              WalletMockData.textDataAttribute,
-            ],
+            offeredCard: WalletMockData.altCard,
           ),
         );
         await screenMatchesGolden(tester, 'check_data_offering_page/light');
@@ -48,7 +44,6 @@ void main() {
           CheckDataOfferingPage(
             title: 'Title',
             subtitle: 'No footer sample page',
-            cardFront: WalletMockData.cardFront,
             overline: 'Overline',
             showHeaderAttributesDivider: true,
             bottomSection: const ConfirmButtons(
@@ -59,11 +54,7 @@ void main() {
                 text: Text('Secondary'),
               ),
             ),
-            attributes: [
-              WalletMockData.textDataAttribute,
-              WalletMockData.textDataAttribute,
-              WalletMockData.textDataAttribute,
-            ],
+            offeredCard: WalletMockData.altCard,
           ),
         );
         await screenMatchesGolden(tester, 'check_data_offering_page/no_footer.light');
@@ -77,7 +68,6 @@ void main() {
           CheckDataOfferingPage(
             title: 'Title',
             subtitle: 'Subtitle',
-            cardFront: WalletMockData.cardFront,
             footerCta: 'Footer CTA',
             overline: 'Overline',
             showHeaderAttributesDivider: true,
@@ -89,11 +79,7 @@ void main() {
                 text: Text('Secondary'),
               ),
             ),
-            attributes: [
-              WalletMockData.textDataAttribute,
-              WalletMockData.textDataAttribute,
-              WalletMockData.textDataAttribute,
-            ],
+            offeredCard: WalletMockData.altCard,
           ),
           brightness: Brightness.dark,
         );
@@ -108,12 +94,11 @@ void main() {
         CheckDataOfferingPage(
           title: 'T',
           subtitle: 'S',
-          cardFront: WalletMockData.cardFront,
           footerCta: 'F',
           overline: 'O',
           showHeaderAttributesDivider: true,
           bottomSection: const Text('BS'),
-          attributes: [WalletMockData.textDataAttribute],
+          offeredCard: WalletMockData.card,
         ),
       );
 
@@ -134,11 +119,16 @@ void main() {
 
     testWidgets('optional widgets are not visible when unset', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        const CheckDataOfferingPage(
+        CheckDataOfferingPage(
           title: 'T',
           showHeaderAttributesDivider: true,
-          bottomSection: Text('BS'),
-          attributes: [],
+          bottomSection: const Text('BS'),
+          offeredCard: WalletCard(
+            docType: 'com.example.docType',
+            issuer: WalletMockData.organization,
+            attributes: const [],
+            id: 'id',
+          ),
         ),
       );
 

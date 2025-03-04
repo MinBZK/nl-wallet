@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../../util/extension/wallet_event_extension.dart';
-import '../../../../util/formatter/time_ago_formatter.dart';
 import '../../../../util/formatter/wallet_event_title_formatter.dart';
 import '../../../../util/mapper/event/wallet_event_status_color_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_icon_mapper.dart';
@@ -47,10 +47,11 @@ class _WalletEventRowState extends State<WalletEventRow> {
 
   @override
   Widget build(BuildContext context) {
+    final String titleText = WalletEventTitleFormatter.format(context, widget.event);
+    final DateFormat dateFormat = DateFormat(DateFormat.MONTH_DAY, context.l10n.localeName);
+    final String formattedTime = dateFormat.format(widget.event.dateTime);
     final Color? textPressedColor =
         context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
-    final String titleText = WalletEventTitleFormatter.format(context, widget.event);
-    final String timeAgoText = TimeAgoFormatter.format(context, widget.event.dateTime);
     final IconData? errorStatusIcon = WalletEventStatusIconMapper().map(widget.event);
     final String typeText = WalletEventStatusTextMapper().map(context, widget.event);
     final Color typeTextColor = WalletEventStatusColorMapper().map(context, widget.event);
@@ -112,7 +113,7 @@ class _WalletEventRowState extends State<WalletEventRow> {
                         textStyle: context.textTheme.bodySmall,
                         pressedOrFocusedColor: textPressedColor,
                         child: Text.rich(
-                          timeAgoText.toTextSpan(context),
+                          formattedTime.toTextSpan(context),
                         ),
                       ),
                     ],
@@ -132,9 +133,9 @@ class _WalletEventRowState extends State<WalletEventRow> {
     if (event is IssuanceEvent) {
       return SizedBox(
         width: _kThumbnailSize,
-        child: WalletCardItem.fromCardFront(
-          context: context,
-          front: event.card.front,
+        child: WalletCardItem.fromWalletCard(
+          context,
+          event.card,
           scaleText: false,
         ),
       );

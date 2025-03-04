@@ -2,8 +2,8 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
-import '../../../domain/model/wallet_card.dart';
 import '../../../domain/model/wallet_card_detail.dart';
 import '../../../navigation/wallet_routes.dart';
 import '../../../util/cast_util.dart';
@@ -89,7 +89,7 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   String _getTitle(BuildContext context, CardDetailState state) {
-    final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.front.title.l10nValue(context);
+    final title = tryCast<CardDetailLoadSuccess>(state)?.detail.card.title.l10nValue(context);
     return title ?? cardTitle;
   }
 
@@ -127,9 +127,9 @@ class CardDetailScreen extends StatelessWidget {
                 ) {
                   animation
                       .addOnCompleteListener(() => context.read<CardDetailBloc>().notifyEntryTransitionCompleted());
-                  return WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeOut);
+                  return WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeOut);
                 },
-                child: WalletCardItem.fromCardFront(context: context, front: card.front),
+                child: WalletCardItem.fromWalletCard(context, card),
               ),
             ),
           ),
@@ -165,8 +165,8 @@ class CardDetailScreen extends StatelessWidget {
                   BuildContext fromHeroContext,
                   BuildContext toHeroContext,
                 ) =>
-                    WalletCardItem.buildShuttleCard(animation, card.front, ctaAnimation: CtaAnimation.fadeIn),
-                child: WalletCardItem.fromCardFront(context: context, front: card.front),
+                    WalletCardItem.buildShuttleCard(animation, card, ctaAnimation: CtaAnimation.fadeIn),
+                child: WalletCardItem.fromWalletCard(context, card),
               ),
             ),
           ),
@@ -245,11 +245,13 @@ class CardDetailScreen extends StatelessWidget {
     if (attribute != null) {
       final String timeAgo = TimeAgoFormatter.format(context, attribute.dateTime);
       final String status = WalletEventStatusTextMapper().map(context, attribute).toLowerCase();
-      return context.l10n.cardDetailScreenLatestSuccessInteraction(
-        attribute.relyingParty.displayName.l10nValue(context),
-        status,
-        timeAgo,
-      );
+      return context.l10n
+          .cardDetailScreenLatestSuccessInteraction(
+            attribute.relyingParty.displayName.l10nValue(context),
+            status,
+            timeAgo,
+          )
+          .capitalize;
     } else {
       return context.l10n.cardDetailScreenLatestSuccessInteractionUnknown;
     }
@@ -293,7 +295,7 @@ class CardDetailScreen extends StatelessWidget {
       WalletRoutes.cardDataRoute,
       arguments: CardDataScreenArgument(
         cardId: card.id,
-        cardTitle: card.front.title.l10nValue(context),
+        cardTitle: card.title.l10nValue(context),
       ).toMap(),
     );
   }

@@ -1,12 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/event/wallet_event.dart';
-import '../../../../domain/model/wallet_card.dart';
 import '../../../../domain/usecase/card/get_wallet_card_usecase.dart';
 import '../../../../domain/usecase/event/get_wallet_events_for_card_usecase.dart';
 
 part 'card_history_event.dart';
+
 part 'card_history_state.dart';
 
 class CardHistoryBloc extends Bloc<CardHistoryEvent, CardHistoryState> {

@@ -1,4 +1,4 @@
-import '../../../../domain/model/wallet_card.dart';
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../source/wallet_datasource.dart';
 import '../wallet_card_repository.dart';
 

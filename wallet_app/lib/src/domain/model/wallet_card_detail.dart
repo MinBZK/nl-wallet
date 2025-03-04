@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import 'card/wallet_card.dart';
 import 'event/wallet_event.dart';
-import 'wallet_card.dart';
 
 class WalletCardDetail extends Equatable {
   final WalletCard card;

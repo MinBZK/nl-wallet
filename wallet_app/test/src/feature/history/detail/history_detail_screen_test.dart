@@ -103,7 +103,7 @@ void main() {
       expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsExactly(3));
       expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.disclosureEvent.cards.first.attributes.length.toString();
-      expect(find.text('$count from ${WalletMockData.card.front.title.testValue}'), findsOneWidget);
+      expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text(WalletMockData.disclosureEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
       expect(find.text('1 March 2024, 00:00'), findsOneWidget);
       expect(find.textContaining('will store your data for'), findsOneWidget);
@@ -129,7 +129,7 @@ void main() {
       expect(find.byType(HistoryDetailIssuePage), findsOneWidget);
       expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsOneWidget);
       final count = WalletMockData.issuanceEvent.attributes.length;
-      expect(find.text('$count from ${WalletMockData.card.front.title.testValue}'), findsOneWidget);
+      expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text('1 December 2023, 00:00'), findsOneWidget);
       expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);
       expect(find.text(l10n.generalBottomBackCta), findsOneWidget);
@@ -151,7 +151,7 @@ void main() {
       expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsExactly(3));
       expect(find.text(WalletMockData.loginEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.loginEvent.cards.first.attributes.length.toString();
-      expect(find.text('$count from ${WalletMockData.card.front.title.testValue}'), findsOneWidget);
+      expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text(WalletMockData.loginEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
       expect(find.text('1 February 2024, 00:00'), findsOneWidget);
       expect(find.textContaining('will store your data for'), findsOneWidget);

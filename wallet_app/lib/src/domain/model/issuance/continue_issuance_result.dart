@@ -1,4 +1,4 @@
-import '../wallet_card.dart';
+import '../card/wallet_card.dart';
 
 class ContinueIssuanceResult {
   final List<WalletCard> cards;
