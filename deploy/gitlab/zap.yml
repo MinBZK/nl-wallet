@@ -127,5 +127,4 @@ zap-scan-publish-results:
     - { job: zap-scan-internal-wallet-server }
     - { job: zap-scan-public-wallet-server }
   script:
-    - zip zap.zip zapreports/*.xml
-    - deploy/bin/store-artifact.sh zap.zip qt/quality-time/
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/zap.zip zapreports/*.xml
