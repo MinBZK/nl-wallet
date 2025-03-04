@@ -32,7 +32,6 @@ pub use self::data::RegistrationData;
 pub use self::data::UnlockData;
 pub use self::data::UnlockMethod;
 pub use self::database_storage::DatabaseStorage;
-pub use self::event_log::EventDocuments;
 pub use self::event_log::EventStatus;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;

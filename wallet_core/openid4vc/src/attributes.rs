@@ -1,18 +1,14 @@
-use std::num::NonZeroU8;
+use std::collections::VecDeque;
 use std::num::TryFromIntError;
 
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_valid::Validate;
 
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::DataElementValue;
-use nl_wallet_mdoc::Tdate;
-use wallet_common::urls::HttpsUri;
-use wallet_common::vec_at_least::VecNonEmpty;
+use nl_wallet_mdoc::NameSpace;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -30,8 +26,17 @@ pub enum AttributeError {
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
 
-    #[error("unable instantiate UnsignedAttributes: {0}")]
+    #[error("unable to instantiate UnsignedAttributes: {0}")]
     UnsignedAttributes(#[from] UnsignedAttributesError),
+
+    #[error(
+        "The namespace is required to consist of nested group names, joined by a '.' and prefixed with the \
+         attestation_type. Actual namespace: '{namespace}' and doc_type: '{doc_type}'"
+    )]
+    NamespacePreconditionFailed { namespace: String, doc_type: String },
+
+    #[error("attribute with name: {0} already exists")]
+    DuplicateAttribute(String),
 }
 
 impl From<&AttributeValue> for ciborium::Value {
@@ -64,240 +69,206 @@ pub enum Attribute {
     Nested(IndexMap<String, Attribute>),
 }
 
-/// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
-/// should be convertable into all documents that are actually issued to the wallet. For now, this will only be
-/// `UnsignedMdoc`.
-/// ```json
-/// {
-///     "attestation_type": "com.example.pid",
-///     "attributes": {
-///         "name": "John",
-///         "lastname": "Doe"
-///     }
-/// }
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
-#[validate(custom = IssuableDocument::validate)]
-pub struct IssuableDocument {
-    issuer_uri: HttpsUri,
-    attestation_type: String,
-    attributes: IndexMap<String, Attribute>,
-}
-
-impl IssuableDocument {
-    pub fn try_new(
-        issuer_uri: HttpsUri,
-        attestation_type: String,
-        attributes: IndexMap<String, Attribute>,
-    ) -> Result<Self, serde_valid::validation::Error> {
-        let document = Self {
-            issuer_uri,
-            attestation_type,
-            attributes,
-        };
-        document.validate()?;
-        Ok(document)
+impl Attribute {
+    pub fn from_mdoc_attributes(
+        doc_type: &str,
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
+    ) -> Result<IndexMap<String, Self>, AttributeError> {
+        let mut attrs = IndexMap::new();
+        Self::traverse_attributes(doc_type, attributes, &mut attrs)?;
+        Ok(attrs)
     }
 
-    fn validate(&self) -> Result<(), serde_valid::validation::Error> {
-        self.attributes
-            .len()
-            .ge(&1)
-            .then_some(())
-            .ok_or_else(|| serde_valid::validation::Error::Custom("must contain at least one attribute".to_string()))?;
+    fn traverse_attributes(
+        doc_type: &str,
+        attributes: IndexMap<String, Vec<Entry>>,
+        result: &mut IndexMap<String, Attribute>,
+    ) -> Result<(), AttributeError> {
+        for (namespace, entries) in attributes {
+            if namespace == doc_type {
+                Self::insert_entries(entries, result)?;
+            } else {
+                let mut groups: VecDeque<String> = Self::split_namespace(&namespace, doc_type)?.into();
+                Self::traverse_groups(entries, &mut groups, result)?;
+            }
+        }
 
         Ok(())
     }
 
-    fn walk_attributes_recursive(
-        namespace: String,
-        attributes: &IndexMap<String, Attribute>,
-        result: &mut IndexMap<String, Vec<Entry>>,
-    ) {
-        let mut entries = vec![];
-        for (key, value) in attributes {
-            match value {
-                Attribute::Single(single) => {
-                    entries.push(Entry {
-                        name: key.to_owned(),
-                        value: single.into(),
-                    });
-                }
-                Attribute::Nested(nested) => {
-                    let key = format!("{}.{}", namespace, key);
-                    Self::walk_attributes_recursive(key, nested, result);
+    fn traverse_groups(
+        entries: Vec<Entry>,
+        groups: &mut VecDeque<String>,
+        current_group: &mut IndexMap<String, Attribute>,
+    ) -> Result<(), AttributeError> {
+        if let Some(group_key) = groups.pop_front() {
+            // If the group doesn't exist, add a new group to the current group.
+            if !current_group.contains_key(&group_key) {
+                current_group.insert(String::from(&group_key), Attribute::Nested(IndexMap::new()));
+            }
+
+            if let Some(Attribute::Nested(attr_group)) = current_group.get_mut(&group_key) {
+                if groups.is_empty() {
+                    Self::insert_entries(entries, attr_group)?;
+                } else {
+                    Self::traverse_groups(entries, groups, attr_group)?;
                 }
             }
         }
 
-        result.insert(namespace, entries);
+        Ok(())
     }
 
-    /// Convert an issuable document into an `UnsignedMdoc`. This is done by walking down the tree of attributes and
-    /// using their keys as namespaces. For example, this issuable document:
-    /// ```json
-    /// {
-    ///     "attestation_type": "com.example.address",
-    ///     "attributes": {
-    ///         "city": "The Capital",
-    ///         "street": "Main St.",
-    ///         "house": {
-    ///             "number": 1,
-    ///             "letter": "A"
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    /// Turns into an `UnsignedMdoc` with the following structure:
-    /// ```json
-    /// {
-    ///     "com.example.address": {
-    ///         "city": "The Capital",
-    ///         "street": "Main St."
-    ///     },
-    ///     "com.example.address.house": {
-    ///         "number": 1,
-    ///         "letter": "A"
-    ///     }
-    /// }
-    /// ```
-    pub fn to_unsigned_mdoc(
-        &self,
-        valid_from: Tdate,
-        valid_until: Tdate,
-        copy_count: NonZeroU8,
-    ) -> Result<UnsignedMdoc, AttributeError> {
-        let mut flattened = IndexMap::new();
-        Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened);
+    fn insert_entries(entries: Vec<Entry>, group: &mut IndexMap<String, Attribute>) -> Result<(), AttributeError> {
+        for entry in entries {
+            let key = entry.name;
 
-        Ok(UnsignedMdoc {
-            doc_type: self.attestation_type.clone(),
-            attributes: flattened.try_into()?,
-            valid_from,
-            valid_until,
-            copy_count,
-            issuer_uri: self.issuer_uri.clone(),
-        })
+            if group.contains_key(&key) {
+                return Err(AttributeError::DuplicateAttribute(key));
+            }
+
+            group.insert(key, Attribute::Single(entry.value.try_into()?));
+        }
+
+        Ok(())
     }
 
-    pub fn attestation_type(&self) -> &str {
-        &self.attestation_type
+    fn split_namespace(namespace: &str, doc_type: &str) -> Result<Vec<String>, AttributeError> {
+        if !namespace.starts_with(doc_type) {
+            return Err(AttributeError::NamespacePreconditionFailed {
+                namespace: String::from(namespace),
+                doc_type: String::from(doc_type),
+            });
+        }
+
+        if namespace.len() == doc_type.len() {
+            return Ok(vec![]);
+        }
+
+        let parts = namespace[doc_type.len() + 1..].split('.').map(String::from).collect();
+        Ok(parts)
     }
 }
 
-pub type IssuableDocuments = VecNonEmpty<IssuableDocument>;
-
 #[cfg(test)]
 mod test {
-    use std::ops::Add;
-
-    use chrono::Days;
-    use chrono::Utc;
+    use assert_matches::assert_matches;
+    use indexmap::IndexMap;
+    use rstest::rstest;
     use serde_json::json;
+    use serde_valid::json::ToJsonString;
 
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
-    use nl_wallet_mdoc::NameSpace;
 
-    use super::*;
+    use crate::attributes::Attribute;
+    use crate::attributes::AttributeError;
 
-    fn readable_attrs(attrs: &IndexMap<NameSpace, Vec<Entry>>) -> IndexMap<String, IndexMap<String, DataElementValue>> {
-        attrs
-            .iter()
-            .map(|(ns, entries)| {
-                (
-                    ns.to_string(),
-                    entries
-                        .iter()
-                        .map(|entry| (entry.name.to_string(), entry.value.clone()))
-                        .collect(),
-                )
-            })
-            .collect()
-    }
-
-    fn issuable_attrs_to_unsigned_mdocs(issuable: &IssuableDocuments) -> Result<Vec<UnsignedMdoc>, AttributeError> {
-        issuable
-            .as_ref()
-            .iter()
-            .map(|doc| {
-                doc.to_unsigned_mdoc(
-                    Tdate::now(),
-                    Utc::now().add(Days::new(1)).into(),
-                    NonZeroU8::new(1).unwrap(),
-                )
-            })
-            .collect::<Result<Vec<_>, _>>()
-    }
-
-    fn setup_issuable_attributes() -> IssuableDocuments {
-        vec![IssuableDocument {
-            issuer_uri: "https://pid.example.com".parse().unwrap(),
-            attestation_type: "com.example.address".to_string(),
-            attributes: IndexMap::from_iter(vec![
-                (
-                    "city".to_string(),
-                    Attribute::Single(AttributeValue::Text("The Capital".to_string())),
-                ),
-                (
-                    "street".to_string(),
-                    Attribute::Single(AttributeValue::Text("Main St.".to_string())),
-                ),
-                (
-                    "house".to_string(),
-                    Attribute::Nested(IndexMap::from_iter(vec![
-                        ("number".to_string(), Attribute::Single(AttributeValue::Number(1))),
-                        (
-                            "letter".to_string(),
-                            Attribute::Single(AttributeValue::Text("A".to_string())),
-                        ),
-                    ])),
-                ),
-            ]),
-        }]
-        .try_into()
-        .unwrap()
+    #[rstest]
+    #[case(vec![], "com.example.pid", "com.example.pid")]
+    #[case(vec!["place_of_birth"], "com.example.pid.place_of_birth", "com.example.pid")]
+    #[case(vec!["place_of_birth", "country"], "com.example.pid.place_of_birth.country", "com.example.pid")]
+    fn test_split_namespace(#[case] expected: Vec<&str>, #[case] namespace: &str, #[case] doc_type: &str) {
+        assert_eq!(
+            expected.into_iter().map(String::from).collect::<Vec<_>>(),
+            Attribute::split_namespace(namespace, doc_type).unwrap()
+        );
     }
 
     #[test]
-    fn test_serialize_attributes() {
-        let attributes = setup_issuable_attributes();
-        assert_eq!(
-            serde_json::to_value(attributes).unwrap(),
-            json!([{
-                "issuer_uri": "https://pid.example.com/",
-                "attestation_type": "com.example.address",
-                "attributes": {
-                    "city": "The Capital",
-                    "street": "Main St.",
-                    "house": {
-                        "number": 1,
-                        "letter": "A",
+    fn test_traverse_groups() {
+        let mdoc_attributes = IndexMap::from([
+            (
+                String::from("com.example.pid"),
+                vec![Entry {
+                    name: String::from("birthdate"),
+                    value: DataElementValue::Text(String::from("1963-08-12")),
+                }],
+            ),
+            (
+                String::from("com.example.pid.place_of_birth"),
+                vec![Entry {
+                    name: String::from("locality"),
+                    value: DataElementValue::Text(String::from("The Hague")),
+                }],
+            ),
+            (
+                String::from("com.example.pid.place_of_birth.country"),
+                vec![
+                    Entry {
+                        name: String::from("name"),
+                        value: DataElementValue::Text(String::from("The Netherlands")),
                     },
-                },
-            }])
+                    Entry {
+                        name: String::from("area_code"),
+                        value: DataElementValue::Integer(31.into()),
+                    },
+                ],
+            ),
+            (
+                String::from("com.example.pid.a.b.c.d"),
+                vec![Entry {
+                    name: String::from("e"),
+                    value: DataElementValue::Text(String::from("abcd")),
+                }],
+            ),
+            (
+                String::from("com.example.pid.a.b"),
+                vec![Entry {
+                    name: String::from("c1"),
+                    value: DataElementValue::Text(String::from("abc")),
+                }],
+            ),
+        ]);
+        let result = &mut IndexMap::new();
+        Attribute::traverse_attributes("com.example.pid", mdoc_attributes, result).unwrap();
+
+        let expected_json = json!({
+            "birthdate": "1963-08-12",
+            "place_of_birth": {
+                "locality": "The Hague",
+                "country": {
+                    "name": "The Netherlands",
+                    "area_code": 31
+                }
+            },
+            "a": {
+                "b": {
+                    "c": {
+                        "d":{
+                            "e": "abcd"
+                        },
+                    },
+                    "c1": "abc",
+                }
+            }
+        });
+        assert_eq!(
+            expected_json.to_json_string_pretty().unwrap(),
+            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap()
         );
     }
 
     #[test]
-    fn test_issuable_attributes_to_unsigned_mdoc() {
-        let attributes = setup_issuable_attributes();
-        let unsigned_mdoc = issuable_attrs_to_unsigned_mdocs(&attributes).unwrap().remove(0);
+    fn test_traverse_groups_should_fail_for_duplicate_attribute() {
+        let mdoc_attributes = IndexMap::from([
+            (
+                String::from("com.example.pid.a.b.c.d"),
+                vec![Entry {
+                    name: String::from("e"),
+                    value: DataElementValue::Text(String::from("abcd")),
+                }],
+            ),
+            (
+                String::from("com.example.pid.a.b"),
+                vec![Entry {
+                    name: String::from("c"),
+                    value: DataElementValue::Text(String::from("abc")),
+                }],
+            ),
+        ]);
 
-        assert_eq!(unsigned_mdoc.issuer_uri.to_string(), "https://pid.example.com/");
-        assert_eq!(unsigned_mdoc.doc_type, "com.example.address");
-        assert_eq!(
-            serde_json::to_value(readable_attrs(unsigned_mdoc.attributes.as_ref())).unwrap(),
-            json!({
-                "com.example.address": {
-                    "city": "The Capital",
-                    "street": "Main St.",
-                },
-                "com.example.address.house": {
-                    "number": 1,
-                    "letter": "A",
-                },
-            })
-        );
+        let result = Attribute::traverse_attributes("com.example.pid", mdoc_attributes, &mut IndexMap::new());
+        assert_matches!(result, Err(AttributeError::DuplicateAttribute(key)) if key == *"c");
     }
 }

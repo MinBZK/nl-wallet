@@ -5,12 +5,9 @@ use itertools::Itertools;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::ProposedAttributes;
-use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
-use nl_wallet_mdoc::identifiers::AttributeIdentifier;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use nl_wallet_mdoc::DataElementIdentifier;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
@@ -21,12 +18,10 @@ use super::mapping::MappingDocType;
 use super::mapping::MDOC_DOCUMENT_MAPPING;
 use super::Attribute;
 use super::AttributeValue;
-use super::DisclosureDocument;
 use super::Document;
 use super::DocumentAttributes;
 use super::DocumentPersistence;
 use super::GenderAttributeValue;
-use super::MissingDisclosureAttributes;
 use super::PID_DOCTYPE;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -281,80 +276,6 @@ impl TryFrom<Integer> for GenderAttributeValue {
     }
 }
 
-impl MissingDisclosureAttributes {
-    // Use the Mdoc document mapping to translate a `Vec<AttributeIdentifier>` to
-    // a `Vec<MissingDisclosureAttributes>`. If any attribute cannot be found a
-    // `DocumentMdocError` is returned.
-    pub(crate) fn from_mdoc_missing_attributes(
-        missing_attributes: Vec<AttributeIdentifier>,
-    ) -> Result<Vec<Self>, DocumentMdocError> {
-        // Create an `IndexMap` that contains `IndexMap`s of attributes per doc type.
-        let attributes_by_doc_type =
-            missing_attributes
-                .into_iter()
-                .try_fold(IndexMap::<_, IndexMap<_, _>>::new(), {
-                    |mut attributes_by_doc_type, missing_attribute| {
-                        let (doc_type, attribute_mapping) =
-                            mapping_for_doc_type(missing_attribute.credential_type.as_str())?;
-                        let value_mapping = attribute_mapping
-                            .get(&(
-                                missing_attribute.namespace.as_str(),
-                                missing_attribute.attribute.as_str(),
-                            ))
-                            .ok_or_else(|| DocumentMdocError::UnknownAttribute {
-                                doc_type: missing_attribute.credential_type,
-                                name_space: missing_attribute.namespace.clone(),
-                                name: missing_attribute.attribute.clone(),
-                                value: None,
-                            })?;
-
-                        attributes_by_doc_type
-                            .entry(doc_type)
-                            .or_default()
-                            .insert(value_mapping.key, value_mapping.key_labels.clone());
-
-                        Ok(attributes_by_doc_type)
-                    }
-                })?;
-
-        // Convert these `IndexMap`s to a `Vec<MissingDisclosureAttributes>`.
-        let mut missing_disclosure_attributes = attributes_by_doc_type
-            .into_iter()
-            .map(|(doc_type, attributes)| MissingDisclosureAttributes { doc_type, attributes })
-            .collect::<Vec<_>>();
-
-        // Make sure that the resulting doc types are sorted canonically.
-        missing_disclosure_attributes.sort_by_key(|attributes| super::doc_type_priority(attributes.doc_type));
-
-        Ok(missing_disclosure_attributes)
-    }
-}
-
-impl DisclosureDocument {
-    pub(crate) fn from_mdoc_attributes(
-        doc_type: &str,
-        attributes: ProposedDocumentAttributes,
-    ) -> Result<Self, DocumentMdocError> {
-        let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
-            .map_err(|error| DocumentMdocError::Certificate {
-                doc_type: doc_type.to_owned(),
-                error,
-            })?
-            .expect("IssuerRegistration must exist after successful issuance");
-        let (doc_type, document_attributes) =
-            document_attributes_from_mdoc_attributes(doc_type, attributes.attributes, false)?;
-
-        let document = DisclosureDocument {
-            issuer_registration,
-            doc_type,
-            attributes: document_attributes,
-            display_metadata: attributes.display_metadata,
-        };
-
-        Ok(document)
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
     use std::collections::HashMap;
@@ -368,6 +289,7 @@ pub mod tests {
     use chrono::Utc;
     use rstest::rstest;
 
+    use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
     use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::server_keys::KeyPair;
@@ -422,7 +344,7 @@ pub mod tests {
                 .unwrap(),
                 issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             },
-            TypeMetadata::bsn_only_example(),
+            TypeMetadata::example_with_claim_name("bsn"),
         )
     }
 
@@ -1001,243 +923,6 @@ pub mod tests {
         );
     }
 
-    #[test]
-    fn test_mdoc_to_proposed_disclosure_document_mapping_minimal() {
-        let (unsigned_mdoc, _metadata) = create_minimal_unsigned_pid_mdoc();
-
-        let disclosure_document = DisclosureDocument::from_mdoc_attributes(
-            &unsigned_mdoc.doc_type,
-            ProposedDocumentAttributes {
-                attributes: unsigned_mdoc.attributes.into_inner(),
-                issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::bsn_only_example().display,
-            },
-        )
-        .expect("Could not convert attributes to proposed disclosure document");
-
-        assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
-        assert_eq!(
-            disclosure_document.attributes.keys().copied().collect::<Vec<_>>(),
-            vec!["given_name", "family_name", "birth_date", "age_over_18", "bsn"]
-        );
-        assert_matches!(
-            disclosure_document.attributes.get("given_name").unwrap(),
-            Attribute {
-                key_labels,
-                value: AttributeValue::String(given_name),
-            } if key_labels == &HashMap::from([("en", "First names"), ("nl", "Voornamen")]) &&
-                 given_name == "Willeke Liselotte"
-        );
-        assert_matches!(
-            disclosure_document.attributes.get("family_name").unwrap(),
-            Attribute {
-                key_labels: _,
-                value: AttributeValue::String(family_name),
-            } if family_name == "De Bruijn"
-        );
-        assert_matches!(
-            disclosure_document.attributes.get("birth_date").unwrap(),
-            Attribute {
-                key_labels: _,
-                value: AttributeValue::Date(birth_date),
-            } if birth_date == &NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap()
-        );
-        assert_matches!(
-            disclosure_document.attributes.get("age_over_18").unwrap(),
-            Attribute {
-                key_labels: _,
-                value: AttributeValue::Boolean(true),
-            }
-        );
-        assert_matches!(
-            disclosure_document.attributes.get("bsn").unwrap(),
-            Attribute {
-                key_labels: _,
-                value: AttributeValue::String(given_name),
-            } if given_name == "999999999"
-        );
-    }
-
-    #[test]
-    fn test_mdoc_to_proposed_disclosure_document_mapping_age_over_18() {
-        let attributes = IndexMap::from([(
-            PID_DOCTYPE.to_string(),
-            vec![Entry {
-                name: "age_over_18".to_string(),
-                value: DataElementValue::Bool(true),
-            }],
-        )]);
-
-        // This should not result in a `DocumentMdocError::MissingAttribute` error.
-        let disclosure_document = DisclosureDocument::from_mdoc_attributes(
-            PID_DOCTYPE,
-            ProposedDocumentAttributes {
-                attributes,
-                issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::bsn_only_example().display,
-            },
-        )
-        .expect("Could not convert attributes to proposed disclosure document");
-
-        assert_eq!(disclosure_document.doc_type, PID_DOCTYPE);
-        assert_eq!(
-            disclosure_document.attributes.keys().copied().collect::<Vec<_>>(),
-            vec!["age_over_18"]
-        );
-        assert_matches!(
-            disclosure_document.attributes.get("age_over_18").unwrap(),
-            Attribute {
-                key_labels: _,
-                value: AttributeValue::Boolean(true),
-            }
-        );
-    }
-
-    #[test]
-    fn test_mdoc_to_proposed_disclosure_document_mapping_error_unknown_doc_type() {
-        let attributes = IndexMap::from([(
-            PID_DOCTYPE.to_string(),
-            vec![Entry {
-                name: "age_over_18".to_string(),
-                value: DataElementValue::Bool(true),
-            }],
-        )]);
-
-        let result = DisclosureDocument::from_mdoc_attributes(
-            "com.example.foobar",
-            ProposedDocumentAttributes {
-                attributes,
-                issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::bsn_only_example().display,
-            },
-        );
-
-        assert_matches!(
-            result,
-            Err(DocumentMdocError::UnknownDocType { doc_type }) if doc_type == "com.example.foobar"
-        );
-    }
-
-    #[test]
-    fn test_mdoc_to_proposed_disclosure_document_mapping_error_attribute_value_type_mismatch() {
-        let attributes = IndexMap::from([(
-            PID_DOCTYPE.to_string(),
-            vec![Entry {
-                name: "age_over_18".to_string(),
-                value: DataElementValue::Text("Yes".to_string()),
-            }],
-        )]);
-
-        let result = DisclosureDocument::from_mdoc_attributes(
-            PID_DOCTYPE,
-            ProposedDocumentAttributes {
-                attributes,
-                issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::bsn_only_example().display,
-            },
-        );
-
-        assert_matches!(
-            result,
-            Err(DocumentMdocError::AttributeValueTypeMismatch {
-                doc_type,
-                name_space,
-                name,
-                expected_type: AttributeValueType::Bool,
-                value,
-            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
-                  name == "age_over_18" && value == DataElementValue::Text("Yes".to_string())
-        );
-    }
-
-    #[test]
-    fn test_mdoc_to_proposed_disclosure_document_mapping_error_unknown_attribute() {
-        let attributes = IndexMap::from([(
-            PID_DOCTYPE.to_string(),
-            vec![Entry {
-                name: "favourite_colour".to_string(),
-                value: DataElementValue::Text("Red".to_string()),
-            }],
-        )]);
-
-        let result = DisclosureDocument::from_mdoc_attributes(
-            PID_DOCTYPE,
-            ProposedDocumentAttributes {
-                attributes,
-                issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::bsn_only_example().display,
-            },
-        );
-
-        assert_matches!(
-            result,
-            Err(DocumentMdocError::UnknownAttribute {
-                doc_type,
-                name_space,
-                name,
-                value,
-            }) if doc_type == PID_DOCTYPE && name_space == PID_DOCTYPE &&
-                  name == "favourite_colour" && value == Some(DataElementValue::Text("Red".to_string()))
-        );
-    }
-
-    #[rstest]
-    #[case(vec![], vec![].into())]
-    #[case(vec!["com.example.pid/com.example.pid/bsn"], vec![("com.example.pid", vec!["bsn"])].into())]
-    #[case(
-        vec!["com.example.pid/com.example.pid/bsn", "com.example.pid/com.example.pid/age_over_18"],
-        vec![("com.example.pid", vec!["bsn", "age_over_18"])].into())
-    ]
-    #[case(
-        vec![
-            "com.example.address/com.example.address/resident_country",
-            "com.example.pid/com.example.pid/bsn",
-            "com.example.address/com.example.address/resident_state",
-            "com.example.pid/com.example.pid/gender",
-        ],
-        vec![
-            ("com.example.pid", vec!["bsn", "gender"]),
-            ("com.example.address", vec!["resident_country", "resident_state"])
-        ].into())
-    ]
-    #[case(vec!["com.example.foo/com.example.bar/something"], None)] // DocumentMdocError::UnknownDocType
-    #[case(vec!["com.example.pid/com.example.pid/favorite_colour"], None)] // DocumentMdocError::UnknownAttribute
-    fn test_missing_disclosure_attributes_from_mdoc_missing_attributes(
-        #[case] attribute_identifiers: Vec<&str>,
-        #[case] expected_result: Option<Vec<(&str, Vec<&str>)>>,
-    ) {
-        // Convert the input attribute identifier strings to actual `AttributeIdentifier`s.
-        let attribute_identifiers: Vec<AttributeIdentifier> = attribute_identifiers
-            .into_iter()
-            .map(|attribute| attribute.parse().unwrap())
-            .collect();
-
-        // Attempt to convert the identifiers to a `Vec<MissingDisclosureAttributes>`.
-        let result = MissingDisclosureAttributes::from_mdoc_missing_attributes(attribute_identifiers);
-
-        // If `expected_result` contains a `Vec`, match the expected `doc_type` and keys against the result.
-        // Note that the returned order is relevant.
-        if let Some(expected_result) = expected_result {
-            let missing = result.expect("Could not convert attribute identifiers to missing disclosure attributes");
-
-            assert_eq!(missing.len(), expected_result.len());
-            missing.into_iter().zip(expected_result).for_each(
-                |(missing_attributes, (expected_doc_type, expected_attributes))| {
-                    assert_eq!(missing_attributes.doc_type, expected_doc_type);
-                    assert_eq!(
-                        missing_attributes.attributes.into_keys().collect::<Vec<_>>(),
-                        expected_attributes
-                    );
-                },
-            );
-
-            return;
-        }
-
-        // If `expected_result` is None, the result should be an error.
-        assert!(result.is_err());
-    }
-
     #[rstest]
     #[case(create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
     #[case(create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
@@ -1246,13 +931,13 @@ pub mod tests {
         #[case] input: (UnsignedMdoc, TypeMetadata),
         #[case] expected: DisclosureType,
     ) {
-        let (unsigned_mdoc, _metadata) = input;
+        let (unsigned_mdoc, type_metadata) = input;
         let pa = ProposedAttributes::from([(
             PID_DOCTYPE.to_string(),
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_KEY.certificate().clone(),
-                display_metadata: TypeMetadata::bsn_only_example().display,
+                type_metadata,
             },
         )]);
 

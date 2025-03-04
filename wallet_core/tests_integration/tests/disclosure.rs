@@ -92,7 +92,8 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     SessionType::SameDevice,
     None,
     "multiple_cards",
-    pid_given_name() + addr_street(), pid_given_name() + addr_street()
+    pid_given_name() + addr_street(),
+    pid_given_name() + addr_street()
 )]
 #[tokio::test]
 #[serial(hsm)]
@@ -177,7 +178,7 @@ async fn test_disclosure_usecases_ok(
         .start_disclosure(&ul.unwrap().into_inner(), source)
         .await
         .expect("should start disclosure");
-    assert_eq!(proposal.documents.len(), expected_documents.len());
+    assert_eq!(proposal.attestations.len(), expected_documents.len());
 
     // after the first wallet interaction it should have status "Waiting"
     assert_matches!(
@@ -335,12 +336,12 @@ async fn test_disclosure_without_pid() {
     assert_matches!(
         error,
         DisclosureError::AttributesNotAvailable {
-            missing_attributes: attrs,
+            missing_attributes,
             ..
-        } if attrs
-            .iter()
-            .flat_map(|attr| attr.attributes.keys().map(|k| k.to_owned()).collect::<Vec<&str>>())
-            .collect::<Vec<&str>>() == vec!["given_name", "family_name"]
+        } if missing_attributes == vec![
+            "com.example.pid/com.example.pid/given_name",
+            "com.example.pid/com.example.pid/family_name"
+        ]
     );
 
     wallet.cancel_disclosure().await.expect("Could not cancel disclosure");

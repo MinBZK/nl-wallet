@@ -18,7 +18,6 @@ pub mod errors;
 pub use crate::attestation::Attestation;
 pub use crate::attestation::AttestationAttribute;
 pub use crate::attestation::AttestationIdentity;
-pub use crate::attestation::LocalizedString;
 pub use crate::disclosure::DisclosureUriSource;
 pub use crate::document::Attribute;
 pub use crate::document::AttributeKey;
@@ -26,14 +25,12 @@ pub use crate::document::AttributeLabel;
 pub use crate::document::AttributeLabelLanguage;
 pub use crate::document::AttributeLabels;
 pub use crate::document::AttributeValue;
-pub use crate::document::DisclosureDocument;
 pub use crate::document::DisclosureType;
 pub use crate::document::Document;
 pub use crate::document::DocumentAttributes;
 pub use crate::document::DocumentPersistence;
 pub use crate::document::DocumentType;
 pub use crate::document::GenderAttributeValue;
-pub use crate::document::MissingDisclosureAttributes;
 pub use crate::pin::validation::validate_pin;
 pub use crate::wallet::DisclosureProposal;
 pub use crate::wallet::EventStatus;
@@ -61,6 +58,7 @@ pub mod openid4vc {
 }
 
 pub mod sd_jwt {
+    pub use sd_jwt::metadata::ClaimDisplayMetadata;
     pub use sd_jwt::metadata::DisplayMetadata;
     pub use sd_jwt::metadata::LogoMetadata;
     pub use sd_jwt::metadata::RenderingMetadata;

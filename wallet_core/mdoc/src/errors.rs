@@ -32,7 +32,4 @@ pub enum Error {
     #[error("type metadata error: {0}")]
     #[category(critical)]
     TypeMetadata(#[from] TypeMetadataError),
-    #[error("missing issuer URI")]
-    #[category(critical)]
-    MissingIssuerUri,
 }

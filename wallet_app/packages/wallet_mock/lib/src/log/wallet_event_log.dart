@@ -17,10 +17,17 @@ class WalletEventLog {
       .where(
         (event) => event.map(
           disclosure: (WalletEvent_Disclosure disclosure) {
-            if (disclosure.requestedCards == null) return false;
+            if (disclosure.requestedAttestations == null) return false;
 
             /// Check if the provided docType was used in this request
-            return disclosure.requestedCards!.any((card) => card.docType == docType);
+            return disclosure.requestedAttestations!.any(
+              (card) =>
+                  card.identity.map(
+                    ephemeral: (_) => '',
+                    fixed: (fixed) => fixed.id,
+                  ) ==
+                  docType,
+            );
           },
           issuance: (WalletEvent_Issuance issuance) => issuance.attestation.attestationType == docType,
         ),
@@ -28,13 +35,14 @@ class WalletEventLog {
       .toList();
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
-    final bool isLogin = disclosure.mapOrNull(request: (request) => request.requestedCards.onlyDisclosesBsn) ?? false;
+    final bool isLogin =
+        disclosure.mapOrNull(request: (request) => request.requestedAttestations.onlyContainsBsn) ?? false;
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: disclosure.relyingParty,
       purpose: disclosure.requestPurpose,
-      requestedCards: disclosure.map(
-        request: (request) => request.requestedCards,
+      requestedAttestations: disclosure.map(
+        request: (request) => request.requestedAttestations,
         requestAttributesMissing: (requestAttributesMissing) => [],
       ),
       requestPolicy: disclosure.map(
@@ -59,7 +67,7 @@ class WalletEventLog {
   void logDisclosureStep(
     Organization organization,
     RequestPolicy policy,
-    List<DisclosureCard> requestedCards,
+    List<Attestation> requestedAttestations,
     DisclosureStatus status, {
     List<LocalizedString>? purpose,
   }) {
@@ -67,10 +75,10 @@ class WalletEventLog {
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: organization,
       purpose: purpose ?? ''.untranslated,
-      requestedCards: requestedCards,
+      requestedAttestations: requestedAttestations,
       requestPolicy: policy,
       status: status,
-      typ: requestedCards.onlyDisclosesBsn ? DisclosureType.Login : DisclosureType.Regular,
+      typ: requestedAttestations.onlyContainsBsn ? DisclosureType.Login : DisclosureType.Regular,
     );
     _logEvent(event);
   }
@@ -107,8 +115,8 @@ class WalletEventLog {
   void reset() => _log.clear();
 }
 
-extension _DisclosureCardsExtension on List<DisclosureCard> {
-  bool get onlyDisclosesBsn {
+extension on List<Attestation> {
+  bool get onlyContainsBsn {
     return length == 1 && first.attributes.length == 1 && first.attributes.first.key == 'mock.citizenshipNumber';
   }
 }

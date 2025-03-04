@@ -1,27 +1,40 @@
-mod credential_payload;
+mod attribute;
+mod disclosure;
+mod issuance;
 
-use serde::Deserialize;
-use serde::Serialize;
+use std::collections::HashSet;
 
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::utils::auth::Organization;
+use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
-use sd_jwt::metadata::ClaimMetadata;
+use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
     #[error("error selecting attribute for claim: {0:?}")]
     #[category(pd)]
-    AttributeNotFoundForClaim(ClaimMetadata),
+    AttributeNotFoundForClaim(VecNonEmpty<ClaimPath>),
 
     #[error("some attributes not processed by claim: {0:?}")]
     #[category(pd)]
-    AttributeNotProcessedByClaim(Vec<String>),
+    AttributeNotProcessedByClaim(HashSet<Vec<String>>),
+
+    #[error("error converting from mdoc attribute: {0}")]
+    #[category(pd)]
+    Attribute(#[from] AttributeError),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
+enum AttributeSelectionMode {
+    Issuance,
+    Disclosure,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Attestation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
@@ -30,30 +43,15 @@ pub struct Attestation {
     pub attributes: Vec<AttestationAttribute>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AttestationIdentity {
     Ephemeral,
     Fixed { id: String },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AttestationAttribute {
     pub key: Vec<String>,
-    pub labels: Vec<LocalizedString>,
+    pub metadata: Vec<ClaimDisplayMetadata>,
     pub value: AttributeValue,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LocalizedString {
-    pub language: String,
-    pub value: String,
-}
-
-impl From<ClaimDisplayMetadata> for LocalizedString {
-    fn from(value: ClaimDisplayMetadata) -> Self {
-        Self {
-            language: value.lang,
-            value: value.label,
-        }
-    }
 }

@@ -1049,7 +1049,7 @@ mixin _$StartDisclosureResult {
     required TResult Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1071,7 +1071,7 @@ mixin _$StartDisclosureResult {
     TResult? Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1093,7 +1093,7 @@ mixin _$StartDisclosureResult {
     TResult Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1206,7 +1206,7 @@ abstract class _$$StartDisclosureResult_RequestImplCopyWith<$Res> implements $St
   $Res call(
       {Organization relyingParty,
       RequestPolicy policy,
-      List<DisclosureCard> requestedCards,
+      List<Attestation> requestedAttestations,
       bool sharedDataWithRelyingPartyBefore,
       DisclosureSessionType sessionType,
       List<LocalizedString> requestPurpose,
@@ -1229,7 +1229,7 @@ class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
   $Res call({
     Object? relyingParty = null,
     Object? policy = null,
-    Object? requestedCards = null,
+    Object? requestedAttestations = null,
     Object? sharedDataWithRelyingPartyBefore = null,
     Object? sessionType = null,
     Object? requestPurpose = null,
@@ -1245,10 +1245,10 @@ class __$$StartDisclosureResult_RequestImplCopyWithImpl<$Res>
           ? _value.policy
           : policy // ignore: cast_nullable_to_non_nullable
               as RequestPolicy,
-      requestedCards: null == requestedCards
-          ? _value._requestedCards
-          : requestedCards // ignore: cast_nullable_to_non_nullable
-              as List<DisclosureCard>,
+      requestedAttestations: null == requestedAttestations
+          ? _value._requestedAttestations
+          : requestedAttestations // ignore: cast_nullable_to_non_nullable
+              as List<Attestation>,
       sharedDataWithRelyingPartyBefore: null == sharedDataWithRelyingPartyBefore
           ? _value.sharedDataWithRelyingPartyBefore
           : sharedDataWithRelyingPartyBefore // ignore: cast_nullable_to_non_nullable
@@ -1279,13 +1279,13 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
   const _$StartDisclosureResult_RequestImpl(
       {required this.relyingParty,
       required this.policy,
-      required final List<DisclosureCard> requestedCards,
+      required final List<Attestation> requestedAttestations,
       required this.sharedDataWithRelyingPartyBefore,
       required this.sessionType,
       required final List<LocalizedString> requestPurpose,
       required this.requestOriginBaseUrl,
       required this.requestType})
-      : _requestedCards = requestedCards,
+      : _requestedAttestations = requestedAttestations,
         _requestPurpose = requestPurpose,
         super._();
 
@@ -1293,12 +1293,12 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
   final Organization relyingParty;
   @override
   final RequestPolicy policy;
-  final List<DisclosureCard> _requestedCards;
+  final List<Attestation> _requestedAttestations;
   @override
-  List<DisclosureCard> get requestedCards {
-    if (_requestedCards is EqualUnmodifiableListView) return _requestedCards;
+  List<Attestation> get requestedAttestations {
+    if (_requestedAttestations is EqualUnmodifiableListView) return _requestedAttestations;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_requestedCards);
+    return EqualUnmodifiableListView(_requestedAttestations);
   }
 
   @override
@@ -1320,7 +1320,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
 
   @override
   String toString() {
-    return 'StartDisclosureResult.request(relyingParty: $relyingParty, policy: $policy, requestedCards: $requestedCards, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestOriginBaseUrl: $requestOriginBaseUrl, requestType: $requestType)';
+    return 'StartDisclosureResult.request(relyingParty: $relyingParty, policy: $policy, requestedAttestations: $requestedAttestations, sharedDataWithRelyingPartyBefore: $sharedDataWithRelyingPartyBefore, sessionType: $sessionType, requestPurpose: $requestPurpose, requestOriginBaseUrl: $requestOriginBaseUrl, requestType: $requestType)';
   }
 
   @override
@@ -1330,7 +1330,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
             other is _$StartDisclosureResult_RequestImpl &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             (identical(other.policy, policy) || other.policy == policy) &&
-            const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
+            const DeepCollectionEquality().equals(other._requestedAttestations, _requestedAttestations) &&
             (identical(other.sharedDataWithRelyingPartyBefore, sharedDataWithRelyingPartyBefore) ||
                 other.sharedDataWithRelyingPartyBefore == sharedDataWithRelyingPartyBefore) &&
             (identical(other.sessionType, sessionType) || other.sessionType == sessionType) &&
@@ -1345,7 +1345,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
       runtimeType,
       relyingParty,
       policy,
-      const DeepCollectionEquality().hash(_requestedCards),
+      const DeepCollectionEquality().hash(_requestedAttestations),
       sharedDataWithRelyingPartyBefore,
       sessionType,
       const DeepCollectionEquality().hash(_requestPurpose),
@@ -1366,7 +1366,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
     required TResult Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1382,8 +1382,8 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
             String requestOriginBaseUrl)
         requestAttributesMissing,
   }) {
-    return request(relyingParty, policy, requestedCards, sharedDataWithRelyingPartyBefore, sessionType, requestPurpose,
-        requestOriginBaseUrl, requestType);
+    return request(relyingParty, policy, requestedAttestations, sharedDataWithRelyingPartyBefore, sessionType,
+        requestPurpose, requestOriginBaseUrl, requestType);
   }
 
   @override
@@ -1392,7 +1392,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
     TResult? Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1408,7 +1408,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
             String requestOriginBaseUrl)?
         requestAttributesMissing,
   }) {
-    return request?.call(relyingParty, policy, requestedCards, sharedDataWithRelyingPartyBefore, sessionType,
+    return request?.call(relyingParty, policy, requestedAttestations, sharedDataWithRelyingPartyBefore, sessionType,
         requestPurpose, requestOriginBaseUrl, requestType);
   }
 
@@ -1418,7 +1418,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
     TResult Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1436,7 +1436,7 @@ class _$StartDisclosureResult_RequestImpl extends StartDisclosureResult_Request 
     required TResult orElse(),
   }) {
     if (request != null) {
-      return request(relyingParty, policy, requestedCards, sharedDataWithRelyingPartyBefore, sessionType,
+      return request(relyingParty, policy, requestedAttestations, sharedDataWithRelyingPartyBefore, sessionType,
           requestPurpose, requestOriginBaseUrl, requestType);
     }
     return orElse();
@@ -1478,7 +1478,7 @@ abstract class StartDisclosureResult_Request extends StartDisclosureResult {
   const factory StartDisclosureResult_Request(
       {required final Organization relyingParty,
       required final RequestPolicy policy,
-      required final List<DisclosureCard> requestedCards,
+      required final List<Attestation> requestedAttestations,
       required final bool sharedDataWithRelyingPartyBefore,
       required final DisclosureSessionType sessionType,
       required final List<LocalizedString> requestPurpose,
@@ -1489,7 +1489,7 @@ abstract class StartDisclosureResult_Request extends StartDisclosureResult {
   @override
   Organization get relyingParty;
   RequestPolicy get policy;
-  List<DisclosureCard> get requestedCards;
+  List<Attestation> get requestedAttestations;
   @override
   bool get sharedDataWithRelyingPartyBefore;
   @override
@@ -1660,7 +1660,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl extends StartDisclosu
     required TResult Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1686,7 +1686,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl extends StartDisclosu
     TResult? Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
@@ -1712,7 +1712,7 @@ class _$StartDisclosureResult_RequestAttributesMissingImpl extends StartDisclosu
     TResult Function(
             Organization relyingParty,
             RequestPolicy policy,
-            List<DisclosureCard> requestedCards,
+            List<Attestation> requestedAttestations,
             bool sharedDataWithRelyingPartyBefore,
             DisclosureSessionType sessionType,
             List<LocalizedString> requestPurpose,
