@@ -60,18 +60,19 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             // Initialize integrity manager.
             val integrityManager = IntegrityManagerFactory.createStandard(context.applicationContext)
 
-            // Retryably execute integrity token provider request, await result, fill integrityTokenProvider.
+            // Initialize integrity token provider request.
             val integrityTokenProviderRequest = PrepareIntegrityTokenRequest.builder()
                 .setCloudProjectNumber(googleCloudProjectNumber.toLong())
                 .build()
 
+            // Retryably execute integrity token provider request, await result, fill integrityTokenProvider.
             integrityTokenProvider = retryable(
                 taskName = "attest",
                 taskDescription = "obtaining integrity token provider"
             ) { integrityManager.prepareIntegrityToken(integrityTokenProviderRequest).await() }
+
             currentGoogleCloudProjectNumber = googleCloudProjectNumber
         }
-
     }
 
     /**
@@ -88,7 +89,10 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
 
         // Retryably execute integrity token request using provider, await result, fill integrityToken.
         val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(Base64.Default.encode(challenge.toByteArray())).build()
-        val integrityToken = retryable(taskName = "attest", taskDescription = "obtaining integrity token") { integrityTokenProvider.request(integrityTokenRequest).await() }
+        val integrityToken = retryable(
+            taskName = "attest",
+            taskDescription = "obtaining integrity token"
+        ) { integrityTokenProvider.request(integrityTokenRequest).await() }
 
         val signingKey = createKey(identifier, challenge)
         try {
