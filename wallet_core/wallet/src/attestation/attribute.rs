@@ -50,6 +50,7 @@ impl Attestation {
             AttributeSelectionMode::Issuance => attributes_iter.try_collect()?,
             // Because of selective disclosure, an attribute that is in the metadata but
             // not in the proposal for which attributes to disclose can simply be ignored.
+            // The `flatten()` function here ignores all `Err` variants.
             AttributeSelectionMode::Disclosure => attributes_iter.flatten().collect(),
         };
 
