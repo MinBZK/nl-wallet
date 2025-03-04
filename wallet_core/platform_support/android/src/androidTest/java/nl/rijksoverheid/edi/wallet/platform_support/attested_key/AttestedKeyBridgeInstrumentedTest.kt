@@ -33,9 +33,6 @@ import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.security.spec.X509EncodedKeySpec
 
-
-// TODO: PVW-4070: Handle play integrity enablement/disablement here (also google_cloud_project_number)
-
 @RunWith(AndroidJUnit4::class)
 @DelicateCoroutinesApi // Needed for `newSingleThreadContext`
 @ExperimentalCoroutinesApi // Needed for `newSingleThreadContext`, `Dispatchers.setMain` and `Dispatchers.resetMain`

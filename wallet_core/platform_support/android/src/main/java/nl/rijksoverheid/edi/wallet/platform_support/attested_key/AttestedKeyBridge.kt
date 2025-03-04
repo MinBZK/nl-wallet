@@ -3,10 +3,8 @@ package nl.rijksoverheid.edi.wallet.platform_support.attested_key
 import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
-import com.google.android.gms.tasks.Tasks
 import com.google.android.play.core.integrity.IntegrityManagerFactory
 import com.google.android.play.core.integrity.StandardIntegrityManager.PrepareIntegrityTokenRequest
-import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityToken
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenProvider
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenRequest
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +25,6 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.tasks.await
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.retryable
-import kotlin.text.toLong
 import uniffi.platform_support.AttestedKeyBridge as RustAttestedKeyBridge
 
 // Note this prefix is almost the same as [SigningKeyBridge.SIGN_KEY_PREFIX], however this one ends with a hyphen '-'.
