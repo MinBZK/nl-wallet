@@ -10,6 +10,8 @@ import com.google.android.play.core.integrity.StandardIntegrityManager.StandardI
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenProvider
 import com.google.android.play.core.integrity.StandardIntegrityManager.StandardIntegrityTokenRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import nl.rijksoverheid.edi.wallet.platform_support.PlatformSupportInitializer
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
@@ -25,6 +27,7 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlinx.coroutines.tasks.await
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.retryable
+import kotlin.text.toLong
 import uniffi.platform_support.AttestedKeyBridge as RustAttestedKeyBridge
 
 // Note this prefix is almost the same as [SigningKeyBridge.SIGN_KEY_PREFIX], however this one ends with a hyphen '-'.
@@ -36,22 +39,40 @@ private fun String.keyAlias() = ATTESTED_KEY_PREFIX + this
  * This class is automatically initialized on app start through
  * the [PlatformSupportInitializer] class.
  */
-class AttestedKeyBridge(context: Context, googleCloudProjectNumber: ULong) : KeyBridge(context), RustAttestedKeyBridge {
-    init {
-        // Configure cloud project number, initialize manager and token provider request.
-        Log.d("attest", "initializing attested key bridge using google cloud project number: $googleCloudProjectNumber")
-    }
-
-    // Initialize integrity manager.
-    private val integrityManager = IntegrityManagerFactory.createStandard(context.applicationContext)
-
-    // Retryably execute integrity token provider request, await result, fill integrityTokenProvider.
-    private val integrityTokenProviderRequest = PrepareIntegrityTokenRequest.builder().setCloudProjectNumber(googleCloudProjectNumber.toLong()).build()
-    private val integrityTokenProviderTask = integrityManager.prepareIntegrityToken(integrityTokenProviderRequest)
+class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyBridge {
 
     override fun keyType(): AttestedKeyType = AttestedKeyType.GOOGLE
 
     override suspend fun generate(): String = UUID.randomUUID().toString()
+
+    private val mutex = Mutex() // Mutex guards next variables
+    private lateinit var integrityTokenProvider : StandardIntegrityTokenProvider
+    private var currentGoogleCloudProjectNumber: ULong = 0u
+
+    private suspend fun initAttest(googleCloudProjectNumber: ULong) {
+        mutex.withLock {
+            if (::integrityTokenProvider.isInitialized && currentGoogleCloudProjectNumber == googleCloudProjectNumber) {
+                return@withLock
+            }
+            // Configure cloud project number, initialize manager and token provider request.
+            Log.d("attest", "initializing integrity token provider using google cloud project number: $googleCloudProjectNumber")
+
+            // Initialize integrity manager.
+            val integrityManager = IntegrityManagerFactory.createStandard(context.applicationContext)
+
+            // Retryably execute integrity token provider request, await result, fill integrityTokenProvider.
+            val integrityTokenProviderRequest = PrepareIntegrityTokenRequest.builder()
+                .setCloudProjectNumber(googleCloudProjectNumber.toLong())
+                .build()
+
+            integrityTokenProvider = retryable(
+                taskName = "attest",
+                taskDescription = "obtaining integrity token provider"
+            ) { integrityManager.prepareIntegrityToken(integrityTokenProviderRequest).await() }
+            currentGoogleCloudProjectNumber = googleCloudProjectNumber
+        }
+
+    }
 
     /**
      * Generate a new key pair with [identifier] and attestation [challenge].
@@ -63,9 +84,7 @@ class AttestedKeyBridge(context: Context, googleCloudProjectNumber: ULong) : Key
     @OptIn(ExperimentalUnsignedTypes::class, ExperimentalEncodingApi::class)
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>, googleCloudProjectNumber: ULong): AttestationData = withContext(Dispatchers.IO) {
-
-        // Await will execute the request the first time. Subsequent calls will return the previously obtained result.
-        val integrityTokenProvider = integrityTokenProviderTask.await()
+        initAttest(googleCloudProjectNumber)
 
         // Retryably execute integrity token request using provider, await result, fill integrityToken.
         val integrityTokenRequest = StandardIntegrityTokenRequest.builder().setRequestHash(Base64.Default.encode(challenge.toByteArray())).build()

@@ -1,32 +1,35 @@
 package nl.rijksoverheid.edi.wallet.platform_support.utilities
 
-import android.app.ActivityManager.TaskDescription
 import android.util.Log
 import kotlinx.coroutines.delay
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 suspend fun <T> retryable(
     times: Int = 10,
-    initialDelay: Long = 3000,
-    maxDelay: Long = 120000,
+    initialDelay: Duration = 3.seconds,
+    maxDelay: Duration = 12.seconds,
     factor: Double = 2.0,
     taskName: String = "retry",
     taskDescription: String = "retryable-task",
     block: suspend () -> T): T
 {
     var currentDelay = initialDelay
-    var remainingTimes = times
-    repeat(times - 1) {
+    repeat(times) { index ->
 
         try {
             Log.d(taskName, taskDescription)
             return block()
         } catch (e: Exception) {
-            Log.d(taskName, "caught ${e.javaClass.name} (description: $taskDescription, remaining times: $remainingTimes, current delay: $currentDelay)")
+            if (index + 1 == times) {
+                Log.d(taskName, "caught ${e.javaClass.name} (description: $taskDescription, giving up")
+                throw e
+            }
+            Log.d(taskName, "caught ${e.javaClass.name} (description: $taskDescription, remaining times: ${times - index}, current delay: $currentDelay)")
         }
 
         delay(currentDelay)
-        currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
-        remainingTimes = (remainingTimes -1)
+        currentDelay = currentDelay.times(factor).coerceAtMost(maxDelay)
     }
-    return block()
+    throw IllegalStateException("Should not happen")
 }

@@ -17,9 +17,8 @@ class PlatformSupport private constructor(context: Context) {
     @VisibleForTesting
     val signingKeyBridge = SigningKeyBridge(context)
 
-    // TODO: PVW-4069: Don't hard-code google cloud project number here
     @VisibleForTesting
-    val attestedKeyBridge = AttestedKeyBridge(context, 12143997365u)
+    val attestedKeyBridge = AttestedKeyBridge(context)
 
     @VisibleForTesting
     val utilitiesBridge = UtilitiesBridge(StoragePathProviderImpl(context))
