@@ -68,6 +68,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
                 taskDescription = "obtaining integrity token provider"
             ) { integrityManager.prepareIntegrityToken(integrityTokenProviderRequest).await() }
 
+            // Set last as this is used to check for init.
             currentGoogleCloudProjectNumber = googleCloudProjectNumber
         }
     }
