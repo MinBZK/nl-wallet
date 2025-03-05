@@ -5,7 +5,6 @@ use std::ops::Add;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
-use chrono::DateTime;
 use chrono::Days;
 use chrono::Utc;
 use derive_more::AsRef;
@@ -260,15 +259,6 @@ pub enum SessionResult {
 #[derive(Debug)]
 pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
-}
-
-#[derive(Debug, Clone)]
-pub struct IssuableCredential {
-    pub document: IssuableDocument,
-    pub metadata_chain: TypeMetadataChain,
-    pub valid_from: DateTime<Utc>,
-    pub valid_until: DateTime<Utc>,
-    pub copy_count: NonZeroU8,
 }
 
 /// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
