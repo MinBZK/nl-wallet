@@ -2,16 +2,12 @@ use std::num::NonZero;
 
 use indexmap::IndexMap;
 
-use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
-use openid4vc::ErrorResponse;
-use openid4vc::TokenErrorCode;
-use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::HttpsUri;
@@ -26,30 +22,14 @@ use super::digid::OpenIdClient;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("networking error: {0}")]
-    TransportError(#[from] reqwest::Error),
-    #[error("error requesting token: {0:?}")]
-    TokenRequest(ErrorResponse<TokenErrorCode>),
     #[error("DigiD error: {0}")]
     Digid(#[from] digid::Error),
-    #[error("JSON error: {0}")]
-    Serde(#[from] serde_json::Error),
-    #[error("URL encoding error: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
-    #[error("could not find type metadata for doctype: {0}")]
-    NoMetadataFound(String),
     #[error("could not find issuer URI for doctype: {0}")]
     NoIssuerUriFound(String),
-    #[error("missing certificate for issuance of doctype: {0}")]
-    MissingCertificate(String),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
-    #[error("error parsing unsigned attributes: {0}")]
-    UnsignedAttributes(#[from] UnsignedAttributesError),
-    #[error("error signing metadata: {0}")]
-    MetadataSigning(#[from] TypeMetadataError),
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
     #[error("certificate error: {0}")]
