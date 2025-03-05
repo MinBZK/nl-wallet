@@ -8,6 +8,7 @@ use config::ConfigError;
 use config::Environment;
 use config::File;
 use derive_more::AsRef;
+use derive_more::From;
 use futures::future::join_all;
 use indexmap::IndexMap;
 use openid4vc::issuer::AttestationData;
@@ -71,13 +72,16 @@ pub struct IssuerSettings {
     pub server_settings: Settings,
 }
 
-#[derive(Clone, Deserialize, AsRef)]
+#[derive(Clone, Deserialize, From, AsRef)]
 pub struct IssuerAttestationSettings(Vec<IssuerAttestationData>);
 
 #[derive(Clone, Deserialize)]
 pub struct IssuerAttestationData {
     pub attestation_type: String,
+
+    #[serde(flatten)]
     pub keypair: KeyPair,
+
     pub valid_days: u64,
     pub copy_count: NonZeroU8,
 }
