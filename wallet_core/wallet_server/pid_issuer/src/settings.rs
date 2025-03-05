@@ -61,15 +61,20 @@ pub struct IssuerSettings {
     /// JWTs.
     pub wallet_client_ids: Vec<String>,
 
-    pub digid: Digid,
-
-    pub brp_server: BaseUrl,
+    #[serde(flatten)]
+    pub pid_settings: PidIssuerSettings,
 
     #[serde_as(as = "Base64")]
     pub wte_issuer_pubkey: DerVerifyingKey,
 
     #[serde(flatten)]
     pub server_settings: Settings,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct PidIssuerSettings {
+    pub digid: Digid,
+    pub brp_server: BaseUrl,
 }
 
 #[derive(Clone, Deserialize, From, AsRef)]
@@ -140,9 +145,9 @@ impl TryFrom<&IssuerSettings> for BrpPidAttributeService {
 
     fn try_from(issuer: &IssuerSettings) -> Result<Self, Self::Error> {
         BrpPidAttributeService::new(
-            HttpBrpClient::new(issuer.brp_server.clone()),
-            &issuer.digid.bsn_privkey,
-            issuer.digid.http_config.clone(),
+            HttpBrpClient::new(issuer.pid_settings.brp_server.clone()),
+            &issuer.pid_settings.digid.bsn_privkey,
+            issuer.pid_settings.digid.http_config.clone(),
             issuer.issuer_uris()?,
         )
     }
