@@ -29,6 +29,9 @@ dependencies {
     implementation("org.junit-pioneer:junit-pioneer:2.2.0")
     implementation("org.junit.platform:junit-platform-suite-engine:1.11.0")
     implementation("org.slf4j:slf4j-simple:2.0.16")
+
+    implementation(platform("io.qameta.allure:allure-bom:2.29.1"))
+    implementation("io.qameta.allure:allure-junit5")
 }
 
 // Test config args and default/fallback values

@@ -29,6 +29,7 @@ coverage
 
 *.tsbuildinfo
 
+allure-results/
 test-results/
 playwright-report/
 

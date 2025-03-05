@@ -14,7 +14,8 @@ export default mergeConfig(
       },
       reporters: [
         "default",
-        ["junit", { suiteName: "wallet_web tests", outputFile: "coverage/tests.xml" }],
+        ["junit", { suiteName: "wallet_web tests", outputFile: "test-results/junit.xml" }],
+        ["allure-vitest/reporter", { resultsDir: "allure-results" }],
       ],
     },
   }),
