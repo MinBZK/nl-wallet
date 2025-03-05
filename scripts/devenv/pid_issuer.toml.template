@@ -31,6 +31,7 @@ max_session_lifetime_in_sec = 900
 attestation_type = "com.example.pid"
 valid_days = 365
 copy_count = 4
+private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 
@@ -38,5 +39,6 @@ certificate = "${PID_ISSUER_CRT}"
 attestation_type = "com.example.address"
 valid_days = 365
 copy_count = 4
+private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"

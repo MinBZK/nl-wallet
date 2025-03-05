@@ -92,15 +92,23 @@ pub struct Storage {
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
     pub certificate: BorrowingCertificate,
+
+    #[serde(flatten)]
     pub private_key: PrivateKey,
 }
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
-#[serde(untagged)] // TODO: replace this with `#[serde(rename_all = "snake_case")]` when implementing PVW-4007
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "private_key_type")]
 pub enum PrivateKey {
-    Software(#[serde_as(as = "Base64")] DerSigningKey),
-    Hardware(String),
+    Software {
+        #[serde_as(as = "Base64")]
+        private_key: DerSigningKey,
+    },
+    Hsm {
+        private_key: String,
+    },
 }
 
 impl From<&Storage> for SessionStoreTimeouts {
@@ -133,7 +141,9 @@ impl From<ParsedKeyPair> for KeyPair {
     fn from(value: ParsedKeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
-            private_key: PrivateKey::Software(value.private_key().clone().into()),
+            private_key: PrivateKey::Software {
+                private_key: value.private_key().clone().into(),
+            },
         }
     }
 }

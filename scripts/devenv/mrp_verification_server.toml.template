@@ -25,31 +25,38 @@ max_session_lifetime_in_sec = 900
 [usecases.mijn_amsterdam]
 certificate = "${MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
+private_key_type = "hsm"
 
 [usecases.online_marketplace]
 certificate = "${MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
+private_key_type = "software"
 
 [usecases.xyz_bank]
 certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
 
 [usecases.monkey_bike]
 certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
+private_key_type = "software"
 
 # Integration test cases
 [usecases.multiple_cards]
 session_type_return_url = "neither"
 certificate = "${MOCK_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${MOCK_RELYING_PARTY_KEY_MONKEY_BIKE}"
+private_key_type = "software"
 
 [usecases.xyz_bank_no_return_url]
 session_type_return_url = "neither"
 certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
 
 [usecases.xyz_bank_all_return_url]
 session_type_return_url = "both"
 certificate = "${MOCK_RELYING_PARTY_CRT_XYZ_BANK}"
 private_key = "${MOCK_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
