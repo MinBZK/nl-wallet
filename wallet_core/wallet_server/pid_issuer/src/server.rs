@@ -1,14 +1,9 @@
-use std::collections::HashMap;
-
 use anyhow::Result;
 use axum::Router;
-use derive_more::AsRef;
-use derive_more::From;
+use openid4vc::issuer::AttestationSettings;
 use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::server_keys::KeyRing;
 use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
@@ -18,20 +13,8 @@ use server_utils::server::decorate_router;
 use server_utils::settings::Server;
 use server_utils::settings::TryFromKeySettings;
 use wallet_common::built_info::version_string;
-use wallet_common::keys::EcdsaKeySend;
 
 use crate::settings::IssuerSettings;
-
-#[derive(From, AsRef)]
-pub struct IssuerKeyRing<K>(HashMap<String, KeyPair<K>>);
-
-impl<K: EcdsaKeySend> KeyRing for IssuerKeyRing<K> {
-    type Key = K;
-
-    fn key_pair(&self, id: &str) -> Option<&KeyPair<K>> {
-        self.as_ref().get(id)
-    }
-}
 
 pub async fn serve<A, IS, W>(
     attr_service: A,
@@ -47,15 +30,18 @@ where
 {
     let log_requests = settings.server_settings.log_requests;
 
-    let private_keys = IssuerKeyRing::try_from_key_settings(settings.private_keys, hsm).await?;
+    let type_metadata = settings.metadata();
+    let attestation_settings = AttestationSettings::try_from_key_settings(settings.attestation_settings, hsm).await?;
+
     let wallet_issuance_router = create_issuance_router(
         &settings.server_settings.public_url,
-        private_keys,
+        attestation_settings,
         issuance_sessions,
         attr_service,
         settings.wallet_client_ids,
         settings.wte_issuer_pubkey.into_inner(),
         wte_tracker,
+        type_metadata,
     );
 
     listen(

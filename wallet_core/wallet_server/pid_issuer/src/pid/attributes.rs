@@ -1,23 +1,16 @@
 use std::num::NonZero;
-use std::num::NonZeroU8;
-use std::ops::Add;
 
-use chrono::Days;
-use chrono::Utc;
 use indexmap::IndexMap;
 
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::ErrorResponse;
 use openid4vc::TokenErrorCode;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
@@ -68,10 +61,7 @@ pub enum Error {
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient<TlsPinningConfig>,
-    metadata_by_doctype: IndexMap<String, TypeMetadata>,
     issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
-    valid_days: Days,
-    copy_count: NonZeroU8,
 }
 
 impl BrpPidAttributeService {
@@ -80,17 +70,11 @@ impl BrpPidAttributeService {
         bsn_privkey: &str,
         http_config: TlsPinningConfig,
         issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
-        metadata_by_doctype: IndexMap<String, TypeMetadata>,
-        valid_days: Days,
-        copy_count: NonZeroU8,
     ) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
             issuer_uri_by_doctype,
-            metadata_by_doctype,
-            valid_days,
-            copy_count,
         })
     }
 }
@@ -98,7 +82,7 @@ impl BrpPidAttributeService {
 impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
-    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Error> {
+    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -127,28 +111,11 @@ impl AttributeService for BrpPidAttributeService {
                 IssuableDocument::try_new(issuer_uri.clone(), attestation_type, attributes)
                     .map_err(|_| Error::InvalidIssuableDocuments)
             })
-            .collect::<Result<Vec<_>, Error>>()?;
+            .collect::<Result<Vec<_>, Error>>()?
+            .try_into()
+            .unwrap(); // Safe because we iterated over a VecNonEmpty
 
-        issuable_documents
-            .into_iter()
-            .map(|document| {
-                let metadata = self
-                    .metadata_by_doctype
-                    .get(document.attestation_type())
-                    .ok_or(Error::NoMetadataFound(document.attestation_type().to_string()))?;
-                let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![])?;
-
-                let now = Utc::now();
-                Ok(IssuableCredential {
-                    document,
-                    metadata_chain,
-                    valid_from: now,
-                    valid_until: now.add(self.valid_days),
-                    copy_count: self.copy_count,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map(|vec| vec.try_into().unwrap()) // safe because into_issuable return a VecNonEmpty
+        Ok(issuable_documents)
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {

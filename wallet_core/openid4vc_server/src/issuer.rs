@@ -18,11 +18,13 @@ use axum_extra::headers::authorization::Credentials;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
+use indexmap::IndexMap;
+use openid4vc::issuer::AttestationSettings;
 use p256::ecdsa::VerifyingKey;
+use sd_jwt::metadata::TypeMetadata;
 use serde::Serialize;
 use tracing::warn;
 
-use nl_wallet_mdoc::server_keys::KeyRing;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -44,6 +46,7 @@ use openid4vc::CredentialErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
+use wallet_common::keys::EcdsaKeySend;
 use wallet_common::urls::BaseUrl;
 
 struct ApplicationState<A, K, S, W> {
@@ -52,17 +55,17 @@ struct ApplicationState<A, K, S, W> {
 
 pub fn create_issuance_router<A, K, S, W>(
     public_url: &BaseUrl,
-    private_keys: K,
+    attestation_settings: AttestationSettings<K>,
     sessions: S,
     attr_service: A,
     wallet_client_ids: Vec<String>,
     wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
+    type_metadata: IndexMap<String, TypeMetadata>,
 ) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
-    K: KeyRing + Send + Sync + 'static,
-    <K as KeyRing>::Key: Sync + 'static,
+    K: EcdsaKeySend + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     W: WteTracker + Send + Sync + 'static,
 {
@@ -70,11 +73,12 @@ where
         issuer: Issuer::new(
             sessions,
             attr_service,
-            private_keys,
+            attestation_settings,
             public_url,
             wallet_client_ids,
             wte_issuer_pubkey,
             wte_tracker,
+            type_metadata,
         ),
     });
 
@@ -96,7 +100,7 @@ async fn oauth_metadata<A, K, S, W>(
 ) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
 where
     A: AttributeService,
-    K: KeyRing,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
@@ -124,7 +128,7 @@ async fn token<A, K, S, W>(
 ) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorCode>>
 where
     A: AttributeService,
-    K: KeyRing,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
@@ -151,7 +155,7 @@ async fn credential<A, K, S, W>(
 ) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
 where
     A: AttributeService,
-    K: KeyRing,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
@@ -173,7 +177,7 @@ async fn batch_credential<A, K, S, W>(
 ) -> Result<Json<CredentialResponses>, ErrorResponse<CredentialErrorCode>>
 where
     A: AttributeService,
-    K: KeyRing,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
@@ -195,7 +199,7 @@ async fn reject_issuance<A, K, S, W>(
 ) -> Result<StatusCode, ErrorResponse<CredentialErrorCode>>
 where
     A: AttributeService,
-    K: KeyRing,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {

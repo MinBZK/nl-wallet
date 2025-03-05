@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
@@ -8,8 +7,11 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use derive_more::AsRef;
 use futures::future::join_all;
 use indexmap::IndexMap;
+use openid4vc::issuer::AttestationData;
+use openid4vc::issuer::AttestationSettings;
 use rustls_pki_types::TrustAnchor;
 use serde::de;
 use serde::Deserialize;
@@ -42,13 +44,11 @@ use wallet_common::utils;
 use crate::pid::attributes::BrpPidAttributeService;
 use crate::pid::attributes::Error as BrpError;
 use crate::pid::brp::client::HttpBrpClient;
-use crate::server::IssuerKeyRing;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct IssuerSettings {
-    /// Issuer private keys index per doctype
-    pub private_keys: HashMap<String, KeyPair>,
+    pub attestation_settings: IssuerAttestationSettings,
 
     #[serde(deserialize_with = "deserialize_type_metadata")]
     pub metadata: Vec<TypeMetadata>,
@@ -67,12 +67,19 @@ pub struct IssuerSettings {
     #[serde_as(as = "Base64")]
     pub wte_issuer_pubkey: DerVerifyingKey,
 
-    pub valid_days: u64,
-
-    pub copy_count: NonZeroU8,
-
     #[serde(flatten)]
     pub server_settings: Settings,
+}
+
+#[derive(Clone, Deserialize, AsRef)]
+pub struct IssuerAttestationSettings(Vec<IssuerAttestationData>);
+
+#[derive(Clone, Deserialize)]
+pub struct IssuerAttestationData {
+    pub attestation_type: String,
+    pub keypair: KeyPair,
+    pub valid_days: u64,
+    pub copy_count: NonZeroU8,
 }
 
 fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<Vec<TypeMetadata>, D::Error>
@@ -101,16 +108,17 @@ pub struct Digid {
 
 impl IssuerSettings {
     pub fn issuer_uris(&self) -> Result<IndexMap<String, HttpsUri>, BrpError> {
-        self.private_keys
+        self.attestation_settings
+            .as_ref()
             .iter()
-            .map(|(doctype, key_pair)| {
-                let issuer_san_dns_name_or_uris = key_pair.certificate.san_dns_name_or_uris()?;
+            .map(|attestation_settings| {
+                let issuer_san_dns_name_or_uris = attestation_settings.keypair.certificate.san_dns_name_or_uris()?;
                 let issuer_uri = match issuer_san_dns_name_or_uris.len() {
                     NonZeroUsize::MIN => Ok(issuer_san_dns_name_or_uris.into_first()),
                     n => Err(BrpError::UnexpectedIssuerSanDnsNameOrUrisCount(n)),
                 }?;
 
-                Ok((doctype.to_owned(), issuer_uri))
+                Ok((attestation_settings.attestation_type.clone(), issuer_uri))
             })
             .collect::<Result<IndexMap<_, _>, _>>()
     }
@@ -132,32 +140,34 @@ impl TryFrom<&IssuerSettings> for BrpPidAttributeService {
             &issuer.digid.bsn_privkey,
             issuer.digid.http_config.clone(),
             issuer.issuer_uris()?,
-            issuer.metadata(),
-            Days::new(issuer.valid_days),
-            issuer.copy_count,
         )
     }
 }
 
-impl TryFromKeySettings<HashMap<String, KeyPair>> for IssuerKeyRing<PrivateKeyVariant> {
+impl TryFromKeySettings<IssuerAttestationSettings> for AttestationSettings<PrivateKeyVariant> {
     type Error = PrivateKeySettingsError;
 
     async fn try_from_key_settings(
-        private_keys: HashMap<String, KeyPair>,
+        attestation_settings: IssuerAttestationSettings,
         hsm: Option<Pkcs11Hsm>,
     ) -> Result<Self, Self::Error> {
-        let iter = private_keys.into_iter().map(|(doctype, key_pair)| async {
-            let result = (
-                doctype,
-                ParsedKeyPair::try_from_key_settings(key_pair, hsm.clone()).await?,
-            );
-            Ok(result)
-        });
-
-        let issuer_keys = join_all(iter)
-            .await
-            .into_iter()
-            .collect::<Result<HashMap<String, ParsedKeyPair<PrivateKeyVariant>>, Self::Error>>()?;
+        let issuer_keys = join_all(attestation_settings.0.into_iter().map(|attestation_settings| {
+            let hsm = hsm.clone();
+            async move {
+                Ok((
+                    attestation_settings.attestation_type,
+                    AttestationData {
+                        key_pair: ParsedKeyPair::try_from_key_settings(attestation_settings.keypair, hsm.clone())
+                            .await?,
+                        valid_days: Days::new(attestation_settings.valid_days),
+                        copy_count: attestation_settings.copy_count,
+                    },
+                ))
+            }
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<IndexMap<String, AttestationData<PrivateKeyVariant>>, Self::Error>>()?;
 
         Ok(issuer_keys.into())
     }
@@ -232,9 +242,15 @@ impl ServerSettings for IssuerSettings {
             .collect::<Vec<_>>();
 
         let key_pairs: Vec<(String, KeyPair)> = self
-            .private_keys
+            .attestation_settings
+            .as_ref()
             .iter()
-            .map(|(id, keypair)| (id.clone(), keypair.clone()))
+            .map(|attestation_settings| {
+                (
+                    attestation_settings.attestation_type.clone(),
+                    attestation_settings.keypair.clone(),
+                )
+            })
             .collect();
 
         verify_key_pairs(

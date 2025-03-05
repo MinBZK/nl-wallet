@@ -3844,6 +3844,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "http",
+ "indexmap 2.7.1",
  "nl_wallet_mdoc",
  "openid4vc",
  "p256",

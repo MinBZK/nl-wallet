@@ -23,6 +23,7 @@ cfg-if.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 derive_more = { workspace = true, features = ["as_ref", "from"] }
 http.workspace = true
+indexmap.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
