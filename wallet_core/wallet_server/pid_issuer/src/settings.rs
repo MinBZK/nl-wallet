@@ -1,6 +1,5 @@
 use std::fs;
 use std::num::NonZeroU8;
-use std::num::NonZeroUsize;
 
 use chrono::Days;
 use config::Config;
@@ -89,6 +88,8 @@ pub struct IssuerAttestationData {
 
     pub valid_days: u64,
     pub copy_count: NonZeroU8,
+
+    pub certificate_san: Option<HttpsUri>,
 }
 
 fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<Vec<TypeMetadata>, D::Error>
@@ -116,22 +117,6 @@ pub struct Digid {
 }
 
 impl IssuerSettings {
-    pub fn issuer_uris(&self) -> Result<IndexMap<String, HttpsUri>, BrpError> {
-        self.attestation_settings
-            .as_ref()
-            .iter()
-            .map(|attestation_settings| {
-                let issuer_san_dns_name_or_uris = attestation_settings.keypair.certificate.san_dns_name_or_uris()?;
-                let issuer_uri = match issuer_san_dns_name_or_uris.len() {
-                    NonZeroUsize::MIN => Ok(issuer_san_dns_name_or_uris.into_first()),
-                    n => Err(BrpError::UnexpectedIssuerSanDnsNameOrUrisCount(n)),
-                }?;
-
-                Ok((attestation_settings.attestation_type.clone(), issuer_uri))
-            })
-            .collect::<Result<IndexMap<_, _>, _>>()
-    }
-
     pub fn metadata(&self) -> IndexMap<String, TypeMetadata> {
         self.metadata
             .iter()
@@ -148,7 +133,6 @@ impl TryFrom<&IssuerSettings> for BrpPidAttributeService {
             HttpBrpClient::new(issuer.pid_settings.brp_server.clone()),
             &issuer.pid_settings.digid.bsn_privkey,
             issuer.pid_settings.digid.http_config.clone(),
-            issuer.issuer_uris()?,
         )
     }
 }
@@ -163,6 +147,20 @@ impl TryFromKeySettings<IssuerAttestationSettings> for AttestationSettings<Priva
         let issuer_keys = join_all(attestation_settings.0.into_iter().map(|attestation_settings| {
             let hsm = hsm.clone();
             async move {
+                // Take the SAN from the settings if specified, or otherwise take the first SAN from the certificate.
+                // NB: the settings validation function will have verified before this that the certificate contains
+                // just one SAN.
+                let issuer_uri = attestation_settings
+                    .certificate_san
+                    .map(Ok::<_, CertificateError>) // Make it a result as the next closure is fallible
+                    .unwrap_or_else(|| {
+                        Ok(attestation_settings
+                            .keypair
+                            .certificate
+                            .san_dns_name_or_uris()?
+                            .first()
+                            .clone())
+                    })?;
                 Ok((
                     attestation_settings.attestation_type,
                     AttestationData {
@@ -170,6 +168,7 @@ impl TryFromKeySettings<IssuerAttestationSettings> for AttestationSettings<Priva
                             .await?,
                         valid_days: Days::new(attestation_settings.valid_days),
                         copy_count: attestation_settings.copy_count,
+                        issuer_uri,
                     },
                 ))
             }

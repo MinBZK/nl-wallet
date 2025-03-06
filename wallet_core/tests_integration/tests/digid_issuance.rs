@@ -47,7 +47,6 @@ async fn test_pid_issuance_digid_bridge() {
         HttpBrpClient::new(settings.pid_settings.brp_server.clone()),
         &settings.pid_settings.digid.bsn_privkey,
         settings.pid_settings.digid.http_config.clone(),
-        settings.issuer_uris().unwrap(),
     )
     .unwrap();
     start_issuer_server(settings.clone(), hsm, attr_service).await;

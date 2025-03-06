@@ -10,7 +10,6 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
-use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -95,6 +94,12 @@ fn setup(
                         .unwrap(),
                         valid_days: Days::new(365),
                         copy_count: 4.try_into().unwrap(),
+                        issuer_uri: issuance_keypair
+                            .certificate()
+                            .san_dns_name_or_uris()
+                            .unwrap()
+                            .first()
+                            .clone(),
                     },
                 )
             })
@@ -506,7 +511,6 @@ fn mock_issuable_attestation(attestation_count: NonZeroUsize) -> VecNonEmpty<Iss
     (0..attestation_count.get())
         .map(|i| {
             IssuableDocument::try_new(
-                format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
                 MOCK_DOCTYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (

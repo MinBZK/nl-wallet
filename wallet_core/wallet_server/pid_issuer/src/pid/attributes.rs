@@ -1,7 +1,5 @@
 use std::num::NonZero;
 
-use indexmap::IndexMap;
-
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
@@ -10,7 +8,6 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
-use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::pid::brp::client::BrpClient;
@@ -41,20 +38,13 @@ pub enum Error {
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient<TlsPinningConfig>,
-    issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
 }
 
 impl BrpPidAttributeService {
-    pub fn new(
-        brp_client: HttpBrpClient,
-        bsn_privkey: &str,
-        http_config: TlsPinningConfig,
-        issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
-    ) -> Result<Self, Error> {
+    pub fn new(brp_client: HttpBrpClient, bsn_privkey: &str, http_config: TlsPinningConfig) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
-            issuer_uri_by_doctype,
         })
     }
 }
@@ -83,13 +73,7 @@ impl AttributeService for BrpPidAttributeService {
             .into_inner()
             .into_iter()
             .map(|(attestation_type, attributes)| {
-                let issuer_uri = self
-                    .issuer_uri_by_doctype
-                    .get(&attestation_type)
-                    .ok_or(Error::NoIssuerUriFound(attestation_type.clone()))?;
-
-                IssuableDocument::try_new(issuer_uri.clone(), attestation_type, attributes)
-                    .map_err(|_| Error::InvalidIssuableDocuments)
+                IssuableDocument::try_new(attestation_type, attributes).map_err(|_| Error::InvalidIssuableDocuments)
             })
             .collect::<Result<Vec<_>, Error>>()?
             .try_into()

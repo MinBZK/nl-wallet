@@ -42,6 +42,7 @@ use wallet_common::keys::poa::Poa;
 use wallet_common::keys::poa::PoaVerificationError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
+use wallet_common::urls::HttpsUri;
 use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
@@ -286,6 +287,7 @@ pub struct AttestationData<K> {
     pub key_pair: KeyPair<K>,
     pub valid_days: Days,
     pub copy_count: NonZeroU8,
+    pub issuer_uri: HttpsUri,
 }
 
 #[derive(Debug, From, AsRef)]
@@ -652,8 +654,12 @@ impl Session<Created> {
 
                 let now = Utc::now();
                 let valid_until = now.add(attestation_data.valid_days);
-                let unsigned_mdoc =
-                    document.to_unsigned_mdoc(now.into(), valid_until.into(), attestation_data.copy_count)?;
+                let unsigned_mdoc = document.to_unsigned_mdoc(
+                    now.into(),
+                    valid_until.into(),
+                    attestation_data.copy_count,
+                    attestation_data.issuer_uri.clone(),
+                )?;
 
                 CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?.validate(&metadata_chain)?;
 
