@@ -30,12 +30,12 @@ use nl_wallet_mdoc::verifier::DisclosedAttributes;
 use nl_wallet_mdoc::verifier::ItemsRequests;
 use nl_wallet_mdoc::DeviceResponse;
 use nl_wallet_mdoc::SessionTranscript;
+use poa::Poa;
+use poa::PoaVerificationError;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
-use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::PoaVerificationError;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -844,15 +844,15 @@ mod tests {
     use nl_wallet_mdoc::Document;
     use nl_wallet_mdoc::IssuerSigned;
     use nl_wallet_mdoc::SessionTranscript;
+    use poa::factory::PoaFactory;
+    use poa::Poa;
     use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::factory::PoaFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::keys::poa::Poa;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::openid4vp::AuthResponseError;
@@ -1335,7 +1335,7 @@ mod tests {
         .await;
 
         let mut poa = poa.unwrap();
-        poa.payload = "edited".to_owned();
+        poa = poa.with_payload("edited".to_owned());
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, Some(poa));
         let error = auth_response

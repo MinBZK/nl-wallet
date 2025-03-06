@@ -76,6 +76,7 @@ hmac = { workspace = true, optional = true, features = ["std"] }
 android_attest.path = "../../android_attest"
 apple_app_attest.path = "../../apple_app_attest"
 hsm.path = "../../hsm"
+poa.path = "../../poa"
 wallet_account = { path = "../../wallet_account", features = ["server"] }
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"], optional = true }

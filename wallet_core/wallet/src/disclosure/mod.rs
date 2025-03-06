@@ -13,8 +13,8 @@ use openid4vc::disclosure_session::DisclosureError;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
+use poa::factory::PoaFactory;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::factory::PoaFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
 

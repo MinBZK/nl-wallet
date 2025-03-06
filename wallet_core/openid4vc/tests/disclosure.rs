@@ -65,14 +65,15 @@ use openid4vc::ErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VpAuthorizationErrorCode;
+use poa::factory::PoaFactory;
+use poa::Poa;
+use poa::PoaError;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::factory::PoaFactory;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
-use wallet_common::keys::poa::Poa;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
@@ -705,7 +706,7 @@ async fn test_disclosure_invalid_poa() {
 
     impl PoaFactory for WrongPoaKeyFactory {
         type Key = MockRemoteEcdsaKey;
-        type Error = MockRemoteKeyFactoryError;
+        type Error = PoaError;
 
         async fn poa(
             &self,

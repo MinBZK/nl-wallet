@@ -10,13 +10,13 @@ use p256::ecdsa::VerifyingKey;
 
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
+use poa::factory::PoaFactory;
+use poa::Poa;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::factory::PoaFactory;
-use wallet_common::keys::poa::Poa;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 use wallet_common::keys::EcdsaKey;

@@ -14,7 +14,6 @@ use serde::Serialize;
 use crate::utils;
 
 pub mod factory;
-pub mod poa;
 
 #[cfg(feature = "examples")]
 pub mod examples;

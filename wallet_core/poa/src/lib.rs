@@ -5,23 +5,25 @@ use jsonwebtoken::jwk;
 use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
+use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::jwt::jwk_alg_from_p256;
-use crate::jwt::jwk_from_p256;
-use crate::jwt::jwk_to_p256;
-use crate::jwt::validations;
-use crate::jwt::JsonJwt;
-use crate::jwt::JwkConversionError;
-use crate::jwt::Jwt;
-use crate::jwt::JwtError;
-use crate::jwt::JwtPopClaims;
-use crate::vec_at_least::VecAtLeastTwoUnique;
-use crate::vec_at_least::VecNonEmpty;
+use wallet_common::jwt::jwk_alg_from_p256;
+use wallet_common::jwt::jwk_from_p256;
+use wallet_common::jwt::jwk_to_p256;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::JsonJwt;
+use wallet_common::jwt::JwkConversionError;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtError;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use wallet_common::vec_at_least::VecNonEmpty;
 
-use super::EcdsaKey;
+pub mod factory;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -31,7 +33,23 @@ pub struct PoaPayload {
 }
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
-pub type Poa = JsonJwt<PoaPayload>;
+#[nutype(derive(Debug, Clone, From, AsRef, Serialize, Deserialize))]
+pub struct Poa(JsonJwt<PoaPayload>);
+
+impl TryFrom<VecNonEmpty<Jwt<PoaPayload>>> for Poa {
+    type Error = JwtError;
+
+    fn try_from(source: VecNonEmpty<Jwt<PoaPayload>>) -> Result<Self, Self::Error> {
+        let json_jwt: JsonJwt<_> = source.try_into()?;
+        Ok(json_jwt.into())
+    }
+}
+
+impl From<Poa> for Vec<Jwt<PoaPayload>> {
+    fn from(source: Poa) -> Self {
+        source.into_inner().into()
+    }
+}
 
 pub static POA_JWT_TYP: &str = "poa+jwt";
 
@@ -64,7 +82,7 @@ pub enum PoaVerificationError {
 }
 
 impl Poa {
-    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
+    pub async fn generate<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
         let payload = PoaPayload {
             payload,
             jwks: try_join_all(keys.as_slice().iter().map(|privkey| async {
@@ -158,6 +176,12 @@ impl Poa {
 
         Ok(())
     }
+
+    pub fn with_payload(self, payload: String) -> Self {
+        let mut inner = self.into_inner();
+        inner.payload = payload;
+        inner.into()
+    }
 }
 
 #[cfg(test)]
@@ -168,12 +192,11 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crate::jwt::validations;
-    use crate::jwt::JsonJwt;
-    use crate::jwt::Jwt;
-    use crate::jwt::JwtPopClaims;
-    use crate::keys::mock_remote::MockRemoteEcdsaKey;
-    use crate::vec_at_least::VecNonEmpty;
+    use wallet_common::jwt::validations;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::jwt::JwtPopClaims;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::vec_at_least::VecNonEmpty;
 
     use super::Poa;
     use super::PoaPayload;
@@ -187,7 +210,7 @@ mod tests {
         let aud = "aud".to_string();
         let nonce = "nonce".to_string();
 
-        let poa = Poa::new(
+        let poa = Poa::generate(
             vec![&key1, &key2].try_into().unwrap(),
             JwtPopClaims::new(Some(nonce.clone()), iss.clone(), aud.clone()),
         )
@@ -271,7 +294,7 @@ mod tests {
         let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
         let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
-        let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
+        let poa: Poa = jwts.try_into().unwrap();
 
         assert_matches!(
             &poa.verify(&[key1], &aud, &iss, &nonce).unwrap_err(),
