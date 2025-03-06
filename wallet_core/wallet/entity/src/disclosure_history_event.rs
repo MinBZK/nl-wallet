@@ -33,7 +33,7 @@ pub struct Model {
     pub timestamp: DateTime<Utc>,
     pub relying_party_certificate: Vec<u8>,
     pub status: EventStatus,
-    pub attributes: Option<Json>,
+    pub attestations: Option<Json>,
     pub r#type: EventType,
 }
 

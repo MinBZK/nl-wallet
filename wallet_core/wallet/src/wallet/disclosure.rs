@@ -12,12 +12,10 @@ use uuid::Uuid;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::holder::MdocDataSource;
-use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::StoredMdoc;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::disclosure_session::VpClientError;
@@ -47,14 +45,13 @@ use crate::instruction::RemoteEcdsaKeyFactory;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage;
-use crate::storage::DisclosureStatus;
+use crate::storage::DataDisclosureStatus;
 use crate::storage::DisclosureType;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
 use crate::storage::WalletEvent;
 
-use super::history::EventStorageError;
 use super::Wallet;
 
 #[derive(Debug, Clone)]
@@ -107,7 +104,7 @@ pub enum DisclosureError {
     #[error("could not increment usage count of mdoc copies in database: {0}")]
     IncrementUsageCount(#[source] StorageError),
     #[error("could not store event in history database: {0}")]
-    EventStorage(#[source] EventStorageError),
+    EventStorage(#[source] StorageError),
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
     #[error("error fetching update policy: {0}")]
@@ -280,17 +277,11 @@ where
             MdocDisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
         };
 
-        // If no attributes are available, do not record that this disclosure was for the purposes of logging in.
-        let disclosure_type = proposed_attributes
-            .as_ref()
-            .map(storage::disclosure_type_for_proposed_attributes)
-            .unwrap_or(DisclosureType::Regular);
-
-        let event = WalletEvent::new_disclosure(
-            None,
+        let event = WalletEvent::new_disclosure_cancel(
+            proposed_attributes,
             session.rp_certificate().clone(),
-            DisclosureStatus::Cancelled,
-            disclosure_type,
+            session.reader_registration().clone(),
+            DataDisclosureStatus::NotDisclosed,
         );
 
         let return_url = session.terminate().await?;
@@ -353,24 +344,6 @@ where
         self.terminate_disclosure_session(session).await
     }
 
-    async fn log_disclosure_error(
-        &mut self,
-        proposed_attributes: ProposedAttributes,
-        data_shared: bool,
-        remote_party_certificate: BorrowingCertificate,
-    ) -> Result<(), DisclosureError> {
-        let disclosure_type = storage::disclosure_type_for_proposed_attributes(&proposed_attributes);
-        let event = WalletEvent::new_disclosure(
-            data_shared.then(|| proposed_attributes.into()),
-            remote_party_certificate,
-            DisclosureStatus::Error,
-            disclosure_type,
-        );
-        self.store_history_event(event)
-            .await
-            .map_err(DisclosureError::EventStorage)
-    }
-
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
@@ -428,14 +401,13 @@ where
             .await;
 
         if let Err(error) = result {
-            if let Err(e) = self
-                .log_disclosure_error(
-                    session_proposal.proposed_attributes(),
-                    false, // No data was shared yet
-                    session.rp_certificate().clone(),
-                )
-                .await
-            {
+            let event = WalletEvent::new_disclosure_error(
+                session_proposal.proposed_attributes(),
+                session.rp_certificate().clone(),
+                session.reader_registration().clone(),
+                DataDisclosureStatus::NotDisclosed,
+            );
+            if let Err(e) = self.store_history_event(event).await {
                 error!("Could not store error in history: {e}");
             }
 
@@ -472,14 +444,17 @@ where
                     disclosure_error,
                     DisclosureError::Instruction(InstructionError::IncorrectPin { .. })
                 ) {
-                    if let Err(e) = self
-                        .log_disclosure_error(
-                            session_proposal.proposed_attributes(),
-                            error.data_shared,
-                            session.rp_certificate().clone(),
-                        )
-                        .await
-                    {
+                    let data_status = match error.data_shared {
+                        true => DataDisclosureStatus::Disclosed,
+                        false => DataDisclosureStatus::NotDisclosed,
+                    };
+                    let event = WalletEvent::new_disclosure_error(
+                        session_proposal.proposed_attributes(),
+                        session.rp_certificate().clone(),
+                        session.reader_registration().clone(),
+                        data_status,
+                    );
+                    if let Err(e) = self.store_history_event(event).await {
                         error!("Could not store error in history: {e}");
                     }
                 }
@@ -508,22 +483,21 @@ where
             }
         };
 
-        // Get some data from the session that we need for both an event and to return,
-        // then remove the disclosure session, as disclosure is now successful. Any
-        // errors that occur after this point will result in the `Wallet` not having
-        // an active disclosure session anymore.
+        // Get some data from the session that we need for the event, then remove the disclosure session,
+        // as disclosure is now successful. Any errors that occur after this point will result in the
+        // `Wallet` not having an active disclosure session anymore.
         let proposed_attributes = session_proposal.proposed_attributes();
-        let rp_certificate = session.rp_certificate().clone();
-        let disclosure_type = storage::disclosure_type_for_proposed_attributes(&proposed_attributes);
+        let reader_certificate = session.rp_certificate().clone();
+        let reader_registration = session.reader_registration().clone();
 
         self.disclosure_session.take();
 
         // Save data for disclosure in event log.
-        let event = WalletEvent::new_disclosure(
-            Some(proposed_attributes.into()),
-            rp_certificate,
-            DisclosureStatus::Success,
-            disclosure_type,
+        let event = WalletEvent::new_disclosure_success(
+            proposed_attributes,
+            reader_certificate,
+            reader_registration,
+            DataDisclosureStatus::Disclosed,
         );
         self.store_history_event(event)
             .await
@@ -590,6 +564,7 @@ mod tests {
     use uuid::uuid;
 
     use nl_wallet_mdoc::holder::Mdoc;
+    use nl_wallet_mdoc::holder::ProposedAttributes;
     use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
     use nl_wallet_mdoc::test::data::PID;
     use nl_wallet_mdoc::unsigned::Entry;
@@ -609,7 +584,6 @@ mod tests {
     use crate::disclosure::MockMdocDisclosureSession;
     use crate::storage::DisclosureStatus;
     use crate::AttestationAttribute;
-    use crate::HistoryEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -943,7 +917,7 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            HistoryEvent::Disclosure {
+            WalletEvent::Disclosure {
                 status: DisclosureStatus::Cancelled,
                 ..
             }
@@ -1011,7 +985,7 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            HistoryEvent::Disclosure {
+            WalletEvent::Disclosure {
                 status: DisclosureStatus::Cancelled,
                 ..
             }
@@ -1122,14 +1096,13 @@ mod tests {
 
         // Verify a single Disclosure Success event is logged, and documents are shared
         assert_eq!(events.len(), 1);
-        // TODO: fix test after document has been removed from history: PVW-4096
         assert_matches!(
             &events[0],
-            HistoryEvent::Disclosure {
+            WalletEvent::Disclosure {
                 status: DisclosureStatus::Success,
-                attributes: None,
+                attestations,
                 ..
-            }
+            } if !attestations.is_empty()
         );
         // Verify that `did_share_data_with_relying_party()` now returns `true`
         assert!(wallet
@@ -1282,9 +1255,11 @@ mod tests {
             },
             redirect_uri: None,
         };
+        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
+                proposed_attributes,
                 next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::Request(
                     VpMessageClientError::AuthPostResponse(response),
                 )))),
@@ -1334,11 +1309,11 @@ mod tests {
         assert_eq!(events.len(), 1);
         assert_matches!(
             &events[0],
-            HistoryEvent::Disclosure {
+            WalletEvent::Disclosure {
                 status: DisclosureStatus::Error,
-                attributes: None,
+                attestations,
                 ..
-            }
+            } if attestations.is_empty()
         );
 
         // Set up the disclosure session to return a different error.
@@ -1393,9 +1368,9 @@ mod tests {
             &events[1],
             WalletEvent::Disclosure {
                 status: DisclosureStatus::Error,
-                documents: None,
+                attestations,
                 ..
-            }
+            } if attestations.is_empty()
         );
     }
 
@@ -1415,9 +1390,11 @@ mod tests {
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
+        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
+                proposed_attributes,
                 next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
                     nl_wallet_mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(instruction_error).into(),
@@ -1473,18 +1450,18 @@ mod tests {
                 assert_eq!(events.len(), 2);
                 assert_matches!(
                     &events[0],
-                    HistoryEvent::Disclosure {
+                    WalletEvent::Disclosure {
                         status: DisclosureStatus::Cancelled,
                         ..
                     }
                 );
                 assert_matches!(
                     &events[1],
-                    HistoryEvent::Disclosure {
+                    WalletEvent::Disclosure {
                         status: DisclosureStatus::Error,
-                        attributes: None,
+                        attestations,
                         ..
-                    }
+                    } if attestations.is_empty()
                 );
             }
             (false, true) => {
@@ -1492,11 +1469,11 @@ mod tests {
                 assert_eq!(events.len(), 1);
                 assert_matches!(
                     &events[0],
-                    HistoryEvent::Disclosure {
+                    WalletEvent::Disclosure {
                         status: DisclosureStatus::Error,
-                        attributes: None,
+                        attestations,
                         ..
-                    }
+                    } if attestations.is_empty()
                 );
             }
             (false, false) => {
@@ -1518,9 +1495,11 @@ mod tests {
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
+        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
+                proposed_attributes,
                 next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::MissingReaderRegistration))),
                 attributes_shared: true,
                 ..Default::default()
@@ -1564,14 +1543,13 @@ mod tests {
         let events = events.lock().pop().unwrap();
         // Verify a Disclosure error event is logged, and documents are shared
         assert_eq!(events.len(), 1);
-        // TODO: fix test after document has been removed from history: PVW-4096
         assert_matches!(
             &events[0],
-            HistoryEvent::Disclosure {
+            WalletEvent::Disclosure {
                 status: DisclosureStatus::Error,
-                attributes: None,
+                attestations,
                 ..
-            }
+            } if !attestations.is_empty()
         );
         assert!(wallet
             .storage

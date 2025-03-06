@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use futures::try_join;
 use itertools::Itertools;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use sea_orm::sea_query::Alias;
 use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
@@ -41,6 +42,7 @@ use entity::issuance_history_event_attestation_type;
 use entity::keyed_data;
 use entity::mdoc;
 use entity::mdoc_copy;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
 use nl_wallet_mdoc::utils::serialization::cbor_serialize;
 use nl_wallet_mdoc::utils::serialization::CborError;
@@ -75,24 +77,31 @@ impl WalletEventModel {
     /// Convert a [`WalletEvent`] to one of two database models.
     fn from_wallet_event(wallet_event: WalletEvent) -> Result<Self, serde_json::Error> {
         let result = match wallet_event {
-            WalletEvent::Issuance { id, mdocs, timestamp } => Self::Issuance(issuance_history_event::Model {
-                attributes: serde_json::to_value(mdocs)?,
+            WalletEvent::Issuance {
+                id,
+                attestations,
+                timestamp,
+            } => Self::Issuance(issuance_history_event::Model {
                 id,
                 timestamp,
+                attestations: serde_json::to_value(attestations)?,
             }),
             WalletEvent::Disclosure {
                 id,
-                status,
-                documents,
+                attestations,
                 timestamp,
                 reader_certificate,
+                status,
                 r#type,
+                ..
             } => Self::Disclosure(disclosure_history_event::Model {
-                attributes: documents.map(serde_json::to_value).transpose()?,
                 id,
                 timestamp,
                 relying_party_certificate: (*reader_certificate).into(),
                 status,
+                attestations: (!attestations.is_empty())
+                    .then(|| serde_json::to_value(attestations))
+                    .transpose()?,
                 r#type,
             }),
         };
@@ -105,7 +114,7 @@ impl WalletEvent {
     fn from_issuance_model(event: issuance_history_event::Model) -> Result<Self, serde_json::Error> {
         let wallet_event = Self::Issuance {
             id: event.id,
-            mdocs: serde_json::from_value(event.attributes)?,
+            attestations: serde_json::from_value(event.attestations)?,
             timestamp: event.timestamp,
         };
 
@@ -115,13 +124,22 @@ impl WalletEvent {
     fn from_disclosure_model(event: disclosure_history_event::Model) -> Result<Self, serde_json::Error> {
         // Unwrapping here is safe since the certificate has been parsed before
         let reader_certificate = BorrowingCertificate::from_der(event.relying_party_certificate).unwrap();
+        let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+            .unwrap()
+            .unwrap();
+
         let wallet_event = Self::Disclosure {
             id: event.id,
-            status: event.status,
-            r#type: event.r#type,
-            documents: event.attributes.map(serde_json::from_value).transpose()?,
+            attestations: event
+                .attestations
+                .map(serde_json::from_value)
+                .transpose()?
+                .unwrap_or_default(),
             timestamp: event.timestamp,
             reader_certificate: Box::new(reader_certificate),
+            reader_registration: Box::new(reader_registration),
+            status: event.status,
+            r#type: event.r#type,
         };
 
         Ok(wallet_event)
@@ -672,13 +690,14 @@ where
         Self::combine_history_events(issuance_events, disclosure_events)
     }
 
+    // TODO (PVW-4135): Fix logic to uniquely identify an RP, since its certificate may change.
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool> {
         let select_statement = Query::select()
             .column(disclosure_history_event::Column::RelyingPartyCertificate)
             .from(disclosure_history_event::Entity)
             .and_where(Expr::col(disclosure_history_event::Column::RelyingPartyCertificate).eq(certificate.as_ref()))
             .and_where(Expr::col(disclosure_history_event::Column::Status).eq(EventStatus::Success))
-            .and_where(Expr::col(disclosure_history_event::Column::Attributes).is_not_null())
+            .and_where(Expr::col(disclosure_history_event::Column::Attestations).is_not_null())
             .limit(1)
             .take();
 

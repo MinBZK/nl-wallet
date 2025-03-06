@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(IssuanceHistoryEvent::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(IssuanceHistoryEvent::Timestamp).timestamp().not_null())
-                    .col(ColumnDef::new(IssuanceHistoryEvent::Attributes).json().not_null())
+                    .col(ColumnDef::new(IssuanceHistoryEvent::Attestations).json().not_null())
                     .to_owned(),
             )
             .await?;
@@ -37,7 +37,7 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(DisclosureHistoryEvent::Status).text().not_null())
-                    .col(ColumnDef::new(DisclosureHistoryEvent::Attributes).json().null())
+                    .col(ColumnDef::new(DisclosureHistoryEvent::Attestations).json().null())
                     .col(ColumnDef::new(DisclosureHistoryEvent::Type).text().not_null())
                     .to_owned(),
             )
@@ -149,7 +149,7 @@ enum IssuanceHistoryEvent {
     Table,
     Id,
     Timestamp,
-    Attributes,
+    Attestations,
 }
 
 #[derive(DeriveIden)]
@@ -159,7 +159,7 @@ enum DisclosureHistoryEvent {
     Timestamp,
     RelyingPartyCertificate,
     Status,
-    Attributes,
+    Attestations,
     Type,
 }
 

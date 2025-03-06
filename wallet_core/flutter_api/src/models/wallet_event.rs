@@ -1,4 +1,4 @@
-use wallet::HistoryEvent;
+use itertools::Itertools;
 
 use super::attestation::Attestation;
 use super::disclosure::DisclosureType;
@@ -41,31 +41,38 @@ impl IntoIterator for WalletEvents {
     }
 }
 
-impl From<HistoryEvent> for WalletEvents {
-    fn from(source: HistoryEvent) -> Self {
+impl From<wallet::WalletEvent> for WalletEvents {
+    fn from(source: wallet::WalletEvent) -> Self {
         let result = match source {
-            HistoryEvent::Issuance { timestamp, mdocs } => mdocs
+            wallet::WalletEvent::Issuance {
+                attestations,
+                timestamp,
+                ..
+            } => attestations
                 .into_iter()
-                .map(|document| WalletEvent::Issuance {
+                .map(|attestation| WalletEvent::Issuance {
                     date_time: timestamp.to_rfc3339(),
-                    attestation: document.into(),
+                    attestation: attestation.into(),
                 })
                 .collect(),
-            HistoryEvent::Disclosure {
-                status,
-                r#type,
+            wallet::WalletEvent::Disclosure {
+                attestations,
                 timestamp,
                 reader_registration,
-                attributes,
+                status,
+                r#type,
+                ..
             } => {
                 let reader_registration = *reader_registration;
+                let request_policy = RequestPolicy::from(&reader_registration);
+                let attestations = attestations.into_iter().map(Attestation::from).collect_vec();
+
                 vec![WalletEvent::Disclosure {
                     date_time: timestamp.to_rfc3339(),
-                    request_policy: RequestPolicy::from(&reader_registration),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
-                    requested_attestations: attributes
-                        .map(|attestations| attestations.into_iter().map(Attestation::from).collect()),
+                    request_policy,
+                    requested_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),
                     typ: r#type.into(),
                 }]

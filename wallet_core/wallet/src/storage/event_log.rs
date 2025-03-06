@@ -2,28 +2,22 @@ use std::collections::HashSet;
 
 use chrono::DateTime;
 use chrono::Utc;
-use indexmap::IndexMap;
 use itertools::Itertools;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_with::base64::Base64;
-use serde_with::serde_as;
 use uuid::Uuid;
 
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event::EventType;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::ProposedAttributes;
-use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::DataElementIdentifier;
-use nl_wallet_mdoc::DataElementValue;
-use nl_wallet_mdoc::DocType;
-use nl_wallet_mdoc::NameSpace;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use wallet_common::vec_at_least::VecNonEmpty;
 
-const PID_DOCTYPE: &str = "com.example.pid";
+use crate::attestation::Attestation;
+use crate::attestation::AttestationIdentity;
+use crate::issuance::PID_DOCTYPE;
 
 pub type DisclosureStatus = EventStatus;
 pub type DisclosureType = EventType;
@@ -44,61 +38,167 @@ pub fn disclosure_type_for_proposed_attributes(proposed_attributes: &ProposedAtt
         .unwrap_or(DisclosureType::Regular)
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum DataDisclosureStatus {
+    Disclosed,
+    NotDisclosed,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum WalletEvent {
     Issuance {
         id: Uuid,
-        mdocs: EventDocuments,
+        attestations: VecNonEmpty<Attestation>,
         timestamp: DateTime<Utc>,
     },
     Disclosure {
         id: Uuid,
-        documents: Option<EventDocuments>,
+        attestations: Vec<Attestation>,
         timestamp: DateTime<Utc>,
+        // TODO (PVW-4135): Only store reader registration in event.
         reader_certificate: Box<BorrowingCertificate>,
+        reader_registration: Box<ReaderRegistration>,
         status: DisclosureStatus,
         r#type: DisclosureType,
     },
 }
 
 impl WalletEvent {
-    pub fn new_issuance(mdocs: EventDocuments) -> Self {
+    pub(crate) fn new_issuance(mdocs: VecNonEmpty<Mdoc>) -> Self {
+        let attestations = mdocs
+            .into_iter()
+            .map(|mdoc| {
+                // As these mdocs have just been validated, we can make assumptions about them and use `expect()`.
+                // TODO (PVW-4132): Use the type system to codify these assumptions.
+                let metadata = mdoc.type_metadata().expect("mdoc should contain valid type metadata");
+                let issuer_certificate = mdoc
+                    .issuer_certificate()
+                    .expect("mdoc should contain issuer certificate");
+                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
+                    .expect("mdoc should contain valid issuer registration")
+                    .expect("mdoc should contain issuer registration");
+
+                Attestation::create_for_issuance(
+                    AttestationIdentity::Ephemeral,
+                    mdoc.mso.doc_type,
+                    metadata.into_first(), // TODO: PVW-3812
+                    issuer_registration.organization,
+                    mdoc.issuer_signed.into_entries_by_namespace(),
+                )
+                .expect("mdoc should succesfully be transformed for display by metadata")
+            })
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
         Self::Issuance {
             id: Uuid::new_v4(),
-            mdocs,
+            attestations,
             timestamp: Utc::now(),
         }
     }
 
-    pub fn new_disclosure(
-        documents: Option<EventDocuments>,
+    fn new_disclosure(
+        proposed_attributes: Option<ProposedAttributes>,
         reader_certificate: BorrowingCertificate,
+        reader_registration: ReaderRegistration,
         status: DisclosureStatus,
-        r#type: DisclosureType,
+        data_status: DataDisclosureStatus,
     ) -> Self {
+        // If no attributes are available, do not record that this disclosure was for the purposes of logging in.
+        let r#type = proposed_attributes
+            .as_ref()
+            .map(disclosure_type_for_proposed_attributes)
+            .unwrap_or(DisclosureType::Regular);
+
+        let attestations = match data_status {
+            DataDisclosureStatus::Disclosed => proposed_attributes,
+            DataDisclosureStatus::NotDisclosed => None,
+        }
+        .unwrap_or_default()
+        .into_iter()
+        .map(|(attestation_type, document_attributes)| {
+            // As the proposed attributes come from the database, we can make assumptions about them and use `expect()`.
+            // TODO (PVW-4132): Use the type system to codify these assumptions.
+            let reader_registration = IssuerRegistration::from_certificate(&document_attributes.issuer)
+                .expect("proposed attributes should contain valid issuer registration")
+                .expect("proposed attributes should contain issuer registration");
+
+            Attestation::create_for_disclosure(
+                attestation_type,
+                document_attributes.type_metadata,
+                reader_registration.organization,
+                document_attributes.attributes,
+            )
+            .expect("proposed attributes should succesfully be transformed for display by metadata")
+        })
+        .collect();
+
         Self::Disclosure {
             id: Uuid::new_v4(),
-            documents,
+            attestations,
             timestamp: Utc::now(),
             reader_certificate: Box::new(reader_certificate),
+            reader_registration: Box::new(reader_registration),
             status,
             r#type,
         }
     }
 
+    pub(crate) fn new_disclosure_success(
+        proposed_attributes: ProposedAttributes,
+        reader_certificate: BorrowingCertificate,
+        reader_registration: ReaderRegistration,
+        data_status: DataDisclosureStatus,
+    ) -> Self {
+        Self::new_disclosure(
+            Some(proposed_attributes),
+            reader_certificate,
+            reader_registration,
+            EventStatus::Success,
+            data_status,
+        )
+    }
+
+    pub(crate) fn new_disclosure_error(
+        proposed_attributes: ProposedAttributes,
+        reader_certificate: BorrowingCertificate,
+        reader_registration: ReaderRegistration,
+        data_status: DataDisclosureStatus,
+    ) -> Self {
+        Self::new_disclosure(
+            Some(proposed_attributes),
+            reader_certificate,
+            reader_registration,
+            EventStatus::Error,
+            data_status,
+        )
+    }
+
+    pub(crate) fn new_disclosure_cancel(
+        proposed_attributes: Option<ProposedAttributes>,
+        reader_certificate: BorrowingCertificate,
+        reader_registration: ReaderRegistration,
+        data_status: DataDisclosureStatus,
+    ) -> Self {
+        Self::new_disclosure(
+            proposed_attributes,
+            reader_certificate,
+            reader_registration,
+            EventStatus::Cancelled,
+            data_status,
+        )
+    }
+
     /// Returns the associated doc_types for this event. Will return an empty set if there are no attributes.
     pub(super) fn associated_attestation_types(&self) -> HashSet<&str> {
         match self {
-            Self::Issuance {
-                mdocs: EventDocuments(mdocs),
-                ..
-            }
-            | Self::Disclosure {
-                documents: Some(EventDocuments(mdocs)),
-                ..
-            } => mdocs.keys().map(String::as_str).collect(),
-            Self::Disclosure { documents: None, .. } => Default::default(),
+            Self::Issuance { attestations, .. } => attestations.as_slice(),
+            Self::Disclosure { attestations, .. } => attestations,
         }
+        .iter()
+        .map(|attestation| attestation.attestation_type.as_str())
+        .collect()
     }
 
     pub fn timestamp(&self) -> &DateTime<Utc> {
@@ -109,101 +209,22 @@ impl WalletEvent {
     }
 }
 
-#[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct EventAttributes {
-    #[serde_as(as = "Base64")]
-    pub issuer: BorrowingCertificate,
-    pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
-}
-
-impl From<(BorrowingCertificate, IndexMap<NameSpace, Vec<Entry>>)> for EventAttributes {
-    fn from((issuer, attributes): (BorrowingCertificate, IndexMap<NameSpace, Vec<Entry>>)) -> Self {
-        Self {
-            issuer,
-            attributes: attributes
-                .into_iter()
-                .map(|(namespace, attributes)| {
-                    (
-                        namespace,
-                        attributes.into_iter().map(|entry| (entry.name, entry.value)).collect(),
-                    )
-                })
-                .collect(),
-        }
-    }
-}
-
-impl From<EventAttributes> for IndexMap<NameSpace, Vec<Entry>> {
-    fn from(source: EventAttributes) -> IndexMap<NameSpace, Vec<Entry>> {
-        source
-            .attributes
-            .into_iter()
-            .map(|(namespace, attributes)| {
-                (
-                    namespace,
-                    attributes
-                        .into_iter()
-                        .map(|(name, value)| Entry { name, value })
-                        .collect(),
-                )
-            })
-            .collect()
-    }
-}
-
-impl From<ProposedDocumentAttributes> for EventAttributes {
-    fn from(source: ProposedDocumentAttributes) -> Self {
-        (source.issuer, source.attributes).into()
-    }
-}
-
-#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
-pub struct EventDocuments(pub IndexMap<DocType, EventAttributes>);
-
-impl TryFrom<Vec<Mdoc>> for EventDocuments {
-    type Error = CoseError;
-    fn try_from(source: Vec<Mdoc>) -> Result<Self, Self::Error> {
-        let doc_type_map = source
-            .into_iter()
-            .map(|mdoc| {
-                let issuer = mdoc.issuer_certificate()?;
-                let doc_type = mdoc.mso.doc_type;
-                let attributes = mdoc.issuer_signed.into_entries_by_namespace();
-                Ok((doc_type, (issuer, attributes).into()))
-            })
-            .collect::<Result<IndexMap<_, _>, CoseError>>()?;
-        Ok(Self(doc_type_map))
-    }
-}
-
-impl From<ProposedAttributes> for EventDocuments {
-    fn from(source: ProposedAttributes) -> Self {
-        let documents = source
-            .into_iter()
-            .map(|(doc_type, document)| (doc_type, document.into()))
-            .collect();
-        Self(documents)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::sync::LazyLock;
 
+    use indexmap::IndexMap;
     use rstest::rstest;
 
+    use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
     use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
+    use nl_wallet_mdoc::unsigned::{Entry, UnsignedMdoc};
     use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
     use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+    use nl_wallet_mdoc::DataElementValue;
     use sd_jwt::metadata::TypeMetadata;
 
-    use crate::document::create_bsn_only_unsigned_pid_mdoc;
-    use crate::document::create_full_unsigned_address_mdoc;
-    use crate::document::create_full_unsigned_pid_mdoc;
-    use crate::document::create_minimal_unsigned_address_mdoc;
-    use crate::document::create_minimal_unsigned_pid_mdoc;
+    use crate::issuance;
 
     use super::*;
 
@@ -215,9 +236,9 @@ mod test {
     });
 
     #[rstest]
-    #[case(create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
-    #[case(create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
-    #[case(create_full_unsigned_pid_mdoc(), DisclosureType::Regular)]
+    #[case(issuance::mock::create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
+    #[case(issuance::mock::create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
+    #[case(issuance::mock::create_full_unsigned_pid_mdoc(), DisclosureType::Regular)]
     fn test_disclosure_type_from_proposed_attributes(
         #[case] (unsigned_mdoc, type_metadata): (UnsignedMdoc, TypeMetadata),
         #[case] expected: DisclosureType,
@@ -234,105 +255,126 @@ mod test {
         assert_eq!(disclosure_type_for_proposed_attributes(&proposed_attributes), expected);
     }
 
-    fn from_unsigned_mdocs_filtered(
-        docs: Vec<UnsignedMdoc>,
-        doc_types: &[&str],
+    fn mock_attestations_for_attestation_types(
+        attestation_types: &[&str],
         issuer_certificate: &BorrowingCertificate,
-    ) -> EventDocuments {
-        let map = docs
-            .into_iter()
-            .filter(|doc| doc_types.contains(&doc.doc_type.as_str()))
-            .map(|doc| {
-                (
-                    doc.doc_type,
-                    (issuer_certificate.clone(), doc.attributes.into_inner()).into(),
+    ) -> Vec<Attestation> {
+        let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
+            .unwrap()
+            .unwrap();
+
+        attestation_types
+            .iter()
+            .zip(itertools::repeat_n(
+                issuer_registration.organization,
+                attestation_types.len(),
+            ))
+            .map(|(attestation_type, issuer_org)| {
+                let metadata = TypeMetadata::example_with_claim_name("bsn");
+                let attributes = IndexMap::from([(
+                    attestation_type.to_string(),
+                    vec![Entry {
+                        name: "bsn".to_string(),
+                        value: DataElementValue::Text("999999999".to_string()),
+                    }],
+                )]);
+
+                Attestation::create_for_issuance(
+                    AttestationIdentity::Ephemeral,
+                    attestation_type.to_string(),
+                    metadata,
+                    issuer_org,
+                    attributes,
                 )
+                .unwrap()
             })
-            .collect();
-        EventDocuments(map)
+            .collect()
     }
 
     impl WalletEvent {
         pub fn issuance_from_str(
-            doc_types: &[&str],
+            attestation_types: &[&str],
             timestamp: DateTime<Utc>,
             issuer_certificate: &BorrowingCertificate,
         ) -> Self {
-            let (docs, _): (Vec<_>, Vec<_>) =
-                vec![create_full_unsigned_pid_mdoc(), create_full_unsigned_address_mdoc()]
-                    .into_iter()
-                    .unzip();
-            let mdocs = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate);
             Self::Issuance {
                 id: Uuid::new_v4(),
-                mdocs,
+                attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate)
+                    .try_into()
+                    .unwrap(),
                 timestamp,
             }
         }
 
         pub fn disclosure_from_str(
-            doc_types: &[&str],
+            attestation_types: &[&str],
             timestamp: DateTime<Utc>,
             reader_certificate: BorrowingCertificate,
             issuer_certificate: &BorrowingCertificate,
         ) -> Self {
-            let (docs, _): (Vec<_>, Vec<_>) = vec![
-                create_minimal_unsigned_pid_mdoc(),
-                create_minimal_unsigned_address_mdoc(),
-            ]
-            .into_iter()
-            .unzip();
-            let documents = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate).into();
+            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+                .unwrap()
+                .unwrap();
+
             Self::Disclosure {
                 id: Uuid::new_v4(),
-                documents,
+                attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
+                reader_registration: Box::new(reader_registration),
                 status: DisclosureStatus::Success,
                 r#type: DisclosureType::Regular,
             }
         }
 
         pub fn disclosure_error_from_str(
-            doc_types: &[&str],
+            attestation_types: &[&str],
             timestamp: DateTime<Utc>,
             reader_certificate: BorrowingCertificate,
             issuer_certificate: &BorrowingCertificate,
         ) -> Self {
-            let (docs, _): (Vec<_>, Vec<_>) = vec![
-                create_minimal_unsigned_pid_mdoc(),
-                create_minimal_unsigned_address_mdoc(),
-            ]
-            .into_iter()
-            .unzip();
-            let documents = from_unsigned_mdocs_filtered(docs, doc_types, issuer_certificate).into();
+            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+                .unwrap()
+                .unwrap();
+
             Self::Disclosure {
                 id: Uuid::new_v4(),
-                documents,
+                attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
+                reader_registration: Box::new(reader_registration),
                 status: DisclosureStatus::Error,
                 r#type: DisclosureType::Regular,
             }
         }
 
         pub fn disclosure_cancel(timestamp: DateTime<Utc>, reader_certificate: BorrowingCertificate) -> Self {
+            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+                .unwrap()
+                .unwrap();
+
             Self::Disclosure {
                 id: Uuid::new_v4(),
-                documents: None,
+                attestations: Vec::new(),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
+                reader_registration: Box::new(reader_registration),
                 status: DisclosureStatus::Cancelled,
                 r#type: DisclosureType::Regular,
             }
         }
 
         pub fn disclosure_error(timestamp: DateTime<Utc>, reader_certificate: BorrowingCertificate) -> Self {
+            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+                .unwrap()
+                .unwrap();
+
             Self::Disclosure {
                 id: Uuid::new_v4(),
-                documents: None,
+                attestations: Vec::new(),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
+                reader_registration: Box::new(reader_registration),
                 status: DisclosureStatus::Error,
                 r#type: DisclosureType::Regular,
             }

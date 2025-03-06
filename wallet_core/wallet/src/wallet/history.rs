@@ -1,25 +1,13 @@
-use chrono::DateTime;
-use chrono::Utc;
 use tracing::info;
 use tracing::instrument;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::update_policy::VersionState;
 
-use crate::attestation::Attestation;
-use crate::document::Document;
-use crate::document::DocumentMdocError;
-use crate::document::DocumentPersistence;
 use crate::errors::StorageError;
 use crate::repository::Repository;
-use crate::storage::DisclosureStatus;
-use crate::storage::DisclosureType;
 use crate::storage::Storage;
 use crate::storage::WalletEvent;
 
@@ -38,48 +26,12 @@ pub enum HistoryError {
     #[category(expected)]
     Locked,
     #[error("could not access history database: {0}")]
-    EventStorage(#[from] EventStorageError),
-}
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(defer)]
-pub enum EventStorageError {
-    #[error("could not access event in history database: {0}")]
-    Storage(#[from] StorageError),
-    #[error("could not convert event items for display: {0}")]
-    Conversion(#[from] EventConversionError),
-}
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(defer)]
-pub enum EventConversionError {
-    #[error("could not prepare event for UI: {0}")]
-    Mapping(#[from] DocumentMdocError),
-    #[error("could not read organization info from certificate: {0}")]
-    Certificate(#[from] CertificateError),
-    #[error("certificate does not contain reader registration")]
-    #[category(critical)]
-    NoReaderRegistrationFound,
-    #[error("certificate does not contain issuer registration")]
-    #[category(critical)]
-    NoIssuerRegistrationFound,
-}
-
-impl From<StorageError> for HistoryError {
-    fn from(value: StorageError) -> Self {
-        EventStorageError::Storage(value).into()
-    }
-}
-
-impl From<EventConversionError> for HistoryError {
-    fn from(value: EventConversionError) -> Self {
-        EventStorageError::Conversion(value).into()
-    }
+    EventStorage(#[from] StorageError),
 }
 
 type HistoryResult<T> = Result<T, HistoryError>;
 
-pub type RecentHistoryCallback = Box<dyn FnMut(Vec<HistoryEvent>) + Send + Sync>;
+pub type RecentHistoryCallback = Box<dyn FnMut(Vec<WalletEvent>) + Send + Sync>;
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
@@ -87,7 +39,7 @@ where
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
 {
-    pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), EventStorageError> {
+    pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), StorageError> {
         info!("Storing history event");
         self.storage.write().await.log_wallet_event(event).await?;
 
@@ -97,7 +49,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_history(&self) -> HistoryResult<Vec<HistoryEvent>> {
+    pub async fn get_history(&self) -> HistoryResult<Vec<WalletEvent>> {
         info!("Retrieving history");
 
         info!("Checking if blocked");
@@ -118,13 +70,13 @@ where
         info!("Retrieving history from storage");
         let storage = self.storage.read().await;
         let events = storage.fetch_wallet_events().await?;
-        let result = events.into_iter().map(TryFrom::try_from).collect::<Result<_, _>>()?;
-        Ok(result)
+
+        Ok(events)
     }
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<HistoryEvent>> {
+    pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<WalletEvent>> {
         info!("Retrieving Card history");
 
         info!("Checking if blocked");
@@ -145,20 +97,15 @@ where
         info!("Retrieving Card history from storage");
         let storage = self.storage.read().await;
         let events = storage.fetch_wallet_events_by_entity_type(doc_type).await?;
-        let result = events.into_iter().map(TryFrom::try_from).collect::<Result<_, _>>()?;
-        Ok(result)
+
+        Ok(events)
     }
 
-    async fn emit_recent_history(&mut self) -> Result<(), EventStorageError> {
+    async fn emit_recent_history(&mut self) -> Result<(), StorageError> {
         info!("Emit recent history from storage");
 
         let storage = self.storage.read().await;
-        let events: Vec<HistoryEvent> = storage
-            .fetch_recent_wallet_events()
-            .await?
-            .into_iter()
-            .map(HistoryEvent::try_from)
-            .collect::<Result<_, _>>()?;
+        let events = storage.fetch_recent_wallet_events().await?;
 
         if let Some(ref mut recent_history_callback) = self.recent_history_callback {
             recent_history_callback(events);
@@ -188,72 +135,6 @@ where
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum HistoryEvent {
-    Issuance {
-        timestamp: DateTime<Utc>,
-        mdocs: Vec<Document>,
-    },
-    Disclosure {
-        status: DisclosureStatus,
-        r#type: DisclosureType,
-        timestamp: DateTime<Utc>,
-        reader_registration: Box<ReaderRegistration>,
-        attributes: Option<Vec<Attestation>>,
-    },
-}
-
-impl TryFrom<WalletEvent> for HistoryEvent {
-    type Error = EventConversionError;
-
-    fn try_from(source: WalletEvent) -> Result<Self, Self::Error> {
-        let result = match source {
-            WalletEvent::Issuance {
-                id: _,
-                timestamp,
-                mdocs,
-            } => Self::Issuance {
-                timestamp,
-                mdocs: mdocs
-                    .0
-                    .into_iter()
-                    .map(|(doc_type, proposed_card)| {
-                        let issuer_registration = IssuerRegistration::from_certificate(&proposed_card.issuer)?
-                            .ok_or(EventConversionError::NoIssuerRegistrationFound)?;
-
-                        let document = Document::from_mdoc_attributes(
-                            DocumentPersistence::InMemory,
-                            &doc_type,
-                            proposed_card.into(),
-                            issuer_registration,
-                        )?;
-                        Ok(document)
-                    })
-                    .collect::<Result<_, EventConversionError>>()?,
-            },
-            WalletEvent::Disclosure {
-                id: _,
-                reader_certificate,
-                timestamp,
-                documents: _,
-                status,
-                r#type,
-            } => Self::Disclosure {
-                status,
-                r#type,
-                timestamp,
-                attributes: None, // TODO: fix history in PVW-4096
-                reader_registration: {
-                    let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)?
-                        .ok_or(EventConversionError::NoReaderRegistrationFound)?;
-                    Box::new(reader_registration)
-                },
-            },
-        };
-        Ok(result)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -269,13 +150,11 @@ mod tests {
     use super::Wallet;
 
     use crate::storage::WalletEvent;
-    use crate::HistoryEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
     use super::super::test::ISSUER_KEY;
-    use super::EventStorageError;
     use super::HistoryError;
 
     const PID_DOCTYPE: &str = "com.example.pid";
@@ -367,19 +246,19 @@ mod tests {
         assert_eq!(
             history,
             vec![
-                address_doc_type_event.clone().try_into().unwrap(),
-                disclosure_error_event.try_into().unwrap(),
-                disclosure_cancelled_event.try_into().unwrap(),
-                pid_doc_type_event.clone().try_into().unwrap()
+                address_doc_type_event.clone(),
+                disclosure_error_event,
+                disclosure_cancelled_event,
+                pid_doc_type_event.clone()
             ]
         );
 
         // get history for card should return single event
         let history = wallet.get_history_for_card(PID_DOCTYPE).await.unwrap();
-        assert_eq!(history, vec![pid_doc_type_event.try_into().unwrap()]);
+        assert_eq!(history, vec![pid_doc_type_event]);
 
         let history = wallet.get_history_for_card(ADDRESS_DOCTYPE).await.unwrap();
-        assert_eq!(history, vec![address_doc_type_event.try_into().unwrap()]);
+        assert_eq!(history, vec![address_doc_type_event]);
     }
 
     // Tests both setting and clearing the recent_history callback on an unregistered `Wallet`.
@@ -415,7 +294,8 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single Issuance Event
-        let event = WalletEvent::new_issuance(Default::default());
+        let mdocs = vec![test::create_full_pid_mdoc()].try_into().unwrap();
+        let event = WalletEvent::new_issuance(mdocs);
         wallet.storage.write().await.event_log.push(event);
 
         // Register mock recent history callback
@@ -433,7 +313,7 @@ mod tests {
             let event = events
                 .first()
                 .expect("Recent history callback should have been provided an issuance event");
-            assert_matches!(event, HistoryEvent::Issuance { .. });
+            assert_matches!(event, WalletEvent::Issuance { .. });
         }
 
         // Clear the recent_history callback on the `Wallet.`
@@ -457,6 +337,6 @@ mod tests {
             .map(|_| ())
             .expect_err("Setting recent_history callback should have resulted in an error");
 
-        assert_matches!(error, HistoryError::EventStorage(EventStorageError::Storage(_)));
+        assert_matches!(error, HistoryError::EventStorage(_));
     }
 }

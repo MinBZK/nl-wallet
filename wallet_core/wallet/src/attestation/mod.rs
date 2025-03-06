@@ -11,6 +11,8 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
+use serde::Deserialize;
+use serde::Serialize;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -34,7 +36,7 @@ enum AttributeSelectionMode {
     Disclosure,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Attestation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
@@ -43,13 +45,14 @@ pub struct Attestation {
     pub attributes: Vec<AttestationAttribute>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum AttestationIdentity {
     Ephemeral,
     Fixed { id: String },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttestationAttribute {
     pub key: Vec<String>,
     pub metadata: Vec<ClaimDisplayMetadata>,

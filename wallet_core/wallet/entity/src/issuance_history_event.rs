@@ -11,7 +11,7 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
-    pub attributes: Json,
+    pub attestations: Json,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
