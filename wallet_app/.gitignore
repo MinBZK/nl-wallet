@@ -8,6 +8,9 @@
 .pub/
 /build/
 
+# Generated localizations
+/lib/l10n/app_localizations*
+
 # Symbolication related
 app.*.symbols
 
