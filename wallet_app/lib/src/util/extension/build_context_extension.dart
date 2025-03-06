@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:provider/provider.dart';
 
+import '../../../l10n/generated/app_localizations.dart';
 import '../../data/store/active_locale_provider.dart';
 
 extension BuildContextExtension on BuildContext {

@@ -1,8 +1,8 @@
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 
 abstract class TestUtils {
   static Future<AppLocalizations> get englishLocalizations => AppLocalizations.delegate.load(const Locale('en'));

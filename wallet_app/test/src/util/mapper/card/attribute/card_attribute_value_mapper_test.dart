@@ -1,8 +1,8 @@
 import 'dart:ui';
 
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/util/formatter/attribute_value_formatter.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_value_mapper.dart';

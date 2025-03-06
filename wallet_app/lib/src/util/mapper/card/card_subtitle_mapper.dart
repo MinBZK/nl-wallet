@@ -1,7 +1,7 @@
 import 'package:collection/collection.dart';
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet_core/core.dart' as core;
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../formatter/attribute_value_formatter.dart';
 import '../mapper.dart';

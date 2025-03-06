@@ -1,6 +1,6 @@
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
 import 'package:wallet/src/util/mapper/mapper.dart';

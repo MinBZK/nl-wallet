@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../active_locale_provider.dart';
 
 /// A [LocalizationsDelegate] who's sole purpose it is to expose the resolved localization, which it does by implementing

@@ -1,7 +1,7 @@
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet_core/core.dart';
 import 'package:wallet_mock/mock.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../domain/model/card/card_front.dart';
 import '../../../domain/model/localized_text.dart';
 import '../../../wallet_assets.dart';

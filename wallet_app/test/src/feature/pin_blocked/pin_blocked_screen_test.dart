@@ -1,8 +1,8 @@
 import 'dart:ui';
 
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_toolkit/golden_toolkit.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/feature/pin_blocked/pin_blocked_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';

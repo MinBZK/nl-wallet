@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../../data/store/active_locale_provider.dart';
 import '../../../data/store/impl/active_localization_delegate.dart';
 import '../../../theme/wallet_theme.dart';
