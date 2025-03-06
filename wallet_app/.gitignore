@@ -6,10 +6,9 @@
 .packages
 .pub-cache/
 .pub/
-/build/
 
 # Generated localizations
-/lib/l10n/app_localizations*
+/lib/l10n/generated
 
 # Symbolication related
 app.*.symbols
