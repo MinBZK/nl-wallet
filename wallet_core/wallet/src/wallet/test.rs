@@ -9,6 +9,7 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use jwt::Jwt;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::KeyPair;
@@ -23,7 +24,6 @@ use sd_jwt::metadata::TypeMetadataChain;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;

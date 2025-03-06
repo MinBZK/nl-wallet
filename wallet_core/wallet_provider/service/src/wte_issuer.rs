@@ -5,9 +5,9 @@ use p256::ecdsa::VerifyingKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::JwtCredentialClaims;
-use wallet_common::jwt::JwtError;
+use jwt::Jwt;
+use jwt::JwtCredentialClaims;
+use jwt::JwtError;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::wte::WteClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
@@ -87,8 +87,8 @@ pub mod mock {
     use rand_core::OsRng;
 
     use hsm::model::wrapped_key::WrappedKey;
-    use wallet_common::jwt::Jwt;
-    use wallet_common::jwt::JwtCredentialClaims;
+    use jwt::Jwt;
+    use jwt::JwtCredentialClaims;
     use wallet_common::wte::WteClaims;
 
     use super::WteIssuer;
@@ -115,13 +115,12 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use chrono::Utc;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-    use wallet_common::jwt;
-    use wallet_common::jwt::jwk_to_p256;
+    use jwt::jwk_to_p256;
 
     use super::HsmWteIssuer;
     use super::WteIssuer;

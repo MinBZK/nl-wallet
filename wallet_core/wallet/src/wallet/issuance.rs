@@ -11,6 +11,7 @@ use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use jwt::JwtError;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -27,7 +28,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::jwt::JwtError;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
 use wallet_common::urls;

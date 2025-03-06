@@ -26,6 +26,7 @@ serde_json = { workspace = true, features = ["std", "raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 
+jwt.path = "../jwt"
 poa.path = "../poa"
 wallet_common.path = "../wallet_common"
 

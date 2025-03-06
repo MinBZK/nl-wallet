@@ -8,10 +8,10 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
+use jwt::EcdsaDecodingKey;
+use jwt::Jwt;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
-use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::jwt::Jwt;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;
@@ -270,7 +270,7 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use wallet_common::jwt::EcdsaDecodingKey;
+    use jwt::EcdsaDecodingKey;
     use wallet_provider_persistence::repositories::mock::WalletUserTestRepo;
 
     use crate::account_server::mock::user_state;

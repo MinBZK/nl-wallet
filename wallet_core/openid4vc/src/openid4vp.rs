@@ -22,6 +22,8 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
+use jwt::Jwt;
+use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::errors::Error as MdocError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
@@ -34,15 +36,12 @@ use poa::Poa;
 use poa::PoaVerificationError;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
-use crate::jwt;
 use crate::jwt::JwtX5cError;
 use crate::presentation_exchange::InputDescriptorMappingObject;
 use crate::presentation_exchange::PdConversionError;
@@ -313,7 +312,7 @@ impl VpAuthorizationRequest {
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        Ok(jwt::verify_against_trust_anchors(
+        Ok(crate::jwt::verify_against_trust_anchors(
             jws,
             &[VpAuthorizationRequestAudience::SelfIssued],
             trust_anchors,
@@ -860,7 +859,6 @@ mod tests {
     use crate::AuthorizationErrorCode;
     use crate::VpAuthorizationErrorCode;
 
-    use super::jwt;
     use super::VerifiablePresentation;
     use super::VpAuthorizationRequest;
     use super::VpAuthorizationResponse;
@@ -939,7 +937,9 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
-        let auth_request_jwt = jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
+        let auth_request_jwt = crate::jwt::sign_with_certificate(&auth_request, &rp_keypair)
+            .await
+            .unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();

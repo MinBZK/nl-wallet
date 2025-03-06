@@ -6,8 +6,8 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
 
+use jwt::Jwt;
 use serde_with::skip_serializing_none;
-use wallet_common::jwt::Jwt;
 use wallet_common::urls::BaseUrl;
 
 /// Credential issuer metadata, as per

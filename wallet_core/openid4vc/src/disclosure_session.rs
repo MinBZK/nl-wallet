@@ -13,6 +13,7 @@ use tracing::info;
 use tracing::warn;
 
 use error_category::ErrorCategory;
+use jwt::Jwt;
 use nl_wallet_mdoc::disclosure::DeviceResponse;
 use nl_wallet_mdoc::engagement::SessionTranscript;
 use nl_wallet_mdoc::holder::DisclosureRequestMatch;
@@ -26,7 +27,6 @@ use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use poa::factory::PoaFactory;
-use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;

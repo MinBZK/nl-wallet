@@ -5,8 +5,8 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
+use jwt::JwtError;
 use wallet_account::messages::registration::WalletCertificate;
-use wallet_common::jwt::JwtError;
 
 use crate::errors::InstructionError;
 use crate::errors::PinValidationError;
@@ -325,8 +325,8 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use jwt::Jwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
-    use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 
     use super::*;

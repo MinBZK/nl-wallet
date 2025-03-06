@@ -188,10 +188,7 @@ impl ServerSettings for IssuerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default(
-                "wallet_client_ids",
-                vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
-            )?
+            .set_default("wallet_client_ids", vec![jwt::NL_WALLET_CLIENT_ID.to_string()])?
             .set_default("brp_server", "http://localhost:3007/")?
             .set_default("valid_days", 365)?
             .set_default("copy_count", 4)?;

@@ -30,11 +30,11 @@ use x509_parser::x509::AlgorithmIdentifier;
 
 use error_category::ErrorCategory;
 
-use crate::keys::factory::KeyFactory;
-use crate::keys::CredentialEcdsaKey;
-use crate::keys::EcdsaKey;
-use crate::keys::SecureEcdsaKey;
-use crate::vec_at_least::VecNonEmpty;
+use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::CredentialEcdsaKey;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::keys::SecureEcdsaKey;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 /// JWT type, generic over its contents.
 ///
@@ -649,7 +649,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crate::keys::mock_remote::MockRemoteKeyFactory;
+    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use super::*;
 

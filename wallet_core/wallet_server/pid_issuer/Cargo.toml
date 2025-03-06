@@ -69,6 +69,7 @@ sea-orm = { workspace = true, optional = true, features = [
 ] }
 
 hsm = { path = "../../hsm", features = ["settings"] }
+jwt.path = "../../jwt"
 nl_wallet_mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../openid4vc_server", features = ["issuance"] }

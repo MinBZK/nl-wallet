@@ -13,6 +13,8 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use jwt::JsonJwt;
+use jwt::Jwt;
 use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::server_keys::test::SingleKeyRing;
@@ -50,8 +52,6 @@ use poa::Poa;
 use poa::PoaPayload;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
-use wallet_common::jwt::JsonJwt;
-use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;

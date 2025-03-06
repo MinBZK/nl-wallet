@@ -2,8 +2,8 @@ mod client;
 mod keys;
 
 use error_category::ErrorCategory;
+use jwt::JwtError;
 use wallet_account::messages::errors::AccountError;
-use wallet_common::jwt::JwtError;
 
 use crate::account_provider::AccountProviderError;
 use crate::account_provider::AccountProviderResponseError;

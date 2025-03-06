@@ -214,6 +214,7 @@ apple_app_attest = { path = "../apple_app_attest", optional = true, features = [
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../hsm", optional = true, features = ["test"] }
+jwt.path = "../jwt"
 nl_wallet_mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../openid4vc", optional = true }
 openid4vc_server = { path = "../openid4vc_server", optional = true, features = ["issuance", "disclosure"] }

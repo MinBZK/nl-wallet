@@ -17,10 +17,10 @@ use tokio::time;
 use tokio::time::MissedTickBehavior;
 use tracing::warn;
 
+use jwt::JwtCredentialClaims;
+use jwt::VerifiedJwt;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::JwtCredentialClaims;
-use wallet_common::jwt::VerifiedJwt;
 use wallet_common::utils::random_string;
 use wallet_common::utils::sha256;
 use wallet_common::wte::WteClaims;

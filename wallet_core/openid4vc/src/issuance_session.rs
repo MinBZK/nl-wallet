@@ -20,6 +20,11 @@ use serde::Serialize;
 use url::Url;
 
 use error_category::ErrorCategory;
+use jwt::JwkConversionError;
+use jwt::Jwt;
+use jwt::JwtError;
+use jwt::JwtPopClaims;
+use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::identifiers::AttributeIdentifier;
@@ -32,11 +37,6 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::JwkConversionError;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::JwtError;
-use wallet_common::jwt::JwtPopClaims;
-use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
@@ -845,7 +845,7 @@ pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredenti
 where
     KF: KeyFactory,
 {
-    use wallet_common::jwt::JwtCredentialClaims;
+    use jwt::JwtCredentialClaims;
     use wallet_common::keys::EcdsaKey;
     use wallet_common::keys::WithIdentifier;
 
