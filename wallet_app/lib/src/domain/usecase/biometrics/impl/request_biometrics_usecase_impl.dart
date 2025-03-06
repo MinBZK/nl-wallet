@@ -1,9 +1,9 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 
+import '../../../../../l10n/generated/app_localizations.dart';
 import '../../../../data/store/active_locale_provider.dart';
 import '../../../../util/helper/local_authentication_helper.dart';
 import '../../../model/result/application_error.dart';
