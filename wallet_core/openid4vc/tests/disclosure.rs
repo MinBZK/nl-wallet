@@ -68,6 +68,7 @@ use openid4vc::VpAuthorizationErrorCode;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::factory::PoaFactory;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
@@ -700,6 +701,11 @@ async fn test_disclosure_invalid_poa() {
         async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
             self.0.generate_new_multiple(count).await
         }
+    }
+
+    impl PoaFactory for WrongPoaKeyFactory {
+        type Key = MockRemoteEcdsaKey;
+        type Error = MockRemoteKeyFactoryError;
 
         async fn poa(
             &self,

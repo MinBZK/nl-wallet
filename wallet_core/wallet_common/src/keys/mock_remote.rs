@@ -18,6 +18,7 @@ use crate::utils;
 use crate::vec_at_least::VecAtLeastTwoUnique;
 
 use super::factory::KeyFactory;
+use super::factory::PoaFactory;
 use super::poa::Poa;
 use super::poa::PoaError;
 use super::CredentialEcdsaKey;
@@ -244,6 +245,11 @@ impl KeyFactory for MockRemoteKeyFactory {
 
         Ok(result)
     }
+}
+
+impl PoaFactory for MockRemoteKeyFactory {
+    type Key = MockRemoteEcdsaKey;
+    type Error = MockRemoteKeyFactoryError;
 
     async fn poa(
         &self,

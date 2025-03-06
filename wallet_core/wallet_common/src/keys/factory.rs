@@ -30,6 +30,11 @@ pub trait KeyFactory {
         &self,
         messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
     ) -> Result<Vec<Vec<Signature>>, Self::Error>;
+}
+
+pub trait PoaFactory {
+    type Key: CredentialEcdsaKey + Eq + Hash;
+    type Error: Error + Send + Sync + 'static;
 
     /// Construct a Proof of Association, with which the key factory asserts that all provided keys
     /// are managed by this one key factory.

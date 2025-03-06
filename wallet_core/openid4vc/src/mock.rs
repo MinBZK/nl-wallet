@@ -4,6 +4,7 @@ use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::factory::PoaFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::wte::WteClaims;
 
@@ -56,7 +57,7 @@ impl IssuanceSession for MockIssuanceSession {
     async fn accept_issuance<K: CredentialEcdsaKey>(
         &self,
         _: &[TrustAnchor<'_>],
-        _: &impl KeyFactory<Key = K>,
+        _: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
         _: Option<JwtCredential<WteClaims>>,
         _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {

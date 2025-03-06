@@ -36,6 +36,7 @@ use wallet_common::jwt::JwtError;
 use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::factory::PoaFactory;
 use wallet_common::keys::poa::Poa;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
@@ -253,7 +254,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &impl KeyFactory<Key = K>,
+        key_factory: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
@@ -545,7 +546,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &impl KeyFactory<Key = K>,
+        key_factory: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {

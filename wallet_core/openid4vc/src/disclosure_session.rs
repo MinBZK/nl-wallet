@@ -27,6 +27,8 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
+use wallet_common::keys::factory::PoaFactory;
+use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
@@ -664,9 +666,11 @@ where
             .collect()
     }
 
-    pub async fn disclose<KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
+    pub async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
-        KF: KeyFactory,
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>,
     {
         info!("disclose proposed documents");
 
@@ -680,13 +684,13 @@ where
             .await
             .map_err(|err| DisclosureError::before_sharing(VpClientError::DeviceResponse(err)))?;
 
-        let poa = match VecAtLeastTwoUnique::try_from(keys) {
+        let poa = match VecAtLeastTwoUnique::new(keys) {
             Ok(keys) => {
                 info!("create Proof of Association");
 
                 // Poa::new() needs a vec of references. We can unwrap because we only get here if the conversion was
                 // successful.
-                let keys = keys.as_slice().iter().collect_vec().try_into().unwrap();
+                let keys = VecAtLeastTwoUnique::new(keys.as_slice().iter().collect_vec()).unwrap();
                 let poa = key_factory
                     .poa(
                         keys,
@@ -777,10 +781,12 @@ mod tests {
     use nl_wallet_mdoc::MobileSecurityObject;
     use nl_wallet_mdoc::SessionTranscript;
     use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::factory::PoaFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
     use wallet_common::keys::poa::Poa;
+    use wallet_common::keys::CredentialEcdsaKey;
     use wallet_common::utils::random_string;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
@@ -1616,10 +1622,10 @@ mod tests {
         assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
     }
 
-    async fn try_disclose<F>(
+    async fn try_disclose<F, K: CredentialEcdsaKey>(
         proposal_session: DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
-        key_factory: &impl KeyFactory,
+        key_factory: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
         expect_report_error: bool,
     ) -> DisclosureError<VpClientError>
     where
@@ -1677,6 +1683,11 @@ mod tests {
                         .collect::<Vec<_>>();
                 Ok(keys)
             }
+        }
+
+        impl PoaFactory for MockKeyFactory {
+            type Key = MockRemoteEcdsaKey;
+            type Error = MockRemoteKeyFactoryError;
 
             async fn poa(
                 &self,

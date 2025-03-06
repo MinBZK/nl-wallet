@@ -849,7 +849,7 @@ mod tests {
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::examples::Examples;
     use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::factory::KeyFactory;
+    use wallet_common::keys::factory::PoaFactory;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::keys::poa::Poa;
