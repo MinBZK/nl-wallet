@@ -9,6 +9,7 @@ use sd_jwt::metadata::TypeMetadata;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
+use wallet_common::urls::HttpsUri;
 
 fn mock_attestation_data(keypair: KeyPair) -> IssuerAttestationData {
     IssuerAttestationData {
@@ -94,4 +95,27 @@ fn test_settings_no_issuer_registration() {
         IssuerSettingsError::CertificateVerification(CertificateVerificationError::IncompleteCertificateType(key))
             if key == "com.example.no_registration"
     );
+}
+
+#[test]
+fn test_settings_missing_metadata() {
+    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
+
+    settings.metadata.clear();
+
+    let error = settings.validate().expect_err("should fail");
+    assert_matches!(error, IssuerSettingsError::MissingMetadata { .. });
+}
+
+#[test]
+fn test_settings_wrong_san_field() {
+    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
+
+    let wrong_san: HttpsUri = "https://wrong.san.example.com".parse().unwrap();
+    let mut attestation_settings = settings.attestation_settings.as_ref().first().unwrap().clone();
+    attestation_settings.certificate_san = Some(wrong_san.clone());
+    settings.attestation_settings = vec![attestation_settings].into();
+
+    let error = settings.validate().expect_err("should fail");
+    assert_matches!(error, IssuerSettingsError::CertificateMissingSan { san, .. } if san == wrong_san);
 }
