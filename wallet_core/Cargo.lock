@@ -6117,6 +6117,7 @@ dependencies = [
  "p256",
  "pid_issuer",
  "platform_support",
+ "poa",
  "rand_core",
  "regex",
  "reqwest",
