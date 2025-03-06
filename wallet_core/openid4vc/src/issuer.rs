@@ -14,7 +14,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
-use nl_wallet_mdoc::server_keys::KeyPair;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use sd_jwt::metadata::TypeMetadata;
@@ -23,6 +22,7 @@ use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::crypto::CryptoError;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -282,6 +282,8 @@ pub trait AttributeService {
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
 
+/// Static attestation data shared across all instances of an attestation type. The issuer augments this with an
+/// [`IssuableDocument`] to form the attestation.
 #[derive(Debug)]
 pub struct AttestationData<K> {
     pub key_pair: KeyPair<K>,
@@ -290,6 +292,7 @@ pub struct AttestationData<K> {
     pub issuer_uri: HttpsUri,
 }
 
+/// Static attestation data indexed by attestation type.
 #[derive(Debug, From, AsRef)]
 pub struct AttestationSettings<K>(IndexMap<String, AttestationData<K>>);
 

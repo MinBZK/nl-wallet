@@ -77,34 +77,36 @@ fn setup(
     let wte_issuer_privkey = SigningKey::random(&mut OsRng);
     let trust_anchor = ca.to_trust_anchor().to_owned();
 
+    let attestation_settings = MOCK_DOCTYPES
+        .iter()
+        .map(|doctype| {
+            (
+                doctype.to_string(),
+                AttestationData {
+                    // KeyPair doesn't implement clone, so manually construct a new KeyPair.
+                    key_pair: KeyPair::new_from_signing_key(
+                        issuance_keypair.private_key().clone(),
+                        issuance_keypair.certificate().clone(),
+                    )
+                    .unwrap(),
+                    valid_days: Days::new(365),
+                    copy_count: 4.try_into().unwrap(),
+                    issuer_uri: issuance_keypair
+                        .certificate()
+                        .san_dns_name_or_uris()
+                        .unwrap()
+                        .first()
+                        .clone(),
+                },
+            )
+        })
+        .collect::<IndexMap<_, _>>()
+        .into();
+
     let issuer = MockIssuer::new(
         MemorySessionStore::default(),
         attr_service,
-        MOCK_DOCTYPES
-            .iter()
-            .map(|doctype| {
-                (
-                    doctype.to_string(),
-                    AttestationData {
-                        // KeyPair doesn't implement clone, so manually construct a new KeyPair
-                        key_pair: KeyPair::new_from_signing_key(
-                            issuance_keypair.private_key().clone(),
-                            issuance_keypair.certificate().clone(),
-                        )
-                        .unwrap(),
-                        valid_days: Days::new(365),
-                        copy_count: 4.try_into().unwrap(),
-                        issuer_uri: issuance_keypair
-                            .certificate()
-                            .san_dns_name_or_uris()
-                            .unwrap()
-                            .first()
-                            .clone(),
-                    },
-                )
-            })
-            .collect::<IndexMap<_, _>>()
-            .into(),
+        attestation_settings,
         &server_url,
         vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
         *wte_issuer_privkey.verifying_key(),

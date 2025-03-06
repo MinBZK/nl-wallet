@@ -19,9 +19,7 @@ use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use indexmap::IndexMap;
-use openid4vc::issuer::AttestationSettings;
 use p256::ecdsa::VerifyingKey;
-use sd_jwt::metadata::TypeMetadata;
 use serde::Serialize;
 use tracing::warn;
 
@@ -32,6 +30,7 @@ use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::Dpop;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
+use openid4vc::issuer::AttestationSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -46,6 +45,7 @@ use openid4vc::CredentialErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
+use sd_jwt::metadata::TypeMetadata;
 use wallet_common::keys::EcdsaKeySend;
 use wallet_common::urls::BaseUrl;
 

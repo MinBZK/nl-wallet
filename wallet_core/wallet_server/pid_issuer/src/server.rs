@@ -1,9 +1,9 @@
 use anyhow::Result;
 use axum::Router;
-use openid4vc::issuer::AttestationSettings;
 use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
+use openid4vc::issuer::AttestationSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;

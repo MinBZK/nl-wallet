@@ -10,9 +10,6 @@ use derive_more::AsRef;
 use derive_more::From;
 use futures::future::join_all;
 use indexmap::IndexMap;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use openid4vc::issuer::AttestationData;
-use openid4vc::issuer::AttestationSettings;
 use rustls_pki_types::TrustAnchor;
 use serde::de;
 use serde::Deserialize;
@@ -22,8 +19,11 @@ use serde_with::serde_as;
 
 use hsm::service::Pkcs11Hsm;
 use nl_wallet_mdoc::server_keys::KeyPair as ParsedKeyPair;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use openid4vc::issuer::AttestationData;
+use openid4vc::issuer::AttestationSettings;
 use openid4vc::server_state::SessionStoreTimeouts;
 use sd_jwt::metadata::TypeMetadata;
 use server_utils::keys::PrivateKeySettingsError;
@@ -164,6 +164,7 @@ impl TryFromKeySettings<IssuerAttestationSettings> for AttestationSettings<Priva
                             .first()
                             .clone())
                     })?;
+
                 Ok((
                     attestation_settings.attestation_type,
                     AttestationData {
