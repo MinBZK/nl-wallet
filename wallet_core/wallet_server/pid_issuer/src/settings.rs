@@ -10,6 +10,7 @@ use derive_more::AsRef;
 use derive_more::From;
 use futures::future::join_all;
 use indexmap::IndexMap;
+use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuer::AttestationData;
 use openid4vc::issuer::AttestationSettings;
 use rustls_pki_types::TrustAnchor;
@@ -89,6 +90,8 @@ pub struct IssuerAttestationData {
     pub valid_days: u64,
     pub copy_count: NonZeroU8,
 
+    /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
+    /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
 }
 
@@ -181,8 +184,22 @@ impl TryFromKeySettings<IssuerAttestationSettings> for AttestationSettings<Priva
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum IssuerSettingsError {
+    #[error("certificate error: {0}")]
+    Certificate(#[from] CertificateError),
+    #[error("error verifying certificate: {0}")]
+    CertificateVerification(#[from] CertificateVerificationError),
+    #[error("certificate for {attestation_type} missing SAN {san}")]
+    CertificateMissingSan { attestation_type: String, san: HttpsUri },
+    #[error("multiple SANs in issuer certificate for {attestation_type}: which one to use was not specified")]
+    CertificateSanUnspecified { attestation_type: String },
+    #[error("missing metadata for attestation {attestation_type}")]
+    MissingMetadata { attestation_type: String },
+}
+
 impl ServerSettings for IssuerSettings {
-    type ValidationError = CertificateVerificationError;
+    type ValidationError = IssuerSettingsError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
         let default_store_timeouts = SessionStoreTimeouts::default();
@@ -237,8 +254,42 @@ impl ServerSettings for IssuerSettings {
         Ok(config)
     }
 
-    fn validate(&self) -> Result<(), CertificateVerificationError> {
-        tracing::debug!("verifying issuer.private_keys certificates");
+    fn validate(&self) -> Result<(), IssuerSettingsError> {
+        tracing::debug!("verifying issuer settings");
+
+        let metadata = self.metadata();
+        for attestation in self.attestation_settings.as_ref() {
+            let attestation_type = &attestation.attestation_type;
+            if !metadata.contains_key(&attestation.attestation_type) {
+                // TODO PVW-3824: recursively check the presence of metadata on which the current metadata depends
+                return Err(IssuerSettingsError::MissingMetadata {
+                    attestation_type: attestation_type.clone(),
+                });
+            }
+
+            if let Some(certificate_san) = attestation.certificate_san.as_ref() {
+                // If the certificate SAN to be used has been specified, then it has to be present in the certificate.
+                if !attestation
+                    .keypair
+                    .certificate
+                    .san_dns_name_or_uris()?
+                    .as_ref()
+                    .contains(certificate_san)
+                {
+                    return Err(IssuerSettingsError::CertificateMissingSan {
+                        attestation_type: attestation_type.clone(),
+                        san: certificate_san.clone(),
+                    });
+                }
+            } else {
+                // If not, then there must be only one SAN in the certificate so there is no disambiguation.
+                if attestation.keypair.certificate.san_dns_name_or_uris()?.len().get() > 1 {
+                    return Err(IssuerSettingsError::CertificateSanUnspecified {
+                        attestation_type: attestation_type.clone(),
+                    });
+                }
+            }
+        }
 
         let time = TimeGenerator;
 
@@ -267,7 +318,9 @@ impl ServerSettings for IssuerSettings {
             CertificateUsage::Mdl,
             &time,
             |certificate_type| matches!(certificate_type, CertificateType::Mdl(Some(_))),
-        )
+        )?;
+
+        Ok(())
     }
 
     fn server_settings(&self) -> &Settings {

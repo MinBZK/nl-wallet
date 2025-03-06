@@ -4,16 +4,19 @@ use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use pid_issuer::settings::IssuerAttestationData;
 use pid_issuer::settings::IssuerSettings;
+use pid_issuer::settings::IssuerSettingsError;
+use sd_jwt::metadata::TypeMetadata;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
 
 fn mock_attestation_data(keypair: KeyPair) -> IssuerAttestationData {
     IssuerAttestationData {
-        attestation_type: "com.example.valid".to_string(),
+        attestation_type: "com.example.pid".to_string(),
         keypair,
         valid_days: 365,
         copy_count: 4.try_into().unwrap(),
+        certificate_san: None,
     }
 }
 
@@ -34,8 +37,6 @@ fn test_settings_success() {
 
 #[test]
 fn test_settings_no_issuer_trust_anchors() {
-    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-
     let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
@@ -47,13 +48,14 @@ fn test_settings_no_issuer_trust_anchors() {
     settings.attestation_settings = vec![mock_attestation_data(issuer_cert_valid.into())].into();
 
     let error = settings.validate().expect_err("should fail");
-    assert_matches!(error, CertificateVerificationError::MissingTrustAnchors);
+    assert_matches!(
+        error,
+        IssuerSettingsError::CertificateVerification(CertificateVerificationError::MissingTrustAnchors)
+    );
 }
 
 #[test]
 fn test_settings_no_issuer_registration() {
-    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-
     let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
@@ -73,13 +75,23 @@ fn test_settings_no_issuer_registration() {
             keypair: issuer_cert_no_registration.into(),
             valid_days: 365,
             copy_count: 4.try_into().unwrap(),
+            certificate_san: None,
         },
     ]
     .into();
 
+    settings.metadata = vec![
+        TypeMetadata {
+            vct: "com.example.no_registration".to_string(),
+            ..TypeMetadata::empty_example()
+        },
+        TypeMetadata::pid_example(),
+    ];
+
     let error = settings.validate().expect_err("should fail");
     assert_matches!(
         error,
-        CertificateVerificationError::IncompleteCertificateType(key) if key == "com.example.no_registration"
+        IssuerSettingsError::CertificateVerification(CertificateVerificationError::IncompleteCertificateType(key))
+            if key == "com.example.no_registration"
     );
 }
