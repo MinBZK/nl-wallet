@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 abstract class TestUtils {

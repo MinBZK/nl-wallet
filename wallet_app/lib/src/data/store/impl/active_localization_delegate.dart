@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../active_locale_provider.dart';
