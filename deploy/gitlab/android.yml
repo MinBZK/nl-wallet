@@ -1,5 +1,4 @@
 #test-android:
-#  extends: .ruby-cache
 #  rules: !reference [.default-or-release-or-merge-request, rules]
 #  artifacts:
 #    when: always

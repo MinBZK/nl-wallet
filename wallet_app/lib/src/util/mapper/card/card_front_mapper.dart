@@ -2,7 +2,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:wallet_core/core.dart';
 import 'package:wallet_mock/mock.dart';
 
-import '../../../domain/model/card_front.dart';
+import '../../../domain/model/card/card_front.dart';
 import '../../../domain/model/localized_text.dart';
 import '../../../wallet_assets.dart';
 import '../../extension/string_extension.dart';
@@ -85,7 +85,7 @@ final _kMockMasterDiplomaCardFront = CardFront(
 );
 
 final _kMockDrivingLicenseCardFront = CardFront(
-  title: 'Rijbewijs'.untranslated,
+  title: const {'nl': 'Rijbewijs', 'en': 'Driving license'},
   subtitle: 'Categorie AM, B, BE'.untranslated,
   logoImage: WalletAssets.logo_nl_driving_license,
   backgroundImage: WalletAssets.image_bg_nl_driving_license,
@@ -93,7 +93,7 @@ final _kMockDrivingLicenseCardFront = CardFront(
 );
 
 final _kMockDrivingLicenseRenewedCardFront = CardFront(
-  title: 'Rijbewijs'.untranslated,
+  title: const {'nl': 'Rijbewijs', 'en': 'Driving license'},
   subtitle: 'Categorie AM, B, C1, BE'.untranslated,
   logoImage: WalletAssets.logo_nl_driving_license,
   backgroundImage: WalletAssets.image_bg_nl_driving_license,

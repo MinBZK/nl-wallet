@@ -3,7 +3,7 @@ import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/wallet_card.dart';
+import '../../../domain/model/card/wallet_card.dart';
 
 part 'check_attributes_event.dart';
 part 'check_attributes_state.dart';

@@ -1,4 +1,4 @@
-import '../../../domain/model/card_config.dart';
+import '../../../domain/model/card/card_config.dart';
 import '../mapper.dart';
 
 /// Mapper that creates a [CardConfig] based on the provided docType

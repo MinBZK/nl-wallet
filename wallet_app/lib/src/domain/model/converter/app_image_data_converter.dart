@@ -1,6 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
-import '../../app_image_data.dart';
+import '../app_image_data.dart';
 
 const _kTypeKey = 'type';
 const _kDataKey = 'data';

@@ -19,7 +19,8 @@ class BaseWalletTheme {
   static const _displayMediumTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.bold);
   static const _displaySmallTextStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
   static const _headlineMediumTextStyle = TextStyle(fontSize: 18, fontWeight: FontWeight.bold);
-  static const _headlineSmallTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.w400, height: 32 / 24);
+  static const _headlineSmallTextStyle =
+      TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 24 / 20, letterSpacing: 0.15);
   static const _titleLargeTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.4);
   static const _titleMediumTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.4);
   static const _titleSmallTextStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);
@@ -184,6 +185,8 @@ class BaseWalletTheme {
 
 extension WidgetStateExtensions on Set<WidgetState> {
   bool get isPressedOrFocused => contains(WidgetState.pressed) || contains(WidgetState.focused);
+
   bool get isFocused => contains(WidgetState.focused);
+
   bool get isPressed => contains(WidgetState.pressed);
 }

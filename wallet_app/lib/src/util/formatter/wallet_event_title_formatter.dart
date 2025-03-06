@@ -10,7 +10,7 @@ class WalletEventTitleFormatter {
       case DisclosureEvent():
         return event.relyingParty.displayName.l10nValue(context);
       case IssuanceEvent():
-        return event.card.front.title.l10nValue(context);
+        return event.card.title.l10nValue(context);
       case SignEvent():
         return event.relyingParty.displayName.l10nValue(context);
     }

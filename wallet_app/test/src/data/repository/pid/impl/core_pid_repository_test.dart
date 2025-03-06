@@ -4,11 +4,13 @@ import 'package:wallet/src/data/repository/pid/core/core_pid_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_value_mapper.dart';
+import 'package:wallet/src/util/mapper/card/attribute/claim_display_metadata_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_config_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_front_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
+import 'package:wallet/src/util/mapper/card/metadata_mapper.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
@@ -27,8 +29,9 @@ void main() {
     cardMapper = CardMapper(
       CardFrontMapper(CardSubtitleMapper(CardAttributeValueMapper())),
       CardConfigMapper(),
-      CardAttributeMapper(CardAttributeValueMapper(), LocalizedLabelsMapper()),
+      CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
+      DisplayMetadataMapper(),
     );
     pidRepository = CorePidRepository(core, cardMapper);
   });
@@ -44,7 +47,7 @@ void main() {
       final testAttestation = Attestation(
         identity: const AttestationIdentity_Ephemeral(),
         attestationType: kPidDocType,
-        displayMetadata: [CoreMockData.displayMetadata],
+        displayMetadata: [CoreMockData.enDisplayMetadata],
         issuer: CoreMockData.organization,
         attributes: CoreMockData.attestation.attributes,
       );

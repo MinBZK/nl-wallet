@@ -2,10 +2,10 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
-import 'package:wallet/src/domain/model/wallet_card.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'package:wallet/src/wallet_core/error/core_error.dart';
 
@@ -105,7 +105,7 @@ void main() {
       const WalletPersonalizeConnectDigid('pid_issuance_url'),
       WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
-      const WalletPersonalizeAddingCards(FlowProgress(currentStep: 8, totalSteps: 9)),
+      const WalletPersonalizeAddingCards(FlowProgress(currentStep: 7, totalSteps: 8)),
       WalletPersonalizeSuccess([WalletMockData.card]),
     ],
   );
@@ -159,7 +159,7 @@ void main() {
       const WalletPersonalizeAuthenticating(),
       const WalletPersonalizeCheckData(availableAttributes: []),
       WalletPersonalizeConfirmPin(WalletMockData.card.attributes),
-      const WalletPersonalizeAddingCards(FlowProgress(currentStep: 8, totalSteps: 9)),
+      const WalletPersonalizeAddingCards(FlowProgress(currentStep: 7, totalSteps: 8)),
       WalletPersonalizeSuccess([WalletMockData.card]),
     ],
   );

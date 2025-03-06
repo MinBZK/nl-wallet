@@ -24,7 +24,7 @@ test-flutter:
       - wallet_app/build/reports/test-results.xml
 
 test-flutter-ui:
-  extends: [.env-macos-runner, .ruby-cache-macos]
+  extends: [.flutter, .env-macos-runner]
   rules: !reference [.default-or-release-or-merge-request, rules]
   artifacts:
     name: "ui-test"
@@ -35,8 +35,6 @@ test-flutter-ui:
     reports:
       junit: wallet_app/build/reports/test-results-ui.xml
   script:
-    - cd wallet_app
-    - set -euxo pipefail
     - flutter --version
     - flutter pub get --enforce-lockfile
     - defaults -currentHost write -g AppleFontSmoothing -int 0 # Disable font smoothing, should match the generating platform.

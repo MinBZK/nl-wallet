@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../domain/model/attribute/attribute.dart';
+import '../../../../../domain/model/card/wallet_card.dart';
 import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../domain/model/organization.dart';
-import '../../../../../domain/model/wallet_card.dart';
 import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
@@ -29,7 +29,7 @@ class HistoryDetailIssuePage extends StatelessWidget {
     return CustomScrollView(
       slivers: [
         SliverWalletAppBar(
-          title: context.l10n.historyDetailScreenTitleForIssuance(event.card.front.title.l10nValue(context)),
+          title: context.l10n.historyDetailScreenTitleForIssuance(event.card.title.l10nValue(context)),
           scrollController: PrimaryScrollController.maybeOf(context),
         ),
         SliverToBoxAdapter(

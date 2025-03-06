@@ -2,11 +2,11 @@ import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' hide StartIssuanceResult;
 
 import '../../../../domain/model/attribute/attribute.dart';
+import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
-import '../../../../domain/model/wallet_card.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../issuance_repository.dart';
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 
@@ -14,7 +15,7 @@ void main() {
       );
 
       // Check if the card title is shown
-      final titleFinder = find.textContaining(WalletMockData.card.front.title.testValue);
+      final titleFinder = find.textContaining(WalletMockData.card.title.testValue);
       expect(titleFinder, findsOneWidget);
     });
 
@@ -78,5 +79,37 @@ void main() {
       // Validate the onTap listener was called
       expect(listenerTriggered, isTrue);
     });
+  });
+
+  group('goldens', () {
+    testGoldens(
+      'shared attributes with simple rendering card - light mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: const Size(328, 200),
+          SharedAttributesCard(
+            card: WalletMockData.simpleRenderingCard,
+            attributes: WalletMockData.simpleRenderingCard.attributes + WalletMockData.simpleRenderingCard.attributes,
+            onTap: () {},
+          ),
+        );
+        await screenMatchesGolden(tester, 'shared_attributes/simple');
+      },
+    );
+    testGoldens(
+      'shared attributes with mock rendering card - dark mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: const Size(328, 192),
+          SharedAttributesCard(
+            card: WalletMockData.card,
+            attributes: WalletMockData.card.attributes,
+            onTap: () {},
+          ),
+          brightness: Brightness.dark,
+        );
+        await screenMatchesGolden(tester, 'shared_attributes/mock');
+      },
+    );
   });
 }

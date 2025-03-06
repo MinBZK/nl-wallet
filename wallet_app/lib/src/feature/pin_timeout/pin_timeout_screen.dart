@@ -83,6 +83,7 @@ class PinTimeoutScreen extends StatelessWidget {
               primaryButton: PrimaryButton(
                 text: Text.rich(context.l10n.pinTimeoutScreenClearWalletCta.toTextSpan(context)),
                 onPressed: () => ResetWalletDialog.show(context),
+                icon: const Icon(Icons.delete_outline_rounded),
               ),
               secondaryButton: SecondaryButton(
                 text: Text.rich(context.l10n.pinTimeoutScreenForgotPinCta.toTextSpan(context)),

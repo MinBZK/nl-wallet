@@ -6,7 +6,8 @@
   artifacts:
     when: always
     paths:
-      - uiautomation/build/test-results
+      - uiautomation/build/test-results/**/*.xml
+      - uiautomation/build/allure-results
       - uiautomation/build/reports
     reports:
       junit: uiautomation/build/test-results/**/*.xml
@@ -35,25 +36,19 @@
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
   needs:
-    - job: build-wallet-provider-image
+    - job: deploy-mock-relying-party-demo
       artifacts: false
       optional: true
-    - job: build-wp-migrations-image
+    - job: deploy-wallet-provider-ont
       artifacts: false
       optional: true
-    - job: build-ws-migrations-image
+    - job: deploy-pid-issuer-ont
       artifacts: false
       optional: true
-    - job: build-mock-relying-party-image
+    - job: deploy-update-policy-server-ont
       artifacts: false
       optional: true
-    - job: build-wallet-server-image
-      artifacts: false
-      optional: true
-    - job: build-verification-server-image
-      artifacts: false
-      optional: true
-    - job: build-pid-issuer-image
+    - job: deploy-gba-hc-converter-ont
       artifacts: false
       optional: true
   rules:
@@ -124,8 +119,8 @@ run-automation-tests-publish-results:
     - { job: run-automation-tests-suite-lock }
     - { job: run-automation-tests-suite-web }
   script:
-    - zip e2e.zip uiautomation/build/test-results/test/*.xml
-    - deploy/bin/store-artifact.sh e2e.zip qt/quality-time/junit-results/
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/e2e.zip uiautomation/build/test-results/test/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/e2e.zip uiautomation/build/allure-results/*
 
 run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
@@ -179,10 +174,12 @@ run-mrp-browsertest-test-ont:
     MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: "${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}"
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/mock-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-mrp.zip browsertests/packages/mock-relying-party/allure-results/*
   artifacts:
     when: always
     paths:
-      - browsertests/packages/mock-relying-party/test-results/
+      - browsertests/packages/mock-relying-party/test-results/*.xml
+      - browsertests/packages/mock-relying-party/allure-results/
     reports:
       junit: browsertests/packages/mock-relying-party/test-results/*.xml
   allow_failure: false
@@ -204,10 +201,12 @@ run-fallback-page-browsertest-test-ont:
     UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-fallback-pages.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip browsertests/packages/fallback-pages/allure-results/*
   artifacts:
     when: always
     paths:
-      - browsertests/packages/fallback-pages/test-results/
+      - browsertests/packages/fallback-pages/test-results/*.xml
+      - browsertests/packages/fallback-pages/allure-results/
     reports:
       junit: browsertests/packages/fallback-pages/test-results/*.xml
   allow_failure: false
@@ -234,12 +233,13 @@ run-gba-fetch-browsertest-test-ont:
     npm run test:authenticated
     npm run test:unauthenticated
   after_script:
-    - zip -r browsertest-gbafetch.zip browsertests/packages/gba-fetch/ -i "*.xml"
-    - deploy/bin/store-artifact.sh browsertest-gbafetch.zip qt/quality-time/junit-results/browsertest-gbafetch.zip
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/test-results-*/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/allure-results/*
   artifacts:
     when: always
     paths:
-      - browsertests/packages/gba-fetch/test-results*/
+      - browsertests/packages/gba-fetch/test-results-*/*.xml
+      - browsertests/packages/gba-fetch/allure-results/
     reports:
       junit: browsertests/packages/gba-fetch/test-results*/*.xml
   allow_failure: false

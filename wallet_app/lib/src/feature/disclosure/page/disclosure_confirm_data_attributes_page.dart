@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/context_mapper.dart';

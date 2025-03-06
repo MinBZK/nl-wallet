@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/issuance/continue_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
@@ -13,7 +14,6 @@ import '../../../domain/model/multiple_cards_flow.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
-import '../../../domain/model/wallet_card.dart';
 import '../../../domain/usecase/issuance/accept_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/continue_issuance_usecase.dart';

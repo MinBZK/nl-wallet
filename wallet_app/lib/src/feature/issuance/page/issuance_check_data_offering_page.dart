@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/page/check_data_offering_page.dart';
@@ -11,12 +11,12 @@ import '../../common/widget/button/secondary_button.dart';
 class IssuanceCheckDataOfferingPage extends StatelessWidget {
   final VoidCallback onDeclinePressed;
   final VoidCallback onAcceptPressed;
-  final List<DataAttribute> attributes;
+  final WalletCard offeredCard;
 
   const IssuanceCheckDataOfferingPage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
-    required this.attributes,
+    required this.offeredCard,
     super.key,
   });
 
@@ -24,7 +24,7 @@ class IssuanceCheckDataOfferingPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return CheckDataOfferingPage(
       bottomSection: _buildBottomSection(context),
-      attributes: attributes,
+      offeredCard: offeredCard,
       title: context.l10n.issuanceCheckDataOfferingPageTitle,
       subtitle: context.l10n.issuanceCheckDataOfferingPageSubtitle,
     );

@@ -41,7 +41,7 @@ class WalletEventStatusTitleMapper extends ContextMapper<WalletEvent, String> {
     };
   }
 
-  String mapIssuanceEvent(BuildContext context, IssuanceEvent input) => input.card.front.title.l10nValue(context);
+  String mapIssuanceEvent(BuildContext context, IssuanceEvent input) => input.card.title.l10nValue(context);
 
   String mapSignEvent(BuildContext context, SignEvent event) {
     return switch (event.status) {

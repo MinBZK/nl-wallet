@@ -1,6 +1,7 @@
-import 'dart:ui';
-
+import 'package:flutter/cupertino.dart';
 import 'package:intl/locale.dart' as intl;
+
+import 'build_context_extension.dart';
 
 extension LocaleExtension on Locale {
   static Locale? tryParseLocale(String rawLocale) {
@@ -14,4 +15,6 @@ extension LocaleExtension on Locale {
     }
     return null;
   }
+
+  bool matchesCurrentLanguage(BuildContext context) => languageCode == context.localeName;
 }

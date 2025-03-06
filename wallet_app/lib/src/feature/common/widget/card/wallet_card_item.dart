@@ -1,106 +1,113 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../../environment.dart';
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/card_front.dart';
+import '../../../../domain/model/card/card_front.dart';
+import '../../../../domain/model/card/metadata/card_rendering.dart';
+import '../../../../domain/model/card/wallet_card.dart';
+import '../../../../theme/base_wallet_theme.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/locale_extension.dart';
 import '../../../../util/extension/object_extension.dart';
 import '../../../../util/extension/string_extension.dart';
-import '../../../../util/extension/text_style_extension.dart';
 import '../animated_fade_in.dart';
 import '../animated_fade_out.dart';
-import '../svg_or_image.dart';
-import 'card_holograph.dart';
+import '../text/body_text.dart';
+import '../text/headline_small_text.dart';
+import '../utility/disable_text_scaling.dart';
 import 'card_logo.dart';
+import 'card_network_logo.dart';
+import 'mock_card_background.dart';
 import 'show_details_cta.dart';
 
-const _kCardRenderSize = Size(328, 192);
+// Fallback colors used when the issuer does not supply (both) a text and background color.
+// The reason we fall back to these colors even if only one of them is missing is to guarantee
+// sufficient contrast between the text- and background color.
+Color _kFallbackBgColor = const Color(0xFFEEEFF7);
+Color _kFallbackTextColor = const Color(0xFF152A62);
+
+// Default card size constraints, configured so the card can expand vertically.
+const _kCardSizeConstraints = BoxConstraints(maxWidth: 328, minHeight: 192);
 const _kCardBorderRadius = BorderRadius.all(Radius.circular(12));
 const _kCardContentPadding = 24.0;
-const _kLightBrightnessTextColor = LightWalletTheme.textColor;
-const _kDarkBrightnessTextColor = DarkWalletTheme.textColor;
 
 class WalletCardItem extends StatefulWidget {
   /// The cards title
   final String title;
 
-  /// The background asset, rendered as the background of the card
-  ///
-  /// This background is expected to be relatively long (portrait aspect ratio) so
-  /// that it can grow in size vertically to accommodate longer and scalable texts.
-  final String background;
-
-  /// Specifies the brightness of the card (mostly based on background)
-  ///
-  /// E.g. when card is said to be [Brightness.dark] the correct contrasting
-  /// text colors will be selected (i.e. light text colors).
-  final Brightness brightness;
-
   /// The cards subtitle, rendered below the title
-  final String? subtitle1;
+  final String? subtitle;
 
-  /// The cards secondary subtitle, rendered below the subtitle
-  final String? subtitle2;
+  /// The logo, rendered in the top right corner
+  final Widget? logo;
 
-  /// The logo asset rendered in the top right corner
-  final String? logo;
+  // The background, rendered behind the card's content
+  final Widget? background;
 
-  /// The holograph asset rendered behind the text
-  final String? holograph;
-
-  /// Specify how to animate the 'show details' cta on the initial build
-  final CtaAnimation? ctaAnimation;
+  // The textColor, used for the title, description and cta
+  final Color? textColor;
 
   /// Callback that is triggered when the card is clicked
   ///
-  /// 'Show Details' CTA will be hidden if [onPressed] is null.
+  /// 'View' CTA will be hidden if [onPressed] is null.
   final VoidCallback? onPressed;
+
+  /// Show the title & subtitle, defaults to true.
+  final bool showText;
 
   /// If the text should be scaled based on the device's textScaleFactor
   /// Worth disabling if widget is used as a thumbnail.
   final bool scaleText;
 
-  /// Show the title & subtitle, defaults to true.
-  final bool showText;
+  /// Specify how to animate the 'show details' cta on the initial build
+  final CtaAnimation? ctaAnimation;
 
   const WalletCardItem({
-    super.key,
     required this.title,
-    this.subtitle1,
-    this.subtitle2,
-    required this.background,
+    this.subtitle,
     this.logo,
-    this.holograph,
-    required this.brightness,
+    this.background,
+    this.textColor,
     this.onPressed,
-    this.ctaAnimation,
-    this.scaleText = true,
     this.showText = true,
+    this.scaleText = true,
+    this.ctaAnimation,
+    super.key,
   });
 
-  WalletCardItem.fromCardFront({
-    required BuildContext context,
-    required CardFront front,
-    this.onPressed,
-    this.ctaAnimation,
-    this.scaleText = true,
-    this.showText = true,
-    super.key,
-  })  : title = front.title.l10nValue(context),
-        background = front.backgroundImage,
-        logo = front.logoImage,
-        holograph = front.holoImage,
-        subtitle1 = front.subtitle?.l10nValue(context),
-        subtitle2 = front.info?.l10nValue(context),
-        brightness = front.theme == CardFrontTheme.light ? Brightness.light : Brightness.dark;
+  factory WalletCardItem.fromWalletCard(
+    BuildContext context,
+    WalletCard card, {
+    VoidCallback? onPressed,
+    CtaAnimation ctaAnimation = CtaAnimation.visible,
+    bool scaleText = true,
+    bool showText = true,
+    Key? key,
+  }) {
+    return WalletCardItem(
+      title: card.title.l10nValue(context),
+      // subtitle is to be replaced: PVW-4125
+      subtitle: card.description.l10nValue(context),
+      background: card.getL10nBackground(context),
+      logo: card.getL10nLogo(context),
+      textColor: card.getL10nTextColor(context),
+      onPressed: onPressed,
+      ctaAnimation: ctaAnimation,
+      scaleText: scaleText,
+      showText: showText,
+      key: key,
+    );
+  }
 
   @override
   State<WalletCardItem> createState() => _WalletCardItemState();
 
   static Widget buildShuttleCard(
     Animation<double> animation,
-    CardFront front, {
+    WalletCard card, {
     CtaAnimation ctaAnimation = CtaAnimation.visible,
   }) {
     final scaleTween = TweenSequence<double>(
@@ -148,9 +155,9 @@ class WalletCardItem extends StatefulWidget {
       animation: animation,
       child: Builder(
         builder: (context) {
-          return WalletCardItem.fromCardFront(
-            context: context,
-            front: front,
+          return WalletCardItem.fromWalletCard(
+            context,
+            card,
             ctaAnimation: ctaAnimation,
             onPressed: onPressed,
           );
@@ -177,149 +184,109 @@ class _WalletCardItemState extends State<WalletCardItem> {
   void initState() {
     super.initState();
     _statesController = WidgetStatesController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController.addListener(() => setState(() {})));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController.addListener(_onWidgetStateChanged));
   }
 
   @override
   void dispose() {
+    _statesController.removeListener(_onWidgetStateChanged);
     _statesController.dispose();
     super.dispose();
   }
 
+  void _onWidgetStateChanged() => setState(() {});
+
   @override
   Widget build(BuildContext context) {
-    return MediaQuery(
-      data: context.mediaQuery.copyWith(textScaler: widget.scaleText ? null : TextScaler.noScaling),
-      child: Theme(
-        data: _resolveTheme(context),
-        child: Builder(
-          builder: (context) {
-            return FittedBox(
-              child: Container(
-                constraints: BoxConstraints(
-                  maxWidth: _kCardRenderSize.width,
-                  minHeight: _kCardRenderSize.height,
-                ),
-                child: ClipRRect(
-                  borderRadius: _kCardBorderRadius,
-                  child: MergeSemantics(
-                    child: Stack(
-                      children: [
-                        _buildBackground(context),
-                        _buildHolograph(context, _kCardRenderSize.height),
-                        _buildContent(context),
-                        _buildPositionedShowDetailsCta(context),
-                        _buildRippleAndFocus(context),
-                      ],
+    final themeWithUpdatedTextColor = context.theme.copyWith(
+      textTheme: context.textTheme.apply(
+        bodyColor: widget.textColor,
+        displayColor: widget.textColor,
+        decoration: _statesController.value.isPressedOrFocused ? TextDecoration.underline : null,
+      ),
+    );
+    return Theme(
+      data: themeWithUpdatedTextColor,
+      child: DisableTextScaling(
+        disableTextScaling: !widget.scaleText,
+        child: FittedBox(
+          child: ConstrainedBox(
+            constraints: _kCardSizeConstraints,
+            child: ClipRRect(
+              borderRadius: _kCardBorderRadius,
+              child: MergeSemantics(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: _buildBackground(),
                     ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBackground(BuildContext context) {
-    return Positioned.fill(
-      child: ExcludeSemantics(
-        child: SvgOrImage(
-          asset: widget.background,
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHolograph(BuildContext context, double height) {
-    if (widget.holograph == null) return const SizedBox.shrink();
-    return Positioned(
-      top: 0,
-      right: 0,
-      height: height,
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: ExcludeSemantics(
-          child: CardHolograph(
-            holograph: widget.holograph!,
-            brightness: widget.brightness,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    return Focus(
-      // Prevents the card content from being focused
-      canRequestFocus: false,
-      descendantsAreFocusable: false,
-      child: Padding(
-        padding: const EdgeInsets.all(_kCardContentPadding),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Semantics(
-                    attributedLabel: context.l10n.cardTitleSemanticsLabel.toAttributedString(context),
-                    child: DefaultTextStyle(
-                      style: context.textTheme.displaySmall!.underlineWhenPressedOrFocused(_statesController.value),
-                      child: Text.rich((widget.title.takeIf((_) => widget.showText) ?? '').toTextSpan(context)),
+                    _buildContent(context),
+                    _buildPositionedShowDetailsCta(context),
+                    Positioned.fill(
+                      child: _buildRippleAndFocus(context),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  DefaultTextStyle(
-                    style: context.textTheme.bodyLarge!.underlineWhenPressedOrFocused(_statesController.value),
-                    child: Text.rich((widget.subtitle1.takeIf((_) => widget.showText) ?? '').toTextSpan(context)),
-                  ),
-                  const SizedBox(height: 4),
-                  DefaultTextStyle(
-                    style: context.textTheme.bodyLarge!.underlineWhenPressedOrFocused(_statesController.value),
-                    child: Text.rich((widget.subtitle2.takeIf((_) => widget.showText) ?? '').toTextSpan(context)),
-                  ),
-                  const SizedBox(height: 16),
-                  Opacity(
-                    /* guarantees correct spacing to 'show details' cta rendered at the bottom of the card */
-                    opacity: 0,
-                    child: _buildShowDetailsCta(context),
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                  ],
+                ),
               ),
             ),
-            if (widget.logo != null) const SizedBox(width: 16),
-            if (widget.logo != null) ExcludeSemantics(child: CardLogo(logo: widget.logo!)),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildRippleAndFocus(BuildContext context) {
-    return Positioned.fill(
-      child: ExcludeSemantics(
-        child: TextButton(
-          style: context.theme.textButtonTheme.style?.copyWith(
-            backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
-            padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+  Widget _buildBackground() => widget.background ?? const SizedBox.shrink();
+
+  Widget _buildContent(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(_kCardContentPadding),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(attributedLabel: context.l10n.cardTitleSemanticsLabel.toAttributedString(context)),
+                HeadlineSmallText(widget.title.takeIf((_) => widget.showText) ?? ''),
+                const SizedBox(height: 4),
+                BodyText(widget.subtitle.takeIf((_) => widget.showText) ?? ''),
+                Opacity(
+                  opacity: 0,
+                  child: _buildShowDetailsCta(context),
+                ), // guarantees correct spacing for the cta rendered at the bottom of the card
+              ],
+            ),
           ),
-          statesController: _statesController,
-          onPressed: widget.onPressed,
-          child: const SizedBox.shrink(),
+          SizedBox(width: widget.logo == null ? 0 : 16),
+          widget.logo ?? const SizedBox.shrink(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShowDetailsCta(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      descendantsAreFocusable: false, // Makes sure the cta doesn't receive separate focus
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: IntrinsicWidth(
+          child: ShowDetailsCta(
+            text: Text(context.l10n.showDetailsCta),
+            textColor: widget.textColor,
+            onPressed: widget.onPressed,
+          ),
         ),
       ),
     );
   }
 
   Widget _buildPositionedShowDetailsCta(BuildContext context) {
-    if (!_showDetailsCta) return const SizedBox.shrink();
+    final showDetailsCta = widget.onPressed != null;
+    if (!showDetailsCta) return const SizedBox.shrink();
     return Positioned(
       bottom: _kCardContentPadding,
       left: _kCardContentPadding,
@@ -334,39 +301,81 @@ class _WalletCardItemState extends State<WalletCardItem> {
     );
   }
 
-  Widget _buildShowDetailsCta(BuildContext context) {
-    return Focus(
-      // Prevents the button from being focused
-      canRequestFocus: false,
-      descendantsAreFocusable: false,
-      child: Row(
-        children: [
-          IntrinsicWidth(
-            child: ShowDetailsCta(
-              brightness: widget.brightness,
-              text: Text.rich(
-                context.l10n.showDetailsCta.toTextSpan(context),
-              ),
-              onPressed: widget.onPressed,
-            ),
-          ),
-        ],
+  Widget _buildRippleAndFocus(BuildContext context) {
+    return ExcludeSemantics(
+      child: TextButton(
+        style: context.theme.textButtonTheme.style?.copyWith(
+          backgroundColor: const WidgetStatePropertyAll(Colors.transparent),
+          padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        ),
+        statesController: _statesController,
+        onPressed: widget.onPressed,
+        child: const SizedBox.shrink(),
       ),
     );
   }
+}
 
-  /// Resolve the [ThemeData] for the selected [widget.brightness], making sure the text contrasts the provided [widget.background]
-  ThemeData _resolveTheme(BuildContext context) {
-    final textColor = widget.brightness == Brightness.light ? _kLightBrightnessTextColor : _kDarkBrightnessTextColor;
-    return context.theme.copyWith(
-      textTheme: context.textTheme.apply(
-        bodyColor: textColor,
-        displayColor: textColor,
-      ),
-    );
+/// Helper methods to resolve the correct localisations for [WalletCard],
+/// To maintain the mock we check for the [CardFront] and build the UI
+/// based on that when it's available & a mock build.
+extension WalletCardRenderExtension on WalletCard {
+  CardRendering? getL10nRendering(BuildContext context) {
+    return metadata.firstWhereOrNull((metadata) {
+      return metadata.language.matchesCurrentLanguage(context) && metadata.rendering != null;
+    })?.rendering;
   }
 
-  bool get _showDetailsCta => widget.onPressed != null;
+  Widget getL10nBackground(BuildContext context) {
+    if (front != null) {
+      assert(Environment.mockRepositories || Environment.isTest, 'Front should only be used in mock or test builds');
+      return FittedBox(fit: BoxFit.cover, child: MockCardBackground(front: front!));
+    }
+    final rendering = getL10nRendering(context);
+    switch (rendering) {
+      case null:
+        return DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
+      case SimpleCardRendering():
+        final bgColor = rendering.bgColor.takeIf((_) => rendering.bgColor != null) ?? _kFallbackBgColor;
+        return DecoratedBox(decoration: BoxDecoration(color: bgColor));
+    }
+  }
+
+  Widget? getL10nLogo(BuildContext context) {
+    if (front?.logoImage != null) {
+      assert(Environment.mockRepositories || Environment.isTest, 'Front should only be used in mock or test builds');
+      return CardLogo(logo: front!.logoImage!);
+    }
+
+    final rendering = getL10nRendering(context);
+    switch (rendering) {
+      case null:
+        return null;
+      case SimpleCardRendering():
+        if (rendering.logoUri == null) return null;
+        return CardNetworkLogo(uri: rendering.logoUri!, altText: rendering.logoAltText);
+    }
+  }
+
+  Color getL10nTextColor(BuildContext context) {
+    if (front != null) {
+      assert(Environment.mockRepositories || Environment.isTest, 'Front should only be used in mock or test builds');
+      switch (front!.theme) {
+        case CardFrontTheme.light:
+          return LightWalletTheme.textColor;
+        case CardFrontTheme.dark:
+          return DarkWalletTheme.textColor;
+      }
+    }
+
+    final rendering = getL10nRendering(context);
+    switch (rendering) {
+      case null:
+        return _kFallbackTextColor;
+      case SimpleCardRendering():
+        return rendering.textColor.takeIf((_) => rendering.bgColor != null) ?? _kFallbackTextColor;
+    }
+  }
 }
 
 enum CtaAnimation { fadeIn, fadeOut, visible, invisible }

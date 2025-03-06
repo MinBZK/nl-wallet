@@ -30,7 +30,7 @@ void main() {
     return core.Attestation(
       identity: const core.AttestationIdentity.ephemeral(),
       attestationType: attestationType,
-      displayMetadata: [CoreMockData.displayMetadata],
+      displayMetadata: [CoreMockData.enDisplayMetadata],
       attributes: attributes,
       issuer: _kSampleIssuer,
     );

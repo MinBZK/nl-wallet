@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import 'attribute/converter/localized_string_converter.dart';
-import 'localized_text.dart';
+import '../attribute/converter/localized_string_converter.dart';
+import '../localized_text.dart';
 
 part 'card_front.g.dart';
 

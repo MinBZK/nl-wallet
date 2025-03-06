@@ -6,6 +6,7 @@ export default defineConfig({
   reporter: [
     ["list"],
     ["junit", { outputFile: "../test-results-authenticated/results_authenticated.xml" }],
+    ["allure-playwright"],
   ],
   projects: [
     {

@@ -91,6 +91,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionError dco_decode_box_autoadd_wallet_instruction_error(dynamic raw);
 
   @protected
+  ClaimDisplayMetadata dco_decode_claim_display_metadata(dynamic raw);
+
+  @protected
   DisclosureSessionType dco_decode_disclosure_session_type(dynamic raw);
 
   @protected
@@ -125,6 +128,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw);
+
+  @protected
+  List<ClaimDisplayMetadata> dco_decode_list_claim_display_metadata(dynamic raw);
 
   @protected
   List<DisplayMetadata> dco_decode_list_display_metadata(dynamic raw);
@@ -271,6 +277,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   WalletInstructionError sse_decode_box_autoadd_wallet_instruction_error(SseDeserializer deserializer);
 
   @protected
+  ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer);
+
+  @protected
   DisclosureSessionType sse_decode_disclosure_session_type(SseDeserializer deserializer);
 
   @protected
@@ -305,6 +314,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer);
+
+  @protected
+  List<ClaimDisplayMetadata> sse_decode_list_claim_display_metadata(SseDeserializer deserializer);
 
   @protected
   List<DisplayMetadata> sse_decode_list_display_metadata(SseDeserializer deserializer);
@@ -544,6 +556,17 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  ffi.Pointer<wire_cst_list_claim_display_metadata> cst_encode_list_claim_display_metadata(
+      List<ClaimDisplayMetadata> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_claim_display_metadata(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_claim_display_metadata(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
   ffi.Pointer<wire_cst_list_display_metadata> cst_encode_list_display_metadata(List<DisplayMetadata> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_display_metadata(raw.length);
@@ -668,7 +691,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_attestation_attribute(AttestationAttribute apiObj, wire_cst_attestation_attribute wireObj) {
     wireObj.key = cst_encode_String(apiObj.key);
-    wireObj.labels = cst_encode_list_localized_string(apiObj.labels);
+    wireObj.labels = cst_encode_list_claim_display_metadata(apiObj.labels);
     cst_api_fill_to_wire_attribute_value(apiObj.value, wireObj.value);
   }
 
@@ -745,6 +768,14 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_box_autoadd_wallet_instruction_error(
       WalletInstructionError apiObj, ffi.Pointer<wire_cst_wallet_instruction_error> wireObj) {
     cst_api_fill_to_wire_wallet_instruction_error(apiObj, wireObj.ref);
+  }
+
+  @protected
+  void cst_api_fill_to_wire_claim_display_metadata(
+      ClaimDisplayMetadata apiObj, wire_cst_claim_display_metadata wireObj) {
+    wireObj.lang = cst_encode_String(apiObj.lang);
+    wireObj.label = cst_encode_String(apiObj.label);
+    wireObj.description = cst_encode_opt_String(apiObj.description);
   }
 
   @protected
@@ -1081,6 +1112,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_wallet_instruction_error(WalletInstructionError self, SseSerializer serializer);
 
   @protected
+  void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer);
+
+  @protected
   void sse_encode_disclosure_session_type(DisclosureSessionType self, SseSerializer serializer);
 
   @protected
@@ -1115,6 +1149,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_claim_display_metadata(List<ClaimDisplayMetadata> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_display_metadata(List<DisplayMetadata> self, SseSerializer serializer);
@@ -1772,6 +1809,16 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_list_attestation_attribute = _cst_new_list_attestation_attributePtr
       .asFunction<ffi.Pointer<wire_cst_list_attestation_attribute> Function(int)>();
 
+  ffi.Pointer<wire_cst_list_claim_display_metadata> cst_new_list_claim_display_metadata(int len) {
+    return _cst_new_list_claim_display_metadata(len);
+  }
+
+  late final _cst_new_list_claim_display_metadataPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_claim_display_metadata> Function(ffi.Int32)>>(
+          'frbgen_wallet_core_cst_new_list_claim_display_metadata');
+  late final _cst_new_list_claim_display_metadata = _cst_new_list_claim_display_metadataPtr
+      .asFunction<ffi.Pointer<wire_cst_list_claim_display_metadata> Function(int)>();
+
   ffi.Pointer<wire_cst_list_display_metadata> cst_new_list_display_metadata(
     int len,
   ) {
@@ -1980,6 +2027,21 @@ final class wire_cst_organization extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> country_code;
 }
 
+final class wire_cst_claim_display_metadata extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> lang;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> label;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> description;
+}
+
+final class wire_cst_list_claim_display_metadata extends ffi.Struct {
+  external ffi.Pointer<wire_cst_claim_display_metadata> ptr;
+
+  @ffi.Int32()
+  external int len;
+}
+
 final class wire_cst_AttributeValue_String extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
 }
@@ -2012,7 +2074,7 @@ final class wire_cst_attribute_value extends ffi.Struct {
 final class wire_cst_attestation_attribute extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> key;
 
-  external ffi.Pointer<wire_cst_list_localized_string> labels;
+  external ffi.Pointer<wire_cst_list_claim_display_metadata> labels;
 
   external wire_cst_attribute_value value;
 }
