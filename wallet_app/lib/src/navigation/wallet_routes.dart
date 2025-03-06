@@ -29,7 +29,6 @@ import '../feature/history/detail/bloc/history_detail_bloc.dart';
 import '../feature/history/detail/history_detail_screen.dart';
 import '../feature/history/overview/bloc/history_overview_bloc.dart';
 import '../feature/history/overview/history_overview_screen.dart';
-import '../feature/introduction/introduction_conditions_screen.dart';
 import '../feature/introduction/introduction_privacy_screen.dart';
 import '../feature/introduction/introduction_screen.dart';
 import '../feature/issuance/argument/issuance_screen_argument.dart';
@@ -75,7 +74,6 @@ class WalletRoutes {
     splashRoute,
     introductionRoute,
     introductionPrivacyRoute,
-    introductionConditionsRoute,
     aboutRoute,
     setupSecurityRoute,
     pinRoute,
@@ -91,7 +89,6 @@ class WalletRoutes {
   static const splashRoute = '/';
   static const introductionRoute = '/introduction';
   static const introductionPrivacyRoute = '/introduction/privacy';
-  static const introductionConditionsRoute = '/introduction/conditions';
   static const aboutRoute = '/about';
   static const setupSecurityRoute = '/security/setup';
   static const pinRoute = '/pin';
@@ -151,8 +148,6 @@ class WalletRoutes {
         return _createIntroductionScreenBuilder;
       case WalletRoutes.introductionPrivacyRoute:
         return _createIntroductionPrivacyScreenBuilder;
-      case WalletRoutes.introductionConditionsRoute:
-        return _createIntroductionConditionsScreenBuilder;
       case WalletRoutes.aboutRoute:
         return _createAboutScreenBuilder;
       case WalletRoutes.pinRoute:
@@ -226,8 +221,6 @@ Widget _createQrScreenBuilder(BuildContext context) => BlocProvider<QrBloc>(
 Widget _createIntroductionScreenBuilder(BuildContext context) => const IntroductionScreen();
 
 Widget _createIntroductionPrivacyScreenBuilder(BuildContext context) => const IntroductionPrivacyScreen();
-
-Widget _createIntroductionConditionsScreenBuilder(BuildContext context) => const IntroductionConditionsScreen();
 
 Widget _createAboutScreenBuilder(BuildContext context) => const AboutScreen();
 

@@ -1,18 +1,41 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 188
 description: "BSN: 999990640"
 expression: attributes
 ---
 {
-  "com.example.pid__given_name": String("Marthe"),
-  "com.example.pid__family_name": String("de Jager"),
-  "com.example.pid__birth_date": Date("1998-01-01"),
-  "com.example.pid__age_over_18": Boolean(true),
-  "com.example.pid__bsn": String("999990640"),
-  "com.example.address__resident_street": String("Leyweg"),
-  "com.example.address__resident_house_number": String("1485"),
-  "com.example.address__resident_postal_code": String("2548AE"),
-  "com.example.address__resident_city": String("\'s-Gravenhage"),
-  "com.example.address__resident_country": String("Nederland"),
+  "com.example.pid": {
+    [
+      "family_name",
+    ]: "de Jager",
+    [
+      "given_name",
+    ]: "Marthe",
+    [
+      "birth_date",
+    ]: "1998-01-01",
+    [
+      "age_over_18",
+    ]: true,
+    [
+      "bsn",
+    ]: "999990640",
+  },
+  "com.example.address": {
+    [
+      "resident_street",
+    ]: "Leyweg",
+    [
+      "resident_house_number",
+    ]: "1485",
+    [
+      "resident_postal_code",
+    ]: "2548AE",
+    [
+      "resident_city",
+    ]: "\'s-Gravenhage",
+    [
+      "resident_country",
+    ]: "Nederland",
+  },
 }

@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
-use openid4vc::attributes::IssuableDocument;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;

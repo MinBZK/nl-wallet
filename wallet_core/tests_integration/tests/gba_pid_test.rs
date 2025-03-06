@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use rstest::rstest;
 use uuid::Uuid;
 
@@ -171,12 +172,26 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
         }
     };
 
+    // Convert the attributes data to a two-dimensional `IndexMap`, so that the metadata order is preserved.
+    let attributes = attestations
+        .into_iter()
+        .map(|attestation| {
+            let attributes = attestation
+                .attributes
+                .into_iter()
+                .map(|attribute| (attribute.key.clone(), attribute.value))
+                .collect::<IndexMap<_, _>>();
+
+            (attestation.attestation_type.clone(), attributes)
+        })
+        .collect::<IndexMap<_, _>>();
+
     insta::with_settings!({
         description => format!("BSN: {}", bsn),
         snapshot_suffix => bsn,
         prepend_module_to_snapshot => false,
     }, {
-        insta::assert_ron_snapshot!(attestations);
+        insta::assert_ron_snapshot!(attributes);
     });
 
     Ok(())

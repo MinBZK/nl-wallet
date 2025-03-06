@@ -41,7 +41,6 @@ use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
 use crate::attributes::AttributeError;
-use crate::attributes::IssuableDocument;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
@@ -55,6 +54,7 @@ use crate::credential_payload::CredentialPayload;
 use crate::credential_payload::CredentialPayloadError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
+use crate::issuable_document::IssuableDocument;
 use crate::metadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerMetadata;
@@ -174,8 +174,6 @@ pub enum CredentialRequestError {
     MissingPoa,
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
-    #[error("error converting unsigned mdoc to credential_payload: {0}")]
-    CredentialPayload(#[from] CredentialPayloadError),
     #[error("error verifying type metadata integrity: {0}")]
     TypeMetadata(#[from] TypeMetadataError),
 }
@@ -630,7 +628,7 @@ impl Session<Created> {
                 let unsigned_mdoc =
                     doc.document
                         .to_unsigned_mdoc(doc.valid_from.into(), doc.valid_until.into(), doc.copy_count)?;
-                let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
+                let credential_payload = CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?;
                 credential_payload.validate(&doc.metadata_chain)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)
@@ -1002,9 +1000,6 @@ impl CredentialResponse {
                 let cose_pubkey = (&holder_pubkey)
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
-
-                let credential_payload = CredentialPayload::from_unsigned_mdoc(&unsigned_mdoc)?;
-                credential_payload.validate(&metadata_chain)?;
 
                 let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)
                     .await

@@ -3,13 +3,9 @@ use url::Url;
 use wallet::errors::DisclosureError;
 use wallet::mdoc::ReaderRegistration;
 use wallet::openid4vc::SessionType;
-use wallet::DisclosureDocument;
 use wallet::DisclosureProposal;
-use wallet::MissingDisclosureAttributes;
 
-use crate::models::attestation::AttestationAttribute;
-use crate::models::attestation::DisplayMetadata;
-
+use super::attestation::Attestation;
 use super::instruction::WalletInstructionError;
 use super::localize::LocalizedString;
 
@@ -47,13 +43,6 @@ pub struct MissingAttribute {
     pub labels: Vec<LocalizedString>,
 }
 
-pub struct DisclosureCard {
-    pub issuer: Organization,
-    pub doc_type: String,
-    pub attributes: Vec<AttestationAttribute>,
-    pub display_metadata: Vec<DisplayMetadata>,
-}
-
 pub enum DisclosureStatus {
     Success,
     Cancelled,
@@ -83,7 +72,7 @@ pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
         policy: RequestPolicy,
-        requested_cards: Vec<DisclosureCard>,
+        requested_attestations: Vec<Attestation>,
         shared_data_with_relying_party_before: bool,
         session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
@@ -173,23 +162,6 @@ impl From<&ReaderRegistration> for RequestPolicy {
     }
 }
 
-impl DisclosureCard {
-    fn from_disclosure_documents(documents: Vec<DisclosureDocument>) -> Vec<Self> {
-        documents.into_iter().map(DisclosureCard::from).collect()
-    }
-}
-
-impl From<DisclosureDocument> for DisclosureCard {
-    fn from(value: DisclosureDocument) -> Self {
-        DisclosureCard {
-            issuer: value.issuer_registration.organization.into(),
-            doc_type: value.doc_type.to_string(),
-            attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
-            display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
-        }
-    }
-}
-
 impl From<bool> for DisclosureType {
     fn from(value: bool) -> Self {
         if value {
@@ -200,23 +172,21 @@ impl From<bool> for DisclosureType {
     }
 }
 
-impl MissingAttribute {
-    fn from_missing_disclosure_attributes(attributes: Vec<MissingDisclosureAttributes>) -> Vec<Self> {
-        attributes
-            .into_iter()
-            .flat_map(|doc_attributes| doc_attributes.attributes.into_iter())
-            .map(|(_, labels)| {
-                let labels = labels
-                    .into_iter()
-                    .map(|(language, value)| LocalizedString {
-                        language: language.to_string(),
-                        value: value.to_string(),
-                    })
-                    .collect::<Vec<_>>();
+// TODO (PVW-3813): Actually translate the missing attributes using the TAS cache.
+impl From<String> for MissingAttribute {
+    fn from(value: String) -> Self {
+        const LANGUAGES: &[&str] = &["nl", "en"];
 
-                MissingAttribute { labels }
+        let labels = LANGUAGES
+            .iter()
+            .zip(itertools::repeat_n(value, LANGUAGES.len()))
+            .map(|(language, value)| LocalizedString {
+                language: language.to_string(),
+                value,
             })
-            .collect::<Vec<_>>()
+            .collect();
+
+        Self { labels }
     }
 }
 
@@ -232,7 +202,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_cards: DisclosureCard::from_disclosure_documents(proposal.documents),
+                    requested_attestations: proposal.attestations.into_iter().map(Attestation::from).collect(),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     session_type: proposal.session_type.into(),
                     request_purpose,
@@ -251,7 +221,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 } => {
                     let request_purpose: Vec<LocalizedString> =
                         RPLocalizedStrings(reader_registration.purpose_statement).into();
-                    let missing_attributes = MissingAttribute::from_missing_disclosure_attributes(missing_attributes);
+                    let missing_attributes = missing_attributes.into_iter().map(MissingAttribute::from).collect();
                     let result = StartDisclosureResult::RequestAttributesMissing {
                         relying_party: reader_registration.organization.into(),
                         missing_attributes,

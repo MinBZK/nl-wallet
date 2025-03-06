@@ -918,7 +918,8 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
             .into_first(),
     };
 
-    let metadata = TypeMetadata::bsn_only_example();
+    // NOTE: This metadata does not match the attributes.
+    let metadata = TypeMetadata::empty_example();
     let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.

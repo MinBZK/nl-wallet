@@ -189,8 +189,9 @@ mod tests {
             .unwrap(),
             issuer_uri: issuance_key.certificate().san_dns_name_or_uris().unwrap().into_first(),
         };
-        let metadata_chain = TypeMetadataChain::create(TypeMetadata::bsn_only_example(), vec![]).unwrap();
 
+        // NOTE: This metadata does not match the attributes.
+        let metadata_chain = TypeMetadataChain::create(TypeMetadata::empty_example(), vec![]).unwrap();
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
         let issuer_signed = IssuerSigned::sign(unsigned.clone(), metadata_chain, device_key, &issuance_key)
             .await

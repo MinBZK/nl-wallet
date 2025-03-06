@@ -19,7 +19,7 @@ sealed class WalletEvent with _$WalletEvent {
     required String dateTime,
     required Organization relyingParty,
     required List<LocalizedString> purpose,
-    List<DisclosureCard>? requestedCards,
+    List<Attestation>? requestedAttestations,
     required RequestPolicy requestPolicy,
     required DisclosureStatus status,
     required DisclosureType typ,

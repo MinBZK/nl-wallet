@@ -1,4 +1,4 @@
-use derive_more::Debug;
+use derive_more::Display;
 use indexmap::IndexSet;
 
 use crate::holder::Mdoc;
@@ -10,8 +10,8 @@ use crate::iso::mdocs::NameSpace;
 use crate::utils::serialization::TaggedBytes;
 use crate::Document;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
-#[debug("{credential_type}/{namespace}/{attribute}")]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Clone)]
+#[display("{credential_type}/{namespace}/{attribute}")]
 pub struct AttributeIdentifier {
     pub credential_type: String,
     pub namespace: NameSpace,

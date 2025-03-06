@@ -5,7 +5,6 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
-import '../common/widget/loading_indicator.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_logo.dart';
 import 'bloc/splash_bloc.dart';
@@ -48,14 +47,12 @@ class SplashScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const WalletLogo(size: 80),
+            const WalletLogo(size: 100),
             const SizedBox(height: 16),
             Text(
               context.l10n.appTitle,
               style: context.textTheme.displaySmall,
             ),
-            const SizedBox(height: 16),
-            const LoadingIndicator(),
           ],
         ),
       ),

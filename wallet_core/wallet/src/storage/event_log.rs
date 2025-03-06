@@ -8,8 +8,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use uuid::Uuid;
 
-pub use entity::disclosure_history_event;
-pub use entity::issuance_history_event;
 use nl_wallet_mdoc::holder::Mdoc;
 use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
@@ -20,6 +18,9 @@ use nl_wallet_mdoc::DataElementIdentifier;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::DocType;
 use nl_wallet_mdoc::NameSpace;
+
+use entity::disclosure_history_event;
+use entity::issuance_history_event;
 
 use crate::document::DisclosureType;
 
@@ -255,9 +256,9 @@ impl TryFrom<Vec<Mdoc>> for EventDocuments {
         let doc_type_map = source
             .into_iter()
             .map(|mdoc| {
-                let doc_type = mdoc.doc_type().clone();
                 let issuer = mdoc.issuer_certificate()?;
-                let attributes = mdoc.attributes();
+                let doc_type = mdoc.mso.doc_type;
+                let attributes = mdoc.issuer_signed.into_entries_by_namespace();
                 Ok((doc_type, (issuer, attributes).into()))
             })
             .collect::<Result<IndexMap<_, _>, CoseError>>()?;

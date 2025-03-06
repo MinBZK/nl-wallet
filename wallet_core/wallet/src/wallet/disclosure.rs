@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
+use itertools::Itertools;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
@@ -14,8 +15,11 @@ use nl_wallet_mdoc::holder::MdocDataSource;
 use nl_wallet_mdoc::holder::ProposedAttributes;
 use nl_wallet_mdoc::holder::StoredMdoc;
 use nl_wallet_mdoc::utils::cose::CoseError;
+use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -25,6 +29,8 @@ use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
 
 use crate::account_provider::AccountProviderClient;
+use crate::attestation::Attestation;
+use crate::attestation::AttestationError;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
@@ -33,10 +39,7 @@ use crate::disclosure::MdocDisclosureMissingAttributes;
 use crate::disclosure::MdocDisclosureProposal;
 use crate::disclosure::MdocDisclosureSession;
 use crate::disclosure::MdocDisclosureSessionState;
-use crate::document::DisclosureDocument;
 use crate::document::DisclosureType;
-use crate::document::DocumentMdocError;
-use crate::document::MissingDisclosureAttributes;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
@@ -55,7 +58,7 @@ use super::Wallet;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposal {
-    pub documents: Vec<DisclosureDocument>,
+    pub attestations: Vec<Attestation>,
     pub reader_registration: ReaderRegistration,
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
@@ -87,12 +90,17 @@ pub enum DisclosureError {
     #[category(pd)] // Might reveal information about what attributes are stored in the Wallet
     AttributesNotAvailable {
         reader_registration: Box<ReaderRegistration>,
-        missing_attributes: Vec<MissingDisclosureAttributes>,
+        missing_attributes: Vec<String>,
         shared_data_with_relying_party_before: bool,
         session_type: SessionType,
     },
-    #[error("could not interpret (missing) mdoc attributes: {0}")]
-    MdocAttributes(#[source] DocumentMdocError),
+    #[error("could not extract issuer registration from stored mdoc certificate: {0}")]
+    IssuerRegistration(#[source] CertificateError),
+    #[error("stored mdoc certificate does not contain issuer registration")]
+    #[category(critical)]
+    MissingIssuerRegistration,
+    #[error("could not interpret attestation attributes: {0}")]
+    AttestationAttributes(#[source] AttestationError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[source] InstructionError),
     #[error("could not increment usage count of mdoc copies in database: {0}")]
@@ -194,39 +202,30 @@ where
 
         let proposal_session = match session.session_state() {
             MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
-                // Translate the missing attributes into a `Vec<MissingDisclosureAttributes>`.
-                // If this fails, return `DisclosureError::AttributeMdoc` instead.
-                info!(
-                    "At least one attribute is missing in order to satisfy the disclosure request, attempting to \
-                     translate to MissingDisclosureAttributes"
-                );
+                // TODO (PVW-3813): Attempt to translate the missing attributes using the TAS cache.
+                //                  If translation fails, the missing attributes cannot be presented to
+                //                  the user and we should simply never respond to the verifier in order
+                //                  to prevent gleaning of absence of attestation.
+                info!("At least one attribute is missing in order to satisfy the disclosure request");
 
-                let missing_attributes = missing_attr_session.missing_attributes().to_vec();
+                let reader_registration = session.reader_registration().clone().into();
+                let missing_attributes = missing_attr_session
+                    .missing_attributes()
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect();
                 let session_type = session.session_type();
-                let error = match MissingDisclosureAttributes::from_mdoc_missing_attributes(missing_attributes) {
-                    Ok(attributes) => {
-                        // If the missing attributes can be translated and shown to the user,
-                        // store the session so that it will only be terminated on user interaction.
-                        // This prevents gleaning of missing attributes by a verifier.
-                        let reader_registration = session.reader_registration().clone().into();
-                        self.disclosure_session.replace(session);
 
-                        DisclosureError::AttributesNotAvailable {
-                            reader_registration,
-                            missing_attributes: attributes,
-                            shared_data_with_relying_party_before,
-                            session_type,
-                        }
-                    }
-                    // NB: It is a known limitation that, if the missing attributes cannot be
-                    //     translated, the missing attributes cannot be presented to the user,
-                    //     thus user interaction cannot terminate the disclosure session. As
-                    //     a precaution to prevent gleaning of missing attributes we will
-                    //     simply never respond to the verifier in this case.
-                    Err(error) => DisclosureError::MdocAttributes(error),
-                };
+                // Store the session so that it will only be terminated on user interaction.
+                // This prevents gleaning of missing attributes by a verifier.
+                self.disclosure_session.replace(session);
 
-                return Err(error);
+                return Err(DisclosureError::AttributesNotAvailable {
+                    reader_registration,
+                    missing_attributes,
+                    shared_data_with_relying_party_before,
+                    session_type,
+                });
             }
             MdocDisclosureSessionState::Proposal(proposal_session) => proposal_session,
         };
@@ -238,16 +237,27 @@ where
 
         let is_login_flow = DisclosureType::from_proposed_attributes(&proposed_attributes).is_login_flow();
 
-        // Prepare a `Vec<ProposedDisclosureDocument>` to report to the caller.
-        let documents: Vec<DisclosureDocument> = proposed_attributes
+        // Prepare a list of proposed attestations to report to the caller.
+        let attestations: Vec<Attestation> = proposed_attributes
             .into_iter()
-            .map(|(doc_type, attributes)| DisclosureDocument::from_mdoc_attributes(&doc_type, attributes))
-            .collect::<Result<_, _>>()
-            .map_err(DisclosureError::MdocAttributes)?;
+            .map(|(doc_type, attributes)| {
+                let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
+                    .map_err(DisclosureError::IssuerRegistration)?
+                    .ok_or(DisclosureError::MissingIssuerRegistration)?;
+
+                Attestation::create_for_disclosure(
+                    doc_type,
+                    attributes.type_metadata,
+                    issuer_registration.organization,
+                    attributes.attributes,
+                )
+                .map_err(DisclosureError::AttestationAttributes)
+            })
+            .try_collect()?;
 
         // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.
         let proposal = DisclosureProposal {
-            documents,
+            attestations,
             reader_registration: session.reader_registration().clone(),
             shared_data_with_relying_party_before,
             session_type: session.session_type(),
@@ -582,6 +592,7 @@ mod tests {
     use nl_wallet_mdoc::test::data::PID;
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
+    use openid4vc::attributes::AttributeValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::ErrorResponse;
@@ -589,12 +600,12 @@ mod tests {
     use openid4vc::PostAuthResponseErrorCode;
     use sd_jwt::metadata::TypeMetadata;
 
+    use crate::attestation::AttestationError;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
     use crate::disclosure::MockMdocDisclosureProposal;
     use crate::disclosure::MockMdocDisclosureSession;
-    use crate::document::Attribute;
-    use crate::document::AttributeValue;
+    use crate::AttestationAttribute;
     use crate::EventStatus;
     use crate::HistoryEvent;
 
@@ -612,9 +623,9 @@ mod tests {
         IndexMap::from([(
             "com.example.pid".to_string(),
             ProposedDocumentAttributes {
+                type_metadata: TypeMetadata::example_with_claim_name(&name),
                 attributes: IndexMap::from([("com.example.pid".to_string(), vec![Entry { name, value }])]),
                 issuer: ISSUER_KEY.issuance_key.certificate().clone(),
-                display_metadata: TypeMetadata::bsn_only_example().display,
             },
         )])
     }
@@ -654,19 +665,16 @@ mod tests {
         // Test that the returned `DisclosureProposal` contains the
         // `ReaderRegistration` we set up earlier, as well as the
         // proposed attributes converted to a `ProposedDisclosureDocument`.
-        assert_eq!(proposal.documents.len(), 1);
-        let document = proposal.documents.first().unwrap();
-        assert_eq!(document.doc_type, "com.example.pid");
+        assert_eq!(proposal.attestations.len(), 1);
+        let document = proposal.attestations.first().unwrap();
+        assert_eq!(document.attestation_type, "com.example.pid");
         assert_eq!(document.attributes.len(), 1);
         assert_matches!(
             document.attributes.first().unwrap(),
-            (
-                &"age_over_18",
-                Attribute {
-                    key_labels: _,
-                    value: AttributeValue::Boolean(true)
-                }
-            )
+            AttestationAttribute {
+                value: AttributeValue::Bool(true),
+                ..
+            }
         );
 
         // Starting disclosure should not cause mdoc copy usage counts to be incremented.
@@ -824,47 +832,10 @@ mod tests {
                 missing_attributes,
                 shared_data_with_relying_party_before,
                 session_type: SessionType::SameDevice,
-            } if !shared_data_with_relying_party_before && missing_attributes[0].doc_type == "com.example.pid" &&
-                 *missing_attributes[0].attributes.first().unwrap().0 == "age_over_18"
+            } if !shared_data_with_relying_party_before &&
+                missing_attributes == vec!["com.example.pid/com.example.pid/age_over_18"]
         );
         assert!(wallet.disclosure_session.is_some());
-    }
-
-    #[tokio::test]
-    #[serial(MockMdocDisclosureSession)]
-    async fn test_wallet_start_disclosure_error_mdoc_attributes_not_available() {
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-
-        // Set up an `MdocDisclosureSession` start to return that attributes are not available.
-        let missing_attributes = vec!["com.example.pid/com.example.pid/foobar".parse().unwrap()];
-        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
-        missing_attr_session
-            .expect_missing_attributes()
-            .return_const(missing_attributes);
-
-        MockMdocDisclosureSession::next_fields(
-            ReaderRegistration::new_mock(),
-            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
-            None,
-        );
-
-        // Starting disclosure where an attribute that is both unavailable
-        // and unknown is requested should result in an error.
-        let error = wallet
-            .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
-            .await
-            .expect_err("Starting disclosure should have resulted in an error");
-
-        assert_matches!(
-            error,
-            DisclosureError::MdocAttributes(DocumentMdocError::UnknownAttribute {
-                doc_type,
-                name_space,
-                name,
-                value: None,
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foobar"
-        );
-        assert!(wallet.disclosure_session.is_none());
     }
 
     #[tokio::test]
@@ -873,8 +844,20 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let proposed_attributes =
-            setup_proposed_attributes("foo".to_string(), DataElementValue::Text("bar".to_string()));
+        let mut proposed_attributes =
+            setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+
+        proposed_attributes
+            .get_mut("com.example.pid")
+            .unwrap()
+            .attributes
+            .get_mut("com.example.pid")
+            .unwrap()
+            .push(Entry {
+                name: "foo".to_string(),
+                value: DataElementValue::Text("bar".to_string()),
+            });
+
         let proposal_session = MockMdocDisclosureProposal {
             proposed_attributes,
             ..Default::default()
@@ -894,12 +877,10 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::MdocAttributes(DocumentMdocError::UnknownAttribute {
-                doc_type,
-                name_space,
-                name,
-                value: Some(DataElementValue::Text(value)),
-            }) if doc_type == "com.example.pid" && name_space == "com.example.pid" && name == "foo" && value == "bar"
+            DisclosureError::AttestationAttributes(
+                AttestationError::AttributeNotProcessedByClaim(keys))
+                    if keys == HashSet::from([vec![String::from("foo")]]
+            )
         );
         assert!(wallet.disclosure_session.is_none());
     }
@@ -1139,11 +1120,12 @@ mod tests {
 
         // Verify a single Disclosure Success event is logged, and documents are shared
         assert_eq!(events.len(), 1);
+        // TODO: fix test after document has been removed from history: PVW-4096
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
                 status: EventStatus::Success,
-                attributes: Some(_),
+                attributes: None,
                 ..
             }
         );
@@ -1416,8 +1398,8 @@ mod tests {
     }
 
     #[rstest]
-    #[case(InstructionError::IncorrectPin { attempts_left_in_round: 1, is_final_round: false }, false, false)]
-    #[case(InstructionError::Timeout { timeout_millis: 10_000 }, true, true)]
+    #[case(InstructionError::IncorrectPin{ attempts_left_in_round: 1, is_final_round: false }, false, false)]
+    #[case(InstructionError::Timeout{ timeout_millis: 10_000 }, true, true)]
     #[case(InstructionError::Blocked, true, true)]
     #[case(InstructionError::InstructionValidation, false, true)]
     #[tokio::test]
@@ -1580,11 +1562,12 @@ mod tests {
         let events = events.lock().pop().unwrap();
         // Verify a Disclosure error event is logged, and documents are shared
         assert_eq!(events.len(), 1);
+        // TODO: fix test after document has been removed from history: PVW-4096
         assert_matches!(
             &events[0],
             HistoryEvent::Disclosure {
                 status: EventStatus::Error,
-                attributes: Some(_),
+                attributes: None,
                 ..
             }
         );

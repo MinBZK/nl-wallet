@@ -14,18 +14,21 @@ class BottomBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: ListButton(
-        onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(Icons.arrow_back),
-        mainAxisAlignment: MainAxisAlignment.center,
-        iconPosition: IconPosition.start,
-        dividerSide: DividerSide.top,
-        text: Text.rich(
-          context.l10n.generalBottomBackCta.toTextSpan(context),
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        ListButton(
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.arrow_back),
+          mainAxisAlignment: MainAxisAlignment.center,
+          iconPosition: IconPosition.start,
+          dividerSide: DividerSide.top,
+          text: Text.rich(
+            context.l10n.generalBottomBackCta.toTextSpan(context),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

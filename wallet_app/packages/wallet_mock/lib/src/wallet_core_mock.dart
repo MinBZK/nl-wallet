@@ -38,7 +38,8 @@ class WalletCoreMock implements WalletCoreApi {
       return _ongoingDisclosure = StartDisclosureResult.request(
         relyingParty: request.relyingParty,
         policy: request.policy,
-        requestedCards: _wallet.getDisclosureCards(request.requestedAttributes.map((attribute) => attribute.key)),
+        requestedAttestations:
+            _wallet.getRequestedAttestations(request.requestedAttributes.map((attribute) => attribute.key)),
         sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
         sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: requestOriginBaseUrl,

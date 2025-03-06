@@ -13,7 +13,7 @@ import '../disclosure_repository.dart';
 class CoreDisclosureRepository implements DisclosureRepository {
   final TypedWalletCore _walletCore;
 
-  final Mapper<core.DisclosureCard, WalletCard> _disclosureCardMapper;
+  final Mapper<core.Attestation, WalletCard> _attestationMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
@@ -23,7 +23,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
 
   CoreDisclosureRepository(
     this._walletCore,
-    this._disclosureCardMapper,
+    this._attestationMapper,
     this._relyingPartyMapper,
     this._missingAttributeMapper,
     this._requestPolicyMapper,
@@ -37,7 +37,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
     final result = await _walletCore.startDisclosure(disclosureUri, isQrCode: isQrCode);
     return result.map(
       request: (value) {
-        final cards = _disclosureCardMapper.mapList(value.requestedCards);
+        final cards = _attestationMapper.mapList(value.requestedAttestations);
         final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
         final relyingParty = _relyingPartyMapper.map(value.relyingParty);
         final policy = _requestPolicyMapper.map(value.policy);

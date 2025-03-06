@@ -28,12 +28,15 @@ build-wallet-web:
     - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
     - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
   after_script:
-    - deploy/bin/store-artifact.sh wallet_web/coverage/tests.xml qt/quality-time/junit-results/web.xml
+    - deploy/bin/store-artifact.sh wallet_web/test-results/junit.xml qt/quality-time/junit-results/web.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/web.zip wallet_web/allure-results/*
   artifacts:
     reports:
-      junit: wallet_web/coverage/tests.xml
+      junit: wallet_web/test-results/junit.xml
     paths:
       - wallet_web/dist
       - wallet_web/coverage
+      - wallet_web/test-results
+      - wallet_web/allure-results
       - wallet_core/mock_relying_party/assets/nl-wallet-web.*
       - wallet_core/mock_relying_party/hashes/*.txt

@@ -6,7 +6,7 @@ const kPinDigits = 6;
 const kMockPin = '123456';
 
 // Setup
-const kSetupSteps = 9;
+const kSetupSteps = 8;
 
 // Mocking
 const kDefaultMockDelay = Duration(milliseconds: 1000);

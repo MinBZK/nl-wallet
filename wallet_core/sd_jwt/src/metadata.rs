@@ -123,7 +123,7 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
 }
 
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct TypeMetadata {
     /// A String or URI that uniquely identifies the type.
@@ -213,7 +213,7 @@ impl TryFrom<&TypeMetadata> for Vec<u8> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum MetadataExtendsOption {
     Uri {
@@ -225,7 +225,7 @@ pub enum MetadataExtendsOption {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MetadataExtends {
     /// A URI of another type that this type extends.
     #[serde(with = "http_serde::uri")]
@@ -236,7 +236,7 @@ pub struct MetadataExtends {
     pub extends_integrity: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SchemaOption {
     Embedded {
@@ -255,7 +255,7 @@ pub enum SchemaOption {
 
 #[nutype(
     validate(with = validate_json_schema, error = TypeMetadataError),
-    derive(Debug, Clone, AsRef, Serialize, Deserialize)
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize)
 )]
 pub struct JsonSchema(serde_json::Value);
 
@@ -296,7 +296,7 @@ pub struct LogoMetadata {
     pub alt_text: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct ClaimMetadata {
     pub path: VecNonEmpty<ClaimPath>,
@@ -307,7 +307,7 @@ pub struct ClaimMetadata {
     pub svg_id: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ClaimPath {
     SelectByKey(String),
@@ -325,7 +325,7 @@ impl Display for ClaimPath {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClaimSelectiveDisclosureMetadata {
     Always,
@@ -334,7 +334,7 @@ pub enum ClaimSelectiveDisclosureMetadata {
     Never,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct ClaimDisplayMetadata {
     pub lang: String,
@@ -375,26 +375,26 @@ pub mod mock {
             }
         }
 
-        pub fn bsn_only_example() -> Self {
+        pub fn example_with_claim_name(name: &str) -> Self {
+            Self::example_with_claim_names(&[name])
+        }
+
+        pub fn example_with_claim_names(names: &[&str]) -> Self {
             Self {
-                vct: random_string(16),
-                name: Some(random_string(8)),
-                description: None,
-                extends: None,
-                display: vec![],
-                claims: vec![ClaimMetadata {
-                    path: vec![ClaimPath::SelectByKey(String::from("bsn"))].try_into().unwrap(),
-                    display: vec![ClaimDisplayMetadata {
-                        lang: String::from("en"),
-                        label: String::from("BSN"),
-                        description: None,
-                    }],
-                    sd: ClaimSelectiveDisclosureMetadata::Always,
-                    svg_id: None,
-                }],
-                schema: SchemaOption::Embedded {
-                    schema: JsonSchema::try_new(json!({})).unwrap(),
-                },
+                claims: names
+                    .iter()
+                    .map(|name| ClaimMetadata {
+                        path: vec![ClaimPath::SelectByKey(String::from(*name))].try_into().unwrap(),
+                        display: vec![ClaimDisplayMetadata {
+                            lang: String::from("en"),
+                            label: name.to_uppercase(),
+                            description: None,
+                        }],
+                        sd: ClaimSelectiveDisclosureMetadata::Always,
+                        svg_id: None,
+                    })
+                    .collect(),
+                ..Self::empty_example()
             }
         }
 

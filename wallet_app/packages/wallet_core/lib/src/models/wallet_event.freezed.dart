@@ -23,7 +23,7 @@ mixin _$WalletEvent {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)
@@ -37,7 +37,7 @@ mixin _$WalletEvent {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -51,7 +51,7 @@ mixin _$WalletEvent {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -130,7 +130,7 @@ abstract class _$$WalletEvent_DisclosureImplCopyWith<$Res> implements $WalletEve
       {String dateTime,
       Organization relyingParty,
       List<LocalizedString> purpose,
-      List<DisclosureCard>? requestedCards,
+      List<Attestation>? requestedAttestations,
       RequestPolicy requestPolicy,
       DisclosureStatus status,
       DisclosureType typ});
@@ -152,7 +152,7 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
     Object? dateTime = null,
     Object? relyingParty = null,
     Object? purpose = null,
-    Object? requestedCards = freezed,
+    Object? requestedAttestations = freezed,
     Object? requestPolicy = null,
     Object? status = null,
     Object? typ = null,
@@ -170,10 +170,10 @@ class __$$WalletEvent_DisclosureImplCopyWithImpl<$Res>
           ? _value._purpose
           : purpose // ignore: cast_nullable_to_non_nullable
               as List<LocalizedString>,
-      requestedCards: freezed == requestedCards
-          ? _value._requestedCards
-          : requestedCards // ignore: cast_nullable_to_non_nullable
-              as List<DisclosureCard>?,
+      requestedAttestations: freezed == requestedAttestations
+          ? _value._requestedAttestations
+          : requestedAttestations // ignore: cast_nullable_to_non_nullable
+              as List<Attestation>?,
       requestPolicy: null == requestPolicy
           ? _value.requestPolicy
           : requestPolicy // ignore: cast_nullable_to_non_nullable
@@ -197,12 +197,12 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
       {required this.dateTime,
       required this.relyingParty,
       required final List<LocalizedString> purpose,
-      final List<DisclosureCard>? requestedCards,
+      final List<Attestation>? requestedAttestations,
       required this.requestPolicy,
       required this.status,
       required this.typ})
       : _purpose = purpose,
-        _requestedCards = requestedCards,
+        _requestedAttestations = requestedAttestations,
         super._();
 
   @override
@@ -217,12 +217,12 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
     return EqualUnmodifiableListView(_purpose);
   }
 
-  final List<DisclosureCard>? _requestedCards;
+  final List<Attestation>? _requestedAttestations;
   @override
-  List<DisclosureCard>? get requestedCards {
-    final value = _requestedCards;
+  List<Attestation>? get requestedAttestations {
+    final value = _requestedAttestations;
     if (value == null) return null;
-    if (_requestedCards is EqualUnmodifiableListView) return _requestedCards;
+    if (_requestedAttestations is EqualUnmodifiableListView) return _requestedAttestations;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(value);
   }
@@ -236,7 +236,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
 
   @override
   String toString() {
-    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedCards: $requestedCards, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
+    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedAttestations: $requestedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
   }
 
   @override
@@ -247,7 +247,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._purpose, _purpose) &&
-            const DeepCollectionEquality().equals(other._requestedCards, _requestedCards) &&
+            const DeepCollectionEquality().equals(other._requestedAttestations, _requestedAttestations) &&
             (identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.typ, typ) || other.typ == typ));
@@ -255,7 +255,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
 
   @override
   int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
-      const DeepCollectionEquality().hash(_requestedCards), requestPolicy, status, typ);
+      const DeepCollectionEquality().hash(_requestedAttestations), requestPolicy, status, typ);
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -272,14 +272,14 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)
         disclosure,
     required TResult Function(String dateTime, Attestation attestation) issuance,
   }) {
-    return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
+    return disclosure(dateTime, relyingParty, purpose, requestedAttestations, requestPolicy, status, typ);
   }
 
   @override
@@ -289,14 +289,14 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
         disclosure,
     TResult? Function(String dateTime, Attestation attestation)? issuance,
   }) {
-    return disclosure?.call(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
+    return disclosure?.call(dateTime, relyingParty, purpose, requestedAttestations, requestPolicy, status, typ);
   }
 
   @override
@@ -306,7 +306,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -315,7 +315,7 @@ class _$WalletEvent_DisclosureImpl extends WalletEvent_Disclosure {
     required TResult orElse(),
   }) {
     if (disclosure != null) {
-      return disclosure(dateTime, relyingParty, purpose, requestedCards, requestPolicy, status, typ);
+      return disclosure(dateTime, relyingParty, purpose, requestedAttestations, requestPolicy, status, typ);
     }
     return orElse();
   }
@@ -357,7 +357,7 @@ abstract class WalletEvent_Disclosure extends WalletEvent {
       {required final String dateTime,
       required final Organization relyingParty,
       required final List<LocalizedString> purpose,
-      final List<DisclosureCard>? requestedCards,
+      final List<Attestation>? requestedAttestations,
       required final RequestPolicy requestPolicy,
       required final DisclosureStatus status,
       required final DisclosureType typ}) = _$WalletEvent_DisclosureImpl;
@@ -367,7 +367,7 @@ abstract class WalletEvent_Disclosure extends WalletEvent {
   String get dateTime;
   Organization get relyingParty;
   List<LocalizedString> get purpose;
-  List<DisclosureCard>? get requestedCards;
+  List<Attestation>? get requestedAttestations;
   RequestPolicy get requestPolicy;
   DisclosureStatus get status;
   DisclosureType get typ;
@@ -460,7 +460,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)
@@ -477,7 +477,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?
@@ -494,7 +494,7 @@ class _$WalletEvent_IssuanceImpl extends WalletEvent_Issuance {
             String dateTime,
             Organization relyingParty,
             List<LocalizedString> purpose,
-            List<DisclosureCard>? requestedCards,
+            List<Attestation>? requestedAttestations,
             RequestPolicy requestPolicy,
             DisclosureStatus status,
             DisclosureType typ)?

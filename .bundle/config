@@ -1,3 +1,2 @@
 ---
-BUNDLE_PATH: "vendor"
-BUNDLE_RETRY: "10"
+BUNDLE_PATH: "vendor/bundle"

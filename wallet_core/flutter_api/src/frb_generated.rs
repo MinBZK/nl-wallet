@@ -1082,7 +1082,7 @@ impl SseDecode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_key = <String>::sse_decode(deserializer);
-        let mut var_labels = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
+        let mut var_labels = <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_decode(deserializer);
         let mut var_value = <crate::models::attestation::AttributeValue>::sse_decode(deserializer);
         return crate::models::attestation::AttestationAttribute {
             key: var_key,
@@ -1142,18 +1142,16 @@ impl SseDecode for bool {
     }
 }
 
-impl SseDecode for crate::models::disclosure::DisclosureCard {
+impl SseDecode for crate::models::attestation::ClaimDisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
-        let mut var_docType = <String>::sse_decode(deserializer);
-        let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
-        let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
-        return crate::models::disclosure::DisclosureCard {
-            issuer: var_issuer,
-            doc_type: var_docType,
-            attributes: var_attributes,
-            display_metadata: var_displayMetadata,
+        let mut var_lang = <String>::sse_decode(deserializer);
+        let mut var_label = <String>::sse_decode(deserializer);
+        let mut var_description = <Option<String>>::sse_decode(deserializer);
+        return crate::models::attestation::ClaimDisplayMetadata {
+            lang: var_lang,
+            label: var_label,
+            description: var_description,
         };
     }
 }
@@ -1335,13 +1333,15 @@ impl SseDecode for Vec<crate::models::attestation::AttestationAttribute> {
     }
 }
 
-impl SseDecode for Vec<crate::models::disclosure::DisclosureCard> {
+impl SseDecode for Vec<crate::models::attestation::ClaimDisplayMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut len_ = <i32>::sse_decode(deserializer);
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
-            ans_.push(<crate::models::disclosure::DisclosureCard>::sse_decode(deserializer));
+            ans_.push(<crate::models::attestation::ClaimDisplayMetadata>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
@@ -1498,13 +1498,11 @@ impl SseDecode for Option<u64> {
     }
 }
 
-impl SseDecode for Option<Vec<crate::models::disclosure::DisclosureCard>> {
+impl SseDecode for Option<Vec<crate::models::attestation::Attestation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<Vec<crate::models::disclosure::DisclosureCard>>::sse_decode(
-                deserializer,
-            ));
+            return Some(<Vec<crate::models::attestation::Attestation>>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1617,7 +1615,8 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
             0 => {
                 let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
                 let mut var_policy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
-                let mut var_requestedCards = <Vec<crate::models::disclosure::DisclosureCard>>::sse_decode(deserializer);
+                let mut var_requestedAttestations =
+                    <Vec<crate::models::attestation::Attestation>>::sse_decode(deserializer);
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
                 let mut var_sessionType = <crate::models::disclosure::DisclosureSessionType>::sse_decode(deserializer);
                 let mut var_requestPurpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
@@ -1626,7 +1625,7 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 return crate::models::disclosure::StartDisclosureResult::Request {
                     relying_party: var_relyingParty,
                     policy: var_policy,
-                    requested_cards: var_requestedCards,
+                    requested_attestations: var_requestedAttestations,
                     shared_data_with_relying_party_before: var_sharedDataWithRelyingPartyBefore,
                     session_type: var_sessionType,
                     request_purpose: var_requestPurpose,
@@ -1693,8 +1692,8 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 let mut var_dateTime = <String>::sse_decode(deserializer);
                 let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
                 let mut var_purpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-                let mut var_requestedCards =
-                    <Option<Vec<crate::models::disclosure::DisclosureCard>>>::sse_decode(deserializer);
+                let mut var_requestedAttestations =
+                    <Option<Vec<crate::models::attestation::Attestation>>>::sse_decode(deserializer);
                 let mut var_requestPolicy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_status = <crate::models::disclosure::DisclosureStatus>::sse_decode(deserializer);
                 let mut var_typ = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
@@ -1702,7 +1701,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                     date_time: var_dateTime,
                     relying_party: var_relyingParty,
                     purpose: var_purpose,
-                    requested_cards: var_requestedCards,
+                    requested_attestations: var_requestedAttestations,
                     request_policy: var_requestPolicy,
                     status: var_status,
                     typ: var_typ,
@@ -1912,22 +1911,21 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::AttributeValu
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureCard {
+impl flutter_rust_bridge::IntoDart for crate::models::attestation::ClaimDisplayMetadata {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
-            self.issuer.into_into_dart().into_dart(),
-            self.doc_type.into_into_dart().into_dart(),
-            self.attributes.into_into_dart().into_dart(),
-            self.display_metadata.into_into_dart().into_dart(),
+            self.lang.into_into_dart().into_dart(),
+            self.label.into_into_dart().into_dart(),
+            self.description.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::DisclosureCard {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::DisclosureCard>
-    for crate::models::disclosure::DisclosureCard
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::ClaimDisplayMetadata {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::ClaimDisplayMetadata>
+    for crate::models::attestation::ClaimDisplayMetadata
 {
-    fn into_into_dart(self) -> crate::models::disclosure::DisclosureCard {
+    fn into_into_dart(self) -> crate::models::attestation::ClaimDisplayMetadata {
         self
     }
 }
@@ -2251,7 +2249,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
             crate::models::disclosure::StartDisclosureResult::Request {
                 relying_party,
                 policy,
-                requested_cards,
+                requested_attestations,
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
@@ -2261,7 +2259,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::StartDisclosur
                 0.into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 policy.into_into_dart().into_dart(),
-                requested_cards.into_into_dart().into_dart(),
+                requested_attestations.into_into_dart().into_dart(),
                 shared_data_with_relying_party_before.into_into_dart().into_dart(),
                 session_type.into_into_dart().into_dart(),
                 request_purpose.into_into_dart().into_dart(),
@@ -2308,7 +2306,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 date_time,
                 relying_party,
                 purpose,
-                requested_cards,
+                requested_attestations,
                 request_policy,
                 status,
                 typ,
@@ -2317,7 +2315,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 date_time.into_into_dart().into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 purpose.into_into_dart().into_dart(),
-                requested_cards.into_into_dart().into_dart(),
+                requested_attestations.into_into_dart().into_dart(),
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
                 typ.into_into_dart().into_dart(),
@@ -2494,7 +2492,7 @@ impl SseEncode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.key, serializer);
-        <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.labels, serializer);
+        <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_encode(self.labels, serializer);
         <crate::models::attestation::AttributeValue>::sse_encode(self.value, serializer);
     }
 }
@@ -2547,13 +2545,12 @@ impl SseEncode for bool {
     }
 }
 
-impl SseEncode for crate::models::disclosure::DisclosureCard {
+impl SseEncode for crate::models::attestation::ClaimDisplayMetadata {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
-        <String>::sse_encode(self.doc_type, serializer);
-        <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
-        <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
+        <String>::sse_encode(self.lang, serializer);
+        <String>::sse_encode(self.label, serializer);
+        <Option<String>>::sse_encode(self.description, serializer);
     }
 }
 
@@ -2729,12 +2726,12 @@ impl SseEncode for Vec<crate::models::attestation::AttestationAttribute> {
     }
 }
 
-impl SseEncode for Vec<crate::models::disclosure::DisclosureCard> {
+impl SseEncode for Vec<crate::models::attestation::ClaimDisplayMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
-            <crate::models::disclosure::DisclosureCard>::sse_encode(item, serializer);
+            <crate::models::attestation::ClaimDisplayMetadata>::sse_encode(item, serializer);
         }
     }
 }
@@ -2863,12 +2860,12 @@ impl SseEncode for Option<u64> {
     }
 }
 
-impl SseEncode for Option<Vec<crate::models::disclosure::DisclosureCard>> {
+impl SseEncode for Option<Vec<crate::models::attestation::Attestation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <Vec<crate::models::disclosure::DisclosureCard>>::sse_encode(value, serializer);
+            <Vec<crate::models::attestation::Attestation>>::sse_encode(value, serializer);
         }
     }
 }
@@ -2959,7 +2956,7 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
             crate::models::disclosure::StartDisclosureResult::Request {
                 relying_party,
                 policy,
-                requested_cards,
+                requested_attestations,
                 shared_data_with_relying_party_before,
                 session_type,
                 request_purpose,
@@ -2969,7 +2966,7 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 <i32>::sse_encode(0, serializer);
                 <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(policy, serializer);
-                <Vec<crate::models::disclosure::DisclosureCard>>::sse_encode(requested_cards, serializer);
+                <Vec<crate::models::attestation::Attestation>>::sse_encode(requested_attestations, serializer);
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(request_purpose, serializer);
@@ -3033,7 +3030,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 date_time,
                 relying_party,
                 purpose,
-                requested_cards,
+                requested_attestations,
                 request_policy,
                 status,
                 typ,
@@ -3042,7 +3039,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <String>::sse_encode(date_time, serializer);
                 <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(purpose, serializer);
-                <Option<Vec<crate::models::disclosure::DisclosureCard>>>::sse_encode(requested_cards, serializer);
+                <Option<Vec<crate::models::attestation::Attestation>>>::sse_encode(requested_attestations, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(request_policy, serializer);
                 <crate::models::disclosure::DisclosureStatus>::sse_encode(status, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
@@ -3334,14 +3331,13 @@ mod io {
             CstDecode::<crate::models::instruction::WalletInstructionError>::cst_decode(*wrap).into()
         }
     }
-    impl CstDecode<crate::models::disclosure::DisclosureCard> for wire_cst_disclosure_card {
+    impl CstDecode<crate::models::attestation::ClaimDisplayMetadata> for wire_cst_claim_display_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::disclosure::DisclosureCard {
-            crate::models::disclosure::DisclosureCard {
-                issuer: self.issuer.cst_decode(),
-                doc_type: self.doc_type.cst_decode(),
-                attributes: self.attributes.cst_decode(),
-                display_metadata: self.display_metadata.cst_decode(),
+        fn cst_decode(self) -> crate::models::attestation::ClaimDisplayMetadata {
+            crate::models::attestation::ClaimDisplayMetadata {
+                lang: self.lang.cst_decode(),
+                label: self.label.cst_decode(),
+                description: self.description.cst_decode(),
             }
         }
     }
@@ -3436,9 +3432,9 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
-    impl CstDecode<Vec<crate::models::disclosure::DisclosureCard>> for *mut wire_cst_list_disclosure_card {
+    impl CstDecode<Vec<crate::models::attestation::ClaimDisplayMetadata>> for *mut wire_cst_list_claim_display_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<crate::models::disclosure::DisclosureCard> {
+        fn cst_decode(self) -> Vec<crate::models::attestation::ClaimDisplayMetadata> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -3577,7 +3573,7 @@ mod io {
                     crate::models::disclosure::StartDisclosureResult::Request {
                         relying_party: ans.relying_party.cst_decode(),
                         policy: ans.policy.cst_decode(),
-                        requested_cards: ans.requested_cards.cst_decode(),
+                        requested_attestations: ans.requested_attestations.cst_decode(),
                         shared_data_with_relying_party_before: ans.shared_data_with_relying_party_before.cst_decode(),
                         session_type: ans.session_type.cst_decode(),
                         request_purpose: ans.request_purpose.cst_decode(),
@@ -3610,7 +3606,7 @@ mod io {
                         date_time: ans.date_time.cst_decode(),
                         relying_party: ans.relying_party.cst_decode(),
                         purpose: ans.purpose.cst_decode(),
-                        requested_cards: ans.requested_cards.cst_decode(),
+                        requested_attestations: ans.requested_attestations.cst_decode(),
                         request_policy: ans.request_policy.cst_decode(),
                         status: ans.status.cst_decode(),
                         typ: ans.typ.cst_decode(),
@@ -3733,17 +3729,16 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
-    impl NewWithNullPtr for wire_cst_disclosure_card {
+    impl NewWithNullPtr for wire_cst_claim_display_metadata {
         fn new_with_null_ptr() -> Self {
             Self {
-                issuer: Default::default(),
-                doc_type: core::ptr::null_mut(),
-                attributes: core::ptr::null_mut(),
-                display_metadata: core::ptr::null_mut(),
+                lang: core::ptr::null_mut(),
+                label: core::ptr::null_mut(),
+                description: core::ptr::null_mut(),
             }
         }
     }
-    impl Default for wire_cst_disclosure_card {
+    impl Default for wire_cst_claim_display_metadata {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -4248,10 +4243,12 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_list_disclosure_card(len: i32) -> *mut wire_cst_list_disclosure_card {
-        let wrap = wire_cst_list_disclosure_card {
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_claim_display_metadata(
+        len: i32,
+    ) -> *mut wire_cst_list_claim_display_metadata {
+        let wrap = wire_cst_list_claim_display_metadata {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
-                <wire_cst_disclosure_card>::new_with_null_ptr(),
+                <wire_cst_claim_display_metadata>::new_with_null_ptr(),
                 len,
             ),
             len,
@@ -4358,7 +4355,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_attestation_attribute {
         key: *mut wire_cst_list_prim_u_8_strict,
-        labels: *mut wire_cst_list_localized_string,
+        labels: *mut wire_cst_list_claim_display_metadata,
         value: wire_cst_attribute_value,
     }
     #[repr(C)]
@@ -4409,11 +4406,10 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_disclosure_card {
-        issuer: wire_cst_organization,
-        doc_type: *mut wire_cst_list_prim_u_8_strict,
-        attributes: *mut wire_cst_list_attestation_attribute,
-        display_metadata: *mut wire_cst_list_display_metadata,
+    pub struct wire_cst_claim_display_metadata {
+        lang: *mut wire_cst_list_prim_u_8_strict,
+        label: *mut wire_cst_list_prim_u_8_strict,
+        description: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4496,8 +4492,8 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_list_disclosure_card {
-        ptr: *mut wire_cst_disclosure_card,
+    pub struct wire_cst_list_claim_display_metadata {
+        ptr: *mut wire_cst_claim_display_metadata,
         len: i32,
     }
     #[repr(C)]
@@ -4608,7 +4604,7 @@ mod io {
     pub struct wire_cst_StartDisclosureResult_Request {
         relying_party: *mut wire_cst_organization,
         policy: *mut wire_cst_request_policy,
-        requested_cards: *mut wire_cst_list_disclosure_card,
+        requested_attestations: *mut wire_cst_list_attestation,
         shared_data_with_relying_party_before: bool,
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
@@ -4644,7 +4640,7 @@ mod io {
         date_time: *mut wire_cst_list_prim_u_8_strict,
         relying_party: *mut wire_cst_organization,
         purpose: *mut wire_cst_list_localized_string,
-        requested_cards: *mut wire_cst_list_disclosure_card,
+        requested_attestations: *mut wire_cst_list_attestation,
         request_policy: *mut wire_cst_request_policy,
         status: i32,
         typ: i32,

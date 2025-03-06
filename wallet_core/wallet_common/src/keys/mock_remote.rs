@@ -127,6 +127,7 @@ impl MockRemoteKeyFactory {
         }
     }
 
+    #[cfg(feature = "examples")]
     pub fn new_example() -> Self {
         use super::examples::Examples;
         use super::examples::EXAMPLE_KEY_IDENTIFIER;
