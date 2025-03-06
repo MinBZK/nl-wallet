@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroU8;
 
@@ -78,12 +79,10 @@ pub struct PidIssuerSettings {
 }
 
 #[derive(Clone, Deserialize, From, AsRef)]
-pub struct IssuerAttestationSettings(Vec<IssuerAttestationData>);
+pub struct IssuerAttestationSettings(HashMap<String, IssuerAttestationData>);
 
 #[derive(Clone, Deserialize)]
 pub struct IssuerAttestationData {
-    pub attestation_type: String,
-
     #[serde(flatten)]
     pub keypair: KeyPair,
 
@@ -147,31 +146,23 @@ impl TryFromKeySettings<IssuerAttestationSettings> for AttestationSettings<Priva
         attestation_settings: IssuerAttestationSettings,
         hsm: Option<Pkcs11Hsm>,
     ) -> Result<Self, Self::Error> {
-        let issuer_keys = join_all(attestation_settings.0.into_iter().map(|attestation_settings| {
+        let issuer_keys = join_all(attestation_settings.0.into_iter().map(|(typ, attestation)| {
             let hsm = hsm.clone();
             async move {
                 // Take the SAN from the settings if specified, or otherwise take the first SAN from the certificate.
                 // NB: the settings validation function will have verified before this that the certificate contains
                 // just one SAN.
-                let issuer_uri = attestation_settings
+                let issuer_uri = attestation
                     .certificate_san
                     .map(Ok::<_, CertificateError>) // Make it a result as the next closure is fallible
-                    .unwrap_or_else(|| {
-                        Ok(attestation_settings
-                            .keypair
-                            .certificate
-                            .san_dns_name_or_uris()?
-                            .first()
-                            .clone())
-                    })?;
+                    .unwrap_or_else(|| Ok(attestation.keypair.certificate.san_dns_name_or_uris()?.first().clone()))?;
 
                 Ok((
-                    attestation_settings.attestation_type,
+                    typ,
                     AttestationData {
-                        key_pair: ParsedKeyPair::try_from_key_settings(attestation_settings.keypair, hsm.clone())
-                            .await?,
-                        valid_days: Days::new(attestation_settings.valid_days),
-                        copy_count: attestation_settings.copy_count,
+                        key_pair: ParsedKeyPair::try_from_key_settings(attestation.keypair, hsm.clone()).await?,
+                        valid_days: Days::new(attestation.valid_days),
+                        copy_count: attestation.copy_count,
                         issuer_uri,
                     },
                 ))
@@ -259,12 +250,11 @@ impl ServerSettings for IssuerSettings {
         tracing::debug!("verifying issuer settings");
 
         let metadata = self.metadata();
-        for attestation in self.attestation_settings.as_ref() {
-            let attestation_type = &attestation.attestation_type;
-            if !metadata.contains_key(&attestation.attestation_type) {
+        for (typ, attestation) in self.attestation_settings.as_ref() {
+            if !metadata.contains_key(typ) {
                 // TODO PVW-3824: recursively check the presence of metadata on which the current metadata depends
                 return Err(IssuerSettingsError::MissingMetadata {
-                    attestation_type: attestation_type.clone(),
+                    attestation_type: typ.clone(),
                 });
             }
 
@@ -278,7 +268,7 @@ impl ServerSettings for IssuerSettings {
                     .contains(certificate_san)
                 {
                     return Err(IssuerSettingsError::CertificateMissingSan {
-                        attestation_type: attestation_type.clone(),
+                        attestation_type: typ.clone(),
                         san: certificate_san.clone(),
                     });
                 }
@@ -286,7 +276,7 @@ impl ServerSettings for IssuerSettings {
                 // If not, then there must be only one SAN in the certificate so there is no disambiguation.
                 if attestation.keypair.certificate.san_dns_name_or_uris()?.len().get() > 1 {
                     return Err(IssuerSettingsError::CertificateSanUnspecified {
-                        attestation_type: attestation_type.clone(),
+                        attestation_type: typ.clone(),
                     });
                 }
             }
@@ -305,12 +295,7 @@ impl ServerSettings for IssuerSettings {
             .attestation_settings
             .as_ref()
             .iter()
-            .map(|attestation_settings| {
-                (
-                    attestation_settings.attestation_type.clone(),
-                    attestation_settings.keypair.clone(),
-                )
-            })
+            .map(|(typ, attestation)| (typ.clone(), attestation.keypair.clone()))
             .collect();
 
         verify_key_pairs(

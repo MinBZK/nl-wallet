@@ -30,18 +30,16 @@ bsn_privkey = ""
 base_url = "https://localhost:8006"
 trust_anchors = [""]
 
-[[attestation_settings]]
-attestation_type = "com.example.pid"
+[attestation_settings."com.example.pid"]
 valid_days = 365
 copy_count = 4
 private_key_type = "hsm"
-private_key = "pid_issuer_key"       # label for the private key in the HSM
+private_key = "pid_issuer_key" # label for the private key in the HSM
 certificate = "MIJ..."
 
-[[attestation_settings]]
-attestation_type = "com.example.address"
+[attestation_settings."com.example.address"]
 valid_days = 365
 copy_count = 4
 private_key_type = "software"
-private_key = "MIG..."                   # DER-encoded private key
+private_key = "MIG..."        # DER-encoded private key
 certificate = "MIJ..."
