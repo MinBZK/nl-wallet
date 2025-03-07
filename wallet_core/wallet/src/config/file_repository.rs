@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use configuration::wallet_config::WalletConfiguration;
 use jwt::EcdsaDecodingKey;
-use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::reqwest::ReqwestBuilder;
 
 use crate::repository::Repository;
@@ -86,9 +86,9 @@ mod tests {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
+    use configuration::http::TlsPinningConfig;
+    use configuration::wallet_config::WalletConfiguration;
     use jwt::EcdsaDecodingKey;
-    use wallet_common::config::http::TlsPinningConfig;
-    use wallet_common::config::wallet_config::WalletConfiguration;
 
     use crate::config::config_file;
     use crate::config::default_wallet_config;

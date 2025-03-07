@@ -25,8 +25,6 @@ mock_secure_keys = []
 mock_time = ["dep:parking_lot"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
 mock_remote_key = ["examples", "dep:parking_lot", "dep:rand_core"]
-# Various test related functionality
-insecure_http_client = []
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
@@ -34,7 +32,6 @@ base64.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
 derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
-etag.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }

@@ -6,6 +6,7 @@ use chrono::Days;
 use chrono::Utc;
 use indexmap::IndexMap;
 
+use configuration::http::TlsPinningConfig;
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuable_document::IssuableDocument;
@@ -19,7 +20,6 @@ use openid4vc::TokenErrorCode;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
-use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;

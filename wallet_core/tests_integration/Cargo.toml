@@ -63,6 +63,7 @@ test_common = [
     "dep:android_attest",
     "dep:apple_app_attest",
     "dep:chrono",
+    "dep:configuration",
     "dep:ctor",
     "dep:indexmap",
     "dep:jsonwebtoken",
@@ -92,7 +93,7 @@ test_common = [
     "dep:verification_server",
 ]
 # Include the fake_digid submodule
-fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common"]
+fake_digid = ["dep:configuration", "dep:reqwest", "dep:url", "dep:wallet_common"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "pid_issuer?/db_test",
@@ -211,6 +212,7 @@ uuid = { workspace = true, optional = true }
 
 android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
+configuration = { path = "../configuration", optional = true }
 configuration_server = { path = "../configuration_server", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../hsm", optional = true, features = ["test"] }

@@ -9,7 +9,7 @@ use openid4vc::token::TokenRequest;
 pub use app2app::App2AppErrorMessage;
 pub use app2app::HttpDigidSession;
 
-use wallet_common::config::wallet_config::DigidConfiguration;
+use configuration::wallet_config::DigidConfiguration;
 use wallet_common::reqwest::JsonReqwestBuilder;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

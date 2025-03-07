@@ -7,6 +7,7 @@ use url::Url;
 use uuid::Uuid;
 
 use apple_app_attest::AppIdentifier;
+use configuration::http::TlsPinningConfig;
 use nl_wallet_mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
@@ -32,7 +33,6 @@ use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
-use wallet_common::config::http::TlsPinningConfig;
 
 #[ctor]
 fn init() {

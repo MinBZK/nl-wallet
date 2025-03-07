@@ -3,7 +3,7 @@ use reqwest::redirect::Policy;
 use reqwest::Response;
 use url::Url;
 
-use wallet_common::config::http::TlsPinningConfig;
+use configuration::http::TlsPinningConfig;
 use wallet_common::reqwest::ClientBuilder;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,

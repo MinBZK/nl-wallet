@@ -1202,12 +1202,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "configuration"
+version = "0.3.0-dev"
+dependencies = [
+ "axum-server",
+ "derive_more",
+ "etag",
+ "http",
+ "reqwest",
+ "rustls-pki-types",
+ "serde",
+ "serde_with",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "configuration_server"
 version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-server",
  "config",
+ "configuration",
  "etag",
  "http",
  "mime",
@@ -3817,6 +3834,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
+ "configuration",
  "dashmap 6.1.0",
  "derive_more",
  "error_category",
@@ -4121,6 +4139,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "configuration",
  "derive_more",
  "futures",
  "hsm",
@@ -6132,6 +6151,7 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "chrono",
+ "configuration",
  "configuration_server",
  "ctor",
  "dotenvy",
@@ -6857,6 +6877,7 @@ dependencies = [
  "axum-server",
  "chrono",
  "config",
+ "configuration",
  "etag",
  "http",
  "indexmap 2.7.1",
@@ -6967,6 +6988,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "configuration",
  "derive_more",
  "futures",
  "hsm",
@@ -7041,6 +7063,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
+ "configuration",
  "derive_more",
  "entity",
  "error_category",
@@ -7152,7 +7175,6 @@ dependencies = [
  "chrono",
  "derive_more",
  "error_category",
- "etag",
  "futures",
  "hex",
  "hex-literal",
@@ -7197,6 +7219,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "config",
+ "configuration",
  "derive_more",
  "futures",
  "hsm",

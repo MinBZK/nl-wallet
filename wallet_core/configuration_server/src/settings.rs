@@ -6,7 +6,7 @@ use config::Environment;
 use config::File;
 use serde::Deserialize;
 
-use wallet_common::config::http::TlsServerConfig;
+use configuration::http::TlsServerConfig;
 use wallet_common::utils;
 
 #[derive(Clone, Deserialize)]

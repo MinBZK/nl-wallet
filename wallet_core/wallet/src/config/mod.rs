@@ -6,9 +6,9 @@ mod http_repository;
 mod mock;
 mod updating_repository;
 
+use configuration::http::TlsPinningConfig;
 use error_category::ErrorCategory;
 use jwt::JwtError;
-use wallet_common::config::http::TlsPinningConfig;
 
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;

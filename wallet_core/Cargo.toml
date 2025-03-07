@@ -32,7 +32,7 @@ members = [
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/pid_issuer",
-    "wallet_server/verification_server", "poa", "jwt",
+    "wallet_server/verification_server", "poa", "jwt", "configuration",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"
