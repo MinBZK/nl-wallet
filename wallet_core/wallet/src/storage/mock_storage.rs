@@ -11,8 +11,6 @@ use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::DocType;
 use openid4vc::credential::MdocCopies;
 
-use crate::storage::event_log::WalletEventModel;
-
 use super::data::KeyedData;
 use super::data::RegistrationData;
 use super::event_log::WalletEvent;
@@ -199,13 +197,7 @@ impl Storage for MockStorage {
     }
 
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
-        // Convert to database entity and back to check whether the `TryFrom` implementations are complete.
-        let converted_event = match WalletEventModel::try_from(event.clone())? {
-            WalletEventModel::Issuance(entity) => entity.try_into()?,
-            WalletEventModel::Disclosure(entity) => entity.try_into()?,
-        };
-        assert_eq!(event, converted_event);
-        self.event_log.push(converted_event);
+        self.event_log.push(event);
         Ok(())
     }
 
@@ -230,14 +222,14 @@ impl Storage for MockStorage {
         Ok(events)
     }
 
-    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_attestation_type(&self, attestation_type: &str) -> StorageResult<Vec<WalletEvent>> {
         self.check_query_error()?;
 
         let mut events = self
             .event_log
             .clone()
             .into_iter()
-            .filter(|e| e.associated_doc_types().contains(doc_type))
+            .filter(|e| e.associated_attestation_types().contains(attestation_type))
             .collect::<Vec<_>>();
         events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)
@@ -259,7 +251,7 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
-    use crate::storage::database_storage::tests::test_history_by_doc_type;
+    use crate::storage::database_storage::tests::test_history_by_entity_type;
     use crate::storage::database_storage::tests::test_history_ordering;
     use crate::storage::KeyedData;
     use crate::storage::Storage;
@@ -316,6 +308,6 @@ mod tests {
     async fn history_events_work() {
         let mut storage = MockStorage::default();
         storage.open().await.unwrap();
-        test_history_by_doc_type(&mut storage).await;
+        test_history_by_entity_type(&mut storage).await;
     }
 }
