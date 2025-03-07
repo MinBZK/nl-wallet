@@ -1,11 +1,12 @@
 use std::collections::HashSet;
 
+use derive_more::AsRef;
+use derive_more::From;
 use futures::future::try_join_all;
 use jsonwebtoken::jwk;
 use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
-use nutype::nutype;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
@@ -33,7 +34,7 @@ pub struct PoaPayload {
 }
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
-#[nutype(derive(Debug, Clone, From, AsRef, Serialize, Deserialize))]
+#[derive(Debug, Clone, From, AsRef, Serialize, Deserialize)]
 pub struct Poa(JsonJwt<PoaPayload>);
 
 impl TryFrom<VecNonEmpty<Jwt<PoaPayload>>> for Poa {
@@ -47,7 +48,7 @@ impl TryFrom<VecNonEmpty<Jwt<PoaPayload>>> for Poa {
 
 impl From<Poa> for Vec<Jwt<PoaPayload>> {
     fn from(source: Poa) -> Self {
-        source.into_inner().into()
+        source.0.into()
     }
 }
 
@@ -82,7 +83,7 @@ pub enum PoaVerificationError {
 }
 
 impl Poa {
-    pub async fn generate<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
+    pub async fn new<K: EcdsaKey>(keys: VecAtLeastTwoUnique<&K>, payload: JwtPopClaims) -> Result<Poa, PoaError> {
         let payload = PoaPayload {
             payload,
             jwks: try_join_all(keys.as_slice().iter().map(|privkey| async {
@@ -177,10 +178,9 @@ impl Poa {
         Ok(())
     }
 
-    pub fn with_payload(self, payload: String) -> Self {
-        let mut inner = self.into_inner();
-        inner.payload = payload;
-        inner.into()
+    #[cfg(feature = "mock")]
+    pub fn set_payload(&mut self, payload: String) {
+        self.0.payload = payload;
     }
 }
 
@@ -210,7 +210,7 @@ mod tests {
         let aud = "aud".to_string();
         let nonce = "nonce".to_string();
 
-        let poa = Poa::generate(
+        let poa = Poa::new(
             vec![&key1, &key2].try_into().unwrap(),
             JwtPopClaims::new(Some(nonce.clone()), iss.clone(), aud.clone()),
         )

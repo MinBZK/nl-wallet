@@ -11,9 +11,9 @@ workspace = true
 mock = ["wallet_common/mock_remote_key", "dep:rand_core"]
 
 [dependencies]
+derive_more = { workspace = true, features = ["as_ref", "from"] }
 futures.workspace = true
 jsonwebtoken.workspace = true
-nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa"] }
 serde = { workspace = true, features = ["derive"] }
 thiserror.workspace = true

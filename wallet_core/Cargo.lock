@@ -4221,9 +4221,9 @@ name = "poa"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "derive_more",
  "futures",
  "jsonwebtoken",
- "nutype",
  "p256",
  "rand_core",
  "rstest",
