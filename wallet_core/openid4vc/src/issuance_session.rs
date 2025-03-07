@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::hash::Hash;
 
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -251,13 +250,17 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
+    async fn accept_issuance<K, KF>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
+        key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    where
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 }
@@ -543,13 +546,18 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok((issuance_client, credential_previews))
     }
 
-    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
+    async fn accept_issuance<K, KF>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
+        key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    where
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>,
+    {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
         // has no support (yet) for issuance of multiple copies of multiple attestations.
         // We implement this below by simply flattening the relevant nested iterators when communicating with the
@@ -601,7 +609,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let poa = VecAtLeastTwoUnique::try_from(poa_keys).ok().map(|poa_keys| async {
+        let poa = VecAtLeastTwoUnique::new(poa_keys).ok().map(|poa_keys| async {
             key_factory
                 .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
                 .await

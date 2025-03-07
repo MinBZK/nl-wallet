@@ -54,13 +54,18 @@ impl IssuanceSession for MockIssuanceSession {
         Self::start()
     }
 
-    async fn accept_issuance<K: CredentialEcdsaKey>(
+    async fn accept_issuance<K, KF>(
         &self,
         _: &[TrustAnchor<'_>],
-        _: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
+        _: &KF,
         _: Option<JwtCredential<WteClaims>>,
         _: BaseUrl,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    where
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>,
+    {
         self.accept()
     }
 
