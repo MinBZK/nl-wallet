@@ -755,6 +755,7 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
+    use jwt::credential::JwtX5cError;
     use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
     use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
     use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
@@ -790,7 +791,6 @@ mod tests {
     use wallet_common::utils::random_string;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
-    use crate::jwt::JwtX5cError;
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::VerifiablePresentation;
     use crate::openid4vp::VpAuthorizationResponse;

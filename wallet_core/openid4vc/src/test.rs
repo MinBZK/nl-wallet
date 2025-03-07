@@ -147,7 +147,7 @@ where
 
         let request = (self.transform_auth_request)(request);
 
-        crate::jwt::sign_with_certificate(&request, &self.key_pair)
+        jwt::credential::sign_with_certificate(&request, &self.key_pair)
             .await
             .unwrap()
     }

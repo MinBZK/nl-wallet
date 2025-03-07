@@ -95,7 +95,7 @@ async fn disclosure_direct() {
     )
     .unwrap();
     let auth_request = iso_auth_request.clone().into();
-    let auth_request_jws = openid4vc::jwt::sign_with_certificate(&auth_request, &auth_keypair)
+    let auth_request_jws = jwt::credential::sign_with_certificate(&auth_request, &auth_keypair)
         .await
         .unwrap();
 
@@ -278,7 +278,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let jws = openid4vc::jwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
+        let jws = jwt::credential::sign_with_certificate(&self.auth_request, &self.auth_keypair)
             .await
             .unwrap();
         Ok(jws)

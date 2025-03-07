@@ -11,6 +11,7 @@ use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use jwt::credential::JwtCredentialError;
 use jwt::JwtError;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -21,7 +22,6 @@ use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
-use openid4vc::jwt::JwtCredentialError;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;

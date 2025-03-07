@@ -1,6 +1,6 @@
 use p256::ecdsa::VerifyingKey;
 
-use openid4vc::jwt::JwtCredential;
+use jwt::credential::JwtCredential;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::IssueWte;
@@ -62,7 +62,7 @@ impl Default for WpWteIssuanceClient {
 pub(crate) mod tests {
     use p256::ecdsa::VerifyingKey;
 
-    use openid4vc::jwt::JwtCredential;
+    use jwt::credential::JwtCredential;
     use platform_support::attested_key::AppleAttestedKey;
     use platform_support::attested_key::GoogleAttestedKey;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;

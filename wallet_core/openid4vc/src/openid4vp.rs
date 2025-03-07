@@ -22,6 +22,7 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
+use jwt::credential::JwtX5cError;
 use jwt::Jwt;
 use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::errors::Error as MdocError;
@@ -42,7 +43,6 @@ use wallet_common::utils::random_string;
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
 use crate::authorization::ResponseType;
-use crate::jwt::JwtX5cError;
 use crate::presentation_exchange::InputDescriptorMappingObject;
 use crate::presentation_exchange::PdConversionError;
 use crate::presentation_exchange::PresentationDefinition;
@@ -312,7 +312,7 @@ impl VpAuthorizationRequest {
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        Ok(crate::jwt::verify_against_trust_anchors(
+        Ok(jwt::credential::verify_against_trust_anchors(
             jws,
             &[VpAuthorizationRequestAudience::SelfIssued],
             trust_anchors,
@@ -937,7 +937,7 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
-        let auth_request_jwt = crate::jwt::sign_with_certificate(&auth_request, &rp_keypair)
+        let auth_request_jwt = jwt::credential::sign_with_certificate(&auth_request, &rp_keypair)
             .await
             .unwrap();
 

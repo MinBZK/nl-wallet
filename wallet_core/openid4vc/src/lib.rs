@@ -11,7 +11,6 @@ pub mod token;
 
 // Cryptographic tools.
 pub mod dpop;
-pub mod jwt;
 pub mod pkce;
 
 // Issuance code for the server and client.

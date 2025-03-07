@@ -20,6 +20,8 @@ use serde::Serialize;
 use url::Url;
 
 use error_category::ErrorCategory;
+use jwt::credential::JwtCredential;
+use jwt::credential::JwtCredentialError;
 use jwt::JwkConversionError;
 use jwt::Jwt;
 use jwt::JwtError;
@@ -59,8 +61,6 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
-use crate::jwt::JwtCredential;
-use crate::jwt::JwtCredentialError;
 use crate::metadata::IssuerMetadata;
 use crate::oidc;
 use crate::token::AccessToken;

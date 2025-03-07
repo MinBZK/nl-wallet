@@ -36,6 +36,8 @@ use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::vec_at_least::VecNonEmpty;
 
+pub mod credential;
+
 /// JWT type, generic over its contents.
 ///
 /// This wrapper of the `jsonwebtoken` crate echoes the following aspect of `jsonwebtoken`:

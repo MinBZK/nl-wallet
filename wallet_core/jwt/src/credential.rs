@@ -23,12 +23,6 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
-use jwt::jwk_to_p256;
-use jwt::validations;
-use jwt::JwkConversionError;
-use jwt::Jwt;
-use jwt::JwtCredentialClaims;
-use jwt::JwtError;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -38,6 +32,13 @@ use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 use wallet_common::keys::EcdsaKey;
+
+use crate::jwk_to_p256;
+use crate::validations;
+use crate::JwkConversionError;
+use crate::Jwt;
+use crate::JwtCredentialClaims;
+use crate::JwtError;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential<T> {
@@ -100,7 +101,7 @@ where
         contents
     }
 
-    pub(crate) fn private_key<K>(&self, key_factory: &impl KeyFactory<Key = K>) -> Result<K, JwkConversionError> {
+    pub fn private_key<K>(&self, key_factory: &impl KeyFactory<Key = K>) -> Result<K, JwkConversionError> {
         Ok(key_factory.generate_existing(&self.private_key_id, jwk_to_p256(&self.jwt_claims().confirmation.jwk)?))
     }
 }
@@ -204,8 +205,6 @@ mod tests {
     use jsonwebtoken::Header;
     use serde_json::json;
 
-    use jwt::Jwt;
-    use jwt::JwtCredentialClaims;
     use nl_wallet_mdoc::server_keys::generate::Ca;
     use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
     use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -213,11 +212,13 @@ mod tests {
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
-    use crate::jwt::sign_with_certificate;
-    use crate::jwt::JwtCredential;
-    use crate::jwt::JwtX5cError;
+    use crate::Jwt;
+    use crate::JwtCredentialClaims;
 
+    use super::sign_with_certificate;
     use super::verify_against_trust_anchors;
+    use super::JwtCredential;
+    use super::JwtX5cError;
 
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
