@@ -21,7 +21,6 @@ impl Attestation {
     // This method has different behaviour depending on the `selection_mode` parameter.
     pub(super) fn create_from_attributes(
         identity: AttestationIdentity,
-        attestation_type: String,
         metadata: TypeMetadata,
         issuer: Organization,
         mut nested_attributes: IndexMap<String, Attribute>,
@@ -67,7 +66,7 @@ impl Attestation {
         let attestation = Attestation {
             identity,
             display_metadata: metadata.display,
-            attestation_type,
+            attestation_type: metadata.vct,
             issuer,
             attributes,
         };

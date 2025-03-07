@@ -78,9 +78,12 @@ pub struct CredentialPayload {
 }
 
 impl CredentialPayload {
-    pub fn from_unsigned_mdoc(unsigned_mdoc: UnsignedMdoc) -> Result<Self, CredentialPayloadError> {
+    pub fn from_unsigned_mdoc(
+        unsigned_mdoc: UnsignedMdoc,
+        type_metadata: &TypeMetadataChain,
+    ) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            unsigned_mdoc.doc_type,
+            type_metadata,
             unsigned_mdoc.attributes.into(),
             unsigned_mdoc.issuer_uri,
             Some(Utc::now()),
@@ -89,9 +92,9 @@ impl CredentialPayload {
         )
     }
 
-    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc, type_metadata: &TypeMetadataChain) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            mdoc.mso.doc_type,
+            type_metadata,
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
@@ -135,18 +138,19 @@ impl CredentialPayload {
     ///
     /// Note in particular that attributes in a namespace whose names equals the `doc_type` parameter are mapped to the
     /// root level of the output.
-    pub fn from_mdoc_attributes(
-        doc_type: String,
+    fn from_mdoc_attributes(
+        type_metadata: &TypeMetadataChain,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,
         not_before: Option<DateTime<Utc>>,
     ) -> Result<Self, CredentialPayloadError> {
-        let attributes = Attribute::from_mdoc_attributes(&doc_type, mdoc_attributes)?;
+        let metadata = type_metadata.verify()?;
+        let attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         let payload = Self {
-            attestation_type: doc_type,
+            attestation_type: metadata.vct,
             issuer,
             issued_at,
             expires,

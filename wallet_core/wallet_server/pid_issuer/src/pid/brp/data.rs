@@ -72,9 +72,7 @@ impl BrpPerson {
                         }),
                         Some((
                             String::from(PID_BIRTH_DATE),
-                            Attribute::Single(AttributeValue::Text(
-                                self.birth.date.date.format("%Y-%m-%d").to_string(),
-                            )),
+                            Attribute::Single(AttributeValue::Date(self.birth.date.date)),
                         )),
                         birth_country.map(|country| {
                             (

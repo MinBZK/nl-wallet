@@ -130,6 +130,7 @@ pub enum AttributeValue {
     String { value: String },
     Boolean { value: bool },
     Number { value: i64 },
+    Date { value: String },
 }
 
 impl From<wallet::openid4vc::AttributeValue> for AttributeValue {
@@ -138,6 +139,9 @@ impl From<wallet::openid4vc::AttributeValue> for AttributeValue {
             wallet::openid4vc::AttributeValue::Text(value) => AttributeValue::String { value },
             wallet::openid4vc::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
             wallet::openid4vc::AttributeValue::Number(value) => AttributeValue::Number { value },
+            wallet::openid4vc::AttributeValue::Date(value) => AttributeValue::Date {
+                value: value.format("%Y-%m-%d").to_string(),
+            },
         }
     }
 }

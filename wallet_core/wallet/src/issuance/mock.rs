@@ -8,12 +8,13 @@ use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedMdoc;
 use nl_wallet_mdoc::DataElementValue;
+use sd_jwt::metadata::JsonSchemaPropertyFormat;
+use sd_jwt::metadata::JsonSchemaPropertyType;
 use sd_jwt::metadata::TypeMetadata;
 
 use super::PID_DOCTYPE;
 
-/// This creates an `UnsignedMdoc` that only contains a bsn entry.
-pub fn create_bsn_only_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+pub fn create_bsn_only_unsigned_mdoc() -> (UnsignedMdoc, TypeMetadata) {
     let now = Utc::now();
 
     (
@@ -33,13 +34,12 @@ pub fn create_bsn_only_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
             .unwrap(),
             issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
         },
-        TypeMetadata::example_with_claim_name("bsn"),
+        TypeMetadata::example_with_claim_name(PID_DOCTYPE, "bsn", JsonSchemaPropertyType::String, None),
     )
 }
 
-/// This creates a minimal `UnsignedMdoc` that is valid.
-pub fn create_minimal_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
-    let (mut unsigned_mdoc, mut metadata) = create_bsn_only_unsigned_pid_mdoc();
+pub fn create_example_unsigned_mdoc() -> (UnsignedMdoc, TypeMetadata) {
+    let (mut unsigned_mdoc, _type_metadata) = create_bsn_only_unsigned_mdoc();
     let mut attributes = unsigned_mdoc.attributes.into_inner();
 
     attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
@@ -61,65 +61,22 @@ pub fn create_minimal_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
         },
     ]);
 
-    unsigned_mdoc.attributes = attributes.try_into().unwrap();
-
-    metadata.claims.extend(
-        TypeMetadata::example_with_claim_names(&["family_name", "given_name", "birth_date", "age_over_18"]).claims,
+    let metadata = TypeMetadata::example_with_claim_names(
+        PID_DOCTYPE,
+        &[
+            ("bsn", JsonSchemaPropertyType::String, None),
+            ("family_name", JsonSchemaPropertyType::String, None),
+            ("given_name", JsonSchemaPropertyType::String, None),
+            (
+                "birth_date",
+                JsonSchemaPropertyType::String,
+                Some(JsonSchemaPropertyFormat::Date),
+            ),
+            ("age_over_18", JsonSchemaPropertyType::Boolean, None),
+        ],
     );
 
-    (unsigned_mdoc, metadata)
-}
-
-/// This creates a full `UnsignedMdoc` that is valid.
-pub fn create_full_unsigned_pid_mdoc() -> (UnsignedMdoc, TypeMetadata) {
-    let (mut unsigned_mdoc, mut metadata) = create_minimal_unsigned_pid_mdoc();
-    let mut attributes = unsigned_mdoc.attributes.into_inner();
-
-    attributes.get_mut(PID_DOCTYPE).unwrap().extend(vec![
-        Entry {
-            name: "family_name_birth".to_string(),
-            value: DataElementValue::Text("Molenaar".to_string()),
-        },
-        Entry {
-            name: "given_name_birth".to_string(),
-            value: DataElementValue::Text("Liselotte Willeke".to_string()),
-        },
-        Entry {
-            name: "birth_place".to_string(),
-            value: DataElementValue::Text("Delft".to_string()),
-        },
-        Entry {
-            name: "birth_country".to_string(),
-            value: DataElementValue::Text("NL".to_string()),
-        },
-        Entry {
-            name: "birth_state".to_string(),
-            value: DataElementValue::Text("Zuid-Holland".to_string()),
-        },
-        Entry {
-            name: "birth_city".to_string(),
-            value: DataElementValue::Text("Delft".to_string()),
-        },
-        Entry {
-            name: "gender".to_string(),
-            value: DataElementValue::Integer(2.into()),
-        },
-    ]);
-
     unsigned_mdoc.attributes = attributes.try_into().unwrap();
-
-    metadata.claims.extend(
-        TypeMetadata::example_with_claim_names(&[
-            "family_name_birth",
-            "given_name_birth",
-            "birth_place",
-            "birth_country",
-            "birth_state",
-            "birth_city",
-            "gender",
-        ])
-        .claims,
-    );
 
     (unsigned_mdoc, metadata)
 }

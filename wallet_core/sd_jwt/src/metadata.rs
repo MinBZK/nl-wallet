@@ -1,18 +1,22 @@
+use std::collections::HashMap;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
+use jsonschema::Draft;
 use jsonschema::ValidationError;
-use nutype::nutype;
+use jsonschema::Validator;
 use serde::de;
 use serde::ser;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::MapSkipError;
 
 use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -21,15 +25,19 @@ use wallet_common::vec_at_least::VecNonEmpty;
 pub enum TypeMetadataError {
     #[error("json schema validation failed {0}")]
     JsonSchemaValidation(#[from] ValidationError<'static>),
+
     #[error("serialization failed {0}")]
     Serialization(#[from] serde_json::Error),
+
     #[error("decoding failed {0}")]
     Decoding(#[from] base64::DecodeError),
+
     #[error("resource integrity check failed, expected: {expected:?}, actual: {actual:?}")]
     ResourceIntegrity {
         expected: ResourceIntegrity,
         actual: ResourceIntegrity,
     },
+
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
 }
@@ -140,6 +148,7 @@ pub struct TypeMetadata {
     pub extends: Option<MetadataExtendsOption>,
 
     /// An array of objects containing display information for the type.
+    #[serde(default)]
     pub display: Vec<DisplayMetadata>,
 
     /// An array of objects containing claim information for the type.
@@ -189,8 +198,19 @@ impl TypeMetadata {
 
     pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
         if let SchemaOption::Embedded { schema } = &self.schema {
-            jsonschema::draft202012::validate(schema.as_ref(), json_claims).map_err(ValidationError::to_owned)?;
+            schema
+                .validator
+                .validate(json_claims)
+                .map_err(ValidationError::to_owned)?;
             Ok(())
+        } else {
+            Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
+        }
+    }
+
+    pub fn schema_properties(&self) -> Result<&JsonSchemaProperties, TypeMetadataError> {
+        if let SchemaOption::Embedded { schema } = &self.schema {
+            Ok(schema.properties())
         } else {
             Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
         }
@@ -253,15 +273,108 @@ pub enum SchemaOption {
     },
 }
 
-#[nutype(
-    validate(with = validate_json_schema, error = TypeMetadataError),
-    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize)
-)]
-pub struct JsonSchema(serde_json::Value);
+#[derive(Debug, Serialize)]
+pub struct JsonSchema {
+    #[serde(flatten)]
+    raw_schema: serde_json::Value,
 
-fn validate_json_schema(schema: &serde_json::Value) -> Result<(), TypeMetadataError> {
-    jsonschema::draft202012::meta::validate(schema).map_err(ValidationError::to_owned)?;
-    Ok(())
+    // When deserializing, the JSON schema properties are parsed so the metadata describing the attributes can be used
+    // when converting to wallet internal types.
+    #[serde(skip_serializing, flatten)]
+    properties: JsonSchemaProperties,
+
+    // The validator is instantiated once and validated upon deserialization.
+    #[serde(skip_serializing)]
+    validator: Validator,
+}
+
+impl JsonSchema {
+    fn try_new(raw_schema: serde_json::Value) -> Result<JsonSchema, TypeMetadataError> {
+        // Building the validator for the 202012 draft also validates the JSON Schema itself.
+        let validator = jsonschema::options()
+            .should_validate_formats(true)
+            .with_draft(Draft::Draft202012)
+            .build(&raw_schema)
+            .map_err(ValidationError::to_owned)?;
+
+        let properties: JsonSchemaProperties = serde_json::from_value(raw_schema.clone())?;
+
+        Ok(Self {
+            raw_schema,
+            properties,
+            validator,
+        })
+    }
+
+    pub fn properties(&self) -> &JsonSchemaProperties {
+        &self.properties
+    }
+}
+
+impl Clone for JsonSchema {
+    fn clone(&self) -> Self {
+        // Unwrap is safe here, since having a valid validator is a prerequisite for constructing a JsonSchema
+        Self::try_new(self.raw_schema.clone()).unwrap()
+    }
+}
+
+impl PartialEq for JsonSchema {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw_schema.eq(&other.raw_schema)
+    }
+}
+
+impl Eq for JsonSchema {}
+
+impl<'de> Deserialize<'de> for JsonSchema {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw_schema = serde_json::Value::deserialize(deserializer)?;
+        let json_schema = Self::try_new(raw_schema).map_err(de::Error::custom)?;
+
+        Ok(json_schema)
+    }
+}
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonSchemaProperties {
+    // A HashMap is used here since there are no uses that rely on the order of the properties
+    #[serde_as(as = "MapSkipError<_, _>")]
+    pub properties: HashMap<String, JsonSchemaProperty>,
+}
+
+#[serde_as]
+#[skip_serializing_none]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonSchemaProperty {
+    #[serde(rename = "type")]
+    pub r#type: JsonSchemaPropertyType,
+
+    pub format: Option<JsonSchemaPropertyFormat>,
+
+    // A HashMap is used here since there are no uses that rely on the order of the properties
+    #[serde_as(as = "Option<MapSkipError<_, _>>")]
+    pub properties: Option<HashMap<String, JsonSchemaProperty>>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum JsonSchemaPropertyType {
+    String,
+    Number,
+    Integer,
+    Object,
+    Array,
+    Boolean,
+    Null,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum JsonSchemaPropertyFormat {
+    Date,
+    #[serde(other)]
+    Other,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -300,10 +413,13 @@ pub struct LogoMetadata {
 #[skip_serializing_none]
 pub struct ClaimMetadata {
     pub path: VecNonEmpty<ClaimPath>,
+
     #[serde(default)]
     pub display: Vec<ClaimDisplayMetadata>,
+
     #[serde(default)]
     pub sd: ClaimSelectiveDisclosureMetadata,
+
     pub svg_id: Option<String>,
 }
 
@@ -344,6 +460,8 @@ pub struct ClaimDisplayMetadata {
 
 #[cfg(any(test, feature = "example_constructors"))]
 pub mod mock {
+    use std::collections::HashMap;
+
     use serde_json::json;
 
     use wallet_common::utils::random_string;
@@ -353,6 +471,10 @@ pub mod mock {
     use crate::metadata::ClaimPath;
     use crate::metadata::ClaimSelectiveDisclosureMetadata;
     use crate::metadata::JsonSchema;
+    use crate::metadata::JsonSchemaProperties;
+    use crate::metadata::JsonSchemaProperty;
+    use crate::metadata::JsonSchemaPropertyFormat;
+    use crate::metadata::JsonSchemaPropertyType;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
 
@@ -370,20 +492,36 @@ pub mod mock {
                 display: vec![],
                 claims: vec![],
                 schema: SchemaOption::Embedded {
-                    schema: JsonSchema::try_new(json!({})).unwrap(),
+                    schema: JsonSchema::try_new(json!({"properties": {}})).unwrap(),
                 },
             }
         }
 
-        pub fn example_with_claim_name(name: &str) -> Self {
-            Self::example_with_claim_names(&[name])
+        pub fn empty_example_with_doctype(doc_type: &str) -> Self {
+            Self {
+                vct: String::from(doc_type),
+                ..Self::empty_example()
+            }
         }
 
-        pub fn example_with_claim_names(names: &[&str]) -> Self {
+        pub fn example_with_claim_name(
+            doc_type: &str,
+            name: &str,
+            r#type: JsonSchemaPropertyType,
+            format: Option<JsonSchemaPropertyFormat>,
+        ) -> Self {
+            Self::example_with_claim_names(doc_type, &[(name, r#type, format)])
+        }
+
+        pub fn example_with_claim_names(
+            doc_type: &str,
+            names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
+        ) -> Self {
             Self {
+                vct: String::from(doc_type),
                 claims: names
                     .iter()
-                    .map(|name| ClaimMetadata {
+                    .map(|(name, _, _)| ClaimMetadata {
                         path: vec![ClaimPath::SelectByKey(String::from(*name))].try_into().unwrap(),
                         display: vec![ClaimDisplayMetadata {
                             lang: String::from("en"),
@@ -394,6 +532,9 @@ pub mod mock {
                         svg_id: None,
                     })
                     .collect(),
+                schema: SchemaOption::Embedded {
+                    schema: JsonSchema::example_with_claim_names(names),
+                },
                 ..Self::empty_example()
             }
         }
@@ -410,11 +551,44 @@ pub mod mock {
             serde_json::from_slice(PID_METADATA_BYTES).unwrap()
         }
     }
+
+    impl JsonSchema {
+        fn example_with_claim_names(
+            names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
+        ) -> Self {
+            let properties = JsonSchemaProperties {
+                properties: names
+                    .iter()
+                    .fold(HashMap::new(), |mut map, (name, prop_type, prop_format)| {
+                        map.insert(
+                            String::from(*name),
+                            JsonSchemaProperty {
+                                r#type: prop_type.clone(),
+                                format: prop_format.clone(),
+                                properties: None,
+                            },
+                        );
+                        map
+                    }),
+            };
+
+            let raw_schema = serde_json::to_value(&properties).unwrap();
+            let validator = jsonschema::options().build(&raw_schema).unwrap();
+
+            Self {
+                raw_schema,
+                properties,
+                validator,
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use jsonschema::error::ValidationErrorKind;
+    use jsonschema::ValidationError;
     use serde_json::json;
 
     use crate::metadata::ClaimPath;
@@ -422,6 +596,7 @@ mod test {
     use crate::metadata::ResourceIntegrity;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
+    use crate::metadata::TypeMetadataError;
 
     #[tokio::test]
     async fn test_deserialize() {
@@ -485,6 +660,7 @@ mod test {
     #[test]
     fn test_schema_validation_success() {
         let metadata = TypeMetadata::example();
+        metadata.schema_properties().unwrap();
 
         let claims = json!({
           "vct":"https://credentials.example.com/identity_credential",
@@ -514,12 +690,45 @@ mod test {
         let metadata = TypeMetadata::example();
 
         let claims = json!({
+          "vct":"https://credentials.example.com/identity_credential",
+          "iss":"https://example.com/issuer",
+          "iat":1683000000,
           "address":{
             "country":123
           }
         });
 
         assert!(metadata.validate(&claims).is_err());
+    }
+
+    #[test]
+    fn test_schema_validation_date_format() {
+        let metadata = TypeMetadata::example();
+
+        let mut claims = json!({
+            "vct":"https://credentials.example.com/identity_credential",
+            "iss":"https://example.com/issuer",
+            "iat":1683000000,
+            "birth_date":"2004-12-25"
+        });
+        metadata.validate(&claims).unwrap();
+
+        claims = json!({
+            "vct":"https://credentials.example.com/identity_credential",
+            "iss":"https://example.com/issuer",
+            "iat":1683000000,
+            "birth_date":"not_a_date"
+        });
+
+        assert_matches!(
+            metadata.validate(&claims),
+            Err(TypeMetadataError::JsonSchemaValidation(ValidationError {
+                instance,
+                kind: ValidationErrorKind::Format { format },
+                instance_path,
+                ..
+            })) if instance.to_string() == "\"not_a_date\"" && format == "date" && instance_path.to_string() == "/birth_date"
+        );
     }
 
     #[test]

@@ -14,16 +14,14 @@ use super::AttributeSelectionMode;
 impl Attestation {
     pub(crate) fn create_for_issuance(
         identity: AttestationIdentity,
-        attestation_type: String,
         metadata: TypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
-        let nested_attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
+        let nested_attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         Self::create_from_attributes(
             identity,
-            attestation_type,
             metadata,
             issuer_organization,
             nested_attributes,
@@ -43,6 +41,7 @@ mod test {
     use nl_wallet_mdoc::utils::auth::Organization;
     use nl_wallet_mdoc::DataElementValue;
     use openid4vc::attributes::AttributeValue;
+    use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
@@ -50,9 +49,23 @@ mod test {
     use crate::Attestation;
     use crate::AttestationIdentity;
 
+    fn example_metadata() -> TypeMetadata {
+        TypeMetadata {
+            vct: String::from("example_attestation_type"),
+            claims: vec![claim_metadata(&["entry1"]), claim_metadata(&["entry2"])],
+            ..TypeMetadata::example_with_claim_names(
+                "example_attestation_type",
+                &[
+                    ("entry1", JsonSchemaPropertyType::String, None),
+                    ("entry2", JsonSchemaPropertyType::Boolean, None),
+                ],
+            )
+        }
+    }
+
     fn example_mdoc_attributes() -> IndexMap<String, Vec<Entry>> {
         IndexMap::from([(
-            String::from("example_attestation_type.namespace1"),
+            String::from("example_attestation_type"),
             vec![
                 Entry {
                     name: String::from("entry1"),
@@ -68,18 +81,9 @@ mod test {
 
     #[test]
     fn test_happy() {
-        let metadata = TypeMetadata {
-            claims: vec![
-                claim_metadata(&["namespace1", "entry1"]),
-                claim_metadata(&["namespace1", "entry2"]),
-            ],
-            ..TypeMetadata::empty_example()
-        };
-
         let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            String::from("example_attestation_type"),
-            metadata,
+            example_metadata(),
             Organization::new_mock(),
             example_mdoc_attributes(),
         )
@@ -94,13 +98,10 @@ mod test {
         assert_eq!(
             [
                 (
-                    vec![String::from("namespace1"), String::from("entry1")],
+                    vec![String::from("entry1")],
                     AttributeValue::Text(String::from("value1"))
                 ),
-                (
-                    vec![String::from("namespace1"), String::from("entry2")],
-                    AttributeValue::Bool(true)
-                ),
+                (vec![String::from("entry2")], AttributeValue::Bool(true)),
             ],
             attrs.as_slice()
         );
@@ -109,13 +110,19 @@ mod test {
     #[test]
     fn test_attribute_not_found() {
         let metadata = TypeMetadata {
+            vct: String::from("example_attestation_type"),
             claims: vec![claim_metadata(&["not_found"])],
-            ..TypeMetadata::empty_example()
+            ..TypeMetadata::example_with_claim_names(
+                "example_attestation_type",
+                &[
+                    ("entry1", JsonSchemaPropertyType::String, None),
+                    ("entry2", JsonSchemaPropertyType::Boolean, None),
+                ],
+            )
         };
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
             example_mdoc_attributes(),
@@ -128,13 +135,19 @@ mod test {
     #[test]
     fn test_attribute_not_processed() {
         let metadata = TypeMetadata {
-            claims: vec![claim_metadata(&["namespace1", "entry1"])],
-            ..TypeMetadata::empty_example()
+            vct: String::from("example_attestation_type"),
+            claims: vec![claim_metadata(&["entry1"])],
+            ..TypeMetadata::example_with_claim_names(
+                "example_attestation_type",
+                &[
+                    ("entry1", JsonSchemaPropertyType::String, None),
+                    ("entry2", JsonSchemaPropertyType::Boolean, None),
+                ],
+            )
         };
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
             example_mdoc_attributes(),
@@ -144,7 +157,7 @@ mod test {
         assert_matches!(
             error,
             AttestationError::AttributeNotProcessedByClaim(keys)
-                if keys == HashSet::from([vec![String::from("namespace1"), String::from("entry2")]])
+                if keys == HashSet::from([vec![String::from("entry2")]])
         );
     }
 }

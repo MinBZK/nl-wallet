@@ -813,7 +813,7 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuedMdocMismatch)?;
 
                 // Verify and parse the type metadata
-                let credential_payload = CredentialPayload::from_mdoc(mdoc.clone())?;
+                let credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), metadata_chain)?;
                 credential_payload.validate(metadata_chain)?;
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
@@ -879,6 +879,7 @@ mod tests {
     use nl_wallet_mdoc::utils::serialization::TaggedBytes;
     use nl_wallet_mdoc::utils::x509::CertificateError;
     use nl_wallet_mdoc::IssuerSigned;
+    use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::keys::factory::KeyFactory;
@@ -914,8 +915,12 @@ mod tests {
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
 
-        // NOTE: This metadata does not match the attributes.
-        let metadata = TypeMetadata::empty_example();
+        let metadata = TypeMetadata::example_with_claim_name(
+            &unsigned_mdoc.doc_type,
+            "family_name",
+            JsonSchemaPropertyType::String,
+            None,
+        );
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
         let preview = CredentialPreview::MsoMdoc {

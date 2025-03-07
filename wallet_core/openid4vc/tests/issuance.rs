@@ -46,6 +46,7 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
+use sd_jwt::metadata::JsonSchemaPropertyType;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::jwt::JsonJwt;
@@ -497,8 +498,17 @@ fn mock_issuable_attestation(
             valid_from: now,
             valid_until: now.add(Days::new(365)),
             copy_count,
-            // NOTE: This metadata does not match the attributes.
-            metadata_chain: TypeMetadataChain::create(TypeMetadata::empty_example(), vec![]).unwrap(),
+            metadata_chain: TypeMetadataChain::create(
+                TypeMetadata::example_with_claim_names(
+                    MOCK_DOCTYPES[i],
+                    &MOCK_ATTRS
+                        .iter()
+                        .map(|(key, _)| (*key, JsonSchemaPropertyType::String, None))
+                        .collect::<Vec<_>>(),
+                ),
+                vec![],
+            )
+            .unwrap(),
         })
         .collect::<Vec<_>>()
         .try_into()
