@@ -14,6 +14,7 @@ members = [
     "openid4vc",
     "openid4vc_server",
     "platform_support",
+    "poa",
     "sd_jwt",
     "tests_integration",
     "update_policy_server",
@@ -32,7 +33,7 @@ members = [
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/pid_issuer",
-    "wallet_server/verification_server", "poa",
+    "wallet_server/verification_server",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"
