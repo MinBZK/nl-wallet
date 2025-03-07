@@ -342,6 +342,7 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     W: WteTracker + Send + Sync + 'static,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sessions: S,
         attr_service: A,
