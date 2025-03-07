@@ -75,7 +75,7 @@ openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
 sd_jwt.path = "../sd_jwt"
 wallet_account = { path = "../wallet_account", features = ["client"] }
-wallet_common = { path = "../wallet_common", features = ["axum"] }
+wallet_common = { path = "../wallet_common" }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
