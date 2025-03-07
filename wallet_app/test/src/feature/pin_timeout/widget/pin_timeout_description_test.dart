@@ -1,5 +1,5 @@
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/feature/pin_timeout/widget/pin_timeout_description.dart';
 
 import '../../../../wallet_app_test_widget.dart';

@@ -69,6 +69,7 @@ class ForgotPinScreen extends StatelessWidget {
             children: [
               PrimaryButton(
                 onPressed: () => ResetWalletDialog.show(context),
+                icon: const Icon(Icons.delete_outline_rounded),
                 text: Text.rich(context.l10n.forgotPinScreenCta.toTextSpan(context)),
               ),
               const SizedBox(height: 12),

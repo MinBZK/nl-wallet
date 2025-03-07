@@ -1,9 +1,9 @@
 import 'package:fimber/fimber.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:local_auth/local_auth.dart';
 
+import '../../../../../l10n/generated/app_localizations.dart';
 import '../../../../data/repository/biometric/biometric_repository.dart';
 import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../../../../data/store/active_locale_provider.dart';

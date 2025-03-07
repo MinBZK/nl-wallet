@@ -15,5 +15,5 @@ trap clean EXIT
 
 target=$1
 source="$(mktemp).zip"
-zip $source "${@:2:$#}"
+zip -j $source "${@:2:$#}"
 store $source $target

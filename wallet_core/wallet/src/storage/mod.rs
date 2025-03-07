@@ -32,7 +32,10 @@ pub use self::data::RegistrationData;
 pub use self::data::UnlockData;
 pub use self::data::UnlockMethod;
 pub use self::database_storage::DatabaseStorage;
-pub use self::event_log::EventStatus;
+pub use self::event_log::disclosure_type_for_proposed_attributes;
+pub use self::event_log::DataDisclosureStatus;
+pub use self::event_log::DisclosureStatus;
+pub use self::event_log::DisclosureType;
 pub use self::event_log::WalletEvent;
 pub use self::key_file::KeyFileError;
 
@@ -115,6 +118,6 @@ pub trait Storage {
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()>;
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
-    async fn fetch_wallet_events_by_doc_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>>;
+    async fn fetch_wallet_events_by_attestation_type(&self, attestation_type: &str) -> StorageResult<Vec<WalletEvent>>;
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 }

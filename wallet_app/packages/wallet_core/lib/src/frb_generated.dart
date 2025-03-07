@@ -113,7 +113,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
-  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String docType});
+  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationType});
 
   Future<String> crateApiFullGetVersionString();
 
@@ -489,10 +489,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String docType}) {
+  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationType}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
-        var arg0 = cst_encode_String(docType);
+        var arg0 = cst_encode_String(attestationType);
         return wire.wire__crate__api__full__get_history_for_card(port_, arg0);
       },
       codec: DcoCodec(
@@ -500,14 +500,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         decodeErrorData: dco_decode_AnyhowException,
       ),
       constMeta: kCrateApiFullGetHistoryForCardConstMeta,
-      argValues: [docType],
+      argValues: [attestationType],
       apiImpl: this,
     ));
   }
 
   TaskConstMeta get kCrateApiFullGetHistoryForCardConstMeta => const TaskConstMeta(
         debugName: "get_history_for_card",
-        argNames: ["docType"],
+        argNames: ["attestationType"],
       );
 
   @override

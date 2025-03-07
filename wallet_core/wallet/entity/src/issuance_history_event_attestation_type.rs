@@ -1,21 +1,21 @@
 use sea_orm::entity::prelude::*;
 
-use crate::history_doc_type;
+use crate::history_attestation_type;
 use crate::issuance_history_event;
 
 #[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "issuance_history_event_doc_type")]
+#[sea_orm(table_name = "issuance_history_event_attestation_type")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub issuance_history_event_id: Uuid,
     #[sea_orm(primary_key, auto_increment = false)]
-    pub history_doc_type_id: Uuid,
+    pub history_attestation_type_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     HistoryEvent,
-    HistoryDocType,
+    HistoryAttestationType,
 }
 
 impl ActiveModelBehavior for ActiveModel {}
@@ -27,9 +27,9 @@ impl RelationTrait for Relation {
                 .from(Column::IssuanceHistoryEventId)
                 .to(issuance_history_event::Column::Id)
                 .into(),
-            Self::HistoryDocType => Entity::belongs_to(history_doc_type::Entity)
-                .from(Column::HistoryDocTypeId)
-                .to(history_doc_type::Column::Id)
+            Self::HistoryAttestationType => Entity::belongs_to(history_attestation_type::Entity)
+                .from(Column::HistoryAttestationTypeId)
+                .to(history_attestation_type::Column::Id)
                 .into(),
         }
     }

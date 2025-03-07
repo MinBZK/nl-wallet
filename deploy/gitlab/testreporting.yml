@@ -1,0 +1,61 @@
+check-test-reporting:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  rules: !reference [.default-or-merge-request, rules]
+  script:
+    - cd testreporting
+    - npm ci
+    - npm run format-check
+    - npm run lint
+    - npm run type-check
+
+build-test-report:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: test-ios
+      artifacts: false
+      optional: true
+    - job: test-flutter
+      artifacts: false
+      optional: true
+    - job: test-flutter-ui
+      artifacts: false
+      optional: true
+    - job: test-rust
+      artifacts: false
+      optional: true
+    - job: run-automation-tests-publish-results
+      artifacts: false
+      optional: true
+    - job: run-mrp-browsertest-test-ont
+      artifacts: false
+      optional: true
+    - job: run-fallback-page-browsertest-test-ont
+      artifacts: false
+      optional: true
+    - job: run-gba-fetch-browsertest-test-ont
+      artifacts: false
+      optional: true
+    - job: wallet-web
+      artifacts: false
+      optional: true
+  script:
+    - cd testreporting
+    - npm ci
+    - npm run fetch-history || true
+    - npm run fetch-results
+    - >
+      npm run generate
+      allure-results/browsertest-*.zip
+      allure-results/{e2e,web}.zip
+      junit-results/{flutter,flutter-ui,ios,rust}.xml
+    - mv allure-report/awesome/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
+    - zip -j allure-report.zip allure-report-$CI_COMMIT_SHORT_SHA.html
+  after_script:
+    - deploy/bin/store-artifact.sh testreporting/allure-report.zip qt/quality-time/
+    - gzip testreporting/.allure/history.jsonl
+    - deploy/bin/store-artifact.sh testreporting/.allure/history.jsonl.gz qt/quality-time/allure-history.jsonl.gz
+  artifacts:
+    paths:
+      - testreporting/allure-report.zip
+      - testreporting/.allure/history.jsonl.gz

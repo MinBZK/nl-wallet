@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth_android/local_auth_android.dart';
 import 'package:local_auth_darwin/local_auth_darwin.dart';
 
+import '../../../l10n/generated/app_localizations.dart';
 import '../../domain/usecase/biometrics/biometrics.dart';
 import '../extension/biometric_type_extension.dart';
 
