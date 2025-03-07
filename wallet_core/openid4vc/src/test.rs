@@ -147,9 +147,7 @@ where
 
         let request = (self.transform_auth_request)(request);
 
-        jwt::credential::sign_with_certificate(&request, &self.key_pair)
-            .await
-            .unwrap()
+        Jwt::sign_with_certificate(&request, &self.key_pair).await.unwrap()
     }
 }
 

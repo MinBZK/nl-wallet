@@ -992,7 +992,7 @@ impl Session<Created> {
         .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
-        let jws = jwt::credential::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
+        let jws = Jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
             .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
 

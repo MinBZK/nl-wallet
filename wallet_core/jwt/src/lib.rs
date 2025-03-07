@@ -1,9 +1,12 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::LazyLock;
 
 use base64::prelude::*;
+use base64::DecodeError;
 use chrono::serde::ts_seconds;
 use chrono::DateTime;
 use chrono::Utc;
@@ -18,6 +21,8 @@ use jsonwebtoken::Validation;
 use p256::ecdsa::signature;
 use p256::ecdsa::VerifyingKey;
 use p256::EncodedPoint;
+use rustls_pki_types::CertificateDer;
+use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
@@ -29,7 +34,11 @@ use x509_parser::prelude::FromDer;
 use x509_parser::x509::AlgorithmIdentifier;
 
 use error_category::ErrorCategory;
-
+use nl_wallet_mdoc::server_keys::KeyPair;
+use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::utils::x509::CertificateError;
+use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use wallet_common::generator::Generator;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::EcdsaKey;
@@ -125,6 +134,23 @@ pub enum JwtError {
     #[error("cannot construct JSON-serialized JWT: received differing payloads: {0}, {1}")]
     #[category(pd)]
     DifferentPayloads(String, String),
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
+pub enum JwtX5cError {
+    #[error("error validating JWT: {0}")]
+    Jwt(#[from] JwtError),
+    #[error("missing X.509 certificate(s) in JWT header to validate JWT against")]
+    #[category(critical)]
+    MissingCertificates,
+    #[error("error base64-decoding certificate: {0}")]
+    #[category(critical)]
+    CertificateBase64(#[source] DecodeError),
+    #[error("error parsing certificate: {0}")]
+    CertificateParsing(#[source] CertificateError),
+    #[error("error verifying certificate: {0}")]
+    CertificateValidation(#[source] CertificateError),
 }
 
 pub trait JwtSubject {
@@ -230,6 +256,55 @@ where
 
         Ok((header, body))
     }
+
+    /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT header.
+    pub fn verify_against_trust_anchors<A: ToString>(
+        &self,
+        audience: &[A],
+        trust_anchors: &[TrustAnchor],
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Result<(T, BorrowingCertificate), JwtX5cError> {
+        let header = jsonwebtoken::decode_header(&self.0).map_err(JwtError::Validation)?;
+        let mut certs = header
+            .x5c
+            .ok_or(JwtX5cError::MissingCertificates)?
+            .into_iter()
+            .map(|cert_base64| {
+                let cert = CertificateDer::from(
+                    BASE64_STANDARD
+                        .decode(cert_base64)
+                        .map_err(JwtX5cError::CertificateBase64)?,
+                );
+                Ok(cert)
+            })
+            .collect::<Result<VecDeque<_>, JwtX5cError>>()?;
+
+        // Verify the certificate chain against the trust anchors.
+        let leaf_cert =
+            BorrowingCertificate::from_certificate_der(certs.pop_front().ok_or(JwtX5cError::MissingCertificates)?)
+                .map_err(JwtX5cError::CertificateParsing)?;
+        // The `VecDeque` containing the certificates will be contiguous at this point, so the second value is empty.
+        let (intermediates, _) = certs.as_slices();
+        leaf_cert
+            .verify(CertificateUsage::ReaderAuth, intermediates, time, trust_anchors)
+            .map_err(JwtX5cError::CertificateValidation)?;
+
+        // The leaf certificate is trusted, we can now use its public key to verify the JWS.
+        let pubkey = leaf_cert.public_key();
+
+        let validation_options = {
+            let mut validation = Validation::new(Algorithm::ES256);
+
+            validation.required_spec_claims = HashSet::default();
+            validation.set_audience(audience);
+
+            validation
+        };
+
+        let payload = self.parse_and_verify(&pubkey.into(), &validation_options)?;
+
+        Ok((payload, leaf_cert))
+    }
 }
 
 impl<T> Jwt<T>
@@ -295,6 +370,28 @@ where
             .collect();
 
         Ok(jwts)
+    }
+
+    /// Sign a payload into a JWS, and put the certificate of the provided keypair in the `x5c` JWT header.
+    /// The resulting JWS can be verified using [`verify_against_trust_anchors()`].
+    pub async fn sign_with_certificate<K: EcdsaKey>(payload: &T, keypair: &KeyPair<K>) -> Result<Self, JwtError> {
+        // The `x5c` header supports certificate chains, but ISO 18013-5 doesn't: it requires that issuer
+        // and RP certificates are signed directly by the trust anchor. So we don't support certificate chains
+        // here (yet).
+        let certs = vec![BASE64_STANDARD.encode(keypair.certificate().as_ref())];
+
+        let jwt = Jwt::sign(
+            payload,
+            &Header {
+                alg: jsonwebtoken::Algorithm::ES256,
+                x5c: Some(certs),
+                ..Default::default()
+            },
+            keypair.private_key(),
+        )
+        .await?;
+
+        Ok(jwt)
     }
 }
 
@@ -647,10 +744,18 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
+    use base64::prelude::*;
     use futures::StreamExt;
+    use jsonwebtoken::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+    use serde_json::json;
 
+    use nl_wallet_mdoc::server_keys::generate::Ca;
+    use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
+    use nl_wallet_mdoc::utils::x509::CertificateError;
+    use nl_wallet_mdoc::utils::x509::CertificateUsage;
+    use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use super::*;
@@ -834,5 +939,104 @@ mod tests {
         let serialized = serde_json::to_string(&json_jwt_mixed).unwrap();
         let deserialized: JsonJwt<ToyMessage> = serde_json::from_str(&serialized).unwrap();
         assert_matches!(deserialized.signatures, JsonJwtSignatures::General { .. });
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_cert() {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock(None).unwrap();
+
+        let payload = json!({"hello": "world"});
+        let jwt = Jwt::sign_with_certificate(&payload, &keypair).await.unwrap();
+
+        let audience: &[String] = &[];
+        let (deserialized, leaf_cert) = jwt
+            .verify_against_trust_anchors(audience, &[ca.to_trust_anchor()], &TimeGenerator)
+            .unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(leaf_cert, *keypair.certificate());
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_cert_intermediates() {
+        // Generate a chain of certificates
+        let ca = Ca::generate_with_intermediate_count("myca", CertificateConfiguration::default(), 3).unwrap();
+        let intermediate1 = ca
+            .generate_intermediate(
+                "myintermediate1",
+                CertificateUsage::ReaderAuth,
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+        let intermediate2 = intermediate1
+            .generate_intermediate(
+                "myintermediate2",
+                CertificateUsage::ReaderAuth,
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+        let intermediate3 = intermediate2
+            .generate_intermediate(
+                "myintermediate3",
+                CertificateUsage::ReaderAuth,
+                CertificateConfiguration::default(),
+            )
+            .unwrap();
+        let keypair = intermediate3.generate_reader_mock(None).unwrap();
+
+        // Construct a JWT with the `x5c` field containing the X.509 certificates
+        // of the leaf certificate and the intermediates, in reverse order.
+        let payload = json!({"hello": "world"});
+        let certs = vec![
+            keypair.certificate().as_ref(),
+            intermediate3.as_certificate_der().as_ref(),
+            intermediate2.as_certificate_der().as_ref(),
+            intermediate1.as_certificate_der().as_ref(),
+        ]
+        .into_iter()
+        .map(|der| BASE64_STANDARD.encode(der))
+        .collect();
+
+        let jwt = Jwt::sign(
+            &payload,
+            &Header {
+                alg: jsonwebtoken::Algorithm::ES256,
+                x5c: Some(certs),
+                ..Default::default()
+            },
+            keypair.private_key(),
+        )
+        .await
+        .unwrap();
+
+        // Verifying this JWT against the CA's trust anchor should succeed.
+        let audience: &[String] = &[];
+        let (deserialized, leaf_cert) = jwt
+            .verify_against_trust_anchors(audience, &[ca.to_trust_anchor()], &TimeGenerator)
+            .unwrap();
+
+        assert_eq!(deserialized, payload);
+        assert_eq!(leaf_cert, *keypair.certificate());
+    }
+
+    #[tokio::test]
+    async fn test_parse_and_verify_jwt_with_wrong_cert() {
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let keypair = ca.generate_reader_mock(None).unwrap();
+
+        let payload = json!({"hello": "world"});
+        let jwt = Jwt::sign_with_certificate(&payload, &keypair).await.unwrap();
+
+        let other_ca = Ca::generate("myca", Default::default()).unwrap();
+
+        let audience: &[String] = &[];
+        let err = jwt
+            .verify_against_trust_anchors(audience, &[other_ca.to_trust_anchor()], &TimeGenerator)
+            .unwrap_err();
+        assert_matches!(
+            err,
+            JwtX5cError::CertificateValidation(CertificateError::Verification(_))
+        );
     }
 }

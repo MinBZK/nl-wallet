@@ -22,8 +22,8 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
-use jwt::credential::JwtX5cError;
 use jwt::Jwt;
+use jwt::JwtX5cError;
 use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::errors::Error as MdocError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
@@ -312,8 +312,7 @@ impl VpAuthorizationRequest {
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        Ok(jwt::credential::verify_against_trust_anchors(
-            jws,
+        Ok(jws.verify_against_trust_anchors(
             &[VpAuthorizationRequestAudience::SelfIssued],
             trust_anchors,
             &TimeGenerator,
@@ -821,6 +820,7 @@ mod tests {
     use itertools::Itertools;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use jwt::Jwt;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
@@ -937,9 +937,7 @@ mod tests {
     async fn test_authorization_request_jwt() {
         let (trust_anchor, rp_keypair, _, auth_request) = setup();
 
-        let auth_request_jwt = jwt::credential::sign_with_certificate(&auth_request, &rp_keypair)
-            .await
-            .unwrap();
+        let auth_request_jwt = Jwt::sign_with_certificate(&auth_request, &rp_keypair).await.unwrap();
 
         let (auth_request, cert) = VpAuthorizationRequest::try_new(&auth_request_jwt, &[trust_anchor]).unwrap();
         auth_request.validate(&cert, None).unwrap();
