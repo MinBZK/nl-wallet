@@ -76,7 +76,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn get_history_for_card(&self, doc_type: &str) -> HistoryResult<Vec<WalletEvent>> {
+    pub async fn get_history_for_card(&self, attestation_type: &str) -> HistoryResult<Vec<WalletEvent>> {
         info!("Retrieving Card history");
 
         info!("Checking if blocked");
@@ -96,7 +96,9 @@ where
 
         info!("Retrieving Card history from storage");
         let storage = self.storage.read().await;
-        let events = storage.fetch_wallet_events_by_entity_type(doc_type).await?;
+        let events = storage
+            .fetch_wallet_events_by_attestation_type(attestation_type)
+            .await?;
 
         Ok(events)
     }

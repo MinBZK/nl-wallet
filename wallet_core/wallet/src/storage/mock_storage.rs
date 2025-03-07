@@ -222,14 +222,14 @@ impl Storage for MockStorage {
         Ok(events)
     }
 
-    async fn fetch_wallet_events_by_entity_type(&self, doc_type: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_attestation_type(&self, attestation_type: &str) -> StorageResult<Vec<WalletEvent>> {
         self.check_query_error()?;
 
         let mut events = self
             .event_log
             .clone()
             .into_iter()
-            .filter(|e| e.associated_attestation_types().contains(doc_type))
+            .filter(|e| e.associated_attestation_types().contains(attestation_type))
             .collect::<Vec<_>>();
         events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)

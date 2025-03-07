@@ -667,18 +667,18 @@ where
         Self::combine_history_events(issuance_events, disclosure_events)
     }
 
-    async fn fetch_wallet_events_by_entity_type(&self, entity_type: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_attestation_type(&self, attestation_type: &str) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
         let fetch_issuance_events = Self::query_history_events_by_entity_type(
-            entity_type,
+            attestation_type,
             connection,
             issuance_history_event_attestation_type::Relation::HistoryEvent.def(),
             issuance_history_event_attestation_type::Relation::HistoryAttestationType.def(),
             issuance_history_event::Column::Timestamp,
         );
         let fetch_disclosure_events = Self::query_history_events_by_entity_type(
-            entity_type,
+            attestation_type,
             connection,
             disclosure_history_event_attestation_type::Relation::HistoryEvent.def(),
             disclosure_history_event_attestation_type::Relation::HistoryAttestationType.def(),
@@ -1214,7 +1214,10 @@ pub(crate) mod tests {
         );
         // Fetch event by pid and verify events are sorted descending by timestamp
         assert_eq!(
-            storage.fetch_wallet_events_by_entity_type(PID_DOCTYPE).await.unwrap(),
+            storage
+                .fetch_wallet_events_by_attestation_type(PID_DOCTYPE)
+                .await
+                .unwrap(),
             vec![
                 disclosure_at_timestamp.clone(),
                 issuance_at_even_older_timestamp.clone()
@@ -1223,7 +1226,7 @@ pub(crate) mod tests {
         // Fetch event by address
         assert_eq!(
             storage
-                .fetch_wallet_events_by_entity_type(ADDRESS_DOCTYPE)
+                .fetch_wallet_events_by_attestation_type(ADDRESS_DOCTYPE)
                 .await
                 .unwrap(),
             vec![issuance_at_older_timestamp]
@@ -1231,7 +1234,7 @@ pub(crate) mod tests {
         // Fetching for unknown-doc-type returns empty Vec
         assert_eq!(
             storage
-                .fetch_wallet_events_by_entity_type("unknown-doc-type")
+                .fetch_wallet_events_by_attestation_type("unknown-doc-type")
                 .await
                 .unwrap(),
             vec![]
@@ -1271,7 +1274,10 @@ pub(crate) mod tests {
 
         // Fetch event by pid and verify events contain issuance of pid, and both full disclosure transactions with pid
         assert_eq!(
-            storage.fetch_wallet_events_by_entity_type(PID_DOCTYPE).await.unwrap(),
+            storage
+                .fetch_wallet_events_by_attestation_type(PID_DOCTYPE)
+                .await
+                .unwrap(),
             vec![
                 disclosure_pid_only.clone(),
                 disclosure_pid_and_address.clone(),
@@ -1282,7 +1288,7 @@ pub(crate) mod tests {
         // with address
         assert_eq!(
             storage
-                .fetch_wallet_events_by_entity_type(ADDRESS_DOCTYPE)
+                .fetch_wallet_events_by_attestation_type(ADDRESS_DOCTYPE)
                 .await
                 .unwrap(),
             vec![disclosure_pid_and_address, issuance,]
