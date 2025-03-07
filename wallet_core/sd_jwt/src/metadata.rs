@@ -261,7 +261,7 @@ pub struct MetadataExtends {
 pub enum SchemaOption {
     Embedded {
         /// An embedded JSON Schema document describing the structure of the Verifiable Credential.
-        schema: JsonSchema,
+        schema: Box<JsonSchema>,
     },
     Remote {
         /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
@@ -492,7 +492,7 @@ pub mod mock {
                 display: vec![],
                 claims: vec![],
                 schema: SchemaOption::Embedded {
-                    schema: JsonSchema::try_new(json!({"properties": {}})).unwrap(),
+                    schema: Box::new(JsonSchema::try_new(json!({"properties": {}})).unwrap()),
                 },
             }
         }
@@ -533,7 +533,7 @@ pub mod mock {
                     })
                     .collect(),
                 schema: SchemaOption::Embedded {
-                    schema: JsonSchema::example_with_claim_names(names),
+                    schema: Box::new(JsonSchema::example_with_claim_names(names)),
                 },
                 ..Self::empty_example()
             }
