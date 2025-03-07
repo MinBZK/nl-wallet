@@ -1,3 +1,13 @@
+check-test-reporting:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  rules: !reference [.default-or-merge-request, rules]
+  script:
+    - cd testreporting
+    - npm ci
+    - npm run format-check
+    - npm run lint
+    - npm run type-check
+
 build-test-report:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   rules: !reference [.default-branch, rules]
@@ -32,9 +42,6 @@ build-test-report:
   script:
     - cd testreporting
     - npm ci
-    - npm run format-check
-    - npm run lint
-    - npm run type-check
     - npm run fetch-history || true
     - npm run fetch-results
     - >
