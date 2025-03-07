@@ -19,7 +19,7 @@ use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use indexmap::IndexMap;
-use p256::ecdsa::VerifyingKey;
+use openid4vc::issuer::WalletSettings;
 use serde::Serialize;
 use tracing::warn;
 
@@ -58,9 +58,7 @@ pub fn create_issuance_router<A, K, S, W>(
     attestation_settings: AttestationSettings<K>,
     sessions: S,
     attr_service: A,
-    wallet_client_ids: Vec<String>,
-    wte_issuer_pubkey: VerifyingKey,
-    wte_tracker: W,
+    wallet_settings: WalletSettings<W>,
     type_metadata: IndexMap<String, TypeMetadata>,
 ) -> Router
 where
@@ -75,9 +73,7 @@ where
             attr_service,
             attestation_settings,
             public_url,
-            wallet_client_ids,
-            wte_issuer_pubkey,
-            wte_tracker,
+            wallet_settings,
             type_metadata,
         ),
     });

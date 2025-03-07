@@ -4,6 +4,7 @@ use assert_matches::assert_matches;
 use chrono::Days;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use openid4vc::issuer::WalletSettings;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use rstest::rstest;
@@ -108,9 +109,11 @@ fn setup(
         attr_service,
         attestation_settings,
         &server_url,
-        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
-        *wte_issuer_privkey.verifying_key(),
-        MemoryWteTracker::new(),
+        WalletSettings {
+            wallet_client_ids: vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+            wte_issuer_pubkey: *wte_issuer_privkey.verifying_key(),
+            wte_tracker: MemoryWteTracker::new(),
+        },
         MOCK_DOCTYPES
             .iter()
             .map(|doctype| (doctype.to_string(), mock_type_metadata(doctype)))

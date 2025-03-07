@@ -335,6 +335,12 @@ impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
     }
 }
 
+pub struct WalletSettings<W> {
+    pub wallet_client_ids: Vec<String>,
+    pub wte_issuer_pubkey: VerifyingKey,
+    pub wte_tracker: W,
+}
+
 impl<A, K, S, W> Issuer<A, K, S, W>
 where
     A: AttributeService,
@@ -342,26 +348,23 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     W: WteTracker + Send + Sync + 'static,
 {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sessions: S,
         attr_service: A,
         attestation_settings: AttestationSettings<K>,
         server_url: &BaseUrl,
-        wallet_client_ids: Vec<String>,
-        wte_issuer_pubkey: VerifyingKey,
-        wte_tracker: W,
+        wallet_settings: WalletSettings<W>,
         type_metadata: IndexMap<String, TypeMetadata>,
     ) -> Self {
         let sessions = Arc::new(sessions);
-        let wte_tracker = Arc::new(wte_tracker);
+        let wte_tracker = Arc::new(wallet_settings.wte_tracker);
 
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
             attestation_settings,
             credential_issuer_identifier: issuer_url.clone(),
-            accepted_wallet_client_ids: wallet_client_ids,
-            wte_issuer_pubkey: (&wte_issuer_pubkey).into(),
+            accepted_wallet_client_ids: wallet_settings.wallet_client_ids,
+            wte_issuer_pubkey: (&wallet_settings.wte_issuer_pubkey).into(),
             wte_tracker: Arc::clone(&wte_tracker),
             type_metadata,
 

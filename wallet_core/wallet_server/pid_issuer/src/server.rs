@@ -1,5 +1,6 @@
 use anyhow::Result;
 use axum::Router;
+use openid4vc::issuer::WalletSettings;
 use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
@@ -38,9 +39,11 @@ where
         attestation_settings,
         issuance_sessions,
         attr_service,
-        settings.wallet_client_ids,
-        settings.wte_issuer_pubkey.into_inner(),
-        wte_tracker,
+        WalletSettings {
+            wallet_client_ids: settings.wallet_client_ids,
+            wte_issuer_pubkey: settings.wte_issuer_pubkey.into_inner(),
+            wte_tracker: wte_tracker,
+        },
         type_metadata,
     );
 
