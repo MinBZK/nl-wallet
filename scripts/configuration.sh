@@ -47,6 +47,9 @@ export GBA_HC_CONV_ENCRYPTION_KEY
 GBA_HC_CONV_HMAC_KEY=$(openssl rand -hex 64)
 export GBA_HC_CONV_HMAC_KEY
 
+# Configuration environment
+export CONFIG_ENV="${CONFIG_ENV:-dev}"
+
 # Google Cloud Project ID for Play Integrity. This number is not secret, it's a
 # test throw-away project on one of our Google Cloud accounts. Note that this
 # project is for testing purposes only, not production use.

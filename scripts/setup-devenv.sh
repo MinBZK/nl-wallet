@@ -74,6 +74,7 @@ then
     echo -e "${INFO}Saving initial environment variables${NC}"
     echo -e \
 "#!/usr/bin/env bash
+# export CONFIG_ENV=${CONFIG_ENV}
 # export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH}
 # export DB_HOST=${DB_HOST}
 # export DB_USERNAME=${DB_USERNAME}
