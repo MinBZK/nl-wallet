@@ -4,6 +4,9 @@ mod issuance;
 
 use std::collections::HashSet;
 
+use serde::Deserialize;
+use serde::Serialize;
+
 use error_category::ErrorCategory;
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::AttributeError;
@@ -11,8 +14,6 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
-use serde::Deserialize;
-use serde::Serialize;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

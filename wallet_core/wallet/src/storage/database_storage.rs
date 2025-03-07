@@ -3,7 +3,6 @@ use std::path::PathBuf;
 
 use futures::try_join;
 use itertools::Itertools;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use sea_orm::sea_query::Alias;
 use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
@@ -47,6 +46,7 @@ use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
 use nl_wallet_mdoc::utils::serialization::cbor_serialize;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
