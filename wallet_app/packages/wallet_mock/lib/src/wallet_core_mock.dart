@@ -247,8 +247,8 @@ class WalletCoreMock implements WalletCoreApi {
   Future<List<WalletEvent>> crateApiFullGetHistory({hint}) async => _eventLog.log;
 
   @override
-  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String docType, hint}) async =>
-      _eventLog.logForDocType(docType);
+  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationType, hint}) async =>
+      _eventLog.logForDocType(attestationType);
 
   @override
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream({hint}) => _eventLog.logStream;

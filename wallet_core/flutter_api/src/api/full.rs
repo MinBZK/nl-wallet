@@ -342,15 +342,15 @@ pub async fn get_history() -> anyhow::Result<Vec<WalletEvent>> {
 }
 
 #[flutter_api_error]
-pub async fn get_history_for_card(doc_type: String) -> anyhow::Result<Vec<WalletEvent>> {
+pub async fn get_history_for_card(attestation_type: String) -> anyhow::Result<Vec<WalletEvent>> {
     let wallet = wallet().read().await;
-    let history = wallet.get_history_for_card(&doc_type).await?;
+    let history = wallet.get_history_for_card(&attestation_type).await?;
     let history = history
         .into_iter()
         .flat_map(WalletEvents::from)
         .filter(|e| match e {
             WalletEvent::Disclosure { .. } => true,
-            WalletEvent::Issuance { attestation, .. } => attestation.attestation_type == doc_type,
+            WalletEvent::Issuance { attestation, .. } => attestation.attestation_type == attestation_type,
         })
         .collect();
     Ok(history)

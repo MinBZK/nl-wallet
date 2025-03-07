@@ -385,7 +385,7 @@ fn wire__crate__api__full__get_history_impl(port_: flutter_rust_bridge::for_gene
 }
 fn wire__crate__api__full__get_history_for_card_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    doc_type: impl CstDecode<String>,
+    attestation_type: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -394,11 +394,11 @@ fn wire__crate__api__full__get_history_for_card_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api_doc_type = doc_type.cst_decode();
+            let api_attestation_type = attestation_type.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::get_history_for_card(api_doc_type).await?;
+                        let output_ok = crate::api::full::get_history_for_card(api_attestation_type).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4037,9 +4037,9 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_history_for_card(
         port_: i64,
-        doc_type: *mut wire_cst_list_prim_u_8_strict,
+        attestation_type: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__get_history_for_card_impl(port_, doc_type)
+        wire__crate__api__full__get_history_for_card_impl(port_, attestation_type)
     }
 
     #[unsafe(no_mangle)]
