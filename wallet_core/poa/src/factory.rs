@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::hash::Hash;
 
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
@@ -7,7 +6,7 @@ use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use crate::Poa;
 
 pub trait PoaFactory {
-    type Key: CredentialEcdsaKey + Eq + Hash;
+    type Key: CredentialEcdsaKey;
     type Error: Error + Send + Sync + 'static;
 
     /// Construct a Proof of Association, with which the key factory asserts that all provided keys
