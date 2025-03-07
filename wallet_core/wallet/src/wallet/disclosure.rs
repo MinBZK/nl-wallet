@@ -444,9 +444,10 @@ where
                     disclosure_error,
                     DisclosureError::Instruction(InstructionError::IncorrectPin { .. })
                 ) {
-                    let data_status = match error.data_shared {
-                        true => DataDisclosureStatus::Disclosed,
-                        false => DataDisclosureStatus::NotDisclosed,
+                    let data_status = if error.data_shared {
+                        DataDisclosureStatus::Disclosed
+                    } else {
+                        DataDisclosureStatus::NotDisclosed
                     };
                     let event = WalletEvent::new_disclosure_error(
                         session_proposal.proposed_attributes(),
