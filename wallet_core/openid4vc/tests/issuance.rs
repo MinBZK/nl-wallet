@@ -65,14 +65,14 @@ fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAncho
             attestations: mock_issuable_attestation(attestation_count),
         },
         &ca,
-        issuance_keypair,
+        &issuance_keypair,
     )
 }
 
 fn setup(
     attr_service: MockAttributeService,
     ca: &Ca,
-    issuance_keypair: KeyPair,
+    issuance_keypair: &KeyPair,
 ) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let server_url: BaseUrl = "https://example.com/".parse().unwrap();
     let wte_issuer_privkey = SigningKey::random(&mut OsRng);

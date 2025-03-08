@@ -42,7 +42,7 @@ where
         WalletSettings {
             wallet_client_ids: settings.wallet_client_ids,
             wte_issuer_pubkey: settings.wte_issuer_pubkey.into_inner(),
-            wte_tracker: wte_tracker,
+            wte_tracker,
         },
         type_metadata,
     );
