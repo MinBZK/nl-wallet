@@ -35,19 +35,13 @@ android {
         }
     }
 
-    // Note: When using flutter >= 3.27.1 with Java 21, you will see the
-    // following (harmless) warnings:
+    // Note: When you see the following warnings:
     //
     //   warning: [options] source value 8 is obsolete and will be removed in a future release
     //   warning: [options] target value 8 is obsolete and will be removed in a future release
     //
-    // This will be fixed in a future flutter version, see:
-    // https://github.com/flutter/flutter/issues/156111
-    //
-    // The above warnings are not due to these jvmTarget, sourceCompatibility,
-    // and targetCompatibility options, but due to the flutter gradle plugin.
-    // When the above-linked issue is merged and released, the above warnings
-    // should disappear.
+    // That indicates that a transitive dependency still has VERSION_1_8 specified. It is emphatically
+    // *not* due to the sourceCompatibility, targetCompatibility and jvmTarget settings configured below
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
