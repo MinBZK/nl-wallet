@@ -154,8 +154,11 @@ pub async fn create_and_verify_attested_key<'a, H>(
             certificate_chain,
             app_attestation_token,
         } => {
-            assert!(!app_attestation_token.is_empty(), "App attestation token should not be empty");
-            
+            assert!(
+                !app_attestation_token.is_empty(),
+                "App attestation token should not be empty"
+            );
+
             let TestData::Android(android_test_data) = test_data else {
                 panic!("android test data should be provided to test");
             };
