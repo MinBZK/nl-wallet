@@ -358,7 +358,7 @@ void frbgen_wallet_core_wire__crate__api__full__create_pid_issuance_redirect_uri
 void frbgen_wallet_core_wire__crate__api__full__get_history(int64_t port_);
 
 void frbgen_wallet_core_wire__crate__api__full__get_history_for_card(int64_t port_,
-                                                                     struct wire_cst_list_prim_u_8_strict *doc_type);
+                                                                     struct wire_cst_list_prim_u_8_strict *attestation_type);
 
 void frbgen_wallet_core_wire__crate__api__full__get_version_string(int64_t port_);
 

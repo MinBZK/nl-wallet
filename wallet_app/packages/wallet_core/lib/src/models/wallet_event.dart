@@ -11,6 +11,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'wallet_event.freezed.dart';
 
+enum DisclosureStatus {
+  Success,
+  Cancelled,
+  Error,
+  ;
+}
+
 @freezed
 sealed class WalletEvent with _$WalletEvent {
   const WalletEvent._();

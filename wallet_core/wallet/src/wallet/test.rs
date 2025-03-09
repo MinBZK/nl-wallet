@@ -35,7 +35,7 @@ use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
 use crate::disclosure::MockMdocDisclosureSession;
-use crate::document;
+use crate::issuance;
 use crate::issuance::MockDigidSession;
 use crate::pin::key as pin_key;
 use crate::storage::KeyedData;
@@ -47,7 +47,7 @@ use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::tests::MockWteIssuanceClient;
 use crate::Attestation;
-use crate::HistoryEvent;
+use crate::WalletEvent;
 
 use super::init::RegistrationStatus;
 use super::HistoryError;
@@ -118,14 +118,14 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 
 /// Generates a valid `Mdoc` that contains a full PID.
 pub fn create_full_pid_mdoc() -> Mdoc {
-    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
+    let (unsigned_mdoc, metadata) = issuance::mock::create_full_unsigned_pid_mdoc();
 
     mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
 pub fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
-    let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
+    let (unsigned_mdoc, metadata) = issuance::mock::create_full_unsigned_pid_mdoc();
 
     mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY_UNAUTHENTICATED)
 }
@@ -307,10 +307,10 @@ pub async fn setup_mock_attestations_callback(
 
 pub async fn setup_mock_recent_history_callback(
     wallet: &mut WalletWithMocks,
-) -> Result<Arc<Mutex<Vec<Vec<HistoryEvent>>>>, (Arc<Mutex<Vec<Vec<HistoryEvent>>>>, HistoryError)> {
+) -> Result<Arc<Mutex<Vec<Vec<WalletEvent>>>>, (Arc<Mutex<Vec<Vec<WalletEvent>>>>, HistoryError)> {
     // Wrap a `Vec<HistoryEvent>` in both a `Mutex` and `Arc`,
     // so we can write to it from the closure.
-    let events = Arc::new(Mutex::new(Vec::<Vec<HistoryEvent>>::with_capacity(2)));
+    let events = Arc::new(Mutex::new(Vec::<Vec<WalletEvent>>::with_capacity(2)));
     let callback_events = Arc::clone(&events);
 
     // Set the recent_history callback on the `Wallet`, which should immediately be called with an empty `Vec`.
