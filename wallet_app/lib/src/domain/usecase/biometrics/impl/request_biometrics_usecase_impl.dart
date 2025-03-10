@@ -11,6 +11,8 @@ import '../../../model/result/result.dart';
 import '../biometric_authentication_result.dart';
 import '../request_biometrics_usecase.dart';
 
+const _kDefaultErrorMessage = 'Failed to authenticate with biometrics';
+
 class RequestBiometricsUsecaseImpl extends RequestBiometricsUsecase {
   final LocalAuthentication _localAuthentication;
   final ActiveLocaleProvider _localeProvider;
@@ -43,12 +45,12 @@ class RequestBiometricsUsecaseImpl extends RequestBiometricsUsecase {
         return const Result.success(BiometricAuthenticationResult.lockedOut);
       } else {
         Fimber.e('Other PlatformException', ex: e);
-        return Result.error(GenericError('Failed to authenticate with biometrics', sourceError: e));
+        return Result.error(GenericError(_kDefaultErrorMessage, sourceError: e));
       }
     } catch (ex) {
       Fimber.e('Failed to authenticate', ex: ex);
-      return Result.error(GenericError('Failed to authenticate with biometrics', sourceError: ex));
+      return Result.error(GenericError(_kDefaultErrorMessage, sourceError: ex));
     }
-    return Result.error(GenericError('Failed to authenticate with biometrics', sourceError: Exception('Auth failed')));
+    return Result.error(GenericError(_kDefaultErrorMessage, sourceError: Exception('Auth failed')));
   }
 }
