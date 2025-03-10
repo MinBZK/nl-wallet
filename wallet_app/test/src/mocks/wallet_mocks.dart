@@ -29,9 +29,10 @@ import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/start_disclosure_usecase.dart';
+import 'package:wallet/src/domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_for_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
-import 'package:wallet/src/domain/usecase/history/observe_recent_history_usecase.dart';
+import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
@@ -120,7 +121,8 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<StartDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelDisclosureUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveWalletCardsUseCase>()])
-@GenerateNiceMocks([MockSpec<ObserveRecentHistoryUseCase>()])
+@GenerateNiceMocks([MockSpec<ObserveRecentWalletEventsUseCase>()])
+@GenerateNiceMocks([MockSpec<GetMostRecentWalletEventUseCase>()])
 @GenerateNiceMocks([MockSpec<CheckIsValidPinUseCase>()])
 @GenerateNiceMocks([MockSpec<CreateWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<UnlockWalletWithPinUseCase>()])
@@ -203,7 +205,8 @@ class Mocks {
     sl.registerFactory<StartDisclosureUseCase>(MockStartDisclosureUseCase.new);
     sl.registerFactory<CancelDisclosureUseCase>(MockCancelDisclosureUseCase.new);
     sl.registerFactory<ObserveWalletCardsUseCase>(MockObserveWalletCardsUseCase.new);
-    sl.registerFactory<ObserveRecentHistoryUseCase>(MockObserveRecentHistoryUseCase.new);
+    sl.registerFactory<ObserveRecentWalletEventsUseCase>(MockObserveRecentWalletEventsUseCase.new);
+    sl.registerFactory<MockGetMostRecentWalletEventUseCase>(MockGetMostRecentWalletEventUseCase.new);
     sl.registerFactory<CheckIsValidPinUseCase>(MockCheckIsValidPinUseCase.new);
     sl.registerFactory<CreateWalletUseCase>(MockCreateWalletUseCase.new);
     sl.registerFactory<UnlockWalletWithPinUseCase>(MockUnlockWalletWithPinUseCase.new);

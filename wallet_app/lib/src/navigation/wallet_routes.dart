@@ -299,6 +299,7 @@ WidgetBuilder _createDisclosureScreenBuilder(RouteSettings settings) {
       create: (BuildContext context) => DisclosureBloc(
         context.read(),
         context.read(),
+        context.read(),
       )..add(
           DisclosureSessionStarted(
             args.uri,

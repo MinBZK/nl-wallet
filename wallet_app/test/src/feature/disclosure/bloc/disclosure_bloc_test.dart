@@ -18,13 +18,16 @@ import '../../../mocks/wallet_mocks.dart';
 void main() {
   late MockStartDisclosureUseCase startDisclosureUseCase;
   late MockCancelDisclosureUseCase cancelDisclosureUseCase;
+  late MockGetMostRecentWalletEventUseCase getMostRecentWalletEventUsecase;
 
   /// Create a new [DisclosureBloc] configured with the (mocked) usecases
-  DisclosureBloc create() => DisclosureBloc(startDisclosureUseCase, cancelDisclosureUseCase);
+  DisclosureBloc create() =>
+      DisclosureBloc(startDisclosureUseCase, cancelDisclosureUseCase, getMostRecentWalletEventUsecase);
 
   setUp(() {
     startDisclosureUseCase = MockStartDisclosureUseCase();
     cancelDisclosureUseCase = MockCancelDisclosureUseCase();
+    getMostRecentWalletEventUsecase = MockGetMostRecentWalletEventUseCase();
     provideDummy<Result<String>>(const Result.success(''));
     provideDummy<Result<String?>>(const Result.success(''));
     provideDummy<Result<StartDisclosureResult>>(
@@ -360,6 +363,7 @@ void main() {
   blocTest(
     'when the user confirms the pin, the bloc emits DisclosureSuccess',
     setUp: () {
+      when(getMostRecentWalletEventUsecase.invoke()).thenAnswer((_) async => WalletMockData.disclosureEvent);
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
