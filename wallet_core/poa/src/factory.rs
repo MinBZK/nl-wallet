@@ -3,7 +3,7 @@ use std::error::Error;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
-use crate::Poa;
+use crate::poa::Poa;
 
 pub trait PoaFactory {
     type Key: CredentialEcdsaKey;
@@ -27,8 +27,8 @@ pub mod mock {
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
-    use crate::Poa;
-    use crate::PoaError;
+    use crate::error::PoaError;
+    use crate::poa::Poa;
 
     use super::PoaFactory;
 
