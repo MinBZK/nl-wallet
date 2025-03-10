@@ -45,7 +45,7 @@ pub trait AttestedKeyBridge: Send + Sync + Debug {
         &self,
         identifier: String,
         challenge: Vec<u8>,
-        google_cloud_project_id: u64,
+        google_cloud_project_number: u64,
     ) -> Result<AttestationData, AttestedKeyError>;
     async fn sign(&self, identifier: String, payload: Vec<u8>) -> Result<Vec<u8>, AttestedKeyError>;
 
