@@ -4,6 +4,11 @@ ignoreUntil = 2025-07-01
 reason = "The vulnerability pertains to the use of RSA private keys in the rsa crate. We only use this crate to evaluate RSA public keys as found in Google CA certificates."
 
 [[IgnoredVulns]]
+id = "RUSTSEC-2024-0436"
+ignoreUntil = 2025-07-01
+reason = "This is a transitive dependency that is no longer maintained but used by a couple dependencies. Waiting for dependencies to find alternatives."
+
+[[IgnoredVulns]]
 id = "GHSA-x7hr-w5r2-h6wg"
 ignoreUntil = 2025-07-01
 reason = "The dependency is used in testreporting only and there is no new version available."
