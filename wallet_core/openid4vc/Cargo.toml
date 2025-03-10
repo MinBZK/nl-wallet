@@ -25,7 +25,7 @@ allow_insecure_url = ["wallet_common/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["dep:mockall"]
 # Include miscellaneous test utilities
-test = ["wallet_common/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
+test = ["poa/mock", "wallet_common/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test"]
 

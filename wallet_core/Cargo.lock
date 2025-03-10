@@ -6947,7 +6947,6 @@ dependencies = [
  "openid4vc_server",
  "p256",
  "parking_lot",
- "poa",
  "reqwest",
  "ring",
  "rstest",
