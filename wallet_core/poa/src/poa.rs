@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use derive_more::AsRef;
+use derive_more::From;
 use futures::future::try_join_all;
 use jsonwebtoken::jwk;
 use jsonwebtoken::jwk::Jwk;
@@ -9,19 +11,21 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::jwt::jwk_alg_from_p256;
-use crate::jwt::jwk_from_p256;
-use crate::jwt::jwk_to_p256;
-use crate::jwt::validations;
-use crate::jwt::JsonJwt;
-use crate::jwt::JwkConversionError;
-use crate::jwt::Jwt;
-use crate::jwt::JwtError;
-use crate::jwt::JwtPopClaims;
-use crate::vec_at_least::VecAtLeastTwoUnique;
-use crate::vec_at_least::VecNonEmpty;
+use wallet_common::jwt::jwk_alg_from_p256;
+use wallet_common::jwt::jwk_from_p256;
+use wallet_common::jwt::jwk_to_p256;
+use wallet_common::jwt::validations;
+use wallet_common::jwt::JsonJwt;
+use wallet_common::jwt::Jwt;
+use wallet_common::jwt::JwtError;
+use wallet_common::jwt::JwtPopClaims;
+use wallet_common::keys::EcdsaKey;
+use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use wallet_common::vec_at_least::VecNonEmpty;
 
-use super::EcdsaKey;
+use crate::error::PoaError;
+use crate::error::PoaVerificationError;
+use crate::POA_JWT_TYP;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PoaPayload {
@@ -31,36 +35,22 @@ pub struct PoaPayload {
 }
 
 /// A Proof of Association, asserting that a set of credential public keys are managed by a single WSCD.
-pub type Poa = JsonJwt<PoaPayload>;
+#[derive(Debug, Clone, From, AsRef, Serialize, Deserialize)]
+pub struct Poa(JsonJwt<PoaPayload>);
 
-pub static POA_JWT_TYP: &str = "poa+jwt";
+impl TryFrom<VecNonEmpty<Jwt<PoaPayload>>> for Poa {
+    type Error = JwtError;
 
-#[derive(Debug, thiserror::Error)]
-pub enum PoaError {
-    #[error("error converting key from/to JWK: {0}")]
-    Jwk(#[from] JwkConversionError),
-    #[error("JWT bulk signing error: {0}")]
-    Signing(#[from] JwtError),
-    #[error("error obtaining verifying key from signing key: {0}")]
-    VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    fn try_from(source: VecNonEmpty<Jwt<PoaPayload>>) -> Result<Self, Self::Error> {
+        let json_jwt: JsonJwt<_> = source.try_into()?;
+        Ok(json_jwt.into())
+    }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum PoaVerificationError {
-    #[error("JWT verification error: {0}")]
-    Jwt(#[from] JwtError),
-    #[error("unexpected amount of signatures in PoA: expected {expected}, found {found}")]
-    UnexpectedSignatureCount { expected: usize, found: usize },
-    #[error("unexpected amount of keys in PoA: expected {expected}, found {found}")]
-    UnexpectedKeyCount { expected: usize, found: usize },
-    #[error("incorrect nonce")]
-    IncorrectNonce,
-    #[error("error converting key from/to JWK: {0}")]
-    Jwk(#[from] JwkConversionError),
-    #[error("typ field of PoA header had unexpected value: expected 'Some({POA_JWT_TYP})', found '{0:?}'")]
-    IncorrectTyp(Option<String>),
-    #[error("key missing in PoA: {0:?}")]
-    MissingKey(jwk::AlgorithmParameters),
+impl From<Poa> for Vec<Jwt<PoaPayload>> {
+    fn from(source: Poa) -> Self {
+        source.0.into()
+    }
 }
 
 impl Poa {
@@ -158,6 +148,11 @@ impl Poa {
 
         Ok(())
     }
+
+    #[cfg(feature = "mock")]
+    pub fn set_payload(&mut self, payload: String) {
+        self.0.payload = payload;
+    }
 }
 
 #[cfg(test)]
@@ -168,12 +163,11 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
 
-    use crate::jwt::validations;
-    use crate::jwt::JsonJwt;
-    use crate::jwt::Jwt;
-    use crate::jwt::JwtPopClaims;
-    use crate::keys::mock_remote::MockRemoteEcdsaKey;
-    use crate::vec_at_least::VecNonEmpty;
+    use wallet_common::jwt::validations;
+    use wallet_common::jwt::Jwt;
+    use wallet_common::jwt::JwtPopClaims;
+    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use wallet_common::vec_at_least::VecNonEmpty;
 
     use super::Poa;
     use super::PoaPayload;
@@ -271,7 +265,7 @@ mod tests {
         let mut jwts: Vec<Jwt<PoaPayload>> = poa.into(); // a poa always involves at least two keys
         jwts.pop();
         let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
-        let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
+        let poa: Poa = jwts.try_into().unwrap();
 
         assert_matches!(
             &poa.verify(&[key1], &aud, &iss, &nonce).unwrap_err(),

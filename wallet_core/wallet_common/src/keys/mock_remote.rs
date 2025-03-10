@@ -12,14 +12,9 @@ use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use crate::jwt::JwtPopClaims;
-use crate::jwt::NL_WALLET_CLIENT_ID;
 use crate::utils;
-use crate::vec_at_least::VecAtLeastTwoUnique;
 
 use super::factory::KeyFactory;
-use super::poa::Poa;
-use super::poa::PoaError;
 use super::CredentialEcdsaKey;
 use super::CredentialKeyType;
 use super::EcdsaKey;
@@ -34,8 +29,6 @@ pub enum MockRemoteKeyFactoryError {
     Signing,
     #[error("ECDSA error: {0}")]
     Ecdsa(#[source] <MockRemoteEcdsaKey as EcdsaKey>::Error),
-    #[error("PoA error: {0}")]
-    Poa(#[from] PoaError),
 }
 
 /// To be used in test in place of `RemoteEcdsaKey`, implementing the
@@ -244,16 +237,5 @@ impl KeyFactory for MockRemoteKeyFactory {
         .await?;
 
         Ok(result)
-    }
-
-    async fn poa(
-        &self,
-        keys: VecAtLeastTwoUnique<&Self::Key>,
-        aud: String,
-        nonce: Option<String>,
-    ) -> Result<Poa, Self::Error> {
-        let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
-
-        Ok(poa)
     }
 }

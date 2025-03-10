@@ -25,7 +25,7 @@ allow_insecure_url = ["wallet_common/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["dep:mockall"]
 # Include miscellaneous test utilities
-test = ["wallet_common/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
+test = ["poa/mock", "wallet_common/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test"]
 
@@ -74,6 +74,7 @@ parking_lot = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
 nl_wallet_mdoc.path = "../mdoc"
+poa.path = "../poa"
 sd_jwt.path = "../sd_jwt"
 wallet_common.path = "../wallet_common"
 
@@ -88,6 +89,7 @@ tracing-test.workspace = true
 wiremock.workspace = true
 
 nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
+poa = { path = "../poa", features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../wallet_common", features = [
     "examples",

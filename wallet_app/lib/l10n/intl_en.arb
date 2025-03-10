@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-03-03T16:33:57+01:00",
+    "@@last_modified": "2025-03-06T11:45:01+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -574,7 +574,7 @@
         }
     },
     "historyDetailScreenSharedAttributesTitle": "Attributes shared",
-    "historyDetailScreenShowDetailsCta": "Show details",
+    "historyDetailScreenShowDetailsCta": "See request details",
     "historyDetailScreenSigningStatusRejectedDescription": "No data has been shared with {organization}, because you stopped the signing process.",
     "@historyDetailScreenSigningStatusRejectedDescription": {
         "placeholders": {
