@@ -17,12 +17,12 @@ use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
 use jwt::jwk_to_p256;
 use jwt::validations;
 use jwt::EcdsaDecodingKey;
-use jwt::JwkConversionError;
 use jwt::JwtCredentialClaims;
-use jwt::JwtError;
 use jwt::JwtPopClaims;
 use jwt::VerifiedJwt;
 use jwt::NL_WALLET_CLIENT_ID;

@@ -7,7 +7,7 @@ use tracing::warn;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use jwt::JwtError;
+use jwt::error::JwtError;
 use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;

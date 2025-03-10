@@ -11,13 +11,13 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
+use jwt::error::JwtError;
 use jwt::jwk_alg_from_p256;
 use jwt::jwk_from_p256;
 use jwt::jwk_to_p256;
 use jwt::validations;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use jwt::JwtError;
 use jwt::JwtPopClaims;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;

@@ -20,10 +20,10 @@ use url::Url;
 
 use error_category::ErrorCategory;
 use jwt::credential::JwtCredential;
-use jwt::credential::JwtCredentialError;
-use jwt::JwkConversionError;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtCredentialError;
+use jwt::error::JwtError;
 use jwt::Jwt;
-use jwt::JwtError;
 use jwt::JwtPopClaims;
 use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;

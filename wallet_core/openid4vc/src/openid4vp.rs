@@ -22,8 +22,8 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
+use jwt::error::JwtX5cError;
 use jwt::Jwt;
-use jwt::JwtX5cError;
 use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::errors::Error as MdocError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;

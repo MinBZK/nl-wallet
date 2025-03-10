@@ -755,7 +755,7 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
-    use jwt::JwtX5cError;
+    use jwt::error::JwtX5cError;
     use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
     use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
     use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;

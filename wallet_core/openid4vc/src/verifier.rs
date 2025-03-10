@@ -26,8 +26,8 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
+use jwt::error::JwtError;
 use jwt::Jwt;
-use jwt::JwtError;
 use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::verifier::DisclosedAttributes;

@@ -7,7 +7,7 @@ mod mock;
 mod updating_repository;
 
 use error_category::ErrorCategory;
-use jwt::JwtError;
+use jwt::error::JwtError;
 use wallet_common::config::http::TlsPinningConfig;
 
 use crate::repository::FileStorageError;

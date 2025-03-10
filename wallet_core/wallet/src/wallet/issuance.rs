@@ -12,8 +12,8 @@ use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use jwt::credential::JwtCredentialError;
-use jwt::JwtError;
+use jwt::error::JwtCredentialError;
+use jwt::error::JwtError;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
 use nl_wallet_mdoc::utils::x509::CertificateError;

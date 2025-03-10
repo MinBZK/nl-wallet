@@ -1,20 +1,18 @@
-use josekit::JoseError;
 use p256::ecdsa::VerifyingKey;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 
-use error_category::ErrorCategory;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 
+use crate::error::JwkConversionError;
+use crate::error::JwtCredentialError;
 use crate::jwk_to_p256;
 use crate::validations;
-use crate::JwkConversionError;
 use crate::Jwt;
 use crate::JwtCredentialClaims;
-use crate::JwtError;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct JwtCredential<T> {
@@ -22,24 +20,6 @@ pub struct JwtCredential<T> {
     pub(crate) key_type: CredentialKeyType,
 
     pub jwt: Jwt<JwtCredentialClaims<T>>,
-}
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)]
-pub enum JwtCredentialError {
-    #[error("failed to decode JWT body: {0}")]
-    JoseDecoding(#[from] JoseError),
-    #[error("unknown issuer: {0}")]
-    #[category(critical)]
-    UnknownIssuer(String),
-    #[error("failed to parse trust anchor name: {0}")]
-    #[category(critical)]
-    TrustAnchorNameParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
-    #[error("failed to verify JWT: {0}")]
-    JwtVerification(#[from] jsonwebtoken::errors::Error),
-    #[error("JWT error: {0}")]
-    #[category(defer)]
-    Jwt(#[from] JwtError),
 }
 
 impl<T> JwtCredential<T>
