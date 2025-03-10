@@ -183,7 +183,7 @@ where
             .attest(
                 key_identifier.clone(),
                 utils::sha256(&challenge),
-                config.google_cloud_project_id,
+                config.google_cloud_project_number,
             )
             .await;
 

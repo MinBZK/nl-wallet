@@ -85,7 +85,7 @@ interface AttestedKeyBridge {
     /// Actually perform key and app attestation, with a result that differs depending on the platform.
     /// Note the use of "IdentifierAttestedKeyError" to convey error data.
     [Async, Throws=AttestedKeyError]
-    AttestationData attest(string identifier, sequence<u8> challenge, u64 google_cloud_project_id);
+    AttestationData attest(string identifier, sequence<u8> challenge, u64 google_cloud_project_number);
 
     /// Sign an arbitrary payload. The result is a DER encoded ECDSA signature on Android,
     /// while on iOS this produces proprietary binary assertion data.

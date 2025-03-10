@@ -28,7 +28,7 @@ extension AttestedKey: AttestedKeyBridge {
         }
     }
 
-    func attest(identifier: String, challenge: [UInt8], googleCloudProjectId: UInt64) async throws(AttestedKeyError) -> AttestationData {
+    func attest(identifier: String, challenge: [UInt8], googleCloudProjectNumber: UInt64) async throws(AttestedKeyError) -> AttestationData {
         do {
             let attestation = try await Self.appAttest.attestKey(identifier, clientDataHash: Data(challenge))
 
