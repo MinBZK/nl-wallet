@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/disclosure/return_url_case.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/object_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/page/page_illustration.dart';
 import '../../common/page/terminal_page.dart';
@@ -36,7 +37,7 @@ class DisclosureSuccessPage extends StatelessWidget {
       description: title,
       illustration: const PageIllustration(asset: WalletAssets.svg_sharing_success),
       primaryButtonCta: _resolvePrimaryCta(context),
-      secondaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta,
+      secondaryButtonCta: context.l10n.disclosureSuccessPageShowHistoryCta.takeIf((_) => onHistoryPressed != null),
       onSecondaryButtonPressed: onHistoryPressed,
     );
   }
