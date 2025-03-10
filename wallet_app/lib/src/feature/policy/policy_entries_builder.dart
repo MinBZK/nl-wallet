@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
@@ -155,12 +154,6 @@ class PolicyEntriesBuilder {
           UrlSpan(
             ctaText: policyCta,
             onPressed: () => launchUrlString(privacyPolicyUrl, mode: LaunchMode.externalApplication),
-          ),
-          TextSpan(
-            text: policyCta,
-            recognizer: TapGestureRecognizer()
-              ..onTap = () => launchUrlString(privacyPolicyUrl, mode: LaunchMode.externalApplication),
-            style: urlTheme,
           ),
           TextSpan(text: suffix),
         ],
