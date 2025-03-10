@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(IssuanceHistoryEvent::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(IssuanceHistoryEvent::Timestamp).timestamp().not_null())
-                    .col(ColumnDef::new(IssuanceHistoryEvent::Attributes).json().not_null())
+                    .col(ColumnDef::new(IssuanceHistoryEvent::Attestations).json().not_null())
                     .to_owned(),
             )
             .await?;
@@ -37,7 +37,7 @@ impl MigrationTrait for Migration {
                             .not_null(),
                     )
                     .col(ColumnDef::new(DisclosureHistoryEvent::Status).text().not_null())
-                    .col(ColumnDef::new(DisclosureHistoryEvent::Attributes).json().null())
+                    .col(ColumnDef::new(DisclosureHistoryEvent::Attestations).json().null())
                     .col(ColumnDef::new(DisclosureHistoryEvent::Type).text().not_null())
                     .to_owned(),
             )
@@ -46,33 +46,19 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(HistoryDocType::Table)
-                    .if_not_exists()
-                    .col(ColumnDef::new(HistoryDocType::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(HistoryDocType::DocType).text().unique_key().not_null())
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(IssuanceHistoryEventDocType::Table)
+                    .table(HistoryAttestationType::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(IssuanceHistoryEventDocType::IssuanceHistoryEventId)
+                        ColumnDef::new(HistoryAttestationType::Id)
                             .uuid()
-                            .not_null(),
+                            .not_null()
+                            .primary_key(),
                     )
                     .col(
-                        ColumnDef::new(IssuanceHistoryEventDocType::HistoryDocTypeId)
-                            .uuid()
+                        ColumnDef::new(HistoryAttestationType::AttestationType)
+                            .text()
+                            .unique_key()
                             .not_null(),
-                    )
-                    .primary_key(
-                        Index::create()
-                            .col(IssuanceHistoryEventDocType::IssuanceHistoryEventId)
-                            .col(IssuanceHistoryEventDocType::HistoryDocTypeId),
                     )
                     .to_owned(),
             )
@@ -81,22 +67,46 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(DisclosureHistoryEventDocType::Table)
+                    .table(IssuanceHistoryEventAttestationType::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(DisclosureHistoryEventDocType::DisclosureHistoryEventId)
+                        ColumnDef::new(IssuanceHistoryEventAttestationType::IssuanceHistoryEventId)
                             .uuid()
                             .not_null(),
                     )
                     .col(
-                        ColumnDef::new(DisclosureHistoryEventDocType::HistoryDocTypeId)
+                        ColumnDef::new(IssuanceHistoryEventAttestationType::HistoryAttestationTypeId)
                             .uuid()
                             .not_null(),
                     )
                     .primary_key(
                         Index::create()
-                            .col(DisclosureHistoryEventDocType::DisclosureHistoryEventId)
-                            .col(DisclosureHistoryEventDocType::HistoryDocTypeId),
+                            .col(IssuanceHistoryEventAttestationType::IssuanceHistoryEventId)
+                            .col(IssuanceHistoryEventAttestationType::HistoryAttestationTypeId),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(DisclosureHistoryEventAttestationType::Table)
+                    .if_not_exists()
+                    .col(
+                        ColumnDef::new(DisclosureHistoryEventAttestationType::DisclosureHistoryEventId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(DisclosureHistoryEventAttestationType::HistoryAttestationTypeId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .primary_key(
+                        Index::create()
+                            .col(DisclosureHistoryEventAttestationType::DisclosureHistoryEventId)
+                            .col(DisclosureHistoryEventAttestationType::HistoryAttestationTypeId),
                     )
                     .to_owned(),
             )
@@ -105,15 +115,23 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(DisclosureHistoryEventDocType::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(DisclosureHistoryEventAttestationType::Table)
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(IssuanceHistoryEventDocType::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(IssuanceHistoryEventAttestationType::Table)
+                    .to_owned(),
+            )
             .await?;
 
         manager
-            .drop_table(Table::drop().table(HistoryDocType::Table).to_owned())
+            .drop_table(Table::drop().table(HistoryAttestationType::Table).to_owned())
             .await?;
 
         manager
@@ -131,7 +149,7 @@ enum IssuanceHistoryEvent {
     Table,
     Id,
     Timestamp,
-    Attributes,
+    Attestations,
 }
 
 #[derive(DeriveIden)]
@@ -141,27 +159,27 @@ enum DisclosureHistoryEvent {
     Timestamp,
     RelyingPartyCertificate,
     Status,
-    Attributes,
+    Attestations,
     Type,
 }
 
 #[derive(DeriveIden)]
-enum HistoryDocType {
+enum HistoryAttestationType {
     Table,
     Id,
-    DocType,
+    AttestationType,
 }
 
 #[derive(DeriveIden)]
-enum IssuanceHistoryEventDocType {
+enum IssuanceHistoryEventAttestationType {
     Table,
     IssuanceHistoryEventId,
-    HistoryDocTypeId,
+    HistoryAttestationTypeId,
 }
 
 #[derive(DeriveIden)]
-enum DisclosureHistoryEventDocType {
+enum DisclosureHistoryEventAttestationType {
     Table,
     DisclosureHistoryEventId,
-    HistoryDocTypeId,
+    HistoryAttestationTypeId,
 }

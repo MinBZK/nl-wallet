@@ -1,13 +1,12 @@
 use std::error::Error;
-use std::hash::Hash;
 
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
-use crate::Poa;
+use crate::poa::Poa;
 
 pub trait PoaFactory {
-    type Key: CredentialEcdsaKey + Eq + Hash;
+    type Key: CredentialEcdsaKey;
     type Error: Error + Send + Sync + 'static;
 
     /// Construct a Proof of Association, with which the key factory asserts that all provided keys
@@ -28,8 +27,8 @@ pub mod mock {
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
-    use crate::Poa;
-    use crate::PoaError;
+    use crate::error::PoaError;
+    use crate::poa::Poa;
 
     use super::PoaFactory;
 
@@ -43,7 +42,7 @@ pub mod mock {
             aud: String,
             nonce: Option<String>,
         ) -> Result<Poa, Self::Error> {
-            let poa = Poa::generate(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
+            let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
 
             Ok(poa)
         }

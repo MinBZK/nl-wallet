@@ -9,11 +9,13 @@ members = [
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
     "hsm",
+    "jwt",
     "mdoc",
     "mock_relying_party",
     "openid4vc",
     "openid4vc_server",
     "platform_support",
+    "poa",
     "sd_jwt",
     "tests_integration",
     "update_policy_server",
@@ -32,7 +34,7 @@ members = [
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/pid_issuer",
-    "wallet_server/verification_server", "poa", "jwt",
+    "wallet_server/verification_server",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"

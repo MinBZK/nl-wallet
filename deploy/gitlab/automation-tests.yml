@@ -1,3 +1,10 @@
+automation-compile-check:
+  rules: !reference [.merge-request, rules]
+  script:
+    - java -version
+    - cd uiautomation
+    - ./gradlew --no-daemon compileTestKotlin
+
 .run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .env-ont-k8s

@@ -385,7 +385,7 @@ fn wire__crate__api__full__get_history_impl(port_: flutter_rust_bridge::for_gene
 }
 fn wire__crate__api__full__get_history_for_card_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
-    doc_type: impl CstDecode<String>,
+    attestation_type: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
@@ -394,11 +394,11 @@ fn wire__crate__api__full__get_history_for_card_impl(
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
-            let api_doc_type = doc_type.cst_decode();
+            let api_attestation_type = attestation_type.cst_decode();
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::get_history_for_card(api_doc_type).await?;
+                        let output_ok = crate::api::full::get_history_for_card(api_attestation_type).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -901,13 +901,13 @@ impl CstDecode<crate::models::disclosure::DisclosureSessionType> for i32 {
         }
     }
 }
-impl CstDecode<crate::models::disclosure::DisclosureStatus> for i32 {
+impl CstDecode<crate::models::wallet_event::DisclosureStatus> for i32 {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    fn cst_decode(self) -> crate::models::disclosure::DisclosureStatus {
+    fn cst_decode(self) -> crate::models::wallet_event::DisclosureStatus {
         match self {
-            0 => crate::models::disclosure::DisclosureStatus::Success,
-            1 => crate::models::disclosure::DisclosureStatus::Cancelled,
-            2 => crate::models::disclosure::DisclosureStatus::Error,
+            0 => crate::models::wallet_event::DisclosureStatus::Success,
+            1 => crate::models::wallet_event::DisclosureStatus::Cancelled,
+            2 => crate::models::wallet_event::DisclosureStatus::Error,
             _ => unreachable!("Invalid variant for DisclosureStatus: {}", self),
         }
     }
@@ -1168,14 +1168,14 @@ impl SseDecode for crate::models::disclosure::DisclosureSessionType {
     }
 }
 
-impl SseDecode for crate::models::disclosure::DisclosureStatus {
+impl SseDecode for crate::models::wallet_event::DisclosureStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut inner = <i32>::sse_decode(deserializer);
         return match inner {
-            0 => crate::models::disclosure::DisclosureStatus::Success,
-            1 => crate::models::disclosure::DisclosureStatus::Cancelled,
-            2 => crate::models::disclosure::DisclosureStatus::Error,
+            0 => crate::models::wallet_event::DisclosureStatus::Success,
+            1 => crate::models::wallet_event::DisclosureStatus::Cancelled,
+            2 => crate::models::wallet_event::DisclosureStatus::Error,
             _ => unreachable!("Invalid variant for DisclosureStatus: {}", inner),
         };
     }
@@ -1695,7 +1695,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 let mut var_requestedAttestations =
                     <Option<Vec<crate::models::attestation::Attestation>>>::sse_decode(deserializer);
                 let mut var_requestPolicy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
-                let mut var_status = <crate::models::disclosure::DisclosureStatus>::sse_decode(deserializer);
+                let mut var_status = <crate::models::wallet_event::DisclosureStatus>::sse_decode(deserializer);
                 let mut var_typ = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
                 return crate::models::wallet_event::WalletEvent::Disclosure {
                     date_time: var_dateTime,
@@ -1948,7 +1948,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::DisclosureSess
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureStatus {
+impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::DisclosureStatus {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
             Self::Success => 0.into_dart(),
@@ -1958,11 +1958,11 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureStat
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::DisclosureStatus {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::DisclosureStatus>
-    for crate::models::disclosure::DisclosureStatus
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::wallet_event::DisclosureStatus {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::wallet_event::DisclosureStatus>
+    for crate::models::wallet_event::DisclosureStatus
 {
-    fn into_into_dart(self) -> crate::models::disclosure::DisclosureStatus {
+    fn into_into_dart(self) -> crate::models::wallet_event::DisclosureStatus {
         self
     }
 }
@@ -2570,14 +2570,14 @@ impl SseEncode for crate::models::disclosure::DisclosureSessionType {
     }
 }
 
-impl SseEncode for crate::models::disclosure::DisclosureStatus {
+impl SseEncode for crate::models::wallet_event::DisclosureStatus {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(
             match self {
-                crate::models::disclosure::DisclosureStatus::Success => 0,
-                crate::models::disclosure::DisclosureStatus::Cancelled => 1,
-                crate::models::disclosure::DisclosureStatus::Error => 2,
+                crate::models::wallet_event::DisclosureStatus::Success => 0,
+                crate::models::wallet_event::DisclosureStatus::Cancelled => 1,
+                crate::models::wallet_event::DisclosureStatus::Error => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -3041,7 +3041,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(purpose, serializer);
                 <Option<Vec<crate::models::attestation::Attestation>>>::sse_encode(requested_attestations, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(request_policy, serializer);
-                <crate::models::disclosure::DisclosureStatus>::sse_encode(status, serializer);
+                <crate::models::wallet_event::DisclosureStatus>::sse_encode(status, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
             }
             crate::models::wallet_event::WalletEvent::Issuance { date_time, attestation } => {
@@ -4037,9 +4037,9 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__get_history_for_card(
         port_: i64,
-        doc_type: *mut wire_cst_list_prim_u_8_strict,
+        attestation_type: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__get_history_for_card_impl(port_, doc_type)
+        wire__crate__api__full__get_history_for_card_impl(port_, attestation_type)
     }
 
     #[unsafe(no_mangle)]

@@ -3320,7 +3320,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -4249,10 +4249,10 @@ name = "poa"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "derive_more",
  "futures",
  "jsonwebtoken",
  "jwt",
- "nutype",
  "p256",
  "rand_core",
  "rstest",
@@ -4762,15 +4762,14 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.17.8"
+version = "0.17.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c17fa4cb658e3583423e915b9f3acc01cceaee1860e33d59ebae66adc3a2dc0d"
+checksum = "70ac5d832aa16abd7d1def883a8545280c20a60f523a370aa3a9617c2b8550ee"
 dependencies = [
  "cc",
  "cfg-if",
  "getrandom 0.2.15",
  "libc",
- "spin",
  "untrusted",
  "windows-sys 0.52.0",
 ]
@@ -6147,7 +6146,6 @@ dependencies = [
  "p256",
  "pid_issuer",
  "platform_support",
- "poa",
  "rand_core",
  "regex",
  "reqwest",
@@ -6979,7 +6977,6 @@ dependencies = [
  "openid4vc_server",
  "p256",
  "parking_lot",
- "poa",
  "reqwest",
  "ring",
  "rstest",

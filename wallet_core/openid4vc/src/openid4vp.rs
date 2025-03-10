@@ -1333,7 +1333,7 @@ mod tests {
         .await;
 
         let mut poa = poa.unwrap();
-        poa = poa.with_payload("edited".to_owned());
+        poa.set_payload("edited".to_owned());
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, Some(poa));
         let error = auth_response

@@ -10,7 +10,6 @@ indent_style = space
 insert_final_newline = true
 trim_trailing_whitespace = true
 max_line_length = 120
-tab_width = 8
 
 [*.md]
 max_line_length = 80
@@ -21,5 +20,5 @@ indent_size = 2
 [Fastfile]
 indent_size = 2
 
-[{*.xml,*.yml,*.yaml,*.js,*.json,*.json.template}]
+[{*.xml,*.yml,*.yaml,*.mjs,*.js,*.json,*.json.template,*.ts}]
 indent_size = 2

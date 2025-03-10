@@ -29,13 +29,6 @@ enum DisclosureSessionType {
   ;
 }
 
-enum DisclosureStatus {
-  Success,
-  Cancelled,
-  Error,
-  ;
-}
-
 enum DisclosureType {
   Login,
   Regular,

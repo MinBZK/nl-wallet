@@ -350,7 +350,7 @@ impl HandleInstruction for ConstructPoa {
         // Poa::new() needs a vec of references. We can unwrap because self.key_identifiers is a VecAtLeastTwo.
         let keys = keys.iter().collect_vec().try_into().unwrap();
         let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
-        let poa = Poa::generate(keys, claims).await?;
+        let poa = Poa::new(keys, claims).await?;
 
         Ok(ConstructPoaResult { poa })
     }

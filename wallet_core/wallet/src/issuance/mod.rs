@@ -1,5 +1,8 @@
 mod app2app;
 
+#[cfg(test)]
+pub mod mock;
+
 use url::Url;
 
 use error_category::ErrorCategory;
@@ -11,6 +14,8 @@ pub use app2app::HttpDigidSession;
 
 use wallet_common::config::wallet_config::DigidConfiguration;
 use wallet_common::reqwest::JsonReqwestBuilder;
+
+pub const PID_DOCTYPE: &str = "com.example.pid";
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

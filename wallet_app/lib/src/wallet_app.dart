@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-
+import '../l10n/generated/app_localizations.dart';
 import 'data/store/impl/active_localization_delegate.dart';
 import 'localization/preferred_locale_cubit.dart';
 import 'navigation/wallet_routes.dart';

@@ -1,6 +1,3 @@
-use wallet::Document;
-use wallet::DocumentPersistence;
-
 use crate::models::disclosure::Organization;
 
 pub struct Attestation {
@@ -18,21 +15,6 @@ impl From<wallet::Attestation> for Attestation {
             attestation_type: value.attestation_type,
             display_metadata: value.display_metadata.into_iter().map(DisplayMetadata::from).collect(),
             issuer: value.issuer.into(),
-            attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
-        }
-    }
-}
-
-impl From<Document> for Attestation {
-    fn from(value: Document) -> Self {
-        Self {
-            identity: match value.persistence {
-                DocumentPersistence::Stored(id) => AttestationIdentity::Fixed { id },
-                DocumentPersistence::InMemory => AttestationIdentity::Ephemeral,
-            },
-            attestation_type: value.doc_type.to_string(),
-            display_metadata: vec![],
-            issuer: value.issuer_registration.organization.into(),
             attributes: value.attributes.into_iter().map(AttestationAttribute::from).collect(),
         }
     }
@@ -140,31 +122,6 @@ impl From<wallet::AttestationAttribute> for AttestationAttribute {
             key: value.key.join("__"),
             labels: value.metadata.into_iter().map(ClaimDisplayMetadata::from).collect(),
             value: value.value.into(),
-        }
-    }
-}
-
-impl From<(wallet::AttributeKey, wallet::Attribute)> for AttestationAttribute {
-    fn from((key, value): (wallet::AttributeKey, wallet::Attribute)) -> Self {
-        Self {
-            key: key.to_string(),
-            labels: value
-                .key_labels
-                .into_iter()
-                .map(|(lang, label)| ClaimDisplayMetadata {
-                    lang: lang.to_string(),
-                    label: label.to_string(),
-                    description: None,
-                })
-                .collect(),
-            value: match value.value {
-                wallet::AttributeValue::String(value) => AttributeValue::String { value },
-                wallet::AttributeValue::Boolean(value) => AttributeValue::Boolean { value },
-                wallet::AttributeValue::Date(value) => AttributeValue::String {
-                    value: value.to_string(),
-                },
-                _ => unimplemented!(),
-            },
         }
     }
 }

@@ -4,6 +4,7 @@ use std::sync::Arc;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
+use itertools::Itertools;
 use p256::ecdsa::signature;
 use tracing::info;
 use tracing::instrument;
@@ -31,14 +32,13 @@ use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::Attestation;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
-use crate::document::DocumentMdocError;
-use crate::document::PID_DOCTYPE;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
@@ -47,6 +47,7 @@ use crate::instruction::RemoteEcdsaKeyFactory;
 use crate::issuance::DigidSession;
 use crate::issuance::DigidSessionError;
 use crate::issuance::HttpDigidSession;
+use crate::issuance::PID_DOCTYPE;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::Storage;
@@ -55,7 +56,6 @@ use crate::storage::WalletEvent;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::WteIssuanceClient;
 
-use super::history::EventStorageError;
 use super::Wallet;
 
 pub(super) enum PidIssuanceSession<DS = HttpDigidSession, IS = HttpIssuanceSession> {
@@ -95,12 +95,10 @@ pub enum PidIssuanceError {
     #[error("no signature received from Wallet Provider")]
     #[category(critical)]
     MissingSignature,
-    #[error("could not interpret mdoc attributes: {0}")]
-    MdocDocument(#[from] DocumentMdocError),
     #[error("could not insert mdocs in database: {0}")]
     MdocStorage(#[source] StorageError),
     #[error("could not store event in history database: {0}")]
-    EventStorage(#[source] EventStorageError),
+    EventStorage(#[source] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
     #[category(pd)]
     KeyNotFound(String),
@@ -450,13 +448,15 @@ where
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
             // Extract first copy from each issued mdoc
-            let mdocs = issued_mdocs
+            let mdocs: VecNonEmpty<_> = issued_mdocs
                 .iter()
                 .map(|mdoc: &MdocCopies| mdoc.first().clone())
-                .collect::<Vec<_>>();
+                .collect_vec()
+                .try_into()
+                .expect("should have received at least one issued mdoc");
 
             // Validate all issuer_certificates
-            for mdoc in &mdocs {
+            for mdoc in mdocs.as_ref().iter() {
                 let certificate = mdoc
                     .issuer_certificate()
                     .map_err(PidIssuanceError::InvalidIssuerCertificate)?;
@@ -466,7 +466,7 @@ where
                     return Err(PidIssuanceError::MissingIssuerRegistration);
                 }
             }
-            WalletEvent::new_issuance(mdocs.try_into().map_err(PidIssuanceError::InvalidIssuerCertificate)?)
+            WalletEvent::new_issuance(mdocs)
         };
 
         info!("PID accepted, storing mdoc in database");
@@ -507,10 +507,9 @@ mod tests {
     use wallet_common::config::http::TlsPinningConfig;
     use wallet_common::vec_at_least::VecNonEmpty;
 
-    use crate::document;
+    use crate::issuance;
     use crate::issuance::MockDigidSession;
     use crate::storage::StorageState;
-    use crate::wallet::history::HistoryEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -731,7 +730,7 @@ mod tests {
     async fn test_continue_pid_issuance() {
         let mut wallet = setup_wallet_with_digid_session();
 
-        let (unsigned_mdoc, metadata) = document::create_full_unsigned_pid_mdoc();
+        let (unsigned_mdoc, metadata) = issuance::mock::create_full_unsigned_pid_mdoc();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
@@ -918,7 +917,7 @@ mod tests {
             assert_eq!(events.len(), 2);
             assert!(events[0].is_empty());
             assert_eq!(events[1].len(), 1);
-            assert_matches!(&events[1][0], HistoryEvent::Issuance { .. });
+            assert_matches!(&events[1][0], WalletEvent::Issuance { .. });
 
             assert!(wallet.has_registration());
             assert!(!wallet.is_locked());
