@@ -833,7 +833,7 @@ impl CredentialResponse {
                     .map_err(IssuanceSessionError::IssuedMdocMismatch)?;
 
                 // Verify and parse the type metadata
-                let credential_payload = CredentialPayload::from_mdoc(mdoc.clone())?;
+                let credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), &metadata_chain)?;
                 credential_payload.validate(metadata_chain)?;
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
