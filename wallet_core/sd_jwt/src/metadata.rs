@@ -276,26 +276,29 @@ pub struct JsonSchema {
     // when converting to wallet internal types.
     properties: JsonSchemaProperties,
 
-    // The validator is instantiated once and validated upon deserialization.
+    // The validator is instantiated once and (meta)validated upon deserialization.
     validator: Validator,
 }
 
 impl JsonSchema {
     fn try_new(raw_schema: serde_json::Value) -> Result<JsonSchema, TypeMetadataError> {
-        // Building the validator for the 202012 draft also validates the JSON Schema itself.
-        let validator = jsonschema::options()
-            .should_validate_formats(true)
-            .with_draft(Draft::Draft202012)
-            .build(&raw_schema)
-            .map_err(ValidationError::to_owned)?;
-
         let properties: JsonSchemaProperties = serde_json::from_value(raw_schema.clone())?;
+        let validator = Self::build_validator(&raw_schema)?;
 
         Ok(Self {
             raw_schema,
             properties,
             validator,
         })
+    }
+
+    // Building the validator for the 202012 draft also validates the JSON Schema itself.
+    fn build_validator(raw_schema: &serde_json::Value) -> Result<Validator, ValidationError<'static>> {
+        jsonschema::options()
+            .should_validate_formats(true)
+            .with_draft(Draft::Draft202012)
+            .build(raw_schema)
+            .map_err(ValidationError::to_owned)
     }
 
     pub fn into_properties(self) -> JsonSchemaProperties {
@@ -319,8 +322,12 @@ impl TryFrom<serde_json::Value> for JsonSchema {
 
 impl Clone for JsonSchema {
     fn clone(&self) -> Self {
-        // Unwrap is safe here, since having a valid validator is a prerequisite for constructing a JsonSchema
-        Self::try_new(self.raw_schema.clone()).unwrap()
+        Self {
+            raw_schema: self.raw_schema.clone(),
+            // Unwrap is safe here, since having a valid validator is a prerequisite for constructing a JsonSchema
+            validator: Self::build_validator(&self.raw_schema).unwrap(),
+            properties: self.properties.clone(),
+        }
     }
 }
 
@@ -333,7 +340,7 @@ impl PartialEq for JsonSchema {
 impl Eq for JsonSchema {}
 
 #[serde_as]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonSchemaProperties {
     // A HashMap is used here since there are no uses that rely on the order of the properties
     #[serde_as(as = "MapSkipError<_, _>")]
@@ -342,7 +349,7 @@ pub struct JsonSchemaProperties {
 
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonSchemaProperty {
     #[serde(rename = "type")]
     pub r#type: JsonSchemaPropertyType,
