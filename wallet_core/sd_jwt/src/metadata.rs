@@ -132,7 +132,7 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
 }
 
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct TypeMetadata {
     /// A String or URI that uniquely identifies the type.
@@ -249,7 +249,7 @@ pub struct MetadataExtends {
     pub extends_integrity: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SchemaOption {
     Embedded {
@@ -324,20 +324,12 @@ impl Clone for JsonSchema {
     fn clone(&self) -> Self {
         Self {
             raw_schema: self.raw_schema.clone(),
+            properties: self.properties.clone(),
             // Unwrap is safe here, since having a valid validator is a prerequisite for constructing a JsonSchema
             validator: Self::build_validator(&self.raw_schema).unwrap(),
-            properties: self.properties.clone(),
         }
     }
 }
-
-impl PartialEq for JsonSchema {
-    fn eq(&self, other: &Self) -> bool {
-        self.raw_schema.eq(&other.raw_schema)
-    }
-}
-
-impl Eq for JsonSchema {}
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
