@@ -14,6 +14,7 @@ use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
 use serde::Serializer;
+use serde_json::Value;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
@@ -265,18 +266,17 @@ pub enum SchemaOption {
     },
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(try_from = "serde_json::Value", into = "serde_json::Value")]
 pub struct JsonSchema {
     #[serde(flatten)]
     raw_schema: serde_json::Value,
 
     // When deserializing, the JSON schema properties are parsed so the metadata describing the attributes can be used
     // when converting to wallet internal types.
-    #[serde(skip)]
     properties: JsonSchemaProperties,
 
     // The validator is instantiated once and validated upon deserialization.
-    #[serde(skip)]
     validator: Validator,
 }
 
@@ -303,6 +303,20 @@ impl JsonSchema {
     }
 }
 
+impl From<JsonSchema> for serde_json::Value {
+    fn from(value: JsonSchema) -> Self {
+        value.raw_schema
+    }
+}
+
+impl TryFrom<serde_json::Value> for JsonSchema {
+    type Error = TypeMetadataError;
+
+    fn try_from(value: Value) -> Result<Self, Self::Error> {
+        Self::try_new(value)
+    }
+}
+
 impl Clone for JsonSchema {
     fn clone(&self) -> Self {
         // Unwrap is safe here, since having a valid validator is a prerequisite for constructing a JsonSchema
@@ -317,15 +331,6 @@ impl PartialEq for JsonSchema {
 }
 
 impl Eq for JsonSchema {}
-
-impl<'de> Deserialize<'de> for JsonSchema {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let raw_schema = serde_json::Value::deserialize(deserializer)?;
-        let json_schema = Self::try_new(raw_schema).map_err(de::Error::custom)?;
-
-        Ok(json_schema)
-    }
-}
 
 #[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
