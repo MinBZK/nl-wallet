@@ -462,6 +462,33 @@ target the Android platform":
 * After the GitHub Action has completed successfully; install the release via
   F-Droid repo
 
+## App build configuration
+
+The app build includes the configuration for the connection to the configuration-server (`config-server-config.json`).
+Additionally it includes an initial configuration from the configuration-server (`wallet-server.json`).
+
+Next to these configuration files the build can be configured with:
+
+| Name                          | Type        | Components                          | Description |
+|-------------------------------|-------------|-------------------------------------|-------------|
+| APPLE_ATTESTATION_ENVIRONMENT | Env         | Apple Entitlement, Cargo option_env | Attestation environment for iOS (development / production). Only used in Cargo if `fake_attestation` is set. Default is `development`, which is ignored by Testflight and App Store. See [wallet_app/README.md](wallet_app/README.md#ios-1) for more info. |
+| UL_HOSTNAME                   | Env         | Apple Entitlement                   | Universal Link hostname (iOS only). |
+| universal_link_base           | Option      | Android                             | Universal Link hostname (Android only), passed via Dart define as UL_HOSTNAME. |
+| UNIVERSAL_LINK_BASE           | Env         | Cargo option_env                    | Universal Link base URL used in Wallet Core. |
+| ALLOW_INSECURE_URL            | _Dart only_ | Cargo feature                       | Whether to allow http urls in Wallet Core (passed via Dart define as ALLOW_INSECURE_URL via Xcode / build.gradle as `wallet/allow_insecure_url`). Defaults to `false`. |
+| CONFIG_ENV                    | Env         | Cargo build                         | The configuration environment name (should match the environment in `config-server-config.json` and `wallet-config.json`). Defaults to `dev`. |
+| SENTRY_DSN                    | Env         | Flutter                             | [Sentry Data Source Name](https://docs.sentry.io/concepts/key-terms/dsn-explainer/), empty if not enabled (passed via Dart define as SENTRY_DSN). |
+| SENTRY_ENVIRONMENT            | Env         | Flutter                             | [Sentry Environment](https://docs.sentry.io/concepts/key-terms/environments/) (passed via Dart define as SENTRY_ENVIRONMENT). |
+| SENTRY_RELEASE                | Env         | Flutter                             | [Sentry Release](https://docs.sentry.io/product/releases/) (passed via Dart define as SENTRY_RELEASE). |
+| build                         | Option      | iOS / Android build                 | The build number of the build (should be strictly increasing when submitting to App or Play Store). Defaults to `0`. |
+| version                       | Option      | iOS / Android build                 | The version of the build (should be semver). Defaults to the version in the [pubspec.yaml](wallet_app/pubspec.yaml). |
+| build_mode                    | Option      | Flutter                             | The build mode of Flutter (debug / profile / release). Defaults to `release`. |
+| file_format                   | Option      | Android build                       | File format (aab / apk)  for Android build. Defaults to `aab`. |
+| fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`. |
+| mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`. |
+| mock_relying_party_url        | Option      | Flutter                             | The URL to launch the mock relying part in Browser for tests (passed via Dart define as MOCK_RELYING_PART_URL). |
+
+
 ## Troubleshooting
 
 ### Initial checkout / branch switch
