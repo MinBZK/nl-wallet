@@ -10,6 +10,7 @@ test-ios:
       junit: fastlane/test_output/report.junit
     paths:
       - "fastlane/test_output/*"
+      - "wallet_core/platform_support/ios/compile_platform_support.log"
   variables:
     BUNDLE_FROZEN: "true"
   script:
@@ -38,9 +39,11 @@ test-ios:
     - job: test-rust-compilation-ios
       artifacts: false
   artifacts:
+    when: always
     name: "wallet-ios"
     paths:
       - "*.ipa"
+      - "wallet_app/ios/compile_rust_core.log"
   variables:
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
     APPLE_ATTESTATION_ENVIRONMENT: "production"
