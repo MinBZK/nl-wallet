@@ -553,19 +553,16 @@ pub mod mock {
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
             let properties = JsonSchemaProperties {
-                properties: names
-                    .iter()
-                    .fold(HashMap::new(), |mut map, (name, prop_type, prop_format)| {
-                        map.insert(
-                            String::from(*name),
-                            JsonSchemaProperty {
-                                r#type: *prop_type,
-                                format: *prop_format,
-                                properties: None,
-                            },
-                        );
-                        map
-                    }),
+                properties: HashMap::from_iter(names.iter().map(|(name, prop_type, prop_format)| {
+                    (
+                        String::from(*name),
+                        JsonSchemaProperty {
+                            r#type: *prop_type,
+                            format: *prop_format,
+                            properties: None,
+                        },
+                    )
+                })),
             };
 
             let raw_schema = serde_json::to_value(&properties).unwrap();
