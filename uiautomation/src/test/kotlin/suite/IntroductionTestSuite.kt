@@ -7,7 +7,6 @@ import org.junit.platform.suite.api.SuiteDisplayName
 @SelectClasses(
     feature.introduction.IntroductionTests::class,
     feature.introduction.IntroductionPrivacyTests::class,
-    feature.introduction.IntroductionConditionsTests::class,
 )
 @Suite
 @SuiteDisplayName("Introduction Test Suite")

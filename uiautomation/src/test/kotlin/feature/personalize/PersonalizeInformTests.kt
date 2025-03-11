@@ -4,14 +4,12 @@ import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
-import screen.personalize.PersonalizeNoDigidScreen
-import screen.web.digid.DigidApplyWebPage
+import screen.web.digid.DigidIdentityCardWebPage
 import screen.web.digid.DigidLoginStartWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
@@ -40,32 +38,27 @@ class PersonalizeInformTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 The app offers guidance for when the user has no DigiD: the user is referred to the DigiD website. [$JIRA_ID]")
-    fun verifyNoDigidWebsiteRedirect() {
+    fun verifyDigidWebsiteRedirect() {
         setUp()
-        personalizeInformScreen.clickNoDigidButton()
+        personalizeInformScreen.clickDigidWebsiteButton()
+        personalizeInformScreen.switchToWebView()
 
-        val personalizeNoDigidScreen = PersonalizeNoDigidScreen()
-        assertTrue(personalizeNoDigidScreen.visible(), "personalize no digid screen is not visible")
-
-        personalizeNoDigidScreen.clickApplyForDigidButton()
-        personalizeNoDigidScreen.switchToWebView()
-
-        val digidApplyWebPage = DigidApplyWebPage()
-        assertTrue(digidApplyWebPage.visible(), "digid apply web page is not visible")
+        val webPage = DigidIdentityCardWebPage()
+        assertTrue(webPage.visible(), "digid identity card web page is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The app offers a button for the user to Log in with DigiD. [$JIRA_ID]")
-    fun verifyLoginDigidButton() {
+    fun verifyDigidLoginButton() {
         setUp()
-        personalizeInformScreen.loginWithDigidButtonVisible()
+        personalizeInformScreen.digidLoginButtonVisible()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 When the user hits 'Log in with DigiD', DigiD authentication starts. [$JIRA_ID]")
-    fun verifyLoginDigidRedirect() {
+    fun verifyDigidLoginRedirect() {
         setUp()
-        personalizeInformScreen.clickLoginWithDigidButton()
+        personalizeInformScreen.clickDigidLoginButton()
 
         val digidLoginStartWebPage = DigidLoginStartWebPage()
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")

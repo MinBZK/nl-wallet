@@ -10,12 +10,13 @@ use p256::ecdsa::VerifyingKey;
 
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
+use poa::factory::PoaFactory;
+use poa::Poa;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::poa::Poa;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 use wallet_common::keys::EcdsaKey;
@@ -157,6 +158,17 @@ where
 
         Ok(signatures)
     }
+}
+
+impl<S, AK, GK, A> PoaFactory for RemoteEcdsaKeyFactory<S, AK, GK, A>
+where
+    S: Storage,
+    AK: AppleAttestedKey,
+    GK: GoogleAttestedKey,
+    A: AccountProviderClient,
+{
+    type Key = RemoteEcdsaKey<S, AK, GK, A>;
+    type Error = RemoteEcdsaKeyError;
 
     async fn poa(
         &self,

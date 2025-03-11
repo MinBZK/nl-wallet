@@ -1,3 +1,10 @@
+automation-compile-check:
+  rules: !reference [.merge-request, rules]
+  script:
+    - java -version
+    - cd uiautomation
+    - ./gradlew --no-daemon compileTestKotlin
+
 .run-automation-tests-common-setup:
   resource_group: automation-tests
   extends: .env-ont-k8s
@@ -36,25 +43,19 @@
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
   needs:
-    - job: build-wallet-provider-image
+    - job: deploy-mock-relying-party-demo
       artifacts: false
       optional: true
-    - job: build-wp-migrations-image
+    - job: deploy-wallet-provider-ont
       artifacts: false
       optional: true
-    - job: build-ws-migrations-image
+    - job: deploy-pid-issuer-ont
       artifacts: false
       optional: true
-    - job: build-mock-relying-party-image
+    - job: deploy-update-policy-server-ont
       artifacts: false
       optional: true
-    - job: build-wallet-server-image
-      artifacts: false
-      optional: true
-    - job: build-verification-server-image
-      artifacts: false
-      optional: true
-    - job: build-pid-issuer-image
+    - job: deploy-gba-hc-converter-ont
       artifacts: false
       optional: true
   rules:

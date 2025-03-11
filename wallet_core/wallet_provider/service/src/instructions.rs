@@ -15,6 +15,8 @@ use uuid::Uuid;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use poa::Poa;
+use poa::POA_JWT_TYP;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
@@ -30,8 +32,6 @@ use wallet_account::messages::instructions::SignResult;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
-use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::POA_JWT_TYP;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::p256_der::DerSignature;
 use wallet_common::p256_der::DerVerifyingKey;
@@ -452,6 +452,7 @@ mod tests {
     use rstest::rstest;
 
     use hsm::model::wrapped_key::WrappedKey;
+    use poa::PoaPayload;
     use wallet_account::messages::instructions::CheckPin;
     use wallet_account::messages::instructions::ConstructPoa;
     use wallet_account::messages::instructions::GenerateKey;
@@ -459,7 +460,6 @@ mod tests {
     use wallet_account::messages::instructions::Sign;
     use wallet_common::jwt::validations;
     use wallet_common::jwt::Jwt;
-    use wallet_common::keys::poa::PoaPayload;
     use wallet_common::utils::random_bytes;
     use wallet_common::utils::random_string;
     use wallet_provider_domain::model::wallet_user;

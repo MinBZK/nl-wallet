@@ -1,4 +1,5 @@
 [advisories]
 ignore = [
     "RUSTSEC-2023-0071", # The vulnerability pertains to the use of RSA private keys in the rsa crate. We only use this crate to evaluate RSA public keys as found in Google CA certificates.
+    "RUSTSEC-2024-0436", # This is a transitive dependency that is no longer maintained but used by a couple dependencies. Waiting for dependencies to find alternatives.
 ]

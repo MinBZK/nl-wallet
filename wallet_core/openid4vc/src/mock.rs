@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
+use poa::factory::PoaFactory;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::wte::WteClaims;
@@ -53,13 +54,18 @@ impl IssuanceSession for MockIssuanceSession {
         Self::start()
     }
 
-    async fn accept_issuance<K: CredentialEcdsaKey>(
+    async fn accept_issuance<K, KF>(
         &self,
         _: &[TrustAnchor<'_>],
-        _: &impl KeyFactory<Key = K>,
+        _: &KF,
         _: Option<JwtCredential<WteClaims>>,
         _: BaseUrl,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    where
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>,
+    {
         self.accept()
     }
 

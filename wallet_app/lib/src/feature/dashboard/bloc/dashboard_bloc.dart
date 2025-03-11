@@ -7,18 +7,18 @@ import 'package:rxdart/rxdart.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/usecase/card/observe_wallet_cards_usecase.dart';
-import '../../../domain/usecase/history/observe_recent_history_usecase.dart';
+import '../../../domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 
 part 'dashboard_event.dart';
 part 'dashboard_state.dart';
 
 class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
-  final ObserveWalletCardsUseCase observeWalletCardsUseCase;
-  final ObserveRecentHistoryUseCase observeRecentHistoryUseCase;
+  final ObserveWalletCardsUseCase _observeWalletCardsUseCase;
+  final ObserveRecentWalletEventsUseCase _observeRecentWalletEventsUseCase;
 
   DashboardBloc(
-    this.observeWalletCardsUseCase,
-    this.observeRecentHistoryUseCase,
+    this._observeWalletCardsUseCase,
+    this._observeRecentWalletEventsUseCase,
     List<WalletCard>? preloadedCards,
   ) : super(preloadedCards == null ? const DashboardStateInitial() : DashboardLoadSuccess(cards: preloadedCards)) {
     on<DashboardLoadTriggered>(_onCardOverviewLoadTriggered, transformer: restartable());
@@ -28,8 +28,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     if (state is! DashboardLoadSuccess || event.forceRefresh) emit(const DashboardLoadInProgress());
     await emit.forEach(
       CombineLatestStream.combine2(
-        observeWalletCardsUseCase.invoke(),
-        observeRecentHistoryUseCase.invoke(),
+        _observeWalletCardsUseCase.invoke(),
+        _observeRecentWalletEventsUseCase.invoke(),
         (cards, history) => (cards, history),
       ),
       onData: (data) {

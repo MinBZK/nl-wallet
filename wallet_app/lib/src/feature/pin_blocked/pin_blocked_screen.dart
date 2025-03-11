@@ -59,6 +59,7 @@ class PinBlockedScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: PrimaryButton(
+                icon: const Icon(Icons.delete_outline_rounded),
                 text: Text.rich(context.l10n.pinBlockedScreenResetWalletCta.toTextSpan(context)),
                 onPressed: () => ResetWalletDialog.show(context),
               ),

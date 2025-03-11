@@ -23,7 +23,7 @@ class OnboardingNavigator {
         if (screen > OnboardingNavigatorScreen.SecurityChoosePin) PinScreen().choosePin(PIN)
         if (screen > OnboardingNavigatorScreen.SecurityConfirmPin) PinScreen().confirmPin(PIN)
         if (screen > OnboardingNavigatorScreen.SecuritySetupCompleted) SecuritySetupCompletedScreen().clickNextButton()
-        if (screen > OnboardingNavigatorScreen.PersonalizeInform) PersonalizeInformScreen().clickLoginWithDigidButton()
+        if (screen > OnboardingNavigatorScreen.PersonalizeInform) PersonalizeInformScreen().clickDigidLoginButton()
         if (screen > OnboardingNavigatorScreen.DigidLoginStartWebPage) DigidLoginStartWebPage().clickMockLoginButton()
         if (screen > OnboardingNavigatorScreen.DigidLoginMockWebPage) DigidLoginMockWebPage().clickLoginButton()
         if (screen > OnboardingNavigatorScreen.PersonalizePidPreview) PersonalizePidPreviewScreen().clickAcceptButton()

@@ -3,5 +3,6 @@ arb-dir: lib/l10n
 template-arb-file: intl_en.arb
 output-localization-file: app_localizations.dart
 nullable-getter: false
-synthetic-package: true
+synthetic-package: false
+output-dir: lib/l10n/generated
 untranslated-messages-file: untranslated_keys.json

@@ -11,12 +11,12 @@ import '../../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeDigidErrorPage extends StatelessWidget {
   final VoidCallback onRetryPressed;
-  final VoidCallback onHelpPressed;
+  final VoidCallback onDigidWebsitePressed;
   final String title, description;
 
   const WalletPersonalizeDigidErrorPage({
     required this.onRetryPressed,
-    required this.onHelpPressed,
+    required this.onDigidWebsitePressed,
     required this.title,
     required this.description,
     super.key,
@@ -88,9 +88,9 @@ class WalletPersonalizeDigidErrorPage extends StatelessWidget {
             icon: Image.asset(WalletAssets.logo_digid),
           ),
           secondaryButton: TertiaryButton(
-            onPressed: onHelpPressed,
-            text: Text.rich(context.l10n.walletPersonalizeDigidErrorPageNoDigidCta.toTextSpan(context)),
-            icon: const Icon(Icons.help_outline_rounded),
+            onPressed: onDigidWebsitePressed,
+            icon: const Icon(Icons.arrow_outward_rounded),
+            text: Text.rich(context.l10n.walletPersonalizeDigidErrorPageDigidWebsiteCta.toTextSpan(context)),
           ),
         ),
       ],

@@ -13,13 +13,13 @@ import '../../../common/widget/text/body_text.dart';
 import '../../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeIntroPage extends StatelessWidget {
-  final VoidCallback onLoginWithDigidPressed;
-  final VoidCallback onNoDigidPressed;
+  final VoidCallback onDigidLoginPressed;
+  final VoidCallback onDigidWebsitePressed;
   final FlowProgress? progress;
 
   const WalletPersonalizeIntroPage({
-    required this.onLoginWithDigidPressed,
-    required this.onNoDigidPressed,
+    required this.onDigidLoginPressed,
+    required this.onDigidWebsitePressed,
     this.progress,
     super.key,
   });
@@ -70,16 +70,16 @@ class WalletPersonalizeIntroPage extends StatelessWidget {
         const Divider(),
         ConfirmButtons(
           primaryButton: PrimaryButton(
-            key: const Key('loginWithDigidCta'),
-            onPressed: onLoginWithDigidPressed,
+            key: const Key('digidLoginCta'),
+            onPressed: onDigidLoginPressed,
             text: Text.rich(context.l10n.walletPersonalizeIntroPageLoginWithDigidCta.toTextSpan(context)),
             icon: ExcludeSemantics(child: Image.asset(WalletAssets.logo_digid)),
           ),
           secondaryButton: TertiaryButton(
-            key: const Key('noDigidCta'),
-            onPressed: onNoDigidPressed,
-            icon: const Icon(Icons.help_outline_rounded),
-            text: Text.rich(context.l10n.walletPersonalizeIntroPageNoDigidCta.toTextSpan(context)),
+            key: const Key('digidWebsiteCta'),
+            onPressed: onDigidWebsitePressed,
+            icon: const Icon(Icons.arrow_outward_rounded),
+            text: Text.rich(context.l10n.walletPersonalizeIntroPageDigidWebsiteCta.toTextSpan(context)),
           ),
         ),
       ],

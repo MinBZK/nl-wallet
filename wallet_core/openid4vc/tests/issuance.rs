@@ -42,6 +42,8 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
+use poa::Poa;
+use poa::PoaPayload;
 use sd_jwt::metadata::ClaimMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
@@ -50,8 +52,6 @@ use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::jwt::JsonJwt;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-use wallet_common::keys::poa::Poa;
-use wallet_common::keys::poa::PoaPayload;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -406,7 +406,7 @@ impl MockOpenidMessageClient {
         let jwts: VecNonEmpty<_> = jwts.try_into().unwrap(); // jwts always has at least one left after the pop();
         let poa: JsonJwt<PoaPayload> = jwts.try_into().unwrap();
 
-        poa
+        poa.into()
     }
 }
 

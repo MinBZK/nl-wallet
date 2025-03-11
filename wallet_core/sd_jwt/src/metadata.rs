@@ -54,7 +54,7 @@ impl<T> AsRef<T> for SpecOptionalImplRequired<T> {
 pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
 pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypeMetadataChain {
     metadata: VecNonEmpty<EncodedTypeMetadata>,
     root_integrity: ResourceIntegrity,
@@ -104,7 +104,7 @@ impl TypeMetadataChain {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EncodedTypeMetadata(TypeMetadata);
 
 impl Serialize for EncodedTypeMetadata {

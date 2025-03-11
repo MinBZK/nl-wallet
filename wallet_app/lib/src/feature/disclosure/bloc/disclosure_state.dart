@@ -279,6 +279,7 @@ class DisclosureConfirmPin extends DisclosureState {
 
 class DisclosureSuccess extends DisclosureState {
   final Organization relyingParty;
+  final WalletEvent? event;
   final String? returnUrl;
   final bool isLoginFlow;
 
@@ -289,7 +290,12 @@ class DisclosureSuccess extends DisclosureState {
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureSuccess({required this.relyingParty, this.returnUrl, this.isLoginFlow = false});
+  const DisclosureSuccess({
+    required this.relyingParty,
+    this.event,
+    this.returnUrl,
+    this.isLoginFlow = false,
+  });
 
   @override
   List<Object?> get props => [relyingParty, returnUrl, isLoginFlow, ...super.props];

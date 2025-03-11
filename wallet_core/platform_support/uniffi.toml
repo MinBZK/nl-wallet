@@ -1,3 +1,4 @@
 [bindings.kotlin]
 cdylib_name = "platform_support"
+disable_java_cleaner = true
 omit_argument_labels = true
