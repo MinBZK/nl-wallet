@@ -566,7 +566,7 @@ pub mod mock {
             };
 
             let raw_schema = serde_json::to_value(&properties).unwrap();
-            let validator = jsonschema::options().build(&raw_schema).unwrap();
+            let validator = JsonSchema::build_validator(&raw_schema).unwrap();
 
             Self {
                 raw_schema,
