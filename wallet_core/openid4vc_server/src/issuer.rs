@@ -19,7 +19,6 @@ use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
 use indexmap::IndexMap;
-use openid4vc::issuer::WalletSettings;
 use serde::Serialize;
 use tracing::warn;
 
@@ -34,6 +33,7 @@ use openid4vc::issuer::AttestationSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
+use openid4vc::issuer::WalletSettings;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionStore;
