@@ -8,7 +8,7 @@ use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 
 use crate::error::JwkConversionError;
-use crate::error::JwtCredentialError;
+use crate::error::JwtError;
 use crate::jwk_to_p256;
 use crate::validations;
 use crate::Jwt;
@@ -30,7 +30,7 @@ where
         private_key_id: String,
         jwt: Jwt<JwtCredentialClaims<T>>,
         pubkey: &VerifyingKey,
-    ) -> Result<(Self, JwtCredentialClaims<T>), JwtCredentialError> {
+    ) -> Result<(Self, JwtCredentialClaims<T>), JwtError> {
         let claims = jwt.parse_and_verify(&pubkey.into(), &validations())?;
 
         let cred = Self {

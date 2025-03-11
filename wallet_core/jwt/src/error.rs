@@ -1,5 +1,4 @@
 use base64::DecodeError;
-use josekit::JoseError;
 use jsonwebtoken::jwk::EllipticCurve;
 use p256::ecdsa::signature;
 
@@ -75,22 +74,4 @@ pub enum JwtX5cError {
     CertificateParsing(#[source] CertificateError),
     #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),
-}
-
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)]
-pub enum JwtCredentialError {
-    #[error("failed to decode JWT body: {0}")]
-    JoseDecoding(#[from] JoseError),
-    #[error("unknown issuer: {0}")]
-    #[category(critical)]
-    UnknownIssuer(String),
-    #[error("failed to parse trust anchor name: {0}")]
-    #[category(critical)]
-    TrustAnchorNameParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
-    #[error("failed to verify JWT: {0}")]
-    JwtVerification(#[from] jsonwebtoken::errors::Error),
-    #[error("JWT error: {0}")]
-    #[category(defer)]
-    Jwt(#[from] JwtError),
 }

@@ -12,7 +12,6 @@ use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use jwt::error::JwtCredentialError;
 use jwt::error::JwtError;
 use nl_wallet_mdoc::utils::cose::CoseError;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
@@ -114,7 +113,7 @@ pub enum PidIssuanceError {
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
     #[error("JWT credential error: {0}")]
-    JwtCredential(#[from] JwtCredentialError),
+    JwtCredential(#[from] JwtError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
     #[error("type metadata verification failed: {0}")]

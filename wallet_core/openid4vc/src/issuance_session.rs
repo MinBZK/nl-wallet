@@ -21,7 +21,6 @@ use url::Url;
 use error_category::ErrorCategory;
 use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
-use jwt::error::JwtCredentialError;
 use jwt::error::JwtError;
 use jwt::Jwt;
 use jwt::JwtPopClaims;
@@ -98,8 +97,6 @@ pub enum IssuanceSessionError {
     IssuedMdocMismatch(IssuedDocumentMismatchError<AttributeIdentifier>),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] nl_wallet_mdoc::Error),
-    #[error("jwt credential verification failed: {0}")]
-    JwtCredentialVerification(#[from] JwtCredentialError),
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataError),
