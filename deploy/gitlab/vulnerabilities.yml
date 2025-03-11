@@ -17,7 +17,7 @@ dependency-check:
       --enableExperimental
       --format "HTML" --format "JSON" --format "XML"
       --scan "."
-      --suppression $CI_PROJECT_DIR/deploy/dependencies/dependency_check_suppressions.xml
+      --suppression $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml
       --nvdApiKey "$NVD_API_KEY"
       --failOnCVSS 0.1
   after_script:
