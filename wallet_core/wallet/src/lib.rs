@@ -16,6 +16,7 @@ pub mod errors;
 
 pub use crate::attestation::Attestation;
 pub use crate::attestation::AttestationAttribute;
+pub use crate::attestation::AttestationAttributeValue;
 pub use crate::attestation::AttestationIdentity;
 pub use crate::disclosure::DisclosureUriSource;
 pub use crate::pin::validation::validate_pin;

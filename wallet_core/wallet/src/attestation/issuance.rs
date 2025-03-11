@@ -45,6 +45,7 @@ mod test {
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
+    use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::Attestation;
     use crate::AttestationIdentity;
@@ -99,9 +100,12 @@ mod test {
             [
                 (
                     vec![String::from("entry1")],
-                    AttributeValue::Text(String::from("value1"))
+                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("value1")))
                 ),
-                (vec![String::from("entry2")], AttributeValue::Bool(true)),
+                (
+                    vec![String::from("entry2")],
+                    AttestationAttributeValue::Basic(AttributeValue::Bool(true))
+                ),
             ],
             attrs.as_slice()
         );
@@ -117,6 +121,7 @@ mod test {
                 &[
                     ("entry1", JsonSchemaPropertyType::String, None),
                     ("entry2", JsonSchemaPropertyType::Boolean, None),
+                    ("not_found", JsonSchemaPropertyType::String, None),
                 ],
             )
         };

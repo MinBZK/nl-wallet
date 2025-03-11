@@ -4,6 +4,7 @@ mod issuance;
 
 use std::collections::HashSet;
 
+use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -14,6 +15,7 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -26,9 +28,17 @@ pub enum AttestationError {
     #[category(pd)]
     AttributeNotProcessedByClaim(HashSet<Vec<String>>),
 
+    #[error("unable to convert into attestation attribute value: {0:?}")]
+    #[category(pd)]
+    AttributeConversion(AttributeValue),
+
     #[error("error converting from mdoc attribute: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
+
+    #[error("metadata schema not supported: {0}")]
+    #[category(pd)]
+    UnsupportedMetadataSchema(#[from] TypeMetadataError),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -57,5 +67,11 @@ pub enum AttestationIdentity {
 pub struct AttestationAttribute {
     pub key: Vec<String>,
     pub metadata: Vec<ClaimDisplayMetadata>,
-    pub value: AttributeValue,
+    pub value: AttestationAttributeValue,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AttestationAttributeValue {
+    Basic(AttributeValue),
+    Date(NaiveDate),
 }

@@ -207,14 +207,6 @@ impl TypeMetadata {
             Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
         }
     }
-
-    pub fn schema_properties(&self) -> Result<&JsonSchemaProperties, TypeMetadataError> {
-        if let SchemaOption::Embedded { schema } = &self.schema {
-            Ok(schema.properties())
-        } else {
-            Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
-        }
-    }
 }
 
 impl TryFrom<Vec<u8>> for TypeMetadata {
@@ -306,8 +298,8 @@ impl JsonSchema {
         })
     }
 
-    pub fn properties(&self) -> &JsonSchemaProperties {
-        &self.properties
+    pub fn into_properties(self) -> JsonSchemaProperties {
+        self.properties
     }
 }
 
@@ -357,7 +349,7 @@ pub struct JsonSchemaProperty {
     pub properties: Option<HashMap<String, JsonSchemaProperty>>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum JsonSchemaPropertyType {
     String,
@@ -369,7 +361,7 @@ pub enum JsonSchemaPropertyType {
     Null,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum JsonSchemaPropertyFormat {
     Date,
@@ -563,8 +555,8 @@ pub mod mock {
                         map.insert(
                             String::from(*name),
                             JsonSchemaProperty {
-                                r#type: prop_type.clone(),
-                                format: prop_format.clone(),
+                                r#type: *prop_type,
+                                format: *prop_format,
                                 properties: None,
                             },
                         );
@@ -660,7 +652,6 @@ mod test {
     #[test]
     fn test_schema_validation_success() {
         let metadata = TypeMetadata::example();
-        metadata.schema_properties().unwrap();
 
         let claims = json!({
           "vct":"https://credentials.example.com/identity_credential",

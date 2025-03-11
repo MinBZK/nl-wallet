@@ -1,8 +1,6 @@
-use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::num::TryFromIntError;
 
-use chrono::NaiveDate;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -11,9 +9,6 @@ use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
-use sd_jwt::metadata::JsonSchemaProperty;
-use sd_jwt::metadata::JsonSchemaPropertyFormat;
-use sd_jwt::metadata::JsonSchemaPropertyType;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataError;
 
@@ -22,7 +17,6 @@ use sd_jwt::metadata::TypeMetadataError;
 pub enum AttributeValue {
     Number(i64),
     Bool(bool),
-    Date(NaiveDate),
     Text(String),
 }
 
@@ -58,32 +52,20 @@ impl From<&AttributeValue> for ciborium::Value {
         match value {
             AttributeValue::Number(number) => ciborium::Value::Integer((*number).into()),
             AttributeValue::Bool(boolean) => ciborium::Value::Bool(*boolean),
-            AttributeValue::Date(date) => ciborium::Value::Text((*date).format("%Y-%m-%d").to_string()),
             AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
         }
     }
 }
 
-impl AttributeValue {
-    fn try_from_data_element_value(
-        value: DataElementValue,
-        schema_type: &JsonSchemaProperty,
-    ) -> Result<Self, AttributeError> {
-        match (&schema_type.r#type, value) {
-            (JsonSchemaPropertyType::Boolean, DataElementValue::Bool(bool)) => Ok(AttributeValue::Bool(bool)),
-            (JsonSchemaPropertyType::Number, DataElementValue::Integer(integer)) => {
-                Ok(AttributeValue::Number(integer.try_into()?))
-            }
-            (JsonSchemaPropertyType::String, DataElementValue::Text(text)) => schema_type
-                .format
-                .as_ref()
-                .filter(|format| *format == &JsonSchemaPropertyFormat::Date)
-                .map(|_| {
-                    let date = NaiveDate::parse_from_str(&text, "%Y-%m-%d").unwrap();
-                    Ok(AttributeValue::Date(date))
-                })
-                .unwrap_or(Ok(AttributeValue::Text(text))),
-            (_, value) => Err(AttributeError::FromCborConversion(value)),
+impl TryFrom<DataElementValue> for AttributeValue {
+    type Error = AttributeError;
+
+    fn try_from(value: DataElementValue) -> Result<Self, Self::Error> {
+        match value {
+            DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
+            DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
+            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.try_into()?)),
+            _ => Err(AttributeError::FromCborConversion(value)),
         }
     }
 }
@@ -110,17 +92,12 @@ impl Attribute {
         attributes: IndexMap<String, Vec<Entry>>,
         result: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
-        // Retrieve the JSON Schema from the metadata, which has the same structure as the attributes (otherwise,
-        // they wouldn't validate later on when converted to a `CredentialPayload`). The JSON Schema is used to provide
-        // extra metadata for converting attributes values.
-        let schema_properties = &type_metadata.schema_properties()?.properties;
-
         for (namespace, entries) in attributes {
             if namespace == type_metadata.vct {
-                Self::insert_entries(entries, result, schema_properties)?;
+                Self::insert_entries(entries, result)?;
             } else {
                 let mut groups: VecDeque<String> = Self::split_namespace(&namespace, &type_metadata.vct)?.into();
-                Self::traverse_groups(entries, &mut groups, result, schema_properties)?;
+                Self::traverse_groups(entries, &mut groups, result)?;
             }
         }
 
@@ -131,7 +108,6 @@ impl Attribute {
         entries: Vec<Entry>,
         groups: &mut VecDeque<String>,
         current_group: &mut IndexMap<String, Attribute>,
-        json_schema_properties: &HashMap<String, JsonSchemaProperty>,
     ) -> Result<(), AttributeError> {
         if let Some(group_key) = groups.pop_front() {
             // If the group doesn't exist, add a new group to the current group.
@@ -140,16 +116,10 @@ impl Attribute {
             }
 
             if let Some(Attribute::Nested(attr_group)) = current_group.get_mut(&group_key) {
-                // Retrieve the relevant metadata for this attribute from the JSON Schema.
-                if let Some(props) = json_schema_properties
-                    .get(&group_key)
-                    .and_then(|prop| prop.properties.as_ref())
-                {
-                    if groups.is_empty() {
-                        Self::insert_entries(entries, attr_group, props)?;
-                    } else {
-                        Self::traverse_groups(entries, groups, attr_group, props)?;
-                    }
+                if groups.is_empty() {
+                    Self::insert_entries(entries, attr_group)?;
+                } else {
+                    Self::traverse_groups(entries, groups, attr_group)?;
                 }
             }
         }
@@ -157,11 +127,7 @@ impl Attribute {
         Ok(())
     }
 
-    fn insert_entries(
-        entries: Vec<Entry>,
-        group: &mut IndexMap<String, Attribute>,
-        json_schema_properties: &HashMap<String, JsonSchemaProperty>,
-    ) -> Result<(), AttributeError> {
+    fn insert_entries(entries: Vec<Entry>, group: &mut IndexMap<String, Attribute>) -> Result<(), AttributeError> {
         for entry in entries {
             let key = entry.name;
 
@@ -169,14 +135,7 @@ impl Attribute {
                 return Err(AttributeError::DuplicateAttribute(key));
             }
 
-            let prop = json_schema_properties
-                .get(key.as_str())
-                .ok_or(AttributeError::MetadataNotFoundForAttributeKey(key.to_string()))?;
-
-            group.insert(
-                key,
-                Attribute::Single(AttributeValue::try_from_data_element_value(entry.value, prop)?),
-            );
+            group.insert(key, Attribute::Single(entry.value.try_into()?));
         }
 
         Ok(())
@@ -352,8 +311,8 @@ mod test {
             }
         });
         assert_eq!(
+            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
             expected_json.to_json_string_pretty().unwrap(),
-            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap()
         );
     }
 

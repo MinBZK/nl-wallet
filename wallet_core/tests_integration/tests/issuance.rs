@@ -3,6 +3,7 @@ use std::sync::Arc;
 use tests_integration::common::*;
 use wallet::openid4vc::AttributeValue;
 use wallet::Attestation;
+use wallet::AttestationAttributeValue;
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -33,7 +34,10 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec!["bsn"]);
 
     match bsn_attr {
-        Some(bsn_attr) => assert_eq!(bsn_attr.value, AttributeValue::Text("999991772".to_string())),
+        Some(bsn_attr) => assert_eq!(
+            bsn_attr.value,
+            AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
+        ),
         None => panic!("BSN attribute not found"),
     }
 

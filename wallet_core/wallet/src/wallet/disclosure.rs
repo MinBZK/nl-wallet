@@ -569,7 +569,6 @@ mod tests {
     use nl_wallet_mdoc::test::data::PID;
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
-    use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::DisclosureErrorResponse;
@@ -579,6 +578,7 @@ mod tests {
     use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
 
+    use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
@@ -677,7 +677,7 @@ mod tests {
         assert_matches!(
             document.attributes.first().unwrap(),
             AttestationAttribute {
-                value: AttributeValue::Bool(true),
+                value: AttestationAttributeValue::Basic(AttributeValue::Bool(true)),
                 ..
             }
         );
@@ -882,8 +882,8 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::AttestationAttributes(
-                AttestationError::Attribute(AttributeError::MetadataNotFoundForAttributeKey(key)))
-                    if key == "foo"
+                AttestationError::AttributeNotProcessedByClaim(keys))
+                    if keys == HashSet::from([vec![String::from("foo")]])
         );
         assert!(wallet.disclosure_session.is_none());
     }

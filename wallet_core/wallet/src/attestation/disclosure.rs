@@ -45,6 +45,7 @@ mod test {
 
     use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::Attestation;
+    use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
 
     fn example_metadata() -> TypeMetadata {
@@ -90,9 +91,12 @@ mod test {
             [
                 (
                     vec![String::from("entry1")],
-                    AttributeValue::Text(String::from("value1"))
+                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("value1")))
                 ),
-                (vec![String::from("entry2")], AttributeValue::Bool(true)),
+                (
+                    vec![String::from("entry2")],
+                    AttestationAttributeValue::Basic(AttributeValue::Bool(true))
+                ),
             ],
             attrs.as_slice()
         );

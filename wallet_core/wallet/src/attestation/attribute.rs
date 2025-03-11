@@ -1,17 +1,24 @@
-use std::collections::HashSet;
-
+use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use std::collections::HashMap;
+use std::collections::HashSet;
 
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimPath;
+use sd_jwt::metadata::JsonSchemaProperty;
+use sd_jwt::metadata::JsonSchemaPropertyFormat;
+use sd_jwt::metadata::JsonSchemaPropertyType;
+use sd_jwt::metadata::SchemaOption;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use super::Attestation;
 use super::AttestationAttribute;
+use super::AttestationAttributeValue;
 use super::AttestationError;
 use super::AttestationIdentity;
 use super::AttributeSelectionMode;
@@ -26,10 +33,19 @@ impl Attestation {
         mut nested_attributes: IndexMap<String, Attribute>,
         selection_mode: AttributeSelectionMode,
     ) -> Result<Self, AttestationError> {
+        // Retrieve the JSON Schema from the metadata, which has the same structure as the attributes (otherwise,
+        // they wouldn't validate later on when converted to a `CredentialPayload`). The JSON Schema is used to provide
+        // extra metadata for converting attributes values.
+        let schema_properties = if let SchemaOption::Embedded { schema } = metadata.schema {
+            Ok(schema.into_properties().properties)
+        } else {
+            Err(TypeMetadataError::UnsupportedSchemaOption(metadata.schema))
+        }?;
+
         // For every claim in the metadata, traverse the nested attributes to find it,
         // then convert it to a `AttestationAttribute` value.
         let attributes_iter = metadata.claims.into_iter().map(|claim| {
-            match take_attribute_value_at_key_path(&mut nested_attributes, claim.path.clone()) {
+            match take_attribute_value_at_key_path(&mut nested_attributes, claim.path.clone(), &schema_properties)? {
                 Some((path, value)) => {
                     let attribute = AttestationAttribute {
                         key: path,
@@ -80,7 +96,8 @@ impl Attestation {
 fn take_attribute_value_at_key_path(
     attributes: &mut IndexMap<String, Attribute>,
     path: VecNonEmpty<ClaimPath>,
-) -> Option<(Vec<String>, AttributeValue)> {
+    json_schema_properties: &HashMap<String, JsonSchemaProperty>,
+) -> Result<Option<(Vec<String>, AttestationAttributeValue)>, AttestationError> {
     // First, confirm that the path is made up of key entries by converting to a `Vec<String>`.
     // This will return `None` if any of the elements of the path is not an index.
     let key_path = path
@@ -89,28 +106,50 @@ fn take_attribute_value_at_key_path(
             ClaimPath::SelectByKey(key) => Some(key),
             _ => None,
         })
-        .collect::<Option<Vec<_>>>()?;
+        .collect::<Option<Vec<_>>>();
 
-    // Iterate over the path to first find the correct `IndexMap` and then look for the value in it.
-    key_path
-        .iter()
-        // This is guaranteed not to underflow because the key path has at least one entry.
-        .take(key_path.len() - 1)
-        // For all entries in the path but the last, start traversing the path
-        // and expect to find another nested IndexMap every step along the way.
-        // Note that for a path length of 1, this will result in the input IndexMap.
-        .try_fold(attributes, |attributes, key| match attributes.get_mut(key) {
-            Some(Attribute::Nested(nested_attributes)) => Some(nested_attributes),
-            _ => None,
-        })
-        // For the last entry in the path, if the IndexMap found in the last step
-        // contains a value for that key, remove it and return it.
-        .and_then(|attributes| match attributes.swap_remove(key_path.last().unwrap()) {
-            Some(Attribute::Single(value)) => Some(value),
-            _ => None,
-        })
-        // Combine the resulting value with the full path created earlier.
-        .map(|value| (key_path, value))
+    if let Some(key_path) = key_path {
+        // Iterate over the path to first find the correct `IndexMap` and then look for the value in it.
+        let result = key_path
+            .iter()
+            // This is guaranteed not to underflow because the key path has at least one entry.
+            .take(key_path.len() - 1)
+            // For all entries in the path but the last, start traversing the path
+            // and expect to find another nested IndexMap every step along the way.
+            // Since the JSON schema properties have the same structure, it is matched
+            // in a tuple along with the attributes IndexMap.
+            // Note that for a path length of 1, this will result in the input IndexMap.
+            .try_fold(
+                (attributes, json_schema_properties),
+                |(attributes, json_schema_properties), key| match (
+                    attributes.get_mut(key),
+                    json_schema_properties
+                        .get(key)
+                        .and_then(|prop| prop.properties.as_ref()),
+                ) {
+                    (Some(Attribute::Nested(nested_attributes)), Some(props)) => Some((nested_attributes, props)),
+                    _ => None,
+                },
+            )
+            // For the last entry in the path, if the IndexMap found in the last step
+            // contains a value for that key, remove it and return it.
+            .and_then(|(attributes, json_props)| {
+                let key = key_path.last().unwrap();
+                match (attributes.swap_remove(key), json_props.get(key)) {
+                    (Some(Attribute::Single(value)), Some(json_property)) => Some(
+                        AttestationAttributeValue::try_from_attribute_value(value, json_property),
+                    ),
+                    _ => None,
+                }
+            })
+            .transpose()?
+            // Combine the resulting value with the full path created earlier.
+            .map(|value| (key_path, value));
+
+        Ok(result)
+    } else {
+        Ok(None)
+    }
 }
 
 /// Collect all full key paths present in `attributes` by unrolling any nested attribute paths.
@@ -146,12 +185,40 @@ fn collect_key_paths_recursive(attributes: &IndexMap<String, Attribute>, parent_
         })
 }
 
+impl AttestationAttributeValue {
+    fn try_from_attribute_value(
+        value: AttributeValue,
+        schema_type: &JsonSchemaProperty,
+    ) -> Result<Self, AttestationError> {
+        match (&schema_type.r#type, value) {
+            (JsonSchemaPropertyType::Boolean, AttributeValue::Bool(bool)) => {
+                Ok(AttestationAttributeValue::Basic(AttributeValue::Bool(bool)))
+            }
+            (JsonSchemaPropertyType::Number, AttributeValue::Number(integer)) => {
+                Ok(AttestationAttributeValue::Basic(AttributeValue::Number(integer)))
+            }
+            (JsonSchemaPropertyType::String, AttributeValue::Text(text)) => schema_type
+                .format
+                .filter(|format| format == &JsonSchemaPropertyFormat::Date)
+                .as_ref()
+                .map(|_| {
+                    let date = NaiveDate::parse_from_str(&text, "%Y-%m-%d").unwrap();
+                    Ok(AttestationAttributeValue::Date(date))
+                })
+                .unwrap_or(Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))),
+            (_, value) => Err(AttestationError::AttributeConversion(value)),
+        }
+    }
+}
+
 #[cfg(test)]
 pub mod test {
+    use std::collections::HashMap;
     use std::collections::HashSet;
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use chrono::NaiveDate;
     use indexmap::IndexMap;
     use serde_json::json;
 
@@ -160,15 +227,23 @@ pub mod test {
     use sd_jwt::metadata::ClaimMetadata;
     use sd_jwt::metadata::ClaimPath;
     use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
+    use sd_jwt::metadata::JsonSchemaProperty;
+    use sd_jwt::metadata::JsonSchemaPropertyFormat;
+    use sd_jwt::metadata::JsonSchemaPropertyType;
 
     use crate::attestation::attribute::collect_key_paths;
     use crate::attestation::attribute::take_attribute_value_at_key_path;
+    use crate::attestation::AttestationAttributeValue;
 
     static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
         IndexMap::from([
             (
                 String::from("single"),
                 Attribute::Single(AttributeValue::Text(String::from("single"))),
+            ),
+            (
+                String::from("date"),
+                Attribute::Single(AttributeValue::Text(String::from("2024-12-26"))),
             ),
             (
                 String::from("nested_1a"),
@@ -202,12 +277,45 @@ pub mod test {
         let result = take_attribute_value_at_key_path(
             &mut ATTRIBUTES.clone(),
             vec![ClaimPath::SelectByKey(String::from("single"))].try_into().unwrap(),
-        );
+            &HashMap::from([(
+                String::from("single"),
+                JsonSchemaProperty {
+                    r#type: JsonSchemaPropertyType::String,
+                    format: None,
+                    properties: None,
+                },
+            )]),
+        )
+        .unwrap();
 
         assert_matches!(
             result,
-            Some((path, AttributeValue::Text(value))) if path == vec!["single"] && value == "single",
+            Some((path, AttestationAttributeValue::Basic(AttributeValue::Text(value)))) if path == vec!["single"] && value == "single",
             "selecting single attribute by key should find attribute"
+        );
+    }
+
+    #[test]
+    fn test_take_date_attribute_value_at_path() {
+        let result = take_attribute_value_at_key_path(
+            &mut ATTRIBUTES.clone(),
+            vec![ClaimPath::SelectByKey(String::from("date"))].try_into().unwrap(),
+            &HashMap::from([(
+                String::from("date"),
+                JsonSchemaProperty {
+                    r#type: JsonSchemaPropertyType::String,
+                    format: Some(JsonSchemaPropertyFormat::Date),
+                    properties: None,
+                },
+            )]),
+        )
+        .unwrap();
+
+        assert_matches!(
+            result,
+            Some((path, AttestationAttributeValue::Date(value)))
+                if path == vec!["date"] && value == NaiveDate::from_ymd_opt(2024, 12, 26).unwrap(),
+            "selecting date attribute by key should find attribute"
         );
     }
 
@@ -221,7 +329,16 @@ pub mod test {
             ]
             .try_into()
             .unwrap(),
-        );
+            &HashMap::from([(
+                String::from("single"),
+                JsonSchemaProperty {
+                    r#type: JsonSchemaPropertyType::String,
+                    format: None,
+                    properties: None,
+                },
+            )]),
+        )
+        .unwrap();
 
         assert_matches!(
             result,
@@ -241,11 +358,34 @@ pub mod test {
             ]
             .try_into()
             .unwrap(),
-        );
+            &HashMap::from([(
+                String::from("nested_1a"),
+                JsonSchemaProperty {
+                    r#type: JsonSchemaPropertyType::String,
+                    format: None,
+                    properties: Some(HashMap::from([(
+                        String::from("nested_1b"),
+                        JsonSchemaProperty {
+                            r#type: JsonSchemaPropertyType::String,
+                            format: None,
+                            properties: Some(HashMap::from([(
+                                String::from("nested_1c"),
+                                JsonSchemaProperty {
+                                    r#type: JsonSchemaPropertyType::String,
+                                    format: None,
+                                    properties: None,
+                                },
+                            )])),
+                        },
+                    )])),
+                },
+            )]),
+        )
+        .unwrap();
 
         assert_matches!(
             result,
-            Some((path, AttributeValue::Text(value)))
+            Some((path, AttestationAttributeValue::Basic(AttributeValue::Text(value))))
                 if path == vec!["nested_1a", "nested_1b", "nested_1c"] && value == "nested_value",
             "selecting nested attribute by keys should find attribute"
         );
@@ -262,7 +402,23 @@ pub mod test {
             ]
             .try_into()
             .unwrap(),
-        );
+            &HashMap::from([(
+                String::from("nested_1a"),
+                JsonSchemaProperty {
+                    r#type: JsonSchemaPropertyType::String,
+                    format: None,
+                    properties: Some(HashMap::from([(
+                        String::from("nested_1b"),
+                        JsonSchemaProperty {
+                            r#type: JsonSchemaPropertyType::String,
+                            format: None,
+                            properties: None,
+                        },
+                    )])),
+                },
+            )]),
+        )
+        .unwrap();
 
         assert_matches!(
             result,
@@ -283,7 +439,37 @@ pub mod test {
             ]
             .try_into()
             .unwrap(),
-        );
+            &HashMap::from([(
+                String::from("nested_1a"),
+                JsonSchemaProperty {
+                    r#type: JsonSchemaPropertyType::String,
+                    format: None,
+                    properties: Some(HashMap::from([(
+                        String::from("nested_1b"),
+                        JsonSchemaProperty {
+                            r#type: JsonSchemaPropertyType::String,
+                            format: None,
+                            properties: Some(HashMap::from([(
+                                String::from("nested_1c"),
+                                JsonSchemaProperty {
+                                    r#type: JsonSchemaPropertyType::String,
+                                    format: None,
+                                    properties: Some(HashMap::from([(
+                                        String::from("nested_1d"),
+                                        JsonSchemaProperty {
+                                            r#type: JsonSchemaPropertyType::String,
+                                            format: None,
+                                            properties: None,
+                                        },
+                                    )])),
+                                },
+                            )])),
+                        },
+                    )])),
+                },
+            )]),
+        )
+        .unwrap();
 
         assert_matches!(
             result,
