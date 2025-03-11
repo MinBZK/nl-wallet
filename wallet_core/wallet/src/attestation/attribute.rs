@@ -205,7 +205,7 @@ impl AttestationAttributeValue {
                     Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))
                 }
             }
-            (_, value) => Err(AttestationError::AttributeConversion(value)),
+            (_, value) => Err(AttestationError::AttributeConversion(value, schema_type.clone())),
         }
     }
 }

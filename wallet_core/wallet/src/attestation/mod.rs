@@ -15,6 +15,7 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
+use sd_jwt::metadata::JsonSchemaProperty;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -28,9 +29,9 @@ pub enum AttestationError {
     #[category(pd)]
     AttributeNotProcessedByClaim(HashSet<Vec<String>>),
 
-    #[error("unable to convert into attestation attribute value: {0:?}")]
+    #[error("unable to convert into attestation attribute value: {0:?} having metadata: {1:?}")]
     #[category(pd)]
-    AttributeConversion(AttributeValue),
+    AttributeConversion(AttributeValue, JsonSchemaProperty),
 
     #[error("unable to parse attribute value into date: {0:?}")]
     #[category(pd)]
