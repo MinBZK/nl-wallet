@@ -125,11 +125,16 @@ pub enum IssuanceSessionError {
     HeaderToStr(#[from] ToStrError),
     #[error("error verifying credential preview: {0}")]
     CredentialPreview(#[from] CredentialPreviewError),
+    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
+    IssuerCertificate(#[source] CoseError),
     #[error("issuer contained in credential not equal to expected value")]
     #[category(critical)]
     IssuerMismatch,
-    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
-    Cose(#[from] CoseError),
+    #[error("error retrieving metadata from issued mdoc: {0}")]
+    Metadata(#[source] nl_wallet_mdoc::Error),
+    #[error("metadata contained in credential not equal to expected value")]
+    #[category(critical)]
+    MetadataMismatch,
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
     OauthDiscovery(#[source] reqwest::Error),
@@ -809,8 +814,17 @@ impl CredentialResponse {
 
                 // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
                 // in the credential preview.
-                if issuer_signed.issuer_auth.signing_cert()? != *issuer_certificate {
+                if issuer_signed
+                    .issuer_auth
+                    .signing_cert()
+                    .map_err(IssuanceSessionError::IssuerCertificate)?
+                    != *issuer_certificate
+                {
                     return Err(IssuanceSessionError::IssuerMismatch);
+                }
+
+                if issuer_signed.type_metadata().map_err(IssuanceSessionError::Metadata)? != *metadata_chain {
+                    return Err(IssuanceSessionError::MetadataMismatch);
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
@@ -1234,6 +1248,33 @@ mod tests {
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::IssuerMismatch);
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issuer_metadata_mismatch_error() {
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` using different metadata
+        // in the preview than is contained within the response should fail.
+        let different_metadata_chain =
+            TypeMetadataChain::create(TypeMetadata::example_with_claim_name("different"), vec![]).unwrap();
+        let preview = match preview {
+            CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain: _,
+            } => CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain: different_metadata_chain,
+            },
+        };
+
+        let error = credential_response
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(error, IssuanceSessionError::MetadataMismatch);
     }
 
     #[tokio::test]
