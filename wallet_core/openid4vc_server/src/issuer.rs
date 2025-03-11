@@ -18,7 +18,6 @@ use axum_extra::headers::authorization::Credentials;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::Header;
 use axum_extra::TypedHeader;
-use indexmap::IndexMap;
 use serde::Serialize;
 use tracing::warn;
 
@@ -45,7 +44,6 @@ use openid4vc::CredentialErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
-use sd_jwt::metadata::TypeMetadata;
 use wallet_common::keys::EcdsaKeySend;
 use wallet_common::urls::BaseUrl;
 
@@ -59,7 +57,6 @@ pub fn create_issuance_router<A, K, S, W>(
     sessions: S,
     attr_service: A,
     wallet_settings: WalletSettings<W>,
-    type_metadata: IndexMap<String, TypeMetadata>,
 ) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
@@ -74,7 +71,6 @@ where
             attestation_settings,
             public_url,
             wallet_settings,
-            type_metadata,
         ),
     });
 

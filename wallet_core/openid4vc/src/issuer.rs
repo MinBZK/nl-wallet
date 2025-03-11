@@ -26,7 +26,6 @@ use nl_wallet_mdoc::utils::crypto::CryptoError;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::IssuerSigned;
-use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::jwt::jwk_to_p256;
@@ -290,6 +289,7 @@ pub struct AttestationData<K> {
     pub valid_days: Days,
     pub copy_count: NonZeroU8,
     pub issuer_uri: HttpsUri,
+    pub metadata: TypeMetadataChain,
 }
 
 /// Static attestation data indexed by attestation type.
@@ -323,8 +323,6 @@ pub struct IssuerData<K, W> {
     wte_issuer_pubkey: EcdsaDecodingKey,
 
     wte_tracker: Arc<W>,
-
-    type_metadata: IndexMap<String, TypeMetadata>,
 }
 
 impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
@@ -354,7 +352,6 @@ where
         attestation_settings: AttestationSettings<K>,
         server_url: &BaseUrl,
         wallet_settings: WalletSettings<W>,
-        type_metadata: IndexMap<String, TypeMetadata>,
     ) -> Self {
         let sessions = Arc::new(sessions);
         let wte_tracker = Arc::new(wallet_settings.wte_tracker);
@@ -366,7 +363,6 @@ where
             accepted_wallet_client_ids: wallet_settings.wallet_client_ids,
             wte_issuer_pubkey: (&wallet_settings.wte_issuer_pubkey).into(),
             wte_tracker: Arc::clone(&wte_tracker),
-            type_metadata,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
@@ -444,7 +440,6 @@ where
                 &self.attr_service,
                 &self.issuer_data.credential_issuer_identifier,
                 &self.issuer_data.attestation_settings,
-                &self.issuer_data.type_metadata,
             )
             .await;
 
@@ -584,18 +579,10 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         attestation_settings: &AttestationSettings<impl EcdsaKey>,
-        type_metadata: &IndexMap<String, TypeMetadata>,
     ) -> Result<(TokenResponseWithPreviews, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)>
     {
         let result = self
-            .process_token_request_inner(
-                token_request,
-                dpop,
-                attr_service,
-                server_url,
-                attestation_settings,
-                type_metadata,
-            )
+            .process_token_request_inner(token_request, dpop, attr_service, server_url, attestation_settings)
             .await;
 
         match result {
@@ -623,7 +610,6 @@ impl Session<Created> {
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
         attestation_settings: &AttestationSettings<impl EcdsaKey>,
-        type_metadata: &IndexMap<String, TypeMetadata>,
     ) -> Result<(TokenResponseWithPreviews, VerifyingKey, String), TokenRequestError> {
         if !matches!(
             token_request.grant_type,
@@ -647,11 +633,6 @@ impl Session<Created> {
             .into_inner()
             .into_iter()
             .map(|document| {
-                let metadata = type_metadata.get(document.attestation_type()).ok_or_else(|| {
-                    TokenRequestError::CredentialTypeNotOffered(document.attestation_type().to_string())
-                })?;
-                let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![])?;
-
                 let attestation_data = attestation_settings
                     .as_ref()
                     .get(document.attestation_type())
@@ -668,13 +649,13 @@ impl Session<Created> {
                     attestation_data.issuer_uri.clone(),
                 )?;
 
-                CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?.validate(&metadata_chain)?;
+                CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?.validate(&attestation_data.metadata)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)
                 let mdoc = CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer_certificate: attestation_data.key_pair.certificate().to_owned(),
-                    metadata_chain,
+                    metadata_chain: attestation_data.metadata.clone(),
                 };
 
                 Ok(CredentialFormats::try_new(VecNonEmpty::try_from(vec![mdoc]).unwrap()).unwrap())

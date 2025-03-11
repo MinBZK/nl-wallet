@@ -46,6 +46,7 @@ use sd_jwt::metadata::ClaimMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::jwt::JsonJwt;
 use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
@@ -98,6 +99,7 @@ fn setup(
                         .unwrap()
                         .first()
                         .clone(),
+                    metadata: TypeMetadataChain::create(mock_type_metadata(doctype), vec![]).unwrap(),
                 },
             )
         })
@@ -114,10 +116,6 @@ fn setup(
             wte_issuer_pubkey: *wte_issuer_privkey.verifying_key(),
             wte_tracker: MemoryWteTracker::new(),
         },
-        MOCK_DOCTYPES
-            .iter()
-            .map(|doctype| (doctype.to_string(), mock_type_metadata(doctype)))
-            .collect(),
     );
 
     (

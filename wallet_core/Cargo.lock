@@ -5552,6 +5552,7 @@ dependencies = [
  "openid4vc_server",
  "p256",
  "rustls-pki-types",
+ "sd_jwt",
  "sea-orm",
  "serde",
  "serde_json",

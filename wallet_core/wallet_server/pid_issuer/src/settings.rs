@@ -12,6 +12,7 @@ use derive_more::From;
 use futures::future::join_all;
 use indexmap::IndexMap;
 use rustls_pki_types::TrustAnchor;
+use sd_jwt::metadata::TypeMetadataChain;
 use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
@@ -127,6 +128,55 @@ impl IssuerSettings {
     }
 }
 
+pub async fn parse_attestation_settings(
+    attestation_settings: IssuerAttestationSettings,
+    hsm: Option<Pkcs11Hsm>,
+    metadata: IndexMap<String, TypeMetadata>,
+) -> Result<AttestationSettings<PrivateKeyVariant>, PrivateKeySettingsError> {
+    let issuer_keys = join_all(attestation_settings.0.into_iter().map(|(typ, attestation)| {
+        // This function:
+        // - has to take ownership of IssuerAttestationSettings, because we need to move the keypairs out of it,
+        // - can't be a method on `IssuerSettings`, because then that method would need to take ownership of `self`,
+        //   and that would make calling the method too awkward,
+        // - has to use `async move` because it is async and would otherwise refer to `attestation_settings`,
+        // - therefore requires these clones.
+        // TODO PVW-4181: clean this up by refactoring the HSM settings and removing `TryFromKeySettings`.
+        let hsm = hsm.clone();
+        let metadata = metadata.clone();
+
+        async move {
+            // Take the SAN from the settings if specified, or otherwise take the first SAN from the certificate.
+            // NB: the settings validation function will have verified before this that the certificate contains
+            // just one SAN.
+            let issuer_uri = attestation
+                .certificate_san
+                .map(Ok::<_, CertificateError>) // Make it a result as the next closure is fallible
+                .unwrap_or_else(|| Ok(attestation.keypair.certificate.san_dns_name_or_uris()?.first().clone()))?;
+
+            let metadata = metadata
+                .get(&typ)
+                .ok_or_else(|| PrivateKeySettingsError::MissingMetadata(typ.clone()))?;
+            let metadata = TypeMetadataChain::create(metadata.clone(), vec![])?;
+
+            Ok((
+                typ.clone(),
+                AttestationData {
+                    key_pair: ParsedKeyPair::try_from_key_settings(attestation.keypair, hsm.clone()).await?,
+                    valid_days: Days::new(attestation.valid_days),
+                    copy_count: attestation.copy_count,
+                    issuer_uri: issuer_uri.clone(),
+                    metadata,
+                },
+            ))
+        }
+    }))
+    .await
+    .into_iter()
+    .collect::<Result<IndexMap<String, AttestationData<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
+
+    Ok(issuer_keys.into())
+}
+
 impl TryFrom<&IssuerSettings> for BrpPidAttributeService {
     type Error = BrpError;
 
@@ -136,43 +186,6 @@ impl TryFrom<&IssuerSettings> for BrpPidAttributeService {
             &issuer.pid_settings.digid.bsn_privkey,
             issuer.pid_settings.digid.http_config.clone(),
         )
-    }
-}
-
-impl TryFromKeySettings<IssuerAttestationSettings> for AttestationSettings<PrivateKeyVariant> {
-    type Error = PrivateKeySettingsError;
-
-    async fn try_from_key_settings(
-        attestation_settings: IssuerAttestationSettings,
-        hsm: Option<Pkcs11Hsm>,
-    ) -> Result<Self, Self::Error> {
-        let issuer_keys = join_all(attestation_settings.0.into_iter().map(|(typ, attestation)| {
-            let hsm = hsm.clone();
-            async move {
-                // Take the SAN from the settings if specified, or otherwise take the first SAN from the certificate.
-                // NB: the settings validation function will have verified before this that the certificate contains
-                // just one SAN.
-                let issuer_uri = attestation
-                    .certificate_san
-                    .map(Ok::<_, CertificateError>) // Make it a result as the next closure is fallible
-                    .unwrap_or_else(|| Ok(attestation.keypair.certificate.san_dns_name_or_uris()?.first().clone()))?;
-
-                Ok((
-                    typ,
-                    AttestationData {
-                        key_pair: ParsedKeyPair::try_from_key_settings(attestation.keypair, hsm.clone()).await?,
-                        valid_days: Days::new(attestation.valid_days),
-                        copy_count: attestation.copy_count,
-                        issuer_uri,
-                    },
-                ))
-            }
-        }))
-        .await
-        .into_iter()
-        .collect::<Result<IndexMap<String, AttestationData<PrivateKeyVariant>>, Self::Error>>()?;
-
-        Ok(issuer_keys.into())
     }
 }
 

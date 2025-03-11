@@ -7,6 +7,7 @@ use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
 use nl_wallet_mdoc::utils::x509::CertificateError;
+use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::EcdsaKeySend;
 
@@ -50,6 +51,10 @@ pub enum PrivateKeySettingsError {
     MissingHsmSettings(String),
     #[error("invalid certificate settings: {0}")]
     InvalidCertificate(#[from] CertificateError),
+    #[error("missing metadata for attestation type {0}")]
+    MissingMetadata(String),
+    #[error("type metadata error: {0}")]
+    TypeMetadata(#[from] TypeMetadataError),
 }
 
 impl PrivateKeyVariant {
