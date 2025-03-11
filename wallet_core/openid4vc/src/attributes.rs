@@ -9,8 +9,6 @@ use nl_wallet_mdoc::unsigned::Entry;
 use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::DataElementValue;
 use nl_wallet_mdoc::NameSpace;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataError;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -39,12 +37,6 @@ pub enum AttributeError {
 
     #[error("attribute with name: {0} already exists")]
     DuplicateAttribute(String),
-
-    #[error("no JSON Schema found in metadata: {0}")]
-    MetadataSchemaNotFound(#[from] TypeMetadataError),
-
-    #[error("no metadata found for attribute: {0} in JSON Schema")]
-    MetadataNotFoundForAttributeKey(String),
 }
 
 impl From<&AttributeValue> for ciborium::Value {
@@ -79,24 +71,24 @@ pub enum Attribute {
 
 impl Attribute {
     pub fn from_mdoc_attributes(
-        type_metadata: &TypeMetadata,
+        attestation_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<IndexMap<String, Self>, AttributeError> {
         let mut attrs = IndexMap::new();
-        Self::traverse_attributes(type_metadata, attributes, &mut attrs)?;
+        Self::traverse_attributes(attestation_type, attributes, &mut attrs)?;
         Ok(attrs)
     }
 
     fn traverse_attributes(
-        type_metadata: &TypeMetadata,
+        attestation_type: &str,
         attributes: IndexMap<String, Vec<Entry>>,
         result: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
         for (namespace, entries) in attributes {
-            if namespace == type_metadata.vct {
+            if namespace == attestation_type {
                 Self::insert_entries(entries, result)?;
             } else {
-                let mut groups: VecDeque<String> = Self::split_namespace(&namespace, &type_metadata.vct)?.into();
+                let mut groups: VecDeque<String> = Self::split_namespace(&namespace, attestation_type)?.into();
                 Self::traverse_groups(entries, &mut groups, result)?;
             }
         }
@@ -168,7 +160,6 @@ mod test {
 
     use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::DataElementValue;
-    use sd_jwt::metadata::TypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
@@ -186,64 +177,6 @@ mod test {
 
     #[test]
     fn test_traverse_groups() {
-        let metadata_json = json!({
-            "vct": "com.example.pid",
-            "schema": {
-                "type": "object",
-                "properties": {
-                    "birthdate": {
-                        "type": "string"
-                    },
-                    "place_of_birth": {
-                        "type": "object",
-                        "properties": {
-                            "locality": {
-                                "type": "string"
-                            },
-                            "country": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "area_code": {
-                                        "type": "number"
-                                    },
-                                }
-                            }
-                        }
-                    },
-                    "a": {
-                        "type": "object",
-                        "properties": {
-                            "b": {
-                                "type": "object",
-                                "properties": {
-                                    "c": {
-                                        "type": "object",
-                                        "properties": {
-                                            "d": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "e": {
-                                                        "type": "string"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "c1": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
-
         let mdoc_attributes = IndexMap::from([
             (
                 String::from("com.example.pid"),
@@ -288,7 +221,7 @@ mod test {
             ),
         ]);
         let result = &mut IndexMap::new();
-        Attribute::traverse_attributes(&type_metadata, mdoc_attributes, result).unwrap();
+        Attribute::traverse_attributes("com.example.pid", mdoc_attributes, result).unwrap();
 
         let expected_json = json!({
             "birthdate": "1963-08-12",
@@ -318,61 +251,6 @@ mod test {
 
     #[test]
     fn test_traverse_groups_should_fail_for_duplicate_attribute() {
-        let metadata_json = json!({
-            "vct": "com.example.pid",
-            "schema": {
-                "type": "object",
-                "properties": {
-                    "birthdate": {
-                        "type": "string"
-                    },
-                    "place_of_birth": {
-                        "type": "object",
-                        "properties": {
-                            "locality": {
-                                "type": "string"
-                            },
-                            "country": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {
-                                        "type": "string"
-                                    },
-                                    "area_code": {
-                                        "type": "number"
-                                    },
-                                }
-                            }
-                        }
-                    },
-                    "a": {
-                        "type": "object",
-                        "properties": {
-                            "b": {
-                                "type": "object",
-                                "properties": {
-                                    "c": {
-                                        "type": "object",
-                                        "properties": {
-                                            "d": {
-                                                "type": "object",
-                                                "properties": {
-                                                    "e": {
-                                                        "type": "string"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
-
         let mdoc_attributes = IndexMap::from([
             (
                 String::from("com.example.pid.a.b.c.d"),
@@ -390,7 +268,7 @@ mod test {
             ),
         ]);
 
-        let result = Attribute::traverse_attributes(&type_metadata, mdoc_attributes, &mut IndexMap::new());
+        let result = Attribute::traverse_attributes("com.example.pid", mdoc_attributes, &mut IndexMap::new());
         assert_matches!(result, Err(AttributeError::DuplicateAttribute(key)) if key == *"c");
     }
 }

@@ -18,7 +18,7 @@ impl Attestation {
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
-        let nested_attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
+        let nested_attributes = Attribute::from_mdoc_attributes(&metadata.vct, mdoc_attributes)?;
 
         Self::create_from_attributes(
             identity,

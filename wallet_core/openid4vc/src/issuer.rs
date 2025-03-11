@@ -628,8 +628,7 @@ impl Session<Created> {
                 let unsigned_mdoc =
                     doc.document
                         .to_unsigned_mdoc(doc.valid_from.into(), doc.valid_until.into(), doc.copy_count)?;
-                let credential_payload =
-                    CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), &doc.metadata_chain)?;
+                let credential_payload = CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?;
                 credential_payload.validate(&doc.metadata_chain)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)

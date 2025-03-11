@@ -78,12 +78,9 @@ pub struct CredentialPayload {
 }
 
 impl CredentialPayload {
-    pub fn from_unsigned_mdoc(
-        unsigned_mdoc: UnsignedMdoc,
-        type_metadata: &TypeMetadataChain,
-    ) -> Result<Self, CredentialPayloadError> {
+    pub fn from_unsigned_mdoc(unsigned_mdoc: UnsignedMdoc) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            type_metadata,
+            unsigned_mdoc.doc_type,
             unsigned_mdoc.attributes.into(),
             unsigned_mdoc.issuer_uri,
             Some(Utc::now()),
@@ -92,9 +89,9 @@ impl CredentialPayload {
         )
     }
 
-    pub fn from_mdoc(mdoc: Mdoc, type_metadata: &TypeMetadataChain) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            type_metadata,
+            mdoc.mso.doc_type,
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
@@ -139,18 +136,17 @@ impl CredentialPayload {
     /// Note in particular that attributes in a namespace whose names equals the `doc_type` parameter are mapped to the
     /// root level of the output.
     fn from_mdoc_attributes(
-        type_metadata: &TypeMetadataChain,
+        attestation_type: String,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,
         not_before: Option<DateTime<Utc>>,
     ) -> Result<Self, CredentialPayloadError> {
-        let metadata = type_metadata.verify()?;
-        let attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
+        let attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
 
         let payload = Self {
-            attestation_type: metadata.vct,
+            attestation_type,
             issuer,
             issued_at,
             expires,
