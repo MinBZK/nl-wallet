@@ -115,8 +115,8 @@ impl WalletEvent {
             DataDisclosureStatus::NotDisclosed => None,
         }
         .unwrap_or_default()
-        .into_iter()
-        .map(|(_attestation_type, document_attributes)| {
+        .into_values()
+        .map(|document_attributes| {
             // As the proposed attributes come from the database, we can make assumptions about them and use `expect()`.
             // TODO (PVW-4132): Use the type system to codify these assumptions.
             let reader_registration = IssuerRegistration::from_certificate(&document_attributes.issuer)

@@ -237,8 +237,8 @@ where
 
         // Prepare a list of proposed attestations to report to the caller.
         let attestations: Vec<Attestation> = proposed_attributes
-            .into_iter()
-            .map(|(_doc_type, attributes)| {
+            .into_values()
+            .map(|attributes| {
                 let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
                     .map_err(DisclosureError::IssuerRegistration)?
                     .ok_or(DisclosureError::MissingIssuerRegistration)?;
