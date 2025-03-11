@@ -272,11 +272,11 @@ pub struct JsonSchema {
 
     // When deserializing, the JSON schema properties are parsed so the metadata describing the attributes can be used
     // when converting to wallet internal types.
-    #[serde(skip_serializing, flatten)]
+    #[serde(skip)]
     properties: JsonSchemaProperties,
 
     // The validator is instantiated once and validated upon deserialization.
-    #[serde(skip_serializing)]
+    #[serde(skip)]
     validator: Validator,
 }
 
