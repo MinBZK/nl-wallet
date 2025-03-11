@@ -493,28 +493,28 @@ pub mod mock {
             }
         }
 
-        pub fn empty_example_with_doctype(doc_type: &str) -> Self {
+        pub fn empty_example_with_doctype(attestation_type: &str) -> Self {
             Self {
-                vct: String::from(doc_type),
+                vct: String::from(attestation_type),
                 ..Self::empty_example()
             }
         }
 
         pub fn example_with_claim_name(
-            doc_type: &str,
+            attestation_type: &str,
             name: &str,
             r#type: JsonSchemaPropertyType,
             format: Option<JsonSchemaPropertyFormat>,
         ) -> Self {
-            Self::example_with_claim_names(doc_type, &[(name, r#type, format)])
+            Self::example_with_claim_names(attestation_type, &[(name, r#type, format)])
         }
 
         pub fn example_with_claim_names(
-            doc_type: &str,
+            attestation_type: &str,
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
             Self {
-                vct: String::from(doc_type),
+                vct: String::from(attestation_type),
                 claims: names
                     .iter()
                     .map(|(name, _, _)| ClaimMetadata {
