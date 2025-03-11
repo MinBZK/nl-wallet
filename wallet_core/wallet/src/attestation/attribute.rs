@@ -197,15 +197,14 @@ impl AttestationAttributeValue {
             (JsonSchemaPropertyType::Number, AttributeValue::Number(integer)) => {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Number(integer)))
             }
-            (JsonSchemaPropertyType::String, AttributeValue::Text(text)) => schema_type
-                .format
-                .filter(|format| format == &JsonSchemaPropertyFormat::Date)
-                .as_ref()
-                .map(|_| {
-                    let date = NaiveDate::parse_from_str(&text, "%Y-%m-%d").unwrap();
+            (JsonSchemaPropertyType::String, AttributeValue::Text(text)) => {
+                if let Some(JsonSchemaPropertyFormat::Date) = schema_type.format {
+                    let date = NaiveDate::parse_from_str(&text, "%Y-%m-%d")?;
                     Ok(AttestationAttributeValue::Date(date))
-                })
-                .unwrap_or(Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))),
+                } else {
+                    Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))
+                }
+            }
             (_, value) => Err(AttestationError::AttributeConversion(value)),
         }
     }

@@ -32,6 +32,10 @@ pub enum AttestationError {
     #[category(pd)]
     AttributeConversion(AttributeValue),
 
+    #[error("unable to parse attribute value into date: {0:?}")]
+    #[category(pd)]
+    AttributeDateValue(#[from] chrono::ParseError),
+
     #[error("error converting from mdoc attribute: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
