@@ -35,58 +35,28 @@ mod test {
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
-    use indexmap::IndexMap;
+    use chrono::NaiveDate;
 
-    use nl_wallet_mdoc::unsigned::Entry;
     use nl_wallet_mdoc::utils::auth::Organization;
-    use nl_wallet_mdoc::DataElementValue;
     use openid4vc::attributes::AttributeValue;
-    use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
+    use crate::issuance::mock::create_example_unsigned_mdoc;
     use crate::Attestation;
     use crate::AttestationIdentity;
 
-    fn example_metadata() -> TypeMetadata {
-        TypeMetadata {
-            vct: String::from("example_attestation_type"),
-            claims: vec![claim_metadata(&["entry1"]), claim_metadata(&["entry2"])],
-            ..TypeMetadata::example_with_claim_names(
-                "example_attestation_type",
-                &[
-                    ("entry1", JsonSchemaPropertyType::String, None),
-                    ("entry2", JsonSchemaPropertyType::Boolean, None),
-                ],
-            )
-        }
-    }
-
-    fn example_mdoc_attributes() -> IndexMap<String, Vec<Entry>> {
-        IndexMap::from([(
-            String::from("example_attestation_type"),
-            vec![
-                Entry {
-                    name: String::from("entry1"),
-                    value: DataElementValue::Text(String::from("value1")),
-                },
-                Entry {
-                    name: String::from("entry2"),
-                    value: DataElementValue::Bool(true),
-                },
-            ],
-        )])
-    }
-
     #[test]
     fn test_happy() {
+        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+
         let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            example_metadata(),
+            metadata,
             Organization::new_mock(),
-            example_mdoc_attributes(),
+            unsigned_mdoc.attributes.into_inner(),
         )
         .expect("creating new Attestation should be successful");
 
@@ -99,11 +69,19 @@ mod test {
         assert_eq!(
             [
                 (
-                    vec![String::from("entry1")],
-                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("value1")))
+                    vec![String::from("family_name")],
+                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("De Bruijn")))
                 ),
                 (
-                    vec![String::from("entry2")],
+                    vec![String::from("given_name")],
+                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("Willeke Liselotte")))
+                ),
+                (
+                    vec![String::from("birth_date")],
+                    AttestationAttributeValue::Date(NaiveDate::from_ymd_opt(1997, 5, 10).unwrap())
+                ),
+                (
+                    vec![String::from("age_over_18")],
                     AttestationAttributeValue::Basic(AttributeValue::Bool(true))
                 ),
             ],
@@ -113,24 +91,19 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
+        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+
         let metadata = TypeMetadata {
-            vct: String::from("example_attestation_type"),
+            vct: unsigned_mdoc.doc_type,
             claims: vec![claim_metadata(&["not_found"])],
-            ..TypeMetadata::example_with_claim_names(
-                "example_attestation_type",
-                &[
-                    ("entry1", JsonSchemaPropertyType::String, None),
-                    ("entry2", JsonSchemaPropertyType::Boolean, None),
-                    ("not_found", JsonSchemaPropertyType::String, None),
-                ],
-            )
+            ..metadata
         };
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
-            example_mdoc_attributes(),
+            unsigned_mdoc.attributes.into_inner(),
         )
         .expect_err("creating new Attestation should not be successful");
 
@@ -139,30 +112,30 @@ mod test {
 
     #[test]
     fn test_attribute_not_processed() {
+        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+
         let metadata = TypeMetadata {
-            vct: String::from("example_attestation_type"),
-            claims: vec![claim_metadata(&["entry1"])],
-            ..TypeMetadata::example_with_claim_names(
-                "example_attestation_type",
-                &[
-                    ("entry1", JsonSchemaPropertyType::String, None),
-                    ("entry2", JsonSchemaPropertyType::Boolean, None),
-                ],
-            )
+            vct: unsigned_mdoc.doc_type,
+            claims: vec![
+                claim_metadata(&["family_name"]),
+                claim_metadata(&["given_name"]),
+                claim_metadata(&["birth_date"]),
+            ],
+            ..metadata
         };
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
-            example_mdoc_attributes(),
+            unsigned_mdoc.attributes.into_inner(),
         )
         .expect_err("creating new Attestation should not be successful");
 
         assert_matches!(
             error,
             AttestationError::AttributeNotProcessedByClaim(keys)
-                if keys == HashSet::from([vec![String::from("entry2")]])
+                if keys == HashSet::from([vec![String::from("age_over_18")]])
         );
     }
 }
