@@ -28,4 +28,5 @@ wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
 assert_matches.workspace = true
+rstest.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }

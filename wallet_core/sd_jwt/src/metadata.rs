@@ -582,6 +582,7 @@ mod test {
     use assert_matches::assert_matches;
     use jsonschema::error::ValidationErrorKind;
     use jsonschema::ValidationError;
+    use rstest::*;
     use serde_json::json;
 
     use crate::metadata::ClaimPath;
@@ -693,23 +694,33 @@ mod test {
         assert!(metadata.validate(&claims).is_err());
     }
 
-    #[test]
-    fn test_schema_validation_date_format() {
+    #[rstest]
+    #[case("2004-12-25")]
+    #[case("2024-02-29")]
+    fn test_schema_validation_date_format_happy(#[case] date_str: &str) {
         let metadata = TypeMetadata::example();
 
-        let mut claims = json!({
+        let claims = json!({
             "vct":"https://credentials.example.com/identity_credential",
             "iss":"https://example.com/issuer",
             "iat":1683000000,
-            "birth_date":"2004-12-25"
+            "birth_date":date_str,
         });
         metadata.validate(&claims).unwrap();
+    }
 
-        claims = json!({
+    #[rstest]
+    #[case("not_a_date")]
+    #[case("2025-02-29")]
+    #[case("01-01-2000")]
+    fn test_schema_validation_date_format_error(#[case] date_str: &str) {
+        let metadata = TypeMetadata::example();
+
+        let claims = json!({
             "vct":"https://credentials.example.com/identity_credential",
             "iss":"https://example.com/issuer",
             "iat":1683000000,
-            "birth_date":"not_a_date"
+            "birth_date":date_str,
         });
 
         assert_matches!(
@@ -719,7 +730,7 @@ mod test {
                 kind: ValidationErrorKind::Format { format },
                 instance_path,
                 ..
-            })) if instance.to_string() == "\"not_a_date\"" && format == "date" && instance_path.to_string() == "/birth_date"
+            })) if instance.to_string() == format!("\"{}\"", date_str) && format == "date" && instance_path.to_string() == "/birth_date"
         );
     }
 
