@@ -13,7 +13,6 @@ use server_utils::server::decorate_router;
 use server_utils::settings::Server;
 use wallet_common::built_info::version_string;
 
-use crate::settings::parse_attestation_settings;
 use crate::settings::IssuerSettings;
 
 pub async fn serve<A, IS, W>(
@@ -31,7 +30,7 @@ where
     let log_requests = settings.server_settings.log_requests;
 
     let type_metadata = settings.metadata();
-    let attestation_settings = parse_attestation_settings(settings.attestation_settings, hsm, type_metadata).await?;
+    let attestation_settings = settings.attestation_settings.parse(&hsm, &type_metadata).await?;
 
     let wallet_issuance_router = create_issuance_router(
         &settings.server_settings.public_url,
