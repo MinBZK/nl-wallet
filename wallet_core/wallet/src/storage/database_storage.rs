@@ -26,7 +26,7 @@ use sea_orm::Select;
 use sea_orm::Set;
 use sea_orm::StatementBuilder;
 use sea_orm::TransactionTrait;
-use sea_query::OnConflict;
+use sea_query::{OnConflict, Order};
 use sea_query::SimpleExpr;
 use tokio::fs;
 use tracing::warn;
@@ -232,7 +232,8 @@ impl<K> DatabaseStorage<K> {
                 mdoc_copy::Column::Mdoc,
             ])
             .column_as(mdoc_copy::Column::DisclosureCount.min(), "disclosure_count")
-            .group_by(mdoc_copy::Column::MdocId);
+            .group_by(mdoc_copy::Column::MdocId)
+            .order_by(mdoc_copy::Column::Id, Order::Asc);
 
         let mdoc_copies = transform_select(select).all(database.connection()).await?;
 
