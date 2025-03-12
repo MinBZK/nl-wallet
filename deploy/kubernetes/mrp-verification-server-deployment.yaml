@@ -53,6 +53,14 @@ spec:
               value: "${UNIVERSAL_LINK_BASE}"
             - name: VERIFICATION_SERVER__STRUCTURED_LOGGING
               value: "true"
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY_TYPE
+              value: "software"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
