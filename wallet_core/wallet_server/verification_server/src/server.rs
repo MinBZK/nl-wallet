@@ -9,14 +9,12 @@ use tracing::info;
 
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
-use openid4vc::verifier::UseCases;
 use openid4vc_server::verifier;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
-use server_utils::settings::TryFromKeySettings;
 use wallet_common::built_info::version_string;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
@@ -31,7 +29,7 @@ where
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         settings.server_settings.public_url,
         settings.universal_link_base_url,
-        UseCases::try_from_key_settings(settings.usecases, hsm).await?,
+        settings.usecases.parse(hsm).await?,
         (&settings.ephemeral_id_secret).into(),
         settings
             .server_settings

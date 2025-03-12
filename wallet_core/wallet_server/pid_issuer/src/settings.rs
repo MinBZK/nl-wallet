@@ -19,7 +19,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::server_keys::KeyPair as ParsedKeyPair;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
@@ -35,7 +34,6 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::TryFromKeySettings;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::p256_der::DerVerifyingKey;
@@ -152,7 +150,7 @@ impl IssuerAttestationSettings {
                 Ok((
                     typ.clone(),
                     AttestationData {
-                        key_pair: ParsedKeyPair::try_from_key_settings(attestation.keypair, hsm.clone()).await?,
+                        key_pair: attestation.keypair.parse(hsm.clone()).await?,
                         valid_days: Days::new(attestation.valid_days),
                         copy_count: attestation.copy_count,
                         issuer_uri: issuer_uri.clone(),

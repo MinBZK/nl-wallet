@@ -17,7 +17,6 @@ use serde_with::hex::Hex;
 use serde_with::serde_as;
 
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::server_keys;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -31,7 +30,6 @@ use server_utils::settings::KeyPair;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::TryFromKeySettings;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -79,32 +77,25 @@ pub struct VerifierUseCase {
     pub key_pair: KeyPair,
 }
 
-impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyVariant> {
-    type Error = anyhow::Error;
-
-    async fn try_from_key_settings(value: VerifierUseCases, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let iter = value.into_iter().map(|(id, use_case)| async {
-            let result = (id, UseCase::try_from_key_settings(use_case, hsm.clone()).await?);
+impl VerifierUseCases {
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCases<PrivateKeyVariant>, anyhow::Error> {
+        let iter = self.into_iter().map(|(id, use_case)| async {
+            let result = (id, use_case.parse(hsm.clone()).await?);
             Ok(result)
         });
 
         let use_cases = join_all(iter)
             .await
             .into_iter()
-            .collect::<Result<HashMap<String, UseCase<_>>, Self::Error>>()?;
+            .collect::<Result<HashMap<String, UseCase<_>>, anyhow::Error>>()?;
 
         Ok(use_cases.into())
     }
 }
 
-impl TryFromKeySettings<VerifierUseCase> for UseCase<PrivateKeyVariant> {
-    type Error = anyhow::Error;
-
-    async fn try_from_key_settings(value: VerifierUseCase, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let use_case = UseCase::try_new(
-            server_keys::KeyPair::try_from_key_settings(value.key_pair, hsm).await?,
-            value.session_type_return_url,
-        )?;
+impl VerifierUseCase {
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
+        let use_case = UseCase::try_new(self.key_pair.parse(hsm).await?, self.session_type_return_url)?;
 
         Ok(use_case)
     }

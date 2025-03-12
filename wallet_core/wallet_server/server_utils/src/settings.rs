@@ -121,17 +121,13 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
-pub trait TryFromKeySettings<SRC>: Sized {
-    type Error;
-    async fn try_from_key_settings(source: SRC, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error>;
-}
-
-impl TryFromKeySettings<KeyPair> for ParsedKeyPair<PrivateKeyVariant> {
-    type Error = PrivateKeySettingsError;
-
-    async fn try_from_key_settings(source: KeyPair, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let private_key = PrivateKeyVariant::from_settings(source.private_key, hsm)?;
-        let key_pair = ParsedKeyPair::new(private_key, source.certificate).await?;
+impl KeyPair {
+    pub async fn parse(
+        self,
+        hsm: Option<Pkcs11Hsm>,
+    ) -> Result<ParsedKeyPair<PrivateKeyVariant>, PrivateKeySettingsError> {
+        let private_key = PrivateKeyVariant::from_settings(self.private_key, hsm)?;
+        let key_pair = ParsedKeyPair::new(private_key, self.certificate).await?;
         Ok(key_pair)
     }
 }
