@@ -182,7 +182,7 @@ trait-variant = "0.1.2"
 trybuild = "1.0.103"
 uniffi = { version = "0.29.0", default-features = false }
 url = "2.5.4"
-uuid = "1.12.1"
+uuid = {version = "1.15.1", features = [ "v4", "v7" ] }
 wiremock = "0.6.2"
 x509-cert = { version = "0.2.5", default-features = false }
 x509-parser = "0.17.0"

@@ -502,7 +502,7 @@ where
                     .iter()
                     .map(|mdoc| {
                         let model = mdoc_copy::ActiveModel {
-                            id: Set(Uuid::new_v4()),
+                            id: Set(Uuid::now_v7()),
                             mdoc_id: Set(mdoc_id),
                             mdoc: Set(cbor_serialize(&mdoc)?),
                             ..Default::default()
