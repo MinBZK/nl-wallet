@@ -27,9 +27,16 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[private_keys."com.example.pid"]
+[attestation_settings."com.example.pid"]
+valid_days = 365
+copy_count = 4
+private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
-[private_keys."com.example.address"]
+
+[attestation_settings."com.example.address"]
+valid_days = 365
+copy_count = 4
+private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"

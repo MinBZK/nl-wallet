@@ -167,7 +167,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
         &self,
         key_identifier: String,
         challenge: Vec<u8>,
-        google_cloud_project_id: u64,
+        google_cloud_project_number: u64,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         // Claim the identifier before performing attestation, if it does not exist already within the process.
         // If an error occurs within this method, the `Drop` implementation on this type will relinquish it again.
@@ -184,7 +184,7 @@ impl AttestedKeyHolder for HardwareAttestedKeyHolder {
         // Perform key/app attestation and convert the resulting attestation data to the corresponding key type.
         let attestation_data = self
             .bridge
-            .attest(key_identifier, challenge, google_cloud_project_id)
+            .attest(key_identifier, challenge, google_cloud_project_number)
             .await?;
 
         let key_with_attestation = KeyWithAttestation::new(inner_key, attestation_data);

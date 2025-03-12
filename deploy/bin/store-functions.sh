@@ -8,9 +8,6 @@ check() {
         # Only allow on main branch
         [[ ${CI_COMMIT_BRANCH:-} == "$CI_DEFAULT_BRANCH" ]] || exit 0
 
-        # Only store artifacts in after_script if successful
-        [[ $CI_JOB_STATUS == "running" || $CI_JOB_STATUS == "success" ]] || exit 0
-
         GIT_COMMIT_SHA=$CI_COMMIT_SHA
     fi
 }

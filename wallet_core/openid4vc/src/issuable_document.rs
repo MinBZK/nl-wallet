@@ -29,19 +29,16 @@ use crate::attributes::AttributeError;
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
 #[validate(custom = IssuableDocument::validate)]
 pub struct IssuableDocument {
-    issuer_uri: HttpsUri,
     attestation_type: String,
     attributes: IndexMap<String, Attribute>,
 }
 
 impl IssuableDocument {
     pub fn try_new(
-        issuer_uri: HttpsUri,
         attestation_type: String,
         attributes: IndexMap<String, Attribute>,
     ) -> Result<Self, serde_valid::validation::Error> {
         let document = Self {
-            issuer_uri,
             attestation_type,
             attributes,
         };
@@ -116,6 +113,7 @@ impl IssuableDocument {
         valid_from: Tdate,
         valid_until: Tdate,
         copy_count: NonZeroU8,
+        issuer_uri: HttpsUri,
     ) -> Result<UnsignedMdoc, AttributeError> {
         let mut flattened = IndexMap::new();
         Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened);
@@ -126,7 +124,7 @@ impl IssuableDocument {
             valid_from,
             valid_until,
             copy_count,
-            issuer_uri: self.issuer_uri.clone(),
+            issuer_uri,
         })
     }
 
@@ -177,6 +175,7 @@ mod test {
                     Tdate::now(),
                     Utc::now().add(Days::new(1)).into(),
                     NonZeroU8::new(1).unwrap(),
+                    "https://pid.example.com".parse().unwrap(),
                 )
             })
             .collect::<Result<Vec<_>, _>>()
@@ -184,7 +183,6 @@ mod test {
 
     fn setup_issuable_attributes() -> IssuableDocuments {
         vec![IssuableDocument {
-            issuer_uri: "https://pid.example.com".parse().unwrap(),
             attestation_type: "com.example.address".to_string(),
             attributes: IndexMap::from_iter(vec![
                 (
@@ -217,7 +215,6 @@ mod test {
         assert_eq!(
             serde_json::to_value(attributes).unwrap(),
             json!([{
-                "issuer_uri": "https://pid.example.com/",
                 "attestation_type": "com.example.address",
                 "attributes": {
                     "city": "The Capital",

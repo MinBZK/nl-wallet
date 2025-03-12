@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::hash::Hash;
 
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -28,6 +27,8 @@ use nl_wallet_mdoc::utils::serialization::CborBase64;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::serialization::TaggedBytes;
 use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
+use poa::factory::PoaFactory;
+use poa::Poa;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::jwt::JwkConversionError;
@@ -36,7 +37,6 @@ use wallet_common::jwt::JwtError;
 use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::poa::Poa;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
@@ -125,11 +125,16 @@ pub enum IssuanceSessionError {
     HeaderToStr(#[from] ToStrError),
     #[error("error verifying credential preview: {0}")]
     CredentialPreview(#[from] CredentialPreviewError),
+    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
+    IssuerCertificate(#[source] CoseError),
     #[error("issuer contained in credential not equal to expected value")]
     #[category(critical)]
     IssuerMismatch,
-    #[error("error retrieving issuer certificate from issued mdoc: {0}")]
-    Cose(#[from] CoseError),
+    #[error("error retrieving metadata from issued mdoc: {0}")]
+    Metadata(#[source] nl_wallet_mdoc::Error),
+    #[error("metadata contained in credential not equal to expected value")]
+    #[category(critical)]
+    MetadataMismatch,
     #[error("error discovering Oauth metadata: {0}")]
     #[category(expected)]
     OauthDiscovery(#[source] reqwest::Error),
@@ -250,13 +255,17 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     where
         Self: Sized;
 
-    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
+    async fn accept_issuance<K, KF>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &impl KeyFactory<Key = K>,
+        key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    where
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 }
@@ -542,13 +551,18 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok((issuance_client, credential_previews))
     }
 
-    async fn accept_issuance<K: CredentialEcdsaKey + Eq + Hash>(
+    async fn accept_issuance<K, KF>(
         &self,
         trust_anchors: &[TrustAnchor<'_>],
-        key_factory: &impl KeyFactory<Key = K>,
+        key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
         credential_issuer_identifier: BaseUrl,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    where
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>,
+    {
         // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
         // has no support (yet) for issuance of multiple copies of multiple attestations.
         // We implement this below by simply flattening the relevant nested iterators when communicating with the
@@ -600,7 +614,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let poa = VecAtLeastTwoUnique::try_from(poa_keys).ok().map(|poa_keys| async {
+        let poa = VecAtLeastTwoUnique::new(poa_keys).ok().map(|poa_keys| async {
             key_factory
                 .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
                 .await
@@ -800,8 +814,17 @@ impl CredentialResponse {
 
                 // The issuer certificate inside the mdoc has to equal the one that the issuer previously announced
                 // in the credential preview.
-                if issuer_signed.issuer_auth.signing_cert()? != *issuer_certificate {
+                if issuer_signed
+                    .issuer_auth
+                    .signing_cert()
+                    .map_err(IssuanceSessionError::IssuerCertificate)?
+                    != *issuer_certificate
+                {
                     return Err(IssuanceSessionError::IssuerMismatch);
+                }
+
+                if issuer_signed.type_metadata().map_err(IssuanceSessionError::Metadata)? != *metadata_chain {
+                    return Err(IssuanceSessionError::MetadataMismatch);
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
@@ -1230,6 +1253,33 @@ mod tests {
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::IssuerMismatch);
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issuer_metadata_mismatch_error() {
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` using different metadata
+        // in the preview than is contained within the response should fail.
+        let different_metadata_chain =
+            TypeMetadataChain::create(TypeMetadata::empty_example_with_doctype("different"), vec![]).unwrap();
+        let preview = match preview {
+            CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain: _,
+            } => CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain: different_metadata_chain,
+            },
+        };
+
+        let error = credential_response
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(error, IssuanceSessionError::MetadataMismatch);
     }
 
     #[tokio::test]

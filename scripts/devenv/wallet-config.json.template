@@ -44,5 +44,5 @@
       ]
     }
   },
-  "google_cloud_project_id": ${GOOGLE_CLOUD_PROJECT_ID}
+  "google_cloud_project_number": ${GOOGLE_CLOUD_PROJECT_NUMBER}
 }

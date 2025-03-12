@@ -92,15 +92,23 @@ pub struct Storage {
 pub struct KeyPair {
     #[serde_as(as = "Base64")]
     pub certificate: BorrowingCertificate,
+
+    #[serde(flatten)]
     pub private_key: PrivateKey,
 }
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
-#[serde(untagged)] // TODO: replace this with `#[serde(rename_all = "snake_case")]` when implementing PVW-4007
+#[serde(rename_all = "snake_case")]
+#[serde(tag = "private_key_type")]
 pub enum PrivateKey {
-    Software(#[serde_as(as = "Base64")] DerSigningKey),
-    Hardware(String),
+    Software {
+        #[serde_as(as = "Base64")]
+        private_key: DerSigningKey,
+    },
+    Hsm {
+        private_key: String,
+    },
 }
 
 impl From<&Storage> for SessionStoreTimeouts {
@@ -113,17 +121,13 @@ impl From<&Storage> for SessionStoreTimeouts {
     }
 }
 
-pub trait TryFromKeySettings<SRC>: Sized {
-    type Error;
-    async fn try_from_key_settings(source: SRC, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error>;
-}
-
-impl TryFromKeySettings<KeyPair> for ParsedKeyPair<PrivateKeyVariant> {
-    type Error = PrivateKeySettingsError;
-
-    async fn try_from_key_settings(source: KeyPair, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let private_key = PrivateKeyVariant::from_settings(source.private_key, hsm)?;
-        let key_pair = ParsedKeyPair::new(private_key, source.certificate).await?;
+impl KeyPair {
+    pub async fn parse(
+        self,
+        hsm: Option<Pkcs11Hsm>,
+    ) -> Result<ParsedKeyPair<PrivateKeyVariant>, PrivateKeySettingsError> {
+        let private_key = PrivateKeyVariant::from_settings(self.private_key, hsm)?;
+        let key_pair = ParsedKeyPair::new(private_key, self.certificate).await?;
         Ok(key_pair)
     }
 }
@@ -133,7 +137,9 @@ impl From<ParsedKeyPair> for KeyPair {
     fn from(value: ParsedKeyPair) -> Self {
         Self {
             certificate: value.certificate().clone(),
-            private_key: PrivateKey::Software(value.private_key().clone().into()),
+            private_key: PrivateKey::Software {
+                private_key: value.private_key().clone().into(),
+            },
         }
     }
 }

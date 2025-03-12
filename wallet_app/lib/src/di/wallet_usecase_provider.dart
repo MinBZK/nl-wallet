@@ -32,14 +32,14 @@ import '../domain/usecase/disclosure/impl/accept_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/cancel_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/impl/start_disclosure_usecase_impl.dart';
 import '../domain/usecase/disclosure/start_disclosure_usecase.dart';
+import '../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import '../domain/usecase/event/get_wallet_events_for_card_usecase.dart';
 import '../domain/usecase/event/get_wallet_events_usecase.dart';
+import '../domain/usecase/event/impl/get_most_recent_wallet_event_usecase_impl.dart';
 import '../domain/usecase/event/impl/get_wallet_events_for_card_usecase_impl.dart';
 import '../domain/usecase/event/impl/get_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/impl/observe_recent_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/observe_recent_wallet_events_usecase.dart';
-import '../domain/usecase/history/impl/observe_recent_history_usecase_impl.dart';
-import '../domain/usecase/history/observe_recent_history_usecase.dart';
 import '../domain/usecase/issuance/accept_issuance_usecase.dart';
 import '../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../domain/usecase/issuance/continue_issuance_usecase.dart';
@@ -217,8 +217,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<RejectSignAgreementUseCase>(
           create: (context) => RejectSignAgreementUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<ObserveRecentHistoryUseCase>(
-          create: (context) => ObserveRecentHistoryUseCaseImpl(context.read()),
+        RepositoryProvider<GetMostRecentWalletEventUseCase>(
+          create: (context) => GetMostRecentWalletEventUsecaseImpl(context.read()),
         ),
         RepositoryProvider<ObserveRecentWalletEventsUseCase>(
           create: (context) => ObserveRecentWalletEventsUseCaseImpl(context.read()),

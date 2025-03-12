@@ -1,0 +1,29 @@
+[package]
+name = "poa"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+mock = ["wallet_common/mock_remote_key", "dep:rand_core"]
+
+[dependencies]
+derive_more = { workspace = true, features = ["as_ref", "from"] }
+futures.workspace = true
+jsonwebtoken.workspace = true
+p256 = { workspace = true, features = ["ecdsa"] }
+serde = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+
+rand_core = { workspace = true, optional = true }
+
+wallet_common.path = "../wallet_common/"
+
+[dev-dependencies]
+assert_matches.workspace = true
+rand_core.workspace = true
+rstest.workspace = true
+tokio = { workspace = true, features = ["macros"] }

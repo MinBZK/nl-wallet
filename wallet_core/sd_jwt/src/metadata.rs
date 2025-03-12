@@ -63,7 +63,7 @@ impl<T> AsRef<T> for SpecOptionalImplRequired<T> {
 pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
 pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypeMetadataChain {
     metadata: VecNonEmpty<EncodedTypeMetadata>,
     root_integrity: ResourceIntegrity,
@@ -113,7 +113,7 @@ impl TypeMetadataChain {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EncodedTypeMetadata(TypeMetadata);
 
 impl Serialize for EncodedTypeMetadata {
@@ -132,7 +132,7 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
 }
 
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct TypeMetadata {
     /// A String or URI that uniquely identifies the type.
@@ -249,7 +249,7 @@ pub struct MetadataExtends {
     pub extends_integrity: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SchemaOption {
     Embedded {
@@ -330,6 +330,14 @@ impl Clone for JsonSchema {
         }
     }
 }
+
+impl PartialEq for JsonSchema {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw_schema == other.raw_schema
+    }
+}
+
+impl Eq for JsonSchema {}
 
 #[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]

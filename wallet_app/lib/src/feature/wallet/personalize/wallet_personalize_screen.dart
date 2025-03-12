@@ -14,6 +14,7 @@ import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
+import '../../../util/launch_util.dart';
 import '../../../util/mapper/card/attribute/card_attribute_mapper.dart';
 import '../../../util/mapper/mapper.dart';
 import '../../../wallet_assets.dart';
@@ -30,7 +31,6 @@ import '../../common/widget/loading_indicator.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
-import '../../digid_help/digid_help_screen.dart';
 import '../../error/error_page.dart';
 import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
@@ -39,7 +39,8 @@ import 'page/wallet_personalize_confirm_pin_page.dart';
 import 'page/wallet_personalize_digid_error_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
 import 'page/wallet_personalize_success_page.dart';
-import 'wallet_personalize_no_digid_screen.dart';
+
+const _kDigidWebsiteUrl = 'https://www.digid.nl/inlogmethodes/identiteitsbewijs';
 
 class WalletPersonalizeScreen extends StatelessWidget {
   const WalletPersonalizeScreen({super.key});
@@ -224,8 +225,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
   Widget _buildWalletIntroPage(BuildContext context, WalletPersonalizeInitial state) {
     return WalletPersonalizeIntroPage(
       key: const Key('personalizeInformPage'),
-      onLoginWithDigidPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-      onNoDigidPressed: () => WalletPersonalizeNoDigidScreen.show(context),
+      onDigidLoginPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+      onDigidWebsitePressed: _launchDigidWebsite,
       progress: state.stepperProgress,
     );
   }
@@ -317,7 +318,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
         description: context.l10n.walletPersonalizeDigidCancelledPageDescription,
         onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-        onHelpPressed: () => DigidHelpScreen.show(context),
+        onDigidWebsitePressed: _launchDigidWebsite,
       ),
     );
   }
@@ -331,7 +332,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
         title: context.l10n.walletPersonalizeDigidErrorPageTitle,
         description: context.l10n.walletPersonalizeDigidErrorPageDescription,
         onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-        onHelpPressed: () => DigidHelpScreen.show(context),
+        onDigidWebsitePressed: _launchDigidWebsite,
       ),
     );
   }
@@ -432,6 +433,8 @@ class WalletPersonalizeScreen extends StatelessWidget {
       child: TitleText(title),
     );
   }
+
+  void _launchDigidWebsite() => launchUrlStringCatching(_kDigidWebsiteUrl, mode: LaunchMode.externalApplication);
 }
 
 extension _WalletPersonalizeScreenExtension on BuildContext {

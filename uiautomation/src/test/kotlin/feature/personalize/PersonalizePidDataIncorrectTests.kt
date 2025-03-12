@@ -4,7 +4,6 @@ import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
@@ -52,6 +51,7 @@ class PersonalizePidDataIncorrectTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The App offers a button to not add the data, which returns to the 'login with DigiD screen'. [$JIRA_ID]")
     fun verifyRejectPidPreviewButton() {
+        setUp()
         personalizePidDataIncorrectScreen.clickBottomPrimaryButton()
 
         val personalizeInformScreen = PersonalizeInformScreen()
