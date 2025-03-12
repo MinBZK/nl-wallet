@@ -32,12 +32,11 @@ async fn test_wallet_config() {
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
-    let port = cs_settings.port;
-    start_config_server(cs_settings, cs_root_ca.clone()).await;
+    let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_config_base_url(&port),
+            base_url: local_config_base_url(port),
             trust_anchors: vec![cs_root_ca],
         },
         ..default_config_server_config()
@@ -83,12 +82,11 @@ async fn test_wallet_config_stale() {
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
-    let port = cs_settings.port;
-    start_config_server(cs_settings, cs_root_ca.clone()).await;
+    let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_config_base_url(&port),
+            base_url: local_config_base_url(port),
             trust_anchors: vec![cs_root_ca],
         },
         ..default_config_server_config()
@@ -134,12 +132,11 @@ async fn test_wallet_config_signature_verification_failed() {
     .unwrap();
     // Serve a wallet configuration as JWT signed by a random key
     cs_settings.wallet_config_jwt = jwt;
-    let port = cs_settings.port;
-    start_config_server(cs_settings, cs_root_ca.clone()).await;
+    let port = start_config_server(cs_settings, cs_root_ca.clone()).await;
 
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_config_base_url(&port),
+            base_url: local_config_base_url(port),
             trust_anchors: vec![cs_root_ca],
         },
         ..default_config_server_config()

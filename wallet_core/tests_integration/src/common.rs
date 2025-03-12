@@ -84,13 +84,13 @@ pub fn local_wp_base_url(port: &u16) -> BaseUrl {
         .expect("hardcode values should always parse successfully")
 }
 
-pub fn local_config_base_url(port: &u16) -> BaseUrl {
+pub fn local_config_base_url(port: u16) -> BaseUrl {
     format!("https://localhost:{}/config/v1/", port)
         .parse()
         .expect("hardcoded values should always parse successfully")
 }
 
-pub fn local_ups_base_url(port: &u16) -> BaseUrl {
+pub fn local_ups_base_url(port: u16) -> BaseUrl {
     format!("https://localhost:{}/update/v1/", port)
         .parse()
         .expect("hardcoded values should always parse successfully")
@@ -178,10 +178,23 @@ pub async fn setup_wallet_and_env(
         }
     }
 
+    let ups_port = start_update_policy_server(ups_settings, ups_root_ca.clone()).await;
+
+    let config_bytes = read_file("wallet-config.json");
+    let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
+    served_wallet_config.pid_issuance.pid_issuer_url =
+        local_pid_base_url(&issuer_settings.server_settings.wallet_server.port);
+    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
+    served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
+    served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
+
+    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
+
+    let cs_port = start_config_server(cs_settings, cs_root_ca.clone()).await;
     let config_server_config = ConfigServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_config_base_url(&cs_settings.port),
-            trust_anchors: vec![cs_root_ca.clone()],
+            base_url: local_config_base_url(cs_port),
+            trust_anchors: vec![cs_root_ca],
         },
         ..default_config_server_config()
     };
@@ -189,26 +202,14 @@ pub async fn setup_wallet_and_env(
     let mut wallet_config = default_wallet_config();
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&issuer_settings.server_settings.wallet_server.port);
     wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
-    wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
-    wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
-
-    let config_bytes = read_file("wallet-config.json");
-    let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.pid_issuer_url =
-        local_pid_base_url(&issuer_settings.server_settings.wallet_server.port);
-    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
-    served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(&ups_settings.port);
-    served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
-
-    cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
+    wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
+    wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca];
 
     assert_eq!(Some(wp_settings.hsm.clone()), verifier_settings.server_settings.hsm);
     assert_eq!(Some(wp_settings.hsm.clone()), issuer_settings.server_settings.hsm);
 
     let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
 
-    start_config_server(cs_settings, cs_root_ca).await;
-    start_update_policy_server(ups_settings, ups_root_ca).await;
     start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
     start_verification_server(verifier_settings, Some(hsm.clone())).await;
     start_issuer_server(issuer_settings, Some(hsm), MockAttributeService).await;
@@ -254,11 +255,9 @@ pub fn find_listener_port() -> u16 {
 }
 
 pub fn config_server_settings() -> (CsSettings, ReqwestTrustAnchor) {
-    let port = find_listener_port();
-
     let mut settings = CsSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.port = port;
+    settings.port = 0;
 
     let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
 
@@ -266,11 +265,9 @@ pub fn config_server_settings() -> (CsSettings, ReqwestTrustAnchor) {
 }
 
 pub fn update_policy_server_settings() -> (UpsSettings, ReqwestTrustAnchor) {
-    let port = find_listener_port();
-
     let mut settings = UpsSettings::new().expect("Could not read settings");
     settings.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.port = port;
+    settings.port = 0;
 
     let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
 
@@ -304,30 +301,36 @@ pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
     (settings, root_ca)
 }
 
-pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) {
-    let base_url = local_config_base_url(&settings.port);
+pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
+    let listener = TcpListener::bind("localhost:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
-        if let Err(error) = configuration_server::server::serve(settings).await {
+        if let Err(error) = configuration_server::server::serve_with_listener(listener, settings).await {
             println!("Could not start config_server: {:?}", error);
             process::exit(1);
         }
     });
 
+    let base_url = local_config_base_url(port);
     wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
+    port
 }
 
-pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) {
-    let base_url = local_ups_base_url(&settings.port);
+pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
+    let listener = TcpListener::bind("localhost:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
-        if let Err(error) = update_policy_server::server::serve(settings).await {
+        if let Err(error) = update_policy_server::server::serve_with_listener(listener, settings).await {
             println!("Could not start update_policy_server: {:?}", error);
             process::exit(1);
         }
     });
 
+    let base_url = local_ups_base_url(port);
     wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
+    port
 }
 
 pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) {
