@@ -1,6 +1,3 @@
-use std::num::NonZeroU8;
-
-use chrono::Days;
 use serial_test::serial;
 
 use hsm::service::Pkcs11Hsm;
@@ -47,13 +44,9 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let attr_service = BrpPidAttributeService::new(
-        HttpBrpClient::new(settings.brp_server.clone()),
-        &settings.digid.bsn_privkey,
-        settings.digid.http_config.clone(),
-        settings.issuer_uris().unwrap(),
-        settings.metadata(),
-        Days::new(1),
-        NonZeroU8::new(2).unwrap(),
+        HttpBrpClient::new(settings.pid_settings.brp_server.clone()),
+        &settings.pid_settings.digid.bsn_privkey,
+        settings.pid_settings.digid.http_config.clone(),
     )
     .unwrap();
     start_issuer_server(settings.clone(), hsm, attr_service).await;

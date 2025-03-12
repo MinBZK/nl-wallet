@@ -1,12 +1,16 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::num::NonZeroU8;
+use std::ops::Add;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
-use chrono::DateTime;
+use chrono::Days;
 use chrono::Utc;
+use derive_more::AsRef;
+use derive_more::From;
 use futures::future::try_join_all;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -17,7 +21,7 @@ use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use nl_wallet_mdoc::server_keys::KeyRing;
+use nl_wallet_mdoc::server_keys::KeyPair;
 use nl_wallet_mdoc::utils::crypto::CryptoError;
 use nl_wallet_mdoc::utils::serialization::CborError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
@@ -35,7 +39,9 @@ use wallet_common::jwt::JwtError;
 use wallet_common::jwt::JwtPopClaims;
 use wallet_common::jwt::VerifiedJwt;
 use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
+use wallet_common::urls::HttpsUri;
 use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
@@ -255,15 +261,6 @@ pub struct Session<S: IssuanceState> {
     pub state: SessionState<S>,
 }
 
-#[derive(Debug, Clone)]
-pub struct IssuableCredential {
-    pub document: IssuableDocument,
-    pub metadata_chain: TypeMetadataChain,
-    pub valid_from: DateTime<Utc>,
-    pub valid_until: DateTime<Utc>,
-    pub copy_count: NonZeroU8,
-}
-
 /// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
 /// the token request. See for example the [`BrpPidAttributeService`].
 ///
@@ -279,10 +276,25 @@ pub struct IssuableCredential {
 pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
 
-    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Self::Error>;
+    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
 }
+
+/// Static attestation data shared across all instances of an attestation type. The issuer augments this with an
+/// [`IssuableDocument`] to form the attestation.
+#[derive(Debug)]
+pub struct AttestationTypeConfig<K> {
+    pub key_pair: KeyPair<K>,
+    pub valid_days: Days,
+    pub copy_count: NonZeroU8,
+    pub issuer_uri: HttpsUri,
+    pub metadata: TypeMetadataChain,
+}
+
+/// Static attestation data indexed by attestation type.
+#[derive(Debug, From, AsRef)]
+pub struct AttestationTypesConfig<K>(IndexMap<String, AttestationTypeConfig<K>>);
 
 pub struct Issuer<A, K, S, W> {
     sessions: Arc<S>,
@@ -295,7 +307,7 @@ pub struct Issuer<A, K, S, W> {
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, W> {
-    key_ring: K,
+    attestation_config: AttestationTypesConfig<K>,
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
     /// and MUST be used by the wallet as `aud` in its PoP JWTs.
@@ -321,31 +333,35 @@ impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
     }
 }
 
+pub struct WalletSettings<W> {
+    pub wallet_client_ids: Vec<String>,
+    pub wte_issuer_pubkey: VerifyingKey,
+    pub wte_tracker: W,
+}
+
 impl<A, K, S, W> Issuer<A, K, S, W>
 where
     A: AttributeService,
-    K: KeyRing,
+    K: EcdsaKey,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     W: WteTracker + Send + Sync + 'static,
 {
     pub fn new(
         sessions: S,
         attr_service: A,
-        key_ring: K,
+        attestation_config: AttestationTypesConfig<K>,
         server_url: &BaseUrl,
-        wallet_client_ids: Vec<String>,
-        wte_issuer_pubkey: VerifyingKey,
-        wte_tracker: W,
+        wallet_settings: WalletSettings<W>,
     ) -> Self {
         let sessions = Arc::new(sessions);
-        let wte_tracker = Arc::new(wte_tracker);
+        let wte_tracker = Arc::new(wallet_settings.wte_tracker);
 
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
-            key_ring,
+            attestation_config,
             credential_issuer_identifier: issuer_url.clone(),
-            accepted_wallet_client_ids: wallet_client_ids,
-            wte_issuer_pubkey: (&wte_issuer_pubkey).into(),
+            accepted_wallet_client_ids: wallet_settings.wallet_client_ids,
+            wte_issuer_pubkey: (&wallet_settings.wte_issuer_pubkey).into(),
             wte_tracker: Arc::clone(&wte_tracker),
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
@@ -391,7 +407,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
 impl<A, K, S, W> Issuer<A, K, S, W>
 where
     A: AttributeService,
-    K: KeyRing,
+    K: EcdsaKey,
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
@@ -423,7 +439,7 @@ where
                 dpop,
                 &self.attr_service,
                 &self.issuer_data.credential_issuer_identifier,
-                &self.issuer_data.key_ring,
+                &self.issuer_data.attestation_config,
             )
             .await;
 
@@ -562,11 +578,11 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        key_ring: &impl KeyRing,
+        attestation_settings: &AttestationTypesConfig<impl EcdsaKey>,
     ) -> Result<(TokenResponseWithPreviews, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)>
     {
         let result = self
-            .process_token_request_inner(token_request, dpop, attr_service, server_url, key_ring)
+            .process_token_request_inner(token_request, dpop, attr_service, server_url, attestation_settings)
             .await;
 
         match result {
@@ -593,7 +609,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        key_ring: &impl KeyRing,
+        attestation_settings: &AttestationTypesConfig<impl EcdsaKey>,
     ) -> Result<(TokenResponseWithPreviews, VerifyingKey, String), TokenRequestError> {
         if !matches!(
             token_request.grant_type,
@@ -616,26 +632,30 @@ impl Session<Created> {
         let previews = issuables
             .into_inner()
             .into_iter()
-            .map(|doc| {
-                let issuer_certificate = key_ring
-                    .key_pair(doc.document.attestation_type())
+            .map(|document| {
+                let attestation_data = attestation_settings
+                    .as_ref()
+                    .get(document.attestation_type())
                     .ok_or_else(|| {
-                        TokenRequestError::CredentialTypeNotOffered(doc.document.attestation_type().to_string())
-                    })?
-                    .certificate()
-                    .to_owned();
+                        TokenRequestError::CredentialTypeNotOffered(document.attestation_type().to_string())
+                    })?;
 
-                let unsigned_mdoc =
-                    doc.document
-                        .to_unsigned_mdoc(doc.valid_from.into(), doc.valid_until.into(), doc.copy_count)?;
-                let credential_payload = CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?;
-                credential_payload.validate(&doc.metadata_chain)?;
+                let now = Utc::now();
+                let valid_until = now.add(attestation_data.valid_days);
+                let unsigned_mdoc = document.to_unsigned_mdoc(
+                    now.into(),
+                    valid_until.into(),
+                    attestation_data.copy_count,
+                    attestation_data.issuer_uri.clone(),
+                )?;
+
+                CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone())?.validate(&attestation_data.metadata)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)
                 let mdoc = CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
-                    issuer_certificate,
-                    metadata_chain: doc.metadata_chain,
+                    issuer_certificate: attestation_data.key_pair.certificate().to_owned(),
+                    metadata_chain: attestation_data.metadata.clone(),
                 };
 
                 Ok(CredentialFormats::try_new(VecNonEmpty::try_from(vec![mdoc]).unwrap()).unwrap())
@@ -704,7 +724,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_credential_inner(credential_request, access_token, dpop, issuer_data)
@@ -728,7 +748,7 @@ impl Session<WaitingForResponse> {
         access_token: &AccessToken,
         dpop: &Dpop,
         endpoint: &str,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -755,7 +775,7 @@ impl Session<WaitingForResponse> {
         attestations: Option<WteDisclosure>,
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> Result<(), CredentialRequestError> {
         let wte_disclosure = attestations.ok_or(CredentialRequestError::MissingWte)?;
 
@@ -792,7 +812,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -844,7 +864,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data)
@@ -868,7 +888,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -959,7 +979,7 @@ impl CredentialRequest {
         &self,
         c_nonce: &str,
         expected_credential_type: &impl CredentialType,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         if !self.credential_type.as_ref().matches(expected_credential_type) {
             return Err(CredentialRequestError::CredentialTypeMismatch);
@@ -983,13 +1003,15 @@ impl CredentialResponse {
     async fn new(
         preview: CredentialPreview,
         holder_pubkey: VerifyingKey,
-        issuer_data: &IssuerData<impl KeyRing, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let key_id = preview.issuer_key_identifier();
-        let issuer_privkey = issuer_data
-            .key_ring
-            .key_pair(key_id)
-            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
+        let issuer_privkey = &issuer_data
+            .attestation_config
+            .as_ref()
+            .get(key_id)
+            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?
+            .key_pair;
 
         match preview {
             CredentialPreview::MsoMdoc {
