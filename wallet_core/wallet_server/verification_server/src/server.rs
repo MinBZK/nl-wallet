@@ -14,7 +14,6 @@ use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
-use server_utils::settings::Server;
 use wallet_common::built_info::version_string;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
@@ -24,6 +23,23 @@ pub async fn serve<S>(settings: VerifierSettings, hsm: Option<Pkcs11Hsm>, disclo
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
+    let wallet_listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
+    let requester_listener = create_requester_listener(&settings.requester_server).await?;
+    serve_with_listeners(wallet_listener, requester_listener, settings, hsm, disclosure_sessions).await
+}
+
+pub async fn serve_with_listeners<S>(
+    wallet_listener: TcpListener,
+    requester_listener: Option<TcpListener>,
+    settings: VerifierSettings,
+    hsm: Option<Pkcs11Hsm>,
+    disclosure_sessions: S,
+) -> Result<()>
+where
+    S: SessionStore<DisclosureData> + Send + Sync + 'static,
+{
+    // Needed when called directly
+    check_request_listener_with_settings(&requester_listener, &settings);
     let log_requests = settings.server_settings.log_requests;
 
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
@@ -41,9 +57,11 @@ where
         disclosure_sessions,
     );
 
+    let requester_router = secure_requester_router(&settings.requester_server, requester_router);
+
     listen(
-        settings.server_settings.wallet_server,
-        settings.requester_server,
+        wallet_listener,
+        requester_listener,
         Router::new().nest("/disclosure", wallet_disclosure_router),
         Router::new().nest("/disclosure", requester_router),
         log_requests,
@@ -63,6 +81,24 @@ fn secure_requester_router(requester_server: &RequesterAuth, requester_router: R
     }
 }
 
+/// Sanity check to see if [requester_listener] is set conform [settings].
+fn check_request_listener_with_settings(requester_listener: &Option<TcpListener>, settings: &VerifierSettings) {
+    match settings.requester_server {
+        RequesterAuth::Authentication(_) => {
+            assert!(
+                requester_listener.is_none(),
+                "no request listener should be provided for authentication only"
+            );
+        }
+        RequesterAuth::ProtectedInternalEndpoint { .. } | RequesterAuth::InternalEndpoint(_) => {
+            assert!(
+                requester_listener.is_some(),
+                "a request listener should be provided for internal endpoint"
+            );
+        }
+    }
+}
+
 /// Create Requester listener when required by [settings].
 async fn create_requester_listener(requester_server: &RequesterAuth) -> Result<Option<TcpListener>, io::Error> {
     match requester_server {
@@ -75,17 +111,12 @@ async fn create_requester_listener(requester_server: &RequesterAuth) -> Result<O
 }
 
 async fn listen(
-    wallet_server: Server,
-    requester_server: RequesterAuth,
+    wallet_listener: TcpListener,
+    requester_listener: Option<TcpListener>,
     mut wallet_router: Router,
     mut requester_router: Router,
     log_requests: bool,
 ) -> Result<()> {
-    let wallet_listener = create_wallet_listener(wallet_server).await?;
-    let requester_listener = create_requester_listener(&requester_server).await?;
-
-    requester_router = secure_requester_router(&requester_server, requester_router);
-
     info!("{}", version_string());
 
     match requester_listener {

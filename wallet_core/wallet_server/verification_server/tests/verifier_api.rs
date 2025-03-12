@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::future;
 use std::future::Future;
 use std::net::IpAddr;
-use std::net::TcpListener;
 use std::ops::Add;
 use std::process;
 use std::str::FromStr;
@@ -22,6 +21,7 @@ use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
+use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
@@ -99,22 +99,44 @@ static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = Lazy
     .into(),
 });
 
-fn find_listener_port() -> u16 {
-    TcpListener::bind("localhost:0")
-        .expect("Could not find TCP port")
-        .local_addr()
-        .expect("Could not get local address from TCP listener")
-        .port()
-}
-
-fn wallet_server_settings() -> (VerifierSettings, Ca, TrustAnchor<'static>) {
-    // Set up the hostname and ports.
-    let localhost = IpAddr::from_str("127.0.0.1").unwrap();
-    let ws_port = find_listener_port();
-    let rp_port = find_listener_port();
-
+fn memory_storage_settings() -> Storage {
     // Set up the default storage timeouts.
     let default_store_timeouts = SessionStoreTimeouts::default();
+
+    Storage {
+        url: "memory://".parse().unwrap(),
+        expiration_minutes: (default_store_timeouts.expiration.as_secs() / 60).try_into().unwrap(),
+        successful_deletion_minutes: (default_store_timeouts.successful_deletion.as_secs() / 60)
+            .try_into()
+            .unwrap(),
+        failed_deletion_minutes: (default_store_timeouts.failed_deletion.as_secs() / 60)
+            .try_into()
+            .unwrap(),
+    }
+}
+
+async fn request_server_settings_and_listener() -> (RequesterAuth, Option<TcpListener>) {
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    (
+        RequesterAuth::InternalEndpoint(Server {
+            ip: addr.ip(),
+            port: addr.port(),
+        }),
+        Some(listener),
+    )
+}
+
+async fn wallet_server_settings_and_listener(
+    requester_server: RequesterAuth,
+) -> (VerifierSettings, TcpListener, Ca, TrustAnchor<'static>) {
+    // Set up the listener.
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = Server {
+        ip: addr.ip(),
+        port: addr.port(),
+    };
 
     // Create the issuer CA and derive the trust anchors from it.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -142,26 +164,15 @@ fn wallet_server_settings() -> (VerifierSettings, Ca, TrustAnchor<'static>) {
 
     // Generate a complete configuration for the verifier, including
     // a section for the issuer if that feature is enabled.
+    let ws_port = server.port;
     let settings = Settings {
-        wallet_server: Server {
-            ip: localhost,
-            port: ws_port,
-        },
+        wallet_server: server,
 
         public_url: format!("http://localhost:{ws_port}/").parse().unwrap(),
 
         log_requests: true,
         structured_logging: false,
-        storage: Storage {
-            url: "memory://".parse().unwrap(),
-            expiration_minutes: (default_store_timeouts.expiration.as_secs() / 60).try_into().unwrap(),
-            successful_deletion_minutes: (default_store_timeouts.successful_deletion.as_secs() / 60)
-                .try_into()
-                .unwrap(),
-            failed_deletion_minutes: (default_store_timeouts.failed_deletion.as_secs() / 60)
-                .try_into()
-                .unwrap(),
-        },
+        storage: memory_storage_settings(),
         issuer_trust_anchors,
 
         hsm: None,
@@ -173,27 +184,31 @@ fn wallet_server_settings() -> (VerifierSettings, Ca, TrustAnchor<'static>) {
 
         allow_origins: None,
         reader_trust_anchors,
-        requester_server: RequesterAuth::InternalEndpoint(Server {
-            ip: localhost,
-            port: rp_port,
-        }),
+        requester_server,
 
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
         server_settings: settings,
     };
 
-    (settings, issuer_ca, rp_trust_anchor)
+    (settings, listener, issuer_ca, rp_trust_anchor)
 }
 
-async fn start_wallet_server<S>(settings: VerifierSettings, hsm: Option<Pkcs11Hsm>, disclosure_sessions: S)
-where
+async fn start_wallet_server<S>(
+    wallet_listener: TcpListener,
+    requester_listener: Option<TcpListener>,
+    settings: VerifierSettings,
+    hsm: Option<Pkcs11Hsm>,
+    disclosure_sessions: S,
+) where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     let public_url = settings.server_settings.public_url.clone();
 
     tokio::spawn(async move {
-        if let Err(error) = server::serve(settings, hsm, disclosure_sessions).await {
+        if let Err(error) =
+            server::serve_with_listeners(wallet_listener, requester_listener, settings, hsm, disclosure_sessions).await
+        {
             println!("Could not start wallet_server: {error:?}");
 
             process::exit(1);
@@ -222,14 +237,14 @@ async fn wait_for_server(base_url: BaseUrl) {
     .unwrap();
 }
 
-fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
-    match auth {
+fn internal_url(settings: &VerifierSettings) -> BaseUrl {
+    match settings.requester_server {
         RequesterAuth::ProtectedInternalEndpoint {
             server: Server { port, .. },
             ..
         }
         | RequesterAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
-        RequesterAuth::Authentication(_) => public_url.clone(),
+        RequesterAuth::Authentication(_) => settings.server_settings.public_url.clone(),
     }
 }
 
@@ -239,16 +254,26 @@ fn internal_url(auth: &RequesterAuth, public_url: &BaseUrl) -> BaseUrl {
     authentication: Authentication::ApiKey(String::from("secret_key")),
     server: Server {
         ip: IpAddr::from_str("127.0.0.1").unwrap(),
-        port: find_listener_port(),
+        port: 0,
     }
 })]
 #[case(RequesterAuth::InternalEndpoint(Server {
     ip: IpAddr::from_str("127.0.0.1").unwrap(),
-    port: find_listener_port(),
+    port: 0,
 }))]
 #[tokio::test]
-async fn test_requester_authentication(#[case] auth: RequesterAuth) {
-    let (mut settings, _, _) = wallet_server_settings();
+async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
+    let requester_listener = match &mut auth {
+        RequesterAuth::Authentication(_) => None,
+        RequesterAuth::ProtectedInternalEndpoint { ref mut server, .. }
+        | RequesterAuth::InternalEndpoint(ref mut server) => {
+            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
+            server.port = listener.local_addr().unwrap().port();
+            Some(listener)
+        }
+    };
+
+    let (settings, wallet_listener, _, _) = wallet_server_settings_and_listener(auth).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -256,11 +281,18 @@ async fn test_requester_authentication(#[case] auth: RequesterAuth) {
         .map(Pkcs11Hsm::from_settings)
         .transpose()
         .unwrap();
+    let auth = &settings.requester_server;
 
-    let internal_url = internal_url(&auth, &settings.server_settings.public_url);
-    settings.requester_server = auth.clone();
+    let internal_url = internal_url(&settings);
 
-    start_wallet_server(settings.clone(), hsm, MemorySessionStore::default()).await;
+    start_wallet_server(
+        wallet_listener,
+        requester_listener,
+        settings.clone(),
+        hsm,
+        MemorySessionStore::default(),
+    )
+    .await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
@@ -407,7 +439,8 @@ async fn test_error_response(response: Response, status_code: StatusCode, error_
 
 #[tokio::test]
 async fn test_new_session_parameters_error() {
-    let (settings, _, _) = wallet_server_settings();
+    let (requester_server, requester_listener) = request_server_settings_and_listener().await;
+    let (settings, wallet_listener, _, _) = wallet_server_settings_and_listener(requester_server).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -416,8 +449,15 @@ async fn test_new_session_parameters_error() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.requester_server, &settings.server_settings.public_url);
-    start_wallet_server(settings, hsm, MemorySessionStore::default()).await;
+    let internal_url = internal_url(&settings);
+    start_wallet_server(
+        wallet_listener,
+        requester_listener,
+        settings,
+        hsm,
+        MemorySessionStore::default(),
+    )
+    .await;
     let client = default_reqwest_client_builder().build().unwrap();
 
     let bad_use_case_request = {
@@ -452,7 +492,8 @@ async fn test_new_session_parameters_error() {
 
 #[tokio::test]
 async fn test_disclosure_not_found() {
-    let (settings, _, _) = wallet_server_settings();
+    let (requester_server, requester_listener) = request_server_settings_and_listener().await;
+    let (settings, wallet_listener, _, _) = wallet_server_settings_and_listener(requester_server).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -461,8 +502,15 @@ async fn test_disclosure_not_found() {
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.requester_server, &settings.server_settings.public_url);
-    start_wallet_server(settings.clone(), hsm, MemorySessionStore::default()).await;
+    let internal_url = internal_url(&settings);
+    start_wallet_server(
+        wallet_listener,
+        requester_listener,
+        settings.clone(),
+        hsm,
+        MemorySessionStore::default(),
+    )
+    .await;
 
     let client = default_reqwest_client_builder().build().unwrap();
 
@@ -549,7 +597,9 @@ async fn start_disclosure<S>(
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
-    let (settings, issuer_ca, rp_trust_anchor) = wallet_server_settings();
+    let (requester_server, requester_listener) = request_server_settings_and_listener().await;
+    let (settings, wallet_listener, issuer_ca, rp_trust_anchor) =
+        wallet_server_settings_and_listener(requester_server).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -558,9 +608,16 @@ where
         .transpose()
         .unwrap();
 
-    let internal_url = internal_url(&settings.requester_server, &settings.server_settings.public_url);
+    let internal_url = internal_url(&settings);
 
-    start_wallet_server(settings.clone(), hsm, disclosure_sessions).await;
+    start_wallet_server(
+        wallet_listener,
+        requester_listener,
+        settings.clone(),
+        hsm,
+        disclosure_sessions,
+    )
+    .await;
 
     // Create a new disclosure session, which should return 200.
     let client = default_reqwest_client_builder().build().unwrap();
@@ -652,7 +709,7 @@ async fn test_disclosure_cancel() {
 }
 
 async fn test_disclosure_expired<S, F, Fut>(
-    settings: VerifierSettings,
+    storage: Storage,
     session_store: S,
     mock_time: &RwLock<DateTime<Utc>>,
     create_cleanup_awaiter: F,
@@ -661,9 +718,8 @@ async fn test_disclosure_expired<S, F, Fut>(
     F: Fn() -> Fut,
     Fut: Future<Output = ()>,
 {
-    let timeouts = SessionStoreTimeouts::from(&settings.server_settings.storage);
-
     let (settings, client, session_token, internal_url, _, _) = start_disclosure(session_store).await;
+    let timeouts = SessionStoreTimeouts::from(&storage);
 
     // Fetch the status, this should return OK and be in the Created state.
     let status_url = format_status_url(
@@ -733,16 +789,16 @@ async fn test_disclosure_expired<S, F, Fut>(
 
 #[tokio::test]
 async fn test_disclosure_expired_memory() {
-    let (settings, _, _) = wallet_server_settings();
+    let storage = memory_storage_settings();
 
-    let timeouts = SessionStoreTimeouts::from(&settings.server_settings.storage);
+    let timeouts = SessionStoreTimeouts::from(&storage);
     let time_generator = MockTimeGenerator::default();
     let mock_time = Arc::clone(&time_generator.time);
     let session_store = MemorySessionStore::new_with_time(timeouts, time_generator);
 
     // The `MemorySessionStore` performs cleanup instantly, so we simply pass
     // an already completed future as the cleanup awaiter in the closure.
-    test_disclosure_expired(settings, session_store, mock_time.as_ref(), || future::ready(())).await;
+    test_disclosure_expired(storage, session_store, mock_time.as_ref(), || future::ready(())).await;
 }
 
 #[cfg(feature = "db_test")]
@@ -768,7 +824,6 @@ mod db_test {
     use wallet_common::generator::mock::MockTimeGenerator;
 
     use super::test_disclosure_expired;
-    use super::wallet_server_settings;
 
     /// Helper type created along with [`PostgresSessionStoreProxy`]
     /// that can be used to register awaiters for the cleanup task.
@@ -841,32 +896,28 @@ mod db_test {
     #[tokio::test]
     async fn test_disclosure_expired_postgres() {
         // Combine the generated settings with the storage settings from the configuration file.
-        let (mut settings, _, _) = wallet_server_settings();
-        let storage_settings = VerifierSettings::new("verification_server.toml", "verification_server")
+        let storage = VerifierSettings::new("verification_server.toml", "verification_server")
             .unwrap()
             .server_settings
             .storage;
-        settings.server_settings.storage = storage_settings;
 
         assert_eq!(
-            settings.server_settings.storage.url.scheme(),
+            storage.url.scheme(),
             "postgres",
             "should be configured to use PostgreSQL storage"
         );
 
-        let timeouts = SessionStoreTimeouts::from(&settings.server_settings.storage);
+        let timeouts = SessionStoreTimeouts::from(&storage);
         let time_generator = MockTimeGenerator::default();
         let mock_time = Arc::clone(&time_generator.time);
         let session_store = PostgresSessionStore::new_with_time(
-            postgres::new_connection(settings.server_settings.storage.url.clone())
-                .await
-                .unwrap(),
+            postgres::new_connection(storage.url.clone()).await.unwrap(),
             timeouts,
             time_generator,
         );
         let (store_proxy, cleanup_notify) = PostgresSessionStoreProxy::new(session_store);
 
-        test_disclosure_expired(settings, store_proxy, mock_time.as_ref(), || {
+        test_disclosure_expired(storage, store_proxy, mock_time.as_ref(), || {
             cleanup_notify.register_cleanup_awaiter()
         })
         .await;

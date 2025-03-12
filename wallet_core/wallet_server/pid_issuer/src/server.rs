@@ -55,7 +55,7 @@ where
 async fn listen(wallet_server: Server, mut wallet_router: Router, log_requests: bool) -> Result<()> {
     wallet_router = decorate_router(wallet_router, log_requests);
 
-    let wallet_listener = create_wallet_listener(wallet_server).await?;
+    let wallet_listener = create_wallet_listener(&wallet_server).await?;
 
     info!("{}", version_string());
 
