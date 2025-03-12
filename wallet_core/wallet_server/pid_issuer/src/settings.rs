@@ -22,8 +22,8 @@ use hsm::service::Pkcs11Hsm;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
-use openid4vc::issuer::AttestationData;
-use openid4vc::issuer::AttestationSettings;
+use openid4vc::issuer::AttestationTypeConfig;
+use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::server_state::SessionStoreTimeouts;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
@@ -49,7 +49,7 @@ use crate::pid::brp::client::HttpBrpClient;
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct IssuerSettings {
-    pub attestation_settings: IssuerAttestationSettings,
+    pub attestation_settings: AttestationTypesConfigSettings,
 
     #[serde(deserialize_with = "deserialize_type_metadata")]
     pub metadata: Vec<TypeMetadata>,
@@ -78,10 +78,10 @@ pub struct PidIssuerSettings {
 }
 
 #[derive(Clone, Deserialize, From, AsRef)]
-pub struct IssuerAttestationSettings(HashMap<String, IssuerAttestationData>);
+pub struct AttestationTypesConfigSettings(HashMap<String, AttestationTypeConfigSettings>);
 
 #[derive(Clone, Deserialize)]
-pub struct IssuerAttestationData {
+pub struct AttestationTypeConfigSettings {
     #[serde(flatten)]
     pub keypair: KeyPair,
 
@@ -126,12 +126,12 @@ impl IssuerSettings {
     }
 }
 
-impl IssuerAttestationSettings {
+impl AttestationTypesConfigSettings {
     pub async fn parse(
         self,
         hsm: &Option<Pkcs11Hsm>,
         metadata: &IndexMap<String, TypeMetadata>,
-    ) -> Result<AttestationSettings<PrivateKeyVariant>, PrivateKeySettingsError> {
+    ) -> Result<AttestationTypesConfig<PrivateKeyVariant>, PrivateKeySettingsError> {
         let issuer_keys = join_all(self.0.into_iter().map(|(typ, attestation)| {
             async move {
                 // Take the SAN from the settings if specified, or otherwise take the first SAN from the certificate.
@@ -149,7 +149,7 @@ impl IssuerAttestationSettings {
 
                 Ok((
                     typ.clone(),
-                    AttestationData {
+                    AttestationTypeConfig {
                         key_pair: attestation.keypair.parse(hsm.clone()).await?,
                         valid_days: Days::new(attestation.valid_days),
                         copy_count: attestation.copy_count,
@@ -161,7 +161,7 @@ impl IssuerAttestationSettings {
         }))
         .await
         .into_iter()
-        .collect::<Result<IndexMap<String, AttestationData<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
+        .collect::<Result<IndexMap<String, AttestationTypeConfig<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
 
         Ok(issuer_keys.into())
     }

@@ -284,7 +284,7 @@ pub trait AttributeService {
 /// Static attestation data shared across all instances of an attestation type. The issuer augments this with an
 /// [`IssuableDocument`] to form the attestation.
 #[derive(Debug)]
-pub struct AttestationData<K> {
+pub struct AttestationTypeConfig<K> {
     pub key_pair: KeyPair<K>,
     pub valid_days: Days,
     pub copy_count: NonZeroU8,
@@ -294,7 +294,7 @@ pub struct AttestationData<K> {
 
 /// Static attestation data indexed by attestation type.
 #[derive(Debug, From, AsRef)]
-pub struct AttestationSettings<K>(IndexMap<String, AttestationData<K>>);
+pub struct AttestationTypesConfig<K>(IndexMap<String, AttestationTypeConfig<K>>);
 
 pub struct Issuer<A, K, S, W> {
     sessions: Arc<S>,
@@ -307,7 +307,7 @@ pub struct Issuer<A, K, S, W> {
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, W> {
-    attestation_settings: AttestationSettings<K>,
+    attestation_config: AttestationTypesConfig<K>,
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
     /// and MUST be used by the wallet as `aud` in its PoP JWTs.
@@ -349,7 +349,7 @@ where
     pub fn new(
         sessions: S,
         attr_service: A,
-        attestation_settings: AttestationSettings<K>,
+        attestation_config: AttestationTypesConfig<K>,
         server_url: &BaseUrl,
         wallet_settings: WalletSettings<W>,
     ) -> Self {
@@ -358,7 +358,7 @@ where
 
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
-            attestation_settings,
+            attestation_config,
             credential_issuer_identifier: issuer_url.clone(),
             accepted_wallet_client_ids: wallet_settings.wallet_client_ids,
             wte_issuer_pubkey: (&wallet_settings.wte_issuer_pubkey).into(),
@@ -439,7 +439,7 @@ where
                 dpop,
                 &self.attr_service,
                 &self.issuer_data.credential_issuer_identifier,
-                &self.issuer_data.attestation_settings,
+                &self.issuer_data.attestation_config,
             )
             .await;
 
@@ -578,7 +578,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        attestation_settings: &AttestationSettings<impl EcdsaKey>,
+        attestation_settings: &AttestationTypesConfig<impl EcdsaKey>,
     ) -> Result<(TokenResponseWithPreviews, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)>
     {
         let result = self
@@ -609,7 +609,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        attestation_settings: &AttestationSettings<impl EcdsaKey>,
+        attestation_settings: &AttestationTypesConfig<impl EcdsaKey>,
     ) -> Result<(TokenResponseWithPreviews, VerifyingKey, String), TokenRequestError> {
         if !matches!(
             token_request.grant_type,
@@ -1007,7 +1007,7 @@ impl CredentialResponse {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let key_id = preview.issuer_key_identifier();
         let issuer_privkey = &issuer_data
-            .attestation_settings
+            .attestation_config
             .as_ref()
             .get(key_id)
             .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?

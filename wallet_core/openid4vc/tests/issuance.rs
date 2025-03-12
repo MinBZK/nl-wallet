@@ -28,7 +28,7 @@ use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::issuance_session::VcMessageClient;
-use openid4vc::issuer::AttestationData;
+use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -79,12 +79,12 @@ fn setup(
     let wte_issuer_privkey = SigningKey::random(&mut OsRng);
     let trust_anchor = ca.to_trust_anchor().to_owned();
 
-    let attestation_settings = MOCK_DOCTYPES
+    let attestation_config = MOCK_DOCTYPES
         .iter()
         .map(|doctype| {
             (
                 doctype.to_string(),
-                AttestationData {
+                AttestationTypeConfig {
                     // KeyPair doesn't implement clone, so manually construct a new KeyPair.
                     key_pair: KeyPair::new_from_signing_key(
                         issuance_keypair.private_key().clone(),
@@ -109,7 +109,7 @@ fn setup(
     let issuer = MockIssuer::new(
         MemorySessionStore::default(),
         attr_service,
-        attestation_settings,
+        attestation_config,
         &server_url,
         WalletSettings {
             wallet_client_ids: vec!["https://wallet.edi.rijksoverheid.nl".to_string()],

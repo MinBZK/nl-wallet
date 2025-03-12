@@ -4,7 +4,7 @@ use assert_matches::assert_matches;
 
 use nl_wallet_mdoc::server_keys::generate::Ca;
 use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use pid_issuer::settings::IssuerAttestationData;
+use pid_issuer::settings::AttestationTypeConfigSettings;
 use pid_issuer::settings::IssuerSettings;
 use pid_issuer::settings::IssuerSettingsError;
 use sd_jwt::metadata::TypeMetadata;
@@ -13,10 +13,10 @@ use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
 use wallet_common::urls::HttpsUri;
 
-fn mock_attestation_data(keypair: KeyPair) -> HashMap<String, IssuerAttestationData> {
+fn mock_attestation_data(keypair: KeyPair) -> HashMap<String, AttestationTypeConfigSettings> {
     HashMap::from([(
         "com.example.pid".to_string(),
-        IssuerAttestationData {
+        AttestationTypeConfigSettings {
             keypair,
             valid_days: 365,
             copy_count: 4.try_into().unwrap(),
@@ -76,7 +76,7 @@ fn test_settings_no_issuer_registration() {
     let mut attestation_settings = mock_attestation_data(issuer_cert_valid.into());
     attestation_settings.insert(
         "com.example.no_registration".to_string(),
-        IssuerAttestationData {
+        AttestationTypeConfigSettings {
             keypair: issuer_cert_no_registration.into(),
             valid_days: 365,
             copy_count: 4.try_into().unwrap(),

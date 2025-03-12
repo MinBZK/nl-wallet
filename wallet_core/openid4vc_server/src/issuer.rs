@@ -28,7 +28,7 @@ use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::Dpop;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
-use openid4vc::issuer::AttestationSettings;
+use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -53,7 +53,7 @@ struct ApplicationState<A, K, S, W> {
 
 pub fn create_issuance_router<A, K, S, W>(
     public_url: &BaseUrl,
-    attestation_settings: AttestationSettings<K>,
+    attestation_config: AttestationTypesConfig<K>,
     sessions: S,
     attr_service: A,
     wallet_settings: WalletSettings<W>,
@@ -65,13 +65,7 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     let application_state = Arc::new(ApplicationState {
-        issuer: Issuer::new(
-            sessions,
-            attr_service,
-            attestation_settings,
-            public_url,
-            wallet_settings,
-        ),
+        issuer: Issuer::new(sessions, attr_service, attestation_config, public_url, wallet_settings),
     });
 
     Router::new()
