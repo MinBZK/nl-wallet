@@ -42,7 +42,7 @@ const MIN_KEY_LENGTH_BYTES: usize = 16;
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct VerifierSettings {
-    pub usecases: VerifierUseCases,
+    pub usecases: UseCasesSettings,
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EphemeralIdSecret,
     pub allow_origins: Option<CorsOrigin>,
@@ -64,20 +64,20 @@ pub struct VerifierSettings {
 }
 
 #[derive(Clone, From, AsRef, IntoIterator, Deserialize)]
-pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
+pub struct UseCasesSettings(HashMap<String, UseCaseSettings>);
 
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
 pub struct EphemeralIdSecret(Vec<u8>);
 
 #[derive(Clone, Deserialize)]
-pub struct VerifierUseCase {
+pub struct UseCaseSettings {
     #[serde(default)]
     pub session_type_return_url: SessionTypeReturnUrl,
     #[serde(flatten)]
     pub key_pair: KeyPair,
 }
 
-impl VerifierUseCases {
+impl UseCasesSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCases<PrivateKeyVariant>, anyhow::Error> {
         let iter = self.into_iter().map(|(id, use_case)| async {
             let result = (id, use_case.parse(hsm.clone()).await?);
@@ -93,7 +93,7 @@ impl VerifierUseCases {
     }
 }
 
-impl VerifierUseCase {
+impl UseCaseSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
         let use_case = UseCase::try_new(self.key_pair.parse(hsm).await?, self.session_type_return_url)?;
 
