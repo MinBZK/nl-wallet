@@ -9,7 +9,7 @@ workspace = true
 
 [features]
 # Include implementations of the axum IntoResponse trait.
-axum = ["dep:axum-server"]
+server = ["dep:axum-server"]
 # Various test related functionality
 insecure_http_client = []
 

@@ -1,11 +1,11 @@
 use std::hash::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 use std::io;
 use std::path::Path;
 
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 use axum_server::tls_rustls::RustlsConfig;
 use derive_more::Debug;
 use http::Method;
@@ -92,7 +92,7 @@ impl TlsPinningConfig {
     }
 }
 
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 impl TlsServerConfig {
     pub async fn to_rustls_config(&self) -> Result<RustlsConfig, io::Error> {
         RustlsConfig::from_der(vec![self.cert.to_vec()], self.key.to_vec()).await
