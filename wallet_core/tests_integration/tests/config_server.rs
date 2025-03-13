@@ -78,7 +78,7 @@ async fn test_wallet_config_stale() {
     let (settings, _) = wallet_provider_settings();
 
     let mut served_wallet_config = default_wallet_config();
-    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
+    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(settings.webserver.port);
 
     let (mut cs_settings, cs_root_ca) = config_server_settings();
     cs_settings.wallet_config_jwt = config_jwt(&served_wallet_config);
@@ -113,7 +113,7 @@ async fn test_wallet_config_signature_verification_failed() {
     let (settings, _) = wallet_provider_settings();
 
     let mut served_wallet_config = default_wallet_config();
-    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&settings.webserver.port);
+    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(settings.webserver.port);
     // set the wallet_config that will be return from the config server to a lower version number than
     // we already have in the default configuration
     served_wallet_config.version = 0;

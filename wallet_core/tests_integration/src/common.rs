@@ -78,7 +78,7 @@ fn init() {
     init_logging();
 }
 
-pub fn local_wp_base_url(port: &u16) -> BaseUrl {
+pub fn local_wp_base_url(port: u16) -> BaseUrl {
     format!("https://localhost:{}/api/v1/", port)
         .parse()
         .expect("hardcode values should always parse successfully")
@@ -180,11 +180,17 @@ pub async fn setup_wallet_and_env(
 
     let ups_port = start_update_policy_server(ups_settings, ups_root_ca.clone()).await;
 
+    assert_eq!(Some(wp_settings.hsm.clone()), verifier_settings.server_settings.hsm);
+    assert_eq!(Some(wp_settings.hsm.clone()), issuer_settings.server_settings.hsm);
+
+    let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
+    let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
+
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
     served_wallet_config.pid_issuance.pid_issuer_url =
         local_pid_base_url(&issuer_settings.server_settings.wallet_server.port);
-    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
+    served_wallet_config.account_server.http_config.base_url = local_wp_base_url(wp_port);
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
 
@@ -201,16 +207,10 @@ pub async fn setup_wallet_and_env(
 
     let mut wallet_config = default_wallet_config();
     wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(&issuer_settings.server_settings.wallet_server.port);
-    wallet_config.account_server.http_config.base_url = local_wp_base_url(&wp_settings.webserver.port);
+    wallet_config.account_server.http_config.base_url = local_wp_base_url(wp_port);
     wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca];
 
-    assert_eq!(Some(wp_settings.hsm.clone()), verifier_settings.server_settings.hsm);
-    assert_eq!(Some(wp_settings.hsm.clone()), issuer_settings.server_settings.hsm);
-
-    let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
-
-    start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
     start_verification_server(verifier_settings, Some(hsm.clone())).await;
     start_issuer_server(issuer_settings, Some(hsm), MockAttributeService).await;
 
@@ -289,11 +289,9 @@ pub fn config_jwt(wallet_config: &WalletConfiguration) -> String {
 }
 
 pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
-    let port = find_listener_port();
-
     let mut settings = WpSettings::new().expect("Could not read settings");
     settings.webserver.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.webserver.port = port;
+    settings.webserver.port = 0;
     settings.pin_policy.timeouts = vec![200, 400, 600].into_iter().map(Duration::from_millis).collect();
 
     let root_ca = read_file("wp.ca.crt.der").try_into().unwrap();
@@ -333,8 +331,9 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     port
 }
 
-pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) {
-    let base_url = local_wp_base_url(&settings.webserver.port);
+pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) -> u16 {
+    let listener = TcpListener::bind("localhost:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
 
     let play_integrity_client = MockPlayIntegrityClient::new(
         settings.android.package_name.clone(),
@@ -342,8 +341,14 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     );
 
     tokio::spawn(async {
-        if let Err(error) =
-            wallet_provider::server::serve(settings, hsm, RevocationStatusList::default(), play_integrity_client).await
+        if let Err(error) = wallet_provider::server::serve_with_listener(
+            listener,
+            settings,
+            hsm,
+            RevocationStatusList::default(),
+            play_integrity_client,
+        )
+        .await
         {
             println!("Could not start wallet_provider: {:?}", error);
 
@@ -351,7 +356,9 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
         }
     });
 
+    let base_url = local_wp_base_url(port);
     wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
+    port
 }
 
 pub fn pid_issuer_settings() -> IssuerSettings {
