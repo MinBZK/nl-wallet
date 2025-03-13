@@ -13,14 +13,6 @@
   </suppress>
   <!-- End group: [CRITICAL] https://ossindex.sonatype.org/component/pkg:cocoapods/Flutter@1.0.0 -->
 
-  <!-- Start group: [HIGH] -->
-  <suppress>
-    <notes><![CDATA[file name: nl-wallet/Gemfile.lock:nokogiri]]></notes>
-    <packageUrl regex="true">^pkg:gem/nokogiri@.*$</packageUrl>
-    <vulnerabilityName>CVE-2024-25062</vulnerabilityName>
-  </suppress>
-  <!-- End group: [HIGH] -->
-
   <!-- Start group: [MEDIUM] -->
   <suppress>
     <notes><![CDATA[

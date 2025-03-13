@@ -160,7 +160,7 @@ pub enum AndroidKeyAttestationError {
 pub enum AndroidAppAttestationError {
     #[error("could not decode integrity toking using Play Integrity API")]
     DecodeIntegrityToken,
-    #[error("validation if integrity verdict failed: {0}")]
+    #[error("validation of integrity verdict failed: {0}")]
     IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
 }
 

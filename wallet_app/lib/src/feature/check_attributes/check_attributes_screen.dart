@@ -14,6 +14,7 @@ import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/sliver_divider.dart';
 import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -90,11 +91,10 @@ class CheckAttributesScreen extends StatelessWidget {
                         case CheckAttributesSuccess():
                           return SizedBox(
                             width: double.infinity,
-                            child: Text(
+                            child: BodyText(
                               context.l10n.checkAttributesScreenSubtitle(
                                 state.card.issuer.displayName.l10nValue(context),
                               ),
-                              style: context.textTheme.bodySmall,
                               textAlign: TextAlign.start,
                             ),
                           );

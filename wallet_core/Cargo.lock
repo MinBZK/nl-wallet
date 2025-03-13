@@ -3844,6 +3844,7 @@ dependencies = [
  "chrono",
  "derive_more",
  "http",
+ "indexmap 2.7.1",
  "nl_wallet_mdoc",
  "openid4vc",
  "p256",
@@ -4734,9 +4735,9 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.17.13"
+version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "70ac5d832aa16abd7d1def883a8545280c20a60f523a370aa3a9617c2b8550ee"
+checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
 dependencies = [
  "cc",
  "cfg-if",
@@ -5608,6 +5609,7 @@ dependencies = [
  "openid4vc_server",
  "p256",
  "rustls-pki-types",
+ "sd_jwt",
  "sea-orm",
  "serde",
  "serde_json",

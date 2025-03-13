@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-03-06T11:45:01+01:00",
+    "@@last_modified": "2025-03-07T10:32:12+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -230,18 +230,11 @@
     "dataIncorrectScreenHeaderTitle": "Kloppen de gegevens niet?",
     "detailsIncorrectScreenDescription": "Als je gegevens niet kloppen kan dat voor problemen zorgen. Neem contact op met jouw gemeente om je gegevens te laten aanpassen.\n\nWacht je nog op een aanpassing? Het kan even duren voordat die beschikbaar is in de app.",
     "detailsIncorrectScreenTitle": "Zijn je gegevens onjuist?",
-    "digidHelpScreenHelpNeededCta": "Naar DigiD Hulp",
-    "digidHelpScreenHelpNeededDescription": "DigiD Hulp kan je helpen met DigiD.",
-    "digidHelpScreenHelpNeededTitle": "Kom je er niet uit?",
-    "digidHelpScreenNoDigidCta": "DigiD aanvragen",
-    "digidHelpScreenNoDigidDescription": "Woon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
-    "digidHelpScreenNoDigidTitle": "Heb je nog geen DigiD?",
-    "digidHelpScreenTitle": "Hulp nodig met DigiD?",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Lees de voorwaarden",
     "disclosureConfirmDataAttributesDisclaimer": "Bedenk altijd of delen verstandig is.",
     "disclosureConfirmDataAttributesPageApproveCta": "Delen",
     "disclosureConfirmDataAttributesPageDenyCta": "Stop",
-    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {De {organization} bewaard je gegevens voor 1 maand en je gegevens worden niet gedeeld met andere organisaties.} other {De {organization} bewaard je gegevens voor {count} maanden en je gegevens worden niet gedeeld met andere organisaties.}}",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {{organization} zal je gegevens 1 maand bewaren en niet delen met andere organisaties.} other {{organization} zal je gegevens {count} maanden bewaren en niet delen met andere organisaties.}}",
     "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
         "placeholders": {
             "count": {
@@ -263,7 +256,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {De {organization} bewaard je gegevens voor 1 maand en kan deze delen met andere organisaties.} other {De {organization} bewaard je gegevens voor {count} maanden en kan deze delen met andere organisaties.}}",
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {{organization} zal je gegevens 1 maand bewaren en kan deze delen met andere organisaties.} other {{organization} zal je gegevens {count} maanden bewaren en kan deze delen met andere organisaties.}}",
     "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
         "placeholders": {
             "count": {
@@ -276,7 +269,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} bewaard je gegevens niet maar kan deze wel delen met andere organisaties.",
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} zal je gegevens niet bewaren en kan deze delen met andere organisaties.",
     "@disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": {
         "placeholders": {
             "organization": {
@@ -382,7 +375,7 @@
             }
         }
     },
-    "disclosureSuccessPageShowHistoryCta": "Bekijk activiteiten",
+    "disclosureSuccessPageShowHistoryCta": "Bekijk activiteit",
     "disclosureSuccessPageTitle": "Gelukt!",
     "disclosureSuccessPageToDashboardCta": "Naar mijn overzicht",
     "disclosureSuccessPageToWebsiteCta": "Ga naar website",
@@ -1092,16 +1085,14 @@
     "walletPersonalizeDigidCancelledPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
     "walletPersonalizeDigidCancelledPageTitle": "Inloggen afgebroken",
     "walletPersonalizeDigidErrorPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
+    "walletPersonalizeDigidErrorPageDigidWebsiteCta": "Ga naar DigiD-website",
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
-    "walletPersonalizeDigidErrorPageNoDigidCta": "Hulp nodig met DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Inloggen niet gelukt",
     "walletPersonalizeIntroPageDescription": "Log één keer in met DigiD om je kaarten te krijgen van de Rijksdienst voor Identiteitsgegevens (RvIG).",
+    "walletPersonalizeIntroPageDigidWebsiteCta": "Ga naar DigiD-website",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open de DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "Geen DigiD?",
     "walletPersonalizeIntroPageTitle": "Kaarten toevoegen via DigiD",
-    "walletPersonalizeNoDigidPageDescription": "Op dit moment kun je de NL Wallet alleen gebruiken door je gegevens op te halen via de DigiD app.\n\nWoon je in Nederland en heb je een Nederlands identiteitsbewijs? Dan kun je een DigiD aanvragen.",
-    "walletPersonalizeNoDigidPageHeadline": "Geen DigiD?",
-    "walletPersonalizeNoDigidPageRequestDigidCta": "Ga naar DigiD website",
     "walletPersonalizeScreenAddingCardsSubtitle": "Kaarten worden toegevoegd",
     "walletPersonalizeScreenAwaitingUserAuthDescription": "Zo haal je je gegevens op",
     "walletPersonalizeScreenAwaitingUserAuthTitle": "Ga verder in je DigiD app",

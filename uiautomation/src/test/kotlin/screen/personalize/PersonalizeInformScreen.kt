@@ -6,17 +6,19 @@ class PersonalizeInformScreen : MobileActions() {
 
     private val screen = find.byValueKey("personalizeInformPage")
 
-    private val loginWithDigidButton = find.byValueKey("loginWithDigidCta")
-    private val noDigidButton = find.byValueKey("noDigidCta")
+    private val digidLoginButton = find.byValueKey("digidLoginCta")
+    private val digidWebsiteButton = find.byValueKey("digidWebsiteCta")
 
     fun visible() = isElementVisible(screen)
 
-    fun loginWithDigidButtonVisible() = isElementVisible(loginWithDigidButton)
+    fun digidLoginButtonVisible() = isElementVisible(digidLoginButton)
 
-    fun clickLoginWithDigidButton(switchToWebViewContext: Boolean = true) {
-        clickElement(loginWithDigidButton)
+    fun clickDigidLoginButton(switchToWebViewContext: Boolean = true) {
+        clickElement(digidLoginButton)
         if (switchToWebViewContext) switchToWebViewContext()
     }
 
-    fun clickNoDigidButton() = clickElement(noDigidButton)
+    fun clickDigidWebsiteButton() = clickElement(digidWebsiteButton)
+
+    fun switchToWebView() = switchToWebViewContext()
 }

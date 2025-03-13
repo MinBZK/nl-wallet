@@ -4,12 +4,12 @@
 #    when: always
 #    reports:
 #      coverage_report:
-#        path: wallet_core/platform_support/android/platform_support/src/main/java/cobertura.xml
+#        path: wallet_core/platform_support/android/src/main/java/cobertura.xml
 #        coverage_format: cobertura
-#      junit: wallet_core/platform_support/android/platform_support/build/outputs/androidTest-results/connected/*
+#      junit: wallet_core/platform_support/android/build/outputs/androidTest-results/connected/*
 #    paths:
-#      - wallet_core/platform_support/android/platform_support/build/reports/**
-#      - wallet_core/platform_support/android/platform_support/build/outputs/androidTest-results
+#      - wallet_core/platform_support/android/build/reports/**
+#      - wallet_core/platform_support/android/build/outputs/androidTest-results
 #  before_script:
 #    - echo "no" | avdmanager -s create avd --name $CI_JOB_NAME_SLUG --package "system-images;android-24;default;arm64-v8a"
 #  script:

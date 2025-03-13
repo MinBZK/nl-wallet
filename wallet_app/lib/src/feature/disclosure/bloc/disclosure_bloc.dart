@@ -9,13 +9,14 @@ import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
-import '../../../domain/model/disclosure/disclosure_type.dart';
+import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
+import '../../../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import '../../../util/cast_util.dart';
 import '../../report_issue/report_issue_screen.dart';
 
@@ -25,6 +26,7 @@ part 'disclosure_state.dart';
 class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   final StartDisclosureUseCase _startDisclosureUseCase;
   final CancelDisclosureUseCase _cancelDisclosureUseCase;
+  final GetMostRecentWalletEventUseCase _getMostRecentWalletEventUseCase;
 
   StartDisclosureResult? _startDisclosureResult;
 
@@ -35,6 +37,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   DisclosureBloc(
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
+    this._getMostRecentWalletEventUseCase,
   ) : super(DisclosureLoadInProgress()) {
     on<DisclosureSessionStarted>(_onSessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
@@ -249,11 +252,14 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     }
   }
 
-  void _onPinConfirmed(DisclosurePinConfirmed event, emit) {
+  Future<void> _onPinConfirmed(DisclosurePinConfirmed event, emit) async {
     assert(_startDisclosureResult != null, 'DisclosureResult should still be available after confirming the tx');
+    final lastEvent = await _getMostRecentWalletEventUseCase.invoke();
+    assert(lastEvent != null, 'Last event should not be null after a successful disclosure');
     emit(
       DisclosureSuccess(
         relyingParty: _startDisclosureResult!.relyingParty,
+        event: lastEvent,
         returnUrl: event.returnUrl,
         isLoginFlow: isLoginFlow,
       ),

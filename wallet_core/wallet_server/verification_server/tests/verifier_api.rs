@@ -68,8 +68,8 @@ use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
 use verification_server::server;
+use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use verification_server::settings::VerifierUseCase;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
@@ -133,7 +133,7 @@ fn wallet_server_settings() -> (VerifierSettings, Ca, TrustAnchor<'static>) {
     let usecase_keypair = rp_ca.generate_reader_mock(reader_registration).unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
-        VerifierUseCase {
+        UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
         },

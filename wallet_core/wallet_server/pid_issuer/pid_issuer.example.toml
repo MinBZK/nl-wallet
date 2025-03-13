@@ -4,13 +4,10 @@
 public_url = 'http://localhost:3001/'
 
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
-wte_issuer_pubkey = "" # Public key of the WTE issuer
+wte_issuer_pubkey = ""            # Public key of the WTE issuer
 
 # Files containing SD-JWT Type Metadata documents
-metadata = [
-    "com_example_pid_metadata.json",
-    "com_example_address_metadata.json"
-]
+metadata = ["com_example_pid_metadata.json", "com_example_address_metadata.json"]
 
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
@@ -19,6 +16,13 @@ url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 ip = '127.0.0.1'
 port = 3001
 
+# Optional, for securing private keys
+[hsm]
+library_path = "/path/to/hsm.so"
+user_pin = "12345678"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
 [digid]
 bsn_privkey = ""
 
@@ -26,6 +30,16 @@ bsn_privkey = ""
 base_url = "https://localhost:8006"
 trust_anchors = [""]
 
-[private_keys."com.example.pid"]
-private_key = "MI..."
+[attestation_settings."com.example.pid"]
+valid_days = 365
+copy_count = 4
+private_key_type = "hsm"
+private_key = "pid_issuer_key" # label for the private key in the HSM
+certificate = "MIJ..."
+
+[attestation_settings."com.example.address"]
+valid_days = 365
+copy_count = 4
+private_key_type = "software"
+private_key = "MIG..."        # DER-encoded private key
 certificate = "MIJ..."
