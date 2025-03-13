@@ -93,7 +93,7 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-configuration = { path = "../../configuration", features = ["insecure_http_client"] }
+configuration = { path = "../../wallet_configuration/configuration", features = ["insecure_http_client"] }
 nl_wallet_mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
 poa = { path = "../../poa", features = ["mock"] }
 sd_jwt = { path = "../../sd_jwt", features = ["example_constructors"] }

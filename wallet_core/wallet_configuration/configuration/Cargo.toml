@@ -23,6 +23,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 url = { workspace = true, features = ["serde"] }
 
-wallet_common.path = "../wallet_common"
+wallet_common.path = "../../wallet_common"
 
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }

@@ -2,18 +2,19 @@
 members = [
     "android_attest",
     "apple_app_attest",
-    "configuration_server",
     "error_category",
     "error_category/error_category_derive",
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
     "hsm",
+    "jwt",
     "mdoc",
     "mock_relying_party",
     "openid4vc",
     "openid4vc_server",
     "platform_support",
+    "poa",
     "sd_jwt",
     "tests_integration",
     "update_policy_server",
@@ -23,6 +24,8 @@ members = [
     "wallet_account",
     "wallet_ca",
     "wallet_common",
+    "wallet_configuration/configuration",
+    "wallet_configuration/configuration_server",
     "wallet_provider",
     "wallet_provider/database_settings",
     "wallet_provider/domain",
@@ -32,7 +35,7 @@ members = [
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/pid_issuer",
-    "wallet_server/verification_server", "poa", "jwt", "configuration",
+    "wallet_server/verification_server",
 ]
 exclude = ["uniffi-bindgen"]
 resolver = "2"

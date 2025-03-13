@@ -30,7 +30,7 @@ tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "env-filter", "fmt", "json"] }
 
-configuration.path = "../configuration"
+configuration.path = "../wallet_configuration/configuration"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]

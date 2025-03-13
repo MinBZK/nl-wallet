@@ -68,7 +68,7 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-json",
 ] }
 
-configuration.path = "../../configuration"
+configuration.path = "../../wallet_configuration/configuration"
 hsm = { path = "../../hsm", features = ["settings"] }
 jwt.path = "../../jwt"
 nl_wallet_mdoc.path = "../../mdoc"
@@ -83,7 +83,7 @@ assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-configuration = { path = "../../configuration", features = ["insecure_http_client"] }
+configuration = { path = "../../wallet_configuration/configuration", features = ["insecure_http_client"] }
 nl_wallet_mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
 sd_jwt = { path = "../../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../../wallet_common", features = ["mock_remote_key", "mock_time"] }
