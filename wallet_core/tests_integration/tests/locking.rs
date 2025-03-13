@@ -15,7 +15,7 @@ use wallet::errors::WalletUnlockError;
 async fn test_unlock_ok(#[values(WalletDeviceVendor::Apple, WalletDeviceVendor::Google)] vendor: WalletDeviceVendor) {
     let pin = "112234".to_string();
 
-    let mut wallet = setup_wallet_and_default_env(vendor).await;
+    let (mut wallet, _) = setup_wallet_and_default_env(vendor).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     wallet.lock();
@@ -41,7 +41,7 @@ async fn test_block() {
     settings.pin_policy.attempts_per_round = 2;
     settings.pin_policy.timeouts = vec![];
 
-    let mut wallet = setup_wallet_and_env(
+    let (mut wallet, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         update_policy_server_settings(),
@@ -87,7 +87,7 @@ async fn test_block() {
 #[serial(hsm)]
 async fn test_unlock_error() {
     let pin = "112234".to_string();
-    let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
 
     wallet.lock();

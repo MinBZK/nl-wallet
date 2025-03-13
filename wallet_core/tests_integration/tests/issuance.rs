@@ -10,7 +10,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _context = setup_digid_context();
 
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
