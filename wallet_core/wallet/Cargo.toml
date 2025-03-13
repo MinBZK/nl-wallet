@@ -75,7 +75,7 @@ openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
 poa.path = "../poa"
 sd_jwt.path = "../sd_jwt"
-wallet_account = { path = "../wallet_account", features = ["client"] }
+wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 wallet_common = { path = "../wallet_common" }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
@@ -98,7 +98,7 @@ openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
-wallet_account = { path = "../wallet_account", features = ["client", "server"] }
+wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
 wallet_common = { path = "../wallet_common", features = [
     "mock_secure_keys",
     "mock_remote_key",
