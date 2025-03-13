@@ -54,7 +54,7 @@ serde_json = { workspace = true, optional = true }
 strum = { workspace = true, optional = true, features = ["derive"] }
 
 hsm.path = "../../hsm"
-nl_wallet_mdoc.path = "../../mdoc"
+mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }
 openid4vc_server.path = "../../openid4vc_server"
 sd_jwt.path = "../../sd_jwt"

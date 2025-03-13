@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use indexmap::IndexMap;
 use itertools::Itertools;
 
-use nl_wallet_mdoc::utils::auth::Organization;
+use mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimPath;

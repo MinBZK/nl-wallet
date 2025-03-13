@@ -22,14 +22,14 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::errors::Error as MdocError;
-use nl_wallet_mdoc::utils::serialization::CborBase64;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::verifier::DisclosedAttributes;
-use nl_wallet_mdoc::verifier::ItemsRequests;
-use nl_wallet_mdoc::DeviceResponse;
-use nl_wallet_mdoc::SessionTranscript;
+use mdoc::errors::Error as MdocError;
+use mdoc::utils::serialization::CborBase64;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::CertificateError;
+use mdoc::verifier::DisclosedAttributes;
+use mdoc::verifier::ItemsRequests;
+use mdoc::DeviceResponse;
+use mdoc::SessionTranscript;
 use poa::Poa;
 use poa::PoaVerificationError;
 use wallet_common::generator::Generator;
@@ -565,15 +565,15 @@ pub enum AuthResponseError {
     #[error("failed to decode apu/apv field from JWE")]
     Utf8(#[from] FromUtf8Error),
     #[error("error verifying disclosed mdoc(s): {0}")]
-    Verification(#[source] nl_wallet_mdoc::Error),
+    Verification(#[source] mdoc::Error),
     #[error("missing requested attributes: {0}")]
-    MissingAttributes(#[source] nl_wallet_mdoc::Error),
+    MissingAttributes(#[source] mdoc::Error),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
     PresentationSubmission(#[from] PsError),
     #[error("error collecting keys to verify PoA: {0}")]
-    PoaKeys(#[source] nl_wallet_mdoc::Error),
+    PoaKeys(#[source] mdoc::Error),
     #[error("missing PoA")]
     MissingPoa,
     #[error("error verifying PoA: {0}")]
@@ -825,25 +825,25 @@ mod tests {
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
-    use nl_wallet_mdoc::examples::example_items_requests;
-    use nl_wallet_mdoc::examples::Example;
-    use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::server_keys::KeyPair;
-    use nl_wallet_mdoc::test::data::addr_street;
-    use nl_wallet_mdoc::test::data::pid_full_name;
-    use nl_wallet_mdoc::utils::serialization::cbor_serialize;
-    use nl_wallet_mdoc::utils::serialization::CborBase64;
-    use nl_wallet_mdoc::utils::serialization::CborSeq;
-    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-    use nl_wallet_mdoc::verifier::ItemsRequests;
-    use nl_wallet_mdoc::DeviceAuthenticationKeyed;
-    use nl_wallet_mdoc::DeviceResponse;
-    use nl_wallet_mdoc::DeviceResponseVersion;
-    use nl_wallet_mdoc::DeviceSigned;
-    use nl_wallet_mdoc::Document;
-    use nl_wallet_mdoc::IssuerSigned;
-    use nl_wallet_mdoc::SessionTranscript;
+    use mdoc::examples::example_items_requests;
+    use mdoc::examples::Example;
+    use mdoc::examples::IsoCertTimeGenerator;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::server_keys::KeyPair;
+    use mdoc::test::data::addr_street;
+    use mdoc::test::data::pid_full_name;
+    use mdoc::utils::serialization::cbor_serialize;
+    use mdoc::utils::serialization::CborBase64;
+    use mdoc::utils::serialization::CborSeq;
+    use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::verifier::ItemsRequests;
+    use mdoc::DeviceAuthenticationKeyed;
+    use mdoc::DeviceResponse;
+    use mdoc::DeviceResponseVersion;
+    use mdoc::DeviceSigned;
+    use mdoc::Document;
+    use mdoc::IssuerSigned;
+    use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
     use wallet_common::generator::mock::MockTimeGenerator;

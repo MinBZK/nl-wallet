@@ -39,14 +39,13 @@ use entity::history_attestation_type;
 use entity::issuance_history_event;
 use entity::issuance_history_event_attestation_type;
 use entity::keyed_data;
-use entity::mdoc;
 use entity::mdoc_copy;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
-use nl_wallet_mdoc::utils::serialization::cbor_serialize;
-use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::serialization::cbor_deserialize;
+use mdoc::utils::serialization::cbor_serialize;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
@@ -514,7 +513,7 @@ where
 
                 // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter() above.
                 let doc_type = mdoc_copies.into_iter().next().unwrap().doc_type().clone();
-                let mdoc_model = mdoc::ActiveModel {
+                let mdoc_model = entity::mdoc::ActiveModel {
                     id: Set(mdoc_id),
                     doc_type: Set(doc_type),
                 };
@@ -528,7 +527,9 @@ where
 
         let transaction = self.database()?.connection().begin().await?;
 
-        mdoc::Entity::insert_many(mdoc_models).exec(&transaction).await?;
+        entity::mdoc::Entity::insert_many(mdoc_models)
+            .exec(&transaction)
+            .await?;
         mdoc_copy::Entity::insert_many(copy_models.into_iter().flatten())
             .exec(&transaction)
             .await?;
@@ -560,8 +561,8 @@ where
 
         self.query_unique_mdocs(move |select| {
             select
-                .inner_join(mdoc::Entity)
-                .filter(mdoc::Column::DocType.is_in(doc_types_iter))
+                .inner_join(entity::mdoc::Entity)
+                .filter(entity::mdoc::Column::DocType.is_in(doc_types_iter))
         })
         .await
     }
@@ -724,12 +725,12 @@ pub(crate) mod tests {
     use chrono::Utc;
     use tokio::fs;
 
-    use nl_wallet_mdoc::holder::Mdoc;
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::server_keys::KeyPair;
-    use nl_wallet_mdoc::test::data::PID;
-    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    use mdoc::holder::Mdoc;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::server_keys::KeyPair;
+    use mdoc::test::data::PID;
+    use mdoc::utils::issuer_auth::IssuerRegistration;
+    use mdoc::utils::reader_auth::ReaderRegistration;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;

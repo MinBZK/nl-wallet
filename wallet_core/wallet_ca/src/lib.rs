@@ -10,7 +10,7 @@ use pem::EncodeConfig;
 use pem::LineEnding;
 use pem::Pem;
 
-use nl_wallet_mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::generate::Ca;
 
 pub fn read_public_key(public_key_file: &CachedInput) -> Result<Pem> {
     let pem = Pem::try_from(public_key_file.get_data())?;

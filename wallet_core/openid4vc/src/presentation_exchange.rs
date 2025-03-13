@@ -12,9 +12,9 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::verifier::ItemsRequests;
-use nl_wallet_mdoc::Document;
-use nl_wallet_mdoc::ItemsRequest;
+use mdoc::verifier::ItemsRequests;
+use mdoc::Document;
+use mdoc::ItemsRequest;
 use wallet_common::utils::random_string;
 
 use crate::openid4vp::FormatAlg;
@@ -236,8 +236,8 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use nl_wallet_mdoc::examples::example_items_requests;
-    use nl_wallet_mdoc::verifier::ItemsRequests;
+    use mdoc::examples::example_items_requests;
+    use mdoc::verifier::ItemsRequests;
 
     use super::FormatAlg;
     use super::LimitDisclosure;

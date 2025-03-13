@@ -2,8 +2,8 @@ use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
-use nl_wallet_mdoc::verifier::DisclosedAttributes;
-use nl_wallet_mdoc::verifier::ItemsRequests;
+use mdoc::verifier::DisclosedAttributes;
+use mdoc::verifier::ItemsRequests;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionToken;
 use openid4vc_server::verifier::DisclosedAttributesParams;

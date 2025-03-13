@@ -14,12 +14,12 @@ use serde_with::StringWithSeparator;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::CertificateType;
-use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use mdoc::unsigned::UnsignedMdoc;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateType;
+use mdoc::utils::x509::CertificateUsage;
 use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::HttpsUri;
