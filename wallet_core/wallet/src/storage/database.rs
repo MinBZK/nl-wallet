@@ -8,9 +8,9 @@ use sea_orm::DbErr;
 use sea_orm::TransactionTrait;
 use tokio::fs;
 
-use migration::Migrator;
-use migration::MigratorTrait;
 use tracing::log::LevelFilter;
+use wallet_migrations::Migrator;
+use wallet_migrations::MigratorTrait;
 
 use super::sql_cipher_key::SqlCipherKey;
 
