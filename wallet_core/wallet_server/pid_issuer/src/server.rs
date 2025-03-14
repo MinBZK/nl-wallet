@@ -7,7 +7,7 @@ use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::WalletSettings;
+use openid4vc::issuer::WteConfig;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::WteTracker;
 use openid4vc_server::issuer::create_issuance_router;
@@ -38,7 +38,7 @@ pub async fn serve_with_listener<A, IS, W>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
-    issuance_sessions: IS,
+    issuance_sessions: Arc<IS>,
     wte_tracker: W,
 ) -> Result<()>
 where
@@ -56,11 +56,11 @@ where
         attestation_config,
         issuance_sessions,
         attr_service,
-        WalletSettings {
-            wallet_client_ids: settings.wallet_client_ids,
-            wte_issuer_pubkey: settings.wte_issuer_pubkey.into_inner(),
-            wte_tracker,
-        },
+        settings.wallet_client_ids,
+        Some(WteConfig {
+            wte_issuer_pubkey: settings.wte_issuer_pubkey.as_inner().into(),
+            wte_tracker: Arc::new(wte_tracker),
+        }),
     );
 
     listen(

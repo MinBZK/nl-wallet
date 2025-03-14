@@ -34,7 +34,7 @@ pub async fn serve_with_listeners<S>(
     requester_listener: Option<TcpListener>,
     settings: VerifierSettings,
     hsm: Option<Pkcs11Hsm>,
-    disclosure_sessions: S,
+    disclosure_sessions: Arc<S>,
 ) -> Result<()>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
