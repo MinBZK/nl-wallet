@@ -185,7 +185,7 @@ pub enum CredentialRequestError {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    pub credential_previews: Option<Vec<CredentialFormats<CredentialPreview>>>,
+    pub issuable_documents: Option<VecNonEmpty<IssuableDocument>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -463,7 +463,7 @@ where
             .unwrap_or(SessionState::<IssuanceData>::new(
                 session_token,
                 IssuanceData::Created(Created {
-                    credential_previews: None,
+                    issuable_documents: None,
                 }),
             ));
         let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
