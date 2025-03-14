@@ -17,8 +17,8 @@ use serde_with::hex::Hex;
 use serde_with::serde_as;
 
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::utils::x509::CertificateType;
-use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use mdoc::utils::x509::CertificateType;
+use mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCase;

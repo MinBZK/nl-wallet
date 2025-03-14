@@ -1,6 +1,6 @@
 use std::num::NonZero;
 
-use nl_wallet_mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateError;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;

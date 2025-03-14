@@ -7,12 +7,12 @@ use uuid::Uuid;
 
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event::EventType;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::holder::ProposedAttributes;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use mdoc::holder::Mdoc;
+use mdoc::holder::ProposedAttributes;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::MdocCertificateExtension;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
@@ -216,12 +216,12 @@ mod test {
     use indexmap::IndexMap;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::unsigned::{Entry, UnsignedMdoc};
-    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-    use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-    use nl_wallet_mdoc::DataElementValue;
+    use mdoc::holder::ProposedDocumentAttributes;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::unsigned::{Entry, UnsignedMdoc};
+    use mdoc::utils::issuer_auth::IssuerRegistration;
+    use mdoc::utils::x509::BorrowingCertificate;
+    use mdoc::DataElementValue;
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::issuance;

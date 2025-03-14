@@ -134,7 +134,7 @@ pub struct JwtCredentialConfirmation {
 mod tests {
     use indexmap::IndexMap;
 
-    use nl_wallet_mdoc::server_keys::generate::Ca;
+    use mdoc::server_keys::generate::Ca;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use super::JwtCredential;

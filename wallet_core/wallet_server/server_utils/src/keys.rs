@@ -6,7 +6,7 @@ use p256::ecdsa::VerifyingKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateError;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::EcdsaKeySend;

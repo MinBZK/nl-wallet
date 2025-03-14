@@ -25,9 +25,9 @@ use x509_parser::der_parser::Oid;
 use x509_parser::prelude::FromDer;
 use x509_parser::x509::AlgorithmIdentifier;
 
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::CertificateUsage;
 use wallet_common::generator::Generator;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
@@ -529,10 +529,10 @@ mod tests {
     use rand_core::OsRng;
     use serde_json::json;
 
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
-    use nl_wallet_mdoc::utils::x509::CertificateError;
-    use nl_wallet_mdoc::utils::x509::CertificateUsage;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::utils::x509::CertificateConfiguration;
+    use mdoc::utils::x509::CertificateError;
+    use mdoc::utils::x509::CertificateUsage;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 

@@ -3,7 +3,7 @@ use jsonwebtoken::jwk::EllipticCurve;
 use p256::ecdsa::signature;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum JwtError {

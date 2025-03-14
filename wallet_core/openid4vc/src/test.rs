@@ -11,15 +11,15 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use jwt::Jwt;
-use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
-use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
-use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
-use nl_wallet_mdoc::holder::mock::MockMdocDataSource;
-use nl_wallet_mdoc::iso::device_retrieval::ItemsRequest;
-use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::verifier::ItemsRequests;
+use mdoc::examples::EXAMPLE_ATTRIBUTES;
+use mdoc::examples::EXAMPLE_DOC_TYPE;
+use mdoc::examples::EXAMPLE_NAMESPACE;
+use mdoc::holder::mock::MockMdocDataSource;
+use mdoc::iso::device_retrieval::ItemsRequest;
+use mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::verifier::ItemsRequests;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 

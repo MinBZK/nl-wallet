@@ -43,7 +43,7 @@ use crate::MobileSecurityObject;
 ///
 /// Example code:
 /// ```rust
-/// use nl_wallet_mdoc::test::DebugCollapseBts;
+/// use mdoc::test::DebugCollapseBts;
 ///
 /// #[derive(Debug)]
 /// struct Test {

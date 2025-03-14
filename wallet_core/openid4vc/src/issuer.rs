@@ -30,11 +30,11 @@ use jwt::validations;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
 use jwt::NL_WALLET_CLIENT_ID;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::crypto::CryptoError;
-use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::IssuerSigned;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::crypto::CryptoError;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::x509::CertificateError;
+use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
 use sd_jwt::metadata::TypeMetadataChain;
@@ -161,7 +161,7 @@ pub enum CredentialRequestError {
     #[error("missing issuance private key for doctype {0}")]
     MissingPrivateKey(String),
     #[error("failed to sign credential: {0}")]
-    CredentialSigning(nl_wallet_mdoc::Error),
+    CredentialSigning(mdoc::Error),
     #[error("CBOR error: {0}")]
     CborSerialization(#[from] CborError),
     #[error("JSON serialization failed: {0}")]
@@ -966,7 +966,7 @@ impl<T: IssuanceState> Session<T> {
 
 impl CredentialPreview {
     /// Returns an identifier for the issuer private key with which this credential is to be issued.
-    /// The issuer will need to have a private key for this identifier
+    /// The issuer will need to have a private key under this identifier in its [`KeyRing`].
     fn issuer_key_identifier(&self) -> &str {
         match self {
             CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,

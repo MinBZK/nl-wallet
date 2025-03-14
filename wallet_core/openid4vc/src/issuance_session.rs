@@ -25,14 +25,14 @@ use jwt::error::JwtError;
 use jwt::pop::JwtPopClaims;
 use jwt::Jwt;
 use jwt::NL_WALLET_CLIENT_ID;
-use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::identifiers::AttributeIdentifier;
-use nl_wallet_mdoc::utils::cose::CoseError;
-use nl_wallet_mdoc::utils::serialization::CborBase64;
-use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
+use mdoc::holder::IssuedDocumentMismatchError;
+use mdoc::holder::Mdoc;
+use mdoc::identifiers::AttributeIdentifier;
+use mdoc::utils::cose::CoseError;
+use mdoc::utils::serialization::CborBase64;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::serialization::TaggedBytes;
+use mdoc::ATTR_RANDOM_LENGTH;
 use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt::metadata::TypeMetadataError;
@@ -96,7 +96,7 @@ pub enum IssuanceSessionError {
     #[error("mismatch between issued and expected attributes: {0:?}")]
     IssuedMdocMismatch(IssuedDocumentMismatchError<AttributeIdentifier>),
     #[error("mdoc verification failed: {0}")]
-    MdocVerification(#[source] nl_wallet_mdoc::Error),
+    MdocVerification(#[source] mdoc::Error),
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataError),
@@ -113,7 +113,7 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     PublicKeyMismatch,
     #[error("failed to get mdoc public key: {0}")]
-    PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
+    PublicKeyFromMdoc(#[source] mdoc::Error),
     #[error("received {found} responses, expected {expected}")]
     #[category(critical)]
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
@@ -128,7 +128,7 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     IssuerMismatch,
     #[error("error retrieving metadata from issued mdoc: {0}")]
-    Metadata(#[source] nl_wallet_mdoc::Error),
+    Metadata(#[source] mdoc::Error),
     #[error("metadata contained in credential not equal to expected value")]
     #[category(critical)]
     MetadataMismatch,
@@ -890,15 +890,15 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::test::data;
-    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-    use nl_wallet_mdoc::utils::serialization::CborBase64;
-    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-    use nl_wallet_mdoc::utils::x509::CertificateError;
-    use nl_wallet_mdoc::IssuerSigned;
+    use mdoc::holder::IssuedDocumentMismatchError;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::test::data;
+    use mdoc::unsigned::UnsignedMdoc;
+    use mdoc::utils::issuer_auth::IssuerRegistration;
+    use mdoc::utils::serialization::CborBase64;
+    use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::utils::x509::CertificateError;
+    use mdoc::IssuerSigned;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::keys::factory::KeyFactory;

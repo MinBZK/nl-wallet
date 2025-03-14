@@ -12,9 +12,9 @@ use url::Url;
 
 use jwt::JsonJwt;
 use jwt::Jwt;
-use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use openid4vc::credential::CredentialRequest;

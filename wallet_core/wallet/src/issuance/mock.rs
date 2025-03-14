@@ -4,10 +4,10 @@ use chrono::Days;
 use chrono::Utc;
 use indexmap::IndexMap;
 
-use nl_wallet_mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::DataElementValue;
+use mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
+use mdoc::unsigned::Entry;
+use mdoc::unsigned::UnsignedMdoc;
+use mdoc::DataElementValue;
 use sd_jwt::metadata::TypeMetadata;
 
 use super::PID_DOCTYPE;

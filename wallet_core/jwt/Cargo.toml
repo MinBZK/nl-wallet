@@ -24,7 +24,7 @@ thiserror.workspace = true
 x509-parser.workspace = true
 
 error_category.path = "../error_category"
-nl_wallet_mdoc.path = "../mdoc"
+mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
@@ -34,5 +34,5 @@ indexmap.workspace = true
 rand_core.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock"] }
+mdoc = { path = "../mdoc", features = ["generate", "mock"] }
 wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_remote_key"] }
