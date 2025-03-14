@@ -186,7 +186,7 @@ impl AttestationAttributeValue {
             (JsonSchemaPropertyType::Boolean, AttributeValue::Bool(bool)) => {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Bool(bool)))
             }
-            (JsonSchemaPropertyType::Number, AttributeValue::Number(integer)) => {
+            (JsonSchemaPropertyType::Integer, AttributeValue::Number(integer)) => {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Number(integer)))
             }
             (JsonSchemaPropertyType::String, AttributeValue::Text(text)) => {
@@ -211,6 +211,7 @@ pub mod test {
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
     use indexmap::IndexMap;
+    use rstest::rstest;
     use serde_json::json;
 
     use openid4vc::attributes::Attribute;
@@ -494,5 +495,42 @@ pub mod test {
                 ],
             ])
         );
+    }
+
+    #[rstest]
+    #[case(AttributeValue::Text(String::from("normal text")), JsonSchemaProperty {
+            r#type: JsonSchemaPropertyType::String,
+            format: None,
+            properties: None,
+        })]
+    #[case(AttributeValue::Bool(false), JsonSchemaProperty {
+            r#type: JsonSchemaPropertyType::Boolean,
+            format: None,
+            properties: None,
+        })]
+    #[case(AttributeValue::Number(123), JsonSchemaProperty {
+            r#type: JsonSchemaPropertyType::Integer,
+            format: None,
+            properties: None,
+        })]
+    #[case(AttributeValue::Text(String::from("2002-12-28")), JsonSchemaProperty {
+            r#type: JsonSchemaPropertyType::String,
+            format: Some(JsonSchemaPropertyFormat::Date),
+            properties: None,
+        })]
+    #[should_panic]
+    #[case(AttributeValue::Text(String::from("2002-12-28")), JsonSchemaProperty {
+            r#type: JsonSchemaPropertyType::Number,
+            format: None,
+            properties: None,
+        })]
+    #[should_panic]
+    #[case(AttributeValue::Text(String::from("2002-13-13")), JsonSchemaProperty {
+            r#type: JsonSchemaPropertyType::String,
+            format: Some(JsonSchemaPropertyFormat::Date),
+            properties: None,
+        })]
+    fn test_attribute_conversion(#[case] value: AttributeValue, #[case] prop: JsonSchemaProperty) {
+        AttestationAttributeValue::try_from_attribute_value(value, &prop).unwrap();
     }
 }
