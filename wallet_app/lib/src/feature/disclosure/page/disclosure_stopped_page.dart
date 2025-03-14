@@ -32,7 +32,7 @@ class DisclosureStoppedPage extends StatelessWidget {
       description: description,
       illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
       primaryButtonCta: _resolvePrimaryCta(context),
-      primaryButtonIcon: returnUrl == null ? Icons.close_outlined : Icons.arrow_forward_outlined,
+      primaryButtonIcon: Icon(returnUrl == null ? Icons.close_outlined : Icons.arrow_forward_outlined),
       onPrimaryPressed: () => onClosePressed(returnUrl),
     );
   }

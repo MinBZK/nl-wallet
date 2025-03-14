@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-03-07T10:32:12+01:00",
+    "@@last_modified": "2025-03-10T14:55:51+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -1083,7 +1083,7 @@
     "walletPersonalizeDataIncorrectScreenPrimaryCta": "Gegevens niet toevoegen",
     "walletPersonalizeDataIncorrectScreenSubhead": "Kloppen de gegevens niet?",
     "walletPersonalizeDigidCancelledPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
-    "walletPersonalizeDigidCancelledPageTitle": "Inloggen afgebroken",
+    "walletPersonalizeDigidCancelledPageTitle": "Inloggen gestopt",
     "walletPersonalizeDigidErrorPageDescription": "Wil je toch jouw persoonsgegevens ophalen? Log dan opnieuw in bij DigiD.",
     "walletPersonalizeDigidErrorPageDigidWebsiteCta": "Ga naar DigiD-website",
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Opnieuw inloggen",
