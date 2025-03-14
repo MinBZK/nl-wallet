@@ -15,7 +15,7 @@ use uuid::Uuid;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
-use jwt::JwtPopClaims;
+use jwt::pop::JwtPopClaims;
 use jwt::NL_WALLET_CLIENT_ID;
 use poa::Poa;
 use poa::POA_JWT_TYP;

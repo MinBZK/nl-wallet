@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::net::SocketAddr;
+use std::net::TcpListener;
 
 use axum::extract::State;
 use axum::response::IntoResponse;
@@ -19,10 +20,14 @@ use wallet_common::built_info::version_string;
 use super::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
-    let socket = SocketAddr::new(settings.ip, settings.port);
+    let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port))?;
+    serve_with_listener(listener, settings).await
+}
 
+pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> Result<(), Box<dyn Error>> {
     info!("{}", version_string());
-    info!("listening on {}", socket);
+    info!("listening on {}", listener.local_addr()?);
+    listener.set_nonblocking(true)?;
 
     let app = Router::new().merge(health_router()).nest(
         "/config/v1",
@@ -31,7 +36,7 @@ pub async fn serve(settings: Settings) -> Result<(), Box<dyn Error>> {
             .with_state(settings.wallet_config_jwt.into_bytes()),
     );
 
-    axum_server::bind_rustls(socket, settings.tls_config.to_rustls_config().await?)
+    axum_server::from_tcp_rustls(listener, settings.tls_config.to_rustls_config().await?)
         .serve(app.into_make_service())
         .await?;
 

@@ -14,11 +14,11 @@ use url::Url;
 
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
-use nl_wallet_mdoc::server_keys::KeyPair as ParsedKeyPair;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::CertificateType;
-use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use mdoc::server_keys::KeyPair as ParsedKeyPair;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateType;
+use mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::generator::Generator;
 use wallet_common::p256_der::DerSigningKey;

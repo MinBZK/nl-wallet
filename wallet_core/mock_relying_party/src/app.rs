@@ -38,7 +38,7 @@ use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
-use nl_wallet_mdoc::verifier::DisclosedAttributes;
+use mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
@@ -375,7 +375,7 @@ async fn disclosed_attributes(
 }
 
 mod filters {
-    use nl_wallet_mdoc::verifier::DisclosedAttributes;
+    use mdoc::verifier::DisclosedAttributes;
 
     #[allow(clippy::unnecessary_wraps)]
     pub fn attribute(attributes: &DisclosedAttributes, name: &str) -> ::askama::Result<String> {

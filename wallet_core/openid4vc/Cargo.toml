@@ -65,6 +65,7 @@ tokio.workspace = true
 tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
+x509-parser.workspace = true
 
 assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
@@ -73,7 +74,7 @@ parking_lot = { workspace = true, optional = true }
 
 error_category.path = "../error_category"
 jwt.path = "../jwt"
-nl_wallet_mdoc.path = "../mdoc"
+mdoc.path = "../mdoc"
 poa.path = "../poa"
 sd_jwt.path = "../sd_jwt"
 wallet_common.path = "../wallet_common"
@@ -85,12 +86,13 @@ mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 
 configuration = { path = "../wallet_configuration/configuration", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
+mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
 poa = { path = "../poa", features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../wallet_common", features = ["examples", "mock_remote_key", "mock_time"] }

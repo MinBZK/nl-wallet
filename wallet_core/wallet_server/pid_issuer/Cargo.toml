@@ -71,7 +71,7 @@ sea-orm = { workspace = true, optional = true, features = [
 configuration.path = "../../wallet_configuration/configuration"
 hsm = { path = "../../hsm", features = ["settings"] }
 jwt.path = "../../jwt"
-nl_wallet_mdoc.path = "../../mdoc"
+mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../openid4vc_server", features = ["issuance"] }
 sd_jwt.path = "../../sd_jwt"
@@ -84,6 +84,6 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
 configuration = { path = "../../wallet_configuration/configuration", features = ["insecure_http_client"] }
-nl_wallet_mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
+mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
 sd_jwt = { path = "../../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../../wallet_common", features = ["mock_remote_key", "mock_time"] }

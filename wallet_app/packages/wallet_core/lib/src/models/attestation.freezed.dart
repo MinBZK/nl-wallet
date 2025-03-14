@@ -330,6 +330,7 @@ mixin _$AttributeValue {
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
     required TResult Function(int value) number,
+    required TResult Function(String value) date,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -337,6 +338,7 @@ mixin _$AttributeValue {
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
     TResult? Function(int value)? number,
+    TResult? Function(String value)? date,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -344,6 +346,7 @@ mixin _$AttributeValue {
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
     TResult Function(int value)? number,
+    TResult Function(String value)? date,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -352,6 +355,7 @@ mixin _$AttributeValue {
     required TResult Function(AttributeValue_String value) string,
     required TResult Function(AttributeValue_Boolean value) boolean,
     required TResult Function(AttributeValue_Number value) number,
+    required TResult Function(AttributeValue_Date value) date,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -359,6 +363,7 @@ mixin _$AttributeValue {
     TResult? Function(AttributeValue_String value)? string,
     TResult? Function(AttributeValue_Boolean value)? boolean,
     TResult? Function(AttributeValue_Number value)? number,
+    TResult? Function(AttributeValue_Date value)? date,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -366,6 +371,7 @@ mixin _$AttributeValue {
     TResult Function(AttributeValue_String value)? string,
     TResult Function(AttributeValue_Boolean value)? boolean,
     TResult Function(AttributeValue_Number value)? number,
+    TResult Function(AttributeValue_Date value)? date,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -461,6 +467,7 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
     required TResult Function(int value) number,
+    required TResult Function(String value) date,
   }) {
     return string(value);
   }
@@ -471,6 +478,7 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
     TResult? Function(int value)? number,
+    TResult? Function(String value)? date,
   }) {
     return string?.call(value);
   }
@@ -481,6 +489,7 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
     TResult Function(int value)? number,
+    TResult Function(String value)? date,
     required TResult orElse(),
   }) {
     if (string != null) {
@@ -495,6 +504,7 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
     required TResult Function(AttributeValue_String value) string,
     required TResult Function(AttributeValue_Boolean value) boolean,
     required TResult Function(AttributeValue_Number value) number,
+    required TResult Function(AttributeValue_Date value) date,
   }) {
     return string(this);
   }
@@ -505,6 +515,7 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
     TResult? Function(AttributeValue_String value)? string,
     TResult? Function(AttributeValue_Boolean value)? boolean,
     TResult? Function(AttributeValue_Number value)? number,
+    TResult? Function(AttributeValue_Date value)? date,
   }) {
     return string?.call(this);
   }
@@ -515,6 +526,7 @@ class _$AttributeValue_StringImpl extends AttributeValue_String {
     TResult Function(AttributeValue_String value)? string,
     TResult Function(AttributeValue_Boolean value)? boolean,
     TResult Function(AttributeValue_Number value)? number,
+    TResult Function(AttributeValue_Date value)? date,
     required TResult orElse(),
   }) {
     if (string != null) {
@@ -608,6 +620,7 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
     required TResult Function(int value) number,
+    required TResult Function(String value) date,
   }) {
     return boolean(value);
   }
@@ -618,6 +631,7 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
     TResult? Function(int value)? number,
+    TResult? Function(String value)? date,
   }) {
     return boolean?.call(value);
   }
@@ -628,6 +642,7 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
     TResult Function(int value)? number,
+    TResult Function(String value)? date,
     required TResult orElse(),
   }) {
     if (boolean != null) {
@@ -642,6 +657,7 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
     required TResult Function(AttributeValue_String value) string,
     required TResult Function(AttributeValue_Boolean value) boolean,
     required TResult Function(AttributeValue_Number value) number,
+    required TResult Function(AttributeValue_Date value) date,
   }) {
     return boolean(this);
   }
@@ -652,6 +668,7 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
     TResult? Function(AttributeValue_String value)? string,
     TResult? Function(AttributeValue_Boolean value)? boolean,
     TResult? Function(AttributeValue_Number value)? number,
+    TResult? Function(AttributeValue_Date value)? date,
   }) {
     return boolean?.call(this);
   }
@@ -662,6 +679,7 @@ class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
     TResult Function(AttributeValue_String value)? string,
     TResult Function(AttributeValue_Boolean value)? boolean,
     TResult Function(AttributeValue_Number value)? number,
+    TResult Function(AttributeValue_Date value)? date,
     required TResult orElse(),
   }) {
     if (boolean != null) {
@@ -756,6 +774,7 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
     required TResult Function(String value) string,
     required TResult Function(bool value) boolean,
     required TResult Function(int value) number,
+    required TResult Function(String value) date,
   }) {
     return number(value);
   }
@@ -766,6 +785,7 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
     TResult? Function(String value)? string,
     TResult? Function(bool value)? boolean,
     TResult? Function(int value)? number,
+    TResult? Function(String value)? date,
   }) {
     return number?.call(value);
   }
@@ -776,6 +796,7 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
     TResult Function(String value)? string,
     TResult Function(bool value)? boolean,
     TResult Function(int value)? number,
+    TResult Function(String value)? date,
     required TResult orElse(),
   }) {
     if (number != null) {
@@ -790,6 +811,7 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
     required TResult Function(AttributeValue_String value) string,
     required TResult Function(AttributeValue_Boolean value) boolean,
     required TResult Function(AttributeValue_Number value) number,
+    required TResult Function(AttributeValue_Date value) date,
   }) {
     return number(this);
   }
@@ -800,6 +822,7 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
     TResult? Function(AttributeValue_String value)? string,
     TResult? Function(AttributeValue_Boolean value)? boolean,
     TResult? Function(AttributeValue_Number value)? number,
+    TResult? Function(AttributeValue_Date value)? date,
   }) {
     return number?.call(this);
   }
@@ -810,6 +833,7 @@ class _$AttributeValue_NumberImpl extends AttributeValue_Number {
     TResult Function(AttributeValue_String value)? string,
     TResult Function(AttributeValue_Boolean value)? boolean,
     TResult Function(AttributeValue_Number value)? number,
+    TResult Function(AttributeValue_Date value)? date,
     required TResult orElse(),
   }) {
     if (number != null) {
@@ -830,6 +854,159 @@ abstract class AttributeValue_Number extends AttributeValue {
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$AttributeValue_DateImplCopyWith<$Res> {
+  factory _$$AttributeValue_DateImplCopyWith(
+          _$AttributeValue_DateImpl value, $Res Function(_$AttributeValue_DateImpl) then) =
+      __$$AttributeValue_DateImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String value});
+}
+
+/// @nodoc
+class __$$AttributeValue_DateImplCopyWithImpl<$Res>
+    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_DateImpl>
+    implements _$$AttributeValue_DateImplCopyWith<$Res> {
+  __$$AttributeValue_DateImplCopyWithImpl(
+      _$AttributeValue_DateImpl _value, $Res Function(_$AttributeValue_DateImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? value = null,
+  }) {
+    return _then(_$AttributeValue_DateImpl(
+      value: null == value
+          ? _value.value
+          : value // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+
+class _$AttributeValue_DateImpl extends AttributeValue_Date {
+  const _$AttributeValue_DateImpl({required this.value}) : super._();
+
+  @override
+  final String value;
+
+  @override
+  String toString() {
+    return 'AttributeValue.date(value: $value)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$AttributeValue_DateImpl &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$AttributeValue_DateImplCopyWith<_$AttributeValue_DateImpl> get copyWith =>
+      __$$AttributeValue_DateImplCopyWithImpl<_$AttributeValue_DateImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String value) string,
+    required TResult Function(bool value) boolean,
+    required TResult Function(int value) number,
+    required TResult Function(String value) date,
+  }) {
+    return date(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String value)? string,
+    TResult? Function(bool value)? boolean,
+    TResult? Function(int value)? number,
+    TResult? Function(String value)? date,
+  }) {
+    return date?.call(value);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String value)? string,
+    TResult Function(bool value)? boolean,
+    TResult Function(int value)? number,
+    TResult Function(String value)? date,
+    required TResult orElse(),
+  }) {
+    if (date != null) {
+      return date(value);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(AttributeValue_String value) string,
+    required TResult Function(AttributeValue_Boolean value) boolean,
+    required TResult Function(AttributeValue_Number value) number,
+    required TResult Function(AttributeValue_Date value) date,
+  }) {
+    return date(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(AttributeValue_String value)? string,
+    TResult? Function(AttributeValue_Boolean value)? boolean,
+    TResult? Function(AttributeValue_Number value)? number,
+    TResult? Function(AttributeValue_Date value)? date,
+  }) {
+    return date?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(AttributeValue_String value)? string,
+    TResult Function(AttributeValue_Boolean value)? boolean,
+    TResult Function(AttributeValue_Number value)? number,
+    TResult Function(AttributeValue_Date value)? date,
+    required TResult orElse(),
+  }) {
+    if (date != null) {
+      return date(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class AttributeValue_Date extends AttributeValue {
+  const factory AttributeValue_Date({required final String value}) = _$AttributeValue_DateImpl;
+  const AttributeValue_Date._() : super._();
+
+  @override
+  String get value;
+
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$AttributeValue_DateImplCopyWith<_$AttributeValue_DateImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc

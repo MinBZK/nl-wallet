@@ -146,8 +146,8 @@ mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
 
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::utils::reader_auth::ReaderRegistration;
 
     use super::Wallet;
 
@@ -296,7 +296,7 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single Issuance Event
-        let mdocs = vec![test::create_full_pid_mdoc()].try_into().unwrap();
+        let mdocs = vec![test::create_example_pid_mdoc()].try_into().unwrap();
         let event = WalletEvent::new_issuance(mdocs);
         wallet.storage.write().await.event_log.push(event);
 

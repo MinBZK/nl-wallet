@@ -19,7 +19,7 @@ use super::StoredMdoc;
 
 pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct ProposedDocumentAttributes {
     pub issuer: BorrowingCertificate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,

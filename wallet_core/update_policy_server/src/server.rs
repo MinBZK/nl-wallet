@@ -1,4 +1,5 @@
 use std::net::SocketAddr;
+use std::net::TcpListener;
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -30,10 +31,14 @@ struct ApplicationState {
 }
 
 pub async fn serve(settings: Settings) -> Result<()> {
-    let socket = SocketAddr::new(settings.ip, settings.port);
+    let listener = TcpListener::bind(SocketAddr::new(settings.ip, settings.port))?;
+    serve_with_listener(listener, settings).await
+}
 
+pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> Result<()> {
     info!("{}", version_string());
-    info!("listening on {}:{}", settings.ip, settings.port);
+    info!("listening on {}", listener.local_addr()?);
+    listener.set_nonblocking(true)?;
 
     let application_state = Arc::new(ApplicationState {
         update_policy: settings.update_policy,
@@ -46,13 +51,13 @@ pub async fn serve(settings: Settings) -> Result<()> {
             .with_state(application_state),
     );
 
-    if let Some(TlsServerConfig { key, cert }) = settings.tls_config {
+    if let Some(TlsServerConfig { key, cert }) = settings.tls_config.clone() {
         let config = RustlsConfig::from_der(vec![cert], key).await?;
-        axum_server::bind_rustls(socket, config)
+        axum_server::from_tcp_rustls(listener, config)
             .serve(app.into_make_service())
             .await?;
     } else {
-        axum_server::bind(socket).serve(app.into_make_service()).await?;
+        axum_server::from_tcp(listener).serve(app.into_make_service()).await?;
     }
 
     Ok(())

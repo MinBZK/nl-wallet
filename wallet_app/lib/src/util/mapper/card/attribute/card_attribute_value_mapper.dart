@@ -12,6 +12,7 @@ class CardAttributeValueMapper extends Mapper<core.AttributeValue, AttributeValu
       string: (input) => StringValue(input.value),
       boolean: (input) => BooleanValue(input.value),
       number: (input) => NumberValue(input.value),
+      date: (input) => DateValue(DateTime.parse(input.value)),
     );
   }
 }

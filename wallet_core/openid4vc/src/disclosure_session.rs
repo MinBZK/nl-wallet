@@ -14,18 +14,18 @@ use tracing::warn;
 
 use error_category::ErrorCategory;
 use jwt::Jwt;
-use nl_wallet_mdoc::disclosure::DeviceResponse;
-use nl_wallet_mdoc::engagement::SessionTranscript;
-use nl_wallet_mdoc::holder::DisclosureRequestMatch;
-use nl_wallet_mdoc::holder::MdocDataSource;
-use nl_wallet_mdoc::holder::ProposedAttributes;
-use nl_wallet_mdoc::holder::ProposedDocument;
-use nl_wallet_mdoc::identifiers::AttributeIdentifier;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::reader_auth::ValidationError;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::CertificateType;
+use mdoc::disclosure::DeviceResponse;
+use mdoc::engagement::SessionTranscript;
+use mdoc::holder::DisclosureRequestMatch;
+use mdoc::holder::MdocDataSource;
+use mdoc::holder::ProposedAttributes;
+use mdoc::holder::ProposedDocument;
+use mdoc::identifiers::AttributeIdentifier;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::reader_auth::ValidationError;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateType;
 use poa::factory::PoaFactory;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
@@ -58,7 +58,7 @@ pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[from] VpMessageClientError),
     #[error("error creating mdoc device response: {0}")]
-    DeviceResponse(#[source] nl_wallet_mdoc::Error),
+    DeviceResponse(#[source] mdoc::Error),
     #[error("error verifying Authorization Request: {0}")]
     AuthRequestValidation(#[from] AuthRequestValidationError),
     #[error("incorrect client_id: expected {expected}, found {found}")]
@@ -70,7 +70,7 @@ pub enum VpClientError {
     #[error("error validating requested attributes: {0}")]
     RequestedAttributesValidation(#[from] ValidationError),
     #[error("error matching requested attributes against mdocs: {0}")]
-    MatchRequestedAttributes(#[source] nl_wallet_mdoc::Error),
+    MatchRequestedAttributes(#[source] mdoc::Error),
     #[error("error parsing RP certificate: {0}")]
     RpCertificate(#[from] CertificateError),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
@@ -756,31 +756,31 @@ mod tests {
     use serde_json::json;
 
     use jwt::error::JwtX5cError;
-    use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
-    use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
-    use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
-    use nl_wallet_mdoc::holder::mock::MdocDataSourceError;
-    use nl_wallet_mdoc::holder::HolderError;
-    use nl_wallet_mdoc::holder::ProposedDocument;
-    use nl_wallet_mdoc::identifiers::AttributeIdentifier;
-    use nl_wallet_mdoc::identifiers::AttributeIdentifierHolder;
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::utils::cose::ClonePayload;
-    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-    use nl_wallet_mdoc::utils::reader_auth::ValidationError;
-    use nl_wallet_mdoc::utils::serialization::cbor_deserialize;
-    use nl_wallet_mdoc::utils::serialization::cbor_serialize;
-    use nl_wallet_mdoc::utils::serialization::CborBase64;
-    use nl_wallet_mdoc::utils::serialization::CborSeq;
-    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-    use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
-    use nl_wallet_mdoc::utils::x509::CertificateError;
-    use nl_wallet_mdoc::utils::x509::CertificateType;
-    use nl_wallet_mdoc::DeviceAuth;
-    use nl_wallet_mdoc::DeviceAuthenticationKeyed;
-    use nl_wallet_mdoc::ItemsRequest;
-    use nl_wallet_mdoc::MobileSecurityObject;
-    use nl_wallet_mdoc::SessionTranscript;
+    use mdoc::examples::EXAMPLE_ATTRIBUTES;
+    use mdoc::examples::EXAMPLE_DOC_TYPE;
+    use mdoc::examples::EXAMPLE_NAMESPACE;
+    use mdoc::holder::mock::MdocDataSourceError;
+    use mdoc::holder::HolderError;
+    use mdoc::holder::ProposedDocument;
+    use mdoc::identifiers::AttributeIdentifier;
+    use mdoc::identifiers::AttributeIdentifierHolder;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::utils::cose::ClonePayload;
+    use mdoc::utils::reader_auth::ReaderRegistration;
+    use mdoc::utils::reader_auth::ValidationError;
+    use mdoc::utils::serialization::cbor_deserialize;
+    use mdoc::utils::serialization::cbor_serialize;
+    use mdoc::utils::serialization::CborBase64;
+    use mdoc::utils::serialization::CborSeq;
+    use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::utils::x509::CertificateConfiguration;
+    use mdoc::utils::x509::CertificateError;
+    use mdoc::utils::x509::CertificateType;
+    use mdoc::DeviceAuth;
+    use mdoc::DeviceAuthenticationKeyed;
+    use mdoc::ItemsRequest;
+    use mdoc::MobileSecurityObject;
+    use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
     use wallet_common::keys::factory::KeyFactory;
@@ -1442,7 +1442,7 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::MatchRequestedAttributes(nl_wallet_mdoc::Error::Holder(
+            VpClientError::MatchRequestedAttributes(mdoc::Error::Holder(
                 HolderError::MdocDataSource(mdoc_error)
             )) if mdoc_error.is::<MdocDataSourceError>()
         );

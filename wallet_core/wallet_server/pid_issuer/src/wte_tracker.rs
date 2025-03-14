@@ -1,4 +1,4 @@
-use jwt::JwtCredentialClaims;
+use jwt::credential::JwtCredentialClaims;
 use jwt::VerifiedJwt;
 use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::server_state::WteTracker;
@@ -62,7 +62,7 @@ mod postgres {
     use sea_orm::QueryFilter;
     use sea_orm::SqlErr;
 
-    use jwt::JwtCredentialClaims;
+    use jwt::credential::JwtCredentialClaims;
     use jwt::VerifiedJwt;
     use server_utils::entity::used_wtes;
     use wallet_common::generator::Generator;

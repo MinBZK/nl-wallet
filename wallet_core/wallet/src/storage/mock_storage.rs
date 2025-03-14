@@ -7,8 +7,8 @@ use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::DocType;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::DocType;
 use openid4vc::credential::MdocCopies;
 
 use super::data::KeyedData;

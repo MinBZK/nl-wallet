@@ -15,7 +15,7 @@ async fn test_wallet_registration(
     let settings_and_ca = wallet_provider_settings();
     let connection = database_connection(&settings_and_ca.0).await;
 
-    let wallet = setup_wallet_and_env(
+    let (wallet, _) = setup_wallet_and_env(
         vendor,
         config_server_settings(),
         update_policy_server_settings(),
@@ -39,7 +39,7 @@ async fn test_registration_blocked() {
     settings.update_policy =
         serde_json::from_value::<UpdatePolicyConfig>(json!({ env!("CARGO_PKG_VERSION"): "Block" })).unwrap();
 
-    let mut wallet = setup_wallet_and_env(
+    let (mut wallet, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         (settings, root_ca),

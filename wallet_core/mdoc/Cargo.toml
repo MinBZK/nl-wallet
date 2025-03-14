@@ -1,5 +1,5 @@
 [package]
-name = "nl_wallet_mdoc"
+name = "mdoc"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -5,15 +5,15 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
-use nl_wallet_mdoc::DataElementValue;
-use nl_wallet_mdoc::NameSpace;
+use mdoc::unsigned::Entry;
+use mdoc::unsigned::UnsignedAttributesError;
+use mdoc::DataElementValue;
+use mdoc::NameSpace;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttributeValue {
-    Number(i64),
+    Integer(i64),
     Bool(bool),
     Text(String),
 }
@@ -42,9 +42,9 @@ pub enum AttributeError {
 impl From<&AttributeValue> for ciborium::Value {
     fn from(value: &AttributeValue) -> Self {
         match value {
-            AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
-            AttributeValue::Number(number) => ciborium::Value::Integer((*number).into()),
+            AttributeValue::Integer(number) => ciborium::Value::Integer((*number).into()),
             AttributeValue::Bool(boolean) => ciborium::Value::Bool(*boolean),
+            AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
         }
     }
 }
@@ -56,7 +56,7 @@ impl TryFrom<DataElementValue> for AttributeValue {
         match value {
             DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
             DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.try_into()?)),
+            DataElementValue::Integer(integer) => Ok(AttributeValue::Integer(integer.try_into()?)),
             _ => Err(AttributeError::FromCborConversion(value)),
         }
     }
@@ -71,24 +71,24 @@ pub enum Attribute {
 
 impl Attribute {
     pub fn from_mdoc_attributes(
-        doc_type: &str,
+        attestation_type: &str,
         attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<IndexMap<String, Self>, AttributeError> {
         let mut attrs = IndexMap::new();
-        Self::traverse_attributes(doc_type, attributes, &mut attrs)?;
+        Self::traverse_attributes(attestation_type, attributes, &mut attrs)?;
         Ok(attrs)
     }
 
     fn traverse_attributes(
-        doc_type: &str,
+        attestation_type: &str,
         attributes: IndexMap<String, Vec<Entry>>,
         result: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
         for (namespace, entries) in attributes {
-            if namespace == doc_type {
+            if namespace == attestation_type {
                 Self::insert_entries(entries, result)?;
             } else {
-                let mut groups: VecDeque<String> = Self::split_namespace(&namespace, doc_type)?.into();
+                let mut groups: VecDeque<String> = Self::split_namespace(&namespace, attestation_type)?.into();
                 Self::traverse_groups(entries, &mut groups, result)?;
             }
         }
@@ -158,8 +158,8 @@ mod test {
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
-    use nl_wallet_mdoc::unsigned::Entry;
-    use nl_wallet_mdoc::DataElementValue;
+    use mdoc::unsigned::Entry;
+    use mdoc::DataElementValue;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
@@ -244,8 +244,8 @@ mod test {
             }
         });
         assert_eq!(
+            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
             expected_json.to_json_string_pretty().unwrap(),
-            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap()
         );
     }
 

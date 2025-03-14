@@ -34,3 +34,10 @@ class NumberValue extends AttributeValue {
 
   const NumberValue(this.value);
 }
+
+class DateValue extends AttributeValue {
+  @override
+  final DateTime value;
+
+  const DateValue(this.value);
+}

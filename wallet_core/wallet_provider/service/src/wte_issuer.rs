@@ -5,9 +5,9 @@ use p256::ecdsa::VerifyingKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
+use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
 use jwt::Jwt;
-use jwt::JwtCredentialClaims;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::wte::WteClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
@@ -87,8 +87,8 @@ pub mod mock {
     use rand_core::OsRng;
 
     use hsm::model::wrapped_key::WrappedKey;
+    use jwt::credential::JwtCredentialClaims;
     use jwt::Jwt;
-    use jwt::JwtCredentialClaims;
     use wallet_common::wte::WteClaims;
 
     use super::WteIssuer;
@@ -120,7 +120,7 @@ mod tests {
 
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
-    use jwt::jwk_to_p256;
+    use jwt::jwk::jwk_to_p256;
 
     use super::HsmWteIssuer;
     use super::WteIssuer;
