@@ -1,7 +1,3 @@
-use std::net::IpAddr;
-use std::net::TcpListener;
-use std::str::FromStr;
-
 use assert_json_diff::assert_json_matches;
 use assert_json_diff::CompareMode;
 use assert_json_diff::Config;
@@ -10,6 +6,7 @@ use http::StatusCode;
 use reqwest::Response;
 use serde_json::json;
 use serde_json::Value;
+use tokio::net::TcpListener;
 
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::error::Error;
@@ -35,24 +32,15 @@ fn init_logging() {
     );
 }
 
-fn find_listener_port() -> u16 {
-    TcpListener::bind("localhost:0")
-        .expect("Could not find TCP port")
-        .local_addr()
-        .expect("Could not get local address from TCP listener")
-        .port()
-}
-
 async fn start_server_with_mock<T>(gbav_client: T) -> u16
 where
     T: GbavClient + Send + Sync + 'static,
 {
-    let port = find_listener_port();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async move {
-        server::serve(IpAddr::from_str("0.0.0.0").unwrap(), port, gbav_client)
-            .await
-            .unwrap();
+        server::serve(listener, gbav_client).await.unwrap();
     });
 
     wait_for_server(format!("http://localhost:{port}").parse().unwrap(), vec![]).await;

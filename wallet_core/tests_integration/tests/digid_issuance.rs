@@ -49,7 +49,7 @@ async fn test_pid_issuance_digid_bridge() {
         settings.pid_settings.digid.http_config.clone(),
     )
     .unwrap();
-    start_issuer_server(settings.clone(), hsm, attr_service).await;
+    let port = start_issuer_server(settings.clone(), hsm, attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
@@ -73,7 +73,7 @@ async fn test_pid_issuance_digid_bridge() {
     .await;
     let token_request = digid_session.into_token_request(redirect_url).await.unwrap();
 
-    let server_url = local_pid_base_url(&settings.server_settings.public_url.as_ref().port().unwrap());
+    let server_url = local_pid_base_url(port);
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(

@@ -1,4 +1,3 @@
-use std::net::IpAddr;
 use std::sync::Arc;
 
 use axum::extract::State;
@@ -26,13 +25,12 @@ struct ApplicationState<T> {
     gbav_client: T,
 }
 
-pub async fn serve<T>(ip: IpAddr, port: u16, gbav_client: T) -> Result<(), Box<dyn std::error::Error>>
+pub async fn serve<T>(listener: TcpListener, gbav_client: T) -> Result<(), Box<dyn std::error::Error>>
 where
     T: GbavClient + Send + Sync + 'static,
 {
-    let listener = TcpListener::bind((ip, port)).await?;
     info! {"{}", version_string()}
-    info!("listening on {}:{}", ip, port);
+    info!("listening on {}", listener.local_addr()?);
 
     let app_state = Arc::new(ApplicationState { gbav_client });
 

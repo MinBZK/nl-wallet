@@ -35,7 +35,7 @@ pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
 }
 
 /// Create Wallet listener from [settings].
-pub async fn create_wallet_listener(wallet_server: Server) -> Result<TcpListener, io::Error> {
+pub async fn create_wallet_listener(wallet_server: &Server) -> Result<TcpListener, io::Error> {
     TcpListener::bind((wallet_server.ip, wallet_server.port)).await
 }
 
