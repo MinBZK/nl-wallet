@@ -7,7 +7,7 @@ use url::Url;
 use uuid::Uuid;
 
 use apple_app_attest::AppIdentifier;
-use nl_wallet_mdoc::ItemsRequest;
+use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;

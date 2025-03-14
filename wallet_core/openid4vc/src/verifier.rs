@@ -26,10 +26,10 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::verifier::DisclosedAttributes;
-use nl_wallet_mdoc::verifier::ItemsRequests;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::x509::CertificateError;
+use mdoc::verifier::DisclosedAttributes;
+use mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::Jwt;
 use wallet_common::jwt::JwtError;
@@ -1137,9 +1137,9 @@ mod tests {
     use ring::rand;
     use rstest::rstest;
 
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-    use nl_wallet_mdoc::ItemsRequest;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::utils::reader_auth::ReaderRegistration;
+    use mdoc::ItemsRequest;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
 

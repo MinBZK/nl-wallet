@@ -5,10 +5,10 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
-use nl_wallet_mdoc::DataElementValue;
-use nl_wallet_mdoc::NameSpace;
+use mdoc::unsigned::Entry;
+use mdoc::unsigned::UnsignedAttributesError;
+use mdoc::DataElementValue;
+use mdoc::NameSpace;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -158,8 +158,8 @@ mod test {
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
-    use nl_wallet_mdoc::unsigned::Entry;
-    use nl_wallet_mdoc::DataElementValue;
+    use mdoc::unsigned::Entry;
+    use mdoc::DataElementValue;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;

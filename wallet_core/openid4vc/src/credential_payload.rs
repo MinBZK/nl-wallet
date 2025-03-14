@@ -8,10 +8,10 @@ use serde_with::skip_serializing_none;
 use serde_with::TimestampSeconds;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::NameSpace;
+use mdoc::holder::Mdoc;
+use mdoc::unsigned::Entry;
+use mdoc::unsigned::UnsignedMdoc;
+use mdoc::NameSpace;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::urls::HttpsUri;

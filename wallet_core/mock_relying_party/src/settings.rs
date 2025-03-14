@@ -9,7 +9,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
-use nl_wallet_mdoc::verifier::ItemsRequests;
+use mdoc::verifier::ItemsRequests;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 use wallet_common::utils;
