@@ -21,13 +21,13 @@ use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
-use jwt::jwk_to_p256;
+use jwt::jwk::jwk_to_p256;
+use jwt::pop::JwtPopClaims;
 use jwt::validations;
 use jwt::EcdsaDecodingKey;
-use jwt::JwtCredentialClaims;
-use jwt::JwtPopClaims;
 use jwt::VerifiedJwt;
 use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::server_keys::KeyPair;

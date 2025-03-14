@@ -12,13 +12,13 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use jwt::error::JwtError;
-use jwt::jwk_alg_from_p256;
-use jwt::jwk_from_p256;
-use jwt::jwk_to_p256;
+use jwt::jwk::jwk_alg_from_p256;
+use jwt::jwk::jwk_from_p256;
+use jwt::jwk::jwk_to_p256;
+use jwt::pop::JwtPopClaims;
 use jwt::validations;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use jwt::JwtPopClaims;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -163,9 +163,9 @@ mod tests {
     use rand_core::OsRng;
     use rstest::rstest;
 
+    use jwt::pop::JwtPopClaims;
     use jwt::validations;
     use jwt::Jwt;
-    use jwt::JwtPopClaims;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::vec_at_least::VecNonEmpty;
 

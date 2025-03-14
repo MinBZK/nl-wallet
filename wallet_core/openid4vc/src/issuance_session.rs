@@ -22,8 +22,8 @@ use error_category::ErrorCategory;
 use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
+use jwt::pop::JwtPopClaims;
 use jwt::Jwt;
-use jwt::JwtPopClaims;
 use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
 use nl_wallet_mdoc::holder::Mdoc;
@@ -864,7 +864,7 @@ pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredenti
 where
     KF: KeyFactory,
 {
-    use jwt::JwtCredentialClaims;
+    use jwt::credential::JwtCredentialClaims;
     use wallet_common::keys::EcdsaKey;
     use wallet_common::keys::WithIdentifier;
 

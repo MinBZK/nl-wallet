@@ -6,26 +6,20 @@ use std::str::FromStr;
 use std::sync::LazyLock;
 
 use base64::prelude::*;
-use chrono::serde::ts_seconds;
 use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
-use jsonwebtoken::jwk;
-use jsonwebtoken::jwk::EllipticCurve;
-use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use p256::ecdsa::VerifyingKey;
-use p256::EncodedPoint;
 use rustls_pki_types::CertificateDer;
 use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
-use serde_with::skip_serializing_none;
 use x509_parser::der_parser::asn1_rs::BitString;
 use x509_parser::der_parser::Oid;
 use x509_parser::prelude::FromDer;
@@ -41,7 +35,6 @@ use wallet_common::keys::EcdsaKey;
 use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::vec_at_least::VecNonEmpty;
 
-use crate::error::JwkConversionError;
 use crate::error::JwtError;
 use crate::error::JwtX5cError;
 
@@ -401,146 +394,6 @@ impl<'de, T> Deserialize<'de> for Jwt<T> {
     }
 }
 
-/// Claims of a `JwtCredential`: the body of the JWT.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialClaims<T> {
-    #[serde(rename = "cnf")]
-    pub confirmation: JwtCredentialConfirmation,
-
-    #[serde(flatten)]
-    pub contents: JwtCredentialContents<T>,
-}
-
-impl<T> JwtCredentialClaims<T>
-where
-    T: Serialize,
-{
-    pub fn new(pubkey: &VerifyingKey, iss: String, attributes: T) -> Result<Self, JwkConversionError> {
-        let claims = Self {
-            confirmation: JwtCredentialConfirmation {
-                jwk: jwk_from_p256(pubkey)?,
-            },
-            contents: JwtCredentialContents { iss, attributes },
-        };
-
-        Ok(claims)
-    }
-
-    pub async fn new_signed(
-        holder_pubkey: &VerifyingKey,
-        issuer_privkey: &impl EcdsaKey,
-        iss: String,
-        typ: Option<String>,
-        attributes: T,
-    ) -> Result<Jwt<JwtCredentialClaims<T>>, JwtError> {
-        let jwt = Jwt::<JwtCredentialClaims<T>>::sign(
-            &JwtCredentialClaims::<T>::new(holder_pubkey, iss, attributes)?,
-            &Header {
-                typ: typ.or(Some("jwt".to_string())),
-                ..Header::new(jsonwebtoken::Algorithm::ES256)
-            },
-            issuer_privkey,
-        )
-        .await?;
-
-        Ok(jwt)
-    }
-}
-
-/// Contents of a `JwtCredential`, containing everything of the [`JwtCredentialClaims`] except the holder public
-/// key (`Cnf`): the attributes and metadata of the credential.
-#[skip_serializing_none]
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialContents<T> {
-    pub iss: String,
-
-    #[serde(flatten)]
-    pub attributes: T,
-}
-
-/// Contains the holder public key of a `JwtCredential`.
-/// ("Cnf" stands for "confirmation", see <https://datatracker.ietf.org/doc/html/rfc7800>.)
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct JwtCredentialConfirmation {
-    pub jwk: Jwk,
-}
-
-/// JWT claims of a PoP (Proof of Possession). Used a.o. as a JWT proof in a Credential Request
-/// (<https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2.1.1>).
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct JwtPopClaims {
-    pub iss: String,
-    pub aud: String,
-    pub nonce: Option<String>,
-    #[serde(with = "ts_seconds")]
-    pub iat: DateTime<Utc>,
-}
-
-impl JwtPopClaims {
-    pub fn new(nonce: Option<String>, iss: String, aud: String) -> Self {
-        Self {
-            nonce,
-            iss,
-            aud,
-            iat: Utc::now(),
-        }
-    }
-}
-
-pub fn jwk_from_p256(value: &VerifyingKey) -> Result<Jwk, JwkConversionError> {
-    let jwk = Jwk {
-        common: Default::default(),
-        algorithm: jwk_alg_from_p256(value)?,
-    };
-
-    Ok(jwk)
-}
-
-pub fn jwk_alg_from_p256(value: &VerifyingKey) -> Result<jwk::AlgorithmParameters, JwkConversionError> {
-    let point = value.to_encoded_point(false);
-    let alg = jwk::AlgorithmParameters::EllipticCurve(jwk::EllipticCurveKeyParameters {
-        key_type: jwk::EllipticCurveKeyType::EC,
-        curve: jwk::EllipticCurve::P256,
-        x: BASE64_URL_SAFE_NO_PAD.encode(point.x().ok_or(JwkConversionError::MissingCoordinate)?),
-        y: BASE64_URL_SAFE_NO_PAD.encode(point.y().ok_or(JwkConversionError::MissingCoordinate)?),
-    });
-
-    Ok(alg)
-}
-
-pub fn jwk_to_p256(value: &Jwk) -> Result<VerifyingKey, JwkConversionError> {
-    let ec_params = match value.algorithm {
-        jwk::AlgorithmParameters::EllipticCurve(ref params) => Ok(params),
-        _ => Err(JwkConversionError::UnsupportedJwkAlgorithm),
-    }?;
-    if !matches!(ec_params.curve, EllipticCurve::P256) {
-        return Err(JwkConversionError::UnsupportedJwkEcCurve {
-            found: ec_params.curve.clone(),
-        });
-    }
-
-    let key = VerifyingKey::from_encoded_point(&EncodedPoint::from_affine_coordinates(
-        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.x)?.as_slice().into(),
-        BASE64_URL_SAFE_NO_PAD.decode(&ec_params.y)?.as_slice().into(),
-        false,
-    ))?;
-    Ok(key)
-}
-
-pub async fn jwk_jwt_header(typ: &str, key: &impl EcdsaKey) -> Result<Header, JwkConversionError> {
-    let header = Header {
-        typ: Some(typ.to_string()),
-        alg: Algorithm::ES256,
-        jwk: Some(jwk_from_p256(
-            &key.verifying_key()
-                .await
-                .map_err(|e| JwkConversionError::VerifyingKeyFromPrivateKey(e.into()))?,
-        )?),
-        ..Default::default()
-    };
-    Ok(header)
-}
-
 /// The JWS JSON serialization, see <https://www.rfc-editor.org/rfc/rfc7515.html#section-7.2>,
 /// which allows for a single payload to be signed by multiple signatures.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -771,16 +624,6 @@ mod tests {
             .decode(jwt.split('.').take((i + 1) as usize).last().unwrap())
             .unwrap();
         serde_json::from_slice(&bts).unwrap()
-    }
-
-    #[test]
-    fn jwk_p256_key_conversion() {
-        let private_key = SigningKey::random(&mut OsRng);
-        let verifying_key = private_key.verifying_key();
-        let jwk = jwk_from_p256(verifying_key).unwrap();
-        let converted = jwk_to_p256(&jwk).unwrap();
-
-        assert_eq!(*verifying_key, converted);
     }
 
     #[tokio::test]

@@ -4,8 +4,8 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use jwt::credential::JwtCredentialClaims;
 use jwt::Jwt;
-use jwt::JwtCredentialClaims;
 use jwt::JwtSubject;
 use poa::Poa;
 use wallet_common::p256_der::DerSignature;

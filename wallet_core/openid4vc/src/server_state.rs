@@ -17,7 +17,7 @@ use tokio::time;
 use tokio::time::MissedTickBehavior;
 use tracing::warn;
 
-use jwt::JwtCredentialClaims;
+use jwt::credential::JwtCredentialClaims;
 use jwt::VerifiedJwt;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
