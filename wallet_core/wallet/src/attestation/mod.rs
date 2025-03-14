@@ -16,6 +16,7 @@ use sd_jwt::metadata::ClaimDisplayMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
 use sd_jwt::metadata::JsonSchemaProperty;
+use sd_jwt::metadata::SchemaOption;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -41,9 +42,9 @@ pub enum AttestationError {
     #[category(pd)]
     Attribute(#[from] AttributeError),
 
-    #[error("metadata schema not supported: {0}")]
+    #[error("type metadata schema not supported: {0:?}")]
     #[category(pd)]
-    UnsupportedMetadataSchema(#[from] TypeMetadataError),
+    UnsupportedMetadataSchema(SchemaOption),
 }
 
 #[derive(Debug, Clone, Copy)]

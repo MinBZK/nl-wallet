@@ -1,8 +1,9 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use std::collections::HashMap;
-use std::collections::HashSet;
 
 use nl_wallet_mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
@@ -13,7 +14,6 @@ use sd_jwt::metadata::JsonSchemaPropertyFormat;
 use sd_jwt::metadata::JsonSchemaPropertyType;
 use sd_jwt::metadata::SchemaOption;
 use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use super::Attestation;
@@ -39,7 +39,7 @@ impl Attestation {
         let schema_properties = if let SchemaOption::Embedded { schema } = metadata.schema {
             Ok(schema.into_properties().properties)
         } else {
-            Err(TypeMetadataError::UnsupportedSchemaOption(metadata.schema))
+            Err(AttestationError::UnsupportedMetadataSchema(metadata.schema))
         }?;
 
         // For every claim in the metadata, traverse the nested attributes to find it,
