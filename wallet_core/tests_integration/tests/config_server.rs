@@ -11,6 +11,7 @@ use regex::Regex;
 use reqwest::header::HeaderValue;
 use tokio::fs;
 
+use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
 use wallet::wallet_deps::default_config_server_config;
@@ -21,7 +22,6 @@ use wallet::wallet_deps::RepositoryUpdateState;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet_common::config::config_server_config::ConfigServerConfiguration;
 use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::jwt::JwtError;
 
 #[tokio::test]
 async fn test_wallet_config() {

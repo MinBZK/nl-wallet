@@ -9,14 +9,14 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
+use jwt::credential::JwtCredentialClaims;
+use jwt::jwk::jwk_jwt_header;
+use jwt::pop::JwtPopClaims;
+use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::IssuerSigned;
 use poa::Poa;
-use wallet_common::jwt::jwk_jwt_header;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::JwtCredentialClaims;
-use wallet_common::jwt::JwtPopClaims;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;

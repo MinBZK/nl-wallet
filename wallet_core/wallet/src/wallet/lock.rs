@@ -272,6 +272,7 @@ mod tests {
     use rstest::rstest;
 
     use apple_app_attest::AssertionCounter;
+    use jwt::Jwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::IncorrectPinData;
@@ -280,7 +281,6 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::InstructionResultClaims;
     use wallet_account::signed::SequenceNumberComparison;
-    use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 
     use crate::account_provider::AccountProviderResponseError;

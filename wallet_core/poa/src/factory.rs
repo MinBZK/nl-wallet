@@ -21,8 +21,8 @@ pub trait PoaFactory {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use wallet_common::jwt::JwtPopClaims;
-    use wallet_common::jwt::NL_WALLET_CLIENT_ID;
+    use jwt::pop::JwtPopClaims;
+    use jwt::NL_WALLET_CLIENT_ID;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;

@@ -1,0 +1,38 @@
+[package]
+name = "jwt"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+test = []
+
+[dependencies]
+base64.workspace = true
+chrono = { workspace = true, features = ["std", "clock", "serde"] }
+itertools.workspace = true
+jsonwebtoken.workspace = true
+p256 = { workspace = true, features = ["std", "ecdsa"] }
+rustls-pki-types.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+serde_with.workspace = true
+thiserror.workspace = true
+x509-parser.workspace = true
+
+error_category.path = "../error_category"
+mdoc.path = "../mdoc"
+wallet_common.path = "../wallet_common"
+
+[dev-dependencies]
+assert_matches.workspace = true
+futures = { workspace = true, features = ["std"] }
+indexmap.workspace = true
+rand_core.workspace = true
+tokio = { workspace = true, features = ["macros"] }
+
+mdoc = { path = "../mdoc", features = ["generate", "mock"] }
+wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_remote_key"] }

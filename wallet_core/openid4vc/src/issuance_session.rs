@@ -19,6 +19,12 @@ use serde::Serialize;
 use url::Url;
 
 use error_category::ErrorCategory;
+use jwt::credential::JwtCredential;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
+use jwt::pop::JwtPopClaims;
+use jwt::Jwt;
+use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::holder::IssuedDocumentMismatchError;
 use mdoc::holder::Mdoc;
 use mdoc::identifiers::AttributeIdentifier;
@@ -31,11 +37,6 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::JwkConversionError;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::JwtError;
-use wallet_common::jwt::JwtPopClaims;
-use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
@@ -58,8 +59,6 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
-use crate::jwt::JwtCredential;
-use crate::jwt::JwtCredentialError;
 use crate::metadata::IssuerMetadata;
 use crate::oidc;
 use crate::token::AccessToken;
@@ -98,8 +97,6 @@ pub enum IssuanceSessionError {
     IssuedMdocMismatch(IssuedDocumentMismatchError<AttributeIdentifier>),
     #[error("mdoc verification failed: {0}")]
     MdocVerification(#[source] mdoc::Error),
-    #[error("jwt credential verification failed: {0}")]
-    JwtCredentialVerification(#[from] JwtCredentialError),
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataError),
@@ -867,7 +864,7 @@ pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredenti
 where
     KF: KeyFactory,
 {
-    use wallet_common::jwt::JwtCredentialClaims;
+    use jwt::credential::JwtCredentialClaims;
     use wallet_common::keys::EcdsaKey;
     use wallet_common::keys::WithIdentifier;
 

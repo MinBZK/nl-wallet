@@ -3,19 +3,18 @@ use std::collections::HashMap;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
+use jwt::credential::JwtCredential;
 use poa::factory::PoaFactory;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::wte::WteClaims;
-
 use wallet_common::urls::BaseUrl;
+use wallet_common::wte::WteClaims;
 
 use crate::credential_formats::CredentialFormats;
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::IssuedCredentialCopies;
-use crate::jwt::JwtCredential;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
 use crate::metadata::IssuerMetadata;

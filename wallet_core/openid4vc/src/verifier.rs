@@ -26,18 +26,17 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
+use jwt::error::JwtError;
+use jwt::Jwt;
 use mdoc::server_keys::KeyPair;
 use mdoc::utils::x509::CertificateError;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::JwtError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
-use crate::jwt;
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::IsoVpAuthorizationRequest;
@@ -993,7 +992,7 @@ impl Session<Created> {
         .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
-        let jws = jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
+        let jws = Jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
             .await
             .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
 

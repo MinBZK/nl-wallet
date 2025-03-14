@@ -12,6 +12,7 @@ use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::x509::CertificateError;
@@ -21,14 +22,12 @@ use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
-use openid4vc::jwt::JwtCredentialError;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::jwt::JwtError;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
@@ -114,7 +113,7 @@ pub enum PidIssuanceError {
     #[error("error finalizing pin change: {0}")]
     ChangePin(#[from] ChangePinError),
     #[error("JWT credential error: {0}")]
-    JwtCredential(#[from] JwtCredentialError),
+    JwtCredential(#[from] JwtError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
     #[error("type metadata verification failed: {0}")]

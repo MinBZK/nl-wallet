@@ -3198,6 +3198,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "jwt"
+version = "0.3.0-dev"
+dependencies = [
+ "assert_matches",
+ "base64 0.22.1",
+ "chrono",
+ "error_category",
+ "futures",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "jsonwebtoken",
+ "mdoc",
+ "p256",
+ "rand_core",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.11",
+ "tokio",
+ "wallet_common",
+ "x509-parser 0.17.0",
+]
+
+[[package]]
 name = "kinded"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3776,6 +3801,7 @@ dependencies = [
  "itertools 0.14.0",
  "josekit",
  "jsonwebtoken",
+ "jwt",
  "mdoc",
  "mime",
  "mockall",
@@ -4074,6 +4100,7 @@ dependencies = [
  "hsm",
  "http",
  "indexmap 2.7.1",
+ "jwt",
  "mdoc",
  "openid4vc",
  "openid4vc_server",
@@ -4199,6 +4226,7 @@ dependencies = [
  "derive_more",
  "futures",
  "jsonwebtoken",
+ "jwt",
  "p256",
  "rand_core",
  "rstest",
@@ -6126,6 +6154,7 @@ dependencies = [
  "indexmap 2.7.1",
  "insta",
  "jsonwebtoken",
+ "jwt",
  "mdoc",
  "openid4vc",
  "openid4vc_server",
@@ -7016,6 +7045,7 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
+ "jwt",
  "libsqlite3-sys",
  "mdoc",
  "migration",
@@ -7066,6 +7096,7 @@ dependencies = [
  "assert_matches",
  "error_category",
  "futures",
+ "jwt",
  "p256",
  "platform_support",
  "poa",
@@ -7110,12 +7141,10 @@ dependencies = [
  "assert_matches",
  "axum",
  "axum-server",
- "base64 0.22.1",
  "built",
  "cfg-if",
  "chrono",
  "derive_more",
- "error_category",
  "etag",
  "futures",
  "hex",
@@ -7123,7 +7152,6 @@ dependencies = [
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "jsonwebtoken",
  "mime",
  "nutype",
  "p256",
@@ -7268,6 +7296,7 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
+ "jwt",
  "p256",
  "platform_support",
  "poa",

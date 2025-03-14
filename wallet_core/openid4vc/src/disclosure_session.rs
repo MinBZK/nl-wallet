@@ -13,6 +13,7 @@ use tracing::info;
 use tracing::warn;
 
 use error_category::ErrorCategory;
+use jwt::Jwt;
 use mdoc::disclosure::DeviceResponse;
 use mdoc::engagement::SessionTranscript;
 use mdoc::holder::DisclosureRequestMatch;
@@ -26,7 +27,6 @@ use mdoc::utils::x509::BorrowingCertificate;
 use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
 use poa::factory::PoaFactory;
-use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
@@ -755,6 +755,7 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
+    use jwt::error::JwtX5cError;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
@@ -790,7 +791,6 @@ mod tests {
     use wallet_common::utils::random_string;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
-    use crate::jwt::JwtX5cError;
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::VerifiablePresentation;
     use crate::openid4vp::VpAuthorizationResponse;

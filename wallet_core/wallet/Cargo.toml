@@ -69,6 +69,7 @@ mockall = { workspace = true, optional = true }
 
 entity.path = "entity"
 error_category = { path = "../error_category", features = ["sentry"] }
+jwt.path = "../jwt"
 migration.path = "migrations"
 mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"

@@ -10,6 +10,7 @@ use parking_lot::Mutex;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use jwt::Jwt;
 use mdoc::examples::EXAMPLE_ATTRIBUTES;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
@@ -19,7 +20,6 @@ use mdoc::server_keys::generate::Ca;
 use mdoc::server_keys::KeyPair;
 use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::verifier::ItemsRequests;
-use wallet_common::jwt::Jwt;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 
@@ -28,7 +28,6 @@ use crate::disclosure_session::DisclosureUriSource;
 use crate::disclosure_session::VpClientError;
 use crate::disclosure_session::VpMessageClient;
 use crate::disclosure_session::VpMessageClientError;
-use crate::jwt;
 use crate::openid4vp::IsoVpAuthorizationRequest;
 use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
@@ -148,7 +147,7 @@ where
 
         let request = (self.transform_auth_request)(request);
 
-        jwt::sign_with_certificate(&request, &self.key_pair).await.unwrap()
+        Jwt::sign_with_certificate(&request, &self.key_pair).await.unwrap()
     }
 }
 

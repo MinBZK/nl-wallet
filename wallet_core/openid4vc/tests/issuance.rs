@@ -10,6 +10,8 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use jwt::JsonJwt;
+use jwt::Jwt;
 use mdoc::server_keys::generate::Ca;
 use mdoc::server_keys::KeyPair;
 use mdoc::utils::issuer_auth::IssuerRegistration;
@@ -49,8 +51,6 @@ use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
-use wallet_common::jwt::JsonJwt;
-use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
