@@ -26,6 +26,7 @@ use wallet_common::wte::WteClaims;
 use crate::credential_formats::CredentialFormat;
 use crate::credential_formats::CredentialType;
 use crate::issuance_session::IssuanceSessionError;
+use crate::token::AuthorizationCode;
 use crate::Format;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
@@ -162,6 +163,49 @@ impl CredentialRequestProof {
 
         Ok(keys_and_proofs)
     }
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CredentialOffer {
+    pub credential_issuer: BaseUrl,
+    pub credential_configuration_ids: Vec<String>,
+    pub grants: Option<Grants>,
+}
+
+/// Grants for a Verifiable Credential.
+/// May contain either or both. If it contains both, it is up to the wallet which one it uses.
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Grants {
+    pub authorization_code: Option<GrantAuthorizationCode>,
+
+    #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
+    pub pre_authorized_code: Option<GrantPreAuthorizedCode>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GrantAuthorizationCode {
+    pub issuer_state: Option<String>,
+    pub authorization_server: Option<BaseUrl>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GrantPreAuthorizedCode {
+    #[serde(rename = "pre-authorized_code")]
+    pub pre_authorized_code: AuthorizationCode,
+    pub tx_code: Option<PreAuthTransactionCode>,
+    pub authorization_server: Option<BaseUrl>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PreAuthTransactionCode {
+    pub input_mode: Option<String>,
+    pub length: Option<u64>,
+    pub description: Option<String>,
 }
 
 /// Stores multiple copies of credentials that have identical attributes.
