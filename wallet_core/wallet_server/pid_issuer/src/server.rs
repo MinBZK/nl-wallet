@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
+use p256::ecdsa::VerifyingKey;
 use tokio::net::TcpListener;
 use tracing::info;
 
@@ -22,6 +23,7 @@ pub async fn serve<A, IS, W>(
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
 ) -> Result<()>
 where
@@ -30,7 +32,16 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     let listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
-    serve_with_listener(listener, attr_service, settings, hsm, issuance_sessions, wte_tracker).await
+    serve_with_listener(
+        listener,
+        attr_service,
+        settings,
+        hsm,
+        issuance_sessions,
+        wte_issuer_pubkey,
+        wte_tracker,
+    )
+    .await
 }
 
 pub async fn serve_with_listener<A, IS, W>(
@@ -39,6 +50,7 @@ pub async fn serve_with_listener<A, IS, W>(
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
 ) -> Result<()>
 where
@@ -58,7 +70,7 @@ where
         attr_service,
         settings.wallet_client_ids,
         Some(WteConfig {
-            wte_issuer_pubkey: settings.wte_issuer_pubkey.as_inner().into(),
+            wte_issuer_pubkey: (&wte_issuer_pubkey).into(),
             wte_tracker: Arc::new(wte_tracker),
         }),
     );

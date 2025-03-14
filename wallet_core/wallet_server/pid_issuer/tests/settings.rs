@@ -5,8 +5,8 @@ use assert_matches::assert_matches;
 use mdoc::server_keys::generate::Ca;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use pid_issuer::settings::AttestationTypeConfigSettings;
-use pid_issuer::settings::IssuerSettings;
 use pid_issuer::settings::IssuerSettingsError;
+use pid_issuer::settings::PidIssuerSettings;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::UncheckedTypeMetadata;
 use server_utils::settings::CertificateVerificationError;
@@ -28,30 +28,30 @@ fn mock_attestation_data(keypair: KeyPair) -> HashMap<String, AttestationTypeCon
 
 #[test]
 fn test_settings_success() {
-    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
     let issuer_cert_valid = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .expect("generate valid issuer cert");
 
-    settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
-    settings.attestation_settings = mock_attestation_data(issuer_cert_valid.into()).into();
+    settings.issuer_settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
+    settings.issuer_settings.attestation_settings = mock_attestation_data(issuer_cert_valid.into()).into();
 
     settings.validate().expect("should succeed");
 }
 
 #[test]
 fn test_settings_no_issuer_trust_anchors() {
-    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
     let issuer_cert_valid = issuer_ca
         .generate_issuer_mock(IssuerRegistration::new_mock().into())
         .expect("generate valid issuer cert");
 
-    settings.server_settings.issuer_trust_anchors = vec![];
-    settings.attestation_settings = mock_attestation_data(issuer_cert_valid.into()).into();
+    settings.issuer_settings.server_settings.issuer_trust_anchors = vec![];
+    settings.issuer_settings.attestation_settings = mock_attestation_data(issuer_cert_valid.into()).into();
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(
@@ -62,7 +62,7 @@ fn test_settings_no_issuer_trust_anchors() {
 
 #[test]
 fn test_settings_no_issuer_registration() {
-    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
     let issuer_cert_valid = issuer_ca
@@ -72,7 +72,7 @@ fn test_settings_no_issuer_registration() {
         .generate_issuer_mock(None)
         .expect("generate issuer cert without issuer registration");
 
-    settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
+    settings.issuer_settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
 
     let mut attestation_settings = mock_attestation_data(issuer_cert_valid.into());
     attestation_settings.insert(
@@ -84,9 +84,9 @@ fn test_settings_no_issuer_registration() {
             certificate_san: None,
         },
     );
-    settings.attestation_settings = attestation_settings.into();
+    settings.issuer_settings.attestation_settings = attestation_settings.into();
 
-    settings.metadata = vec![
+    settings.issuer_settings.metadata = vec![
         TypeMetadata::try_new(UncheckedTypeMetadata {
             vct: "com.example.no_registration".to_string(),
             ..UncheckedTypeMetadata::empty_example()
@@ -105,9 +105,9 @@ fn test_settings_no_issuer_registration() {
 
 #[test]
 fn test_settings_missing_metadata() {
-    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
-    settings.metadata.clear();
+    settings.issuer_settings.metadata.clear();
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(error, IssuerSettingsError::MissingMetadata { .. });
@@ -115,14 +115,20 @@ fn test_settings_missing_metadata() {
 
 #[test]
 fn test_settings_wrong_san_field() {
-    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
+    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let wrong_san: HttpsUri = "https://wrong.san.example.com".parse().unwrap();
 
-    let (typ, attestation_settings) = settings.attestation_settings.as_ref().iter().next().unwrap();
+    let (typ, attestation_settings) = settings
+        .issuer_settings
+        .attestation_settings
+        .as_ref()
+        .iter()
+        .next()
+        .unwrap();
     let mut attestation_settings = attestation_settings.clone();
     attestation_settings.certificate_san = Some(wrong_san.clone());
-    settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
+    settings.issuer_settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
 
     let error = settings.validate().expect_err("should fail");
     assert_matches!(error, IssuerSettingsError::CertificateMissingSan { san, .. } if san == wrong_san);

@@ -42,11 +42,6 @@ use wallet_common::urls::BaseUrl;
 use wallet_common::urls::HttpsUri;
 use wallet_common::utils;
 
-use crate::pid::attributes::BrpPidAttributeService;
-use crate::pid::attributes::Error as BrpError;
-use crate::pid::brp::client::HttpBrpClient;
-
-#[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct IssuerSettings {
     pub attestation_settings: AttestationTypesConfigSettings,
@@ -62,19 +57,20 @@ pub struct IssuerSettings {
     pub wallet_client_ids: Vec<String>,
 
     #[serde(flatten)]
-    pub pid_settings: PidIssuerSettings,
+    pub server_settings: Settings,
+}
+
+#[serde_as]
+#[derive(Clone, Deserialize)]
+pub struct PidIssuerSettings {
+    pub digid: Digid,
+    pub brp_server: BaseUrl,
 
     #[serde_as(as = "Base64")]
     pub wte_issuer_pubkey: DerVerifyingKey,
 
     #[serde(flatten)]
-    pub server_settings: Settings,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct PidIssuerSettings {
-    pub digid: Digid,
-    pub brp_server: BaseUrl,
+    pub issuer_settings: IssuerSettings,
 }
 
 #[derive(Clone, Deserialize, From, AsRef)]
@@ -167,18 +163,6 @@ impl AttestationTypesConfigSettings {
     }
 }
 
-impl TryFrom<&IssuerSettings> for BrpPidAttributeService {
-    type Error = BrpError;
-
-    fn try_from(issuer: &IssuerSettings) -> Result<Self, Self::Error> {
-        BrpPidAttributeService::new(
-            HttpBrpClient::new(issuer.pid_settings.brp_server.clone()),
-            &issuer.pid_settings.digid.bsn_privkey,
-            issuer.pid_settings.digid.http_config.clone(),
-        )
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum IssuerSettingsError {
     #[error("certificate error: {0}")]
@@ -193,7 +177,7 @@ pub enum IssuerSettingsError {
     MissingMetadata { attestation_type: String },
 }
 
-impl ServerSettings for IssuerSettings {
+impl ServerSettings for PidIssuerSettings {
     type ValidationError = IssuerSettingsError;
 
     fn new(config_file: &str, env_prefix: &str) -> Result<Self, ConfigError> {
@@ -249,8 +233,10 @@ impl ServerSettings for IssuerSettings {
     fn validate(&self) -> Result<(), IssuerSettingsError> {
         tracing::debug!("verifying issuer settings");
 
-        let metadata = self.metadata();
-        for (typ, attestation) in self.attestation_settings.as_ref() {
+        let issuer_settings = &self.issuer_settings;
+
+        let metadata = issuer_settings.metadata();
+        for (typ, attestation) in issuer_settings.attestation_settings.as_ref() {
             if !metadata.contains_key(typ) {
                 // TODO PVW-3824: recursively check the presence of metadata on which the current metadata depends
                 return Err(IssuerSettingsError::MissingMetadata {
@@ -284,14 +270,14 @@ impl ServerSettings for IssuerSettings {
 
         let time = TimeGenerator;
 
-        let trust_anchors: Vec<TrustAnchor<'_>> = self
+        let trust_anchors: Vec<TrustAnchor<'_>> = issuer_settings
             .server_settings
             .issuer_trust_anchors
             .iter()
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect::<Vec<_>>();
 
-        let key_pairs: Vec<(String, KeyPair)> = self
+        let key_pairs: Vec<(String, KeyPair)> = issuer_settings
             .attestation_settings
             .as_ref()
             .iter()
@@ -310,6 +296,6 @@ impl ServerSettings for IssuerSettings {
     }
 
     fn server_settings(&self) -> &Settings {
-        &self.server_settings
+        &self.issuer_settings.server_settings
     }
 }
