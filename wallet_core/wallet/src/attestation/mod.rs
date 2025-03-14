@@ -17,7 +17,6 @@ use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
 use sd_jwt::metadata::JsonSchemaProperty;
 use sd_jwt::metadata::SchemaOption;
-use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

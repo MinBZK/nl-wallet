@@ -45,18 +45,14 @@ impl Attestation {
         // For every claim in the metadata, traverse the nested attributes to find it,
         // then convert it to a `AttestationAttribute` value.
         let attributes_iter = metadata.claims.into_iter().map(|claim| {
-            match take_attribute_value_at_key_path(&mut nested_attributes, claim.path.clone(), &schema_properties)? {
-                Some((path, value)) => {
-                    let attribute = AttestationAttribute {
-                        key: path,
-                        metadata: claim.display,
-                        value,
-                    };
-
-                    Ok(attribute)
-                }
-                None => Err(AttestationError::AttributeNotFoundForClaim(claim.path)),
-            }
+            let (path, value) =
+                take_attribute_value_at_key_path(&mut nested_attributes, claim.path, &schema_properties)?;
+            let attribute = AttestationAttribute {
+                key: path,
+                metadata: claim.display,
+                value,
+            };
+            Ok::<_, AttestationError>(attribute)
         });
 
         let attributes = match selection_mode {
@@ -97,59 +93,55 @@ fn take_attribute_value_at_key_path(
     attributes: &mut IndexMap<String, Attribute>,
     path: VecNonEmpty<ClaimPath>,
     json_schema_properties: &HashMap<String, JsonSchemaProperty>,
-) -> Result<Option<(Vec<String>, AttestationAttributeValue)>, AttestationError> {
+) -> Result<(Vec<String>, AttestationAttributeValue), AttestationError> {
     // First, confirm that the path is made up of key entries by converting to a `Vec<String>`.
     // This will return `None` if any of the elements of the path is not an index.
-    let key_path = path
+    path.clone()
         .into_iter()
         .map(|path| match path {
             ClaimPath::SelectByKey(key) => Some(key),
             _ => None,
         })
-        .collect::<Option<Vec<_>>>();
-
-    if let Some(key_path) = key_path {
-        // Iterate over the path to first find the correct `IndexMap` and then look for the value in it.
-        let result = key_path
-            .iter()
-            // This is guaranteed not to underflow because the key path has at least one entry.
-            .take(key_path.len() - 1)
-            // For all entries in the path but the last, start traversing the path
-            // and expect to find another nested IndexMap every step along the way.
-            // Since the JSON schema properties have the same structure, it is matched
-            // in a tuple along with the attributes IndexMap.
-            // Note that for a path length of 1, this will result in the input IndexMap.
-            .try_fold(
-                (attributes, json_schema_properties),
-                |(attributes, json_schema_properties), key| match (
-                    attributes.get_mut(key),
-                    json_schema_properties
-                        .get(key)
-                        .and_then(|prop| prop.properties.as_ref()),
-                ) {
-                    (Some(Attribute::Nested(nested_attributes)), Some(props)) => Some((nested_attributes, props)),
-                    _ => None,
-                },
-            )
-            // For the last entry in the path, if the IndexMap found in the last step
-            // contains a value for that key, remove it and return it.
-            .and_then(|(attributes, json_props)| {
-                let key = key_path.last().unwrap();
-                match (attributes.swap_remove(key), json_props.get(key)) {
-                    (Some(Attribute::Single(value)), Some(json_property)) => Some(
-                        AttestationAttributeValue::try_from_attribute_value(value, json_property),
-                    ),
-                    _ => None,
-                }
-            })
-            .transpose()?
-            // Combine the resulting value with the full path created earlier.
-            .map(|value| (key_path, value));
-
-        Ok(result)
-    } else {
-        Ok(None)
-    }
+        .collect::<Option<Vec<_>>>()
+        .and_then(|key_path| {
+            // Iterate over the path to first find the correct `IndexMap` and then look for the value in it.
+            key_path
+                .iter()
+                // This is guaranteed not to underflow because the key path has at least one entry.
+                .take(key_path.len() - 1)
+                // For all entries in the path but the last, start traversing the path
+                // and expect to find another nested IndexMap every step along the way.
+                // Since the JSON schema properties have the same structure, it is matched
+                // in a tuple along with the attributes IndexMap.
+                // Note that for a path length of 1, this will result in the input IndexMap.
+                .try_fold(
+                    (attributes, json_schema_properties),
+                    |(attributes, json_schema_properties), key| match (
+                        attributes.get_mut(key),
+                        json_schema_properties
+                            .get(key)
+                            .and_then(|prop| prop.properties.as_ref()),
+                    ) {
+                        (Some(Attribute::Nested(nested_attributes)), Some(props)) => Some((nested_attributes, props)),
+                        _ => None,
+                    },
+                )
+                .and_then(|(attributes, json_props)| {
+                    // For the last entry in the path, if the IndexMap found in the last step
+                    // contains a value for that key, remove it and return it.
+                    let key = key_path.last().unwrap();
+                    match (attributes.swap_remove(key), json_props.get(key)) {
+                        (Some(Attribute::Single(value)), Some(json_property)) => Some(
+                            AttestationAttributeValue::try_from_attribute_value(value, json_property)
+                                // Combine the resulting attribute value with the full path created earlier.
+                                .map(|attribute_value| (key_path, attribute_value)),
+                        ),
+                        _ => None,
+                    }
+                })
+        })
+        .transpose()?
+        .ok_or(AttestationError::AttributeNotFoundForClaim(path))
 }
 
 /// Collect all full key paths present in `attributes` by unrolling any nested attribute paths.
@@ -233,6 +225,7 @@ pub mod test {
     use crate::attestation::attribute::collect_key_paths;
     use crate::attestation::attribute::take_attribute_value_at_key_path;
     use crate::attestation::AttestationAttributeValue;
+    use crate::attestation::AttestationError;
 
     static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
         IndexMap::from([
@@ -289,7 +282,8 @@ pub mod test {
 
         assert_matches!(
             result,
-            Some((path, AttestationAttributeValue::Basic(AttributeValue::Text(value)))) if path == vec!["single"] && value == "single",
+            (path, AttestationAttributeValue::Basic(AttributeValue::Text(value)))
+                if path == vec!["single"] && value == "single",
             "selecting single attribute by key should find attribute"
         );
     }
@@ -312,7 +306,7 @@ pub mod test {
 
         assert_matches!(
             result,
-            Some((path, AttestationAttributeValue::Date(value)))
+            (path, AttestationAttributeValue::Date(value))
                 if path == vec!["date"] && value == NaiveDate::from_ymd_opt(2024, 12, 26).unwrap(),
             "selecting date attribute by key should find attribute"
         );
@@ -336,12 +330,11 @@ pub mod test {
                     properties: None,
                 },
             )]),
-        )
-        .unwrap();
+        );
 
         assert_matches!(
             result,
-            None,
+            Err(AttestationError::AttributeNotFoundForClaim(_)),
             "selecting nested attribute by key should find nothing for single attribute"
         );
     }
@@ -384,7 +377,7 @@ pub mod test {
 
         assert_matches!(
             result,
-            Some((path, AttestationAttributeValue::Basic(AttributeValue::Text(value))))
+            (path, AttestationAttributeValue::Basic(AttributeValue::Text(value)))
                 if path == vec!["nested_1a", "nested_1b", "nested_1c"] && value == "nested_value",
             "selecting nested attribute by keys should find attribute"
         );
@@ -416,12 +409,11 @@ pub mod test {
                     )])),
                 },
             )]),
-        )
-        .unwrap();
+        );
 
         assert_matches!(
             result,
-            None,
+            Err(AttestationError::AttributeNotFoundForClaim(_)),
             "selecting nested attribute by key should find nothing for unknown key"
         );
     }
@@ -467,12 +459,11 @@ pub mod test {
                     )])),
                 },
             )]),
-        )
-        .unwrap();
+        );
 
         assert_matches!(
             result,
-            None,
+            Err(AttestationError::AttributeNotFoundForClaim(_)),
             "selecting by more keys than attributes are nested should find nothing"
         );
     }
