@@ -86,6 +86,7 @@ mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["preserve_order"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 

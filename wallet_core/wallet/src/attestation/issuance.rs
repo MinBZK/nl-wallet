@@ -14,16 +14,14 @@ use super::AttributeSelectionMode;
 impl Attestation {
     pub(crate) fn create_for_issuance(
         identity: AttestationIdentity,
-        attestation_type: String,
         metadata: TypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
-        let nested_attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
+        let nested_attributes = Attribute::from_mdoc_attributes(&metadata.vct, mdoc_attributes)?;
 
         Self::create_from_attributes(
             identity,
-            attestation_type,
             metadata,
             issuer_organization,
             nested_attributes,
@@ -37,51 +35,28 @@ mod test {
     use std::collections::HashSet;
 
     use assert_matches::assert_matches;
-    use indexmap::IndexMap;
+    use chrono::NaiveDate;
 
-    use mdoc::unsigned::Entry;
     use mdoc::utils::auth::Organization;
-    use mdoc::DataElementValue;
     use openid4vc::attributes::AttributeValue;
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
+    use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
+    use crate::issuance::mock::create_example_unsigned_mdoc;
     use crate::Attestation;
     use crate::AttestationIdentity;
 
-    fn example_mdoc_attributes() -> IndexMap<String, Vec<Entry>> {
-        IndexMap::from([(
-            String::from("example_attestation_type.namespace1"),
-            vec![
-                Entry {
-                    name: String::from("entry1"),
-                    value: DataElementValue::Text(String::from("value1")),
-                },
-                Entry {
-                    name: String::from("entry2"),
-                    value: DataElementValue::Bool(true),
-                },
-            ],
-        )])
-    }
-
     #[test]
     fn test_happy() {
-        let metadata = TypeMetadata {
-            claims: vec![
-                claim_metadata(&["namespace1", "entry1"]),
-                claim_metadata(&["namespace1", "entry2"]),
-            ],
-            ..TypeMetadata::empty_example()
-        };
+        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
 
         let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-            example_mdoc_attributes(),
+            unsigned_mdoc.attributes.into_inner(),
         )
         .expect("creating new Attestation should be successful");
 
@@ -94,12 +69,20 @@ mod test {
         assert_eq!(
             [
                 (
-                    vec![String::from("namespace1"), String::from("entry1")],
-                    AttributeValue::Text(String::from("value1"))
+                    vec![String::from("family_name")],
+                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("De Bruijn")))
                 ),
                 (
-                    vec![String::from("namespace1"), String::from("entry2")],
-                    AttributeValue::Bool(true)
+                    vec![String::from("given_name")],
+                    AttestationAttributeValue::Basic(AttributeValue::Text(String::from("Willeke Liselotte")))
+                ),
+                (
+                    vec![String::from("birth_date")],
+                    AttestationAttributeValue::Date(NaiveDate::from_ymd_opt(1997, 5, 10).unwrap())
+                ),
+                (
+                    vec![String::from("age_over_18")],
+                    AttestationAttributeValue::Basic(AttributeValue::Bool(true))
                 ),
             ],
             attrs.as_slice()
@@ -108,17 +91,19 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
+        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+
         let metadata = TypeMetadata {
+            vct: unsigned_mdoc.doc_type,
             claims: vec![claim_metadata(&["not_found"])],
-            ..TypeMetadata::empty_example()
+            ..metadata
         };
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-            example_mdoc_attributes(),
+            unsigned_mdoc.attributes.into_inner(),
         )
         .expect_err("creating new Attestation should not be successful");
 
@@ -127,24 +112,30 @@ mod test {
 
     #[test]
     fn test_attribute_not_processed() {
+        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+
         let metadata = TypeMetadata {
-            claims: vec![claim_metadata(&["namespace1", "entry1"])],
-            ..TypeMetadata::empty_example()
+            vct: unsigned_mdoc.doc_type,
+            claims: vec![
+                claim_metadata(&["family_name"]),
+                claim_metadata(&["given_name"]),
+                claim_metadata(&["birth_date"]),
+            ],
+            ..metadata
         };
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            String::from("example_attestation_type"),
             metadata,
             Organization::new_mock(),
-            example_mdoc_attributes(),
+            unsigned_mdoc.attributes.into_inner(),
         )
         .expect_err("creating new Attestation should not be successful");
 
         assert_matches!(
             error,
             AttestationError::AttributeNotProcessedByClaim(keys)
-                if keys == HashSet::from([vec![String::from("namespace1"), String::from("entry2")]])
+                if keys == HashSet::from([vec![String::from("age_over_18")]])
         );
     }
 }

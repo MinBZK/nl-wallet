@@ -135,18 +135,18 @@ impl CredentialPayload {
     ///
     /// Note in particular that attributes in a namespace whose names equals the `doc_type` parameter are mapped to the
     /// root level of the output.
-    pub fn from_mdoc_attributes(
-        doc_type: String,
+    fn from_mdoc_attributes(
+        attestation_type: String,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,
         not_before: Option<DateTime<Utc>>,
     ) -> Result<Self, CredentialPayloadError> {
-        let attributes = Attribute::from_mdoc_attributes(&doc_type, mdoc_attributes)?;
+        let attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
 
         let payload = Self {
-            attestation_type: doc_type,
+            attestation_type,
             issuer,
             issued_at,
             expires,
@@ -206,7 +206,10 @@ mod test {
                                     String::from("name"),
                                     Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
                                 ),
-                                (String::from("area_code"), Attribute::Single(AttributeValue::Number(33))),
+                                (
+                                    String::from("area_code"),
+                                    Attribute::Single(AttributeValue::Integer(33)),
+                                ),
                             ])),
                         ),
                     ])),
@@ -218,7 +221,7 @@ mod test {
                         (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
                         (
                             String::from("debt_amount"),
-                            Attribute::Single(AttributeValue::Number(-10_000)),
+                            Attribute::Single(AttributeValue::Integer(-10_000)),
                         ),
                     ])),
                 ),

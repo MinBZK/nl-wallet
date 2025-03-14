@@ -899,6 +899,7 @@ mod tests {
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::utils::x509::CertificateError;
     use mdoc::IssuerSigned;
+    use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::keys::factory::KeyFactory;
@@ -934,8 +935,12 @@ mod tests {
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
 
-        // NOTE: This metadata does not match the attributes.
-        let metadata = TypeMetadata::empty_example();
+        let metadata = TypeMetadata::example_with_claim_name(
+            &unsigned_mdoc.doc_type,
+            "family_name",
+            JsonSchemaPropertyType::String,
+            None,
+        );
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
         let preview = CredentialPreview::MsoMdoc {
@@ -1254,7 +1259,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` using different metadata
         // in the preview than is contained within the response should fail.
         let different_metadata_chain =
-            TypeMetadataChain::create(TypeMetadata::example_with_claim_name("different"), vec![]).unwrap();
+            TypeMetadataChain::create(TypeMetadata::empty_example_with_attestation_type("different"), vec![]).unwrap();
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
