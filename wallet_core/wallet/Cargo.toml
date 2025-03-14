@@ -78,7 +78,7 @@ platform_support.path = "../platform_support"
 poa.path = "../poa"
 sd_jwt.path = "../sd_jwt"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
-wallet_common = { path = "../wallet_common", features = ["axum"] }
+wallet_common = { path = "../wallet_common" }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
