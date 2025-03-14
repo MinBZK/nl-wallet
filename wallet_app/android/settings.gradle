@@ -17,11 +17,13 @@ pluginManagement {
 }
 
 plugins {
-    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
     id "com.android.application" version '8.7.3' apply false
+    id "com.android.library" version '8.7.3' apply false
+    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
     id "org.jetbrains.kotlin.android" version "2.0.21" apply false
+    id 'net.razvan.jacoco-to-cobertura' version '1.2.0' apply false
 }
 
 include ":app"
 include ':platform_support'
-project(':platform_support').projectDir = new File('../../wallet_core/platform_support/android/platform_support')
+project(':platform_support').projectDir = new File('../../wallet_core/platform_support/android')

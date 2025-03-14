@@ -22,8 +22,8 @@ use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
 use error_category::ErrorCategory;
+use jwt::error::JwtX5cError;
 use jwt::Jwt;
-use jwt::JwtX5cError;
 use jwt::NL_WALLET_CLIENT_ID;
 use nl_wallet_mdoc::errors::Error as MdocError;
 use nl_wallet_mdoc::utils::serialization::CborBase64;
@@ -1333,7 +1333,7 @@ mod tests {
         .await;
 
         let mut poa = poa.unwrap();
-        poa = poa.with_payload("edited".to_owned());
+        poa.set_payload("edited".to_owned());
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, Some(poa));
         let error = auth_response

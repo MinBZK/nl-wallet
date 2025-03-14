@@ -1451,9 +1451,12 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__get_history_for_card(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> doc_type,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> attestation_type,
   ) {
-    return _wire__crate__api__full__get_history_for_card(port_, doc_type);
+    return _wire__crate__api__full__get_history_for_card(
+      port_,
+      attestation_type,
+    );
   }
 
   late final _wire__crate__api__full__get_history_for_cardPtr =

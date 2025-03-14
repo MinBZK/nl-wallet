@@ -43,12 +43,6 @@ pub struct MissingAttribute {
     pub labels: Vec<LocalizedString>,
 }
 
-pub enum DisclosureStatus {
-    Success,
-    Cancelled,
-    Error,
-}
-
 pub enum DisclosureType {
     Login,
     Regular,
@@ -162,16 +156,6 @@ impl From<&ReaderRegistration> for RequestPolicy {
     }
 }
 
-impl From<bool> for DisclosureType {
-    fn from(value: bool) -> Self {
-        if value {
-            DisclosureType::Login
-        } else {
-            DisclosureType::Regular
-        }
-    }
-}
-
 // TODO (PVW-3813): Actually translate the missing attributes using the TAS cache.
 impl From<String> for MissingAttribute {
     fn from(value: String) -> Self {
@@ -187,6 +171,15 @@ impl From<String> for MissingAttribute {
             .collect();
 
         Self { labels }
+    }
+}
+
+impl From<wallet::DisclosureType> for DisclosureType {
+    fn from(source: wallet::DisclosureType) -> Self {
+        match source {
+            wallet::DisclosureType::Login => DisclosureType::Login,
+            wallet::DisclosureType::Regular => DisclosureType::Regular,
+        }
     }
 }
 
@@ -207,7 +200,7 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                     session_type: proposal.session_type.into(),
                     request_purpose,
                     request_origin_base_url: proposal.reader_registration.request_origin_base_url.into(),
-                    request_type: proposal.is_login_flow.into(),
+                    request_type: proposal.disclosure_type.into(),
                 };
 
                 Ok(result)

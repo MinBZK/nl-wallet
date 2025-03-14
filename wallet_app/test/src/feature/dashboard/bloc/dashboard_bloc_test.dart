@@ -2,7 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:test/test.dart';
 import 'package:wallet/src/domain/usecase/card/observe_wallet_cards_usecase.dart';
-import 'package:wallet/src/domain/usecase/history/observe_recent_history_usecase.dart';
+import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import 'package:wallet/src/feature/dashboard/bloc/dashboard_bloc.dart';
 
 import '../../../mocks/wallet_mock_data.dart';
@@ -10,18 +10,18 @@ import '../../../mocks/wallet_mocks.dart';
 
 void main() {
   late ObserveWalletCardsUseCase observeWalletCardsUseCase;
-  late ObserveRecentHistoryUseCase observeRecentHistoryUseCase;
+  late ObserveRecentWalletEventsUseCase observeRecentWalletEventUseCase;
 
   setUp(() {
     observeWalletCardsUseCase = MockObserveWalletCardsUseCase();
-    observeRecentHistoryUseCase = MockObserveRecentHistoryUseCase();
+    observeRecentWalletEventUseCase = MockObserveRecentWalletEventsUseCase();
   });
 
   blocTest(
     'verify initial state without preloaded cards',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       null,
     ),
     verify: (bloc) {
@@ -33,7 +33,7 @@ void main() {
     'verify initial state with preloaded cards',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       [WalletMockData.card],
     ),
     verify: (bloc) {
@@ -45,7 +45,7 @@ void main() {
     'verify loading state',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       null,
     ),
     act: (bloc) => bloc.add(const DashboardLoadTriggered()),
@@ -56,7 +56,7 @@ void main() {
     'verify no loading state when state is success',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       [WalletMockData.card],
     ),
     act: (bloc) => bloc.add(const DashboardLoadTriggered()),
@@ -67,7 +67,7 @@ void main() {
     'verify loading state when state is success but refresh is forced',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       [WalletMockData.card],
     ),
     act: (bloc) => bloc.add(const DashboardLoadTriggered(forceRefresh: true)),
@@ -78,12 +78,12 @@ void main() {
     'verify cards and history are fetched through usecases',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       null,
     ),
     setUp: () {
       when(observeWalletCardsUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.altCard]));
-      when(observeRecentHistoryUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.disclosureEvent]));
+      when(observeRecentWalletEventUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.disclosureEvent]));
     },
     act: (bloc) => bloc.add(const DashboardLoadTriggered()),
     expect: () => [
@@ -99,10 +99,11 @@ void main() {
     'verify failure is emitted when history cant be loaded',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       null,
     ),
-    setUp: () => when(observeRecentHistoryUseCase.invoke()).thenAnswer((_) => Stream.error('failed to load history')),
+    setUp: () =>
+        when(observeRecentWalletEventUseCase.invoke()).thenAnswer((_) => Stream.error('failed to load history')),
     act: (bloc) => bloc.add(const DashboardLoadTriggered()),
     expect: () => [
       const DashboardLoadInProgress(),
@@ -114,12 +115,12 @@ void main() {
     'verify failure is emitted when cards cant be loaded',
     build: () => DashboardBloc(
       observeWalletCardsUseCase,
-      observeRecentHistoryUseCase,
+      observeRecentWalletEventUseCase,
       null,
     ),
     setUp: () {
       when(observeWalletCardsUseCase.invoke()).thenAnswer((_) => Stream.error('Failed to load cards'));
-      when(observeRecentHistoryUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.disclosureEvent]));
+      when(observeRecentWalletEventUseCase.invoke()).thenAnswer((_) => Stream.value([WalletMockData.disclosureEvent]));
     },
     act: (bloc) => bloc.add(const DashboardLoadTriggered()),
     expect: () => [

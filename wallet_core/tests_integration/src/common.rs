@@ -2,14 +2,10 @@ use std::any::Any;
 use std::io;
 use std::net::IpAddr;
 use std::net::TcpListener;
-use std::num::NonZeroU8;
-use std::ops::Add;
 use std::process;
 use std::str::FromStr;
 use std::time::Duration;
 
-use chrono::Days;
-use chrono::Utc;
 use ctor::ctor;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
@@ -19,7 +15,6 @@ use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
-use server_utils::store::SessionStoreVariant;
 use tokio::time;
 use url::Url;
 use uuid::Uuid;
@@ -36,9 +31,9 @@ use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use pid_issuer::pid::mock::MockAttributesLookup;
@@ -46,11 +41,10 @@ use pid_issuer::settings::IssuerSettings;
 use pid_issuer::wte_tracker::WteTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
+use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
@@ -532,28 +526,8 @@ pub struct MockAttributeService;
 impl AttributeService for MockAttributeService {
     type Error = std::convert::Infallible;
 
-    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Self::Error> {
-        let issuable_documents = MockAttributesLookup::default()
-            .attributes("999991772")
-            .unwrap()
-            .into_inner();
-
-        let metadata = vec![TypeMetadata::pid_example(), TypeMetadata::address_example()];
-
-        let now = Utc::now();
-        let attributes = issuable_documents
-            .into_iter()
-            .zip(metadata.into_iter())
-            .map(|(document, metadata)| IssuableCredential {
-                document,
-                metadata_chain: TypeMetadataChain::create(metadata, vec![]).unwrap(),
-                valid_from: now,
-                valid_until: now.add(Days::new(1)),
-                copy_count: NonZeroU8::new(1).unwrap(),
-            })
-            .collect::<Vec<_>>();
-
-        Ok(attributes.try_into().unwrap())
+    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        Ok(MockAttributesLookup::default().attributes("999991772").unwrap())
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {

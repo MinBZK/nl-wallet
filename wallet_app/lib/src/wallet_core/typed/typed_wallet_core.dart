@@ -118,8 +118,8 @@ class TypedWalletCore {
 
   Future<List<core.WalletEvent>> getHistory() => call(core.getHistory);
 
-  Future<List<core.WalletEvent>> getHistoryForCard(String docType) =>
-      call(() => core.getHistoryForCard(docType: docType));
+  Future<List<core.WalletEvent>> getHistoryForCard(String attestationType) =>
+      call(() => core.getHistoryForCard(attestationType: attestationType));
 
   Stream<List<core.WalletEvent>> observeRecentHistory() => _recentHistory.stream;
 

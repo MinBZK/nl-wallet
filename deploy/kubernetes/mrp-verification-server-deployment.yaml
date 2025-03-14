@@ -90,6 +90,8 @@ spec:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-mijn-amsterdam
                   key: private_key
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY_TYPE
+              value: "software"
             - name: VERIFICATION_SERVER__USECASES__monkey_bike__CERTIFICATE
               valueFrom:
                 secretKeyRef:
@@ -100,6 +102,8 @@ spec:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-monkey-bike
                   key: private_key
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__PRIVATE_KEY_TYPE
+              value: "software"
             - name: VERIFICATION_SERVER__USECASES__online_marketplace__CERTIFICATE
               valueFrom:
                 secretKeyRef:
@@ -110,6 +114,8 @@ spec:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-online-marketplace
                   key: private_key
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY_TYPE
+              value: "software"
             - name: VERIFICATION_SERVER__USECASES__xyz_bank__CERTIFICATE
               valueFrom:
                 secretKeyRef:
@@ -120,5 +126,7 @@ spec:
                 secretKeyRef:
                   name: nl-mrp-verification-server-verifier-usecases-xyz-bank
                   key: private_key
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY_TYPE
+              value: "software"
             - name: RUST_LOG
               value: "debug,hyper=warn"

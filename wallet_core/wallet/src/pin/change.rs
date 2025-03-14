@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
-use jwt::JwtError;
+use jwt::error::JwtError;
 use wallet_account::messages::registration::WalletCertificate;
 
 use crate::errors::InstructionError;

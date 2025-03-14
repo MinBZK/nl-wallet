@@ -14,7 +14,6 @@ test = []
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
 itertools.workspace = true
-josekit.workspace = true
 jsonwebtoken.workspace = true
 p256 = { workspace = true, features = ["std", "ecdsa"] }
 rustls-pki-types.workspace = true

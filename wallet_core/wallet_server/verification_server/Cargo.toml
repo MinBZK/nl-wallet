@@ -34,18 +34,10 @@ default = ["postgres"]
 allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url"]
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres"]
-# Include and run integration tests that depend on an external PostgreSQL database
-db_test = [
-    "postgres",
-    "allow_insecure_url",
-    "futures/std",
-    "futures/async-await",
-    "dep:serial_test",
-    "openid4vc/test",
-    "tokio/sync",
-]
 # Enable integration tests
-integration_test = ["allow_insecure_url", "server_utils/integration_test"]
+integration_test = ["allow_insecure_url", "openid4vc/test", "server_utils/integration_test"]
+# Include and run integration tests that depend on an external PostgreSQL database
+db_test = ["integration_test", "postgres", "futures/std", "futures/async-await", "dep:serial_test", "tokio/sync"]
 
 [dependencies]
 anyhow.workspace = true
@@ -95,6 +87,5 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 
 configuration = { path = "../../wallet_configuration/configuration", features = ["insecure_http_client"] }
 nl_wallet_mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
-poa = { path = "../../poa", features = ["mock"] }
 sd_jwt = { path = "../../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../../wallet_common", features = ["mock_remote_key", "mock_time"] }

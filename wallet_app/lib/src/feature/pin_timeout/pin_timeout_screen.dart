@@ -10,7 +10,7 @@ import '../common/page/page_illustration.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
-import '../common/widget/button/secondary_button.dart';
+import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -83,8 +83,9 @@ class PinTimeoutScreen extends StatelessWidget {
               primaryButton: PrimaryButton(
                 text: Text.rich(context.l10n.pinTimeoutScreenClearWalletCta.toTextSpan(context)),
                 onPressed: () => ResetWalletDialog.show(context),
+                icon: const Icon(Icons.delete_outline_rounded),
               ),
-              secondaryButton: SecondaryButton(
+              secondaryButton: TertiaryButton(
                 text: Text.rich(context.l10n.pinTimeoutScreenForgotPinCta.toTextSpan(context)),
                 onPressed: () => ForgotPinScreen.show(context),
               ),

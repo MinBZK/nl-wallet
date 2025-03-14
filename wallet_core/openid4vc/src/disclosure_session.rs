@@ -755,7 +755,7 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
-    use jwt::JwtX5cError;
+    use jwt::error::JwtX5cError;
     use nl_wallet_mdoc::examples::EXAMPLE_ATTRIBUTES;
     use nl_wallet_mdoc::examples::EXAMPLE_DOC_TYPE;
     use nl_wallet_mdoc::examples::EXAMPLE_NAMESPACE;
@@ -1622,14 +1622,17 @@ mod tests {
         assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
     }
 
-    async fn try_disclose<F, K: CredentialEcdsaKey>(
+    async fn try_disclose<F, K, KF>(
         proposal_session: DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
-        key_factory: &(impl KeyFactory<Key = K> + PoaFactory<Key = K>),
+        key_factory: &KF,
         expect_report_error: bool,
     ) -> DisclosureError<VpClientError>
     where
         F: Fn() -> Option<VpMessageClientError>,
+        K: CredentialEcdsaKey,
+        KF: KeyFactory<Key = K>,
+        KF: PoaFactory<Key = K>,
     {
         // Disclosing the session should result in the payload being sent while returning an error.
         let error = match proposal_session {

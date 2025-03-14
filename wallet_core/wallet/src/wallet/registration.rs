@@ -9,7 +9,7 @@ use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use jwt::JwtError;
+use jwt::error::JwtError;
 use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
@@ -183,7 +183,7 @@ where
             .attest(
                 key_identifier.clone(),
                 utils::sha256(&challenge),
-                config.google_cloud_project_id,
+                config.google_cloud_project_number,
             )
             .await;
 

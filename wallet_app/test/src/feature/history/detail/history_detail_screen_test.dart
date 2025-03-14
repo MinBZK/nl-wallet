@@ -85,6 +85,37 @@ void main() {
       );
       await screenMatchesGolden(tester, 'error.light');
     });
+
+    testGoldens('Disclose cancelled', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.cancelledDisclosureEvent, [WalletMockData.card]),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden(tester, 'cancelled.light');
+    });
+
+    testGoldens('Disclose cancelled - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.cancelledDisclosureEvent, [WalletMockData.card]),
+        ),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden(tester, 'cancelled.dark');
+    });
   });
 
   group('widgets', () {

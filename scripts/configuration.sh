@@ -50,10 +50,11 @@ export GBA_HC_CONV_HMAC_KEY
 # Configuration environment
 export CONFIG_ENV="${CONFIG_ENV:-dev}"
 
-# Google Cloud Project ID for Play Integrity. This number is not secret, it's a
-# test throw-away project on one of our Google Cloud accounts. Note that this
-# project is for testing purposes only, not production use.
-export GOOGLE_CLOUD_PROJECT_ID=12143997365
+# Google Cloud project number for Play Integrity. This number is not secret. In
+# our case, this is currently a test throw-away project on one of our Google
+# Cloud accounts. Note that this project is for testing purposes only, i.e., it
+# is not intended for production use.
+export GOOGLE_CLOUD_PROJECT_NUMBER=12143997365
 
 # Database properties for the wallet_provider, with defaults.
 # The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.

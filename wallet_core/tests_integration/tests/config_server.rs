@@ -13,7 +13,7 @@ use tokio::fs;
 
 use configuration::config_server_config::ConfigServerConfiguration;
 use configuration::http::TlsPinningConfig;
-use jwt::JwtError;
+use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
 use wallet::wallet_deps::default_config_server_config;

@@ -17,7 +17,6 @@ use serde_with::hex::Hex;
 use serde_with::serde_as;
 
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::server_keys;
 use nl_wallet_mdoc::utils::x509::CertificateType;
 use nl_wallet_mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -31,7 +30,6 @@ use server_utils::settings::KeyPair;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use server_utils::settings::TryFromKeySettings;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
@@ -44,7 +42,7 @@ const MIN_KEY_LENGTH_BYTES: usize = 16;
 #[serde_as]
 #[derive(Clone, Deserialize)]
 pub struct VerifierSettings {
-    pub usecases: VerifierUseCases,
+    pub usecases: UseCasesSettings,
     #[serde_as(as = "Hex")]
     pub ephemeral_id_secret: EphemeralIdSecret,
     pub allow_origins: Option<CorsOrigin>,
@@ -66,45 +64,38 @@ pub struct VerifierSettings {
 }
 
 #[derive(Clone, From, AsRef, IntoIterator, Deserialize)]
-pub struct VerifierUseCases(HashMap<String, VerifierUseCase>);
+pub struct UseCasesSettings(HashMap<String, UseCaseSettings>);
 
 #[nutype(validate(predicate = |v| v.len() >= MIN_KEY_LENGTH_BYTES), derive(Clone, TryFrom, AsRef, Deserialize))]
 pub struct EphemeralIdSecret(Vec<u8>);
 
 #[derive(Clone, Deserialize)]
-pub struct VerifierUseCase {
+pub struct UseCaseSettings {
     #[serde(default)]
     pub session_type_return_url: SessionTypeReturnUrl,
     #[serde(flatten)]
     pub key_pair: KeyPair,
 }
 
-impl TryFromKeySettings<VerifierUseCases> for UseCases<PrivateKeyVariant> {
-    type Error = anyhow::Error;
-
-    async fn try_from_key_settings(value: VerifierUseCases, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let iter = value.into_iter().map(|(id, use_case)| async {
-            let result = (id, UseCase::try_from_key_settings(use_case, hsm.clone()).await?);
+impl UseCasesSettings {
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCases<PrivateKeyVariant>, anyhow::Error> {
+        let iter = self.into_iter().map(|(id, use_case)| async {
+            let result = (id, use_case.parse(hsm.clone()).await?);
             Ok(result)
         });
 
         let use_cases = join_all(iter)
             .await
             .into_iter()
-            .collect::<Result<HashMap<String, UseCase<_>>, Self::Error>>()?;
+            .collect::<Result<HashMap<String, UseCase<_>>, anyhow::Error>>()?;
 
         Ok(use_cases.into())
     }
 }
 
-impl TryFromKeySettings<VerifierUseCase> for UseCase<PrivateKeyVariant> {
-    type Error = anyhow::Error;
-
-    async fn try_from_key_settings(value: VerifierUseCase, hsm: Option<Pkcs11Hsm>) -> Result<Self, Self::Error> {
-        let use_case = UseCase::try_new(
-            server_keys::KeyPair::try_from_key_settings(value.key_pair, hsm).await?,
-            value.session_type_return_url,
-        )?;
+impl UseCaseSettings {
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
+        let use_case = UseCase::try_new(self.key_pair.parse(hsm).await?, self.session_type_return_url)?;
 
         Ok(use_case)
     }

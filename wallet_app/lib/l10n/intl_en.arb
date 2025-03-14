@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-03-03T16:33:57+01:00",
+    "@@last_modified": "2025-03-07T10:32:12+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -234,18 +234,11 @@
     "dataIncorrectScreenHeaderTitle": "Are your details incorrect?",
     "detailsIncorrectScreenDescription": "If your details is incorrect, it can cause problems. Contact your municipality to change your details.\n\nAre you still waiting for an adjustment? It can take a while before changes appear in the app.",
     "detailsIncorrectScreenTitle": "Are your details incorrect?",
-    "digidHelpScreenHelpNeededCta": "Open DigiD help",
-    "digidHelpScreenHelpNeededDescription": "DigiD Help can help you with DigiD.",
-    "digidHelpScreenHelpNeededTitle": "Still having trouble?",
-    "digidHelpScreenNoDigidCta": "Apply for DigiD",
-    "digidHelpScreenNoDigidDescription": "Do you live in the Netherlands and have a Dutch identity document? Then you can apply for a DigiD.",
-    "digidHelpScreenNoDigidTitle": "Do not have DigiD yet?",
-    "digidHelpScreenTitle": "Need help with DigiD?",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Read the terms and conditions",
     "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is wise.",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
     "disclosureConfirmDataAttributesPageDenyCta": "Stop",
-    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {The {organization} will store your data for 1 month and will not share it with other organizations.} other {The {organization} will store your data for {count} months and will not share it with other organizations.}}",
+    "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {{organization} will store your data for 1 month and will not share it with other organizations.} other {{organization} will store your data for {count} months and will not share it with other organizations.}}",
     "@disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": {
         "placeholders": {
             "count": {
@@ -267,7 +260,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {The {organization} will store your data for 1 month and can share your data with other organizations.} other {The {organization} will store your data for {count} months and can share your data with other organizations.}}",
+    "disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": "{count, plural, one {{organization} will store your data for 1 month and can share your data with other organizations.} other {The {organization} will store your data for {count} months and can share your data with other organizations.}}",
     "@disclosureConfirmDataAttributesPageSharedAndStoredSubtitle": {
         "placeholders": {
             "count": {
@@ -280,7 +273,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} will not store your data but can share it with other organizations.",
+    "disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": "{organization} will not store your data and can share your data with other organizations.",
     "@disclosureConfirmDataAttributesPageSharedNotStoredSubtitle": {
         "placeholders": {
             "organization": {
@@ -386,7 +379,7 @@
             }
         }
     },
-    "disclosureSuccessPageShowHistoryCta": "View activities",
+    "disclosureSuccessPageShowHistoryCta": "See activity",
     "disclosureSuccessPageTitle": "Success!",
     "disclosureSuccessPageToDashboardCta": "To my overview",
     "disclosureSuccessPageToWebsiteCta": "Go to website",
@@ -574,7 +567,7 @@
         }
     },
     "historyDetailScreenSharedAttributesTitle": "Attributes shared",
-    "historyDetailScreenShowDetailsCta": "Show details",
+    "historyDetailScreenShowDetailsCta": "See request details",
     "historyDetailScreenSigningStatusRejectedDescription": "No data has been shared with {organization}, because you stopped the signing process.",
     "@historyDetailScreenSigningStatusRejectedDescription": {
         "placeholders": {
@@ -1096,16 +1089,14 @@
     "walletPersonalizeDigidCancelledPageDescription": "Do you still want to retrieve your personal data? Then log in again with DigiD.",
     "walletPersonalizeDigidCancelledPageTitle": "Login cancelled",
     "walletPersonalizeDigidErrorPageDescription": "Do you still want to retrieve your personal data? Then log in again with DigiD.",
+    "walletPersonalizeDigidErrorPageDigidWebsiteCta": "Go to DigiD website",
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login again",
-    "walletPersonalizeDigidErrorPageNoDigidCta": "Need help with DigiD?",
     "walletPersonalizeDigidErrorPageTitle": "Login failed",
     "walletPersonalizeIntroPageDescription": "Log in once with DigiD to receive your cards from the National Office for Identity Data (RvIG).",
+    "walletPersonalizeIntroPageDigidWebsiteCta": "Go to DigiD website",
     "walletPersonalizeIntroPageLoginWithDigidCta": "Open the DigiD app",
     "walletPersonalizeIntroPageNoDigidCta": "No DigiD?",
     "walletPersonalizeIntroPageTitle": "Add cards via DigiD",
-    "walletPersonalizeNoDigidPageDescription": "Right now, you can only use the NL Wallet by getting your details through the DigiD app.\n\nDo you live in the Netherlands and do you have a Dutch identity document? Then you can apply for a DigiD.",
-    "walletPersonalizeNoDigidPageHeadline": "No DigiD?",
-    "walletPersonalizeNoDigidPageRequestDigidCta": "To DigiD website",
     "walletPersonalizeScreenAddingCardsSubtitle": "Cards are being added",
     "walletPersonalizeScreenAwaitingUserAuthDescription": "Here's how you can get your data",
     "walletPersonalizeScreenAwaitingUserAuthTitle": "Continue in your DigiD app",

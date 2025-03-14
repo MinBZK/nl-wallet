@@ -223,7 +223,7 @@ impl AttestedKeyHolder for MockHardwareAttestedKeyHolder {
         &self,
         key_identifier: String,
         challenge: Vec<u8>,
-        _google_cloud_project_id: u64,
+        _google_cloud_project_number: u64,
     ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
         match self.error_scenario {
             KeyHolderErrorScenario::UnretryableAttestationError => {
@@ -743,11 +743,11 @@ mod persistent {
             &self,
             key_identifier: String,
             challenge: Vec<u8>,
-            google_cloud_project_id: u64,
+            google_cloud_project_number: u64,
         ) -> Result<KeyWithAttestation<Self::AppleKey, Self::GoogleKey>, AttestationError<Self::Error>> {
             // Map the output from `KeyWithAttestation<MockAppleAttestedKey, MockGoogleAttestedKey>`
             // to `KeyWithAttestation<PersistentMockAppleAttestedKey, MockGoogleAttestedKey>`.
-            Self::with_key_state_write(self.0.attest(key_identifier, challenge, google_cloud_project_id))
+            Self::with_key_state_write(self.0.attest(key_identifier, challenge, google_cloud_project_number))
                 .await
                 .map(|key_with_attestation| match key_with_attestation {
                     KeyWithAttestation::Apple { key, attestation_data } => KeyWithAttestation::Apple {

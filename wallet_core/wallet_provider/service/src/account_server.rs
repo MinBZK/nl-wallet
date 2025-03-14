@@ -50,9 +50,9 @@ use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
+use jwt::error::JwtError;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
-use jwt::JwtError;
 use jwt::JwtSubject;
 use poa::PoaError;
 use wallet_account::messages::errors::IncorrectPinData;
@@ -160,7 +160,7 @@ pub enum AndroidKeyAttestationError {
 pub enum AndroidAppAttestationError {
     #[error("could not decode integrity toking using Play Integrity API")]
     DecodeIntegrityToken,
-    #[error("validation if integrity verdict failed: {0}")]
+    #[error("validation of integrity verdict failed: {0}")]
     IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
 }
 

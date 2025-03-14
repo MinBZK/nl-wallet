@@ -208,7 +208,7 @@ void main() {
           ..addScenario(
             widget: const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
               MockDisclosureBloc(),
-              DisclosureSuccess(relyingParty: WalletMockData.organization),
+              DisclosureSuccess(relyingParty: WalletMockData.organization, event: WalletMockData.disclosureEvent),
             ),
             name: 'success',
           ),
@@ -322,7 +322,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureSuccess(relyingParty: WalletMockData.organization),
+          DisclosureSuccess(relyingParty: WalletMockData.organization, event: WalletMockData.disclosureEvent),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;

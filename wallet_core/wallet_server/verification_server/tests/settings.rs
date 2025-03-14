@@ -9,11 +9,11 @@ use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::ServerSettings;
+use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use verification_server::settings::VerifierUseCase;
 
-fn to_use_case(key_pair: KeyPair) -> VerifierUseCase {
-    VerifierUseCase {
+fn to_use_case(key_pair: KeyPair) -> UseCaseSettings {
+    UseCaseSettings {
         session_type_return_url: SessionTypeReturnUrl::Both,
         key_pair: key_pair.into(),
     }
@@ -29,7 +29,7 @@ fn test_settings_success() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
+    let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.usecases = usecases.into();
@@ -48,7 +48,7 @@ fn test_settings_no_reader_trust_anchors() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate valid reader cert");
 
-    let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
+    let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
 
     settings.usecases = usecases.into();
@@ -71,7 +71,7 @@ fn test_settings_no_reader_registration() {
         .generate_reader_mock(None)
         .expect("generate reader cert without reader registration");
 
-    let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
+    let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
     usecases.insert("no_registration".to_string(), to_use_case(reader_cert_no_registration));
 
@@ -96,7 +96,7 @@ fn test_settings_wrong_reader_ca() {
         .generate_reader_mock(ReaderRegistration::new_mock().into())
         .expect("generate reader cert on wrong CA");
 
-    let mut usecases: HashMap<String, VerifierUseCase> = HashMap::new();
+    let mut usecases: HashMap<String, UseCaseSettings> = HashMap::new();
     usecases.insert("valid".to_string(), to_use_case(reader_cert_valid));
     usecases.insert("wrong_ca".to_string(), to_use_case(reader_cert_wrong_ca));
 

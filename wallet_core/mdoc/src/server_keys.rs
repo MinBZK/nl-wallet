@@ -3,7 +3,6 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 
 use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::EcdsaKeySend;
 
 use crate::utils::x509::BorrowingCertificate;
 use crate::utils::x509::CertificateError;
@@ -74,31 +73,6 @@ impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
 
     async fn try_sign(&self, msg: &[u8]) -> std::result::Result<Signature, Self::Error> {
         self.private_key.try_sign(msg).await
-    }
-}
-
-pub trait KeyRing {
-    type Key: EcdsaKeySend;
-
-    fn key_pair(&self, id: &str) -> Option<&KeyPair<Self::Key>>;
-}
-
-#[cfg(any(test, feature = "test"))]
-pub mod test {
-    use p256::ecdsa::SigningKey;
-
-    use super::KeyPair;
-    use super::KeyRing;
-
-    /// An implementation of [`KeyRing`] containing a single key.
-    pub struct SingleKeyRing(pub KeyPair<SigningKey>);
-
-    impl KeyRing for SingleKeyRing {
-        type Key = SigningKey;
-
-        fn key_pair(&self, _: &str) -> Option<&KeyPair<SigningKey>> {
-            Some(&self.0)
-        }
     }
 }
 

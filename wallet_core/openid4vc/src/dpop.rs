@@ -58,12 +58,12 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use error_category::ErrorCategory;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
 use jwt::jwk_jwt_header;
 use jwt::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
-use jwt::JwkConversionError;
 use jwt::Jwt;
-use jwt::JwtError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::utils::random_string;
 

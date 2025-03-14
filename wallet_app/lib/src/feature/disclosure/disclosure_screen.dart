@@ -21,6 +21,7 @@ import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
+import '../history/detail/argument/history_detail_screen_argument.dart';
 import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
 import '../organization/detail/organization_detail_screen.dart';
@@ -248,7 +249,15 @@ class DisclosureScreen extends StatelessWidget {
       organizationDisplayName: state.relyingParty.displayName,
       returnUrl: state.returnUrl,
       isLoginFlow: state.isLoginFlow,
-      onHistoryPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+      onHistoryPressed: state.event == null
+          ? null
+          : () {
+              Navigator.pushNamed(
+                context,
+                WalletRoutes.historyDetailRoute,
+                arguments: HistoryDetailScreenArgument(walletEvent: state.event!).toMap(),
+              );
+            },
       onPrimaryPressed: (returnUrl) {
         Navigator.pop(context);
         returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));

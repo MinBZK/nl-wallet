@@ -1,27 +1,13 @@
 use std::num::NonZero;
-use std::num::NonZeroU8;
-use std::ops::Add;
-
-use chrono::Days;
-use chrono::Utc;
-use indexmap::IndexMap;
 
 use configuration::http::TlsPinningConfig;
-use nl_wallet_mdoc::unsigned::UnsignedAttributesError;
 use nl_wallet_mdoc::utils::x509::CertificateError;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
-use openid4vc::issuer::IssuableCredential;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
-use openid4vc::ErrorResponse;
-use openid4vc::TokenErrorCode;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
-use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::urls::BaseUrl;
-use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::pid::brp::client::BrpClient;
@@ -33,30 +19,14 @@ use super::digid::OpenIdClient;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("networking error: {0}")]
-    TransportError(#[from] reqwest::Error),
-    #[error("error requesting token: {0:?}")]
-    TokenRequest(ErrorResponse<TokenErrorCode>),
     #[error("DigiD error: {0}")]
     Digid(#[from] digid::Error),
-    #[error("JSON error: {0}")]
-    Serde(#[from] serde_json::Error),
-    #[error("URL encoding error: {0}")]
-    UrlEncoding(#[from] serde_urlencoded::ser::Error),
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
-    #[error("could not find type metadata for doctype: {0}")]
-    NoMetadataFound(String),
     #[error("could not find issuer URI for doctype: {0}")]
     NoIssuerUriFound(String),
-    #[error("missing certificate for issuance of doctype: {0}")]
-    MissingCertificate(String),
     #[error("error retrieving from BRP: {0}")]
     Brp(#[from] BrpError),
-    #[error("error parsing unsigned attributes: {0}")]
-    UnsignedAttributes(#[from] UnsignedAttributesError),
-    #[error("error signing metadata: {0}")]
-    MetadataSigning(#[from] TypeMetadataError),
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
     #[error("certificate error: {0}")]
@@ -68,29 +38,13 @@ pub enum Error {
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
     openid_client: OpenIdClient<TlsPinningConfig>,
-    metadata_by_doctype: IndexMap<String, TypeMetadata>,
-    issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
-    valid_days: Days,
-    copy_count: NonZeroU8,
 }
 
 impl BrpPidAttributeService {
-    pub fn new(
-        brp_client: HttpBrpClient,
-        bsn_privkey: &str,
-        http_config: TlsPinningConfig,
-        issuer_uri_by_doctype: IndexMap<String, HttpsUri>,
-        metadata_by_doctype: IndexMap<String, TypeMetadata>,
-        valid_days: Days,
-        copy_count: NonZeroU8,
-    ) -> Result<Self, Error> {
+    pub fn new(brp_client: HttpBrpClient, bsn_privkey: &str, http_config: TlsPinningConfig) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
             openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
-            issuer_uri_by_doctype,
-            metadata_by_doctype,
-            valid_days,
-            copy_count,
         })
     }
 }
@@ -98,7 +52,7 @@ impl BrpPidAttributeService {
 impl AttributeService for BrpPidAttributeService {
     type Error = Error;
 
-    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableCredential>, Error> {
+    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Error> {
         let openid_token_request = TokenRequest {
             grant_type: TokenRequestGrantType::AuthorizationCode {
                 code: token_request.code().clone(),
@@ -119,36 +73,13 @@ impl AttributeService for BrpPidAttributeService {
             .into_inner()
             .into_iter()
             .map(|(attestation_type, attributes)| {
-                let issuer_uri = self
-                    .issuer_uri_by_doctype
-                    .get(&attestation_type)
-                    .ok_or(Error::NoIssuerUriFound(attestation_type.clone()))?;
-
-                IssuableDocument::try_new(issuer_uri.clone(), attestation_type, attributes)
-                    .map_err(|_| Error::InvalidIssuableDocuments)
+                IssuableDocument::try_new(attestation_type, attributes).map_err(|_| Error::InvalidIssuableDocuments)
             })
-            .collect::<Result<Vec<_>, Error>>()?;
+            .collect::<Result<Vec<_>, Error>>()?
+            .try_into()
+            .unwrap(); // Safe because we iterated over a VecNonEmpty
 
-        issuable_documents
-            .into_iter()
-            .map(|document| {
-                let metadata = self
-                    .metadata_by_doctype
-                    .get(document.attestation_type())
-                    .ok_or(Error::NoMetadataFound(document.attestation_type().to_string()))?;
-                let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![])?;
-
-                let now = Utc::now();
-                Ok(IssuableCredential {
-                    document,
-                    metadata_chain,
-                    valid_from: now,
-                    valid_until: now.add(self.valid_days),
-                    copy_count: self.copy_count,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .map(|vec| vec.try_into().unwrap()) // safe because into_issuable return a VecNonEmpty
+        Ok(issuable_documents)
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Error> {

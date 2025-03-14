@@ -24,11 +24,10 @@ mock_secure_keys = []
 # Include MockTimeGenerator
 mock_time = ["dep:parking_lot"]
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
-mock_remote_key = ["examples", "dep:parking_lot", "dep:rand_core"]
+mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
-base64.workspace = true
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
 derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
@@ -36,7 +35,6 @@ futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-jsonwebtoken = { workspace = true, features = ["use_pem"] }
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
@@ -66,8 +64,6 @@ hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = ["cors"] }
-
-error_category.path = "../error_category"
 
 [build-dependencies]
 built = { workspace = true, features = ["chrono", "git2"] }

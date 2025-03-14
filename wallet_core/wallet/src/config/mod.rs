@@ -8,7 +8,7 @@ mod updating_repository;
 
 use configuration::http::TlsPinningConfig;
 use error_category::ErrorCategory;
-use jwt::JwtError;
+use jwt::error::JwtError;
 
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;

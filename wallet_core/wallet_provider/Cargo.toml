@@ -78,7 +78,7 @@ android_attest.path = "../android_attest"
 apple_app_attest.path = "../apple_app_attest"
 configuration = { path = "../wallet_configuration/configuration" }
 hsm = { path = "../hsm", features = ["settings"] }
-wallet_account = { path = "../wallet_account", features = ["server"] }
+wallet_account = { path = "wallet_account", features = ["server"] }
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
