@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use assert_matches::assert_matches;
 
+use issuer_settings::settings::AttestationTypeConfigSettings;
+use issuer_settings::settings::IssuerSettingsError;
 use mdoc::server_keys::generate::Ca;
 use mdoc::utils::issuer_auth::IssuerRegistration;
-use pid_issuer::settings::AttestationTypeConfigSettings;
-use pid_issuer::settings::IssuerSettingsError;
 use pid_issuer::settings::PidIssuerSettings;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::UncheckedTypeMetadata;

@@ -7,6 +7,7 @@ use tokio::net::TcpListener;
 use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
+use issuer_settings::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::WteConfig;
 use openid4vc::server_state::SessionStore;
@@ -15,8 +16,6 @@ use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use wallet_common::built_info::version_string;
-
-use crate::settings::IssuerSettings;
 
 pub async fn serve<A, IS, W>(
     attr_service: A,
