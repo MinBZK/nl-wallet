@@ -1,4 +1,5 @@
 use std::num::NonZeroUsize;
+use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use chrono::Days;
@@ -107,7 +108,7 @@ fn setup(
         .into();
 
     let issuer = MockIssuer::new(
-        MemorySessionStore::default(),
+        Arc::new(MemorySessionStore::default()),
         attr_service,
         attestation_config,
         &server_url,

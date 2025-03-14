@@ -54,7 +54,7 @@ struct ApplicationState<A, K, S, W> {
 pub fn create_issuance_router<A, K, S, W>(
     public_url: &BaseUrl,
     attestation_config: AttestationTypesConfig<K>,
-    sessions: S,
+    sessions: Arc<S>,
     attr_service: A,
     wallet_settings: WalletSettings<W>,
 ) -> Router

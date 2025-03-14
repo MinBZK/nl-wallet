@@ -347,13 +347,12 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     pub fn new(
-        sessions: S,
+        sessions: Arc<S>,
         attr_service: A,
         attestation_config: AttestationTypesConfig<K>,
         server_url: &BaseUrl,
         wallet_settings: WalletSettings<W>,
     ) -> Self {
-        let sessions = Arc::new(sessions);
         let wte_tracker = Arc::new(wallet_settings.wte_tracker);
 
         let issuer_url = server_url.join_base_url("issuance/");

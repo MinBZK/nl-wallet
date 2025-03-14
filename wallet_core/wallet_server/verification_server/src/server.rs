@@ -1,4 +1,5 @@
 use std::io;
+use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
@@ -19,7 +20,7 @@ use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
 use crate::settings::VerifierSettings;
 
-pub async fn serve<S>(settings: VerifierSettings, hsm: Option<Pkcs11Hsm>, disclosure_sessions: S) -> Result<()>
+pub async fn serve<S>(settings: VerifierSettings, hsm: Option<Pkcs11Hsm>, disclosure_sessions: Arc<S>) -> Result<()>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {

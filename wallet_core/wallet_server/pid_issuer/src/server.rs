@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use axum::Router;
 use tokio::net::TcpListener;
@@ -19,7 +21,7 @@ pub async fn serve<A, IS, W>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
-    issuance_sessions: IS,
+    issuance_sessions: Arc<IS>,
     wte_tracker: W,
 ) -> Result<()>
 where
