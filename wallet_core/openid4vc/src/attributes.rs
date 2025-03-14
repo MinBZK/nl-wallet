@@ -45,6 +45,9 @@ pub enum AttributeError {
     #[error("attribute with name: {0} already exists")]
     NoClaimForAttribute(String),
 
+    #[error("some attributes have not been processed by metadata: {0:?}")]
+    SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
+
     #[error("unable to convert from mdoc attributes because of unsupported claim path in: {0:?}")]
     UnsupportedClaimPath(ClaimMetadata),
 }
@@ -137,6 +140,10 @@ impl Attribute {
             Self::traverse_attributes_by_claim(&type_metadata.vct, key_path, &mut attributes, &mut result)?;
         }
 
+        if !attributes.is_empty() {
+            return Err(AttributeError::SomeAttributesNotProcessed(attributes));
+        }
+
         Ok(result)
     }
 
@@ -154,6 +161,10 @@ impl Attribute {
             if keys.is_empty() {
                 if let Some(entries) = attributes.get_mut(prefix) {
                     Self::insert_entry(key, entries, result)?;
+
+                    if entries.is_empty() {
+                        attributes.swap_remove(prefix);
+                    }
                 }
             } else {
                 let prefixed_key = [prefix, key].join(".");
@@ -388,12 +399,12 @@ mod test {
             ],
         )]);
 
-        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
-        let expected_json = json!({"a": { "a1": "1", "a2": "2" }});
-        assert_eq!(
-            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
-            expected_json.to_json_string_pretty().unwrap(),
-        );
+        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes);
+        assert_matches!(result, Err(AttributeError::SomeAttributesNotProcessed(attrs))
+        if attrs == IndexMap::from([(
+            String::from("com.example.pid.a"),
+            vec![Entry { name: String::from("a3"), value: DataElementValue::Text(String::from("3")) }]
+        )]));
     }
 
     #[test]
