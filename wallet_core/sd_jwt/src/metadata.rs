@@ -269,7 +269,6 @@ pub enum SchemaOption {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(try_from = "serde_json::Value", into = "serde_json::Value")]
 pub struct JsonSchema {
-    #[serde(flatten)]
     raw_schema: serde_json::Value,
 
     // When deserializing, the JSON schema properties are parsed so the metadata describing the attributes can be used
