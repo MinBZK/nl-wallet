@@ -1262,7 +1262,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` using different metadata
         // in the preview than is contained within the response should fail.
         let different_metadata_chain =
-            TypeMetadataChain::create(TypeMetadata::empty_example_with_doctype("different"), vec![]).unwrap();
+            TypeMetadataChain::create(TypeMetadata::empty_example_with_attestation_type("different"), vec![]).unwrap();
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,

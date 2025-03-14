@@ -501,7 +501,7 @@ pub mod mock {
             }
         }
 
-        pub fn empty_example_with_doctype(attestation_type: &str) -> Self {
+        pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
             Self {
                 vct: String::from(attestation_type),
                 ..Self::empty_example()
