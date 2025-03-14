@@ -9,6 +9,7 @@ use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
+use sd_jwt::metadata::ClaimMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::TypeMetadata;
 
@@ -39,6 +40,9 @@ pub enum AttributeError {
 
     #[error("attribute with name: {0} already exists")]
     DuplicateAttribute(String),
+
+    #[error("unable to convert from mdoc attributes because of unsupported claim path in: {0:?}")]
+    UnsupportedClaimPath(ClaimMetadata),
 }
 
 impl From<&AttributeValue> for ciborium::Value {
@@ -116,18 +120,16 @@ impl Attribute {
         // The claims list determines the final order of the converted attributes.
         for claim in &type_metadata.claims {
             // First, confirm that the path is made up of key entries by converting to a `Vec<&str>`.
-            // This will return `None` if any of the elements of the path is not an index.
             let key_path = claim
                 .path
                 .iter()
                 .map(|path| match path {
-                    ClaimPath::SelectByKey(key) => Some(key.as_str()),
-                    _ => None,
+                    ClaimPath::SelectByKey(key) => Ok(key.as_str()),
+                    _ => Err(AttributeError::UnsupportedClaimPath(claim.clone())),
                 })
-                .collect::<Option<Vec<_>>>()
-                .unwrap();
+                .collect::<Result<VecDeque<_>, _>>()?;
 
-            Self::traverse_attributes_by_claim(&type_metadata.vct, key_path.into(), &mut attributes, &mut result)?;
+            Self::traverse_attributes_by_claim(&type_metadata.vct, key_path, &mut attributes, &mut result)?;
         }
 
         Ok(result)
