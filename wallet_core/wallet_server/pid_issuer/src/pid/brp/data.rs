@@ -157,7 +157,7 @@ impl From<BrpGenderCode> for Attribute {
             BrpGenderCode::M => 1,
             BrpGenderCode::V => 2,
         };
-        Attribute::Single(AttributeValue::Number(value))
+        Attribute::Single(AttributeValue::Integer(value))
     }
 }
 

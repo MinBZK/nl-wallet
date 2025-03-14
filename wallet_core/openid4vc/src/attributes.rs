@@ -13,7 +13,7 @@ use mdoc::NameSpace;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttributeValue {
-    Number(i64),
+    Integer(i64),
     Bool(bool),
     Text(String),
 }
@@ -42,7 +42,7 @@ pub enum AttributeError {
 impl From<&AttributeValue> for ciborium::Value {
     fn from(value: &AttributeValue) -> Self {
         match value {
-            AttributeValue::Number(number) => ciborium::Value::Integer((*number).into()),
+            AttributeValue::Integer(number) => ciborium::Value::Integer((*number).into()),
             AttributeValue::Bool(boolean) => ciborium::Value::Bool(*boolean),
             AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
         }
@@ -56,7 +56,7 @@ impl TryFrom<DataElementValue> for AttributeValue {
         match value {
             DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
             DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            DataElementValue::Integer(integer) => Ok(AttributeValue::Number(integer.try_into()?)),
+            DataElementValue::Integer(integer) => Ok(AttributeValue::Integer(integer.try_into()?)),
             _ => Err(AttributeError::FromCborConversion(value)),
         }
     }

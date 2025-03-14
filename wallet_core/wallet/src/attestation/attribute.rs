@@ -186,8 +186,8 @@ impl AttestationAttributeValue {
             (JsonSchemaPropertyType::Boolean, AttributeValue::Bool(bool)) => {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Bool(bool)))
             }
-            (JsonSchemaPropertyType::Integer, AttributeValue::Number(integer)) => {
-                Ok(AttestationAttributeValue::Basic(AttributeValue::Number(integer)))
+            (JsonSchemaPropertyType::Integer, AttributeValue::Integer(integer)) => {
+                Ok(AttestationAttributeValue::Basic(AttributeValue::Integer(integer)))
             }
             (JsonSchemaPropertyType::String, AttributeValue::Text(text)) => {
                 if let Some(JsonSchemaPropertyFormat::Date) = schema_type.format {
@@ -508,7 +508,7 @@ pub mod test {
             format: None,
             properties: None,
         })]
-    #[case(AttributeValue::Number(123), JsonSchemaProperty {
+    #[case(AttributeValue::Integer(123), JsonSchemaProperty {
             r#type: JsonSchemaPropertyType::Integer,
             format: None,
             properties: None,

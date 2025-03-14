@@ -206,7 +206,10 @@ mod test {
                                     String::from("name"),
                                     Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
                                 ),
-                                (String::from("area_code"), Attribute::Single(AttributeValue::Number(33))),
+                                (
+                                    String::from("area_code"),
+                                    Attribute::Single(AttributeValue::Integer(33)),
+                                ),
                             ])),
                         ),
                     ])),
@@ -218,7 +221,7 @@ mod test {
                         (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
                         (
                             String::from("debt_amount"),
-                            Attribute::Single(AttributeValue::Number(-10_000)),
+                            Attribute::Single(AttributeValue::Integer(-10_000)),
                         ),
                     ])),
                 ),

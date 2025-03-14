@@ -148,7 +148,7 @@ impl From<wallet::openid4vc::AttributeValue> for AttributeValue {
     fn from(value: wallet::openid4vc::AttributeValue) -> Self {
         match value {
             wallet::openid4vc::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
-            wallet::openid4vc::AttributeValue::Number(value) => AttributeValue::Number { value },
+            wallet::openid4vc::AttributeValue::Integer(value) => AttributeValue::Number { value },
             wallet::openid4vc::AttributeValue::Text(value) => AttributeValue::String { value },
         }
     }
