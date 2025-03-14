@@ -23,10 +23,10 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::x509::BorrowingCertificate;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateUsage;
 use wallet_common::generator::Generator;
 use wallet_common::jwt::jwk_to_p256;
 use wallet_common::jwt::validations;
@@ -204,10 +204,10 @@ mod tests {
     use jsonwebtoken::Header;
     use serde_json::json;
 
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
-    use nl_wallet_mdoc::utils::x509::CertificateError;
-    use nl_wallet_mdoc::utils::x509::CertificateUsage;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::utils::x509::CertificateConfiguration;
+    use mdoc::utils::x509::CertificateError;
+    use mdoc::utils::x509::CertificateUsage;
     use wallet_common::generator::TimeGenerator;
     use wallet_common::jwt::Jwt;
     use wallet_common::jwt::JwtCredentialClaims;

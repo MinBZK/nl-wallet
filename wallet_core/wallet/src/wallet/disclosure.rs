@@ -11,13 +11,13 @@ use uuid::Uuid;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::MdocDataSource;
-use nl_wallet_mdoc::holder::StoredMdoc;
-use nl_wallet_mdoc::utils::cose::CoseError;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use mdoc::holder::MdocDataSource;
+use mdoc::holder::StoredMdoc;
+use mdoc::utils::cose::CoseError;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -126,12 +126,11 @@ impl From<MdocDisclosureError> for DisclosureError {
         // as checking is performed within the guard statements.
         match error {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
-            MdocDisclosureError::Vp(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
-                CoseError::Signing(error),
-            ))) if matches!(
-                error.downcast_ref::<RemoteEcdsaKeyError>(),
-                Some(RemoteEcdsaKeyError::Instruction(_))
-            ) =>
+            MdocDisclosureError::Vp(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(error))))
+                if matches!(
+                    error.downcast_ref::<RemoteEcdsaKeyError>(),
+                    Some(RemoteEcdsaKeyError::Instruction(_))
+                ) =>
             {
                 if let RemoteEcdsaKeyError::Instruction(error) = *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                     DisclosureError::Instruction(error)
@@ -563,12 +562,12 @@ mod tests {
     use serial_test::serial;
     use uuid::uuid;
 
-    use nl_wallet_mdoc::holder::Mdoc;
-    use nl_wallet_mdoc::holder::ProposedAttributes;
-    use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
-    use nl_wallet_mdoc::test::data::PID;
-    use nl_wallet_mdoc::unsigned::Entry;
-    use nl_wallet_mdoc::DataElementValue;
+    use mdoc::holder::Mdoc;
+    use mdoc::holder::ProposedAttributes;
+    use mdoc::holder::ProposedDocumentAttributes;
+    use mdoc::test::data::PID;
+    use mdoc::unsigned::Entry;
+    use mdoc::DataElementValue;
     use openid4vc::attributes::AttributeValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::DisclosureErrorResponse;
@@ -1350,7 +1349,7 @@ mod tests {
                     .next_error
                     .lock()
                     .replace(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
-                        nl_wallet_mdoc::Error::Cose(CoseError::Signing(
+                        mdoc::Error::Cose(CoseError::Signing(
                             RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
                         )),
                     )))
@@ -1367,9 +1366,9 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::VpDisclosureSession(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
-                CoseError::Signing(_)
-            )))
+            DisclosureError::VpDisclosureSession(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                _
+            ))))
         );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
@@ -1423,7 +1422,7 @@ mod tests {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
                 next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
-                    nl_wallet_mdoc::Error::Cose(CoseError::Signing(
+                    mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(instruction_error).into(),
                     )),
                 )))),

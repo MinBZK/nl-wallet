@@ -19,9 +19,9 @@ use sea_orm::DbErr;
 use uuid::Uuid;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use mdoc::holder::Mdoc;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::credential::MdocCopies;
 
 pub use self::data::ChangePinData;

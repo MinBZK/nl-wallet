@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use assert_matches::assert_matches;
 
-use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::server_keys::generate::Ca;
+use mdoc::utils::issuer_auth::IssuerRegistration;
 use pid_issuer::settings::AttestationTypeConfigSettings;
 use pid_issuer::settings::IssuerSettings;
 use pid_issuer::settings::IssuerSettingsError;

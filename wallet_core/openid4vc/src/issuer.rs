@@ -21,11 +21,11 @@ use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::crypto::CryptoError;
-use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::IssuerSigned;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::crypto::CryptoError;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::x509::CertificateError;
+use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
 use sd_jwt::metadata::TypeMetadataChain;
@@ -161,7 +161,7 @@ pub enum CredentialRequestError {
     #[error("missing issuance private key for doctype {0}")]
     MissingPrivateKey(String),
     #[error("failed to sign credential: {0}")]
-    CredentialSigning(nl_wallet_mdoc::Error),
+    CredentialSigning(mdoc::Error),
     #[error("CBOR error: {0}")]
     CborSerialization(#[from] CborError),
     #[error("JSON serialization failed: {0}")]

@@ -9,9 +9,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::utils::serialization::CborBase64;
-use nl_wallet_mdoc::IssuerSigned;
+use mdoc::holder::Mdoc;
+use mdoc::utils::serialization::CborBase64;
+use mdoc::IssuerSigned;
 use poa::Poa;
 use wallet_common::jwt::jwk_jwt_header;
 use wallet_common::jwt::Jwt;

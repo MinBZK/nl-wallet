@@ -2,10 +2,10 @@ use std::collections::HashMap;
 
 use assert_matches::assert_matches;
 
-use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::CertificateError;
+use mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::x509::CertificateError;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::ServerSettings;

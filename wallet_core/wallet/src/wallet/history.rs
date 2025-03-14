@@ -146,8 +146,8 @@ mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
 
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::utils::reader_auth::ReaderRegistration;
 
     use super::Wallet;
 

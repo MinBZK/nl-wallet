@@ -9,12 +9,12 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::IssuerSigned;
+use mdoc::holder::Mdoc;
+use mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::KeyPair;
+use mdoc::unsigned::UnsignedMdoc;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;

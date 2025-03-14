@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::utils::auth::Organization;
-use nl_wallet_mdoc::NameSpace;
+use mdoc::unsigned::Entry;
+use mdoc::utils::auth::Organization;
+use mdoc::NameSpace;
 use openid4vc::attributes::Attribute;
 use sd_jwt::metadata::TypeMetadata;
 
@@ -37,7 +37,7 @@ mod test {
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
 
-    use nl_wallet_mdoc::utils::auth::Organization;
+    use mdoc::utils::auth::Organization;
     use openid4vc::attributes::AttributeValue;
     use sd_jwt::metadata::TypeMetadata;
 

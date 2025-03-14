@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::utils::auth::Organization;
+use mdoc::utils::auth::Organization;
 use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;

@@ -2,10 +2,10 @@ use tracing::info;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::utils::cose::CoseError;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use mdoc::utils::cose::CoseError;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential_payload::CredentialPayloadError;
 use platform_support::attested_key::AttestedKeyHolder;
 
@@ -40,7 +40,7 @@ pub enum AttestationsError {
 
     #[error("could not extract type metadata from mdoc: {0}")]
     #[category(defer)]
-    Metadata(#[source] nl_wallet_mdoc::Error),
+    Metadata(#[source] mdoc::Error),
 
     #[error("error converting credential payload to attestation: {0}")]
     #[category(defer)]

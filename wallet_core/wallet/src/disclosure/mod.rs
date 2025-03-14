@@ -4,11 +4,11 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 use uuid::Uuid;
 
-use nl_wallet_mdoc::holder::MdocDataSource;
-use nl_wallet_mdoc::holder::ProposedAttributes;
-use nl_wallet_mdoc::identifiers::AttributeIdentifier;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+use mdoc::holder::MdocDataSource;
+use mdoc::holder::ProposedAttributes;
+use mdoc::identifiers::AttributeIdentifier;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::disclosure_session::DisclosureError;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
@@ -188,8 +188,8 @@ mod mock {
 
     use parking_lot::Mutex;
 
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::server_keys::KeyPair;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::server_keys::KeyPair;
 
     use super::*;
 
