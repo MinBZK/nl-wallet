@@ -74,7 +74,6 @@ where
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
                     },
-                    mdoc.mso.doc_type,
                     metadata,
                     issuer_registration.organization,
                     mdoc.issuer_signed.into_entries_by_namespace(),
@@ -154,7 +153,7 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single `Mdoc`.
-        let mdoc = test::create_full_pid_mdoc();
+        let mdoc = test::create_example_pid_mdoc();
         let mdoc_doc_type = mdoc.doc_type().clone();
         wallet
             .storage
@@ -197,7 +196,7 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single `Mdoc`, without Issuer registration.
-        let mdoc = test::create_full_pid_mdoc_unauthenticated();
+        let mdoc = test::create_example_pid_mdoc_unauthenticated();
         wallet
             .storage
             .write()

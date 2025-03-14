@@ -196,7 +196,7 @@ mod test {
                 (
                     "house".to_string(),
                     Attribute::Nested(IndexMap::from_iter(vec![
-                        ("number".to_string(), Attribute::Single(AttributeValue::Number(1))),
+                        ("number".to_string(), Attribute::Single(AttributeValue::Integer(1))),
                         (
                             "letter".to_string(),
                             Attribute::Single(AttributeValue::Text("A".to_string())),

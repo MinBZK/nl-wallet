@@ -80,7 +80,6 @@ impl WalletEvent {
 
                 Attestation::create_for_issuance(
                     AttestationIdentity::Ephemeral,
-                    mdoc.mso.doc_type,
                     metadata.into_first(), // TODO: PVW-3812
                     issuer_registration.organization,
                     mdoc.issuer_signed.into_entries_by_namespace(),
@@ -116,8 +115,8 @@ impl WalletEvent {
             DataDisclosureStatus::NotDisclosed => None,
         }
         .unwrap_or_default()
-        .into_iter()
-        .map(|(attestation_type, document_attributes)| {
+        .into_values()
+        .map(|document_attributes| {
             // As the proposed attributes come from the database, we can make assumptions about them and use `expect()`.
             // TODO (PVW-4132): Use the type system to codify these assumptions.
             let reader_registration = IssuerRegistration::from_certificate(&document_attributes.issuer)
@@ -125,7 +124,6 @@ impl WalletEvent {
                 .expect("proposed attributes should contain issuer registration");
 
             Attestation::create_for_disclosure(
-                attestation_type,
                 document_attributes.type_metadata,
                 reader_registration.organization,
                 document_attributes.attributes,
@@ -218,10 +216,12 @@ mod test {
 
     use mdoc::holder::ProposedDocumentAttributes;
     use mdoc::server_keys::generate::Ca;
-    use mdoc::unsigned::{Entry, UnsignedMdoc};
+    use mdoc::unsigned::Entry;
+    use mdoc::unsigned::UnsignedMdoc;
     use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::utils::x509::BorrowingCertificate;
     use mdoc::DataElementValue;
+    use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
 
     use crate::issuance;
@@ -236,9 +236,8 @@ mod test {
     });
 
     #[rstest]
-    #[case(issuance::mock::create_bsn_only_unsigned_pid_mdoc(), DisclosureType::Login)]
-    #[case(issuance::mock::create_minimal_unsigned_pid_mdoc(), DisclosureType::Regular)]
-    #[case(issuance::mock::create_full_unsigned_pid_mdoc(), DisclosureType::Regular)]
+    #[case(issuance::mock::create_bsn_only_unsigned_mdoc(), DisclosureType::Login)]
+    #[case(issuance::mock::create_example_unsigned_mdoc(), DisclosureType::Regular)]
     fn test_disclosure_type_from_proposed_attributes(
         #[case] (unsigned_mdoc, type_metadata): (UnsignedMdoc, TypeMetadata),
         #[case] expected: DisclosureType,
@@ -270,7 +269,12 @@ mod test {
                 attestation_types.len(),
             ))
             .map(|(attestation_type, issuer_org)| {
-                let metadata = TypeMetadata::example_with_claim_name("bsn");
+                let metadata = TypeMetadata::example_with_claim_name(
+                    attestation_type,
+                    "bsn",
+                    JsonSchemaPropertyType::String,
+                    None,
+                );
                 let attributes = IndexMap::from([(
                     attestation_type.to_string(),
                     vec![Entry {
@@ -279,14 +283,8 @@ mod test {
                     }],
                 )]);
 
-                Attestation::create_for_issuance(
-                    AttestationIdentity::Ephemeral,
-                    attestation_type.to_string(),
-                    metadata,
-                    issuer_org,
-                    attributes,
-                )
-                .unwrap()
+                Attestation::create_for_issuance(AttestationIdentity::Ephemeral, metadata, issuer_org, attributes)
+                    .unwrap()
             })
             .collect()
     }

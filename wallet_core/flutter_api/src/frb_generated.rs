@@ -1128,6 +1128,10 @@ impl SseDecode for crate::models::attestation::AttributeValue {
                 let mut var_value = <i64>::sse_decode(deserializer);
                 return crate::models::attestation::AttributeValue::Number { value: var_value };
             }
+            3 => {
+                let mut var_value = <String>::sse_decode(deserializer);
+                return crate::models::attestation::AttributeValue::Date { value: var_value };
+            }
             _ => {
                 unimplemented!("");
             }
@@ -1896,6 +1900,9 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttributeValu
             crate::models::attestation::AttributeValue::Number { value } => {
                 [2.into_dart(), value.into_into_dart().into_dart()].into_dart()
             }
+            crate::models::attestation::AttributeValue::Date { value } => {
+                [3.into_dart(), value.into_into_dart().into_dart()].into_dart()
+            }
             _ => {
                 unimplemented!("");
             }
@@ -2530,6 +2537,10 @@ impl SseEncode for crate::models::attestation::AttributeValue {
             crate::models::attestation::AttributeValue::Number { value } => {
                 <i32>::sse_encode(2, serializer);
                 <i64>::sse_encode(value, serializer);
+            }
+            crate::models::attestation::AttributeValue::Date { value } => {
+                <i32>::sse_encode(3, serializer);
+                <String>::sse_encode(value, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -3269,6 +3280,12 @@ mod io {
                 2 => {
                     let ans = unsafe { self.kind.Number };
                     crate::models::attestation::AttributeValue::Number {
+                        value: ans.value.cst_decode(),
+                    }
+                }
+                3 => {
+                    let ans = unsafe { self.kind.Date };
+                    crate::models::attestation::AttributeValue::Date {
                         value: ans.value.cst_decode(),
                     }
                 }
@@ -4387,6 +4404,7 @@ mod io {
         String: wire_cst_AttributeValue_String,
         Boolean: wire_cst_AttributeValue_Boolean,
         Number: wire_cst_AttributeValue_Number,
+        Date: wire_cst_AttributeValue_Date,
         nil__: (),
     }
     #[repr(C)]
@@ -4403,6 +4421,11 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_AttributeValue_Number {
         value: i64,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_AttributeValue_Date {
+        value: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

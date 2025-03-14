@@ -317,7 +317,6 @@ where
 
                         let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
-                            unsigned_mdoc.doc_type,
                             metadata.into_first(), // TODO: PVW-3812
                             issuer_registration.organization,
                             unsigned_mdoc.attributes.into(),
@@ -730,7 +729,7 @@ mod tests {
     async fn test_continue_pid_issuance() {
         let mut wallet = setup_wallet_with_digid_session();
 
-        let (unsigned_mdoc, metadata) = issuance::mock::create_full_unsigned_pid_mdoc();
+        let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
@@ -888,7 +887,7 @@ mod tests {
 
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
-        let mdoc = test::create_full_pid_mdoc();
+        let mdoc = test::create_example_pid_mdoc();
         let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
@@ -946,7 +945,7 @@ mod tests {
 
         // Create a mock OpenID4VCI session that accepts the PID with a single instance of `MdocCopies`, which contains
         // a single valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
-        let mdoc = test::create_full_pid_mdoc_unauthenticated();
+        let mdoc = test::create_example_pid_mdoc_unauthenticated();
         let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
@@ -1130,7 +1129,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
-        let mdoc = test::create_full_pid_mdoc();
+        let mdoc = test::create_example_pid_mdoc();
         let pid_issuer = mock_issuance_session(mdoc);
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
 
