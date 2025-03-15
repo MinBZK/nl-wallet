@@ -1,6 +1,7 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
 use std::collections::HashMap;
+use std::convert::Infallible;
 use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
@@ -10,6 +11,7 @@ use chrono::SecondsFormat;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
+use indexmap::IndexMap;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
@@ -35,6 +37,7 @@ use crypto::x509::CertificateError;
 use jwt::error::JwtError;
 use jwt::Jwt;
 use mdoc::verifier::DisclosedAttributes;
+use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
 use wallet_common::urls::BaseUrl;
@@ -145,6 +148,8 @@ pub enum PostAuthResponseError {
     Session(#[from] SessionError),
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
+    #[error("failed handling disclosure result: {0}")]
+    HandlingDisclosureResult(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 /// Errors that can occur when creating a [`UseCase`] instance.
@@ -206,6 +211,7 @@ pub struct Created {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     auth_request: IsoVpAuthorizationRequest,
+    usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
 }
@@ -486,26 +492,54 @@ impl<K> UseCase<K> {
     }
 }
 
+#[trait_variant::make(Send)]
+pub trait DisclosureResultHandler {
+    type Error: std::error::Error + Send + Sync + 'static;
+
+    async fn disclosure_result(
+        &self,
+        usecase_id: &str,
+        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+    ) -> Result<String, Self::Error>;
+}
+
 #[derive(Debug)]
-pub struct Verifier<S, K> {
+pub struct NoOpDisclosureResultHandler;
+
+impl DisclosureResultHandler for NoOpDisclosureResultHandler {
+    type Error = Infallible;
+
+    async fn disclosure_result(
+        &self,
+        _: &str,
+        _: &IndexMap<String, DocumentDisclosedAttributes>,
+    ) -> Result<String, Self::Error> {
+        Ok("".to_string())
+    }
+}
+
+#[derive(Debug)]
+pub struct Verifier<S, K, H> {
     use_cases: UseCases<K>,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<TrustAnchor<'static>>,
     ephemeral_id_secret: hmac::Key,
+    result_handler: H,
 }
 
-impl<S, K> Drop for Verifier<S, K> {
+impl<S, K, H> Drop for Verifier<S, K, H> {
     fn drop(&mut self) {
         // Stop the task at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<S, K> Verifier<S, K>
+impl<S, K, H> Verifier<S, K, H>
 where
     S: SessionStore<DisclosureData>,
     K: EcdsaKey,
+    H: DisclosureResultHandler,
 {
     /// Create a new [`Verifier`].
     ///
@@ -521,6 +555,7 @@ where
         sessions: Arc<S>,
         trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: hmac::Key,
+        result_handler: H,
     ) -> Self
     where
         S: Send + Sync + 'static,
@@ -531,6 +566,7 @@ where
             sessions,
             trust_anchors,
             ephemeral_id_secret,
+            result_handler,
         }
     }
 
@@ -684,7 +720,9 @@ where
     ) -> Result<VpResponse, WithRedirectUri<PostAuthResponseError>> {
         let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
 
-        let (result, next) = session.process_authorization_response(wallet_response, time, &self.trust_anchors);
+        let (result, next) = session
+            .process_authorization_response(wallet_response, time, &self.trust_anchors, &self.result_handler)
+            .await;
 
         self.sessions.write(next.into(), false).await.map_err(|err| {
             WithRedirectUri::new(
@@ -792,7 +830,7 @@ where
     }
 }
 
-impl<S, K> Verifier<S, K> {
+impl<S, K, H> Verifier<S, K, H> {
     fn generate_ephemeral_id(
         ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
@@ -924,8 +962,9 @@ impl Session<Created> {
             Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
                 let next = WaitingForResponse {
                     auth_request,
-                    encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     redirect_uri,
+                    encryption_key: EncryptionPrivateKey::from(enc_keypair),
+                    usecase_id: self.state.data.usecase_id.clone(),
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -1043,11 +1082,12 @@ impl Session<WaitingForResponse> {
     /// because it differs from similar methods in the following aspect: in some cases (to wit, if the user
     /// sent an error instead of a disclosure) then we should respond with HTTP 200 to the user (mandated by
     /// the OpenID4VP spec), while we fail our session. This does not neatly fit in the `_inner()` method pattern.
-    fn process_authorization_response(
+    async fn process_authorization_response(
         self,
         wallet_response: WalletAuthResponse,
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[TrustAnchor<'_>],
+        result_handler: &impl DisclosureResultHandler,
     ) -> (
         Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
         Session<Done>,
@@ -1063,7 +1103,7 @@ impl Session<WaitingForResponse> {
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
-                let response = self.ok_response();
+                let response = self.ok_response("".to_string());
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
@@ -1080,32 +1120,57 @@ impl Session<WaitingForResponse> {
             "Session({}): process response: decrypting and deserializing Authorization Response JWE",
             self.state.token
         );
-        let (result, next) = match VpAuthorizationResponse::decrypt_and_verify(
+
+        // We can't use ? here, because of the return type of this method and because the error branches consume self.
+        let disclosed = match VpAuthorizationResponse::decrypt_and_verify(
             &jwe,
             self.state().encryption_key.as_ref(),
             &self.state().auth_request,
             time,
             trust_anchors,
         ) {
-            Ok(disclosed) => {
-                let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
-                let response = self.ok_response();
-                let next = self.transition_finish(disclosed, redirect_uri_nonce);
-                (Ok(response), next)
-            }
-            Err(err) => {
-                let redirect_uri = self.state().redirect_uri.as_ref().map(|u| u.uri.clone());
-                let next = self.transition_fail(&err);
-                (Err(WithRedirectUri::new(err.into(), redirect_uri)), next)
-            }
+            Ok(disclosed) => disclosed,
+            Err(err) => return self.handle_err(err.into()),
         };
 
-        (result, next)
+        let query_params = match result_handler
+            .disclosure_result(&self.state.data.usecase_id, &disclosed)
+            .await
+        {
+            Ok(query_params) => query_params,
+            Err(err) => return self.handle_err(PostAuthResponseError::HandlingDisclosureResult(err.into())),
+        };
+
+        let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
+        let response = self.ok_response(query_params);
+        let next = self.transition_finish(disclosed, redirect_uri_nonce);
+
+        (Ok(response), next)
     }
 
-    fn ok_response(&self) -> VpResponse {
+    fn handle_err(
+        self,
+        err: PostAuthResponseError,
+    ) -> (
+        Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
+        Session<Done>,
+    ) {
+        let redirect_uri = self.state().redirect_uri.as_ref().map(|u| u.uri.clone());
+        let next = self.transition_fail(&err);
+        (Err(WithRedirectUri::new(err, redirect_uri)), next)
+    }
+
+    fn ok_response(&self, mut url_params: String) -> VpResponse {
         VpResponse {
-            redirect_uri: self.state().redirect_uri.as_ref().map(|u| u.uri.clone()),
+            redirect_uri: self.state().redirect_uri.as_ref().map(|u| {
+                let mut uri = u.uri.clone().into_inner();
+                let query = uri.query().unwrap_or_default().to_string();
+                if !query.is_empty() && !url_params.is_empty() {
+                    url_params = "&".to_string() + &url_params;
+                }
+                uri.set_query(Some(&(query + &url_params)));
+                uri.try_into().unwrap() // safe as this URI was obtained from a BaseUrl
+            }),
         }
     }
 
@@ -1159,6 +1224,7 @@ mod tests {
     use super::HashMap;
     use super::ItemsRequests;
     use super::NewSessionError;
+    use super::NoOpDisclosureResultHandler;
     use super::SessionError;
     use super::SessionResult;
     use super::SessionState;
@@ -1198,7 +1264,7 @@ mod tests {
         .into()
     }
 
-    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>, SigningKey> {
+    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>, SigningKey, NoOpDisclosureResultHandler> {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
@@ -1239,6 +1305,7 @@ mod tests {
             session_store,
             trust_anchors,
             hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+            NoOpDisclosureResultHandler,
         )
     }
 
@@ -1273,7 +1340,7 @@ mod tests {
     async fn init_and_start_disclosure(
         time: &impl Generator<DateTime<Utc>>,
     ) -> (
-        Verifier<MemorySessionStore<DisclosureData>, SigningKey>,
+        Verifier<MemorySessionStore<DisclosureData>, SigningKey, NoOpDisclosureResultHandler>,
         SessionToken,
         VpRequestUriObject,
     ) {
@@ -1526,11 +1593,11 @@ mod tests {
         let time = time_str.parse().unwrap();
 
         // Create a UL for the wallet, given the provided parameters.
-        let verifier_url = Verifier::<(), ()>::format_ul(
+        let verifier_url = Verifier::<(), (), ()>::format_ul(
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             time,
-            Verifier::<(), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
+            Verifier::<(), (), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
             SessionType::CrossDevice,
             "client_id".to_string(),
         )

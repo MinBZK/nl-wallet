@@ -11,6 +11,7 @@ use tracing::info;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::NoOpDisclosureResultHandler;
 use openid4vc_server::verifier;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
@@ -55,6 +56,7 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         settings.allow_origins,
+        NoOpDisclosureResultHandler,
         disclosure_sessions,
     );
 
