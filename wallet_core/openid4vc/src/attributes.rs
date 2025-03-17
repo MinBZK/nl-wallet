@@ -155,11 +155,10 @@ impl Attribute {
             } else {
                 let prefixed_key = [prefix, key].join(".");
 
-                if !result.contains_key(key) {
-                    result.insert(String::from(key), Attribute::Nested(IndexMap::new()));
-                }
-
-                if let Some(Attribute::Nested(result)) = result.get_mut(key) {
+                if let Attribute::Nested(result) = result
+                    .entry(String::from(key))
+                    .or_insert_with(|| Attribute::Nested(IndexMap::new()))
+                {
                     Self::traverse_attributes_by_claim(&prefixed_key, keys, attributes, result)?
                 }
             }
