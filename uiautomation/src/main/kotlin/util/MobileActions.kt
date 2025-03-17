@@ -2,6 +2,7 @@ package util
 
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import helper.LocalizationHelper
+import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.ios.IOSDriver
 import io.github.ashwith.flutter.FlutterElement
@@ -116,73 +117,49 @@ open class MobileActions {
     }
 
     fun switchToWebViewContext() {
-        val platform = platformName()
-        if (platform == "ANDROID") {
-            val androidDriver = driver as AndroidDriver
-            val context = androidDriver.context ?: ""
-            if (context.contains(WEB_VIEW_CONTEXT_PREFIX).not()) {
-
-                // Wait for the web view context to be available
-                val wait = WebDriverWait(androidDriver, Duration.ofMillis(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS))
-                wait.until { androidDriver.contextHandles.any { it.contains(WEB_VIEW_CONTEXT_PREFIX) } }
-
-                // Switch to the web view context
-                androidDriver.context(androidDriver.contextHandles.first { it.contains(WEB_VIEW_CONTEXT_PREFIX) })
-
-                // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
-                // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
-                // the loaded web page and the browser startup screen shortly after browser startup.
-                Thread.sleep(BROWSER_STARTUP_TIMEOUT)
-
-                // Switch to the last window handle (a.k.a. tab)
-                if (androidDriver.windowHandles.isNotEmpty()) {
-                    androidDriver.switchTo().window(androidDriver.windowHandles.last())
-                }
+        val driver = when (val platform = platformName()) {
+            "ANDROID" -> driver as AndroidDriver
+            "iOS" -> driver as IOSDriver
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        val context = driver.context ?: ""
+        if (context.startsWith(WEB_VIEW_CONTEXT_PREFIX).not()) {
+            // Wait for the web view context to be available
+            val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS))
+            val contextHandle = wait.until {
+                driver.contextHandles.firstOrNull { it.startsWith(WEB_VIEW_CONTEXT_PREFIX) }
             }
-        } else if (platform == "IOS") {
-            val iosDriver = driver as IOSDriver
-            val context = iosDriver.context ?: ""
-            if (context.contains(WEB_VIEW_CONTEXT_PREFIX).not()) {
-                val wait = WebDriverWait(iosDriver, Duration.ofMillis(WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS))
 
-                wait.until { iosDriver.contextHandles.any { it.contains(WEB_VIEW_CONTEXT_PREFIX) } }
+            // Switch to the web view context
+            driver.context(contextHandle)
 
-                // Switch to the web view context
-                iosDriver.context(iosDriver.contextHandles.first { it.contains(WEB_VIEW_CONTEXT_PREFIX) })
-                // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
-                // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
-                // the loaded web page and the browser startup screen shortly after browser startup.
-                Thread.sleep(BROWSER_STARTUP_TIMEOUT)
-                // Switch to the last window handle (a.k.a. tab)
-                if (iosDriver.windowHandles.isNotEmpty()) {
-                    iosDriver.switchTo().window(iosDriver.windowHandles.last())
+            // Explicit timeout; waiting for the browser to be fully started and the viewport stabilized.
+            // This fixes the issue where the (Chrome) browser viewport flickers back and forth between
+            // the loaded web page and the browser startup screen shortly after browser startup.
+            Thread.sleep(BROWSER_STARTUP_TIMEOUT)
+
+            // Switch to the last window handle (a.k.a. tab)
+            val windowHandles = (driver as AppiumDriver).windowHandles
+            if (windowHandles.isNotEmpty()) {
+                driver.switchTo().window(windowHandles.last())
+                if (driver is IOSDriver) {
+                    // Wait somewhat more on iOS
                     Thread.sleep(BROWSER_STARTUP_TIMEOUT)
                 }
             }
-        } else {
-            throw Exception("Platform $platform is not supported")
         }
     }
 
     fun switchToAppContext() {
-        val platform = platformName()
-        if (platform == "ANDROID") {
-            val androidDriver = driver as AndroidDriver
-            if (androidDriver.context != FLUTTER_APP_CONTEXT) {
-
-                // Switch to the app context
-                androidDriver.context(FLUTTER_APP_CONTEXT)
-                androidDriver.terminateApp("com.android.chrome")
-            }
-        } else if (platform == "IOS") {
-            val iosDriver = driver as IOSDriver
-            if (iosDriver.context != FLUTTER_APP_CONTEXT) {
-
-                // Switch to the app context
-                iosDriver.context(FLUTTER_APP_CONTEXT)
-            }
-        } else {
-            throw Exception("Platform $platform is not supported")
+        val driver = when (val platform = platformName()) {
+            "ANDROID" -> driver as AndroidDriver
+            "iOS" -> driver as IOSDriver
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        if (driver.context != FLUTTER_APP_CONTEXT) {
+            // Switch to the app context
+            driver.context(FLUTTER_APP_CONTEXT)
+            driver.terminateApp("com.android.chrome")
         }
     }
 
