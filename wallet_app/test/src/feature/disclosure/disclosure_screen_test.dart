@@ -515,7 +515,7 @@ void main() {
 
         final l10n = await TestUtils.englishLocalizations;
         final title = l10n.organizationApprovePageGenericTitle(WalletMockData.organization.displayName.testValue);
-        expect(find.textContaining(title), findsOneWidget);
+        expect(find.textContaining(title), findsAtLeast(1));
 
         // Navigate away
         await tester.tap(find.text(l10n.organizationApprovePageMoreInfoCta));
@@ -582,6 +582,8 @@ void main() {
             RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
             RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
             RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
+            RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
+            RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
           ],
         );
 

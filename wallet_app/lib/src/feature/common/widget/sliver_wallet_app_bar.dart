@@ -88,7 +88,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
           final maxHeight = topPadding + expandedHeight;
           final scrollRange = maxHeight - minHeight;
 
-          if (scrollRange > maxScrollExtent) {
+          if (scrollRange > maxScrollExtent && maxScrollExtent > 0.0) {
             /// maxScrollExtent not sufficient to perform full animation, speeding up the process by
             /// providing a minHeight based on the available scroll range.
             minHeight = maxHeight - maxScrollExtent;

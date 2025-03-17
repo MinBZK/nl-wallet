@@ -605,7 +605,7 @@ void main() {
       );
       expect(find.byType(TerminalPage), findsOneWidget);
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.walletPersonalizeScreenErrorTitle), findsOneWidget);
+      expect(find.text(l10n.walletPersonalizeScreenErrorTitle), findsAtLeast(1));
     });
 
     testWidgets('Verify WalletPersonalizeDigidCancelled shows WalletPersonalizeDigidErrorPage', (tester) async {
@@ -666,7 +666,7 @@ void main() {
       );
       expect(find.byType(ErrorPage), findsOneWidget);
       final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.errorScreenSessionExpiredHeadline), findsOneWidget);
+      expect(find.text(l10n.errorScreenSessionExpiredHeadline), findsAtLeast(1));
     });
 
     testWidgets('Verify WalletPersonalizeAddingCards shows dedicated loading message', (tester) async {
