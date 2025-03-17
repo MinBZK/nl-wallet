@@ -141,10 +141,12 @@ open class MobileActions {
             // Switch to the last window handle (a.k.a. tab)
             val windowHandles = (driver as AppiumDriver).windowHandles
             if (windowHandles.isNotEmpty()) {
-                driver.switchTo().window(windowHandles.last())
                 if (driver is IOSDriver) {
+                    driver.switchTo().window(windowHandles.last())
                     // Wait somewhat more on iOS
                     Thread.sleep(BROWSER_STARTUP_TIMEOUT)
+                } else {
+                    driver.switchTo().window(windowHandles.first())
                 }
             }
         }
