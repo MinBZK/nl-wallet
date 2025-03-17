@@ -131,7 +131,22 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
     }
 }
 
-/// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
+/// SD-JWT VC type metadata document.
+/// See: https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
+///
+/// Note that within the context of the wallet app we place additional constraints on the contents of this document,
+/// most of which stem from practical concerns. These constraints consist of the following:
+///
+/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
+/// * Attributes contained in arrays are not (yet) supported.
+/// * Optional attributes are not yet supported. This means that every claim path in the metadata must be present as an
+///   attribute provided by the issuer.
+/// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
+///   type is known.
+/// * Every attribute in the attestation received from the issuer should have corresponding claim metadata, so that the
+///   attribute can be rendered for display to the user.
+/// * Claims that cover a group of attributes are not (yet) supported and will not be accepted, as rendering groups of
+///   attributes covered by the same display data is not supported by the UI.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
 pub struct TypeMetadata {
