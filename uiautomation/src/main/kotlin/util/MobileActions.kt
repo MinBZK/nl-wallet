@@ -1,6 +1,7 @@
 package util
 
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
+import data.TestConfigRepository.Companion.testConfig
 import helper.LocalizationHelper
 import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
@@ -138,8 +139,8 @@ open class MobileActions {
             // the loaded web page and the browser startup screen shortly after browser startup.
             Thread.sleep(BROWSER_STARTUP_TIMEOUT)
 
-            // Switch to the last window handle (a.k.a. tab)
-            val windowHandles = (driver as AppiumDriver).windowHandles
+            // Switch to the last window handle (a.k.a. tab) if local
+            val windowHandles = if (testConfig.remote) { setOf() } else { (driver as AppiumDriver).windowHandles }
             if (windowHandles.isNotEmpty()) {
                 if (driver is IOSDriver) {
                     driver.switchTo().window(windowHandles.last())
