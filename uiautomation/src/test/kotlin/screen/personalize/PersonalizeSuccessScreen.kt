@@ -8,8 +8,8 @@ class PersonalizeSuccessScreen : MobileActions() {
 
     private val successTitleText = find.byText(l10n.getString("walletPersonalizeSuccessPageTitle"))
     private val successDescriptionText = find.byText(l10n.getString("walletPersonalizeSuccessPageDescription"))
-    private val pidIdCardSubtitleText = find.byText("Jansen")
-    private val pidAddressCardTitleText = find.byText(l10n.getString("pidAddressCardTitle"))
+    private val pidIdCardTitleText = find.byText(l10n.translate("NL Wallet persoonsgegevens"))
+    private val pidAddressCardTitleText = find.byText(l10n.translate("NL Wallet adres"))
 
     private val nextButton = find.byValueKey("primaryButtonCta")
 
@@ -19,7 +19,7 @@ class PersonalizeSuccessScreen : MobileActions() {
         isElementVisible(successTitleText, false) && isElementVisible(successDescriptionText, false)
 
     fun cardsVisible(): Boolean {
-        return isElementVisible(pidIdCardSubtitleText, false) && isElementVisible(pidAddressCardTitleText, false)
+        return isElementVisible(pidIdCardTitleText, false) && isElementVisible(pidAddressCardTitleText, false)
     }
 
     fun clickNextButton() = clickElement(nextButton, false)
