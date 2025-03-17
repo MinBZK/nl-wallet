@@ -61,6 +61,7 @@ use openid4vc::server_state::SessionToken;
 use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
+use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
@@ -228,8 +229,10 @@ impl DirectMockVpMessageClient {
     fn new(auth_keypair: KeyPair, trust_anchors: Vec<TrustAnchor<'static>>) -> Self {
         let query = serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
-            ephemeral_id: vec![42],
-            time: Utc::now(),
+            ephemeral_id_params: Some(EphemeralIdParameters {
+                ephemeral_id: vec![42],
+                time: Utc::now(),
+            }),
         })
         .unwrap();
         let request_uri = ("https://example.com/request_uri?".to_string() + &query)
@@ -852,7 +855,7 @@ fn setup_verifier(
         usecases,
         Arc::new(MemorySessionStore::default()),
         vec![issuer_ca.to_trust_anchor().to_owned()],
-        hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+        Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
         MockDisclosureResultHandler::new(session_result_query_param),
     ));
 

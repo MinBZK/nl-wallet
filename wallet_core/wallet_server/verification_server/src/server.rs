@@ -50,7 +50,7 @@ where
             public_url: settings.server_settings.public_url,
             universal_link_base_url: settings.universal_link_base_url,
             use_cases: settings.usecases.parse(hsm).await?,
-            ephemeral_id_secret: (&settings.ephemeral_id_secret).into(),
+            ephemeral_id_secret: Some((&settings.ephemeral_id_secret).into()),
             issuer_trust_anchors: settings
                 .server_settings
                 .issuer_trust_anchors

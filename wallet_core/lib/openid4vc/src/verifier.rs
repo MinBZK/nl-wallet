@@ -524,7 +524,7 @@ pub struct Verifier<S, K, H> {
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<TrustAnchor<'static>>,
-    ephemeral_id_secret: hmac::Key,
+    ephemeral_id_secret: Option<hmac::Key>,
     result_handler: H,
 }
 
@@ -554,7 +554,7 @@ where
         use_cases: UseCases<K>,
         sessions: Arc<S>,
         trust_anchors: Vec<TrustAnchor<'static>>,
-        ephemeral_id_secret: hmac::Key,
+        ephemeral_id_secret: Option<hmac::Key>,
         result_handler: H,
     ) -> Self
     where
@@ -624,15 +624,25 @@ where
         session_token: &SessionToken,
         url_params: &VerifierUrlParameters,
     ) -> Result<(), GetAuthRequestError> {
-        if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > url_params.time {
-            return Err(GetAuthRequestError::ExpiredEphemeralId(url_params.ephemeral_id.clone()));
+        let Some(ephemeral_id_secret) = &self.ephemeral_id_secret else {
+            return Ok(());
+        };
+        let ephemeral_id_params = url_params
+            .ephemeral_id_params
+            .as_ref()
+            .ok_or(GetAuthRequestError::QueryParametersMissing)?;
+
+        if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > ephemeral_id_params.time {
+            return Err(GetAuthRequestError::ExpiredEphemeralId(
+                ephemeral_id_params.ephemeral_id.clone(),
+            ));
         }
         hmac::verify(
-            &self.ephemeral_id_secret,
-            &Self::format_ephemeral_id_payload(session_token, &url_params.time),
-            &url_params.ephemeral_id,
+            ephemeral_id_secret,
+            &Self::format_ephemeral_id_payload(session_token, &ephemeral_id_params.time),
+            &ephemeral_id_params.ephemeral_id,
         )
-        .map_err(|_| GetAuthRequestError::InvalidEphemeralId(url_params.ephemeral_id.clone()))?;
+        .map_err(|_| GetAuthRequestError::InvalidEphemeralId(ephemeral_id_params.ephemeral_id.clone()))?;
 
         Ok(())
     }
@@ -750,14 +760,11 @@ where
                 let ul = session_type
                     .map(|session_type| {
                         let time = time.generate();
-                        Self::format_ul(
-                            ul_base,
-                            request_uri,
+                        let ephemeral_id = self.ephemeral_id_secret.as_ref().map(|secret| EphemeralIdParameters {
+                            ephemeral_id: Self::generate_ephemeral_id(secret, session_token, &time),
                             time,
-                            Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
-                            session_type,
-                            client_id,
-                        )
+                        });
+                        Self::format_ul(ul_base, request_uri, ephemeral_id, session_type, client_id)
                     })
                     .transpose()?;
 
@@ -848,16 +855,14 @@ impl<S, K, H> Verifier<S, K, H> {
     fn format_ul(
         base_ul: &BaseUrl,
         request_uri: BaseUrl,
-        time: DateTime<Utc>,
-        ephemeral_id: Vec<u8>,
+        ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
         client_id: String,
     ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
-            time,
-            ephemeral_id,
             session_type,
+            ephemeral_id_params,
         })?));
 
         let mut ul = base_ul.clone().into_inner();
@@ -882,12 +887,20 @@ impl<S, K, H> Verifier<S, K, H> {
     }
 }
 
-#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerifierUrlParameters {
     pub session_type: SessionType,
+
+    #[serde(flatten)]
+    pub ephemeral_id_params: Option<EphemeralIdParameters>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EphemeralIdParameters {
     #[serde_as(as = "Hex")]
     pub ephemeral_id: Vec<u8>,
+
     // default (de)serialization of DateTime is the RFC 3339 format
     pub time: DateTime<Utc>,
 }
@@ -1214,6 +1227,7 @@ mod tests {
 
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionToken;
+    use crate::verifier::EphemeralIdParameters;
 
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
@@ -1304,7 +1318,7 @@ mod tests {
             use_cases,
             session_store,
             trust_anchors,
-            hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+            Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
             NoOpDisclosureResultHandler,
         )
     }
@@ -1585,7 +1599,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verifier_url() {
+    fn test_verifier_url_with_ephemeral_id() {
         let ephemeral_id_secret = hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap();
 
         let session_token = "session_token".into();
@@ -1596,8 +1610,14 @@ mod tests {
         let verifier_url = Verifier::<(), (), ()>::format_ul(
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
-            time,
-            Verifier::<(), (), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
+            Some(EphemeralIdParameters {
+                ephemeral_id: Verifier::<(), (), ()>::generate_ephemeral_id(
+                    &ephemeral_id_secret,
+                    &session_token,
+                    &time,
+                ),
+                time,
+            }),
             SessionType::CrossDevice,
             "client_id".to_string(),
         )
@@ -1613,6 +1633,25 @@ mod tests {
             %26ephemeral_id%3D{}%26time%3D1969-07-21T02%253A56%253A15Z&request_uri_method=post&client_id=client_id",
             hex::encode(ephemeral_id)
         );
+
+        assert_eq!(verifier_url.as_ref().as_str(), expected_url);
+    }
+
+    #[test]
+    fn test_verifier_url_without_ephemeral_id() {
+        // Create a UL for the wallet, given the provided parameters.
+        let verifier_url = Verifier::<(), (), ()>::format_ul(
+            &"https://app-ul.example.com".parse().unwrap(),
+            "https://rp.example.com".parse().unwrap(),
+            None,
+            SessionType::CrossDevice,
+            "client_id".to_string(),
+        )
+        .unwrap();
+
+        let expected_url =
+            "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
+            &request_uri_method=post&client_id=client_id";
 
         assert_eq!(verifier_url.as_ref().as_str(), expected_url);
     }

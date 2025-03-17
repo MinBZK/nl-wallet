@@ -59,7 +59,7 @@ pub struct VerifierConfig<S, K, H> {
     pub public_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     pub use_cases: UseCases<K>,
-    pub ephemeral_id_secret: hmac::Key,
+    pub ephemeral_id_secret: Option<hmac::Key>,
     pub issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     pub result_handler: H,
     pub sessions: Arc<S>,

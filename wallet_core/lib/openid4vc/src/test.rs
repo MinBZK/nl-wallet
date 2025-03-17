@@ -34,6 +34,7 @@ use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpRequestUriObject;
 use crate::openid4vp::WalletRequest;
+use crate::verifier::EphemeralIdParameters;
 use crate::verifier::SessionType;
 use crate::verifier::VerifierUrlParameters;
 use crate::AuthorizationErrorCode;
@@ -67,8 +68,10 @@ pub fn request_uri_object(mut request_uri: Url, session_type: SessionType, clien
     request_uri.set_query(Some(
         &serde_urlencoded::to_string(VerifierUrlParameters {
             session_type,
-            ephemeral_id: vec![42],
-            time: Utc::now(),
+            ephemeral_id_params: Some(EphemeralIdParameters {
+                ephemeral_id: vec![42],
+                time: Utc::now(),
+            }),
         })
         .unwrap(),
     ));
