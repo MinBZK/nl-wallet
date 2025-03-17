@@ -6,13 +6,13 @@ use serde::Serialize;
 use serde_valid::Validate;
 
 use mdoc::unsigned::Entry;
+use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::Tdate;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::attributes::Attribute;
-use crate::attributes::AttributeError;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet. For now, this will only be
@@ -114,7 +114,7 @@ impl IssuableDocument {
         valid_until: Tdate,
         copy_count: NonZeroU8,
         issuer_uri: HttpsUri,
-    ) -> Result<UnsignedMdoc, AttributeError> {
+    ) -> Result<UnsignedMdoc, UnsignedAttributesError> {
         let mut flattened = IndexMap::new();
         Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened);
 
@@ -166,7 +166,9 @@ mod test {
             .collect()
     }
 
-    fn issuable_attrs_to_unsigned_mdocs(issuable: &IssuableDocuments) -> Result<Vec<UnsignedMdoc>, AttributeError> {
+    fn issuable_attrs_to_unsigned_mdocs(
+        issuable: &IssuableDocuments,
+    ) -> Result<Vec<UnsignedMdoc>, UnsignedAttributesError> {
         issuable
             .as_ref()
             .iter()

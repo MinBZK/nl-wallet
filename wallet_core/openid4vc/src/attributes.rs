@@ -7,7 +7,6 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use mdoc::unsigned::Entry;
-use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
 use sd_jwt::metadata::ClaimMetadata;
@@ -29,20 +28,8 @@ pub enum AttributeError {
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
 
-    #[error("unable to instantiate UnsignedAttributes: {0}")]
-    UnsignedAttributes(#[from] UnsignedAttributesError),
-
-    #[error(
-        "The namespace is required to consist of nested group names, joined by a '.' and prefixed with the \
-         attestation_type. Actual namespace: '{namespace}' and doc_type: '{doc_type}'"
-    )]
-    NamespacePreconditionFailed { namespace: String, doc_type: String },
-
     #[error("attribute with name: {0} already exists")]
     DuplicateAttribute(String),
-
-    #[error("attribute with name: {0} already exists")]
-    NoClaimForAttribute(String),
 
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),

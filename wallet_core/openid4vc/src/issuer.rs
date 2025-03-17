@@ -31,6 +31,7 @@ use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
 use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::server_keys::KeyPair;
+use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::utils::crypto::CryptoError;
 use mdoc::utils::serialization::CborError;
 use mdoc::utils::x509::CertificateError;
@@ -46,7 +47,6 @@ use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
-use crate::attributes::AttributeError;
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;
 use crate::credential::CredentialRequests;
@@ -116,7 +116,7 @@ pub enum TokenRequestError {
     #[error("credential type not offered: {0}")]
     CredentialTypeNotOffered(String),
     #[error("could not convert attributes: {0}")]
-    Attribute(#[from] AttributeError),
+    AttributeConversion(#[from] UnsignedAttributesError),
     #[error("error converting unsigned mdoc to credential_payload: {0}")]
     CredentialPayload(#[from] CredentialPayloadError),
     #[error("error verifying type metadata integrity: {0}")]
