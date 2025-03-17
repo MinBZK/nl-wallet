@@ -245,6 +245,12 @@ pub struct MetadataExtends {
     pub extends: Uri,
 
     /// Validating the integrity of the extends field.
+    /// Note that this is optional in the specification, but we consider this mandatory:
+    /// * If the metadata this type extends is fetched from an external URI, the integrity digest guarantees that its
+    ///   contents match what is expected by the issuer.
+    /// * If the metadata is included with issuance, e.g. in an unprotected header, a chain of integrity digests that
+    ///   starts from a digest included in a signed section of the attestation acts as a de facto signature, protecting
+    ///   against tampering. In SD-JWT the `vct#integrity` claim would contain this first digest.
     #[serde(rename = "extends#integrity")]
     pub extends_integrity: SpecOptionalImplRequired<String>,
 }
@@ -261,6 +267,9 @@ pub enum SchemaOption {
         #[serde(with = "http_serde::uri")]
         schema_uri: Uri,
         /// Validating the integrity of the schema_uri field.
+        /// Note that although this is optional in the specification, we consider validation using a digest mandatory if
+        /// the schema is to be fetched from an external URI, in order to check that this matches the contents as
+        /// intended by the issuer.
         #[serde(rename = "schema_uri#integrity")]
         schema_uri_integrity: SpecOptionalImplRequired<String>,
     },
@@ -406,9 +415,14 @@ pub struct LogoMetadata {
     #[serde(with = "http_serde::uri")]
     pub uri: Uri,
 
+    /// Note that although this is optional in the specification, we consider validation using a digest mandatory if the
+    /// logo is to be fetched from an external URI, in order to check that this matches the image as intended by the
+    /// issuer.
     #[serde(rename = "uri#integrity")]
     pub uri_integrity: SpecOptionalImplRequired<String>,
 
+    /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
+    /// because of accessibility requirements.
     pub alt_text: SpecOptionalImplRequired<String>,
 }
 
