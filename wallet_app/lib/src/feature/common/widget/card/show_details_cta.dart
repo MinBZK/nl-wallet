@@ -1,35 +1,32 @@
 import 'package:flutter/material.dart';
 
-import '../../../../theme/base_wallet_theme.dart';
-import '../../../../theme/light_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 
 const _kButtonHeight = 24.0;
-const _kFallBackIconSize = 16.0;
 
 class ShowDetailsCta extends StatelessWidget {
   final Text text;
   final Color? textColor;
   final VoidCallback? onPressed;
+  final WidgetStatesController? statesController;
 
   const ShowDetailsCta({
     required this.text,
     this.textColor,
     this.onPressed,
+    this.statesController,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextButton.icon(
-      icon: Icon(
-        Icons.arrow_forward,
-        size: context.textScaler.scale(context.theme.iconTheme.size ?? _kFallBackIconSize),
-      ),
+      icon: const Icon(Icons.arrow_forward),
       iconAlignment: IconAlignment.end,
-      style: _resolveButtonStyle(context),
-      onPressed: onPressed,
       label: text,
+      onPressed: onPressed,
+      statesController: statesController,
+      style: _resolveButtonStyle(context),
     );
   }
 
@@ -56,12 +53,7 @@ class ShowDetailsCta extends StatelessWidget {
           borderRadius: BorderRadius.zero,
         ),
       ),
-      side: WidgetStateProperty.resolveWith(
-        (states) {
-          final fallBackColor = context.theme.textTheme.bodyLarge?.color ?? LightWalletTheme.textColor;
-          return states.isFocused ? BorderSide(color: textColor ?? fallBackColor) : null;
-        },
-      ),
+      side: const WidgetStatePropertyAll(BorderSide.none),
     );
   }
 }

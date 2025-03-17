@@ -103,10 +103,11 @@ class _ActivitySummaryState extends State<ActivitySummary> {
   }
 
   BorderSide? _resolveBorderSide(Set<WidgetState> states) {
-    // Only override default state border side when the button is not pressed or focused
-    return !states.isPressedOrFocused
+    // Override all non-focused states to always display a border
+    return !states.isFocused
         ? BaseWalletTheme.buttonBorderSideFocused.copyWith(
             color: context.colorScheme.outlineVariant,
+            strokeAlign: BorderSide.strokeAlignOutside,
             width: 1,
           )
         : null;
