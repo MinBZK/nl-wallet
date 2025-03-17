@@ -123,10 +123,12 @@ impl CredentialPayload {
             attributes,
         };
 
+        payload.validate(type_metadata)?;
+
         Ok(payload)
     }
 
-    pub fn validate(&self, metadata_chain: &TypeMetadataChain) -> Result<(), CredentialPayloadError> {
+    fn validate(&self, metadata_chain: &TypeMetadataChain) -> Result<(), CredentialPayloadError> {
         let metadata = metadata_chain.verify()?;
         metadata.validate(&serde_json::to_value(self)?)?;
         Ok(())

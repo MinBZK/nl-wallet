@@ -649,8 +649,7 @@ impl Session<Created> {
                     attestation_data.issuer_uri.clone(),
                 )?;
 
-                CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), &attestation_data.metadata)?
-                    .validate(&attestation_data.metadata)?;
+                CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), &attestation_data.metadata)?;
 
                 // TODO do this for all formats that we want to issue (PVW-3830)
                 let mdoc = CredentialPreview::MsoMdoc {
