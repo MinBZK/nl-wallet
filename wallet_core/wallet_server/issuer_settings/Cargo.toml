@@ -11,21 +11,20 @@ workspace = true
 doctest = false
 
 [dependencies]
-chrono = { workspace = true, features = ["clock", "serde", "std"] }
+chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+futures = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-serde_with = { workspace = true, features = ["base64"] }
 thiserror.workspace = true
 tracing.workspace = true
 
 hsm = { path = "../../hsm", features = ["settings"] }
 mdoc.path = "../../mdoc"
-openid4vc = { path = "../../openid4vc", features = ["axum"] }
+openid4vc.path = "../../openid4vc"
 sd_jwt.path = "../../sd_jwt"
-wallet_common = { path = "../../wallet_common", features = ["axum"] }
+wallet_common.path = "../../wallet_common"
 server_utils.path = "../server_utils"
