@@ -32,18 +32,21 @@ impl Attestation {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
+    use indexmap::IndexMap;
+    use mdoc::unsigned::Entry;
 
     use mdoc::utils::auth::Organization;
+    use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
     use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt::metadata::UncheckedTypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
+    use crate::issuance::mock::create_bsn_only_unsigned_mdoc;
     use crate::issuance::mock::create_example_unsigned_mdoc;
     use crate::Attestation;
     use crate::AttestationIdentity;
@@ -91,13 +94,14 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
-        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+        let (unsigned_mdoc, metadata) = create_bsn_only_unsigned_mdoc();
 
-        let metadata = TypeMetadata {
+        let metadata = TypeMetadata::try_new(UncheckedTypeMetadata {
             vct: unsigned_mdoc.doc_type,
-            claims: vec![claim_metadata(&["not_found"])],
-            ..metadata
-        };
+            claims: vec![claim_metadata(&["not_found"]), claim_metadata(&["bsn"])],
+            ..metadata.into_inner()
+        })
+        .unwrap();
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
@@ -114,15 +118,16 @@ mod test {
     fn test_attribute_not_processed() {
         let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
 
-        let metadata = TypeMetadata {
+        let metadata = TypeMetadata::try_new(UncheckedTypeMetadata {
             vct: unsigned_mdoc.doc_type,
             claims: vec![
                 claim_metadata(&["family_name"]),
                 claim_metadata(&["given_name"]),
                 claim_metadata(&["birth_date"]),
             ],
-            ..metadata
-        };
+            ..metadata.into_inner()
+        })
+        .unwrap();
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
@@ -134,8 +139,15 @@ mod test {
 
         assert_matches!(
             error,
-            AttestationError::AttributeNotProcessedByClaim(keys)
-                if keys == HashSet::from([vec![String::from("age_over_18")]])
+            AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims))
+                if claims == IndexMap::from([
+                    (String::from("com.example.pid"),
+                    vec![Entry {
+                        name: String::from("age_over_18"),
+                        value: ciborium::value::Value::Bool(true)
+                    }]
+                )]
+            )
         );
     }
 }

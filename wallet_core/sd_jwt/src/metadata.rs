@@ -1,13 +1,16 @@
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
+use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
+use nutype::nutype;
 use serde::de;
 use serde::ser;
 use serde::Deserialize;
@@ -41,6 +44,14 @@ pub enum TypeMetadataError {
 
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
+
+    #[error("unsupported claim path '{0}'")]
+    UnsupportedClaimPath(ClaimPath),
+
+    #[error("detected claim path collision: {}",
+        .0.iter().map(|(left, right)| format!("{} - {}", left, right)).join(", "))
+    ]
+    ClaimPathCollision(Vec<(ClaimMetadata, ClaimMetadata)>),
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
@@ -131,6 +142,12 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
     }
 }
 
+#[nutype(
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize),
+    validate(with = UncheckedTypeMetadata::check_metadata_consistency, error = TypeMetadataError),
+)]
+pub struct TypeMetadata(UncheckedTypeMetadata);
+
 /// SD-JWT VC type metadata document.
 /// See: https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 ///
@@ -149,7 +166,7 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
 ///   attributes covered by the same display data is not supported by the UI.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
-pub struct TypeMetadata {
+pub struct UncheckedTypeMetadata {
     /// A String or URI that uniquely identifies the type.
     pub vct: String,
 
@@ -176,6 +193,94 @@ pub struct TypeMetadata {
     pub schema: SchemaOption,
 }
 
+impl UncheckedTypeMetadata {
+    pub fn check_metadata_consistency(unchecked_metadata: &UncheckedTypeMetadata) -> Result<(), TypeMetadataError> {
+        unchecked_metadata.detect_path_collisions()
+    }
+
+    fn detect_path_collisions(&self) -> Result<(), TypeMetadataError> {
+        // Gather all claim paths for which a collision can occur by joining their keys with a '.'
+        let joined_paths: HashMap<String, &ClaimMetadata> = self
+            .claims
+            .iter()
+            .filter_map(|claim| {
+                // Ignore all claims having only one path key since they can never collide
+                if claim.path.len().get() <= 1 {
+                    return None;
+                }
+
+                Some(
+                    claim
+                        .path
+                        .iter()
+                        .map(|path| {
+                            path.try_key_path()
+                                .ok_or(TypeMetadataError::UnsupportedClaimPath(path.clone()))
+                        })
+                        .try_collect()
+                        .map(|paths: Vec<&str>| (paths.join("."), claim)),
+                )
+            })
+            .try_collect()?;
+
+        // If a claim path occurs in the map calculated above, there is a collision.
+        let collisions = self
+            .claims
+            .iter()
+            .flat_map(|claim| {
+                claim
+                    .path
+                    .iter()
+                    .filter_map(|claim_path| {
+                        let path = claim_path.try_key_path().unwrap();
+                        joined_paths
+                            .get(path)
+                            .map(|claim_meta| (claim.clone(), (*claim_meta).clone()))
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        if !collisions.is_empty() {
+            return Err(TypeMetadataError::ClaimPathCollision(collisions));
+        }
+
+        Ok(())
+    }
+}
+
+impl TypeMetadata {
+    pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
+        let bytes: Vec<u8> = serde_json::to_vec(&self.as_ref())?;
+        Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
+    }
+
+    pub fn try_from_base64(encoded: &str) -> Result<Self, TypeMetadataError> {
+        let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
+        Self::try_new(serde_json::from_slice::<UncheckedTypeMetadata>(&bytes)?)
+    }
+
+    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
+        if let SchemaOption::Embedded { schema } = &self.as_ref().schema {
+            schema
+                .validator
+                .validate(json_claims)
+                .map_err(ValidationError::to_owned)?;
+            Ok(())
+        } else {
+            Err(TypeMetadataError::UnsupportedSchemaOption(self.as_ref().schema.clone()))
+        }
+    }
+}
+
+impl TryFrom<&TypeMetadata> for Vec<u8> {
+    type Error = serde_json::Error;
+
+    fn try_from(value: &TypeMetadata) -> Result<Self, Self::Error> {
+        serde_json::to_vec(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Into, Serialize, Deserialize)]
 pub struct ResourceIntegrity(String);
 
@@ -198,46 +303,6 @@ impl ResourceIntegrity {
         }
 
         Ok(())
-    }
-}
-
-impl TypeMetadata {
-    pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
-        let bytes: Vec<u8> = serde_json::to_vec(&self)?;
-        Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
-    }
-
-    pub fn try_from_base64(encoded: &str) -> Result<Self, TypeMetadataError> {
-        let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
-        Ok(serde_json::from_slice(&bytes)?)
-    }
-
-    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
-        if let SchemaOption::Embedded { schema } = &self.schema {
-            schema
-                .validator
-                .validate(json_claims)
-                .map_err(ValidationError::to_owned)?;
-            Ok(())
-        } else {
-            Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
-        }
-    }
-}
-
-impl TryFrom<Vec<u8>> for TypeMetadata {
-    type Error = serde_json::Error;
-
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        serde_json::from_slice(&value)
-    }
-}
-
-impl TryFrom<&TypeMetadata> for Vec<u8> {
-    type Error = serde_json::Error;
-
-    fn try_from(value: &TypeMetadata) -> Result<Self, Self::Error> {
-        serde_json::to_vec(value)
     }
 }
 
@@ -463,6 +528,22 @@ pub enum ClaimPath {
     SelectByIndex(usize),
 }
 
+impl ClaimPath {
+    pub fn try_key_path(&self) -> Option<&str> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn try_into_key_path(self) -> Option<String> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key),
+            _ => None,
+        }
+    }
+}
+
 impl Display for ClaimPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -470,6 +551,20 @@ impl Display for ClaimPath {
             ClaimPath::SelectAll => f.write_str("*"),
             ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
         }
+    }
+}
+
+impl Display for ClaimMetadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.path
+                .iter()
+                .map(|p| format!("[{}]", p))
+                .collect::<Vec<String>>()
+                .join(".")
+        )
     }
 }
 
@@ -509,6 +604,7 @@ pub mod mock {
     use crate::metadata::JsonSchemaPropertyType;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
+    use crate::metadata::UncheckedTypeMetadata;
 
     const ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/address-metadata.json");
     const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
@@ -516,7 +612,7 @@ pub mod mock {
 
     impl TypeMetadata {
         pub fn empty_example() -> Self {
-            Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata {
                 vct: random_string(16),
                 name: Some(random_string(8)),
                 description: None,
@@ -526,14 +622,16 @@ pub mod mock {
                 schema: SchemaOption::Embedded {
                     schema: Box::new(JsonSchema::try_new(json!({"properties": {}})).unwrap()),
                 },
-            }
+            })
+            .unwrap()
         }
 
         pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
-            Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata {
                 vct: String::from(attestation_type),
-                ..Self::empty_example()
-            }
+                ..Self::empty_example().into_inner()
+            })
+            .unwrap()
         }
 
         pub fn example_with_claim_name(
@@ -549,7 +647,7 @@ pub mod mock {
             attestation_type: &str,
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
-            Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata {
                 vct: String::from(attestation_type),
                 claims: names
                     .iter()
@@ -567,8 +665,9 @@ pub mod mock {
                 schema: SchemaOption::Embedded {
                     schema: Box::new(JsonSchema::example_with_claim_names(names)),
                 },
-                ..Self::empty_example()
-            }
+                ..Self::empty_example().into_inner()
+            })
+            .unwrap()
         }
 
         pub fn address_example() -> Self {
@@ -621,19 +720,21 @@ mod test {
     use rstest::*;
     use serde_json::json;
 
+    use crate::metadata::ClaimMetadata;
     use crate::metadata::ClaimPath;
     use crate::metadata::MetadataExtendsOption;
     use crate::metadata::ResourceIntegrity;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
     use crate::metadata::TypeMetadataError;
+    use crate::metadata::UncheckedTypeMetadata;
 
     #[tokio::test]
     async fn test_deserialize() {
         let metadata = TypeMetadata::example();
         assert_eq!(
             "https://sd_jwt_vc_metadata.example.com/example_credential",
-            metadata.vct
+            metadata.as_ref().vct
         );
     }
 
@@ -648,7 +749,10 @@ mod test {
         }))
         .unwrap();
 
-        assert_matches!(metadata.extends, Some(MetadataExtendsOption::Identifier { .. }));
+        assert_matches!(
+            metadata.as_ref().extends,
+            Some(MetadataExtendsOption::Identifier { .. })
+        );
     }
 
     #[test]
@@ -663,8 +767,8 @@ mod test {
         }))
         .unwrap();
 
-        assert_matches!(metadata.extends, Some(MetadataExtendsOption::Uri { .. }));
-        assert_matches!(metadata.schema, SchemaOption::Remote { .. });
+        assert_matches!(metadata.as_ref().extends, Some(MetadataExtendsOption::Uri { .. }));
+        assert_matches!(metadata.as_ref().schema, SchemaOption::Remote { .. });
     }
 
     #[test]
@@ -708,7 +812,7 @@ mod test {
                 ClaimPath::SelectByKey(String::from("country")),
                 ClaimPath::SelectByKey(String::from("area_code")),
             ],
-            metadata.claims[3].path.clone().into_inner()
+            metadata.as_ref().claims[3].path.clone().into_inner()
         );
 
         metadata.validate(&claims).unwrap();
@@ -776,5 +880,73 @@ mod test {
         let bytes = serde_json::to_vec(&metadata).unwrap();
         let integrity = ResourceIntegrity::from_bytes(&bytes);
         integrity.verify(&bytes).unwrap();
+    }
+
+    #[test]
+    fn test_claim_path_collision() {
+        let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                { "path": ["address.street"] },
+                { "path": ["address", "street"] },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .unwrap()
+        .detect_path_collisions();
+
+        let claim1: ClaimMetadata = serde_json::from_value(json!({ "path": ["address.street"] })).unwrap();
+        let claim2: ClaimMetadata = serde_json::from_value(json!({ "path": ["address", "street"] })).unwrap();
+
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision(claims)) if claims == vec![(claim1, claim2)]);
+    }
+
+    #[test]
+    fn test_claim_path_collisions() {
+        let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                { "path": ["a.b"] },
+                { "path": ["a", "b"] },
+                { "path": ["x.y.z"] },
+                { "path": ["x", "y", "z"] },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .unwrap()
+        .detect_path_collisions();
+
+        let claim1: ClaimMetadata = serde_json::from_value(json!({ "path": ["a.b"] })).unwrap();
+        let claim2: ClaimMetadata = serde_json::from_value(json!({ "path": ["a", "b"] })).unwrap();
+        let claim3: ClaimMetadata = serde_json::from_value(json!({ "path": ["x.y.z"] })).unwrap();
+        let claim4: ClaimMetadata = serde_json::from_value(json!({ "path": ["x", "y", "z"] })).unwrap();
+
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision(claims))
+            if claims == vec![(claim1, claim2), (claim3, claim4)]);
+    }
+
+    #[test]
+    fn should_detect_claim_path_collision_for_deserializing_typemetadata() {
+        assert!(serde_json::from_value::<TypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                { "path": ["address.street"] },
+                { "path": ["address", "street"] },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .is_err());
     }
 }

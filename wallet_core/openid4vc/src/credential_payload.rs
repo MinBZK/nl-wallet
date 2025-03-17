@@ -115,7 +115,7 @@ impl CredentialPayload {
         let attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         let payload = Self {
-            attestation_type: metadata.vct,
+            attestation_type: metadata.into_inner().vct,
             issuer,
             issued_at,
             expires,

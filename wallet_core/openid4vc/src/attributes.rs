@@ -11,7 +11,6 @@ use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
 use sd_jwt::metadata::ClaimMetadata;
-use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::TypeMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -126,18 +125,18 @@ impl Attribute {
         let mut result = IndexMap::new();
 
         // The claims list determines the final order of the converted attributes.
-        for claim in &type_metadata.claims {
+        for claim in &type_metadata.as_ref().claims {
             // First, confirm that the path is made up of key entries by converting to a `Vec<&str>`.
             let key_path = claim
                 .path
                 .iter()
-                .map(|path| match path {
-                    ClaimPath::SelectByKey(key) => Ok(key.as_str()),
-                    _ => Err(AttributeError::UnsupportedClaimPath(claim.clone())),
+                .map(|path| {
+                    path.try_key_path()
+                        .ok_or(AttributeError::UnsupportedClaimPath(claim.clone()))
                 })
                 .collect::<Result<VecDeque<_>, _>>()?;
 
-            Self::traverse_attributes_by_claim(&type_metadata.vct, key_path, &mut attributes, &mut result)?;
+            Self::traverse_attributes_by_claim(&type_metadata.as_ref().vct, key_path, &mut attributes, &mut result)?;
         }
 
         if !attributes.is_empty() {

@@ -51,6 +51,7 @@ use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt::metadata::UncheckedTypeMetadata;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -495,7 +496,7 @@ const MOCK_DOCTYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 fn mock_type_metadata(vct: &str) -> TypeMetadata {
-    TypeMetadata {
+    TypeMetadata::try_new(UncheckedTypeMetadata {
         vct: vct.to_string(),
         claims: MOCK_ATTRS
             .iter()
@@ -506,8 +507,9 @@ fn mock_type_metadata(vct: &str) -> TypeMetadata {
                 svg_id: None,
             })
             .collect(),
-        ..TypeMetadata::empty_example()
-    }
+        ..TypeMetadata::empty_example().into_inner()
+    })
+    .unwrap()
 }
 
 fn mock_issuable_attestation(attestation_count: NonZeroUsize) -> VecNonEmpty<IssuableDocument> {
