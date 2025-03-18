@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
@@ -48,10 +49,8 @@ pub enum TypeMetadataError {
     #[error("unsupported claim path '{}'", .0.iter().join("."))]
     UnsupportedClaimPath(VecNonEmpty<ClaimPath>),
 
-    #[error("detected claim path collision: {}",
-        .0.iter().map(|(left, right)| format!("{} - {}", left, right)).join(", "))
-    ]
-    ClaimPathCollision(Vec<(ClaimMetadata, ClaimMetadata)>),
+    #[error("detected claim path collision")]
+    ClaimPathCollision,
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
@@ -199,50 +198,25 @@ impl UncheckedTypeMetadata {
     }
 
     fn detect_path_collisions(&self) -> Result<(), TypeMetadataError> {
-        // Gather all claim paths for which a collision can occur by joining their keys with a '.'
-        let joined_paths: HashMap<String, &ClaimMetadata> = self
-            .claims
-            .iter()
-            .filter_map(|claim| {
-                // Ignore all claims having only one path key since they can never collide
-                if claim.path.len().get() <= 1 {
-                    return None;
-                }
+        let mut paths: HashSet<String> = HashSet::new();
 
-                Some(
-                    claim
-                        .path
-                        .iter()
-                        .map(|path| {
-                            path.try_key_path()
-                                .ok_or(TypeMetadataError::UnsupportedClaimPath(claim.path.clone()))
-                        })
-                        .try_collect()
-                        .map(|paths: Vec<&str>| (paths.join("."), claim)),
-                )
-            })
-            .try_collect()?;
+        for claim in &self.claims {
+            // Flatten all claim paths by joining them with a '.'
+            let flattened_key = claim
+                .path
+                .iter()
+                .map(|path| {
+                    path.try_key_path()
+                        .ok_or(TypeMetadataError::UnsupportedClaimPath(claim.path.clone()))
+                })
+                .try_collect()
+                .map(|paths: Vec<&str>| paths.join("."))?;
 
-        // If a claim path occurs in the map calculated above, there is a collision.
-        let collisions = self
-            .claims
-            .iter()
-            .flat_map(|claim| {
-                claim
-                    .path
-                    .iter()
-                    .filter_map(|claim_path| {
-                        let path = claim_path.try_key_path().unwrap();
-                        joined_paths
-                            .get(path)
-                            .map(|claim_meta| (claim.clone(), (*claim_meta).clone()))
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
-
-        if !collisions.is_empty() {
-            return Err(TypeMetadataError::ClaimPathCollision(collisions));
+            // If inserting the flattened key in the set returns false, it means it is already in the set and there
+            // is a collision.
+            if !paths.insert(flattened_key) {
+                return Err(TypeMetadataError::ClaimPathCollision);
+            }
         }
 
         Ok(())
@@ -720,7 +694,6 @@ mod test {
     use rstest::*;
     use serde_json::json;
 
-    use crate::metadata::ClaimMetadata;
     use crate::metadata::ClaimPath;
     use crate::metadata::MetadataExtendsOption;
     use crate::metadata::ResourceIntegrity;
@@ -900,10 +873,7 @@ mod test {
         .unwrap()
         .detect_path_collisions();
 
-        let claim1: ClaimMetadata = serde_json::from_value(json!({ "path": ["address.street"] })).unwrap();
-        let claim2: ClaimMetadata = serde_json::from_value(json!({ "path": ["address", "street"] })).unwrap();
-
-        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision(claims)) if claims == vec![(claim1, claim2)]);
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
     }
 
     #[test]
@@ -913,8 +883,8 @@ mod test {
             "claims": [
                 { "path": ["a.b"] },
                 { "path": ["a", "b"] },
-                { "path": ["x.y.z"] },
-                { "path": ["x", "y", "z"] },
+                { "path": ["x.y", "z"] },
+                { "path": ["x", "y.z"] },
             ],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -925,13 +895,9 @@ mod test {
         .unwrap()
         .detect_path_collisions();
 
-        let claim1: ClaimMetadata = serde_json::from_value(json!({ "path": ["a.b"] })).unwrap();
-        let claim2: ClaimMetadata = serde_json::from_value(json!({ "path": ["a", "b"] })).unwrap();
-        let claim3: ClaimMetadata = serde_json::from_value(json!({ "path": ["x.y.z"] })).unwrap();
-        let claim4: ClaimMetadata = serde_json::from_value(json!({ "path": ["x", "y", "z"] })).unwrap();
+        dbg!(&result);
 
-        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision(claims))
-            if claims == vec![(claim1, claim2), (claim3, claim4)]);
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
     }
 
     #[test]
