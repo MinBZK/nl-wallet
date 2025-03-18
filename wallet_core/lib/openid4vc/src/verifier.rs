@@ -139,6 +139,8 @@ pub enum GetAuthRequestError {
     QueryParametersMissing,
     #[error("failed to deserialize query parameters: {0}")]
     QueryParametersDeserialization(#[from] serde_urlencoded::de::Error),
+    #[error("no attributes configured to be disclosed configured in usecase {0}")]
+    NoAttributesToRequest(String),
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
@@ -466,15 +468,21 @@ pub struct UseCases<K>(HashMap<String, UseCase<K>>);
 
 #[derive(Debug)]
 pub struct UseCase<K> {
+    pub id: String,
     pub key_pair: KeyPair<K>,
     pub client_id: String,
     pub session_type_return_url: SessionTypeReturnUrl,
+    pub items_requests: Option<ItemsRequests>,
+    pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
 impl<K> UseCase<K> {
     pub fn try_new(
+        id: String,
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
+        items_requests: Option<ItemsRequests>,
+        return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = String::from(
             key_pair
@@ -483,9 +491,12 @@ impl<K> UseCase<K> {
                 .ok_or(UseCaseCertificateError::MissingSAN)?,
         );
         let use_case = Self {
+            id,
             key_pair,
             client_id,
             session_type_return_url,
+            items_requests,
+            return_url_template,
         };
 
         Ok(use_case)
@@ -515,6 +526,17 @@ impl DisclosureResultHandler for NoOpDisclosureResultHandler {
         _: &IndexMap<String, DocumentDisclosedAttributes>,
     ) -> Result<String, Self::Error> {
         Ok("".to_string())
+    }
+}
+
+pub enum SessionIdentifier {
+    Token(SessionToken),
+    UseCaseId(String),
+}
+
+impl From<SessionToken> for SessionIdentifier {
+    fn from(value: SessionToken) -> Self {
+        Self::Token(value)
     }
 }
 
@@ -675,12 +697,39 @@ where
 
     pub async fn process_get_request(
         &self,
-        session_token: &SessionToken,
+        session_identifier: &SessionIdentifier,
         response_uri: BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
-        let session: Session<Created> = self.get_session(session_token).await?;
+        let session: Session<Created> = match session_identifier {
+            SessionIdentifier::Token(session_token) => self.get_session(session_token).await?,
+            SessionIdentifier::UseCaseId(usecase_id) => {
+                let usecase = self
+                    .use_cases
+                    .as_ref()
+                    .get(usecase_id)
+                    .ok_or(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()))?;
+                Session {
+                    state: SessionState::new(
+                        SessionToken::new_random(),
+                        Created {
+                            items_requests: usecase
+                                .items_requests
+                                .as_ref()
+                                .ok_or(GetAuthRequestError::NoAttributesToRequest(usecase_id.to_string()))?
+                                .clone(),
+                            usecase_id: usecase.id.clone(),
+                            client_id: usecase.client_id.clone(),
+                            redirect_uri_template: usecase.return_url_template.clone(),
+                        },
+                    ),
+                }
+            }
+        };
+
+        let session_token = session.state.token.clone();
+        let response_uri = response_uri.join_base_url(&format!("/{session_token}/response_uri"));
 
         info!("Session({session_token}): get request");
 
@@ -691,11 +740,11 @@ where
         // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
         // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
         // session. This means that the QR code/UL stays on the website so that the user can try again.
-        self.verify_ephemeral_id(session_token, &url_params)?;
+        self.verify_ephemeral_id(&session_token, &url_params)?;
 
         let (result, redirect_uri, next) = match session
             .process_get_request(
-                session_token,
+                &session_token,
                 response_uri,
                 url_params.session_type,
                 wallet_nonce,
@@ -1228,6 +1277,8 @@ mod tests {
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionToken;
     use crate::verifier::EphemeralIdParameters;
+    use crate::verifier::SessionIdentifier;
+    use crate::verifier::VerifierUrlParameters;
 
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
@@ -1288,25 +1339,34 @@ mod tests {
             (
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 UseCase {
+                    id: DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                     key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
+                    items_requests: None,
+                    return_url_template: None,
                 },
             ),
             (
                 DISCLOSURE_USECASE.to_string(),
                 UseCase {
+                    id: DISCLOSURE_USECASE.to_string(),
                     key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".to_string(),
+                    items_requests: None,
+                    return_url_template: None,
                 },
             ),
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 UseCase {
+                    id: DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                     key_pair: generate_reader_mock(&ca, reader_registration).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Both,
                     client_id: "client_id".to_string(),
+                    items_requests: None,
+                    return_url_template: None,
                 },
             ),
         ])
@@ -1401,10 +1461,8 @@ mod tests {
         // Getting the Authorization Request should succeed
         verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/disclosure/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &session_token.clone().into(),
+                "https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1446,10 +1504,8 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/disclosure/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &session_token.into(),
+                "https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1493,10 +1549,8 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/disclosure/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &session_token.into(),
+                "https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1654,5 +1708,51 @@ mod tests {
             &request_uri_method=post&client_id=client_id";
 
         assert_eq!(verifier_url.as_ref().as_str(), expected_url);
+    }
+
+    #[tokio::test]
+    async fn test_session_creation_by_usecase() {
+        // Initialize server state
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
+        let reader_registration = Some(ReaderRegistration::new_mock());
+
+        let use_cases = HashMap::from([(
+            DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+            UseCase {
+                id: DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+                key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                session_type_return_url: SessionTypeReturnUrl::Neither,
+                client_id: "client_id".to_string(),
+                items_requests: Some(vec![ItemsRequest::new_example()].into()),
+                return_url_template: None,
+            },
+        )]);
+
+        let session_store = Arc::new(MemorySessionStore::default());
+
+        let verifier = Verifier::new(
+            use_cases.into(),
+            session_store,
+            trust_anchors,
+            None,
+            NoOpDisclosureResultHandler,
+        );
+
+        let query_params = serde_urlencoded::to_string(VerifierUrlParameters {
+            session_type: SessionType::SameDevice,
+            ephemeral_id_params: None,
+        })
+        .unwrap();
+
+        verifier
+            .process_get_request(
+                &SessionIdentifier::UseCaseId(DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string()),
+                "https://example.com/response_uri".parse().unwrap(),
+                Some(&query_params),
+                None,
+            )
+            .await
+            .unwrap();
     }
 }

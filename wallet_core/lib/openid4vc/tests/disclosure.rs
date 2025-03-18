@@ -827,24 +827,33 @@ fn setup_verifier(
         (
             NO_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
+                NO_RETURN_URL_USE_CASE.to_string(),
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::Neither,
+                None,
+                None,
             )
             .unwrap(),
         ),
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
+                DEFAULT_RETURN_URL_USE_CASE.to_string(),
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
+                None,
+                None,
             )
             .unwrap(),
         ),
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
+                ALL_RETURN_URL_USE_CASE.to_string(),
                 generate_reader_mock(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
+                None,
+                None,
             )
             .unwrap(),
         ),
@@ -947,15 +956,13 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
-        let session_token = path_segments[path_segments.len() - 2].to_owned().into();
+        let session_token: SessionToken = path_segments[path_segments.len() - 2].to_owned().into();
 
         let jws = self
             .verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/verifier_base_url/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &session_token.into(),
+                "https://example.com/verifier_base_url".parse().unwrap(),
                 url.as_ref().query(),
                 wallet_nonce,
             )

@@ -7,7 +7,7 @@ use config::File;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::IntoIterator;
-use futures::future::join_all;
+use futures::future::try_join_all;
 use nutype::nutype;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
@@ -80,22 +80,27 @@ pub struct UseCaseSettings {
 impl UseCasesSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCases<PrivateKeyVariant>, anyhow::Error> {
         let iter = self.into_iter().map(|(id, use_case)| async {
-            let result = (id, use_case.parse(hsm.clone()).await?);
-            Ok(result)
+            Ok::<_, anyhow::Error>((id.clone(), use_case.parse(id, hsm.clone()).await?))
         });
 
-        let use_cases = join_all(iter)
-            .await
+        let use_cases = try_join_all(iter)
+            .await?
             .into_iter()
-            .collect::<Result<HashMap<String, UseCase<_>>, anyhow::Error>>()?;
+            .collect::<HashMap<String, UseCase<_>>>();
 
         Ok(use_cases.into())
     }
 }
 
 impl UseCaseSettings {
-    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
-        let use_case = UseCase::try_new(self.key_pair.parse(hsm).await?, self.session_type_return_url)?;
+    pub async fn parse(self, id: String, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
+        let use_case = UseCase::try_new(
+            id,
+            self.key_pair.parse(hsm).await?,
+            self.session_type_return_url,
+            None,
+            None,
+        )?;
 
         Ok(use_case)
     }

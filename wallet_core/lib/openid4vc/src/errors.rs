@@ -212,6 +212,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 | GetAuthRequestError::Jwt(_)
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)
+                | GetAuthRequestError::NoAttributesToRequest(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
                 GetAuthRequestError::QueryParametersMissing
                 | GetAuthRequestError::QueryParametersDeserialization(_)
