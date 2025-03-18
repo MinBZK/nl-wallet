@@ -22,7 +22,10 @@ class MenuScreen : MobileActions() {
         isElementVisible(helpButton) && isElementVisible(historyButton) && isElementVisible(settingsButton) &&
             isElementVisible(feedbackButton) && isElementVisible(aboutButton)
 
-    fun logoutButtonVisible() = isElementVisible(logoutButton)
+    fun logoutButtonVisible(): Boolean {
+        scrollToEnd(scrollableType)
+        return isElementVisible(logoutButton)
+    }
 
     fun clickHelpButton() = clickElement(helpButton)
 
