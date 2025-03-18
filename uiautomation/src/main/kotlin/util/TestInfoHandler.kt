@@ -12,9 +12,9 @@ class TestInfoHandler {
 
         private val platformName = testConfig.platformName
 
-        var sessionName: String = ""
-        var language: String = ""
-        var locale: String = ""
+        lateinit var sessionName: String
+        lateinit var language: String
+        lateinit var locale: String
 
         fun processTestInfo(testInfo: TestInfo) {
             sessionName = testInfo.displayName
@@ -41,12 +41,12 @@ class TestInfoHandler {
         }
 
         private fun setFranceLanguage() {
-            language = "FR"
+            language = "fr"
             locale = if (platformName == "android") "FR" else "fr-FR"
         }
 
         private fun setDutchLanguage() {
-            language = "NL"
+            language = "nl"
             locale = if (platformName == "android") "NL" else "nl-NL"
         }
     }

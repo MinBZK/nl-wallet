@@ -12,7 +12,10 @@ class LocalizationHelper {
         loadLocalizedStrings()
     }
 
-    fun getString(key: String) = localizedStringsMap[language.lowercase()]?.get(key) as? String ?: ""
+    fun getString(key: String): String = localizedStringsMap[language]?.let {
+        it[key]?.toString() ?: throw IllegalArgumentException("Key $key does not exist in '$language'")
+    } ?: throw IllegalArgumentException("Language '$language' is not configured")
+
 
     private fun loadLocalizedStrings() {
         val moshi = Moshi.Builder()
