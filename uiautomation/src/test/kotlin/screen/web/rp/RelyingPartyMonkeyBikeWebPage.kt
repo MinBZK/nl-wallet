@@ -10,11 +10,9 @@ class RelyingPartyMonkeyBikeWebPage : MobileActions() {
     val body = RelyingPartyDemoBody()
     val popup = RelyingPartyDemoPopup()
 
-    private val customStartButtonLocator = By.xpath("//nl-wallet-button[@text='Verder met NL Wallet']")
     private val accountWelcomeTextLocator = By.xpath("//div[@role='alert' and contains(./span/text(), 'Welkom')]")
 
     fun welcomeMessageVisible() = isWebElementVisible(findElement(accountWelcomeTextLocator))
-
 
     fun openSameDeviceWalletFlow(platform: String) {
         when (platform) {

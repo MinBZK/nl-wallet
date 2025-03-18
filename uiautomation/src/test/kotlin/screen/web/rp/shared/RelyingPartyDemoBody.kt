@@ -8,6 +8,4 @@ class RelyingPartyDemoBody : MobileActions() {
     private val startButtonLocator = By.xpath("//nl-wallet-button")
 
     fun clickStartButton() = clickWebElement(findElement(startButtonLocator))
-
-    fun clickBackButton() = navigateBack()
 }
