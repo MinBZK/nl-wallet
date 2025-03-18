@@ -14,6 +14,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val viewLoginDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoLoginCta"))
     private val viewDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoCta"))
     private val goBackButton = find.byText(l10n.getString("generalBottomBackCta"))
+    private val closeDialogButton = find.byValueKey("close_icon_button")
 
 
     fun login() = clickElement(loginButton)
@@ -68,5 +69,9 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun goBack() {
         clickElement(goBackButton)
+    }
+
+    fun closeDialog() {
+        clickElement(closeDialogButton)
     }
 }
