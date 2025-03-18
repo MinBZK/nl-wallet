@@ -5,7 +5,6 @@ import navigator.MenuNavigator
 import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested

@@ -5,7 +5,6 @@ import navigator.MenuNavigator
 import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
@@ -34,7 +33,6 @@ class HistoryOverviewTest : TestBase() {
     private lateinit var pinScreen: PinScreen
     private lateinit var historyDetailScreen: HistoryDetailScreen
 
-    @BeforeEach
     fun setUp() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
@@ -56,6 +54,7 @@ class HistoryOverviewTest : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.A log entries are added for the PID issuance and disclosure events. [${JIRA_ID}]")
     fun verifyIssuanceHistoryEntries() {
+        setUp()
         assertTrue(historyOverviewScreen.visible(), "history overview screen is not visible")
         assertTrue(
             historyOverviewScreen.pidIssuanceLogEntryVisible(),
