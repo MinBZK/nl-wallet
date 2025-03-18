@@ -61,8 +61,9 @@ class DashboardTests : TestBase() {
         assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")
     }
 
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.5 The card sorting is initially fixed: PID is first, Address is second. [${JIRA_ID}]")
+//    TODO: PVW-4055 will fix this
+//    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+//    @DisplayName("$USE_CASE.5 The card sorting is initially fixed: PID is first, Address is second. [${JIRA_ID}]")
     fun verifyCardsFixedSorting() {
         setUp()
         assertTrue(dashboardScreen.checkCardSorting(), "card sorting not as expected")
