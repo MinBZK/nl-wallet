@@ -16,6 +16,7 @@ pub mod errors;
 
 pub use crate::attestation::Attestation;
 pub use crate::attestation::AttestationAttribute;
+pub use crate::attestation::AttestationAttributeValue;
 pub use crate::attestation::AttestationIdentity;
 pub use crate::disclosure::DisclosureUriSource;
 pub use crate::pin::validation::validate_pin;
@@ -29,14 +30,14 @@ pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 
 pub mod mdoc {
-    pub use nl_wallet_mdoc::utils::auth::Image;
-    pub use nl_wallet_mdoc::utils::auth::ImageType;
-    pub use nl_wallet_mdoc::utils::auth::LocalizedStrings;
-    pub use nl_wallet_mdoc::utils::auth::Organization;
-    pub use nl_wallet_mdoc::utils::reader_auth::DeletionPolicy;
-    pub use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-    pub use nl_wallet_mdoc::utils::reader_auth::RetentionPolicy;
-    pub use nl_wallet_mdoc::utils::reader_auth::SharingPolicy;
+    pub use mdoc::utils::auth::Image;
+    pub use mdoc::utils::auth::ImageType;
+    pub use mdoc::utils::auth::LocalizedStrings;
+    pub use mdoc::utils::auth::Organization;
+    pub use mdoc::utils::reader_auth::DeletionPolicy;
+    pub use mdoc::utils::reader_auth::ReaderRegistration;
+    pub use mdoc::utils::reader_auth::RetentionPolicy;
+    pub use mdoc::utils::reader_auth::SharingPolicy;
 }
 
 pub mod openid4vc {

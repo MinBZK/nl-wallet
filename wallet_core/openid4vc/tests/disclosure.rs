@@ -19,31 +19,31 @@ use ring::rand;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 
-use nl_wallet_mdoc::examples::example_items_requests;
-use nl_wallet_mdoc::examples::IsoCertTimeGenerator;
-use nl_wallet_mdoc::holder::mock::MockMdocDataSource as IsoMockMdocDataSource;
-use nl_wallet_mdoc::holder::DisclosureRequestMatch;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::holder::MdocDataSource;
-use nl_wallet_mdoc::holder::StoredMdoc;
-use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::test::data::addr_street;
-use nl_wallet_mdoc::test::data::pid_full_name;
-use nl_wallet_mdoc::test::data::pid_given_name;
-use nl_wallet_mdoc::test::TestDocuments;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::verifier::ItemsRequests;
-use nl_wallet_mdoc::DeviceResponse;
-use nl_wallet_mdoc::DocType;
-use nl_wallet_mdoc::SessionTranscript;
+use jwt::Jwt;
+use mdoc::examples::example_items_requests;
+use mdoc::examples::IsoCertTimeGenerator;
+use mdoc::holder::mock::MockMdocDataSource as IsoMockMdocDataSource;
+use mdoc::holder::DisclosureRequestMatch;
+use mdoc::holder::Mdoc;
+use mdoc::holder::MdocDataSource;
+use mdoc::holder::StoredMdoc;
+use mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::KeyPair;
+use mdoc::test::data::addr_street;
+use mdoc::test::data::pid_full_name;
+use mdoc::test::data::pid_given_name;
+use mdoc::test::TestDocuments;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::verifier::ItemsRequests;
+use mdoc::DeviceResponse;
+use mdoc::DocType;
+use mdoc::SessionTranscript;
 use openid4vc::credential::MdocCopies;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
-use openid4vc::jwt;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
@@ -69,7 +69,6 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use poa::PoaError;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::Jwt;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
@@ -96,7 +95,7 @@ async fn disclosure_direct() {
     )
     .unwrap();
     let auth_request = iso_auth_request.clone().into();
-    let auth_request_jws = jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
+    let auth_request_jws = Jwt::sign_with_certificate(&auth_request, &auth_keypair).await.unwrap();
 
     // Wallet receives the signed Authorization Request and performs the disclosure.
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -277,7 +276,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         assert_eq!(url, self.request_uri);
 
-        let jws = jwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
+        let jws = Jwt::sign_with_certificate(&self.auth_request, &self.auth_keypair)
             .await
             .unwrap();
         Ok(jws)

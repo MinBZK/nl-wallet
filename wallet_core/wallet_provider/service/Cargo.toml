@@ -76,8 +76,9 @@ hmac = { workspace = true, optional = true, features = ["std"] }
 android_attest.path = "../../android_attest"
 apple_app_attest.path = "../../apple_app_attest"
 hsm.path = "../../hsm"
+jwt.path = "../../jwt"
 poa.path = "../../poa"
-wallet_account = { path = "../../wallet_account", features = ["server"] }
+wallet_account = { path = "../wallet_account", features = ["server"] }
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"], optional = true }
 wallet_provider_domain.path = "../domain"
@@ -98,7 +99,7 @@ tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 android_attest = { path = "../../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
 platform_support = { path = "../../platform_support", features = ["mock_attested_key_apple"] }
-wallet_account = { path = "../../wallet_account", features = ["client", "server"] }
+wallet_account = { path = "../wallet_account", features = ["client", "server"] }
 wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

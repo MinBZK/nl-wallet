@@ -88,6 +88,9 @@ sealed class AttributeValue with _$AttributeValue {
   const factory AttributeValue.number({
     required PlatformInt64 value,
   }) = AttributeValue_Number;
+  const factory AttributeValue.date({
+    required String value,
+  }) = AttributeValue_Date;
 }
 
 class ClaimDisplayMetadata {

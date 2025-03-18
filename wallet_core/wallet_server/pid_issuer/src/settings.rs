@@ -19,9 +19,9 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use hsm::service::Pkcs11Hsm;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::CertificateType;
-use nl_wallet_mdoc::utils::x509::CertificateUsage;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::CertificateType;
+use mdoc::utils::x509::CertificateUsage;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -218,10 +218,7 @@ impl ServerSettings for IssuerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default(
-                "wallet_client_ids",
-                vec![wallet_common::jwt::NL_WALLET_CLIENT_ID.to_string()],
-            )?
+            .set_default("wallet_client_ids", vec![jwt::NL_WALLET_CLIENT_ID.to_string()])?
             .set_default("brp_server", "http://localhost:3007/")?
             .set_default("valid_days", 365)?
             .set_default("copy_count", 4)?;

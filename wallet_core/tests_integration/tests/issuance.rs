@@ -3,6 +3,7 @@ use std::sync::Arc;
 use tests_integration::common::*;
 use wallet::openid4vc::AttributeValue;
 use wallet::Attestation;
+use wallet::AttestationAttributeValue;
 
 #[tokio::test]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -10,7 +11,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _context = setup_digid_context();
 
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let (mut wallet, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
@@ -33,7 +34,10 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec!["bsn"]);
 
     match bsn_attr {
-        Some(bsn_attr) => assert_eq!(bsn_attr.value, AttributeValue::Text("999991772".to_string())),
+        Some(bsn_attr) => assert_eq!(
+            bsn_attr.value,
+            AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
+        ),
         None => panic!("BSN attribute not found"),
     }
 

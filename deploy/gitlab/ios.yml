@@ -11,8 +11,6 @@ test-ios:
     paths:
       - "fastlane/test_output/*"
       - "wallet_core/platform_support/ios/compile_platform_support.log"
-  variables:
-    BUNDLE_FROZEN: "true"
   script:
     - bundle install
     - bundle exec fastlane ios test
@@ -47,7 +45,6 @@ test-ios:
   variables:
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
     APPLE_ATTESTATION_ENVIRONMENT: "production"
-    BUNDLE_FROZEN: "true"
   script:
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
@@ -201,8 +198,6 @@ build-ios-app-production:
 ## iOS Deploying
 .deploy-ios-app:
   extends: [.env-ont-k8s, .env-macos-runner, .ruby-cache-macos]
-  variables:
-    BUNDLE_FROZEN: "true"
   script:
     - APP_STORE_CONNECT_SECRETS_BASE64_JSON="$(kubectl get secret nl-wallet-app-store-api-key -o jsonpath='{.data}')"
     - export APP_STORE_CONNECT_SECRETS_BASE64_JSON

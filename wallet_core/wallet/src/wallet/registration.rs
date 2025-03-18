@@ -7,6 +7,7 @@ use tracing::warn;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use jwt::error::JwtError;
 use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
@@ -16,7 +17,6 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
 use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::jwt::JwtError;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::update_policy::VersionState;
 use wallet_common::utils;
@@ -328,13 +328,13 @@ mod tests {
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
-    use nl_wallet_mdoc::utils::x509::BorrowingCertificate;
+    use jwt::Jwt;
+    use mdoc::utils::x509::BorrowingCertificate;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
     use wallet_account::messages::registration::RegistrationAttestation;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::SequenceNumberComparison;
-    use wallet_common::jwt::Jwt;
     use wallet_common::utils;
 
     use crate::account_provider::AccountProviderResponseError;

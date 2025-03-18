@@ -9,12 +9,13 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::server_keys::generate::Ca;
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::IssuerSigned;
+use jwt::Jwt;
+use mdoc::holder::Mdoc;
+use mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::KeyPair;
+use mdoc::unsigned::UnsignedMdoc;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
@@ -23,7 +24,6 @@ use sd_jwt::metadata::TypeMetadataChain;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::Jwt;
 use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
@@ -117,15 +117,15 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 });
 
 /// Generates a valid `Mdoc` that contains a full PID.
-pub fn create_full_pid_mdoc() -> Mdoc {
-    let (unsigned_mdoc, metadata) = issuance::mock::create_full_unsigned_pid_mdoc();
+pub fn create_example_pid_mdoc() -> Mdoc {
+    let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
 
     mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
-pub fn create_full_pid_mdoc_unauthenticated() -> Mdoc {
-    let (unsigned_mdoc, metadata) = issuance::mock::create_full_unsigned_pid_mdoc();
+pub fn create_example_pid_mdoc_unauthenticated() -> Mdoc {
+    let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
 
     mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY_UNAUTHENTICATED)
 }

@@ -11,13 +11,13 @@ use uuid::Uuid;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::MdocDataSource;
-use nl_wallet_mdoc::holder::StoredMdoc;
-use nl_wallet_mdoc::utils::cose::CoseError;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::utils::x509::MdocCertificateExtension;
+use mdoc::holder::MdocDataSource;
+use mdoc::holder::StoredMdoc;
+use mdoc::utils::cose::CoseError;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::x509::CertificateError;
+use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -126,12 +126,11 @@ impl From<MdocDisclosureError> for DisclosureError {
         // as checking is performed within the guard statements.
         match error {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
-            MdocDisclosureError::Vp(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
-                CoseError::Signing(error),
-            ))) if matches!(
-                error.downcast_ref::<RemoteEcdsaKeyError>(),
-                Some(RemoteEcdsaKeyError::Instruction(_))
-            ) =>
+            MdocDisclosureError::Vp(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(error))))
+                if matches!(
+                    error.downcast_ref::<RemoteEcdsaKeyError>(),
+                    Some(RemoteEcdsaKeyError::Instruction(_))
+                ) =>
             {
                 if let RemoteEcdsaKeyError::Instruction(error) = *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                     DisclosureError::Instruction(error)
@@ -237,14 +236,13 @@ where
 
         // Prepare a list of proposed attestations to report to the caller.
         let attestations: Vec<Attestation> = proposed_attributes
-            .into_iter()
-            .map(|(doc_type, attributes)| {
+            .into_values()
+            .map(|attributes| {
                 let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
                     .map_err(DisclosureError::IssuerRegistration)?
                     .ok_or(DisclosureError::MissingIssuerRegistration)?;
 
                 Attestation::create_for_disclosure(
-                    doc_type,
                     attributes.type_metadata,
                     issuer_registration.organization,
                     attributes.attributes,
@@ -564,20 +562,22 @@ mod tests {
     use serial_test::serial;
     use uuid::uuid;
 
-    use nl_wallet_mdoc::holder::Mdoc;
-    use nl_wallet_mdoc::holder::ProposedAttributes;
-    use nl_wallet_mdoc::holder::ProposedDocumentAttributes;
-    use nl_wallet_mdoc::test::data::PID;
-    use nl_wallet_mdoc::unsigned::Entry;
-    use nl_wallet_mdoc::DataElementValue;
+    use mdoc::holder::Mdoc;
+    use mdoc::holder::ProposedAttributes;
+    use mdoc::holder::ProposedDocumentAttributes;
+    use mdoc::test::data::PID;
+    use mdoc::unsigned::Entry;
+    use mdoc::DataElementValue;
     use openid4vc::attributes::AttributeValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
+    use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
 
+    use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::disclosure::MockMdocDisclosureMissingAttributes;
@@ -596,12 +596,39 @@ mod tests {
         LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
-    fn setup_proposed_attributes(name: String, value: DataElementValue) -> ProposedAttributes {
+    fn setup_proposed_attributes(attrs: &[(&str, DataElementValue)]) -> ProposedAttributes {
+        let metadata_props = attrs
+            .iter()
+            .map(|(name, value)| {
+                (
+                    *name,
+                    match value {
+                        DataElementValue::Text(_) => JsonSchemaPropertyType::String,
+                        DataElementValue::Bool(_) => JsonSchemaPropertyType::Boolean,
+                        DataElementValue::Integer(_) => JsonSchemaPropertyType::Integer,
+                        DataElementValue::Float(_) => JsonSchemaPropertyType::Number,
+                        DataElementValue::Null => JsonSchemaPropertyType::Null,
+                        _ => unimplemented!(),
+                    },
+                    None,
+                )
+            })
+            .collect::<Vec<_>>();
+
         IndexMap::from([(
             "com.example.pid".to_string(),
             ProposedDocumentAttributes {
-                type_metadata: TypeMetadata::example_with_claim_name(&name),
-                attributes: IndexMap::from([("com.example.pid".to_string(), vec![Entry { name, value }])]),
+                type_metadata: TypeMetadata::example_with_claim_names("com.example.pid", &metadata_props),
+                attributes: IndexMap::from([(
+                    "com.example.pid".to_string(),
+                    attrs
+                        .iter()
+                        .map(|(name, value)| Entry {
+                            name: String::from(*name),
+                            value: value.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )]),
                 issuer: ISSUER_KEY.issuance_key.certificate().clone(),
             },
         )])
@@ -614,7 +641,7 @@ mod tests {
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
-        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+        let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
@@ -649,7 +676,7 @@ mod tests {
         assert_matches!(
             document.attributes.first().unwrap(),
             AttestationAttribute {
-                value: AttributeValue::Bool(true),
+                value: AttestationAttributeValue::Basic(AttributeValue::Bool(true)),
                 ..
             }
         );
@@ -821,8 +848,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
-        let mut proposed_attributes =
-            setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+        let mut proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
 
         proposed_attributes
             .get_mut("com.example.pid")
@@ -856,8 +882,7 @@ mod tests {
             error,
             DisclosureError::AttestationAttributes(
                 AttestationError::AttributeNotProcessedByClaim(keys))
-                    if keys == HashSet::from([vec![String::from("foo")]]
-            )
+                    if keys == HashSet::from([vec![String::from("foo")]])
         );
         assert!(wallet.disclosure_session.is_none());
     }
@@ -872,7 +897,7 @@ mod tests {
 
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
-        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+        let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
         let proposal_session = MockMdocDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
@@ -1054,7 +1079,7 @@ mod tests {
 
         let return_url = Url::parse("https://example.com/return/here").unwrap();
 
-        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+        let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
         let disclosure_session = MockMdocDisclosureProposal {
             disclose_return_url: return_url.clone().into(),
             proposed_source_identifiers: vec![PROPOSED_ID],
@@ -1256,7 +1281,7 @@ mod tests {
             },
             redirect_uri: None,
         };
-        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+        let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
@@ -1324,7 +1349,7 @@ mod tests {
                     .next_error
                     .lock()
                     .replace(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
-                        nl_wallet_mdoc::Error::Cose(CoseError::Signing(
+                        mdoc::Error::Cose(CoseError::Signing(
                             RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
                         )),
                     )))
@@ -1341,9 +1366,9 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::VpDisclosureSession(VpClientError::DeviceResponse(nl_wallet_mdoc::Error::Cose(
-                CoseError::Signing(_)
-            )))
+            DisclosureError::VpDisclosureSession(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                _
+            ))))
         );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
@@ -1391,13 +1416,13 @@ mod tests {
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
-        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+        let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
                 next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
-                    nl_wallet_mdoc::Error::Cose(CoseError::Signing(
+                    mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(instruction_error).into(),
                     )),
                 )))),
@@ -1496,7 +1521,7 @@ mod tests {
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
-        let proposed_attributes = setup_proposed_attributes("age_over_18".to_string(), DataElementValue::Bool(true));
+        let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
         let disclosure_session = MockMdocDisclosureSession {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],

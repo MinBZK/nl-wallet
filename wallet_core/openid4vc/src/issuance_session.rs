@@ -19,23 +19,24 @@ use serde::Serialize;
 use url::Url;
 
 use error_category::ErrorCategory;
-use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
-use nl_wallet_mdoc::holder::Mdoc;
-use nl_wallet_mdoc::identifiers::AttributeIdentifier;
-use nl_wallet_mdoc::utils::cose::CoseError;
-use nl_wallet_mdoc::utils::serialization::CborBase64;
-use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-use nl_wallet_mdoc::ATTR_RANDOM_LENGTH;
+use jwt::credential::JwtCredential;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
+use jwt::pop::JwtPopClaims;
+use jwt::Jwt;
+use jwt::NL_WALLET_CLIENT_ID;
+use mdoc::holder::IssuedDocumentMismatchError;
+use mdoc::holder::Mdoc;
+use mdoc::identifiers::AttributeIdentifier;
+use mdoc::utils::cose::CoseError;
+use mdoc::utils::serialization::CborBase64;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::serialization::TaggedBytes;
+use mdoc::ATTR_RANDOM_LENGTH;
 use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::jwt::JwkConversionError;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::JwtError;
-use wallet_common::jwt::JwtPopClaims;
-use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::factory::KeyFactory;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
@@ -58,8 +59,6 @@ use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::dpop::DPOP_HEADER_NAME;
 use crate::dpop::DPOP_NONCE_HEADER_NAME;
-use crate::jwt::JwtCredential;
-use crate::jwt::JwtCredentialError;
 use crate::metadata::IssuerMetadata;
 use crate::oidc;
 use crate::token::AccessToken;
@@ -97,9 +96,7 @@ pub enum IssuanceSessionError {
     #[error("mismatch between issued and expected attributes: {0:?}")]
     IssuedMdocMismatch(IssuedDocumentMismatchError<AttributeIdentifier>),
     #[error("mdoc verification failed: {0}")]
-    MdocVerification(#[source] nl_wallet_mdoc::Error),
-    #[error("jwt credential verification failed: {0}")]
-    JwtCredentialVerification(#[from] JwtCredentialError),
+    MdocVerification(#[source] mdoc::Error),
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataError),
@@ -116,7 +113,7 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     PublicKeyMismatch,
     #[error("failed to get mdoc public key: {0}")]
-    PublicKeyFromMdoc(#[source] nl_wallet_mdoc::Error),
+    PublicKeyFromMdoc(#[source] mdoc::Error),
     #[error("received {found} responses, expected {expected}")]
     #[category(critical)]
     UnexpectedCredentialResponseCount { found: usize, expected: usize },
@@ -131,7 +128,7 @@ pub enum IssuanceSessionError {
     #[category(critical)]
     IssuerMismatch,
     #[error("error retrieving metadata from issued mdoc: {0}")]
-    Metadata(#[source] nl_wallet_mdoc::Error),
+    Metadata(#[source] mdoc::Error),
     #[error("metadata contained in credential not equal to expected value")]
     #[category(critical)]
     MetadataMismatch,
@@ -867,7 +864,7 @@ pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredenti
 where
     KF: KeyFactory,
 {
-    use wallet_common::jwt::JwtCredentialClaims;
+    use jwt::credential::JwtCredentialClaims;
     use wallet_common::keys::EcdsaKey;
     use wallet_common::keys::WithIdentifier;
 
@@ -893,15 +890,16 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use nl_wallet_mdoc::holder::IssuedDocumentMismatchError;
-    use nl_wallet_mdoc::server_keys::generate::Ca;
-    use nl_wallet_mdoc::test::data;
-    use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-    use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-    use nl_wallet_mdoc::utils::serialization::CborBase64;
-    use nl_wallet_mdoc::utils::serialization::TaggedBytes;
-    use nl_wallet_mdoc::utils::x509::CertificateError;
-    use nl_wallet_mdoc::IssuerSigned;
+    use mdoc::holder::IssuedDocumentMismatchError;
+    use mdoc::server_keys::generate::Ca;
+    use mdoc::test::data;
+    use mdoc::unsigned::UnsignedMdoc;
+    use mdoc::utils::issuer_auth::IssuerRegistration;
+    use mdoc::utils::serialization::CborBase64;
+    use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::utils::x509::CertificateError;
+    use mdoc::IssuerSigned;
+    use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::keys::factory::KeyFactory;
@@ -937,8 +935,12 @@ mod tests {
 
         let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
 
-        // NOTE: This metadata does not match the attributes.
-        let metadata = TypeMetadata::empty_example();
+        let metadata = TypeMetadata::example_with_claim_name(
+            &unsigned_mdoc.doc_type,
+            "family_name",
+            JsonSchemaPropertyType::String,
+            None,
+        );
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
         let preview = CredentialPreview::MsoMdoc {
@@ -1257,7 +1259,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` using different metadata
         // in the preview than is contained within the response should fail.
         let different_metadata_chain =
-            TypeMetadataChain::create(TypeMetadata::example_with_claim_name("different"), vec![]).unwrap();
+            TypeMetadataChain::create(TypeMetadata::empty_example_with_attestation_type("different"), vec![]).unwrap();
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,

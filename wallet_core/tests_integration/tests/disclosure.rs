@@ -5,13 +5,13 @@ use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
-use nl_wallet_mdoc::test::data::addr_street;
-use nl_wallet_mdoc::test::data::pid_family_name;
-use nl_wallet_mdoc::test::data::pid_full_name;
-use nl_wallet_mdoc::test::data::pid_given_name;
-use nl_wallet_mdoc::test::TestDocuments;
-use nl_wallet_mdoc::verifier::DisclosedAttributes;
-use nl_wallet_mdoc::ItemsRequest;
+use mdoc::test::data::addr_street;
+use mdoc::test::data::pid_family_name;
+use mdoc::test::data::pid_full_name;
+use mdoc::test::data::pid_given_name;
+use mdoc::test::TestDocuments;
+use mdoc::verifier::DisclosedAttributes;
+use mdoc::ItemsRequest;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -115,19 +115,13 @@ async fn test_disclosure_usecases_ok(
     // retain [`MockDigidSession::Context`]
     let _context = setup_digid_context();
 
-    let verifier_settings = verification_server_settings();
-    let ws_internal_url = wallet_server_internal_url(
-        &verifier_settings.requester_server,
-        &verifier_settings.server_settings.public_url,
-    );
-
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_env(
+    let (mut wallet, urls) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verifier_settings.clone(),
+        verification_server_settings(),
         pid_issuer_settings(),
     )
     .await;
@@ -137,7 +131,7 @@ async fn test_disclosure_usecases_ok(
     let client = reqwest::Client::new();
 
     let response = client
-        .post(ws_internal_url.join("disclosure/sessions"))
+        .post(urls.verifier_internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -146,18 +140,16 @@ async fn test_disclosure_usecases_ok(
     assert_eq!(response.status(), StatusCode::OK);
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
-    let mut status_url = verifier_settings
-        .server_settings
-        .public_url
-        .join(&format!("disclosure/sessions/{session_token}"));
+    let mut status_url = urls.verifier_url.join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: Some(session_type),
     })
     .unwrap();
     status_url.set_query(status_query.as_str().into());
 
-    let mut disclosed_attributes_url =
-        ws_internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+    let mut disclosed_attributes_url = urls
+        .verifier_internal_url
+        .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
     // disclosed attributes endpoint should return a response with code Bad Request when the status is not DONE
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
@@ -249,19 +241,13 @@ async fn test_disclosure_without_pid() {
         Ok((session, Url::parse("http://localhost/").unwrap()))
     });
 
-    let verifier_settings = verification_server_settings();
-    let ws_internal_url = wallet_server_internal_url(
-        &verifier_settings.requester_server,
-        &verifier_settings.server_settings.public_url,
-    );
-
     let pin = "112233".to_string();
-    let mut wallet = setup_wallet_and_env(
+    let (mut wallet, urls) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
-        verifier_settings.clone(),
+        verification_server_settings(),
         pid_issuer_settings(),
     )
     .await;
@@ -287,7 +273,7 @@ async fn test_disclosure_without_pid() {
         return_url_template: None,
     };
     let response = client
-        .post(ws_internal_url.join("disclosure/sessions"))
+        .post(urls.verifier_internal_url.join("disclosure/sessions"))
         .json(&start_request)
         .send()
         .await
@@ -298,18 +284,16 @@ async fn test_disclosure_without_pid() {
     // does it exist for the RP side of things?
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
-    let mut status_url = verifier_settings
-        .server_settings
-        .public_url
-        .join(&format!("disclosure/sessions/{session_token}"));
+    let mut status_url = urls.verifier_url.join(&format!("disclosure/sessions/{session_token}"));
     let status_query = serde_urlencoded::to_string(StatusParams {
         session_type: Some(SessionType::SameDevice),
     })
     .unwrap();
     status_url.set_query(status_query.as_str().into());
 
-    let disclosed_attributes_url =
-        ws_internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+    let disclosed_attributes_url = urls
+        .verifier_internal_url
+        .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
 
     assert_matches!(
         get_verifier_status(&client, status_url.clone()).await,

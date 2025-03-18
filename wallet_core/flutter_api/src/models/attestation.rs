@@ -130,14 +130,26 @@ pub enum AttributeValue {
     String { value: String },
     Boolean { value: bool },
     Number { value: i64 },
+    Date { value: String },
+}
+
+impl From<wallet::AttestationAttributeValue> for AttributeValue {
+    fn from(value: wallet::AttestationAttributeValue) -> Self {
+        match value {
+            wallet::AttestationAttributeValue::Basic(value) => value.into(),
+            wallet::AttestationAttributeValue::Date(value) => AttributeValue::Date {
+                value: value.format("%Y-%m-%d").to_string(),
+            },
+        }
+    }
 }
 
 impl From<wallet::openid4vc::AttributeValue> for AttributeValue {
     fn from(value: wallet::openid4vc::AttributeValue) -> Self {
         match value {
-            wallet::openid4vc::AttributeValue::Text(value) => AttributeValue::String { value },
             wallet::openid4vc::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
-            wallet::openid4vc::AttributeValue::Number(value) => AttributeValue::Number { value },
+            wallet::openid4vc::AttributeValue::Integer(value) => AttributeValue::Number { value },
+            wallet::openid4vc::AttributeValue::Text(value) => AttributeValue::String { value },
         }
     }
 }

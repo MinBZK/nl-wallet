@@ -3198,6 +3198,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "jwt"
+version = "0.3.0-dev"
+dependencies = [
+ "assert_matches",
+ "base64 0.22.1",
+ "chrono",
+ "error_category",
+ "futures",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "jsonwebtoken",
+ "mdoc",
+ "p256",
+ "rand_core",
+ "rustls-pki-types",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.11",
+ "tokio",
+ "wallet_common",
+ "x509-parser 0.17.0",
+]
+
+[[package]]
 name = "kinded"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3374,10 +3399,66 @@ dependencies = [
 ]
 
 [[package]]
+name = "mdoc"
+version = "0.3.0-dev"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "assert_matches",
+ "base64 0.22.1",
+ "chrono",
+ "ciborium",
+ "coset",
+ "derive_more",
+ "error_category",
+ "futures",
+ "hex",
+ "hex-literal",
+ "http",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "nutype",
+ "p256",
+ "rand_core",
+ "rcgen",
+ "regex",
+ "reqwest",
+ "ring",
+ "rstest",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "sd_jwt",
+ "serde",
+ "serde-aux",
+ "serde_bytes",
+ "serde_json",
+ "serde_repr",
+ "serde_urlencoded",
+ "serde_with",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+ "time",
+ "tokio",
+ "tracing",
+ "url",
+ "wallet_common",
+ "x509-parser 0.17.0",
+ "yoke",
+]
+
+[[package]]
 name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "migration"
+version = "0.3.0-dev"
+dependencies = [
+ "async-trait",
+ "sea-orm-migration",
+]
 
 [[package]]
 name = "mime"
@@ -3434,7 +3515,7 @@ dependencies = [
  "futures",
  "http",
  "indexmap 2.7.1",
- "nl_wallet_mdoc",
+ "mdoc",
  "nutype",
  "openid4vc",
  "openid4vc_server",
@@ -3499,54 +3580,6 @@ dependencies = [
  "tagptr",
  "thiserror 1.0.69",
  "uuid",
-]
-
-[[package]]
-name = "nl_wallet_mdoc"
-version = "0.3.0-dev"
-dependencies = [
- "aes-gcm",
- "anyhow",
- "assert_matches",
- "base64 0.22.1",
- "chrono",
- "ciborium",
- "coset",
- "derive_more",
- "error_category",
- "futures",
- "hex",
- "hex-literal",
- "http",
- "indexmap 2.7.1",
- "itertools 0.14.0",
- "nutype",
- "p256",
- "rand_core",
- "rcgen",
- "regex",
- "reqwest",
- "ring",
- "rstest",
- "rustls-pki-types",
- "rustls-webpki",
- "sd_jwt",
- "serde",
- "serde-aux",
- "serde_bytes",
- "serde_json",
- "serde_repr",
- "serde_urlencoded",
- "serde_with",
- "strum 0.26.3",
- "thiserror 2.0.11",
- "time",
- "tokio",
- "tracing",
- "url",
- "wallet_common",
- "x509-parser 0.17.0",
- "yoke",
 ]
 
 [[package]]
@@ -3768,9 +3801,10 @@ dependencies = [
  "itertools 0.14.0",
  "josekit",
  "jsonwebtoken",
+ "jwt",
+ "mdoc",
  "mime",
  "mockall",
- "nl_wallet_mdoc",
  "nutype",
  "p256",
  "parking_lot",
@@ -3812,7 +3846,7 @@ dependencies = [
  "derive_more",
  "http",
  "indexmap 2.7.1",
- "nl_wallet_mdoc",
+ "mdoc",
  "openid4vc",
  "p256",
  "ring",
@@ -4066,7 +4100,8 @@ dependencies = [
  "hsm",
  "http",
  "indexmap 2.7.1",
- "nl_wallet_mdoc",
+ "jwt",
+ "mdoc",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -4191,6 +4226,7 @@ dependencies = [
  "derive_more",
  "futures",
  "jsonwebtoken",
+ "jwt",
  "p256",
  "rand_core",
  "rstest",
@@ -4700,15 +4736,14 @@ dependencies = [
 
 [[package]]
 name = "ring"
-version = "0.17.8"
+version = "0.17.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c17fa4cb658e3583423e915b9f3acc01cceaee1860e33d59ebae66adc3a2dc0d"
+checksum = "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
 dependencies = [
  "cc",
  "cfg-if",
  "getrandom 0.2.15",
  "libc",
- "spin",
  "untrusted",
  "windows-sys 0.52.0",
 ]
@@ -5043,6 +5078,7 @@ dependencies = [
  "jsonschema",
  "jsonwebtoken",
  "nutype",
+ "rstest",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5570,7 +5606,7 @@ dependencies = [
  "futures",
  "hsm",
  "http",
- "nl_wallet_mdoc",
+ "mdoc",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -6118,7 +6154,8 @@ dependencies = [
  "indexmap 2.7.1",
  "insta",
  "jsonwebtoken",
- "nl_wallet_mdoc",
+ "jwt",
+ "mdoc",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -6885,11 +6922,11 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.15.1"
+version = "1.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0f540e3240398cce6128b64ba83fdbdd86129c16a3aa1a3a252efd66eb3d587"
+checksum = "b3758f5e68192bb96cc8f9b7e2c2cfdabb435499a28499a42f8f984092adad4b"
 dependencies = [
- "getrandom 0.3.1",
+ "getrandom 0.2.15",
  "serde",
 ]
 
@@ -6932,7 +6969,7 @@ dependencies = [
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "nl_wallet_mdoc",
+ "mdoc",
  "nutype",
  "openid4vc",
  "openid4vc_server",
@@ -7008,10 +7045,12 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
+ "jwt",
  "libsqlite3-sys",
+ "mdoc",
+ "migration",
  "mime",
  "mockall",
- "nl_wallet_mdoc",
  "nutype",
  "openid4vc",
  "p256",
@@ -7045,7 +7084,6 @@ dependencies = [
  "uuid",
  "wallet_account",
  "wallet_common",
- "wallet_migrations",
  "wiremock",
 ]
 
@@ -7058,6 +7096,7 @@ dependencies = [
  "assert_matches",
  "error_category",
  "futures",
+ "jwt",
  "p256",
  "platform_support",
  "poa",
@@ -7083,7 +7122,7 @@ dependencies = [
  "clap",
  "clio",
  "itertools 0.14.0",
- "nl_wallet_mdoc",
+ "mdoc",
  "p256",
  "pem",
  "predicates",
@@ -7102,12 +7141,10 @@ dependencies = [
  "assert_matches",
  "axum",
  "axum-server",
- "base64 0.22.1",
  "built",
  "cfg-if",
  "chrono",
  "derive_more",
- "error_category",
  "etag",
  "futures",
  "hex",
@@ -7115,7 +7152,6 @@ dependencies = [
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "jsonwebtoken",
  "mime",
  "nutype",
  "p256",
@@ -7140,15 +7176,6 @@ dependencies = [
  "url",
  "x509-parser 0.17.0",
  "yoke",
-]
-
-[[package]]
-name = "wallet_migrations"
-version = "0.3.0-dev"
-dependencies = [
- "async-trait",
- "sea-orm-migration",
- "tokio",
 ]
 
 [[package]]
@@ -7269,6 +7296,7 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
+ "jwt",
  "p256",
  "platform_support",
  "poa",

@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::net::SocketAddr;
+use std::net::TcpListener;
 
 use tracing::info;
 
@@ -22,20 +23,36 @@ where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
 {
-    let socket = SocketAddr::new(settings.webserver.ip, settings.webserver.port);
+    let listener = TcpListener::bind(SocketAddr::new(settings.webserver.ip, settings.webserver.port))?;
+    serve_with_listener(listener, settings, hsm, google_crl_client, play_integrity_client).await
+}
+
+pub async fn serve_with_listener<GRC, PIC>(
+    listener: TcpListener,
+    settings: Settings,
+    hsm: Pkcs11Hsm,
+    google_crl_client: GRC,
+    play_integrity_client: PIC,
+) -> Result<(), Box<dyn Error>>
+where
+    GRC: GoogleCrlProvider + Send + Sync + 'static,
+    PIC: IntegrityTokenDecoder + Send + Sync + 'static,
+{
     info!("{}", version_string());
-    info!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
+    let addr = listener.local_addr()?;
+    info!("listening on {}:{}", addr.ip(), addr.port());
+    listener.set_nonblocking(true)?;
 
     let tls_config = settings.tls_config.clone();
     let router_state = RouterState::new_from_settings(settings, hsm, google_crl_client, play_integrity_client).await?;
     let app = router::router(router_state);
 
     if let Some(tls_config) = tls_config {
-        axum_server::bind_rustls(socket, tls_config.to_rustls_config().await?)
+        axum_server::from_tcp_rustls(listener, tls_config.to_rustls_config().await?)
             .serve(app.into_make_service())
             .await?;
     } else {
-        axum_server::bind(socket).serve(app.into_make_service()).await?;
+        axum_server::from_tcp(listener).serve(app.into_make_service()).await?;
     }
 
     Ok(())

@@ -28,6 +28,7 @@ import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/loading_indicator.dart';
+import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
 import '../../dashboard/dashboard_screen.dart';
@@ -36,7 +37,6 @@ import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
 import 'page/wallet_personalize_confirm_pin_page.dart';
-import 'page/wallet_personalize_digid_error_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
 import 'page/wallet_personalize_success_page.dart';
 
@@ -314,11 +314,16 @@ class WalletPersonalizeScreen extends StatelessWidget {
       appBar: const WalletAppBar(
         progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
       ),
-      body: WalletPersonalizeDigidErrorPage(
+      body: TerminalPage(
         title: context.l10n.walletPersonalizeDigidCancelledPageTitle,
+        illustration: const PageIllustration(asset: WalletAssets.svg_stopped),
         description: context.l10n.walletPersonalizeDigidCancelledPageDescription,
-        onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-        onDigidWebsitePressed: _launchDigidWebsite,
+        onPrimaryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+        primaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta,
+        primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onSecondaryButtonPressed: _launchDigidWebsite,
+        secondaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageDigidWebsiteCta,
+        secondaryButtonIcon: const Icon(Icons.arrow_outward_rounded),
       ),
     );
   }
@@ -328,11 +333,16 @@ class WalletPersonalizeScreen extends StatelessWidget {
       appBar: const WalletAppBar(
         progress: FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
       ),
-      body: WalletPersonalizeDigidErrorPage(
+      body: TerminalPage(
         title: context.l10n.walletPersonalizeDigidErrorPageTitle,
+        illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
         description: context.l10n.walletPersonalizeDigidErrorPageDescription,
-        onRetryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
-        onDigidWebsitePressed: _launchDigidWebsite,
+        onPrimaryPressed: () => context.bloc.add(WalletPersonalizeLoginWithDigidClicked()),
+        primaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageLoginWithDigidCta,
+        primaryButtonIcon: const SvgOrImage(asset: WalletAssets.logo_digid),
+        onSecondaryButtonPressed: _launchDigidWebsite,
+        secondaryButtonCta: context.l10n.walletPersonalizeDigidErrorPageDigidWebsiteCta,
+        secondaryButtonIcon: const Icon(Icons.arrow_outward_rounded),
       ),
     );
   }

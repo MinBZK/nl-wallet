@@ -19,12 +19,12 @@ async fn test_wallet_update_policy() {
     ups_settings.update_policy =
         serde_json::from_value::<UpdatePolicyConfig>(json!({ env!("CARGO_PKG_VERSION"): "Block" })).unwrap();
 
-    start_update_policy_server(ups_settings.clone(), root_ca).await;
+    let port = start_update_policy_server(ups_settings.clone(), root_ca).await;
 
     let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_ups_base_url(&ups_settings.port),
+            base_url: local_ups_base_url(port),
             trust_anchors: vec![root_ca],
         },
     };
@@ -45,12 +45,12 @@ async fn test_wallet_update_policy() {
 #[tokio::test]
 async fn test_wallet_update_policy_stale() {
     let (ups_settings, root_ca) = update_policy_server_settings();
-    start_update_policy_server(ups_settings.clone(), root_ca).await;
+    let port = start_update_policy_server(ups_settings.clone(), root_ca).await;
 
     let root_ca = read_file("ups.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_ups_base_url(&ups_settings.port),
+            base_url: local_ups_base_url(port),
             trust_anchors: vec![root_ca],
         },
     };
@@ -70,13 +70,13 @@ async fn test_wallet_update_policy_stale() {
 #[tokio::test]
 async fn test_wallet_update_policy_server_tls_pinning() {
     let (ups_settings, root_ca) = update_policy_server_settings();
-    start_update_policy_server(ups_settings.clone(), root_ca).await;
+    let port = start_update_policy_server(ups_settings.clone(), root_ca).await;
 
     // Use the wrong root CA
     let root_ca = read_file("cs.ca.crt.der").try_into().unwrap();
     let update_policy_server_config = UpdatePolicyServerConfiguration {
         http_config: TlsPinningConfig {
-            base_url: local_ups_base_url(&ups_settings.port),
+            base_url: local_ups_base_url(port),
             trust_anchors: vec![root_ca],
         },
     };

@@ -23,8 +23,8 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing::warn;
 
-use nl_wallet_mdoc::verifier::DisclosedAttributes;
-use nl_wallet_mdoc::verifier::ItemsRequests;
+use mdoc::verifier::DisclosedAttributes;
+use mdoc::verifier::ItemsRequests;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use openid4vc::openid4vp::VpResponse;
 use openid4vc::openid4vp::WalletRequest;

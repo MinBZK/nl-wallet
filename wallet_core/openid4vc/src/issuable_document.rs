@@ -5,9 +5,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
 
-use nl_wallet_mdoc::unsigned::Entry;
-use nl_wallet_mdoc::unsigned::UnsignedMdoc;
-use nl_wallet_mdoc::Tdate;
+use mdoc::unsigned::Entry;
+use mdoc::unsigned::UnsignedMdoc;
+use mdoc::Tdate;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -143,9 +143,9 @@ mod test {
     use chrono::Utc;
     use serde_json::json;
 
-    use nl_wallet_mdoc::unsigned::Entry;
-    use nl_wallet_mdoc::DataElementValue;
-    use nl_wallet_mdoc::NameSpace;
+    use mdoc::unsigned::Entry;
+    use mdoc::DataElementValue;
+    use mdoc::NameSpace;
 
     use crate::attributes::AttributeValue;
 
@@ -196,7 +196,7 @@ mod test {
                 (
                     "house".to_string(),
                     Attribute::Nested(IndexMap::from_iter(vec![
-                        ("number".to_string(), Attribute::Single(AttributeValue::Number(1))),
+                        ("number".to_string(), Attribute::Single(AttributeValue::Integer(1))),
                         (
                             "letter".to_string(),
                             Attribute::Single(AttributeValue::Text("A".to_string())),

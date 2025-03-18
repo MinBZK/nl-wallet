@@ -21,24 +21,24 @@ use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use nl_wallet_mdoc::server_keys::KeyPair;
-use nl_wallet_mdoc::utils::crypto::CryptoError;
-use nl_wallet_mdoc::utils::serialization::CborError;
-use nl_wallet_mdoc::utils::x509::CertificateError;
-use nl_wallet_mdoc::IssuerSigned;
+use jwt::credential::JwtCredentialClaims;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
+use jwt::jwk::jwk_to_p256;
+use jwt::pop::JwtPopClaims;
+use jwt::validations;
+use jwt::EcdsaDecodingKey;
+use jwt::VerifiedJwt;
+use jwt::NL_WALLET_CLIENT_ID;
+use mdoc::server_keys::KeyPair;
+use mdoc::utils::crypto::CryptoError;
+use mdoc::utils::serialization::CborError;
+use mdoc::utils::x509::CertificateError;
+use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
-use wallet_common::jwt::jwk_to_p256;
-use wallet_common::jwt::validations;
-use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::jwt::JwkConversionError;
-use wallet_common::jwt::JwtCredentialClaims;
-use wallet_common::jwt::JwtError;
-use wallet_common::jwt::JwtPopClaims;
-use wallet_common::jwt::VerifiedJwt;
-use wallet_common::jwt::NL_WALLET_CLIENT_ID;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::HttpsUri;
@@ -161,7 +161,7 @@ pub enum CredentialRequestError {
     #[error("missing issuance private key for doctype {0}")]
     MissingPrivateKey(String),
     #[error("failed to sign credential: {0}")]
-    CredentialSigning(nl_wallet_mdoc::Error),
+    CredentialSigning(mdoc::Error),
     #[error("CBOR error: {0}")]
     CborSerialization(#[from] CborError),
     #[error("JSON serialization failed: {0}")]

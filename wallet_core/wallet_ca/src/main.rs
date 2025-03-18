@@ -5,10 +5,10 @@ use clap::Parser;
 use clap::Subcommand;
 use clio::CachedInput;
 
-use nl_wallet_mdoc::server_keys::generate;
-use nl_wallet_mdoc::utils::issuer_auth::IssuerRegistration;
-use nl_wallet_mdoc::utils::reader_auth::ReaderRegistration;
-use nl_wallet_mdoc::utils::x509::CertificateConfiguration;
+use mdoc::server_keys::generate;
+use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::x509::CertificateConfiguration;
 use wallet_ca::read_public_key;
 use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_certificate;

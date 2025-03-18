@@ -50,6 +50,10 @@ use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::Hsm;
 use hsm::service::HsmError;
+use jwt::error::JwtError;
+use jwt::EcdsaDecodingKey;
+use jwt::Jwt;
+use jwt::JwtSubject;
 use poa::PoaError;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
@@ -67,10 +71,6 @@ use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
 use wallet_common::generator::Generator;
-use wallet_common::jwt::EcdsaDecodingKey;
-use wallet_common::jwt::Jwt;
-use wallet_common::jwt::JwtError;
-use wallet_common::jwt::JwtSubject;
 use wallet_common::utils;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
@@ -160,7 +160,7 @@ pub enum AndroidKeyAttestationError {
 pub enum AndroidAppAttestationError {
     #[error("could not decode integrity toking using Play Integrity API")]
     DecodeIntegrityToken,
-    #[error("validation if integrity verdict failed: {0}")]
+    #[error("validation of integrity verdict failed: {0}")]
     IntegrityVerdict(#[source] IntegrityVerdictVerificationError),
 }
 
@@ -1353,6 +1353,7 @@ mod tests {
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
+    use jwt::EcdsaDecodingKey;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::instructions::ChangePinCommit;
@@ -1364,7 +1365,6 @@ mod tests {
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
     use wallet_common::generator::Generator;
-    use wallet_common::jwt::EcdsaDecodingKey;
     use wallet_common::keys::EcdsaKey;
     use wallet_common::utils;
     use wallet_provider_domain::generator::mock::MockGenerators;

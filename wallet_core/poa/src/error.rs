@@ -1,7 +1,7 @@
 use jsonwebtoken::jwk;
 
-use wallet_common::jwt::JwkConversionError;
-use wallet_common::jwt::JwtError;
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
 
 use crate::POA_JWT_TYP;
 

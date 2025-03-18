@@ -729,6 +729,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Number.value = pre_value;
       return;
     }
+    if (apiObj is AttributeValue_Date) {
+      var pre_value = cst_encode_String(apiObj.value);
+      wireObj.tag = 3;
+      wireObj.kind.Date.value = pre_value;
+      return;
+    }
   }
 
   @protected
@@ -2059,12 +2065,18 @@ final class wire_cst_AttributeValue_Number extends ffi.Struct {
   external int value;
 }
 
+final class wire_cst_AttributeValue_Date extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> value;
+}
+
 final class AttributeValueKind extends ffi.Union {
   external wire_cst_AttributeValue_String String;
 
   external wire_cst_AttributeValue_Boolean Boolean;
 
   external wire_cst_AttributeValue_Number Number;
+
+  external wire_cst_AttributeValue_Date Date;
 }
 
 final class wire_cst_attribute_value extends ffi.Struct {

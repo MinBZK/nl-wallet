@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
+import '../../../../environment.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../wallet_constants.dart';
 import '../widget/button/list_button.dart';
 import '../widget/loading_indicator.dart';
 import '../widget/text/title_text.dart';
@@ -44,15 +46,19 @@ class GenericLoadingPage extends StatefulWidget {
 }
 
 class _GenericLoadingPageState extends State<GenericLoadingPage> {
-  final GlobalKey titleKey = GlobalKey();
+  final GlobalKey _titleKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     if (widget.requestAccessibilityFocus) {
       // Using addPostFrameCallback because changing focus need to wait for the widget to finish rendering.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        titleKey.currentContext?.findRenderObject()?.sendSemanticsEvent(const FocusSemanticEvent());
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        /// Because [GenericLoadingPage] often lives within a [FakePagingAnimatedSwitcher]. We delay moving the focus by
+        /// an extra [kDefaultAnimationDuration] so that any animations can settle (this allows the focus change
+        /// to behave properly on iOS as well).
+        if (!Environment.isTest) await Future.delayed(kDefaultAnimationDuration);
+        _titleKey.currentContext?.findRenderObject()?.sendSemanticsEvent(const FocusSemanticEvent());
       });
     }
   }
@@ -74,12 +80,12 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.center,
-                  key: titleKey,
                   children: [
                     TitleText(
                       widget.title,
                       style: context.textTheme.headlineMedium,
                       textAlign: TextAlign.center,
+                      key: _titleKey,
                     ),
                     const SizedBox(height: 8),
                     Text(

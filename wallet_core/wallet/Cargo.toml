@@ -20,7 +20,7 @@ fake_attestation = [
     "platform_support/xcode_env",
 ]
 # Include mock implementations and constructors for testing
-mock = ["dep:mockall", "nl_wallet_mdoc/generate", "nl_wallet_mdoc/mock", "openid4vc/mock"]
+mock = ["dep:mockall", "mdoc/generate", "mdoc/mock", "openid4vc/mock"]
 # Export the traits and actual implementations of the Wallet dependencies
 wallet_deps = []
 # Adds serializability for snapshot tests
@@ -69,13 +69,14 @@ mockall = { workspace = true, optional = true }
 
 entity.path = "entity"
 error_category = { path = "../error_category", features = ["sentry"] }
+jwt.path = "../jwt"
 wallet_migrations.path = "migrations"
-nl_wallet_mdoc.path = "../mdoc"
+mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
 poa.path = "../poa"
 sd_jwt.path = "../sd_jwt"
-wallet_account = { path = "../wallet_account", features = ["client"] }
+wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 wallet_common = { path = "../wallet_common" }
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
@@ -93,12 +94,12 @@ tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lo
 wiremock.workspace = true
 
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
-nl_wallet_mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "test"] }
+mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
-wallet_account = { path = "../wallet_account", features = ["client", "server"] }
+wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
 wallet_common = { path = "../wallet_common", features = [
     "mock_secure_keys",
     "mock_remote_key",

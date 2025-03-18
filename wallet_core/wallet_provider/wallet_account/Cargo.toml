@@ -26,18 +26,19 @@ serde_json = { workspace = true, features = ["std", "raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 
-poa.path = "../poa"
-wallet_common.path = "../wallet_common"
+jwt.path = "../../jwt"
+poa.path = "../../poa"
+wallet_common.path = "../../wallet_common"
 
 futures = { workspace = true, optional = true, features = ["std"] }
 p256 = { workspace = true, optional = true, features = ["ecdsa", "pem", "std"] }
 thiserror = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
 
-android_attest = { path = "../android_attest", optional = true, features = ["mock"] }
-apple_app_attest = { path = "../apple_app_attest", optional = true }
-platform_support = { path = "../platform_support", optional = true }
-error_category = { path = "../error_category", optional = true }
+android_attest = { path = "../../android_attest", optional = true, features = ["mock"] }
+apple_app_attest = { path = "../../apple_app_attest", optional = true }
+platform_support = { path = "../../platform_support", optional = true }
+error_category = { path = "../../error_category", optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -45,6 +46,6 @@ futures = { workspace = true, features = ["std"] }
 rand_core.workspace = true
 rstest.workspace = true
 
-apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
-platform_support = { path = "../platform_support", features = ["mock_attested_key_apple"] }
-wallet_common = { path = "../wallet_common", features = ["mock_secure_keys"] }
+apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
+platform_support = { path = "../../platform_support", features = ["mock_attested_key_apple"] }
+wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys"] }

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-03-07T10:32:12+01:00",
+    "@@last_modified": "2025-03-10T14:55:51+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -1086,8 +1086,8 @@
     "walletPersonalizeDataIncorrectScreenNotYourDataTitle": "Is this not your details?",
     "walletPersonalizeDataIncorrectScreenPrimaryCta": "Do not add details",
     "walletPersonalizeDataIncorrectScreenSubhead": "Are your details incorrect?",
-    "walletPersonalizeDigidCancelledPageDescription": "Do you still want to retrieve your personal data? Then log in again with DigiD.",
-    "walletPersonalizeDigidCancelledPageTitle": "Login cancelled",
+    "walletPersonalizeDigidCancelledPageDescription": "If you still want to retrieve your personal data, please log in again with DigiD.",
+    "walletPersonalizeDigidCancelledPageTitle": "Login stopped",
     "walletPersonalizeDigidErrorPageDescription": "Do you still want to retrieve your personal data? Then log in again with DigiD.",
     "walletPersonalizeDigidErrorPageDigidWebsiteCta": "Go to DigiD website",
     "walletPersonalizeDigidErrorPageLoginWithDigidCta": "Login again",
