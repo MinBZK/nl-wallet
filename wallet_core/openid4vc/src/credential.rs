@@ -175,13 +175,33 @@ pub struct CredentialOffer {
 
 /// Grants for a Verifiable Credential.
 /// May contain either or both. If it contains both, it is up to the wallet which one it uses.
-#[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Grants {
-    pub authorization_code: Option<GrantAuthorizationCode>,
+#[serde(untagged)]
+pub enum Grants {
+    Both {
+        #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
+        pre_authorized_code: GrantPreAuthorizedCode,
+        authorization_code: GrantAuthorizationCode,
+    },
+    AuthorizationCode {
+        authorization_code: GrantAuthorizationCode,
+    },
+    PreAuthorizedCode {
+        #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
+        pre_authorized_code: GrantPreAuthorizedCode,
+    },
+}
 
-    #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
-    pub pre_authorized_code: Option<GrantPreAuthorizedCode>,
+impl Grants {
+    pub fn authorization_code(&self) -> Option<AuthorizationCode> {
+        match self {
+            Grants::Both {
+                pre_authorized_code, ..
+            } => Some(pre_authorized_code.pre_authorized_code.clone()),
+            Grants::PreAuthorizedCode { pre_authorized_code } => Some(pre_authorized_code.pre_authorized_code.clone()),
+            Grants::AuthorizationCode { .. } => None,
+        }
+    }
 }
 
 #[skip_serializing_none]
@@ -228,5 +248,38 @@ impl<T> CredentialCopies<T> {
 
     pub fn is_empty(&self) -> bool {
         self.as_ref().is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use serde_json::json;
+
+    use crate::credential::Grants;
+
+    #[test]
+    fn test_grants_serialization() {
+        let json = json!({
+            "authorization_code": { "issuer_state": "foo" },
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
+        });
+        assert_matches!(serde_json::from_value::<Grants>(json).unwrap(), Grants::Both { .. });
+
+        let json = json!({
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
+        });
+        assert_matches!(
+            serde_json::from_value::<Grants>(json).unwrap(),
+            Grants::PreAuthorizedCode { .. }
+        );
+
+        let json = json!({
+            "authorization_code": { "issuer_state": "foo" }
+        });
+        assert_matches!(
+            serde_json::from_value::<Grants>(json).unwrap(),
+            Grants::AuthorizationCode { .. }
+        );
     }
 }
