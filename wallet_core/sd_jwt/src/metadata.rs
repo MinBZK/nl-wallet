@@ -563,7 +563,7 @@ impl Display for ClaimMetadata {
                 .iter()
                 .map(|p| format!("[{}]", p))
                 .collect::<Vec<String>>()
-                .join(".")
+                .join("")
         )
     }
 }
@@ -870,7 +870,8 @@ mod test {
                 kind: ValidationErrorKind::Format { format },
                 instance_path,
                 ..
-            })) if instance.to_string() == format!("\"{}\"", date_str) && format == "date" && instance_path.to_string() == "/birth_date"
+            })) if instance.to_string() == format!("\"{}\"", date_str)
+                    && format == "date" && instance_path.to_string() == "/birth_date"
         );
     }
 
