@@ -27,9 +27,6 @@ pub enum AttributeError {
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
 
-    #[error("attribute with name: {0} already exists")]
-    DuplicateAttribute(String),
-
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
 
@@ -172,11 +169,6 @@ impl Attribute {
         group: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
         if let Some(index) = entries.iter().position(|entry| entry.name == key) {
-            // TODO: PVW-4188: this test will probably be obsolete after checking the internal consistency
-            if group.contains_key(key) {
-                return Err(AttributeError::DuplicateAttribute(String::from(key)));
-            }
-
             let entry = entries.swap_remove(index);
             group.insert(entry.name, Attribute::Single(entry.value.try_into()?));
         }
@@ -289,40 +281,6 @@ mod test {
             serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
             expected_json.to_json_string_pretty().unwrap(),
         );
-    }
-
-    // TODO: PVW-4188: this test will probably be obsolete after checking the internal consistency
-    #[test]
-    fn test_traverse_groups_should_fail_for_duplicate_attribute() {
-        let metadata_json = json!({
-            "vct": "com.example.pid",
-            "claims": [
-                { "path": ["a", "b", "c", "d", "e"] },
-                { "path": ["a", "b", "c"] },
-            ],
-            "schema": { "properties": {} }
-        });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
-
-        let mdoc_attributes = IndexMap::from([
-            (
-                String::from("com.example.pid.a.b.c.d"),
-                vec![Entry {
-                    name: String::from("e"),
-                    value: DataElementValue::Text(String::from("abcd")),
-                }],
-            ),
-            (
-                String::from("com.example.pid.a.b"),
-                vec![Entry {
-                    name: String::from("c"),
-                    value: DataElementValue::Text(String::from("abc")),
-                }],
-            ),
-        ]);
-
-        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes);
-        assert_matches!(result, Err(AttributeError::DuplicateAttribute(key)) if key == *"c");
     }
 
     #[test]
