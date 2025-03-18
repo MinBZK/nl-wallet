@@ -33,6 +33,8 @@ impl Attestation {
         mut nested_attributes: IndexMap<String, Attribute>,
         selection_mode: AttributeSelectionMode,
     ) -> Result<Self, AttestationError> {
+        let metadata = metadata.into_inner();
+
         // Retrieve the JSON Schema from the metadata, which has the same structure as the attributes (otherwise,
         // they wouldn't validate later on when converted to a `CredentialPayload`). The JSON Schema is used to provide
         // extra metadata for converting attributes values.
@@ -98,10 +100,7 @@ fn take_attribute_value_at_key_path(
     // This will return `None` if any of the elements of the path is not an index.
     path.clone()
         .into_iter()
-        .map(|path| match path {
-            ClaimPath::SelectByKey(key) => Some(key),
-            _ => None,
-        })
+        .map(ClaimPath::try_into_key_path)
         .collect::<Option<Vec<_>>>()
         .and_then(|key_path| {
             // Iterate over the path to first find the correct `IndexMap` and then look for the value in it.

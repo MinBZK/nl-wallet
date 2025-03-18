@@ -155,7 +155,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | TokenRequestError::AttributeService(_)
                 | TokenRequestError::CredentialTypeNotOffered(_)
-                | TokenRequestError::Attribute(_)
+                | TokenRequestError::AttributeConversion(_)
                 | TokenRequestError::CredentialPayload(_)
                 | TokenRequestError::TypeMetadata(_)
                 | TokenRequestError::Certificate(_) => TokenErrorCode::ServerError,
