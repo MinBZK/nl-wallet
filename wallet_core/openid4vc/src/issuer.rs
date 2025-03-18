@@ -301,13 +301,14 @@ pub struct Issuer<A, K, S, W> {
     attr_service: A,
     issuer_data: IssuerData<K, W>,
     sessions_cleanup_task: JoinHandle<()>,
-    wte_cleanup_task: JoinHandle<()>,
+    wte_cleanup_task: Option<JoinHandle<()>>,
     pub metadata: IssuerMetadata,
 }
 
 /// Fields of the [`Issuer`] needed by the issuance functions.
 pub struct IssuerData<K, W> {
     attestation_config: AttestationTypesConfig<K>,
+    wte_config: Option<WteConfig<W>>,
 
     /// URL identifying the issuer; should host ` /.well-known/openid-credential-issuer`,
     /// and MUST be used by the wallet as `aud` in its PoP JWTs.
@@ -318,25 +319,24 @@ pub struct IssuerData<K, W> {
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
+}
 
+pub struct WteConfig<W> {
     /// Public key of the WTE issuer.
-    wte_issuer_pubkey: EcdsaDecodingKey,
+    pub wte_issuer_pubkey: EcdsaDecodingKey,
 
-    wte_tracker: Arc<W>,
+    /// Tracks recently seen WTEs.
+    pub wte_tracker: Arc<W>,
 }
 
 impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
     fn drop(&mut self) {
         // Stop the tasks at the next .await
         self.sessions_cleanup_task.abort();
-        self.wte_cleanup_task.abort();
+        if let Some(ref wte_cleanup_task) = self.wte_cleanup_task {
+            wte_cleanup_task.abort();
+        }
     }
-}
-
-pub struct WalletSettings<W> {
-    pub wallet_client_ids: Vec<String>,
-    pub wte_issuer_pubkey: VerifyingKey,
-    pub wte_tracker: W,
 }
 
 impl<A, K, S, W> Issuer<A, K, S, W>
@@ -347,22 +347,23 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     pub fn new(
-        sessions: S,
+        sessions: Arc<S>,
         attr_service: A,
         attestation_config: AttestationTypesConfig<K>,
         server_url: &BaseUrl,
-        wallet_settings: WalletSettings<W>,
+        wallet_client_ids: Vec<String>,
+        wte_config: Option<WteConfig<W>>,
     ) -> Self {
-        let sessions = Arc::new(sessions);
-        let wte_tracker = Arc::new(wallet_settings.wte_tracker);
+        let wte_tracker = wte_config
+            .as_ref()
+            .map(|wte_config| Arc::clone(&wte_config.wte_tracker));
 
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
             attestation_config,
             credential_issuer_identifier: issuer_url.clone(),
-            accepted_wallet_client_ids: wallet_settings.wallet_client_ids,
-            wte_issuer_pubkey: (&wallet_settings.wte_issuer_pubkey).into(),
-            wte_tracker: Arc::clone(&wte_tracker),
+            accepted_wallet_client_ids: wallet_client_ids,
+            wte_config,
 
             // In this implementation, for now the Credential Issuer Identifier also always acts as
             // the public server URL.
@@ -374,7 +375,7 @@ where
             attr_service,
             issuer_data,
             sessions_cleanup_task: sessions.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
-            wte_cleanup_task: wte_tracker.start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            wte_cleanup_task: wte_tracker.map(|wte_tracker| wte_tracker.start_cleanup_task(CLEANUP_INTERVAL_SECONDS)),
             metadata: IssuerMetadata {
                 issuer_config: metadata::IssuerData {
                     credential_issuer: issuer_url.clone(),
@@ -770,25 +771,23 @@ impl Session<WaitingForResponse> {
         Ok(())
     }
 
-    pub async fn verify_wte_and_poa(
+    async fn verify_wte(
         &self,
+        wte_config: &WteConfig<impl WteTracker>,
         attestations: Option<WteDisclosure>,
-        poa: Option<Poa>,
-        attestation_keys: impl Iterator<Item = VerifyingKey>,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
-    ) -> Result<(), CredentialRequestError> {
+        issuer_identifier: &str,
+    ) -> Result<VerifyingKey, CredentialRequestError> {
         let wte_disclosure = attestations.ok_or(CredentialRequestError::MissingWte)?;
 
-        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
         let (verified_wte, wte_pubkey) = wte_disclosure.verify(
-            &issuer_data.wte_issuer_pubkey,
+            &wte_config.wte_issuer_pubkey,
             issuer_identifier,
             NL_WALLET_CLIENT_ID,
             &self.state.data.c_nonce,
         )?;
 
         // Check that the WTE is fresh
-        if issuer_data
+        if wte_config
             .wte_tracker
             .track_wte(&verified_wte)
             .await
@@ -797,8 +796,28 @@ impl Session<WaitingForResponse> {
             return Err(CredentialRequestError::WteAlreadyUsed);
         }
 
+        Ok(wte_pubkey)
+    }
+
+    pub async fn verify_wte_and_poa(
+        &self,
+        attestations: Option<WteDisclosure>,
+        poa: Option<Poa>,
+        attestation_keys: impl Iterator<Item = VerifyingKey>,
+        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+    ) -> Result<(), CredentialRequestError> {
+        let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
+
+        let attestation_keys = match &issuer_data.wte_config {
+            None => attestation_keys.collect_vec(),
+            Some(wte) => {
+                let wte_pubkey = self.verify_wte(wte, attestations, issuer_identifier).await?;
+                attestation_keys.chain([wte_pubkey]).collect_vec()
+            }
+        };
+
         poa.ok_or(CredentialRequestError::MissingPoa)?.verify(
-            &attestation_keys.chain([wte_pubkey]).collect_vec(),
+            &attestation_keys,
             issuer_identifier,
             NL_WALLET_CLIENT_ID,
             &self.state.data.c_nonce,
