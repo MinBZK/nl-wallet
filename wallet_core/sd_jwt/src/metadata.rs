@@ -172,7 +172,7 @@ pub struct UncheckedTypeMetadata {
 
     /// Another type that this type extends.
     #[serde(flatten)]
-    pub extends: Option<MetadataExtendsOption>,
+    pub extends: Option<MetadataExtends>,
 
     /// An array of objects containing display information for the type.
     #[serde(default)]
@@ -284,22 +284,9 @@ impl ResourceIntegrity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum MetadataExtendsOption {
-    Uri {
-        #[serde(flatten)]
-        extends: MetadataExtends,
-    },
-    Identifier {
-        extends: String,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MetadataExtends {
-    /// A URI of another type that this type extends.
-    #[serde(with = "http_serde::uri")]
-    pub extends: Uri,
+    /// A string or URI of another type that this type extends.
+    pub extends: String,
 
     /// Validating the integrity of the extends field.
     /// Note that this is optional in the specification, but we consider this mandatory:
@@ -703,7 +690,7 @@ mod test {
     use serde_json::json;
 
     use crate::metadata::ClaimPath;
-    use crate::metadata::MetadataExtendsOption;
+    use crate::metadata::MetadataExtends;
     use crate::metadata::ResourceIntegrity;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
@@ -720,24 +707,7 @@ mod test {
     }
 
     #[test]
-    fn test_extends_with_identifier() {
-        let metadata = serde_json::from_value::<TypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "extends": "random_string",
-            "display": [],
-            "schema_uri": "https://sd_jwt_vc_metadata.example.com/",
-            "schema_uri#integrity": "sha256-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1VLmXfh-WRL5",
-        }))
-        .unwrap();
-
-        assert_matches!(
-            metadata.as_ref().extends,
-            Some(MetadataExtendsOption::Identifier { .. })
-        );
-    }
-
-    #[test]
-    fn test_with_uri() {
+    fn test_extends() {
         let metadata = serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
@@ -748,7 +718,7 @@ mod test {
         }))
         .unwrap();
 
-        assert_matches!(metadata.as_ref().extends, Some(MetadataExtendsOption::Uri { .. }));
+        assert_matches!(metadata.as_ref().extends, Some(MetadataExtends { .. }));
         assert_matches!(metadata.as_ref().schema, SchemaOption::Remote { .. });
     }
 
