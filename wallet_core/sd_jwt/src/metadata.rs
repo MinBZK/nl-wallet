@@ -45,8 +45,8 @@ pub enum TypeMetadataError {
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
 
-    #[error("unsupported claim path '{0}'")]
-    UnsupportedClaimPath(ClaimPath),
+    #[error("unsupported claim path '{}'", .0.iter().join("."))]
+    UnsupportedClaimPath(VecNonEmpty<ClaimPath>),
 
     #[error("detected claim path collision: {}",
         .0.iter().map(|(left, right)| format!("{} - {}", left, right)).join(", "))
@@ -215,7 +215,7 @@ impl UncheckedTypeMetadata {
                         .iter()
                         .map(|path| {
                             path.try_key_path()
-                                .ok_or(TypeMetadataError::UnsupportedClaimPath(path.clone()))
+                                .ok_or(TypeMetadataError::UnsupportedClaimPath(claim.path.clone()))
                         })
                         .try_collect()
                         .map(|paths: Vec<&str>| (paths.join("."), claim)),
