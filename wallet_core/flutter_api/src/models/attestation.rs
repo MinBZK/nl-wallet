@@ -88,7 +88,7 @@ impl From<wallet::sd_jwt::LogoMetadata> for LogoMetadata {
     fn from(value: wallet::sd_jwt::LogoMetadata) -> Self {
         Self {
             uri: value.uri.to_string(),
-            uri_integrity: value.uri_integrity.0,
+            uri_integrity: value.uri_integrity.0.to_string(),
             alt_text: value.alt_text.0,
         }
     }

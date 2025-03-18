@@ -22,6 +22,7 @@ use serde_json::Value;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
+use ssri::Integrity;
 
 use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -308,7 +309,7 @@ pub struct MetadataExtends {
     ///   starts from a digest included in a signed section of the attestation acts as a de facto signature, protecting
     ///   against tampering. In SD-JWT the `vct#integrity` claim would contain this first digest.
     #[serde(rename = "extends#integrity")]
-    pub extends_integrity: SpecOptionalImplRequired<String>,
+    pub extends_integrity: SpecOptionalImplRequired<Integrity>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -327,7 +328,7 @@ pub enum SchemaOption {
         /// if the schema is to be fetched from an external URI, in order to check that this matches the
         /// contents as intended by the issuer.
         #[serde(rename = "schema_uri#integrity")]
-        schema_uri_integrity: SpecOptionalImplRequired<String>,
+        schema_uri_integrity: SpecOptionalImplRequired<Integrity>,
     },
 }
 
@@ -475,7 +476,7 @@ pub struct LogoMetadata {
     /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended
     /// by the issuer.
     #[serde(rename = "uri#integrity")]
-    pub uri_integrity: SpecOptionalImplRequired<String>,
+    pub uri_integrity: SpecOptionalImplRequired<Integrity>,
 
     /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
     /// because of accessibility requirements.
@@ -725,7 +726,7 @@ mod test {
             "extends": "random_string",
             "display": [],
             "schema_uri": "https://sd_jwt_vc_metadata.example.com/",
-            "schema_uri#integrity": "abc123",
+            "schema_uri#integrity": "sha256-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1VLmXfh-WRL5",
         }))
         .unwrap();
 
@@ -740,10 +741,10 @@ mod test {
         let metadata = serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
-            "extends#integrity": "abc123",
+            "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
             "display": [],
             "schema_uri": "https://sd_jwt_vc_metadata.example.com/",
-            "schema_uri#integrity": "abc123",
+            "schema_uri#integrity": "sha256-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1VLmXfh-WRL5",
         }))
         .unwrap();
 
@@ -756,7 +757,7 @@ mod test {
         assert!(serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
-            "extends#integrity": "abc123",
+            "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
             "display": [],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
