@@ -89,7 +89,7 @@ fn test_settings_no_issuer_registration() {
     settings.metadata = vec![
         TypeMetadata::try_new(UncheckedTypeMetadata {
             vct: "com.example.no_registration".to_string(),
-            ..TypeMetadata::empty_example().into_inner()
+            ..UncheckedTypeMetadata::empty_example()
         })
         .unwrap(),
         TypeMetadata::pid_example(),

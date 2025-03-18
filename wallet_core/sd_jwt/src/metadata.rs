@@ -584,9 +584,9 @@ pub mod mock {
     const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
     const PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/pid-metadata.json");
 
-    impl TypeMetadata {
+    impl UncheckedTypeMetadata {
         pub fn empty_example() -> Self {
-            TypeMetadata::try_new(UncheckedTypeMetadata {
+            Self {
                 vct: random_string(16),
                 name: Some(random_string(8)),
                 description: None,
@@ -596,14 +596,19 @@ pub mod mock {
                 schema: SchemaOption::Embedded {
                     schema: Box::new(JsonSchema::try_new(json!({"properties": {}})).unwrap()),
                 },
-            })
-            .unwrap()
+            }
+        }
+    }
+
+    impl TypeMetadata {
+        pub fn empty_example() -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example()).unwrap()
         }
 
         pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
             TypeMetadata::try_new(UncheckedTypeMetadata {
                 vct: String::from(attestation_type),
-                ..Self::empty_example().into_inner()
+                ..UncheckedTypeMetadata::empty_example()
             })
             .unwrap()
         }
@@ -639,7 +644,7 @@ pub mod mock {
                 schema: SchemaOption::Embedded {
                     schema: Box::new(JsonSchema::example_with_claim_names(names)),
                 },
-                ..Self::empty_example().into_inner()
+                ..UncheckedTypeMetadata::empty_example()
             })
             .unwrap()
         }

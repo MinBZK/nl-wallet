@@ -507,7 +507,7 @@ fn mock_type_metadata(vct: &str) -> TypeMetadata {
                 svg_id: None,
             })
             .collect(),
-        ..TypeMetadata::empty_example().into_inner()
+        ..UncheckedTypeMetadata::empty_example()
     })
     .unwrap()
 }
