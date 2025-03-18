@@ -216,7 +216,7 @@ open class MobileActions {
     companion object {
         private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
-        private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 2000L
+        private const val WAIT_FOR_CONTEXT_MAX_WAIT_MILLIS = 4000L
         private const val BROWSER_STARTUP_TIMEOUT = 2000L
         const val PAGE_LOAD_TIMEOUT = 4000L
         private const val MODAL_ANCHOR_DISPLAY_TIMEOUT = 500L
