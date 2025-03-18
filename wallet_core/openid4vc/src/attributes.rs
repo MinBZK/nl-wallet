@@ -2,14 +2,13 @@ use std::collections::VecDeque;
 use std::num::TryFromIntError;
 
 use indexmap::IndexMap;
-use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
 use mdoc::unsigned::Entry;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
-use sd_jwt::metadata::ClaimMetadata;
+use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::TypeMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,8 +33,8 @@ pub enum AttributeError {
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
 
-    #[error("unable to convert from mdoc attributes because of unsupported claim path in: {0:?}")]
-    UnsupportedClaimPath(ClaimMetadata),
+    #[error("unable to convert from mdoc attributes because of unsupported claim path in: {0}")]
+    UnsupportedClaimPath(ClaimPath),
 }
 
 impl From<&AttributeValue> for ciborium::Value {
@@ -119,7 +118,7 @@ impl Attribute {
                 .iter()
                 .map(|path| {
                     path.try_key_path()
-                        .ok_or(AttributeError::UnsupportedClaimPath(claim.clone()))
+                        .ok_or(AttributeError::UnsupportedClaimPath(path.clone()))
                 })
                 .collect::<Result<VecDeque<_>, _>>()?;
 
@@ -172,7 +171,7 @@ impl Attribute {
         entries: &mut Vec<Entry>,
         group: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
-        if let Some((index, _)) = entries.iter().find_position(|entry| entry.name == key) {
+        if let Some(index) = entries.iter().position(|entry| entry.name == key) {
             // TODO: PVW-4188: this test will probably be obsolete after checking the internal consistency
             if group.contains_key(key) {
                 return Err(AttributeError::DuplicateAttribute(String::from(key)));
