@@ -49,8 +49,8 @@ pub enum TypeMetadataError {
     #[error("unsupported claim path '{}'", .0.iter().join("."))]
     UnsupportedClaimPath(VecNonEmpty<ClaimPath>),
 
-    #[error("detected claim path collision")]
-    ClaimPathCollision,
+    #[error("detected claim path collision: {0}")]
+    ClaimPathCollision(String),
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
@@ -212,11 +212,13 @@ impl UncheckedTypeMetadata {
                 .try_collect()
                 .map(|paths: Vec<&str>| paths.join("."))?;
 
-            // If inserting the flattened key in the set returns false, it means it is already in the set and there
-            // is a collision.
-            if !paths.insert(flattened_key) {
-                return Err(TypeMetadataError::ClaimPathCollision);
+            // If the flattened key is already present in the set, this means
+            // that two different claims paths lead to the same flattened path.
+            if paths.contains(&flattened_key) {
+                return Err(TypeMetadataError::ClaimPathCollision(flattened_key));
             }
+
+            paths.insert(flattened_key);
         }
 
         Ok(())
@@ -696,7 +698,7 @@ mod test {
     use assert_matches::assert_matches;
     use jsonschema::error::ValidationErrorKind;
     use jsonschema::ValidationError;
-    use rstest::*;
+    use rstest::rstest;
     use serde_json::json;
 
     use crate::metadata::ClaimPath;
@@ -861,14 +863,13 @@ mod test {
         integrity.verify(&bytes).unwrap();
     }
 
-    #[test]
-    fn test_claim_path_collision() {
+    #[rstest]
+    #[case(json!([{"path": ["address.street"]}, {"path": ["address", "street"]}]), "address.street")]
+    #[case(json!([{"path": ["x.y", "z"]}, {"path": ["x", "y.z"]}]), "x.y.z")]
+    fn test_claim_path_collision(#[case] claims: serde_json::Value, #[case] expected_path: &str) {
         let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "claims": [
-                { "path": ["address.street"] },
-                { "path": ["address", "street"] },
-            ],
+            "claims": claims,
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
@@ -878,31 +879,7 @@ mod test {
         .unwrap()
         .detect_path_collisions();
 
-        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
-    }
-
-    #[test]
-    fn test_claim_path_collisions() {
-        let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "claims": [
-                { "path": ["a.b"] },
-                { "path": ["a", "b"] },
-                { "path": ["x.y", "z"] },
-                { "path": ["x", "y.z"] },
-            ],
-            "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
-            }
-        }))
-        .unwrap()
-        .detect_path_collisions();
-
-        dbg!(&result);
-
-        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision(path)) if path == expected_path);
     }
 
     #[test]
