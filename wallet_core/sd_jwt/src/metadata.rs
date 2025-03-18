@@ -142,12 +142,6 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
     }
 }
 
-#[nutype(
-    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize),
-    validate(with = UncheckedTypeMetadata::check_metadata_consistency, error = TypeMetadataError),
-)]
-pub struct TypeMetadata(UncheckedTypeMetadata);
-
 /// SD-JWT VC type metadata document.
 /// See: https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
 ///
@@ -164,8 +158,8 @@ pub struct TypeMetadata(UncheckedTypeMetadata);
 ///   attribute can be rendered for display to the user.
 /// * Claims that cover a group of attributes are not (yet) supported and will not be accepted, as rendering groups of
 ///   attributes covered by the same display data is not supported by the UI.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UncheckedTypeMetadata {
     /// A String or URI that uniquely identifies the type.
     pub vct: String,
@@ -192,6 +186,12 @@ pub struct UncheckedTypeMetadata {
     #[serde(flatten)]
     pub schema: SchemaOption,
 }
+
+#[nutype(
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize),
+    validate(with = UncheckedTypeMetadata::check_metadata_consistency, error = TypeMetadataError),
+)]
+pub struct TypeMetadata(UncheckedTypeMetadata);
 
 impl UncheckedTypeMetadata {
     pub fn check_metadata_consistency(unchecked_metadata: &UncheckedTypeMetadata) -> Result<(), TypeMetadataError> {
@@ -347,9 +347,9 @@ pub enum SchemaOption {
         #[serde(with = "http_serde::uri")]
         schema_uri: Uri,
         /// Validating the integrity of the schema_uri field.
-        /// Note that although this is optional in the specification, we consider validation using a digest mandatory if
-        /// the schema is to be fetched from an external URI, in order to check that this matches the contents as
-        /// intended by the issuer.
+        /// Note that although this is optional in the specification, we consider validation using a digest mandatory
+        /// if the schema is to be fetched from an external URI, in order to check that this matches the
+        /// contents as intended by the issuer.
         #[serde(rename = "schema_uri#integrity")]
         schema_uri_integrity: SpecOptionalImplRequired<String>,
     },
@@ -469,8 +469,8 @@ pub enum JsonSchemaPropertyFormat {
     Other,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisplayMetadata {
     pub lang: String,
     pub name: String,
@@ -478,9 +478,9 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[skip_serializing_none]
 pub enum RenderingMetadata {
     Simple {
         logo: Option<LogoMetadata>,
@@ -495,9 +495,9 @@ pub struct LogoMetadata {
     #[serde(with = "http_serde::uri")]
     pub uri: Uri,
 
-    /// Note that although this is optional in the specification, we consider validation using a digest mandatory if the
-    /// logo is to be fetched from an external URI, in order to check that this matches the image as intended by the
-    /// issuer.
+    /// Note that although this is optional in the specification, we consider validation using a digest mandatory if
+    /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended
+    /// by the issuer.
     #[serde(rename = "uri#integrity")]
     pub uri_integrity: SpecOptionalImplRequired<String>,
 
@@ -506,8 +506,8 @@ pub struct LogoMetadata {
     pub alt_text: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimMetadata {
     pub path: VecNonEmpty<ClaimPath>,
 
@@ -577,8 +577,8 @@ pub enum ClaimSelectiveDisclosureMetadata {
     Never,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimDisplayMetadata {
     pub lang: String,
     pub label: String,
@@ -729,8 +729,8 @@ mod test {
     use crate::metadata::TypeMetadataError;
     use crate::metadata::UncheckedTypeMetadata;
 
-    #[tokio::test]
-    async fn test_deserialize() {
+    #[test]
+    fn test_deserialize() {
         let metadata = TypeMetadata::example();
         assert_eq!(
             "https://sd_jwt_vc_metadata.example.com/example_credential",
