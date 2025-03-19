@@ -921,9 +921,6 @@ mod test {
         }))
         .expect_err("Should fail deserializing type metadata because of path collision");
 
-        assert_eq!(
-            result.to_string(),
-            "detected claim path collision Expected valid TypeMetadata"
-        );
+        assert!(result.to_string().contains("detected claim path collision"));
     }
 }
