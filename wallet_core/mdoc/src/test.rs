@@ -234,6 +234,7 @@ impl From<TestDocument> for UnsignedMdoc {
             valid_until: (now + chrono::Duration::days(365)).into(),
             attributes: value.namespaces.try_into().unwrap(),
             issuer_uri: value.issuer_uri,
+            attestation_qualification: Default::default(),
         }
     }
 }

@@ -1,6 +1,7 @@
 use std::num::NonZeroU8;
 
 use indexmap::IndexMap;
+use mdoc::AttestationQualification;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
@@ -114,6 +115,7 @@ impl IssuableDocument {
         valid_until: Tdate,
         copy_count: NonZeroU8,
         issuer_uri: HttpsUri,
+        attestation_qualification: AttestationQualification,
     ) -> Result<UnsignedMdoc, UnsignedAttributesError> {
         let mut flattened = IndexMap::new();
         Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened);
@@ -125,6 +127,7 @@ impl IssuableDocument {
             valid_until,
             copy_count,
             issuer_uri,
+            attestation_qualification,
         })
     }
 
@@ -178,6 +181,7 @@ mod test {
                     Utc::now().add(Days::new(1)).into(),
                     NonZeroU8::new(1).unwrap(),
                     "https://pid.example.com".parse().unwrap(),
+                    Default::default(),
                 )
             })
             .collect::<Result<Vec<_>, _>>()

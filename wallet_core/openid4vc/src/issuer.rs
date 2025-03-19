@@ -14,6 +14,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
+use mdoc::AttestationQualification;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -289,6 +290,7 @@ pub struct AttestationTypeConfig<K> {
     pub valid_days: Days,
     pub copy_count: NonZeroU8,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
     pub metadata: TypeMetadataChain,
 }
 
@@ -648,6 +650,7 @@ impl Session<Created> {
                     valid_until.into(),
                     attestation_data.copy_count,
                     attestation_data.issuer_uri.clone(),
+                    attestation_data.attestation_qualification,
                 )?;
 
                 CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), &attestation_data.metadata)?;
