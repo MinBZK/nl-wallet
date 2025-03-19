@@ -515,14 +515,13 @@ where
     /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
     pub fn new(
         use_cases: UseCases<K>,
-        sessions: S,
+        sessions: Arc<S>,
         trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: hmac::Key,
     ) -> Self
     where
         S: Send + Sync + 'static,
     {
-        let sessions = Arc::new(sessions);
         Self {
             use_cases,
             cleanup_task: sessions.clone().start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
@@ -1125,6 +1124,8 @@ impl Session<WaitingForResponse> {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Duration;
@@ -1227,7 +1228,7 @@ mod tests {
         ])
         .into();
 
-        let session_store = MemorySessionStore::default();
+        let session_store = Arc::new(MemorySessionStore::default());
 
         Verifier::new(
             use_cases,

@@ -3,8 +3,12 @@
   rules: !reference [.default-or-merge-request, rules]
   variables:
     GIT_STRATEGY: clone
-  before_script:
-    QUALITY_GATE_WAIT=$(if [[ -z $CI_COMMIT_BRANCH || $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then echo 'false'; else 'true'; fi)
+  before_script: |
+    if [[ $CI_PIPELINE_SOURCE == "merge_request_event" ]]; then
+      QUALITY_GATE_WAIT="true"
+    else
+      QUALITY_GATE_WAIT="false"
+    fi
 
 sonar-rust:
   extends: .default-sonar

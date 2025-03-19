@@ -806,7 +806,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
 
     let verifier = Arc::new(MockVerifier::new(
         usecases,
-        MemorySessionStore::default(),
+        Arc::new(MemorySessionStore::default()),
         vec![issuer_ca.to_trust_anchor().to_owned()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
     ));

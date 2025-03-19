@@ -17,7 +17,7 @@ impl Attestation {
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
-        let nested_attributes = Attribute::from_mdoc_attributes(&metadata.vct, mdoc_attributes)?;
+        let nested_attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         Self::create_from_attributes(
             AttestationIdentity::Ephemeral,
@@ -31,17 +31,17 @@ impl Attestation {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
 
     use mdoc::unsigned::Entry;
     use mdoc::utils::auth::Organization;
     use mdoc::DataElementValue;
+    use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
     use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt::metadata::UncheckedTypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::Attestation;
@@ -49,7 +49,7 @@ mod test {
     use crate::attestation::AttestationError;
 
     fn example_metadata() -> TypeMetadata {
-        TypeMetadata {
+        TypeMetadata::try_new(UncheckedTypeMetadata {
             vct: String::from("example_attestation_type"),
             claims: vec![claim_metadata(&["entry1"]), claim_metadata(&["entry2"])],
             ..TypeMetadata::example_with_claim_names(
@@ -59,7 +59,9 @@ mod test {
                     ("entry2", JsonSchemaPropertyType::Boolean, None),
                 ],
             )
-        }
+            .into_inner()
+        })
+        .unwrap()
     }
 
     #[test]
@@ -120,7 +122,7 @@ mod test {
 
     #[test]
     fn test_attributes_not_processed() {
-        let metadata = TypeMetadata {
+        let metadata = TypeMetadata::try_new(UncheckedTypeMetadata {
             vct: String::from("example_attestation_type"),
             claims: vec![claim_metadata(&["entry1"])],
             ..TypeMetadata::example_with_claim_names(
@@ -130,7 +132,9 @@ mod test {
                     ("entry2", JsonSchemaPropertyType::String, None),
                 ],
             )
-        };
+            .into_inner()
+        })
+        .unwrap();
 
         let mdoc_attributes = IndexMap::from([(
             String::from("example_attestation_type"),
@@ -150,8 +154,15 @@ mod test {
 
         assert_matches!(
             attestation,
-            Err(AttestationError::AttributeNotProcessedByClaim(claims))
-                if claims == HashSet::from([vec![String::from("entry2")]])
+            Err(AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims)))
+                if claims == IndexMap::from([
+                    (String::from("example_attestation_type"),
+                    vec![Entry {
+                        name: String::from("entry2"),
+                        value: ciborium::value::Value::Text(String::from("value2"))
+                    }]
+                )]
+            )
         );
     }
 }

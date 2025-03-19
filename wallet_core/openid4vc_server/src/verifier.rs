@@ -60,7 +60,7 @@ fn create_application_state<S, K>(
     use_cases: UseCases<K>,
     ephemeral_id_secret: hmac::Key,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
-    sessions: S,
+    sessions: Arc<S>,
 ) -> ApplicationState<S, K>
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
@@ -86,7 +86,7 @@ pub fn create_routers<S, K>(
     ephemeral_id_secret: hmac::Key,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     allow_origins: Option<CorsOrigin>,
-    sessions: S,
+    sessions: Arc<S>,
 ) -> (Router, Router)
 where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,

@@ -568,6 +568,7 @@ mod tests {
     use mdoc::test::data::PID;
     use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
+    use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::DisclosureErrorResponse;
@@ -881,9 +882,17 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::AttestationAttributes(
-                AttestationError::AttributeNotProcessedByClaim(keys))
-                    if keys == HashSet::from([vec![String::from("foo")]])
+                AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims)))
+                if claims == IndexMap::from([
+                    (String::from("com.example.pid"),
+                    vec![Entry {
+                        name: String::from("foo"),
+                        value: ciborium::value::Value::Text(String::from("bar"))
+                    }]
+                )]
+            )
         );
+
         assert!(wallet.disclosure_session.is_none());
     }
 

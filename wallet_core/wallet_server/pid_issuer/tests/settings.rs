@@ -8,6 +8,7 @@ use pid_issuer::settings::AttestationTypeConfigSettings;
 use pid_issuer::settings::IssuerSettings;
 use pid_issuer::settings::IssuerSettingsError;
 use sd_jwt::metadata::TypeMetadata;
+use sd_jwt::metadata::UncheckedTypeMetadata;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
@@ -86,10 +87,11 @@ fn test_settings_no_issuer_registration() {
     settings.attestation_settings = attestation_settings.into();
 
     settings.metadata = vec![
-        TypeMetadata {
+        TypeMetadata::try_new(UncheckedTypeMetadata {
             vct: "com.example.no_registration".to_string(),
-            ..TypeMetadata::empty_example()
-        },
+            ..UncheckedTypeMetadata::empty_example()
+        })
+        .unwrap(),
         TypeMetadata::pid_example(),
     ];
 

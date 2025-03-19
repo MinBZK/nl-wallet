@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 
 use hsm::service::Pkcs11Hsm;
@@ -25,7 +27,7 @@ async fn main_impl(settings: IssuerSettings) -> Result<()> {
     let storage_settings = &settings.server_settings.storage;
     let db_connection = DatabaseConnection::try_new(storage_settings.url.clone()).await?;
 
-    let sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
     let wte_tracker = WteTrackerVariant::new(db_connection);
 
     // This will block until the server shuts down.

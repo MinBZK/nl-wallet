@@ -6,9 +6,10 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use mdoc::unsigned::Entry;
-use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
+use sd_jwt::metadata::ClaimPath;
+use sd_jwt::metadata::TypeMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -26,17 +27,11 @@ pub enum AttributeError {
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
 
-    #[error("unable to instantiate UnsignedAttributes: {0}")]
-    UnsignedAttributes(#[from] UnsignedAttributesError),
+    #[error("some attributes have not been processed by metadata: {0:?}")]
+    SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
 
-    #[error(
-        "The namespace is required to consist of nested group names, joined by a '.' and prefixed with the \
-         attestation_type. Actual namespace: '{namespace}' and doc_type: '{doc_type}'"
-    )]
-    NamespacePreconditionFailed { namespace: String, doc_type: String },
-
-    #[error("attribute with name: {0} already exists")]
-    DuplicateAttribute(String),
+    #[error("unable to convert from mdoc attributes because of unsupported claim path in: {0}")]
+    UnsupportedClaimPath(ClaimPath),
 }
 
 impl From<&AttributeValue> for ciborium::Value {
@@ -70,48 +65,97 @@ pub enum Attribute {
 }
 
 impl Attribute {
+    /// Convert a map of namespaced entries (`Entry`) to a (nested) map of attributes by key.
+    /// The namespace is required to consist of nested group names, joined by a '.' and prefixed
+    /// with the attestation_type.
+    ///
+    /// If the `attributes` input parameter is as follows (denoted here in JSON):
+    /// ```json
+    /// {
+    ///     "com.example.pid": {
+    ///         "birthdate": "1963-08-12",
+    ///     },
+    ///     "com.example.pid.place_of_birth": {
+    ///         "locality": "The Hague",
+    ///     },
+    ///     "com.example.pid.place_of_birth.country": {
+    ///         "name": "The Netherlands",
+    ///         "area_code": 31
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Then the output is as follows (denoted here in JSON):
+    /// ```json
+    /// {
+    ///     "birthdate": "1963-08-12",
+    ///     "place_of_birth": {
+    ///         "locality": "The Hague",
+    ///         "country": {
+    ///             "name": "The Netherlands",
+    ///             "area_code": 31
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Note in particular that attributes in a namespace whose names equals the attestation_type in the metadata
+    /// are mapped to the root level of the output.
     pub fn from_mdoc_attributes(
-        attestation_type: &str,
-        attributes: IndexMap<NameSpace, Vec<Entry>>,
+        type_metadata: &TypeMetadata,
+        mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<IndexMap<String, Self>, AttributeError> {
-        let mut attrs = IndexMap::new();
-        Self::traverse_attributes(attestation_type, attributes, &mut attrs)?;
-        Ok(attrs)
-    }
+        let mut result = IndexMap::new();
 
-    fn traverse_attributes(
-        attestation_type: &str,
-        attributes: IndexMap<String, Vec<Entry>>,
-        result: &mut IndexMap<String, Attribute>,
-    ) -> Result<(), AttributeError> {
-        for (namespace, entries) in attributes {
-            if namespace == attestation_type {
-                Self::insert_entries(entries, result)?;
-            } else {
-                let mut groups: VecDeque<String> = Self::split_namespace(&namespace, attestation_type)?.into();
-                Self::traverse_groups(entries, &mut groups, result)?;
-            }
+        // The claims list determines the final order of the converted attributes.
+        for claim in &type_metadata.as_ref().claims {
+            // First, confirm that the path is made up of key entries by converting to a `Vec<&str>`.
+            let key_path = claim
+                .path
+                .iter()
+                .map(|path| {
+                    path.try_key_path()
+                        .ok_or(AttributeError::UnsupportedClaimPath(path.clone()))
+                })
+                .collect::<Result<VecDeque<_>, _>>()?;
+
+            Self::traverse_attributes_by_claim(&type_metadata.as_ref().vct, key_path, &mut attributes, &mut result)?;
         }
 
-        Ok(())
+        if !attributes.is_empty() {
+            return Err(AttributeError::SomeAttributesNotProcessed(attributes));
+        }
+
+        Ok(result)
     }
 
-    fn traverse_groups(
-        entries: Vec<Entry>,
-        groups: &mut VecDeque<String>,
-        current_group: &mut IndexMap<String, Attribute>,
+    fn traverse_attributes_by_claim(
+        prefix: &str,
+        mut keys: VecDeque<&str>,
+        attributes: &mut IndexMap<String, Vec<Entry>>,
+        result: &mut IndexMap<String, Attribute>,
     ) -> Result<(), AttributeError> {
-        if let Some(group_key) = groups.pop_front() {
-            // If the group doesn't exist, add a new group to the current group.
-            if !current_group.contains_key(&group_key) {
-                current_group.insert(String::from(&group_key), Attribute::Nested(IndexMap::new()));
-            }
+        if attributes.is_empty() {
+            return Ok(());
+        }
 
-            if let Some(Attribute::Nested(attr_group)) = current_group.get_mut(&group_key) {
-                if groups.is_empty() {
-                    Self::insert_entries(entries, attr_group)?;
-                } else {
-                    Self::traverse_groups(entries, groups, attr_group)?;
+        if let Some(key) = keys.pop_front() {
+            if keys.is_empty() {
+                if let Some(entries) = attributes.get_mut(prefix) {
+                    Self::insert_entry(key, entries, result)?;
+
+                    if entries.is_empty() {
+                        attributes.swap_remove(prefix);
+                    }
+                }
+            } else {
+                let prefixed_key = [prefix, key].join(".");
+
+                if let Attribute::Nested(result) = result
+                    .entry(String::from(key))
+                    .or_insert_with(|| Attribute::Nested(IndexMap::new()))
+                {
+                    Self::traverse_attributes_by_claim(&prefixed_key, keys, attributes, result)?
                 }
             }
         }
@@ -119,34 +163,17 @@ impl Attribute {
         Ok(())
     }
 
-    fn insert_entries(entries: Vec<Entry>, group: &mut IndexMap<String, Attribute>) -> Result<(), AttributeError> {
-        for entry in entries {
-            let key = entry.name;
-
-            if group.contains_key(&key) {
-                return Err(AttributeError::DuplicateAttribute(key));
-            }
-
-            group.insert(key, Attribute::Single(entry.value.try_into()?));
+    fn insert_entry(
+        key: &str,
+        entries: &mut Vec<Entry>,
+        group: &mut IndexMap<String, Attribute>,
+    ) -> Result<(), AttributeError> {
+        if let Some(index) = entries.iter().position(|entry| entry.name == key) {
+            let entry = entries.swap_remove(index);
+            group.insert(entry.name, Attribute::Single(entry.value.try_into()?));
         }
 
         Ok(())
-    }
-
-    fn split_namespace(namespace: &str, doc_type: &str) -> Result<Vec<String>, AttributeError> {
-        if !namespace.starts_with(doc_type) {
-            return Err(AttributeError::NamespacePreconditionFailed {
-                namespace: String::from(namespace),
-                doc_type: String::from(doc_type),
-            });
-        }
-
-        if namespace.len() == doc_type.len() {
-            return Ok(vec![]);
-        }
-
-        let parts = namespace[doc_type.len() + 1..].split('.').map(String::from).collect();
-        Ok(parts)
     }
 }
 
@@ -154,29 +181,37 @@ impl Attribute {
 mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
-    use rstest::rstest;
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
     use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
+    use sd_jwt::metadata::TypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
 
-    #[rstest]
-    #[case(vec![], "com.example.pid", "com.example.pid")]
-    #[case(vec!["place_of_birth"], "com.example.pid.place_of_birth", "com.example.pid")]
-    #[case(vec!["place_of_birth", "country"], "com.example.pid.place_of_birth.country", "com.example.pid")]
-    fn test_split_namespace(#[case] expected: Vec<&str>, #[case] namespace: &str, #[case] doc_type: &str) {
-        assert_eq!(
-            expected.into_iter().map(String::from).collect::<Vec<_>>(),
-            Attribute::split_namespace(namespace, doc_type).unwrap()
-        );
-    }
-
     #[test]
     fn test_traverse_groups() {
+        let metadata_json = json!({
+            "vct": "com.example.pid",
+            "claims": [{
+                "path": ["birthdate"],
+            }, {
+                "path": ["place_of_birth", "locality"],
+            }, {
+                "path": ["place_of_birth", "country", "name"],
+            }, {
+                "path": ["place_of_birth", "country", "area_code"],
+            }, {
+                "path": ["a", "b", "c", "d", "e"],
+            }, {
+                "path": ["a", "b", "c1"],
+            }],
+            "schema": { "properties": {} }
+        });
+        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+
         let mdoc_attributes = IndexMap::from([
             (
                 String::from("com.example.pid"),
@@ -220,8 +255,7 @@ mod test {
                 }],
             ),
         ]);
-        let result = &mut IndexMap::new();
-        Attribute::traverse_attributes("com.example.pid", mdoc_attributes, result).unwrap();
+        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
 
         let expected_json = json!({
             "birthdate": "1963-08-12",
@@ -250,25 +284,107 @@ mod test {
     }
 
     #[test]
-    fn test_traverse_groups_should_fail_for_duplicate_attribute() {
-        let mdoc_attributes = IndexMap::from([
-            (
-                String::from("com.example.pid.a.b.c.d"),
-                vec![Entry {
-                    name: String::from("e"),
-                    value: DataElementValue::Text(String::from("abcd")),
-                }],
-            ),
-            (
-                String::from("com.example.pid.a.b"),
-                vec![Entry {
-                    name: String::from("c"),
-                    value: DataElementValue::Text(String::from("abc")),
-                }],
-            ),
-        ]);
+    fn test_traverse_groups_for_dot_in_attribute_name() {
+        let metadata_json = json!({
+            "vct": "com.example.pid",
+            "claims": [
+                { "path": ["nest.ed", "birth.date"] }
+            ],
+            "schema": { "properties": {} }
+        });
+        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
 
-        let result = Attribute::traverse_attributes("com.example.pid", mdoc_attributes, &mut IndexMap::new());
-        assert_matches!(result, Err(AttributeError::DuplicateAttribute(key)) if key == *"c");
+        let mdoc_attributes = IndexMap::from([(
+            String::from("com.example.pid.nest.ed"),
+            vec![Entry {
+                name: String::from("birth.date"),
+                value: DataElementValue::Text(String::from("1963-08-12")),
+            }],
+        )]);
+
+        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+
+        let expected_json = json!({"nest.ed": { "birth.date": "1963-08-12" }});
+        assert_eq!(
+            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
+            expected_json.to_json_string_pretty().unwrap(),
+        );
+    }
+
+    #[test]
+    fn test_traverse_groups_with_extra_entry_not_in_claim() {
+        let metadata_json = json!({
+            "vct": "com.example.pid",
+            "claims": [
+                { "path": ["a", "a1"] },
+                { "path": ["a", "a2"] }
+            ],
+            "schema": { "properties": {} }
+        });
+        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+
+        let mdoc_attributes = IndexMap::from([(
+            String::from("com.example.pid.a"),
+            vec![
+                Entry {
+                    name: String::from("a1"),
+                    value: DataElementValue::Text(String::from("1")),
+                },
+                Entry {
+                    name: String::from("a2"),
+                    value: DataElementValue::Text(String::from("2")),
+                },
+                Entry {
+                    name: String::from("a3"),
+                    value: DataElementValue::Text(String::from("3")),
+                },
+            ],
+        )]);
+
+        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes);
+        assert_matches!(result, Err(AttributeError::SomeAttributesNotProcessed(attrs))
+        if attrs == IndexMap::from([(
+            String::from("com.example.pid.a"),
+            vec![Entry { name: String::from("a3"), value: DataElementValue::Text(String::from("3")) }]
+        )]));
+    }
+
+    #[test]
+    fn test_traverse_groups_claim_ordering() {
+        let metadata_json = json!({
+            "vct": "com.example.pid",
+            "claims": [
+                { "path": ["b", "b1"] },
+                { "path": ["b", "b3"] },
+                { "path": ["b", "b2"] }
+            ],
+            "schema": { "properties": {} }
+        });
+        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+
+        let mdoc_attributes = IndexMap::from([(
+            String::from("com.example.pid.b"),
+            vec![
+                Entry {
+                    name: String::from("b1"),
+                    value: DataElementValue::Text(String::from("1")),
+                },
+                Entry {
+                    name: String::from("b2"),
+                    value: DataElementValue::Text(String::from("2")),
+                },
+                Entry {
+                    name: String::from("b3"),
+                    value: DataElementValue::Text(String::from("3")),
+                },
+            ],
+        )]);
+
+        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+        let expected_json = json!({"b": { "b1": "1", "b3": "3", "b2": "2" }});
+        assert_eq!(
+            serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
+            expected_json.to_json_string_pretty().unwrap(),
+        );
     }
 }

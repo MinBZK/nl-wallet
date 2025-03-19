@@ -1,4 +1,5 @@
 use std::num::NonZeroUsize;
+use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use chrono::Days;
@@ -34,7 +35,7 @@ use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WalletSettings;
+use openid4vc::issuer::WteConfig;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::MemorySessionStore;
@@ -51,6 +52,7 @@ use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt::metadata::UncheckedTypeMetadata;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -107,15 +109,15 @@ fn setup(
         .into();
 
     let issuer = MockIssuer::new(
-        MemorySessionStore::default(),
+        Arc::new(MemorySessionStore::default()),
         attr_service,
         attestation_config,
         &server_url,
-        WalletSettings {
-            wallet_client_ids: vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
-            wte_issuer_pubkey: *wte_issuer_privkey.verifying_key(),
-            wte_tracker: MemoryWteTracker::new(),
-        },
+        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+        Some(WteConfig {
+            wte_issuer_pubkey: wte_issuer_privkey.verifying_key().into(),
+            wte_tracker: Arc::new(MemoryWteTracker::new()),
+        }),
     );
 
     (
@@ -495,7 +497,7 @@ const MOCK_DOCTYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 fn mock_type_metadata(vct: &str) -> TypeMetadata {
-    TypeMetadata {
+    TypeMetadata::try_new(UncheckedTypeMetadata {
         vct: vct.to_string(),
         claims: MOCK_ATTRS
             .iter()
@@ -506,8 +508,9 @@ fn mock_type_metadata(vct: &str) -> TypeMetadata {
                 svg_id: None,
             })
             .collect(),
-        ..TypeMetadata::empty_example()
-    }
+        ..UncheckedTypeMetadata::empty_example()
+    })
+    .unwrap()
 }
 
 fn mock_issuable_attestation(attestation_count: NonZeroUsize) -> VecNonEmpty<IssuableDocument> {
