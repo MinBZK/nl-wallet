@@ -827,7 +827,7 @@ mod test {
     fn hardware_authenticator_type(#[case] input: Integer, #[case] expected: &[HardwareAuthenticatorType]) {
         let actual = HardwareAuthenticatorType::try_from(input.clone()).unwrap();
 
-        for expect in expected.iter() {
+        for expect in expected {
             assert!(actual.contains(expect.clone()));
         }
         if expected.is_empty() {
