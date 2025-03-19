@@ -6,7 +6,9 @@ use futures::future::try_join_all;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::TryFromInto;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
@@ -170,6 +172,31 @@ pub struct CredentialOffer {
     pub credential_issuer: BaseUrl,
     pub credential_configuration_ids: Vec<String>,
     pub grants: Option<Grants>,
+}
+
+/// The Credential Offer is passed as a single URI-encoded parameter containing a JSON-encoded value.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer>
+#[serde_as]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CredentialOfferContainer {
+    #[serde_as(as = "TryFromInto<String>")]
+    pub credential_offer: CredentialOffer,
+}
+
+impl TryFrom<String> for CredentialOffer {
+    type Error = serde_json::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        serde_json::from_str(&value)
+    }
+}
+
+impl TryInto<String> for CredentialOffer {
+    type Error = serde_json::Error;
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        serde_json::to_string(&self)
+    }
 }
 
 /// Grants for a Verifiable Credential.
