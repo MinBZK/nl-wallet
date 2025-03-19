@@ -693,6 +693,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use jsonschema::error::ValidationErrorKind;
     use jsonschema::ValidationError;
@@ -881,16 +883,16 @@ mod test {
         assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
     }
 
-    #[test]
-    fn test_claim_path_collisions() {
+    #[rstest]
+    #[case(vec![vec!["a.b"], vec!["a", "b"]])]
+    #[case(vec![vec!["x.y.z"], vec!["x", "y.z"]])]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y.z"]])]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y", "z"]])]
+    #[case(vec![vec!["x", "y.z"], vec!["x.y", "z"]])]
+    fn test_claim_path_collisions(#[case] claims: Vec<Vec<&str>>) {
         let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "claims": [
-                { "path": ["a.b"] },
-                { "path": ["a", "b"] },
-                { "path": ["x.y", "z"] },
-                { "path": ["x", "y.z"] },
-            ],
+            "claims": claims.into_iter().map(|claim| HashMap::from([("path", claim)])).collect::<Vec<_>>(),
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
@@ -900,14 +902,12 @@ mod test {
         .unwrap()
         .detect_path_collisions();
 
-        dbg!(&result);
-
         assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
     }
 
     #[test]
     fn should_detect_claim_path_collision_for_deserializing_typemetadata() {
-        assert!(serde_json::from_value::<TypeMetadata>(json!({
+        let result = serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "claims": [
                 { "path": ["address.street"] },
@@ -919,6 +919,11 @@ mod test {
                 "properties": {}
             }
         }))
-        .is_err());
+        .expect_err("Should fail deserializing type metadata because of path collision");
+
+        assert_eq!(
+            result.to_string(),
+            "detected claim path collision Expected valid TypeMetadata"
+        );
     }
 }

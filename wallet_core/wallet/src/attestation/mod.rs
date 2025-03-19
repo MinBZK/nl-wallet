@@ -13,18 +13,12 @@ use mdoc::utils::auth::Organization;
 use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt::metadata::ClaimDisplayMetadata;
-use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::DisplayMetadata;
 use sd_jwt::metadata::JsonSchemaProperty;
 use sd_jwt::metadata::SchemaOption;
-use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
-    #[error("error selecting attribute for claim: {0:?}")]
-    #[category(pd)]
-    AttributeNotFoundForClaim(VecNonEmpty<ClaimPath>),
-
     #[error("some attributes not processed by claim: {0:?}")]
     #[category(pd)]
     AttributeNotProcessedByClaim(HashSet<Vec<String>>),
@@ -44,12 +38,6 @@ pub enum AttestationError {
     #[error("type metadata schema not supported: {0:?}")]
     #[category(pd)]
     UnsupportedMetadataSchema(SchemaOption),
-}
-
-#[derive(Debug, Clone, Copy)]
-enum AttributeSelectionMode {
-    Issuance,
-    Disclosure,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

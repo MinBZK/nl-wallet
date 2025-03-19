@@ -9,7 +9,6 @@ use sd_jwt::metadata::TypeMetadata;
 use super::Attestation;
 use super::AttestationError;
 use super::AttestationIdentity;
-use super::AttributeSelectionMode;
 
 impl Attestation {
     pub(crate) fn create_for_disclosure(
@@ -24,7 +23,6 @@ impl Attestation {
             metadata,
             issuer_organization,
             nested_attributes,
-            AttributeSelectionMode::Disclosure,
         )
     }
 }

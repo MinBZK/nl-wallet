@@ -4,7 +4,6 @@ use std::collections::HashSet;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
-
 use mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
@@ -21,7 +20,6 @@ use super::AttestationAttribute;
 use super::AttestationAttributeValue;
 use super::AttestationError;
 use super::AttestationIdentity;
-use super::AttributeSelectionMode;
 
 impl Attestation {
     // Construct a new `Attestation` from a combination of metadata and nested attributes.
@@ -31,7 +29,6 @@ impl Attestation {
         metadata: TypeMetadata,
         issuer: Organization,
         mut nested_attributes: IndexMap<String, Attribute>,
-        selection_mode: AttributeSelectionMode,
     ) -> Result<Self, AttestationError> {
         let metadata = metadata.into_inner();
 
@@ -46,26 +43,21 @@ impl Attestation {
 
         // For every claim in the metadata, traverse the nested attributes to find it,
         // then convert it to a `AttestationAttribute` value.
-        let attributes_iter = metadata.claims.into_iter().map(|claim| {
-            let (path, value) =
-                take_attribute_value_at_key_path(&mut nested_attributes, claim.path, &schema_properties)?;
-            let attribute = AttestationAttribute {
-                key: path,
-                metadata: claim.display,
-                value,
-            };
-            Ok::<_, AttestationError>(attribute)
-        });
-
-        let attributes = match selection_mode {
-            // During issuance, an attribute that is in the metadata but not in the nested
-            // tree of attributes received from the issuer will result in an error.
-            AttributeSelectionMode::Issuance => attributes_iter.try_collect()?,
-            // Because of selective disclosure, an attribute that is in the metadata but
-            // not in the proposal for which attributes to disclose can simply be ignored.
-            // The `flatten()` function here ignores all `Err` variants.
-            AttributeSelectionMode::Disclosure => attributes_iter.flatten().collect(),
-        };
+        let attributes = metadata
+            .claims
+            .into_iter()
+            .filter_map(|claim| {
+                take_attribute_value_at_key_path(&mut nested_attributes, claim.path, &schema_properties)
+                    .map(|attr| {
+                        attr.map(|(path, value)| AttestationAttribute {
+                            key: path,
+                            metadata: claim.display,
+                            value,
+                        })
+                    })
+                    .transpose()
+            })
+            .try_collect()?;
 
         // The nested attributes should now be fully drained of any attribute values.
         // If this is not the case, we were provided an attribute
@@ -95,11 +87,10 @@ fn take_attribute_value_at_key_path(
     attributes: &mut IndexMap<String, Attribute>,
     path: VecNonEmpty<ClaimPath>,
     json_schema_properties: &HashMap<String, JsonSchemaProperty>,
-) -> Result<(Vec<String>, AttestationAttributeValue), AttestationError> {
+) -> Result<Option<(Vec<String>, AttestationAttributeValue)>, AttestationError> {
     // First, confirm that the path is made up of key entries by converting to a `Vec<String>`.
     // This will return `None` if any of the elements of the path is not an index.
-    path.clone()
-        .into_iter()
+    path.into_iter()
         .map(ClaimPath::try_into_key_path)
         .collect::<Option<Vec<_>>>()
         .and_then(|key_path| {
@@ -139,8 +130,7 @@ fn take_attribute_value_at_key_path(
                     }
                 })
         })
-        .transpose()?
-        .ok_or(AttestationError::AttributeNotFoundForClaim(path))
+        .transpose()
 }
 
 /// Collect all full key paths present in `attributes` by unrolling any nested attribute paths.
@@ -225,7 +215,6 @@ pub mod test {
     use crate::attestation::attribute::collect_key_paths;
     use crate::attestation::attribute::take_attribute_value_at_key_path;
     use crate::attestation::AttestationAttributeValue;
-    use crate::attestation::AttestationError;
 
     static ATTRIBUTES: LazyLock<IndexMap<String, Attribute>> = LazyLock::new(|| {
         IndexMap::from([
@@ -278,6 +267,7 @@ pub mod test {
                 },
             )]),
         )
+        .unwrap()
         .unwrap();
 
         assert_matches!(
@@ -302,6 +292,7 @@ pub mod test {
                 },
             )]),
         )
+        .unwrap()
         .unwrap();
 
         assert_matches!(
@@ -334,7 +325,7 @@ pub mod test {
 
         assert_matches!(
             result,
-            Err(AttestationError::AttributeNotFoundForClaim(_)),
+            Ok(None),
             "selecting nested attribute by key should find nothing for single attribute"
         );
     }
@@ -373,6 +364,7 @@ pub mod test {
                 },
             )]),
         )
+        .unwrap()
         .unwrap();
 
         assert_matches!(
@@ -413,7 +405,7 @@ pub mod test {
 
         assert_matches!(
             result,
-            Err(AttestationError::AttributeNotFoundForClaim(_)),
+            Ok(None),
             "selecting nested attribute by key should find nothing for unknown key"
         );
     }
@@ -463,7 +455,7 @@ pub mod test {
 
         assert_matches!(
             result,
-            Err(AttestationError::AttributeNotFoundForClaim(_)),
+            Ok(None),
             "selecting by more keys than attributes are nested should find nothing"
         );
     }
