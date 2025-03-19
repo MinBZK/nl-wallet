@@ -44,25 +44,8 @@ automation-compile-check:
     DEVICE_NAME: "Google Pixel 8"
     PLATFORM_NAME: "Android"
     PLATFORM_VERSION: "14.0"
-  needs:
-    - job: deploy-mock-relying-party-demo
-      artifacts: false
-      optional: true
-    - job: deploy-wallet-provider-ont
-      artifacts: false
-      optional: true
-    - job: deploy-pid-issuer-ont
-      artifacts: false
-      optional: true
-    - job: deploy-update-policy-server-ont
-      artifacts: false
-      optional: true
-    - job: deploy-gba-hc-converter-ont
-      artifacts: false
-      optional: true
   rules:
     - !reference [.on-schedule, rules]
-    - !reference [.on-web-trigger, rules]
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default
@@ -224,11 +207,6 @@ run-gba-fetch-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
     - !reference [.on-schedule, rules]
-    - !reference [.on-web-trigger, rules]
-  needs:
-    - job: deploy-gba-fetch-frontend-ont
-      artifacts: false
-      optional: true
   before_script: |
     kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
@@ -280,9 +258,12 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
   extends: .env-ont-k8s
   environment:
     action: access
+  needs:
+    - !reference [run-automation-smoke-test-ont, needs]
   rules:
-    - !reference [ .on-web-trigger, rules ]
-  allow_failure: false
+    - !reference [.default-branch, rules]
+  allow_failure: true
+  when: manual
   before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER
@@ -346,12 +327,12 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
 
 run-pipeline-for-running-test-on-all-browserstack-androids:
   rules:
-    - !reference [ .on-web-trigger, rules ]
+    - !reference [.default-branch, rules]
   needs:
-    - create-pipeline-for-running-test-on-all-browserstack-androids
+    - job: create-pipeline-for-running-test-on-all-browserstack-androids
+      artifacts: true
   trigger:
     include:
       - artifact: test-all-android-devices.yml
         job: create-pipeline-for-running-test-on-all-browserstack-androids
     strategy: depend
-
