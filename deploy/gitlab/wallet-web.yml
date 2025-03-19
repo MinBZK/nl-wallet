@@ -19,7 +19,7 @@ build-wallet-web:
     - CSP_SCRIPT_SRC_MRP=${JS_HASHES:-\'none\'}
     - export CSP_SCRIPT_SRC_MRP
     # take the sha256 hash of the inlined style and add it to the default directive
-    - STYLE_INJECTED_HASH=$(echo \'sha256-`cat wallet_web/dist/style.css | tr -d "\n" | openssl sha256 -binary | base64`\')
+    - STYLE_INJECTED_HASH=$(echo \'sha256-`cat wallet_web/dist/nl-wallet-web.css | tr -d "\n" | openssl sha256 -binary | base64`\')
     - CSP_STYLE_SRC_MRP="'self' ${STYLE_INJECTED_HASH}"
     - export CSP_STYLE_SRC_MRP
     - mkdir -p wallet_core/mock_relying_party/hashes
