@@ -18,8 +18,8 @@ import screen.web.rp.RelyingPartyAmsterdamWebPage
 import screen.web.rp.RelyingPartyOverviewWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("${HistoryOverviewTest.USE_CASE} App logs PID/address issuance and disclosure events [${HistoryOverviewTest.JIRA_ID}]")
-class HistoryOverviewTest : TestBase() {
+@DisplayName("${HistoryOverviewTests.USE_CASE} App logs PID/address issuance and disclosure events [${HistoryOverviewTests.JIRA_ID}]")
+class HistoryOverviewTests : TestBase() {
 
     companion object {
         const val USE_CASE = "UC 3.1"
