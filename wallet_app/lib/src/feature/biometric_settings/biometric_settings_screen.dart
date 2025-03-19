@@ -138,11 +138,11 @@ class BiometricSettingScreen extends StatelessWidget {
           ),
           actions: <Widget>[
             TextButton(
-              child: Text(context.l10n.generalClose.toUpperCase()),
+              child: Text(context.l10n.generalDialogCloseCta),
               onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
-              child: Text(context.l10n.biometricSettingsScreenSetupDialogOpenSettingsCta.toUpperCase()),
+              child: Text(context.l10n.biometricSettingsScreenSetupDialogOpenSettingsCta),
               onPressed: () {
                 // NOTE: Plugins to open biometric settings seem flaky (i.e. don't work on my Pixel 6 Pro),
                 // NOTE: we could likely roll our own but falling back to generic settings for now.
