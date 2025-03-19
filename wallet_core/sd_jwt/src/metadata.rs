@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fmt::Write;
 
 use base64::prelude::*;
 use derive_more::Into;
@@ -533,11 +534,10 @@ impl Display for ClaimMetadata {
         write!(
             f,
             "{}",
-            self.path
-                .iter()
-                .map(|p| format!("[{}]", p))
-                .collect::<Vec<String>>()
-                .join("")
+            self.path.iter().fold(String::new(), |mut output, p| {
+                let _ = write!(output, "[{p}]");
+                output
+            })
         )
     }
 }
