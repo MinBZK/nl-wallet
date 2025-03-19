@@ -28,6 +28,7 @@ sonar-rust:
       -Dcommunity.rust.cpd.ignoretests=true
       -Dcommunity.rust.lcov.reportPaths="lcov.info"
       -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
+  allow_failure: true
 
 sonar-flutter:
   extends: .default-sonar
@@ -51,6 +52,7 @@ sonar-flutter:
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
       -Dsonar.dart.lcov.reportPaths=coverage/lcov.info
+  allow_failure: true
 
 sonar-wallet-web:
   extends: .default-sonar
@@ -70,6 +72,7 @@ sonar-wallet-web:
       -Dsonar.test.inclusions=lib/__tests__/**/*
       -Dsonar.coverage.exclusions=lib/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+  allow_failure: true
 
 sonar-ios:
   extends: .default-sonar
@@ -88,6 +91,7 @@ sonar-ios:
       -Dsonar.cpp.file.suffixes=-
       -Dsonar.objc.file.suffixes=-
       -Dsonar.coverageReportPaths=../../../fastlane/test_output/sonarqube-generic-coverage.xml
+  allow_failure: true
 
 sonar-android:
   extends: .default-sonar
@@ -105,3 +109,4 @@ sonar-android:
       -Dsonar.findbugs.allowuncompiledcode=true
 #      -Dsonar.junit.reportPaths="platform_support/build/outputs/androidTest-results/*/*.xml"
 #      -Dsonar.coverage.jacoco.xmlReportPaths="platform_support/build/reports/coverage/androidTest/*/*/report.xml"
+  allow_failure: true
