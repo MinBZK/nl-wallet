@@ -12,7 +12,7 @@ example_constructors = []
 
 [dependencies]
 base64.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str", "into"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "into"] }
 http.workspace = true
 http-serde.workspace = true
 itertools.workspace = true

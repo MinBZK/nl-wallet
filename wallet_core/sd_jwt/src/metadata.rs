@@ -5,6 +5,8 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 
 use base64::prelude::*;
+use derive_more::AsRef;
+use derive_more::From;
 use derive_more::Into;
 use http::Uri;
 use itertools::Itertools;
@@ -56,18 +58,14 @@ pub enum TypeMetadataError {
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
 /// various reasons.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SpecOptionalImplRequired<T>(pub T);
+#[derive(Debug, Clone, PartialEq, Eq, From, AsRef, Serialize, Deserialize)]
+pub struct SpecOptionalImplRequired<T>(T);
 
-impl<T> From<T> for SpecOptionalImplRequired<T> {
-    fn from(value: T) -> Self {
-        Self(value)
-    }
-}
+impl<T> SpecOptionalImplRequired<T> {
+    pub fn into_inner(self) -> T {
+        let SpecOptionalImplRequired(inner) = self;
 
-impl<T> AsRef<T> for SpecOptionalImplRequired<T> {
-    fn as_ref(&self) -> &T {
-        &self.0
+        inner
     }
 }
 
