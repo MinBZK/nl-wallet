@@ -13,7 +13,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::issuance::DigidSession;
 use crate::repository::Repository;
-use crate::wallet::PidIssuanceSession;
 
 use super::Wallet;
 
@@ -46,7 +45,7 @@ where
 
         let uri = Url::parse(uri_str)?;
 
-        if matches!(self.issuance_session, Some(PidIssuanceSession::Digid(_)))
+        if self.digid_session.is_some()
             && uri
                 .as_str()
                 .starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
@@ -57,6 +56,11 @@ where
         if uri
             .as_str()
             .starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
+            || uri.as_str().starts_with(
+                urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
+                    .as_ref()
+                    .as_str(),
+            )
         {
             return Ok(UriType::Disclosure(uri));
         }
@@ -71,7 +75,6 @@ mod tests {
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::issuance::MockDigidSession;
-    use crate::wallet::PidIssuanceSession;
 
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
@@ -105,13 +108,13 @@ mod tests {
         );
 
         // Set up a `DigidSession` that will match the URI.
-        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockDigidSession::new()));
+        wallet.digid_session = Some(MockDigidSession::new());
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance(_));
 
         // After clearing the `DigidSession`, the URI should not be recognised again.
-        wallet.issuance_session = None;
+        wallet.digid_session = None;
 
         assert_matches!(
             wallet.identify_uri(digid_uri).unwrap_err(),

@@ -224,7 +224,7 @@ pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
 pub async fn cancel_pid_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
-    wallet.cancel_pid_issuance().await?;
+    wallet.cancel_issuance().await?;
 
     Ok(())
 }
@@ -235,7 +235,7 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Attestatio
 
     let mut wallet = wallet().write().await;
 
-    let wallet_attestations = wallet.continue_pid_issuance(url).await?;
+    let wallet_attestations = wallet.issuance_get_previews(url).await?;
     let attestations = wallet_attestations.into_iter().map(Attestation::from).collect();
 
     Ok(attestations)
@@ -245,7 +245,7 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Attestatio
 pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
-    let result = wallet.accept_pid_issuance(pin).await.try_into()?;
+    let result = wallet.accept_issuance(pin).await.try_into()?;
 
     Ok(result)
 }
@@ -254,7 +254,7 @@ pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructio
 pub async fn has_active_pid_issuance_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
-    let has_active_session = wallet.has_active_pid_issuance_session()?;
+    let has_active_session = wallet.has_active_issuance_session()?;
 
     Ok(has_active_session)
 }
@@ -290,6 +290,20 @@ pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureRe
     let result = wallet.accept_disclosure(pin).await.try_into()?;
 
     Ok(result)
+}
+
+#[flutter_api_error]
+pub async fn accept_disclosure_based_issuance(pin: String) -> anyhow::Result<Vec<Attestation>> {
+    let mut wallet = wallet().write().await;
+
+    let attestations = wallet
+        .accept_disclosure_based_issuance(pin)
+        .await?
+        .into_iter()
+        .map(Attestation::from)
+        .collect();
+
+    Ok(attestations)
 }
 
 #[flutter_api_error]

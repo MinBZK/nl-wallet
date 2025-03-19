@@ -172,6 +172,7 @@ where
             key_holder,
             registration,
             account_provider_client: Arc::new(account_provider_client),
+            digid_session: None,
             issuance_session: None,
             disclosure_session: None,
             wte_issuance_client: WIC::default(),

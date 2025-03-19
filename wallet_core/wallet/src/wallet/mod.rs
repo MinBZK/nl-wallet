@@ -2,6 +2,7 @@ mod attestations;
 mod change_pin;
 mod config;
 mod disclosure;
+mod disclosure_based_issuance;
 mod history;
 mod init;
 mod instruction_client;
@@ -35,14 +36,17 @@ use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsCallback;
+use crate::wallet::disclosure::WalletDisclosureSession;
+use crate::wallet::issuance::WalletIssuanceSession;
 use crate::wte::WpWteIssuanceClient;
 
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
+pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
 pub use self::init::WalletInitError;
-pub use self::issuance::PidIssuanceError;
+pub use self::issuance::IssuanceError;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
@@ -50,8 +54,6 @@ pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
-
-use self::issuance::PidIssuanceSession;
 
 cfg_if! {
     if #[cfg(feature = "fake_attestation")] {
@@ -107,8 +109,9 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    issuance_session: Option<PidIssuanceSession<DS, IS>>,
-    disclosure_session: Option<MDS>,
+    digid_session: Option<DS>,
+    issuance_session: Option<WalletIssuanceSession<IS>>,
+    disclosure_session: Option<WalletDisclosureSession<MDS>>,
     wte_issuance_client: WIC,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,

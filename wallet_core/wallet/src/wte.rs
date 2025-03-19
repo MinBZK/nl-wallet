@@ -12,14 +12,14 @@ use crate::account_provider::AccountProviderClient;
 use crate::instruction::InstructionClient;
 use crate::instruction::RemoteEcdsaKey;
 use crate::storage::Storage;
-use crate::wallet::PidIssuanceError;
+use crate::wallet::IssuanceError;
 
 pub trait WteIssuanceClient {
     async fn obtain_wte<S, AK, GK, A>(
         &self,
         wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: InstructionClient<S, AK, GK, A>,
-    ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
+    ) -> Result<JwtCredential<WteClaims>, IssuanceError>
     where
         S: Storage,
         AK: AppleAttestedKey,
@@ -34,7 +34,7 @@ impl WteIssuanceClient for WpWteIssuanceClient {
         &self,
         wte_issuer_pubkey: &VerifyingKey,
         remote_instruction: InstructionClient<S, AK, GK, A>,
-    ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
+    ) -> Result<JwtCredential<WteClaims>, IssuanceError>
     where
         S: Storage,
         AK: AppleAttestedKey,
@@ -72,7 +72,7 @@ pub(crate) mod tests {
     use crate::account_provider::AccountProviderClient;
     use crate::instruction::InstructionClient;
     use crate::storage::Storage;
-    use crate::wallet::PidIssuanceError;
+    use crate::wallet::IssuanceError;
 
     use super::WteIssuanceClient;
 
@@ -83,7 +83,7 @@ pub(crate) mod tests {
             &self,
             _pubkey: &VerifyingKey,
             _remote_instruction: InstructionClient<S, AK, GK, A>,
-        ) -> Result<JwtCredential<WteClaims>, PidIssuanceError>
+        ) -> Result<JwtCredential<WteClaims>, IssuanceError>
         where
             S: Storage,
             AK: AppleAttestedKey,
