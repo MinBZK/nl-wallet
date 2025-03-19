@@ -35,6 +35,8 @@ sonar-flutter:
   needs:
     - job: test-flutter
       artifacts: true
+    - job: test-flutter-ui
+      artifacts: true
     - job: dependency-check
       artifacts: true
   script:
@@ -51,7 +53,7 @@ sonar-flutter:
       -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
-      -Dsonar.dart.lcov.reportPaths=coverage/lcov.info
+      -Dsonar.dart.lcov.reportPaths=coverage/lcov*.info
   allow_failure: true
 
 sonar-wallet-web:
