@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-03-10T14:55:51+01:00",
+    "@@last_modified": "2025-03-18T11:50:25+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -39,7 +39,7 @@
             }
         }
     },
-    "biometricSettingsScreenSetupDialogOpenSettingsCta": "Open instellingen",
+    "biometricSettingsScreenSetupDialogOpenSettingsCta": "OPEN INSTELLINGEN",
     "biometricSettingsScreenSetupDialogTitle": "Zet {supportedBiometrics} eerst aan",
     "@biometricSettingsScreenSetupDialogTitle": {
         "placeholders": {
@@ -419,6 +419,7 @@
             }
         }
     },
+    "generalDialogCloseCta": "SLUITEN",
     "generalHours": "{hours, plural, one {{hours} uur} other {{hours} uur}}",
     "@generalHours": {
         "placeholders": {
@@ -1106,12 +1107,12 @@
     "walletPersonalizeScreenExitSheetTitle": "Stop",
     "walletPersonalizeScreenLoadingDigiDUrlDescription": "DigiD app wordt geopend",
     "walletPersonalizeScreenLoadingDigiDUrlTitle": "Even geduld",
-    "walletPersonalizeScreenLoadingSubtitle": "Gegevens worden opgehaald",
+    "walletPersonalizeScreenLoadingSubtitle": "De aanvraag wordt verwerkt",
     "walletPersonalizeScreenLoadingTitle": "Even geduld",
     "walletPersonalizeScreenProcessingDigiDResultDescription": "Gegevens worden opgehaald",
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Even geduld",
-    "walletPersonalizeScreenStopDigidDialogNegativeCta": "Terug",
-    "walletPersonalizeScreenStopDigidDialogPositiveCta": "Inloggen stoppen",
+    "walletPersonalizeScreenStopDigidDialogNegativeCta": "TERUG",
+    "walletPersonalizeScreenStopDigidDialogPositiveCta": "INLOGGEN STOPPEN",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Als je stopt, moet je opnieuw beginnen.",
     "walletPersonalizeScreenStopDigidDialogTitle": "DigiD inloggen stoppen?",
     "walletPersonalizeSetupFailedScreenCta": "Probeer opnieuw",
