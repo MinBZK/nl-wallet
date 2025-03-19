@@ -4,6 +4,7 @@ use std::collections::HashSet;
 use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
+
 use mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;

@@ -149,8 +149,7 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
 ///
 /// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
 /// * Attributes contained in arrays are not (yet) supported.
-/// * Optional attributes are not yet supported. This means that every claim path in the metadata must be present as an
-///   attribute provided by the issuer.
+/// * Optional attributes are not yet supported.
 /// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
 ///   type is known.
 /// * Every attribute in the attestation received from the issuer should have corresponding claim metadata, so that the
