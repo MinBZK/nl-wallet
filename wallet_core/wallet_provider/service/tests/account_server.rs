@@ -99,7 +99,7 @@ async fn do_registration(
     };
 
     let user_state = mock::user_state(
-        Repositories::new(db),
+        Repositories::from(db),
         wallet_certificate::mock::setup_hsm().await,
         wrapping_key_identifier.to_string(),
     );
