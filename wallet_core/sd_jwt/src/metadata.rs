@@ -7,7 +7,6 @@ use std::fmt::Formatter;
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
-use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
@@ -45,9 +44,6 @@ pub enum TypeMetadataError {
 
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
-
-    #[error("unsupported claim path '{}'", .0.iter().join("."))]
-    UnsupportedClaimPath(VecNonEmpty<ClaimPath>),
 
     #[error("detected claim path collision")]
     ClaimPathCollision,
@@ -204,12 +200,9 @@ impl UncheckedTypeMetadata {
             let flattened_key = claim
                 .path
                 .iter()
-                .map(|path| {
-                    path.try_key_path()
-                        .ok_or(TypeMetadataError::UnsupportedClaimPath(claim.path.clone()))
-                })
-                .try_collect()
-                .map(|paths: Vec<&str>| paths.join("."))?;
+                .filter_map(|path| path.try_key_path())
+                .collect::<Vec<_>>()
+                .join(".");
 
             // If inserting the flattened key in the set returns false, it means it is already in the set and there
             // is a collision.
