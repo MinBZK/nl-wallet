@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../domain/usecase/update/observe_version_state_usecase.dart';
+import '../../../navigation/wallet_routes.dart';
 import '../../../theme/base_wallet_theme.dart';
 import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -132,7 +133,7 @@ class _UpdateBannerState extends State<UpdateBanner> with SingleTickerProviderSt
           child: InkWell(
             statesController: _statesController,
             borderRadius: WalletTheme.kBorderRadius12,
-            onTap: () {},
+            onTap: () => Navigator.pushNamed(context, WalletRoutes.updateInfoRoute),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -207,7 +208,7 @@ class _UpdateBannerState extends State<UpdateBanner> with SingleTickerProviderSt
 
   Widget _buildWarnDot(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: context.colorScheme.surface),
       child: Icon(
         Icons.error_outlined,
         color: context.colorScheme.error,
