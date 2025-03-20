@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../data/service/navigation_service.dart';
@@ -14,13 +13,13 @@ import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
-import '../../wallet_assets.dart';
 import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
 import '../common/widget/activity_summary.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/icon/menu_icon_text_button.dart';
 import '../common/widget/button/icon/qr_icon_button.dart';
+import '../common/widget/button/scan_qr_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
@@ -121,28 +120,27 @@ class DashboardScreen extends StatelessWidget {
     return WalletScrollbar(
       child: CustomScrollView(
         slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            sliver: SliverToBoxAdapter(
-              child: StreamBuilder<bool>(
-                stream: context.read<NavigationService>().observeUpdateNotificationDialogVisible(),
-                builder: (context, snapshot) {
-                  // Only show the update banner when stream returns data and the dialog is not visible.
-                  final dialogVisibleData = snapshot.data;
-                  return (dialogVisibleData != null && dialogVisibleData)
-                      ? const SizedBox.shrink()
-                      : const UpdateBanner();
-                },
+          SliverToBoxAdapter(
+            child: StreamBuilder<bool>(
+              stream: context.read<NavigationService>().observeUpdateNotificationDialogVisible(),
+              builder: (context, snapshot) {
+                // Only show the update banner when stream returns data and the dialog is not visible.
+                final dialogVisibleData = snapshot.data;
+                return (dialogVisibleData != null && dialogVisibleData)
+                    ? const SizedBox.shrink()
+                    : const UpdateBanner(padding: EdgeInsets.only(left: 16, right: 16, top: 16));
+              },
+            ),
+          ),
+          const SliverSizedBox(height: 16),
+          SliverToBoxAdapter(
+            child: Center(
+              child: ScanQrButton(
+                onPressed: () => Navigator.pushNamed(context, WalletRoutes.qrRoute),
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: Container(
-              height: 250,
-              alignment: Alignment.center,
-              child: _buildQrLogo(context),
-            ),
-          ),
+          const SliverSizedBox(height: 16),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             sliver: SliverToBoxAdapter(
@@ -193,42 +191,6 @@ class DashboardScreen extends StatelessWidget {
         textAlign: TextAlign.center,
         onLinkPressed: () => Navigator.pushNamed(context, WalletRoutes.aboutRoute),
         style: context.textTheme.bodyMedium,
-      ),
-    );
-  }
-
-  Widget _buildQrLogo(BuildContext context) {
-    onTapQr() => Navigator.pushNamed(context, WalletRoutes.qrRoute);
-    return Semantics(
-      attributedLabel: context.l10n.dashboardScreenQrCta.toAttributedString(context),
-      button: true,
-      excludeSemantics: true,
-      child: SizedBox(
-        width: context.mediaQuery.size.width * 0.6,
-        height: 240,
-        child: GestureDetector(
-          onTap: onTapQr,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextButton(
-                onPressed: onTapQr,
-                child: Column(
-                  children: [
-                    SvgPicture.asset(WalletAssets.svg_qr_button),
-                    const SizedBox(height: 16),
-                    Text(
-                      context.l10n.dashboardScreenQrCta,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

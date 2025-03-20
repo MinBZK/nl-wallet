@@ -213,7 +213,6 @@
     "dashboardScreenFooterCta": "About this app",
     "dashboardScreenMenuWCAGLabel": "Navigation menu",
     "dashboardScreenOverviewAnnouncement": "NL Wallet overview",
-    "dashboardScreenQrCta": "Scan QR code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",
     "@dataAttributeSectionTitle": {
@@ -947,6 +946,7 @@
     "resetWalletDialogTitle": "Do you want to delete all data?",
     "rootDetectedScreenDescription": "To protect your data, you can not use NL Wallet on this device. \n\nThis device is not in its original state, which makes it not secure. See the help page for more information.",
     "rootDetectedScreenTitle": "Your device is not secure",
+    "scanQrButtonCta": "Scan QR code",
     "scanWithWalletDialogBody": "It looks like you have scanned a QR code with a different app. To be sure, scan the QR code with the NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR code",
     "scanWithWalletDialogTitle": "Scan the QR code with NL Wallet",

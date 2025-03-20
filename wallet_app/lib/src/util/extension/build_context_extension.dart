@@ -25,6 +25,8 @@ extension BuildContextExtension on BuildContext {
 
   ColorScheme get colorScheme => theme.colorScheme;
 
+  bool get isDeviceInDarkMode => mediaQuery.platformBrightness == Brightness.dark;
+
   AppLocalizations get l10n => AppLocalizations.of(this);
 
   String get localeName => l10n.localeName;
