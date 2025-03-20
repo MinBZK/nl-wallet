@@ -11,6 +11,7 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use crypto::mock_remote::MockRemoteKeyFactory;
 use jwt::JsonJwt;
 use jwt::Jwt;
 use mdoc::server_keys::generate::Ca;
@@ -53,7 +54,6 @@ use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::UncheckedTypeMetadata;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 

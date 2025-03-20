@@ -19,6 +19,10 @@ use ring::rand;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 
+use crypto::factory::KeyFactory;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteKeyFactory;
+use crypto::mock_remote::MockRemoteKeyFactoryError;
 use jwt::Jwt;
 use mdoc::examples::example_items_requests;
 use mdoc::examples::IsoCertTimeGenerator;
@@ -69,10 +73,6 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use poa::PoaError;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 

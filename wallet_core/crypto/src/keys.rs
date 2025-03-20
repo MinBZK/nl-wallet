@@ -11,14 +11,7 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::utils;
-
-pub mod factory;
-
-#[cfg(feature = "examples")]
-pub mod examples;
-#[cfg(any(test, feature = "mock_remote_key"))]
-pub mod mock_remote;
+use wallet_common::utils;
 
 #[trait_variant::make(EcdsaKeySend: Send)]
 pub trait EcdsaKey {

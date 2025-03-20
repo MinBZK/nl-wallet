@@ -1,0 +1,42 @@
+[package]
+name = "crypto"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# Include examples from the ISO specification
+examples = ["dep:anyhow", "dep:hex", "dep:hex-literal", "dep:rustls-pki-types", "dep:rustls-webpki", "dep:thiserror"]
+# Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
+mock_secure_keys = []
+# Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
+mock_remote_key = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
+
+[dependencies]
+aes-gcm = { workspace = true, features = ["std"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
+p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
+serde = { workspace = true, features = ["derive"] }
+trait-variant.workspace = true
+
+wallet_common.path = "../wallet_common"
+
+anyhow = { workspace = true, optional = true }
+futures = { workspace = true, optional = true, features = ["std", "async-await"] }
+hex = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
+parking_lot = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
+rustls-pki-types = { workspace = true, optional = true }
+rustls-webpki = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
+
+[dev-dependencies]
+assert_matches.workspace = true
+futures = { workspace = true, features = ["std", "async-await"] }
+parking_lot.workspace = true
+rand_core.workspace = true
+rstest.workspace = true

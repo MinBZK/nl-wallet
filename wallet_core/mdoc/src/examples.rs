@@ -248,11 +248,11 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+    use crypto::keys::WithIdentifier;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
-    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::WithIdentifier;
 
     use crate::holder::Mdoc;
     use crate::test::data::pid_example;
@@ -355,7 +355,7 @@ pub mod mock {
 mod tests {
     use p256::ecdsa::VerifyingKey;
 
-    use wallet_common::keys::examples::Examples;
+    use crypto::examples::Examples;
 
     use crate::utils::x509::CertificateUsage;
 

@@ -824,6 +824,10 @@ mod tests {
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
+    use crypto::examples::Examples;
+    use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
     use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
     use mdoc::examples::IsoCertTimeGenerator;
@@ -848,10 +852,6 @@ mod tests {
     use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::keys::examples::Examples;
-    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::openid4vp::AuthResponseError;

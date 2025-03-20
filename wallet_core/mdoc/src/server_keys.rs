@@ -2,7 +2,7 @@ use derive_more::Debug;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 
-use wallet_common::keys::EcdsaKey;
+use crypto::keys::EcdsaKey;
 
 use crate::utils::x509::BorrowingCertificate;
 use crate::utils::x509::CertificateError;

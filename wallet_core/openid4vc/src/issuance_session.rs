@@ -18,6 +18,8 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
 use error_category::ErrorCategory;
 use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
@@ -37,8 +39,6 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -863,9 +863,9 @@ pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredenti
 where
     KF: KeyFactory,
 {
+    use crypto::keys::EcdsaKey;
+    use crypto::keys::WithIdentifier;
     use jwt::credential::JwtCredentialClaims;
-    use wallet_common::keys::EcdsaKey;
-    use wallet_common::keys::WithIdentifier;
 
     let wte_privkey = key_factory.generate_new().await.unwrap();
 
@@ -889,6 +889,9 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
+    use crypto::factory::KeyFactory;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
     use mdoc::holder::IssuedDocumentMismatchError;
     use mdoc::server_keys::generate::Ca;
     use mdoc::test::data;
@@ -901,9 +904,6 @@ mod tests {
     use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
-    use wallet_common::keys::factory::KeyFactory;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use crate::token::TokenResponse;
 

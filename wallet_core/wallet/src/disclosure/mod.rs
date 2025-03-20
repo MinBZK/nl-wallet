@@ -4,6 +4,8 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 use uuid::Uuid;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use mdoc::identifiers::AttributeIdentifier;
@@ -14,8 +16,6 @@ use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use poa::factory::PoaFactory;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;

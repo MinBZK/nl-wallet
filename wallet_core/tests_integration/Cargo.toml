@@ -214,6 +214,7 @@ android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration = { path = "../wallet_configuration/configuration", optional = true }
 configuration_server = { path = "../wallet_configuration/configuration_server", optional = true }
+crypto = { path = "../crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../hsm", optional = true, features = ["test"] }
 jwt.path = "../jwt"
@@ -226,7 +227,7 @@ sd_jwt = { path = "../sd_jwt", optional = true, features = ["example_constructor
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 update_policy_server = { path = "../update_policy_server", optional = true }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
-wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
+wallet_common = { path = "../wallet_common", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }

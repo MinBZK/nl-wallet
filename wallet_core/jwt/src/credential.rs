@@ -6,10 +6,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::CredentialKeyType;
-use wallet_common::keys::EcdsaKey;
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::CredentialKeyType;
+use crypto::keys::EcdsaKey;
 
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
@@ -134,8 +134,8 @@ pub struct JwtCredentialConfirmation {
 mod tests {
     use indexmap::IndexMap;
 
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use mdoc::server_keys::generate::Ca;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use super::JwtCredential;
     use super::JwtCredentialClaims;

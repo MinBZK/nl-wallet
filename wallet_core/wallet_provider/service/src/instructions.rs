@@ -12,6 +12,7 @@ use serde::Serialize;
 use tracing::warn;
 use uuid::Uuid;
 
+use crypto::keys::EcdsaKey;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
@@ -32,7 +33,6 @@ use wallet_account::messages::instructions::IssueWteResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_common::generator::Generator;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::p256_der::DerSignature;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_provider_domain::model::hsm::WalletUserHsm;

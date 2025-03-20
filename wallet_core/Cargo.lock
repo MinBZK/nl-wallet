@@ -1360,6 +1360,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
 
 [[package]]
+name = "crypto"
+version = "0.3.0-dev"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "assert_matches",
+ "derive_more",
+ "futures",
+ "hex",
+ "hex-literal",
+ "p256",
+ "parking_lot",
+ "rand_core",
+ "rstest",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "serde",
+ "thiserror 2.0.11",
+ "trait-variant",
+ "wallet_common",
+]
+
+[[package]]
 name = "crypto-bigint"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2614,6 +2637,7 @@ dependencies = [
  "async-dropper",
  "async-trait",
  "config",
+ "crypto",
  "cryptoki",
  "dashmap 6.1.0",
  "der",
@@ -3221,6 +3245,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "error_category",
  "futures",
  "indexmap 2.7.1",
@@ -3426,6 +3451,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "coset",
+ "crypto",
  "derive_more",
  "error_category",
  "futures",
@@ -3808,6 +3834,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "configuration",
+ "crypto",
  "dashmap 6.1.0",
  "derive_more",
  "error_category",
@@ -3861,6 +3888,7 @@ dependencies = [
  "axum-extra",
  "cfg-if",
  "chrono",
+ "crypto",
  "derive_more",
  "http",
  "indexmap 2.7.1",
@@ -4114,6 +4142,7 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -4218,6 +4247,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "cfg-if",
+ "crypto",
  "derive_more",
  "error_category",
  "futures",
@@ -4242,6 +4272,7 @@ name = "poa"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "crypto",
  "derive_more",
  "futures",
  "jsonwebtoken",
@@ -5623,6 +5654,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "crypto",
  "futures",
  "hsm",
  "http",
@@ -6168,6 +6200,7 @@ dependencies = [
  "chrono",
  "configuration",
  "configuration_server",
+ "crypto",
  "ctor",
  "dotenvy",
  "gba_hc_converter",
@@ -6986,6 +7019,7 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -7060,6 +7094,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "configuration",
+ "crypto",
  "derive_more",
  "entity",
  "error_category",
@@ -7118,6 +7153,7 @@ dependencies = [
  "android_attest",
  "apple_app_attest",
  "assert_matches",
+ "crypto",
  "error_category",
  "futures",
  "jwt",
@@ -7160,8 +7196,6 @@ dependencies = [
 name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
- "aes-gcm",
- "anyhow",
  "assert_matches",
  "axum",
  "axum-server",
@@ -7169,9 +7203,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "derive_more",
- "futures",
- "hex",
- "hex-literal",
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
@@ -7213,6 +7244,7 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -7312,6 +7344,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "der",
  "derive_more",
  "futures",

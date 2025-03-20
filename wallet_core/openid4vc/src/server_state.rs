@@ -320,7 +320,7 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use crypto::mock_remote::MockRemoteKeyFactory;
     use wallet_common::wte::WTE_EXPIRY;
 
     use crate::issuance_session::mock_wte;

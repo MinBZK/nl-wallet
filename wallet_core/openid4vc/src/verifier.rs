@@ -26,6 +26,7 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
+use crypto::keys::EcdsaKey;
 use jwt::error::JwtError;
 use jwt::Jwt;
 use mdoc::server_keys::KeyPair;
@@ -33,7 +34,6 @@ use mdoc::utils::x509::CertificateError;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils::random_string;
 

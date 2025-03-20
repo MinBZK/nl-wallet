@@ -1349,6 +1349,7 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
+    use crypto::keys::EcdsaKey;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
@@ -1365,7 +1366,6 @@ mod tests {
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
     use wallet_common::generator::Generator;
-    use wallet_common::keys::EcdsaKey;
     use wallet_common::utils;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;

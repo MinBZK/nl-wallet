@@ -25,11 +25,11 @@ use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::EcdsaKey;
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::EcdsaKey;
 
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;

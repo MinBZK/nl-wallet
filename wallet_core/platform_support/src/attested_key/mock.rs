@@ -11,8 +11,8 @@ use parking_lot::RwLock;
 use rand_core::OsRng;
 use uuid::Uuid;
 
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
+use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 
 use super::AppleAssertion;
 use super::AppleAttestedKey;

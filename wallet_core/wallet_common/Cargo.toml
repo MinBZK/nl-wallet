@@ -15,23 +15,14 @@ doctest = false
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = []
 # Include implementations of the axum IntoResponse trait.
-axum = ["dep:axum", "dep:tower-http", "dep:axum-server"]
-# Include examples from the ISO specification
-examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
-# Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
-# and implement SecureEncryptionKey on aes-gcm cipher.
-mock_secure_keys = []
+axum = ["dep:axum", "dep:axum-server", "dep:tower-http"]
 # Include MockTimeGenerator
 mock_time = ["dep:parking_lot"]
-# Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
-mock_remote_key = ["dep:parking_lot", "dep:rand_core"]
 
 [dependencies]
-aes-gcm = { workspace = true, features = ["std"] }
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
-derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
-futures = { workspace = true, features = ["std", "async-await"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "from"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
@@ -56,13 +47,9 @@ url = { workspace = true, features = ["serde"] }
 x509-parser.workspace = true
 yoke = { workspace = true, features = ["derive"] }
 
-anyhow = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
-hex = { workspace = true, optional = true }
-hex-literal = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
-rand_core = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true, features = ["cors"] }
 
 [build-dependencies]

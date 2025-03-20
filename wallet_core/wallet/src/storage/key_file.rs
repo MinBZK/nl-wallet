@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use tokio::fs;
 
+use crypto::keys::SecureEncryptionKey;
 use error_category::ErrorCategory;
-use wallet_common::keys::SecureEncryptionKey;
 use wallet_common::utils;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]

@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 
-use wallet_common::keys::examples::Examples;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use crypto::examples::Examples;
+use crypto::mock_remote::MockRemoteKeyFactory;
 
 use crate::errors::Result;
 use crate::examples::Example;

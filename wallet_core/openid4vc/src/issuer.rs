@@ -21,6 +21,7 @@ use serde::Serialize;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use crypto::keys::EcdsaKey;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -40,7 +41,6 @@ use poa::Poa;
 use poa::PoaVerificationError;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::HttpsUri;
 use wallet_common::utils::random_string;

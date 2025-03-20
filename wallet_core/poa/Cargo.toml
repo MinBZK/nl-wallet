@@ -8,7 +8,7 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-mock = ["wallet_common/mock_remote_key", "dep:rand_core"]
+mock = ["crypto/mock_remote_key", "dep:rand_core"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from"] }
@@ -20,6 +20,7 @@ thiserror.workspace = true
 
 rand_core = { workspace = true, optional = true }
 
+crypto.path = "../crypto/"
 jwt.path = "../jwt"
 wallet_common.path = "../wallet_common/"
 

@@ -30,8 +30,8 @@ use p256::SecretKey;
 use p256::U256;
 use ring::error::Unspecified as UnspecifiedRingError;
 
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::EphemeralEcdsaKey;
+use crypto::keys::EcdsaKey;
+use crypto::keys::EphemeralEcdsaKey;
 use wallet_common::utils::hkdf;
 use wallet_common::utils::random_bytes;
 

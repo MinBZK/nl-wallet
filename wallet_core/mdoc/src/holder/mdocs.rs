@@ -8,11 +8,11 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::CredentialKeyType;
 use error_category::ErrorCategory;
 use sd_jwt::metadata::TypeMetadata;
 use wallet_common::generator::Generator;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::CredentialKeyType;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
 

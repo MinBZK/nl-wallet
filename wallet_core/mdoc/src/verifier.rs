@@ -353,7 +353,7 @@ mod tests {
     use chrono::Utc;
     use rstest::rstest;
 
-    use wallet_common::keys::examples::Examples;
+    use crypto::examples::Examples;
 
     use crate::examples::example_items_requests;
     use crate::examples::Example;

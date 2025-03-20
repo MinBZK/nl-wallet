@@ -25,14 +25,14 @@ use x509_parser::der_parser::Oid;
 use x509_parser::prelude::FromDer;
 use x509_parser::x509::AlgorithmIdentifier;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 use mdoc::server_keys::KeyPair;
 use mdoc::utils::x509::BorrowingCertificate;
 use mdoc::utils::x509::CertificateUsage;
 use wallet_common::generator::Generator;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::error::JwtError;
@@ -529,12 +529,12 @@ mod tests {
     use rand_core::OsRng;
     use serde_json::json;
 
+    use crypto::mock_remote::MockRemoteKeyFactory;
     use mdoc::server_keys::generate::Ca;
     use mdoc::utils::x509::CertificateConfiguration;
     use mdoc::utils::x509::CertificateError;
     use mdoc::utils::x509::CertificateUsage;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use super::*;
 

@@ -173,10 +173,10 @@ impl TestDocument {
         copy_count: NonZeroU8,
     ) -> crate::holder::Mdoc
     where
-        KF: wallet_common::keys::factory::KeyFactory,
+        KF: crypto::factory::KeyFactory,
     {
+        use crypto::keys::WithIdentifier;
         use wallet_common::generator::TimeGenerator;
-        use wallet_common::keys::WithIdentifier;
 
         use crate::holder::Mdoc;
 
@@ -200,9 +200,9 @@ impl TestDocument {
         copy_count: NonZeroU8,
     ) -> (crate::IssuerSigned, KF::Key)
     where
-        KF: wallet_common::keys::factory::KeyFactory,
+        KF: crypto::factory::KeyFactory,
     {
-        use wallet_common::keys::EcdsaKey;
+        use crypto::keys::EcdsaKey;
 
         use crate::iso::disclosure::IssuerSigned;
         use crate::utils::issuer_auth::IssuerRegistration;

@@ -1,9 +1,9 @@
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
 use sd_jwt::metadata::TypeMetadata;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 
 use crate::errors::Result;
 use crate::identifiers::AttributeIdentifier;
@@ -204,8 +204,8 @@ impl<I> ProposedDocument<I> {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use sd_jwt::metadata::TypeMetadata;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
 
@@ -239,7 +239,7 @@ mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
 
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use crypto::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::Error;
     use crate::holder::Mdoc;

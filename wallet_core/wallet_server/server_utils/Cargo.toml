@@ -53,6 +53,7 @@ sea-orm = { workspace = true, optional = true, features = [
 serde_json = { workspace = true, optional = true }
 strum = { workspace = true, optional = true, features = ["derive"] }
 
+crypto.path = "../../crypto"
 hsm.path = "../../hsm"
 mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }

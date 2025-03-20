@@ -1,7 +1,6 @@
 pub mod built_info;
 pub mod generator;
 pub mod http_error;
-pub mod keys;
 pub mod p256_der;
 pub mod reqwest;
 pub mod spawn;

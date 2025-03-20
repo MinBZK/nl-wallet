@@ -7,13 +7,13 @@ use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
 
+use crypto::keys::EcdsaKey;
 use sd_jwt::metadata::ResourceIntegrity;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use sd_jwt::metadata::COSE_METADATA_HEADER_LABEL;
 use sd_jwt::metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::iso::*;
@@ -141,13 +141,13 @@ mod tests {
 
     use chrono::Days;
     use ciborium::Value;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata::TypeMetadataChain;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
     use crate::server_keys::generate::Ca;

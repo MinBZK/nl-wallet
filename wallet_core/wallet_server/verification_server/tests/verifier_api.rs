@@ -25,6 +25,8 @@ use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteKeyFactory;
 use hsm::service::Pkcs11Hsm;
 use mdoc::examples::Example;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
@@ -73,8 +75,6 @@ use verification_server::settings::VerifierSettings;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
