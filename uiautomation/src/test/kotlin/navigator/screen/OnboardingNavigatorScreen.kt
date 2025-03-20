@@ -5,6 +5,7 @@ enum class OnboardingNavigatorScreen {
     IntroductionPrivacy,
     SecurityChoosePin,
     SecurityConfirmPin,
+    SetupSecurityConfigureBiometrics,
     SecuritySetupCompleted,
     PersonalizeInform,
     DigidLoginStartWebPage,

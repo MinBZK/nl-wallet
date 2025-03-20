@@ -6,10 +6,9 @@ class HistoryOverviewScreen : MobileActions() {
 
     private val screen = find.byValueKey("historyOverviewScreen")
 
-    private val pidCardTitle = find.byText(l10n.getString("pidIdCardTitle"))
-    private val addressCardTitle = find.byText(l10n.getString("pidAddressCardTitle"))
+    private val pidCardTitle = find.byText(l10n.translate("NL Wallet persoonsgegevens"))
+    private val addressCardTitle = find.byText(l10n.translate("NL Wallet adres"))
     private val disclosureLoginSubtitle = find.byText(l10n.getString("cardHistoryLoginSuccess"))
-    private val disclosureSharedDataSubtitle = find.byText(l10n.getString("historyDetailScreenSharedAttributesTitle"))
 
     private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
 
