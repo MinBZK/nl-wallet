@@ -78,9 +78,12 @@ pub struct CredentialPayload {
 }
 
 impl CredentialPayload {
-    pub fn from_unsigned_mdoc(unsigned_mdoc: UnsignedMdoc) -> Result<Self, CredentialPayloadError> {
+    pub fn from_unsigned_mdoc(
+        unsigned_mdoc: UnsignedMdoc,
+        type_metadata: &TypeMetadataChain,
+    ) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            unsigned_mdoc.doc_type,
+            type_metadata,
             unsigned_mdoc.attributes.into(),
             unsigned_mdoc.issuer_uri,
             Some(Utc::now()),
@@ -89,9 +92,9 @@ impl CredentialPayload {
         )
     }
 
-    pub fn from_mdoc(mdoc: Mdoc) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc, type_metadata: &TypeMetadataChain) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            mdoc.mso.doc_type,
+            type_metadata,
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
@@ -100,53 +103,19 @@ impl CredentialPayload {
         )
     }
 
-    /// Convert a map of namespaced entries (`Entry`) to a `CredentialPayload`. The namespace is required to consist of
-    /// nested group names, joined by a '.' and prefixed with the attestation_type.
-    ///
-    /// If the `attributes` input parameter is as follows (denoted here in JSON):
-    /// ```json
-    /// {
-    ///     "com.example.pid": {
-    ///         "birthdate": "1963-08-12",
-    ///     },
-    ///     "com.example.pid.place_of_birth": {
-    ///         "locality": "The Hague",
-    ///     },
-    ///     "com.example.pid.place_of_birth.country": {
-    ///         "name": "The Netherlands",
-    ///         "area_code": 31
-    ///     }
-    /// }
-    /// ```
-    ///
-    /// Then the output is as follows (denoted here in JSON):
-    /// ```json
-    /// {
-    ///     "birthdate": "1963-08-12",
-    ///     "place_of_birth": {
-    ///         "locality": "The Hague",
-    ///         "country": {
-    ///             "name": "The Netherlands",
-    ///             "area_code": 31
-    ///         }
-    ///     }
-    /// }
-    /// ```
-    ///
-    /// Note in particular that attributes in a namespace whose names equals the `doc_type` parameter are mapped to the
-    /// root level of the output.
     fn from_mdoc_attributes(
-        attestation_type: String,
+        type_metadata: &TypeMetadataChain,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,
         not_before: Option<DateTime<Utc>>,
     ) -> Result<Self, CredentialPayloadError> {
-        let attributes = Attribute::from_mdoc_attributes(&attestation_type, mdoc_attributes)?;
+        let metadata = type_metadata.verify()?;
+        let attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         let payload = Self {
-            attestation_type,
+            attestation_type: metadata.into_inner().vct,
             issuer,
             issued_at,
             expires,
@@ -154,10 +123,12 @@ impl CredentialPayload {
             attributes,
         };
 
+        payload.validate(type_metadata)?;
+
         Ok(payload)
     }
 
-    pub fn validate(&self, metadata_chain: &TypeMetadataChain) -> Result<(), CredentialPayloadError> {
+    fn validate(&self, metadata_chain: &TypeMetadataChain) -> Result<(), CredentialPayloadError> {
         let metadata = metadata_chain.verify()?;
         metadata.validate(&serde_json::to_value(self)?)?;
         Ok(())

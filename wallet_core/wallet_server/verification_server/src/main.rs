@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 
 use hsm::service::Pkcs11Hsm;
@@ -21,10 +23,10 @@ async fn main_impl(settings: VerifierSettings) -> Result<()> {
         .transpose()?;
 
     let storage_settings = &settings.server_settings.storage;
-    let sessions = SessionStoreVariant::new(
+    let sessions = Arc::new(SessionStoreVariant::new(
         DatabaseConnection::try_new(storage_settings.url.clone()).await?,
         storage_settings.into(),
-    );
+    ));
 
     // This will block until the server shuts down.
     server::serve(settings, hsm, sessions).await

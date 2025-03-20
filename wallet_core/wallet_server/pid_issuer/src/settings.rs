@@ -121,7 +121,7 @@ impl IssuerSettings {
     pub fn metadata(&self) -> IndexMap<String, TypeMetadata> {
         self.metadata
             .iter()
-            .map(|type_metadata| (type_metadata.vct.clone(), type_metadata.clone()))
+            .map(|type_metadata| (type_metadata.as_ref().vct.clone(), type_metadata.clone()))
             .collect()
     }
 }

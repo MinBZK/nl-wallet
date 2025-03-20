@@ -186,7 +186,8 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
   }
 
   BorderSide? _resolveBorderSide(BuildContext context, Set<WidgetState> states) {
-    return !states.isPressedOrFocused
+    // Override all non-focused states to always display a border
+    return !states.isFocused
         ? BaseWalletTheme.buttonBorderSideFocused.copyWith(
             color: context.colorScheme.outlineVariant,
             strokeAlign: BorderSide.strokeAlignOutside,

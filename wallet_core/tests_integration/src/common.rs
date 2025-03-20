@@ -4,6 +4,7 @@ use std::net::IpAddr;
 use std::net::TcpListener;
 use std::process;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use ctor::ctor;
@@ -411,7 +412,7 @@ pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
         .await
         .unwrap();
 
-    let issuance_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
     let wte_tracker = WteTrackerVariant::new(db_connection);
 
     tokio::spawn(async move {
@@ -459,7 +460,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         .await
         .unwrap();
 
-    let disclosure_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let disclosure_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
 
     tokio::spawn(async move {
         if let Err(error) = verification_server::server::serve_with_listeners(

@@ -1,13 +1,17 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
+use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
+use nutype::nutype;
 use serde::de;
 use serde::ser;
 use serde::Deserialize;
@@ -41,6 +45,12 @@ pub enum TypeMetadataError {
 
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
+
+    #[error("unsupported claim path '{}'", .0.iter().join("."))]
+    UnsupportedClaimPath(VecNonEmpty<ClaimPath>),
+
+    #[error("detected claim path collision")]
+    ClaimPathCollision,
 }
 
 /// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
@@ -131,10 +141,25 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
     }
 }
 
-/// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+/// SD-JWT VC type metadata document.
+/// See: https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#name-type-metadata-format
+///
+/// Note that within the context of the wallet app we place additional constraints on the contents of this document,
+/// most of which stem from practical concerns. These constraints consist of the following:
+///
+/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
+/// * Attributes contained in arrays are not (yet) supported.
+/// * Optional attributes are not yet supported. This means that every claim path in the metadata must be present as an
+///   attribute provided by the issuer.
+/// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
+///   type is known.
+/// * Every attribute in the attestation received from the issuer should have corresponding claim metadata, so that the
+///   attribute can be rendered for display to the user.
+/// * Claims that cover a group of attributes are not (yet) supported and will not be accepted, as rendering groups of
+///   attributes covered by the same display data is not supported by the UI.
 #[skip_serializing_none]
-pub struct TypeMetadata {
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UncheckedTypeMetadata {
     /// A String or URI that uniquely identifies the type.
     pub vct: String,
 
@@ -159,6 +184,75 @@ pub struct TypeMetadata {
     /// A JSON Schema document describing the structure of the Verifiable Credential
     #[serde(flatten)]
     pub schema: SchemaOption,
+}
+
+#[nutype(
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize),
+    validate(with = UncheckedTypeMetadata::check_metadata_consistency, error = TypeMetadataError),
+)]
+pub struct TypeMetadata(UncheckedTypeMetadata);
+
+impl UncheckedTypeMetadata {
+    pub fn check_metadata_consistency(unchecked_metadata: &UncheckedTypeMetadata) -> Result<(), TypeMetadataError> {
+        unchecked_metadata.detect_path_collisions()
+    }
+
+    fn detect_path_collisions(&self) -> Result<(), TypeMetadataError> {
+        let mut paths: HashSet<String> = HashSet::new();
+
+        for claim in &self.claims {
+            // Flatten all claim paths by joining them with a '.'
+            let flattened_key = claim
+                .path
+                .iter()
+                .map(|path| {
+                    path.try_key_path()
+                        .ok_or(TypeMetadataError::UnsupportedClaimPath(claim.path.clone()))
+                })
+                .try_collect()
+                .map(|paths: Vec<&str>| paths.join("."))?;
+
+            // If inserting the flattened key in the set returns false, it means it is already in the set and there
+            // is a collision.
+            if !paths.insert(flattened_key) {
+                return Err(TypeMetadataError::ClaimPathCollision);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl TypeMetadata {
+    pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
+        let bytes: Vec<u8> = serde_json::to_vec(&self.as_ref())?;
+        Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
+    }
+
+    pub fn try_from_base64(encoded: &str) -> Result<Self, TypeMetadataError> {
+        let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
+        Self::try_new(serde_json::from_slice::<UncheckedTypeMetadata>(&bytes)?)
+    }
+
+    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
+        if let SchemaOption::Embedded { schema } = &self.as_ref().schema {
+            schema
+                .validator
+                .validate(json_claims)
+                .map_err(ValidationError::to_owned)?;
+            Ok(())
+        } else {
+            Err(TypeMetadataError::UnsupportedSchemaOption(self.as_ref().schema.clone()))
+        }
+    }
+}
+
+impl TryFrom<&TypeMetadata> for Vec<u8> {
+    type Error = serde_json::Error;
+
+    fn try_from(value: &TypeMetadata) -> Result<Self, Self::Error> {
+        serde_json::to_vec(value)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Into, Serialize, Deserialize)]
@@ -186,46 +280,6 @@ impl ResourceIntegrity {
     }
 }
 
-impl TypeMetadata {
-    pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
-        let bytes: Vec<u8> = serde_json::to_vec(&self)?;
-        Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
-    }
-
-    pub fn try_from_base64(encoded: &str) -> Result<Self, TypeMetadataError> {
-        let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
-        Ok(serde_json::from_slice(&bytes)?)
-    }
-
-    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
-        if let SchemaOption::Embedded { schema } = &self.schema {
-            schema
-                .validator
-                .validate(json_claims)
-                .map_err(ValidationError::to_owned)?;
-            Ok(())
-        } else {
-            Err(TypeMetadataError::UnsupportedSchemaOption(self.schema.clone()))
-        }
-    }
-}
-
-impl TryFrom<Vec<u8>> for TypeMetadata {
-    type Error = serde_json::Error;
-
-    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        serde_json::from_slice(&value)
-    }
-}
-
-impl TryFrom<&TypeMetadata> for Vec<u8> {
-    type Error = serde_json::Error;
-
-    fn try_from(value: &TypeMetadata) -> Result<Self, Self::Error> {
-        serde_json::to_vec(value)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum MetadataExtendsOption {
@@ -245,6 +299,12 @@ pub struct MetadataExtends {
     pub extends: Uri,
 
     /// Validating the integrity of the extends field.
+    /// Note that this is optional in the specification, but we consider this mandatory:
+    /// * If the metadata this type extends is fetched from an external URI, the integrity digest guarantees that its
+    ///   contents match what is expected by the issuer.
+    /// * If the metadata is included with issuance, e.g. in an unprotected header, a chain of integrity digests that
+    ///   starts from a digest included in a signed section of the attestation acts as a de facto signature, protecting
+    ///   against tampering. In SD-JWT the `vct#integrity` claim would contain this first digest.
     #[serde(rename = "extends#integrity")]
     pub extends_integrity: SpecOptionalImplRequired<String>,
 }
@@ -261,6 +321,9 @@ pub enum SchemaOption {
         #[serde(with = "http_serde::uri")]
         schema_uri: Uri,
         /// Validating the integrity of the schema_uri field.
+        /// Note that although this is optional in the specification, we consider validation using a digest mandatory
+        /// if the schema is to be fetched from an external URI, in order to check that this matches the
+        /// contents as intended by the issuer.
         #[serde(rename = "schema_uri#integrity")]
         schema_uri_integrity: SpecOptionalImplRequired<String>,
     },
@@ -380,8 +443,8 @@ pub enum JsonSchemaPropertyFormat {
     Other,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisplayMetadata {
     pub lang: String,
     pub name: String,
@@ -389,9 +452,9 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
-#[skip_serializing_none]
 pub enum RenderingMetadata {
     Simple {
         logo: Option<LogoMetadata>,
@@ -406,14 +469,19 @@ pub struct LogoMetadata {
     #[serde(with = "http_serde::uri")]
     pub uri: Uri,
 
+    /// Note that although this is optional in the specification, we consider validation using a digest mandatory if
+    /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended
+    /// by the issuer.
     #[serde(rename = "uri#integrity")]
     pub uri_integrity: SpecOptionalImplRequired<String>,
 
+    /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
+    /// because of accessibility requirements.
     pub alt_text: SpecOptionalImplRequired<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimMetadata {
     pub path: VecNonEmpty<ClaimPath>,
 
@@ -434,6 +502,22 @@ pub enum ClaimPath {
     SelectByIndex(usize),
 }
 
+impl ClaimPath {
+    pub fn try_key_path(&self) -> Option<&str> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key.as_str()),
+            _ => None,
+        }
+    }
+
+    pub fn try_into_key_path(self) -> Option<String> {
+        match self {
+            ClaimPath::SelectByKey(key) => Some(key),
+            _ => None,
+        }
+    }
+}
+
 impl Display for ClaimPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -441,6 +525,20 @@ impl Display for ClaimPath {
             ClaimPath::SelectAll => f.write_str("*"),
             ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
         }
+    }
+}
+
+impl Display for ClaimMetadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            self.path
+                .iter()
+                .map(|p| format!("[{}]", p))
+                .collect::<Vec<String>>()
+                .join("")
+        )
     }
 }
 
@@ -453,8 +551,8 @@ pub enum ClaimSelectiveDisclosureMetadata {
     Never,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[skip_serializing_none]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimDisplayMetadata {
     pub lang: String,
     pub label: String,
@@ -480,12 +578,13 @@ pub mod mock {
     use crate::metadata::JsonSchemaPropertyType;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
+    use crate::metadata::UncheckedTypeMetadata;
 
     const ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/address-metadata.json");
     const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
     const PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/pid-metadata.json");
 
-    impl TypeMetadata {
+    impl UncheckedTypeMetadata {
         pub fn empty_example() -> Self {
             Self {
                 vct: random_string(16),
@@ -499,12 +598,19 @@ pub mod mock {
                 },
             }
         }
+    }
+
+    impl TypeMetadata {
+        pub fn empty_example() -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example()).unwrap()
+        }
 
         pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
-            Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata {
                 vct: String::from(attestation_type),
-                ..Self::empty_example()
-            }
+                ..UncheckedTypeMetadata::empty_example()
+            })
+            .unwrap()
         }
 
         pub fn example_with_claim_name(
@@ -520,7 +626,7 @@ pub mod mock {
             attestation_type: &str,
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
-            Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata {
                 vct: String::from(attestation_type),
                 claims: names
                     .iter()
@@ -538,8 +644,9 @@ pub mod mock {
                 schema: SchemaOption::Embedded {
                     schema: Box::new(JsonSchema::example_with_claim_names(names)),
                 },
-                ..Self::empty_example()
-            }
+                ..UncheckedTypeMetadata::empty_example()
+            })
+            .unwrap()
         }
 
         pub fn address_example() -> Self {
@@ -598,13 +705,14 @@ mod test {
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
     use crate::metadata::TypeMetadataError;
+    use crate::metadata::UncheckedTypeMetadata;
 
-    #[tokio::test]
-    async fn test_deserialize() {
+    #[test]
+    fn test_deserialize() {
         let metadata = TypeMetadata::example();
         assert_eq!(
             "https://sd_jwt_vc_metadata.example.com/example_credential",
-            metadata.vct
+            metadata.as_ref().vct
         );
     }
 
@@ -619,7 +727,10 @@ mod test {
         }))
         .unwrap();
 
-        assert_matches!(metadata.extends, Some(MetadataExtendsOption::Identifier { .. }));
+        assert_matches!(
+            metadata.as_ref().extends,
+            Some(MetadataExtendsOption::Identifier { .. })
+        );
     }
 
     #[test]
@@ -634,8 +745,8 @@ mod test {
         }))
         .unwrap();
 
-        assert_matches!(metadata.extends, Some(MetadataExtendsOption::Uri { .. }));
-        assert_matches!(metadata.schema, SchemaOption::Remote { .. });
+        assert_matches!(metadata.as_ref().extends, Some(MetadataExtendsOption::Uri { .. }));
+        assert_matches!(metadata.as_ref().schema, SchemaOption::Remote { .. });
     }
 
     #[test]
@@ -679,7 +790,7 @@ mod test {
                 ClaimPath::SelectByKey(String::from("country")),
                 ClaimPath::SelectByKey(String::from("area_code")),
             ],
-            metadata.claims[3].path.clone().into_inner()
+            metadata.as_ref().claims[3].path.clone().into_inner()
         );
 
         metadata.validate(&claims).unwrap();
@@ -737,7 +848,8 @@ mod test {
                 kind: ValidationErrorKind::Format { format },
                 instance_path,
                 ..
-            })) if instance.to_string() == format!("\"{}\"", date_str) && format == "date" && instance_path.to_string() == "/birth_date"
+            })) if instance.to_string() == format!("\"{}\"", date_str)
+                    && format == "date" && instance_path.to_string() == "/birth_date"
         );
     }
 
@@ -747,5 +859,66 @@ mod test {
         let bytes = serde_json::to_vec(&metadata).unwrap();
         let integrity = ResourceIntegrity::from_bytes(&bytes);
         integrity.verify(&bytes).unwrap();
+    }
+
+    #[test]
+    fn test_claim_path_collision() {
+        let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                { "path": ["address.street"] },
+                { "path": ["address", "street"] },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .unwrap()
+        .detect_path_collisions();
+
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
+    }
+
+    #[test]
+    fn test_claim_path_collisions() {
+        let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                { "path": ["a.b"] },
+                { "path": ["a", "b"] },
+                { "path": ["x.y", "z"] },
+                { "path": ["x", "y.z"] },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .unwrap()
+        .detect_path_collisions();
+
+        dbg!(&result);
+
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
+    }
+
+    #[test]
+    fn should_detect_claim_path_collision_for_deserializing_typemetadata() {
+        assert!(serde_json::from_value::<TypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                { "path": ["address.street"] },
+                { "path": ["address", "street"] },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .is_err());
     }
 }

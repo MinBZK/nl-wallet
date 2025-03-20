@@ -46,23 +46,30 @@ class _FadeInAtOffsetState extends State<FadeInAtOffset> with AfterLayoutMixin<F
   bool _afterFirstLayout = false;
   ScrollController? _scrollController;
 
+  bool get scrollControllerHasClients => _scrollController?.hasClients ?? false;
+
+  double get offset =>
+      context.read<ScrollOffset?>()?.offset ?? (scrollControllerHasClients ? _scrollController!.offset : 0);
+
+  double get maxScrollExtent =>
+      context.read<ScrollOffset?>()?.maxScrollExtent ??
+      (scrollControllerHasClients ? _scrollController!.position.maxScrollExtent : double.infinity);
+
   @override
   Widget build(BuildContext context) {
     final scrollOffset = context.watch<ScrollOffset?>();
 
     /// Check if we are ready to build, as before the first layout the _scrollController will not be initialized.
     if (scrollOffset == null && !_afterFirstLayout) return const SizedBox.shrink();
-    final scrollControllerHasClients = _scrollController?.hasClients ?? false;
-    final offset = scrollOffset?.offset ?? (scrollControllerHasClients ? _scrollController!.offset : 0);
-    final maxScrollExtent = scrollOffset?.maxScrollExtent ??
-        (scrollControllerHasClients ? _scrollController!.position.maxScrollExtent : double.infinity);
 
-    // When the maxScrollExtent is smaller then where the child would appear, simply never show the child.
-    if (maxScrollExtent <= widget.appearOffset) return const SizedBox.shrink();
+    double startAppearingAt = widget.appearOffset;
+    double completelyVisibleAt = widget.visibleOffset;
 
-    // We make sure the widget will always animate to 100% opacity by comparing it with the maximum scrollable extend.
-    final startAppearingAt = min(widget.appearOffset, maxScrollExtent - 1);
-    final completelyVisibleAt = min(widget.visibleOffset, maxScrollExtent);
+    if (maxScrollExtent > 0 /* if maxScrollExtent is 0, we only animate for the overscroll */) {
+      // We make sure the widget will always animate to 100% opacity by comparing it with the maximum scrollable extend.
+      startAppearingAt = min(widget.appearOffset, maxScrollExtent - 1);
+      completelyVisibleAt = min(widget.visibleOffset, maxScrollExtent);
+    }
 
     // Exclude the widget from focus and pointer events when it's not visible.
     final completelyInvisible = offset <= startAppearingAt;

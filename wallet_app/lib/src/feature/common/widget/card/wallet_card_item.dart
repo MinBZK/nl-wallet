@@ -278,6 +278,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
             text: Text(context.l10n.showDetailsCta),
             textColor: widget.textColor,
             onPressed: widget.onPressed,
+            statesController: _statesController,
           ),
         ),
       ),

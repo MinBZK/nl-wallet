@@ -201,7 +201,7 @@ class SetupSecurityScreen extends StatelessWidget {
       illustration: PageIllustration(asset: illustration),
       onPrimaryPressed: () => context.bloc.add(EnableBiometricsPressed()),
       secondaryButtonCta: context.l10n.setupBiometricsPageSkipCta,
-      primaryButtonIcon: state.biometrics.icon,
+      primaryButtonIcon: Icon(state.biometrics.icon),
       onSecondaryButtonPressed: () => context.bloc.add(SkipBiometricsPressed()),
     );
   }
