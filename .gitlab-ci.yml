@@ -108,6 +108,10 @@ variables:
   rules:
     - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $BUILD == "mock"
 
+.on-demo-build:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $BUILD == "demo"
+
 .ruby-cache:
   cache:
     key: ruby-${CI_COMMIT_REF_SLUG}
