@@ -124,6 +124,16 @@ abstract class WalletMockData {
         type: DisclosureType.login,
       ) as DisclosureEvent;
 
+  static DisclosureEvent get failedLoginEvent => WalletEvent.disclosure(
+        dateTime: DateTime(2024, 2, 1),
+        status: EventStatus.error,
+        relyingParty: organization,
+        purpose: 'disclosure'.untranslated,
+        cards: [card],
+        policy: policy,
+        type: DisclosureType.login,
+      ) as DisclosureEvent;
+
   static SignEvent get signEvent => WalletEvent.sign(
         dateTime: DateTime(2024, 1, 1),
         status: EventStatus.success,
