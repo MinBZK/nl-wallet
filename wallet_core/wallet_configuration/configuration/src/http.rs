@@ -1,11 +1,11 @@
 use std::hash::DefaultHasher;
 use std::hash::Hash;
 use std::hash::Hasher;
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 use std::io;
 use std::path::Path;
 
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 use axum_server::tls_rustls::RustlsConfig;
 use derive_more::Debug;
 use http::Method;
@@ -15,14 +15,14 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use crate::reqwest::tls_pinned_client_builder;
-use crate::reqwest::ClientBuilder;
-use crate::reqwest::JsonClientBuilder;
-use crate::reqwest::JsonReqwestBuilder;
-use crate::reqwest::RequestBuilder;
-use crate::reqwest::ReqwestBuilder;
-use crate::reqwest::ReqwestTrustAnchor;
-use crate::urls::BaseUrl;
+use wallet_common::reqwest::tls_pinned_client_builder;
+use wallet_common::reqwest::ClientBuilder;
+use wallet_common::reqwest::JsonClientBuilder;
+use wallet_common::reqwest::JsonReqwestBuilder;
+use wallet_common::reqwest::RequestBuilder;
+use wallet_common::reqwest::ReqwestBuilder;
+use wallet_common::reqwest::ReqwestTrustAnchor;
+use wallet_common::urls::BaseUrl;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -92,26 +92,26 @@ impl TlsPinningConfig {
     }
 }
 
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 impl TlsServerConfig {
     pub async fn to_rustls_config(&self) -> Result<RustlsConfig, io::Error> {
         RustlsConfig::from_der(vec![self.cert.to_vec()], self.key.to_vec()).await
     }
 }
 
-#[cfg(any(test, feature = "insecure_http_client"))]
+#[cfg(feature = "insecure_http_client")]
 pub mod test {
     use std::path::Path;
 
     use http::Method;
     use reqwest::Client;
 
-    use crate::reqwest::ClientBuilder;
-    use crate::reqwest::JsonClientBuilder;
-    use crate::reqwest::JsonReqwestBuilder;
-    use crate::reqwest::RequestBuilder;
-    use crate::reqwest::ReqwestBuilder;
-    use crate::urls::BaseUrl;
+    use wallet_common::reqwest::ClientBuilder;
+    use wallet_common::reqwest::JsonClientBuilder;
+    use wallet_common::reqwest::JsonReqwestBuilder;
+    use wallet_common::reqwest::RequestBuilder;
+    use wallet_common::reqwest::ReqwestBuilder;
+    use wallet_common::urls::BaseUrl;
 
     pub struct HttpConfig {
         pub base_url: BaseUrl,

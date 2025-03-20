@@ -2,7 +2,6 @@
 members = [
     "android_attest",
     "apple_app_attest",
-    "configuration_server",
     "error_category",
     "error_category/error_category_derive",
     "flutter_api",
@@ -24,6 +23,8 @@ members = [
     "wallet/migrations",
     "wallet_ca",
     "wallet_common",
+    "wallet_configuration/configuration",
+    "wallet_configuration/configuration_server",
     "wallet_provider",
     "wallet_provider/database_settings",
     "wallet_provider/domain",

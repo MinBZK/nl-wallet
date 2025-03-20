@@ -29,6 +29,14 @@ pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 
+pub mod configuration {
+    pub use configuration::wallet_config::AccountServerConfiguration;
+    pub use configuration::wallet_config::DisclosureConfiguration;
+    pub use configuration::wallet_config::LockTimeoutConfiguration;
+    pub use configuration::wallet_config::PidIssuanceConfiguration;
+    pub use configuration::wallet_config::WalletConfiguration;
+}
+
 pub mod mdoc {
     pub use mdoc::utils::auth::Image;
     pub use mdoc::utils::auth::ImageType;
@@ -55,11 +63,6 @@ pub mod sd_jwt {
 
 pub mod wallet_common {
     pub use wallet_common::built_info::version_string;
-    pub use wallet_common::config::wallet_config::AccountServerConfiguration;
-    pub use wallet_common::config::wallet_config::DisclosureConfiguration;
-    pub use wallet_common::config::wallet_config::LockTimeoutConfiguration;
-    pub use wallet_common::config::wallet_config::PidIssuanceConfiguration;
-    pub use wallet_common::config::wallet_config::WalletConfiguration;
     pub use wallet_common::update_policy::VersionState;
     pub use wallet_common::urls::BaseUrl;
 }

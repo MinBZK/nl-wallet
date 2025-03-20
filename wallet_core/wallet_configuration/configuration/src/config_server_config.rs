@@ -5,9 +5,10 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::DurationSeconds;
 
-use crate::config::http::TlsPinningConfig;
-use crate::config::EnvironmentSpecific;
-use crate::p256_der::DerVerifyingKey;
+use wallet_common::p256_der::DerVerifyingKey;
+
+use crate::http::TlsPinningConfig;
+use crate::EnvironmentSpecific;
 
 #[serde_as]
 #[derive(Debug, Clone, Deserialize)]

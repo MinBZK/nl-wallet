@@ -1,0 +1,28 @@
+[package]
+name = "configuration"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# Include implementations of the axum IntoResponse trait.
+server = ["dep:axum-server"]
+# Various test related functionality
+insecure_http_client = []
+
+[dependencies]
+derive_more = { workspace = true, features = ["debug"] }
+etag.workspace = true
+http.workspace = true
+reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
+rustls-pki-types.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["base64"] }
+url = { workspace = true, features = ["serde"] }
+
+wallet_common.path = "../../wallet_common"
+
+axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }

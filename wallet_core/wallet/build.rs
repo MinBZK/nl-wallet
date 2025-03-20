@@ -5,9 +5,9 @@ use std::path::PathBuf;
 
 use serde::de::DeserializeOwned;
 
-use wallet_common::config::config_server_config::ConfigServerConfiguration;
-use wallet_common::config::wallet_config::WalletConfiguration;
-use wallet_common::config::EnvironmentSpecific;
+use configuration::config_server_config::ConfigServerConfiguration;
+use configuration::wallet_config::WalletConfiguration;
+use configuration::EnvironmentSpecific;
 use wallet_common::utils;
 
 /// Add a temporary workaround for compiling for the Android x86_64 target, which is missing a symbol required by
