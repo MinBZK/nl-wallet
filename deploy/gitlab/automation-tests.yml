@@ -27,6 +27,7 @@ automation-compile-check:
   resource_group: automation-tests
   extends: .run-automation-tests-base
   artifacts:
+    name: uiautomation
     when: always
     paths:
       - uiautomation/build/test-results/**/*.xml
@@ -170,6 +171,7 @@ run-mrp-browsertest-test-ont:
     - deploy/bin/store-artifact.sh browsertests/packages/mock-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-mrp.zip browsertests/packages/mock-relying-party/allure-results/*
   artifacts:
+    name: browsertest-mrp
     when: always
     paths:
       - browsertests/packages/mock-relying-party/test-results/*.xml
@@ -196,6 +198,7 @@ run-fallback-page-browsertest-test-ont:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-fallback-pages.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip browsertests/packages/fallback-pages/allure-results/*
   artifacts:
+    name: browsertest-fallback-page
     when: always
     paths:
       - browsertests/packages/fallback-pages/test-results/*.xml
@@ -223,6 +226,7 @@ run-gba-fetch-browsertest-test-ont:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/test-results-*/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/allure-results/*
   artifacts:
+    name: browsertest-gba-fetch
     when: always
     paths:
       - browsertests/packages/gba-fetch/test-results-*/*.xml
@@ -312,6 +316,7 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
       echo "Generated test-all-android-devices.yml:"
       cat test-all-android-devices.yml
   artifacts:
+    name: browserstack-all-devices
     paths:
       - test-all-android-devices.yml
     expire_in: 1 hour

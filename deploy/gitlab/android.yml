@@ -1,6 +1,7 @@
 #test-android:
 #  rules: !reference [.default-or-release-or-merge-request, rules]
 #  artifacts:
+#    name: test-android
 #    when: always
 #    reports:
 #      coverage_report:
@@ -43,7 +44,7 @@
     - job: test-rust-compilation-android
       artifacts: false
   artifacts:
-    name: "wallet-android"
+    name: wallet-android
     paths:
       - "*.aab"
       - "*.apk"
