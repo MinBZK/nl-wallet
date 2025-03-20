@@ -34,7 +34,7 @@ class UpdateInfoScreen extends StatelessWidget {
                       title: context.l10n.updateInfoScreenTitle,
                       actions: const [HelpIconButton(), CloseIconButton()],
                       scrollController: PrimaryScrollController.maybeOf(context),
-                      automaticallyImplyLeading: true,
+                      automaticallyImplyLeading: false,
                     ),
                     SliverPadding(
                       sliver: ParagraphedSliverList.splitContent(
@@ -44,11 +44,11 @@ class UpdateInfoScreen extends StatelessWidget {
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
-                    const SliverToBoxAdapter(
+                    SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
+                        padding: const EdgeInsets.symmetric(vertical: 24),
                         child: PageIllustration(
-                          asset: WalletAssets.svg_update_app,
+                          asset: Platform.isIOS ? WalletAssets.svg_update_app_ios : WalletAssets.svg_update_app,
                         ),
                       ),
                     ),
