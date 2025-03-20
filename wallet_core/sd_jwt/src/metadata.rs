@@ -7,7 +7,6 @@ use std::fmt::Formatter;
 use base64::prelude::*;
 use derive_more::Into;
 use http::Uri;
-use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
@@ -45,9 +44,6 @@ pub enum TypeMetadataError {
 
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
-
-    #[error("unsupported claim path '{}'", .0.iter().join("."))]
-    UnsupportedClaimPath(VecNonEmpty<ClaimPath>),
 
     #[error("detected claim path collision")]
     ClaimPathCollision,
@@ -149,8 +145,7 @@ impl<'de> Deserialize<'de> for EncodedTypeMetadata {
 ///
 /// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
 /// * Attributes contained in arrays are not (yet) supported.
-/// * Optional attributes are not yet supported. This means that every claim path in the metadata must be present as an
-///   attribute provided by the issuer.
+/// * Optional attributes are not yet supported.
 /// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
 ///   type is known.
 /// * Every attribute in the attestation received from the issuer should have corresponding claim metadata, so that the
@@ -205,12 +200,9 @@ impl UncheckedTypeMetadata {
             let flattened_key = claim
                 .path
                 .iter()
-                .map(|path| {
-                    path.try_key_path()
-                        .ok_or(TypeMetadataError::UnsupportedClaimPath(claim.path.clone()))
-                })
-                .try_collect()
-                .map(|paths: Vec<&str>| paths.join("."))?;
+                .filter_map(|path| path.try_key_path())
+                .collect::<Vec<_>>()
+                .join(".");
 
             // If inserting the flattened key in the set returns false, it means it is already in the set and there
             // is a collision.
@@ -693,6 +685,8 @@ pub mod mock {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use jsonschema::error::ValidationErrorKind;
     use jsonschema::ValidationError;
@@ -881,16 +875,16 @@ mod test {
         assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
     }
 
-    #[test]
-    fn test_claim_path_collisions() {
+    #[rstest]
+    #[case(vec![vec!["a.b"], vec!["a", "b"]])]
+    #[case(vec![vec!["x.y.z"], vec!["x", "y.z"]])]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y.z"]])]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y", "z"]])]
+    #[case(vec![vec!["x", "y.z"], vec!["x.y", "z"]])]
+    fn test_claim_path_collisions(#[case] claims: Vec<Vec<&str>>) {
         let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "claims": [
-                { "path": ["a.b"] },
-                { "path": ["a", "b"] },
-                { "path": ["x.y", "z"] },
-                { "path": ["x", "y.z"] },
-            ],
+            "claims": claims.into_iter().map(|claim| HashMap::from([("path", claim)])).collect::<Vec<_>>(),
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
@@ -900,14 +894,12 @@ mod test {
         .unwrap()
         .detect_path_collisions();
 
-        dbg!(&result);
-
         assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
     }
 
     #[test]
     fn should_detect_claim_path_collision_for_deserializing_typemetadata() {
-        assert!(serde_json::from_value::<TypeMetadata>(json!({
+        let result = serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "claims": [
                 { "path": ["address.street"] },
@@ -919,6 +911,8 @@ mod test {
                 "properties": {}
             }
         }))
-        .is_err());
+        .expect_err("Should fail deserializing type metadata because of path collision");
+
+        assert!(result.to_string().contains("detected claim path collision"));
     }
 }
