@@ -63,7 +63,7 @@ tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
-uuid = { workspace = true, features = ["v4"] }
+uuid = {workspace = true, features = [ "v4", "v7" ] }
 
 mockall = { workspace = true, optional = true }
 
