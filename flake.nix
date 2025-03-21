@@ -32,20 +32,26 @@
             rust.fromRustupToolchainFile ./rust-toolchain
           else
             rust.stable.latest.default.override {
-              extensions = [ "rust-src" "rustfmt" ];
+              extensions = [ "rust-src" ];
             };
+
+        rustfmtNightly = prev.rust-bin.nightly.latest.default.override {
+          extensions = [ "rustfmt" ];
+        };
       };
 
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
           packages = with pkgs; [
             rustToolchain
+            rustfmtNightly
             openssl
             pkg-config
             cargo-deny
             cargo-edit
             cargo-expand
             cargo-watch
+            cargo-nextest
             rust-analyzer
 
             jq
