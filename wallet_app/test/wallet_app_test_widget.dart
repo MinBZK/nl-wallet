@@ -8,6 +8,7 @@ import 'package:provider/single_child_widget.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/theme/wallet_theme.dart';
+import 'package:wallet/src/util/extension/build_context_extension.dart';
 
 /// Widget that is to be used to wrap pumped test widgets.
 /// Makes sure the theme, translations and MediaQuery is provided.
@@ -23,19 +24,22 @@ class WalletAppTestWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: brightness == Brightness.light ? WalletTheme.light : WalletTheme.dark,
-      debugShowCheckedModeBanner: false,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      onUnknownRoute: (RouteSettings settings) => PageRouteBuilder(
-        opaque: false,
-        pageBuilder: (_, __, ___) => Text(
-          settings.name ?? 'unnamed route',
-          style: const TextStyle(fontSize: 0 /* rendered but hidden */),
+    return MediaQuery(
+      data: context.mediaQuery.copyWith(platformBrightness: brightness),
+      child: MaterialApp(
+        theme: brightness == Brightness.light ? WalletTheme.light : WalletTheme.dark,
+        debugShowCheckedModeBanner: false,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        onUnknownRoute: (RouteSettings settings) => PageRouteBuilder(
+          opaque: false,
+          pageBuilder: (_, __, ___) => Text(
+            settings.name ?? 'unnamed route',
+            style: const TextStyle(fontSize: 0 /* rendered but hidden */),
+          ),
         ),
+        home: Scaffold(body: child),
       ),
-      home: Scaffold(body: child),
     );
   }
 }

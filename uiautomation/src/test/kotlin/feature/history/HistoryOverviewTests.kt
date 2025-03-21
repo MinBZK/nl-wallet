@@ -1,19 +1,26 @@
 package feature.history
 
+import helper.LocalizationHelper
 import helper.TestBase
 import navigator.MenuNavigator
+import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.dashboard.DashboardScreen
+import screen.disclosure.DisclosureApproveOrganizationScreen
+import screen.history.HistoryDetailScreen
 import screen.history.HistoryOverviewScreen
 import screen.menu.MenuScreen
+import screen.security.PinScreen
+import screen.web.rp.RelyingPartyAmsterdamWebPage
+import screen.web.rp.RelyingPartyOverviewWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
-@DisplayName("${HistoryOverviewTests.USE_CASE} App logs PID/address issuance [${HistoryOverviewTests.JIRA_ID}]")
+@DisplayName("${HistoryOverviewTests.USE_CASE} App logs PID/address issuance and disclosure events [${HistoryOverviewTests.JIRA_ID}]")
 class HistoryOverviewTests : TestBase() {
 
     companion object {
@@ -21,19 +28,33 @@ class HistoryOverviewTests : TestBase() {
         const val JIRA_ID = "PVW-1038"
     }
 
-    private lateinit var historyOverviewScreen: HistoryOverviewScreen
-
     fun setUp() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
-        MenuScreen().clickHistoryButton()
+        MenuScreen().clickBrowserTestButton()
 
-        historyOverviewScreen = HistoryOverviewScreen()
+        val overviewWebPage = RelyingPartyOverviewWebPage()
+        val platform = overviewWebPage.platformName()
+
+        overviewWebPage.clickAmsterdamButton()
+        val amsterdamWebPage = RelyingPartyAmsterdamWebPage()
+        amsterdamWebPage.openSameDeviceWalletFlow(platform)
+        amsterdamWebPage.switchToAppContext()
+
+        val disclosureScreen = DisclosureApproveOrganizationScreen()
+        disclosureScreen.login()
+        PinScreen().enterPin(OnboardingNavigator.PIN)
+
+        disclosureScreen.closeDialog()
+        DashboardScreen().clickMenuButton()
+        MenuScreen().clickHistoryButton()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.A log entry is added for the PID issuance event. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.A log entries are added for the PID issuance and disclosure events. [${JIRA_ID}]")
     fun verifyIssuanceHistoryEntries() {
         setUp()
+
+        val historyOverviewScreen = HistoryOverviewScreen()
         assertTrue(historyOverviewScreen.visible(), "history overview screen is not visible")
         assertTrue(
             historyOverviewScreen.pidIssuanceLogEntryVisible(),
@@ -43,6 +64,23 @@ class HistoryOverviewTests : TestBase() {
             historyOverviewScreen.addressIssuanceLogEntryVisible(),
             "address issuance log entry is not visible"
         )
+        assertTrue(
+            historyOverviewScreen.loginDisclosureLogEntryVisible(),
+            "login log entry is not visible"
+        )
+
+        historyOverviewScreen.clickPidCardTitle()
+
+        val historyDetailScreen = HistoryDetailScreen()
+        val i18n = LocalizationHelper()
+        assertTrue(historyDetailScreen.issuanceOrganizationVisible("RvIG"), "organization not visible")
+        assertTrue(historyDetailScreen.titleCorrectForIssuance(i18n.translate("NL Wallet persoonsgegevens")), "title not visible")
+
+        historyDetailScreen.clickBottomBackButton()
+
+        historyOverviewScreen.clickLoginEntryTitle()
+        assertTrue(historyDetailScreen.disclosureOrganizationVisible("Gemeente Amsterdam"), "organization not visible")
+        assertTrue(historyDetailScreen.titleCorrectForLogin("Gemeente Amsterdam"), "title not visible")
     }
 
     /**

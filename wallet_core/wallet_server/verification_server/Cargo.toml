@@ -85,6 +85,7 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
+configuration = { path = "../../wallet_configuration/configuration", features = ["insecure_http_client"] }
 mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
 sd_jwt = { path = "../../sd_jwt", features = ["example_constructors"] }
-wallet_common = { path = "../../wallet_common", features = ["insecure_http_client", "mock_remote_key", "mock_time"] }
+wallet_common = { path = "../../wallet_common", features = ["mock_remote_key", "mock_time"] }

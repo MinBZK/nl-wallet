@@ -23,7 +23,7 @@ wallet-config-ont:
 
 wallet-config-demo:
   extends: .wallet-config
-  rules: !reference [.release-tag, rules]
+  rules: !reference [.on-demo-build, rules]
   variables:
     WALLET_ENV: demo
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_DEMO

@@ -56,9 +56,7 @@ class _PrivacyCoverState extends State<PrivacyCover> with WidgetsBindingObserver
   /// We can't simply use the [Theme] since this Widget can live above the
   /// [MaterialApp], which provides the [Theme] to all of it's children.
   Color _resolveBgColor(BuildContext context) {
-    final brightness = context.mediaQuery.platformBrightness;
-    final bool isDarkMode = brightness == Brightness.dark;
-    return isDarkMode ? DarkWalletTheme.colorScheme.surface : LightWalletTheme.colorScheme.surface;
+    return context.isDeviceInDarkMode ? DarkWalletTheme.colorScheme.surface : LightWalletTheme.colorScheme.surface;
   }
 
   @override

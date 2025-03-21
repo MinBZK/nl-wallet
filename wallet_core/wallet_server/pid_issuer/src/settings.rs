@@ -18,6 +18,7 @@ use serde::Deserializer;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use configuration::http::TlsPinningConfig;
 use hsm::service::Pkcs11Hsm;
 use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
@@ -34,7 +35,6 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;

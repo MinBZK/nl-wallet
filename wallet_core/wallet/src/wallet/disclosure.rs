@@ -9,6 +9,8 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
+use configuration::http::TlsPinningConfig;
+use configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use mdoc::holder::MdocDataSource;
@@ -21,8 +23,6 @@ use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
 

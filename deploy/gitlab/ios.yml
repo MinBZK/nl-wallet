@@ -121,8 +121,9 @@ build-ios-app-mock:
 
 .build-ios-app-demo:
   extends: .build-ios-app-release-tag
+  rules:
+    - !reference [.on-demo-build, rules]
   needs:
-    - !reference [.build-ios-app, needs]
     - job: wallet-config-demo
       artifacts: true
   variables:
@@ -231,6 +232,8 @@ deploy-ios-app-mock:
 
 deploy-ios-app-demo:
   extends: .deploy-ios-app-release-tag
+  rules:
+    - !reference [.on-demo-build, rules]
   needs:
     - job: build-ios-app-demo
       artifacts: true

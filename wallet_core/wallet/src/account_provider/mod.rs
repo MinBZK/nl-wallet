@@ -3,6 +3,7 @@ mod client;
 use reqwest::StatusCode;
 use url::ParseError;
 
+use configuration::http::TlsPinningConfig;
 use error_category::ErrorCategory;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
@@ -13,7 +14,6 @@ use wallet_account::messages::instructions::InstructionResult;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
-use wallet_common::config::http::TlsPinningConfig;
 
 pub use self::client::HttpAccountProviderClient;
 

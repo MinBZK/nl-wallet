@@ -130,8 +130,9 @@ build-android-app-mock:
 
 .build-android-app-demo:
   extends: .build-android-app-release-tag
+  rules:
+    - !reference [.on-demo-build, rules]
   needs:
-    - !reference [.build-android-app, needs]
     - job: wallet-config-demo
       artifacts: true
   variables:
@@ -253,6 +254,8 @@ deploy-android-app-mock:
 
 deploy-android-app-demo:
   extends: .deploy-android-app-release-tag
+  rules:
+    - !reference [.on-demo-build, rules]
   needs:
     - job: build-android-app-demo
       artifacts: true

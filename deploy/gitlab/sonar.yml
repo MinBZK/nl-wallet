@@ -35,6 +35,8 @@ sonar-flutter:
   needs:
     - job: test-flutter
       artifacts: true
+    - job: test-flutter-ui
+      artifacts: true
     - job: dependency-check
       artifacts: true
   script:
@@ -46,12 +48,12 @@ sonar-flutter:
       -Dsonar.projectKey=nl-wallet-demo-app
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=.
-      -Dsonar.exclusions=android/**,ios/**,test/**,**/*.freezed.dart,**/*.g.dart,**/frb_generated*.dart
+      -Dsonar.exclusions=android/**,ios/**,test/**,**/*.freezed.dart,**/*.g.dart,**/frb_generated*.dart,**/*.yaml
       -Dsonar.coverage.exclusions=**/frb_generated*.dart,**/*.freezed.dart
       -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html
       -Dsonar.dependencyCheck.jsonReportPath=../dependency-check-report.json
-      -Dsonar.dart.lcov.reportPaths=coverage/lcov.info
+      -Dsonar.dart.lcov.reportPaths=coverage/lcov*.info
   allow_failure: true
 
 sonar-wallet-web:

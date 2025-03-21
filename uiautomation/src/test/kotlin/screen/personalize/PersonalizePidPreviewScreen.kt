@@ -6,7 +6,7 @@ class PersonalizePidPreviewScreen : MobileActions() {
 
     private val screen = find.byValueKey("personalizePidPreviewPage")
 
-    private val birthText = find.byText("2000-03-24")
+    private val birthText = find.byText("24 maart 2000")
     private val streetNameText = find.byText("Groenewoudsedijk")
     private val postcodeText = find.byText("3528BG")
     private val houseNumberText = find.byText("51")

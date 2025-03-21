@@ -83,7 +83,7 @@ void main() {
           const HistoryDetailLoadFailure(),
         ),
       );
-      await screenMatchesGolden(tester, 'error.light');
+      await screenMatchesGolden(tester, 'loading.error.light');
     });
 
     testGoldens('Disclose cancelled', (tester) async {
@@ -115,6 +115,52 @@ void main() {
         ],
       );
       await screenMatchesGolden(tester, 'cancelled.dark');
+    });
+
+    testGoldens('Disclose error', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.failedDisclosureEvent, [WalletMockData.card]),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden(tester, 'disclose.error.light');
+    });
+
+    testGoldens('Disclose error - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.failedDisclosureEvent, [WalletMockData.card]),
+        ),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden(tester, 'disclose.error.dark');
+    });
+
+    testGoldens('Login error', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.failedLoginEvent, [WalletMockData.card]),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden(tester, 'login.error.light');
     });
   });
 

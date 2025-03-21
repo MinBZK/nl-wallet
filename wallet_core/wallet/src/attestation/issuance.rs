@@ -9,7 +9,6 @@ use sd_jwt::metadata::TypeMetadata;
 use super::Attestation;
 use super::AttestationError;
 use super::AttestationIdentity;
-use super::AttributeSelectionMode;
 
 impl Attestation {
     pub(crate) fn create_for_issuance(
@@ -20,13 +19,7 @@ impl Attestation {
     ) -> Result<Self, AttestationError> {
         let nested_attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
-        Self::create_from_attributes(
-            identity,
-            metadata,
-            issuer_organization,
-            nested_attributes,
-            AttributeSelectionMode::Issuance,
-        )
+        Self::create_from_attributes(identity, metadata, issuer_organization, nested_attributes)
     }
 }
 
@@ -103,15 +96,27 @@ mod test {
         })
         .unwrap();
 
-        let error = Attestation::create_for_issuance(
+        let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
             unsigned_mdoc.attributes.into_inner(),
         )
-        .expect_err("creating new Attestation should not be successful");
+        .expect("creating new Attestation should be successful");
 
-        assert_matches!(error, AttestationError::AttributeNotFoundForClaim(_));
+        let attrs = attestation
+            .attributes
+            .iter()
+            .map(|attr| (attr.key.clone(), attr.value.clone()))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            [(
+                vec![String::from("bsn")],
+                AttestationAttributeValue::Basic(AttributeValue::Text(String::from("999999999")))
+            ),],
+            attrs.as_slice()
+        );
     }
 
     #[test]

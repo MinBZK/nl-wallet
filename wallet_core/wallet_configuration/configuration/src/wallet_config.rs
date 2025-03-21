@@ -10,12 +10,13 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use crate::config::digid::DigidApp2AppConfiguration;
-use crate::config::http::TlsPinningConfig;
-use crate::config::EnvironmentSpecific;
-use crate::p256_der::DerVerifyingKey;
-use crate::trust_anchor::BorrowingTrustAnchor;
-use crate::urls::BaseUrl;
+use wallet_common::p256_der::DerVerifyingKey;
+use wallet_common::trust_anchor::BorrowingTrustAnchor;
+use wallet_common::urls::BaseUrl;
+
+use crate::digid::DigidApp2AppConfiguration;
+use crate::http::TlsPinningConfig;
+use crate::EnvironmentSpecific;
 
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

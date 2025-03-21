@@ -8,7 +8,6 @@ use serde::Serialize;
 use mdoc::unsigned::Entry;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
-use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::TypeMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,9 +28,6 @@ pub enum AttributeError {
 
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
-
-    #[error("unable to convert from mdoc attributes because of unsupported claim path in: {0}")]
-    UnsupportedClaimPath(ClaimPath),
 }
 
 impl From<&AttributeValue> for ciborium::Value {
@@ -113,11 +109,8 @@ impl Attribute {
             let key_path = claim
                 .path
                 .iter()
-                .map(|path| {
-                    path.try_key_path()
-                        .ok_or(AttributeError::UnsupportedClaimPath(path.clone()))
-                })
-                .collect::<Result<VecDeque<_>, _>>()?;
+                .filter_map(|path| path.try_key_path())
+                .collect::<VecDeque<_>>();
 
             Self::traverse_attributes_by_claim(&type_metadata.as_ref().vct, key_path, &mut attributes, &mut result)?;
         }

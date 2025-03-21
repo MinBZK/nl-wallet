@@ -10,6 +10,8 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
+use configuration::http::TlsPinningConfig;
+use configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use jwt::error::JwtError;
@@ -26,8 +28,6 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::metadata::TypeMetadataError;
-use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
@@ -494,6 +494,7 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use configuration::http::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
@@ -502,7 +503,6 @@ mod tests {
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
     use sd_jwt::metadata::TypeMetadataChain;
-    use wallet_common::config::http::TlsPinningConfig;
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use crate::issuance;

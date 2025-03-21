@@ -135,7 +135,7 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use wallet_common::config::http::test::HttpConfig;
+    use configuration::http::test::HttpConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
