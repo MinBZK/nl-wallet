@@ -16,9 +16,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "resident_street"
-      ],
+      "path": ["resident_street"],
       "display": [
         {
           "lang": "nl-NL",
@@ -34,9 +32,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_house_number"
-      ],
+      "path": ["resident_house_number"],
       "display": [
         {
           "lang": "nl-NL",
@@ -52,9 +48,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_postal_code"
-      ],
+      "path": ["resident_postal_code"],
       "display": [
         {
           "lang": "nl-NL",
@@ -70,9 +64,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_city"
-      ],
+      "path": ["resident_city"],
       "display": [
         {
           "lang": "nl-NL",
@@ -88,9 +80,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "resident_country"
-      ],
+      "path": ["resident_country"],
       "display": [
         {
           "lang": "nl-NL",
@@ -144,14 +134,12 @@
       },
       "nbf": {
         "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "exp"
-    ],
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"],
     "additionalProperties": false
   }
 }
