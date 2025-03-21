@@ -52,9 +52,12 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 [workspace.lints.clippy]
 cloned_instead_of_copied = "warn"
 expl_impl_clone_on_copy = "warn"
+explicit_into_iter_loop = "warn"
+explicit_iter_loop = "warn"
 needless_pass_by_value = "warn"
 redundant_allocation = "warn"
 trivially_copy_pass_by_ref = "warn"
+unnecessary_join = "warn"
 unnecessary_wraps = "warn"
 unused_async = "warn"
 unused_self = "warn"
