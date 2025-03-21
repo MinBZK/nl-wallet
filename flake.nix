@@ -32,7 +32,7 @@
             rust.fromRustupToolchainFile ./rust-toolchain
           else
             rust.stable.latest.default.override {
-              extensions = [ "rust-src" ];
+              extensions = [ "rust-src" "clippy" ];
             };
 
         rustfmtNightly = prev.rust-bin.nightly.latest.default.override {

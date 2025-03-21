@@ -84,7 +84,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///   .make_concealable("/claim1/abc").unwrap() //"abc": true
     ///   .make_concealable("/claim2/0").unwrap(); //conceals "val_1"
     /// ```
-    /// 
+    ///
     /// ## Error
     /// * [`Error::InvalidPath`] if pointer is invalid.
     /// * [`Error::DataTypeMismatch`] if existing SD format is invalid.
