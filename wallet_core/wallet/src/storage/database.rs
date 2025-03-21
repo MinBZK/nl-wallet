@@ -9,6 +9,7 @@ use sea_orm::TransactionTrait;
 use tokio::fs;
 
 use tracing::log::LevelFilter;
+
 use wallet_migrations::Migrator;
 use wallet_migrations::MigratorTrait;
 
