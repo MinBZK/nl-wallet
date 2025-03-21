@@ -76,8 +76,8 @@ impl Mdoc {
         Ok(metadata)
     }
 
-    /// Check that the doc_type, issuer, validity_info, namespaces, attribute names and attribute values of this
-    /// instance are equal to to the provided unsigned value.
+    /// Check that the doc_type, issuer, validity_info, attestation_qualification, namespaces, attribute names and
+    /// attribute values of this instance are equal to to the provided unsigned value.
     pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedDocumentMismatchError> {
         if self.mso.doc_type != unsigned.doc_type {
             return Err(IssuedDocumentMismatchError::IssuedDoctypeMismatch(
@@ -108,6 +108,17 @@ impl Mdoc {
                 ),
             ));
         }
+
+        match self.mso.attestation_qualification.as_ref() {
+            None => Err(IssuedDocumentMismatchError::IssuedAttestationQualificationMissing),
+            Some(attestation_qualification) if *attestation_qualification != unsigned.attestation_qualification => {
+                Err(IssuedDocumentMismatchError::IssuedAttestationQualificationMismatch(
+                    unsigned.attestation_qualification,
+                    *attestation_qualification,
+                ))
+            }
+            Some(_) => Ok(()),
+        }?;
 
         let our_attrs = self.issuer_signed.clone().into_entries_by_namespace();
         let our_attrs = &flatten_attributes(self.doc_type(), &our_attrs);
@@ -146,6 +157,12 @@ pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
     #[error("issued attributes mismatch: missing {0}, unexpected {1}")]
     #[category(pd)]
     IssuedAttributesMismatch(Vec<T>, Vec<T>),
+    #[error("issued attestation qualification missing")]
+    #[category(critical)]
+    IssuedAttestationQualificationMissing,
+    #[error("issued attestation qualification mismatch: expected {0}, found {1}")]
+    #[category(critical)]
+    IssuedAttestationQualificationMismatch(AttestationQualification, AttestationQualification),
 }
 
 pub fn map_difference<K, T>(left: &IndexMap<K, T>, right: &IndexMap<K, T>) -> Vec<K>
