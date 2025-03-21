@@ -63,7 +63,7 @@ tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
-uuid = { workspace = true, features = ["v4"] }
+uuid = {workspace = true, features = [ "v4", "v7" ] }
 
 mockall = { workspace = true, optional = true }
 
@@ -71,7 +71,7 @@ configuration.path = "../wallet_configuration/configuration"
 entity.path = "entity"
 error_category = { path = "../error_category", features = ["sentry"] }
 jwt.path = "../jwt"
-migration.path = "migrations"
+wallet_migrations.path = "migrations"
 mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
