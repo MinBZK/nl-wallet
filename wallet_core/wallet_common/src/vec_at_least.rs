@@ -1,5 +1,7 @@
 use std::hash::Hash;
 use std::num::NonZeroUsize;
+use std::ops::Index;
+use std::slice::SliceIndex;
 
 use itertools::Itertools;
 use serde::de;
@@ -140,6 +142,15 @@ impl<T, const N: usize, const UNIQUE: bool> IntoIterator for VecAtLeastN<T, N, U
     }
 }
 
+impl<T, const N: usize, const UNIQUE: bool, I: SliceIndex<[T]>> Index<I> for VecAtLeastN<T, N, UNIQUE> {
+    type Output = I::Output;
+
+    #[inline]
+    fn index(&self, index: I) -> &Self::Output {
+        Index::index(&self.0, index)
+    }
+}
+
 // The trait implementations below allow this type to be used in combination
 // with `serde_with` by specifying a `#[serde_as(as = "Vec<T>")]` macro.
 
@@ -191,6 +202,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::panic;
+
     use rstest::rstest;
 
     use super::VecAtLeastN;
@@ -245,5 +258,15 @@ mod tests {
         let vec = VecAtLeastTwoUnique::try_from(input);
 
         assert_eq!(vec.is_ok(), expected_is_ok);
+    }
+
+    #[test]
+    fn test_vec_non_empty_index() {
+        let vec = VecNonEmpty::try_from(vec![1, 2, 3]).unwrap();
+        assert_eq!(vec[0], 1);
+        assert_eq!(vec[1], 2);
+        assert_eq!(vec[2], 3);
+        let out_of_bounds = panic::catch_unwind(|| assert_eq!(vec[3], 3));
+        assert!(out_of_bounds.is_err());
     }
 }

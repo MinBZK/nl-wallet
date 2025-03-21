@@ -7,12 +7,6 @@ use std::ops::Deref;
 use std::ops::DerefMut;
 use std::str::FromStr;
 
-use indexmap::IndexMap;
-use itertools::Itertools;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_json::Value;
-
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
 use crate::encoder::ARRAY_DIGEST_KEY;
@@ -27,6 +21,12 @@ use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
 use crate::signer::JsonObject;
 use crate::signer::JwsSigner;
+use indexmap::IndexMap;
+use itertools::Itertools;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_json::Value;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
 pub struct SdJwtClaims {
@@ -128,23 +128,21 @@ impl SdJwt {
 
     /// Parses an SD-JWT into its components as [`SdJwt`].
     pub fn parse(sd_jwt: &str) -> Result<Self> {
-        let sd_segments: Vec<&str> = sd_jwt.split('~').collect();
-        let num_of_segments = sd_segments.len();
-        if num_of_segments < 2 {
-            return Err(Error::Deserialization(
-                "SD-JWT format is invalid, less than 2 segments".to_string(),
-            ));
-        }
+        let sd_segments: VecNonEmpty<&str> = sd_jwt
+            .split('~')
+            .collect::<Vec<_>>()
+            .try_into()
+            .map_err(|_err| Error::Deserialization("SD-JWT format is invalid, less than 2 segments".to_string()))?;
+        let num_of_segments = sd_segments.len().get();
 
-        let jwt = sd_segments.first().unwrap().parse()?;
+        let jwt = sd_segments.first().parse()?;
 
         let disclosures = sd_segments[1..num_of_segments - 1]
             .iter()
             .map(|s| Disclosure::parse(s))
             .try_collect()?;
 
-        let key_binding_jwt = sd_segments
-            .last()
+        let key_binding_jwt = Some(sd_segments.last())
             .filter(|segment| !segment.is_empty())
             .map(|segment| segment.parse())
             .transpose()?;
