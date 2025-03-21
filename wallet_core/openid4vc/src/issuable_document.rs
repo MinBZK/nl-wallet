@@ -1,7 +1,6 @@
 use std::num::NonZeroU8;
 
 use indexmap::IndexMap;
-use mdoc::AttestationQualification;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
@@ -9,6 +8,7 @@ use serde_valid::Validate;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::unsigned::UnsignedMdoc;
+use mdoc::AttestationQualification;
 use mdoc::Tdate;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;

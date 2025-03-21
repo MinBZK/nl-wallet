@@ -19,10 +19,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
-
-use crypto::utils::random_bytes;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+
+use crypto::utils::random_bytes;
 use wallet_common::urls::HttpsUri;
 
 use crate::unsigned::Entry;
