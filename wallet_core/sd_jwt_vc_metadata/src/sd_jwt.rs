@@ -131,7 +131,7 @@ impl SdJwt {
         let sd_segments: Vec<&str> = sd_jwt.split('~').collect();
         let num_of_segments = sd_segments.len();
         if num_of_segments < 2 {
-            return Err(Error::DeserializationError(
+            return Err(Error::Deserialization(
                 "SD-JWT format is invalid, less than 2 segments".to_string(),
             ));
         }

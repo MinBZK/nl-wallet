@@ -60,7 +60,7 @@ impl SdObjectDecoder {
 
                         // Reject if any digests were found more than once.
                         if processed_digests.contains(&digest_str) {
-                            return Err(Error::DuplicateDigestError(digest_str));
+                            return Err(Error::DuplicateDigest(digest_str));
                         }
 
                         // Check if a disclosure of this digest is available
@@ -72,7 +72,7 @@ impl SdObjectDecoder {
                             )))?;
 
                             if output.contains_key(&claim_name) {
-                                return Err(Error::ClaimCollisionError(claim_name));
+                                return Err(Error::ClaimCollision(claim_name));
                             }
                             processed_digests.push(digest_str.clone());
 
@@ -138,7 +138,7 @@ impl SdObjectDecoder {
 
                         // Reject if any digests were found more than once.
                         if processed_digests.contains(&digest_in_array) {
-                            return Err(Error::DuplicateDigestError(digest_in_array));
+                            return Err(Error::DuplicateDigest(digest_in_array));
                         }
                         if let Some(disclosure) = disclosures.get(&digest_in_array) {
                             if disclosure.claim_name.is_some() {

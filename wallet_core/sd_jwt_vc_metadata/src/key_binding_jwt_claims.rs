@@ -37,13 +37,13 @@ impl FromStr for KeyBindingJwt {
         let jwt = Jwt::<KeyBindingJwtClaims>::from_str(s)?;
         let valid_jwt_type = jwt.header.get("typ").is_some_and(|typ| typ == KB_JWT_HEADER_TYP);
         if !valid_jwt_type {
-            return Err(Error::DeserializationError(format!(
+            return Err(Error::Deserialization(format!(
                 "invalid KB-JWT: typ must be \"{KB_JWT_HEADER_TYP}\""
             )));
         }
         let valid_alg = jwt.header.get("alg").is_some_and(|alg| alg != "none");
         if !valid_alg {
-            return Err(Error::DeserializationError(
+            return Err(Error::Deserialization(
                 "invalid KB-JWT: alg must be set and cannot be \"none\"".to_string(),
             ));
         }
@@ -164,7 +164,7 @@ impl KeyBindingJwtBuilder {
 
         // Validate claims
         let parsed_claims = serde_json::from_value::<KeyBindingJwtClaims>(claims.clone().into())
-            .map_err(|e| Error::DeserializationError(format!("invalid KB-JWT claims: {e}")))?;
+            .map_err(|e| Error::Deserialization(format!("invalid KB-JWT claims: {e}")))?;
 
         let jws = signer
             .sign(&header, &claims)

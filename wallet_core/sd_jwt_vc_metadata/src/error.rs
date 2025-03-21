@@ -17,10 +17,10 @@ pub enum Error {
     DataTypeMismatch(String),
 
     #[error("claim {0} of disclosure already exists")]
-    ClaimCollisionError(String),
+    ClaimCollision(String),
 
     #[error("digest {0} appears multiple times")]
-    DuplicateDigestError(String),
+    DuplicateDigest(String),
 
     #[error("array disclosure object contains keys other than `...`")]
     InvalidArrayDisclosureObject,
@@ -29,7 +29,7 @@ pub enum Error {
     InvalidPath(String),
 
     #[error("invalid input")]
-    DeserializationError(String),
+    Deserialization(String),
 
     #[error("{0}")]
     Unspecified(String),

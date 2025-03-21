@@ -43,7 +43,7 @@ where
             .and_then(|json_bytes| {
                 serde_json::from_slice::<JsonObject>(&json_bytes).context("invalid JWT header properties")
             })
-            .map_err(|e| Error::DeserializationError(format!("invalid JWT: {e}")))?;
+            .map_err(|e| Error::Deserialization(format!("invalid JWT: {e}")))?;
 
         let claims = segments
             .next()
@@ -52,17 +52,15 @@ where
             .and_then(|json_bytes| {
                 serde_json::from_slice::<T>(&json_bytes).map_err(|e| anyhow::anyhow!("invalid JWT claims: {e}"))
             })
-            .map_err(|e| Error::DeserializationError(format!("invalid JWT: {e}")))?;
+            .map_err(|e| Error::Deserialization(format!("invalid JWT: {e}")))?;
 
         let _signature = segments
             .next()
             .context("missing signature")
             .and_then(|sig| BASE64_URL_SAFE_NO_PAD.decode(sig).context("not base64url"))
-            .map_err(|e| Error::DeserializationError(format!("invalid JWT: {e}")))?;
+            .map_err(|e| Error::Deserialization(format!("invalid JWT: {e}")))?;
         if segments.next().is_some() {
-            return Err(Error::DeserializationError(
-                "invalid JWT: more than 3 segments".to_string(),
-            ));
+            return Err(Error::Deserialization("invalid JWT: more than 3 segments".to_string()));
         }
 
         Ok(Self {
