@@ -140,6 +140,9 @@ pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
     #[error("issued validity info mismatch: expected {0:?}, found {1:?}")]
     #[category(critical)]
     IssuedValidityInfoMismatch((Tdate, Tdate), (Tdate, Tdate)),
+    #[error("issued validity info mismatch: expected {0:?}, found {1:?}")]
+    #[category(critical)]
+    IssuedAttestationQualificationMismatch(AttestationQualification, AttestationQualification),
     #[error("issued attributes mismatch: missing {0}, unexpected {1}")]
     #[category(pd)]
     IssuedAttributesMismatch(Vec<T>, Vec<T>),
