@@ -19,8 +19,10 @@ automation-compile-check:
     reports:
       junit: uiautomation/build/test-results/**/*.xml
   before_script:
-    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_USER
+    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - export BROWSERSTACK_KEY
     - java -version
     - cd uiautomation
     - set -euxo pipefail
@@ -282,8 +284,10 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
     - !reference [ .on-web-trigger, rules ]
   allow_failure: false
   before_script:
-    - export BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
+    - export BROWSERSTACK_USER
+    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
+    - export BROWSERSTACK_KEY
     - java -version
     - set -euxo pipefail
   variables:
