@@ -3209,6 +3209,24 @@ dependencies = [
 
 [[package]]
 name = "josekit"
+version = "0.8.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54b85e2125819afc4fd2ae57416207e792c7e12797858e5db2a6c6f24a166829"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "flate2",
+ "once_cell",
+ "openssl",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "time",
+]
+
+[[package]]
+name = "josekit"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0633782b10949cf7d5aca9ec7c87ce642cbe4fff7d34602b2ec2e890ad56e5"
@@ -3235,10 +3253,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "jsonschema"
-version = "0.28.3"
+name = "json-pointer"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b8f66fe41fa46a5c83ed1c717b7e0b4635988f427083108c8cf0a882cc13441"
+checksum = "5fe841b94e719a482213cee19dd04927cf412f26d8dc84c5a446c081e49c2997"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "jsonschema"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c59cb1733c34377b6067a0419befd7f25073c5249ec3b0614a482bf499e1df5"
 dependencies = [
  "ahash",
  "base64 0.22.1",
@@ -3890,7 +3917,7 @@ dependencies = [
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "josekit",
+ "josekit 0.10.1",
  "jsonwebtoken",
  "jwt",
  "mdoc",
@@ -4687,13 +4714,14 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.28.3"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0dcb5ab28989ad7c91eb1b9531a37a1a137cc69a0499aee4117cae4a107c464"
+checksum = "6ce52678d53e5ee37e4af0a9036ca834d0cd34b33c82457c6b06a24f8d783344"
 dependencies = [
  "ahash",
  "fluent-uri",
  "once_cell",
+ "parking_lot",
  "percent-encoding",
  "serde_json",
 ]
@@ -5154,21 +5182,30 @@ dependencies = [
 name = "sd_jwt_vc_metadata"
 version = "0.3.0-dev"
 dependencies = [
+ "anyhow",
  "assert_matches",
+ "async-trait",
  "crypto",
  "derive_more",
  "http",
  "http-serde",
+ "indexmap 2.7.1",
  "itertools 0.14.0",
+ "josekit 0.8.7",
+ "json-pointer",
  "jsonschema",
  "jsonwebtoken",
  "nutype",
+ "p256",
+ "rand",
+ "rand_core",
  "rstest",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "serde_with",
  "ssri",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",
  "wallet_common",
