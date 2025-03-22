@@ -91,7 +91,6 @@ async fn test_pid_issuance_digid_bridge() {
             &wallet_config.mdoc_trust_anchors(),
             &MockRemoteKeyFactory::default(),
             None,
-            server_url,
         )
         .await
         .unwrap();

@@ -393,12 +393,7 @@ where
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
         let issuance_result = pid_issuer
-            .accept_issuance(
-                &config.mdoc_trust_anchors(),
-                &remote_key_factory,
-                Some(wte),
-                config.pid_issuance.pid_issuer_url.clone(),
-            )
+            .accept_issuance(&config.mdoc_trust_anchors(), &remote_key_factory, Some(wte))
             .await
             .map_err(|error| {
                 match error {

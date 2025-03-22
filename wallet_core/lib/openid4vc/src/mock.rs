@@ -57,7 +57,6 @@ impl IssuanceSession for MockIssuanceSession {
         _: &[TrustAnchor<'_>],
         _: &KF,
         _: Option<JwtCredential<WteClaims>>,
-        _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey,
