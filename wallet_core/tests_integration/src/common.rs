@@ -8,6 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ctor::ctor;
+use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
@@ -30,6 +31,8 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::utils;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
+use issuance_server::disclosure::mock::MockAttributesFetcher;
+use issuance_server::settings::IssuanceServerSettings;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuable_document::IssuableDocument;
@@ -50,6 +53,8 @@ use update_policy_server::settings::Settings as UpsSettings;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
+use wallet::openid4vc::Attribute;
+use wallet::openid4vc::AttributeValue;
 use wallet::wallet_deps::default_config_server_config;
 use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::HttpAccountProviderClient;
@@ -128,16 +133,19 @@ pub type WalletWithMocks = Wallet<
     WpWteIssuanceClient,
 >;
 
-pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> (WalletWithMocks, WalletUrls) {
-    setup_wallet_and_env(
+pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletWithMocks {
+    let (wallet, _, _) = setup_wallet_and_env(
         vendor,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
         verification_server_settings(),
         pid_issuer_settings(),
+        issuance_server_settings(),
     )
-    .await
+    .await;
+
+    wallet
 }
 
 pub struct WalletUrls {
@@ -153,7 +161,8 @@ pub async fn setup_wallet_and_env(
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
     issuer_settings: PidIssuerSettings,
-) -> (WalletWithMocks, WalletUrls) {
+    issuance_server_settings: IssuanceServerSettings,
+) -> (WalletWithMocks, WalletUrls, BaseUrl) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
             AttestationEnvironment::Development,
@@ -197,11 +206,12 @@ pub async fn setup_wallet_and_env(
     let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
 
     let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
-    let issuer_port = start_issuer_server(issuer_settings, Some(hsm), MockAttributeService).await;
+    let pid_issuer_port = start_pid_issuer_server(issuer_settings, Some(hsm.clone()), MockAttributeService).await;
+    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm)).await;
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
-    served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(issuer_port);
+    served_wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(pid_issuer_port);
     served_wallet_config.account_server.http_config.base_url = local_wp_base_url(wp_port);
     served_wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     served_wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca.clone()];
@@ -218,7 +228,7 @@ pub async fn setup_wallet_and_env(
     };
 
     let mut wallet_config = default_wallet_config();
-    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(issuer_port);
+    wallet_config.pid_issuance.pid_issuer_url = local_pid_base_url(pid_issuer_port);
     wallet_config.account_server.http_config.base_url = local_wp_base_url(wp_port);
     wallet_config.update_policy_server.http_config.base_url = local_ups_base_url(ups_port);
     wallet_config.update_policy_server.http_config.trust_anchors = vec![ups_root_ca];
@@ -247,7 +257,7 @@ pub async fn setup_wallet_and_env(
     .await
     .expect("Could not create test wallet");
 
-    (wallet, wallet_urls)
+    (wallet, wallet_urls, issuance_server_url)
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -373,6 +383,16 @@ pub fn pid_issuer_settings() -> PidIssuerSettings {
     settings
 }
 
+pub fn issuance_server_settings() -> IssuanceServerSettings {
+    let mut settings =
+        IssuanceServerSettings::new("issuance_server.toml", "issuance_server").expect("Could not read settings");
+
+    settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    settings.issuer_settings.server_settings.wallet_server.port = 0;
+
+    settings
+}
+
 pub fn verification_server_settings() -> VerifierSettings {
     let mut settings =
         VerifierSettings::new("verification_server.toml", "verification_server").expect("Could not read settings");
@@ -399,7 +419,74 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
     }
 }
 
-pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
+pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Option<Pkcs11Hsm>) -> BaseUrl {
+    let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let public_url = BaseUrl::from_str(format!("http://localhost:{}/", port).as_str()).unwrap();
+    settings.issuer_settings.server_settings.public_url = public_url.clone();
+
+    let storage_settings = &settings.issuer_settings.server_settings.storage;
+
+    let db_connection = server_utils::store::DatabaseConnection::try_new(storage_settings.url.clone())
+        .await
+        .unwrap();
+
+    let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
+    let disclosure_settings = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
+
+    let attributes_fetcher = MockAttributesFetcher(
+        vec![IssuableDocument::try_new(
+            "com.example.address".to_string(),
+            IndexMap::from([
+                (
+                    "resident_street".to_string(),
+                    Attribute::Single(AttributeValue::Text("resident_street".to_string())),
+                ),
+                (
+                    "resident_house_number".to_string(),
+                    Attribute::Single(AttributeValue::Text("resident_house_number".to_string())),
+                ),
+                (
+                    "resident_postal_code".to_string(),
+                    Attribute::Single(AttributeValue::Text("resident_postal_code".to_string())),
+                ),
+                (
+                    "resident_city".to_string(),
+                    Attribute::Single(AttributeValue::Text("resident_city".to_string())),
+                ),
+                (
+                    "resident_country".to_string(),
+                    Attribute::Single(AttributeValue::Text("resident_country".to_string())),
+                ),
+            ]),
+        )
+        .unwrap()]
+        .try_into()
+        .unwrap(),
+    );
+
+    tokio::spawn(async move {
+        if let Err(error) = issuance_server::server::serve_with_listener(
+            listener,
+            settings,
+            hsm,
+            issuance_sessions,
+            disclosure_settings,
+            attributes_fetcher,
+        )
+        .await
+        {
+            println!("Could not start issuance_server: {:?}", error);
+
+            process::exit(1);
+        }
+    });
+
+    wait_for_server(public_url.clone(), vec![]).await;
+    public_url
+}
+
+pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static>(
     mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     attr_service: A,
@@ -561,11 +648,11 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
         .await
         .expect("Could not create pid issuance auth url");
     let _unsigned_mdocs = wallet
-        .continue_pid_issuance(redirect_url)
+        .issuance_get_previews(redirect_url)
         .await
         .expect("Could not continue pid issuance");
     wallet
-        .accept_pid_issuance(pin)
+        .accept_issuance(pin)
         .await
         .expect("Could not accept pid issuance");
     wallet

@@ -6299,6 +6299,7 @@ dependencies = [
  "hsm",
  "indexmap 2.7.1",
  "insta",
+ "issuance_server",
  "jsonwebtoken",
  "jwt",
  "mdoc",

@@ -1,17 +1,27 @@
 use std::sync::Arc;
 
+use serial_test::serial;
+
+use openid4vc::openid4vp::RequestUriMethod;
+use openid4vc::openid4vp::VpRequestUriObject;
+use openid4vc::verifier::VerifierUrlParameters;
 use tests_integration::common::*;
 use wallet::openid4vc::AttributeValue;
+use wallet::openid4vc::SessionType;
 use wallet::Attestation;
 use wallet::AttestationAttributeValue;
+use wallet::DisclosureUriSource;
+use wallet_common::urls::disclosure_based_issuance_base_uri;
+use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 
 #[tokio::test]
+#[serial(hsm)]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // retain [`MockDigidSession::Context`]
     let _context = setup_digid_context();
 
     let pin = "112233";
-    let (mut wallet, _) = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
+    let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
@@ -42,4 +52,51 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     }
 
     Ok(())
+}
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_disclosure_based_issuance() {
+    let _context = setup_digid_context();
+
+    let pin = "112233";
+    let (mut wallet, _, issuance_server_url) = setup_wallet_and_env(
+        WalletDeviceVendor::Apple,
+        config_server_settings(),
+        update_policy_server_settings(),
+        wallet_provider_settings(),
+        verification_server_settings(),
+        pid_issuer_settings(),
+        issuance_server_settings(),
+    )
+    .await;
+
+    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+
+    let params = serde_urlencoded::to_string(VerifierUrlParameters {
+        session_type: SessionType::SameDevice,
+        ephemeral_id_params: None,
+    })
+    .unwrap();
+
+    let mut issuance_server_url = issuance_server_url
+        .join_base_url("/disclosure/disclosure_based_issuance/request_uri")
+        .into_inner();
+    issuance_server_url.set_query(Some(&params));
+
+    let query = serde_urlencoded::to_string(VpRequestUriObject {
+        request_uri: issuance_server_url.try_into().unwrap(),
+        request_uri_method: Some(RequestUriMethod::POST),
+        client_id: "disclosure_based_issuance.example.com".to_string(),
+    })
+    .unwrap();
+
+    let mut uri = disclosure_based_issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
+    uri.set_query(Some(&query));
+
+    let _proposal = wallet.start_disclosure(&uri, DisclosureUriSource::Link).await.unwrap();
+    let _attestation_previews = wallet.accept_disclosure_based_issuance(pin.to_owned()).await.unwrap();
+
+    wallet.accept_issuance(pin.to_owned()).await.unwrap();
 }

@@ -98,6 +98,7 @@ fi
 mkdir -p "${TARGET_DIR}"
 mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
+mkdir -p "${TARGET_DIR}/issuance_server"
 mkdir -p "${TARGET_DIR}/verification_server"
 mkdir -p "${TARGET_DIR}/mock_relying_party"
 mkdir -p "${TARGET_DIR}/update_policy_server"
@@ -257,6 +258,13 @@ openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
 RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
 export RP_CA_CRT
 
+# Generate key and cert for the issuance_server
+generate_mock_relying_party_hsm_key_pair disclosure_based_issuance
+ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE=disclosure_based_issuance_key
+export ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE
+ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE=$(< "${TARGET_DIR}/mock_relying_party/disclosure_based_issuance.crt.der" ${BASE64})
+export ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE
+
 # Generate relying party key and cert
 generate_mock_relying_party_hsm_key_pair mijn_amsterdam
 MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
@@ -298,8 +306,9 @@ generate_ws_random_key ephemeral_id_secret
 MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
 export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
-# Base64 encode the Technical Attestation Schemas
+# Copy the Technical Attestation Schemas
 cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${PID_ISSUER_DIR}"
+cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${BASE_DIR}/wallet_core/tests_integration"
 ISSUER_METADATA_PID_PATH="com_example_pid_metadata.json"
 export ISSUER_METADATA_PID_PATH
@@ -313,6 +322,10 @@ render_template "${DEVENV}/mrp_verification_server.toml.template" "${BASE_DIR}/w
 # And the pid_issuer config
 render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
 render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
+
+# And the issuance_server config
+render_template "${DEVENV}/issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
+render_template "${DEVENV}/issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 
