@@ -455,17 +455,25 @@ where
 
         // Retrieve the session from the session store, if present. It need not be, depending on the implementation of
         // the attribute service.
-        let session = self
+        let maybe_session = self
             .sessions
             .get(&session_token)
             .await
-            .map_err(IssuanceError::SessionStore)?
-            .unwrap_or(SessionState::<IssuanceData>::new(
-                session_token,
-                IssuanceData::Created(Created {
-                    issuable_documents: None,
-                }),
-            ));
+            .map_err(IssuanceError::SessionStore)?;
+
+        let (is_new_session, session) = match maybe_session {
+            Some(session) => (false, session),
+            None => (
+                true,
+                SessionState::<IssuanceData>::new(
+                    session_token,
+                    IssuanceData::Created(Created {
+                        issuable_documents: None,
+                    }),
+                ),
+            ),
+        };
+
         let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
 
         let result = session
@@ -484,7 +492,7 @@ where
         };
 
         self.sessions
-            .write(next, true)
+            .write(next, is_new_session)
             .await
             .map_err(|e| TokenRequestError::IssuanceError(e.into()))?;
 
