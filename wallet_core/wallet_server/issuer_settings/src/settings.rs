@@ -192,11 +192,11 @@ impl IssuerSettings {
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect::<Vec<_>>();
 
-        let key_pairs: Vec<(String, KeyPair)> = self
+        let key_pairs: Vec<(&str, &KeyPair)> = self
             .attestation_settings
             .as_ref()
             .iter()
-            .map(|(typ, attestation)| (typ.clone(), attestation.keypair.clone()))
+            .map(|(typ, attestation)| (typ.as_ref(), &attestation.keypair))
             .collect();
 
         verify_key_pairs(

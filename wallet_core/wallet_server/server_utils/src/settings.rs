@@ -167,7 +167,7 @@ pub trait ServerSettings: Sized {
 }
 
 pub fn verify_key_pairs<F>(
-    key_pairs: &[(String, KeyPair)],
+    key_pairs: &[(&str, &KeyPair)],
     trust_anchors: &[TrustAnchor<'_>],
     usage: CertificateUsage,
     time: &impl Generator<DateTime<Utc>>,
@@ -187,15 +187,15 @@ where
             key_pair
                 .certificate
                 .verify(usage, &[], time, trust_anchors)
-                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.clone()))?;
+                .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.to_string()))?;
         }
 
         let certificate_type = CertificateType::from_certificate(&key_pair.certificate)
-            .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.clone()))?;
+            .map_err(|e| CertificateVerificationError::NoCertificateType(e, key_pair_id.to_string()))?;
 
         if !has_usage_registration(certificate_type) {
             return Err(CertificateVerificationError::IncompleteCertificateType(
-                key_pair_id.clone(),
+                key_pair_id.to_string(),
             ));
         }
     }
