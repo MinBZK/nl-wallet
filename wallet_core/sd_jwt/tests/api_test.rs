@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use async_trait::async_trait;
+use chrono::DateTime;
 use josekit::jws::alg::hmac::HmacJwsSigner;
 use josekit::jws::JwsHeader;
 use josekit::jws::HS256;
@@ -13,8 +14,8 @@ use serde_json::Value;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
-use sd_jwt::key_binding_jwt_claims::KeyBindingJwt;
 use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
+use sd_jwt::key_binding_jwt_claims::{DigitalSignaturAlgorithm, KeyBindingJwt};
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::signer::JsonObject;
 use sd_jwt::signer::JwsSigner;
@@ -50,7 +51,7 @@ fn make_kb_jwt_builder() -> KeyBindingJwtBuilder {
     KeyBindingJwt::builder()
         .nonce("abcdefghi")
         .aud("https://example.com")
-        .iat(1458304832)
+        .iat(DateTime::from_timestamp_millis(1458304832).unwrap())
 }
 
 #[test]
@@ -110,7 +111,7 @@ async fn sd_jwt_is_verifiable() -> anyhow::Result<()> {
     let jwt = sd_jwt.presentation().split_once('~').unwrap().0.to_string();
     let verifier = HS256.verifier_from_bytes(HMAC_SECRET)?;
 
-    josekit::jwt::decode_with_verifier(&jwt, &verifier)?;
+    jwt::decode_with_verifier(&jwt, &verifier)?;
     Ok(())
 }
 
@@ -127,13 +128,13 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     assert!(sd_jwt.disclosures().is_empty());
     assert!(sd_jwt.key_binding_jwt().is_none());
 
-    let signer = HmacSignerAdapter(HS256.signer_from_bytes(HMAC_SECRET).unwrap());
+    let signer = HmacSignerAdapter(HS256.signer_from_bytes(HMAC_SECRET)?);
 
     let disclosed = sd_jwt
         .clone()
         .into_presentation(&hasher)?
         .attach_key_binding_jwt(make_kb_jwt_builder())
-        .finish_with_key_binding(&hasher, "HS256", &signer)
+        .finish_with_key_binding(&hasher, DigitalSignaturAlgorithm::HS256, &signer)
         .await?
         .0;
     // Try to serialize & deserialize `with_kb`.
@@ -149,7 +150,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
-async fn sd_jwt_wrong_sd_hash() -> anyhow::Result<()> {
+async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
 
     let sd_jwt = make_sd_jwt(
@@ -160,14 +161,14 @@ async fn sd_jwt_wrong_sd_hash() -> anyhow::Result<()> {
 
     assert!(sd_jwt.key_binding_jwt().is_none());
 
-    let signer = HmacSignerAdapter(HS256.signer_from_bytes(HMAC_SECRET).unwrap());
+    let signer = HmacSignerAdapter(HS256.signer_from_bytes(HMAC_SECRET)?);
 
     let disclosed = sd_jwt
         .clone()
         .into_presentation(&hasher)?
         .conceal("/parent/property1")?
         .attach_key_binding_jwt(make_kb_jwt_builder())
-        .finish_with_key_binding(&hasher, "HS256", &signer)
+        .finish_with_key_binding(&hasher, DigitalSignaturAlgorithm::HS256, &signer)
         .await?
         .0;
 

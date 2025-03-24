@@ -28,7 +28,7 @@ pub enum Error {
     #[error("invalid path: {0}")]
     InvalidPath(String),
 
-    #[error("invalid input")]
+    #[error("invalid input: {0}")]
     Deserialization(String),
 
     #[error("{0}")]

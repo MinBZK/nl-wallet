@@ -43,8 +43,10 @@
       devShells = forEachSupportedSystem ({ pkgs }: {
         default = pkgs.mkShell {
           packages = with pkgs; [
-            rustToolchain
+            clippy
             rustfmtNightly
+            rustToolchain
+            rustup
             openssl
             pkg-config
             cargo-deny

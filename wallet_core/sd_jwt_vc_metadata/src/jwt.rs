@@ -33,6 +33,7 @@ where
     T: DeserializeOwned,
 {
     type Err = Error;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut segments = s.split('.');
 
@@ -59,6 +60,7 @@ where
             .context("missing signature")
             .and_then(|sig| BASE64_URL_SAFE_NO_PAD.decode(sig).context("not base64url"))
             .map_err(|e| Error::Deserialization(format!("invalid JWT: {e}")))?;
+
         if segments.next().is_some() {
             return Err(Error::Deserialization("invalid JWT: more than 3 segments".to_string()));
         }

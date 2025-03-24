@@ -253,6 +253,7 @@ mod test {
 
         mod that_do_not_exist {
             use super::*;
+
             mod on_top_level {
                 use super::*;
 
