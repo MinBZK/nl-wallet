@@ -3,6 +3,7 @@ package feature.settings
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -33,30 +34,15 @@ class ClearDataTests : TestBase() {
         clearDataDialog = ClearDataDialog()
     }
 
-    @Nested
-    @DisplayName("$USE_CASE.1 When the User enters this feature from the App Menu or the Forgot PIN screen: [$JIRA_ID]")
-    inner class ClearDataInform {
-
-        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.1.1 the App informs the User of the consequences of this action. [$JIRA_ID]")
-        fun verifyConsequenceInform() {
-            setUp()
-            assertTrue(clearDataDialog.informVisible(), "consequence inform is not visible")
-        }
-
-        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.1.2 the App offers the User the option to cancel, aborting this flow. [$JIRA_ID]")
-        fun verifyCancelButton() {
-            setUp()
-            assertTrue(clearDataDialog.cancelButtonVisible(), "cancel button is not visible")
-        }
-
-        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.1.3 the App offers the User the option to continue, continuing this flow. [$JIRA_ID]")
-        fun verifyConfirmButton() {
-            setUp()
-            assertTrue(clearDataDialog.confirmButtonVisible(), "confirm button is not visible")
-        }
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("$USE_CASE.1 When the User enters this feature from the App Menu or the Forgot PIN screen: 1.1 the App informs the User of the consequences of this action. 1.2 the App offers the User the option to cancel, aborting this flow. 1.3 the App offers the User the option to continue, continuing this flow. [$JIRA_ID]")
+    fun verifyClearDataScreen() {
+        setUp()
+        assertAll(
+            { assertTrue(clearDataDialog.informVisible(), "consequence inform is not visible") },
+            { assertTrue(clearDataDialog.cancelButtonVisible(), "cancel button is not visible") },
+            { assertTrue(clearDataDialog.confirmButtonVisible(), "confirm button is not visible") }
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

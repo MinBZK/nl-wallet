@@ -48,14 +48,7 @@ class PersonalizeInformTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The app offers a button for the user to Log in with DigiD. [$JIRA_ID]")
-    fun verifyDigidLoginButton() {
-        setUp()
-        personalizeInformScreen.digidLoginButtonVisible()
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.4 When the user hits 'Log in with DigiD', DigiD authentication starts. [$JIRA_ID]")
+    @DisplayName("$USE_CASE.3 The app offers a button for the user to Log in with DigiD. 4 When the user hits 'Log in with DigiD', DigiD authentication starts. [$JIRA_ID]")
     fun verifyDigidLoginRedirect() {
         setUp()
         personalizeInformScreen.clickDigidLoginButton()

@@ -29,5 +29,8 @@ class DashboardScreen : MobileActions() {
 
     fun clickMenuButton() = clickElement(menuButton, false)
 
-    fun clickPidCard() = clickElement(pidIdCard, false)
+    fun clickPidCard() {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        clickElement(pidIdCard, false)
+    }
 }

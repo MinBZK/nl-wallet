@@ -14,7 +14,7 @@ import util.TestInfoHandler
 class LocalMobileDriver : WebDriverProvider {
 
     private val apkPath = "../wallet_app/build/app/outputs/flutter-apk/app-profile.apk"
-    private val ipaPath = "../wallet_app/build/ios/iphonesimulator/Runner.app"
+    private val ipaPath = "../nl.ictu.edi.wallet.latest-0.3.0.ipa"
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
         // Set Android or iOS specific capabilities
@@ -50,6 +50,12 @@ class LocalMobileDriver : WebDriverProvider {
             "ios" -> {
                 options.setCapability("appium:autoAcceptAlerts", true)
                 options.setCapability("includeSafariInWebviews", true)
+                options.setCapability("udid", "");
+                options.setCapability("xcodeOrgId", "");
+                options.setCapability("xcodeSigningId", "");
+                options.setCapability("updatedWDABundleId", "");
+                options.setCapability("wdaLaunchTimeout", 60000);
+                options.setCapability("wdaConnectionTimeout", 60000);
                 IOSDriver(AppiumServiceProvider.service?.url, options)
             }
             else -> {

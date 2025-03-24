@@ -78,9 +78,10 @@ class PinScreen : MobileActions() {
     fun clickConfirmPinErrorFatalCta() = clickElement(confirmPinErrorFatalCta)
 
     fun skipBiometricsIfConfigurable() {
-        // Poor man's check for biometrics
         if (!testConfig.remote) {
-            clickElement(skipBiometricsCta)
+            if (isElementVisible(skipBiometricsCta)) {
+                clickElement(skipBiometricsCta)
+            }
         }
     }
 

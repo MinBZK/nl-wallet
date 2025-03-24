@@ -3,6 +3,7 @@ package feature.card
 import helper.TestBase
 import navigator.CardNavigator
 import navigator.screen.CardNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -31,26 +32,13 @@ class CardDetailTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The Card detail page shows the actual card data as stored in the app. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.1 The Card detail page shows the actual card data as stored in the app. 2 The Card detail page shows the Card face (exactly the same as on the dashboard, minus the 'show details' button). 3 The Card detail page shows: issuer name, empty history state.  [${JIRA_ID}]")
     fun verifyCardDetailScreen() {
         setUp()
-        assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The Card detail page shows the Card face (exactly the same as on the dashboard, minus the 'show details' button). [${JIRA_ID}]")
-    fun verifyCardDetailButtonAbsent() {
-        setUp()
-        assertTrue(cardDetailScreen.cardFaceElements(), "card face for detail screen is not visible and/or correct")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The Card detail page shows: issuer name, empty history state. [${JIRA_ID}]")
-    fun verifyDataAndHistoryState() {
-        setUp()
-        assertTrue(
-            cardDetailScreen.issuerAndHistoryStates(),
-            "issuer and/or history state not not visible and/or correct"
+        assertAll(
+            { assertTrue(cardDetailScreen.visible(), "card detail screen is not visible") },
+            { assertTrue(cardDetailScreen.cardFaceElements(), "card face for detail screen is not visible and/or correct") },
+            { assertTrue(cardDetailScreen.issuerAndHistoryStates(), "issuer and/or history state not not visible and/or correct") }
         )
     }
 

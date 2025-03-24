@@ -3,6 +3,7 @@ package feature.personalize
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -29,24 +30,14 @@ class PersonalizeSuccessTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 When PID was issued successfully, the App displays a confirmation to the User. [$JIRA_ID]")
+    @DisplayName("$USE_CASE.1 When PID was issued successfully, the App displays a confirmation to the User. 2 The confirmation includes a success message. 3 The confirmation includes the issued cards (PID + Address): card, title.[$JIRA_ID]")
     fun verifyPersonalizeSuccessScreen() {
         setUp()
-        assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The confirmation includes a success message. [$JIRA_ID]")
-    fun verifySuccessMessage() {
-        setUp()
-        assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The confirmation includes the issued cards (PID + Address): card, title. [$JIRA_ID]")
-    fun verifyIssuedCards() {
-        setUp()
-        assertTrue(personalizeSuccessScreen.cardsVisible(), "cards not visible")
+        assertAll(
+            { assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible") },
+            { assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible") },
+            { assertTrue(personalizeSuccessScreen.cardsVisible(), "cards not visible") }
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
