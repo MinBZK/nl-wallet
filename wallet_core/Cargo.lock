@@ -1176,12 +1176,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "configuration"
+version = "0.3.0-dev"
+dependencies = [
+ "axum-server",
+ "derive_more",
+ "etag",
+ "http",
+ "reqwest",
+ "rustls-pki-types",
+ "serde",
+ "serde_with",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "configuration_server"
 version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-server",
  "config",
+ "configuration",
  "etag",
  "http",
  "mime",
@@ -3068,6 +3085,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
+name = "issuer_settings"
+version = "0.3.0-dev"
+dependencies = [
+ "chrono",
+ "config",
+ "derive_more",
+ "futures",
+ "hsm",
+ "indexmap 2.7.1",
+ "mdoc",
+ "openid4vc",
+ "rustls-pki-types",
+ "sd_jwt",
+ "serde",
+ "serde_json",
+ "server_utils",
+ "thiserror 2.0.11",
+ "tracing",
+ "wallet_common",
+]
+
+[[package]]
 name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3477,14 +3516,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "migration"
-version = "0.3.0-dev"
-dependencies = [
- "async-trait",
- "sea-orm-migration",
-]
-
-[[package]]
 name = "mime"
 version = "0.3.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3814,6 +3845,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
+ "configuration",
  "dashmap 6.1.0",
  "derive_more",
  "error_category",
@@ -4120,11 +4152,12 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
- "derive_more",
+ "configuration",
  "futures",
  "hsm",
  "http",
  "indexmap 2.7.1",
+ "issuer_settings",
  "jwt",
  "mdoc",
  "openid4vc",
@@ -4132,7 +4165,6 @@ dependencies = [
  "p256",
  "reqwest",
  "rstest",
- "rustls-pki-types",
  "sd_jwt",
  "sea-orm",
  "serde",
@@ -6200,6 +6232,7 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "chrono",
+ "configuration",
  "configuration_server",
  "ctor",
  "dotenvy",
@@ -6913,6 +6946,7 @@ dependencies = [
  "axum-server",
  "chrono",
  "config",
+ "configuration",
  "etag",
  "http",
  "indexmap 2.7.1",
@@ -6982,11 +7016,11 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.12.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3758f5e68192bb96cc8f9b7e2c2cfdabb435499a28499a42f8f984092adad4b"
+checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
 dependencies = [
- "getrandom 0.2.15",
+ "getrandom 0.3.1",
  "serde",
 ]
 
@@ -7023,6 +7057,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "configuration",
  "derive_more",
  "futures",
  "hsm",
@@ -7096,6 +7131,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
+ "configuration",
  "derive_more",
  "entity",
  "error_category",
@@ -7108,7 +7144,6 @@ dependencies = [
  "jwt",
  "libsqlite3-sys",
  "mdoc",
- "migration",
  "mime",
  "mockall",
  "nutype",
@@ -7144,6 +7179,7 @@ dependencies = [
  "uuid",
  "wallet_account",
  "wallet_common",
+ "wallet_migrations",
  "wiremock",
 ]
 
@@ -7205,7 +7241,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "derive_more",
- "etag",
  "futures",
  "hex",
  "hex-literal",
@@ -7239,6 +7274,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wallet_migrations"
+version = "0.3.0-dev"
+dependencies = [
+ "async-trait",
+ "sea-orm-migration",
+ "tokio",
+]
+
+[[package]]
 name = "wallet_provider"
 version = "0.3.0-dev"
 dependencies = [
@@ -7249,6 +7293,7 @@ dependencies = [
  "cfg-if",
  "chrono",
  "config",
+ "configuration",
  "derive_more",
  "futures",
  "hsm",

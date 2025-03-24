@@ -4,6 +4,7 @@ use std::net::IpAddr;
 use std::net::TcpListener;
 use std::process;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
 
 use ctor::ctor;
@@ -24,6 +25,9 @@ use android_attest::android_crl::RevocationStatusList;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use configuration::config_server_config::ConfigServerConfiguration;
+use configuration::http::TlsPinningConfig;
+use configuration::wallet_config::WalletConfiguration;
 use configuration_server::settings::Settings as CsSettings;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
@@ -35,7 +39,7 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use pid_issuer::pid::mock::MockAttributesLookup;
-use pid_issuer::settings::IssuerSettings;
+use pid_issuer::settings::PidIssuerSettings;
 use pid_issuer::wte_tracker::WteTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
@@ -55,9 +59,6 @@ use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
-use wallet_common::config::config_server_config::ConfigServerConfiguration;
-use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
 use wallet_common::reqwest::ReqwestTrustAnchor;
 use wallet_common::trust_anchor::BorrowingTrustAnchor;
@@ -151,7 +152,7 @@ pub async fn setup_wallet_and_env(
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
-    issuer_settings: IssuerSettings,
+    issuer_settings: PidIssuerSettings,
 ) -> (WalletWithMocks, WalletUrls) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
@@ -187,7 +188,10 @@ pub async fn setup_wallet_and_env(
     let ups_port = start_update_policy_server(ups_settings, ups_root_ca.clone()).await;
 
     assert_eq!(Some(wp_settings.hsm.clone()), verifier_settings.server_settings.hsm);
-    assert_eq!(Some(wp_settings.hsm.clone()), issuer_settings.server_settings.hsm);
+    assert_eq!(
+        Some(wp_settings.hsm.clone()),
+        issuer_settings.issuer_settings.server_settings.hsm
+    );
 
     let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
     let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
@@ -360,11 +364,11 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings() -> IssuerSettings {
-    let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
+pub fn pid_issuer_settings() -> PidIssuerSettings {
+    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
-    settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
-    settings.server_settings.wallet_server.port = 0;
+    settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
+    settings.issuer_settings.server_settings.wallet_server.port = 0;
 
     settings
 }
@@ -396,7 +400,7 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
 }
 
 pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
-    mut settings: IssuerSettings,
+    mut settings: PidIssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     attr_service: A,
 ) -> u16 {
@@ -404,23 +408,24 @@ pub async fn start_issuer_server<A: AttributeService + Send + Sync + 'static>(
     let port = listener.local_addr().unwrap().port();
     let public_url = BaseUrl::from_str(format!("http://localhost:{}/", port).as_str()).unwrap();
 
-    let storage_settings = &settings.server_settings.storage;
-    settings.server_settings.public_url = public_url.clone();
+    let storage_settings = &settings.issuer_settings.server_settings.storage;
+    settings.issuer_settings.server_settings.public_url = public_url.clone();
 
     let db_connection = server_utils::store::DatabaseConnection::try_new(storage_settings.url.clone())
         .await
         .unwrap();
 
-    let issuance_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
     let wte_tracker = WteTrackerVariant::new(db_connection);
 
     tokio::spawn(async move {
         if let Err(error) = pid_issuer::server::serve_with_listener(
             listener,
             attr_service,
-            settings,
+            settings.issuer_settings,
             hsm,
             issuance_sessions,
+            settings.wte_issuer_pubkey.into_inner(),
             wte_tracker,
         )
         .await
@@ -459,7 +464,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         .await
         .unwrap();
 
-    let disclosure_sessions = SessionStoreVariant::new(db_connection.clone(), storage_settings.into());
+    let disclosure_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
 
     tokio::spawn(async move {
         if let Err(error) = verification_server::server::serve_with_listeners(

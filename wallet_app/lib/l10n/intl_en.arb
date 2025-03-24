@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-03-10T14:55:51+01:00",
+    "@@last_modified": "2025-03-18T11:50:25+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -43,7 +43,7 @@
             }
         }
     },
-    "biometricSettingsScreenSetupDialogOpenSettingsCta": "Open settings",
+    "biometricSettingsScreenSetupDialogOpenSettingsCta": "OPEN SETTINGS",
     "biometricSettingsScreenSetupDialogTitle": "Turn on {supportedBiometrics} first",
     "@biometricSettingsScreenSetupDialogTitle": {
         "placeholders": {
@@ -213,7 +213,6 @@
     "dashboardScreenFooterCta": "About this app",
     "dashboardScreenMenuWCAGLabel": "Navigation menu",
     "dashboardScreenOverviewAnnouncement": "NL Wallet overview",
-    "dashboardScreenQrCta": "Scan QR code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "From {source}",
     "@dataAttributeSectionTitle": {
@@ -423,6 +422,7 @@
             }
         }
     },
+    "generalDialogCloseCta": "CLOSE",
     "generalHours": "{hours, plural, one {{hours} hour} other {{hours} hours}}",
     "@generalHours": {
         "placeholders": {
@@ -946,6 +946,7 @@
     "resetWalletDialogTitle": "Do you want to delete all data?",
     "rootDetectedScreenDescription": "To protect your data, you can not use NL Wallet on this device. \n\nThis device is not in its original state, which makes it not secure. See the help page for more information.",
     "rootDetectedScreenTitle": "Your device is not secure",
+    "scanQrButtonCta": "Scan QR code",
     "scanWithWalletDialogBody": "It looks like you have scanned a QR code with a different app. To be sure, scan the QR code with the NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR code",
     "scanWithWalletDialogTitle": "Scan the QR code with NL Wallet",
@@ -1110,12 +1111,12 @@
     "walletPersonalizeScreenExitSheetTitle": "Exit",
     "walletPersonalizeScreenLoadingDigiDUrlDescription": "DigiD app is being opened",
     "walletPersonalizeScreenLoadingDigiDUrlTitle": "Please wait",
-    "walletPersonalizeScreenLoadingSubtitle": "Data is being retrieved",
+    "walletPersonalizeScreenLoadingSubtitle": "The request is being processed",
     "walletPersonalizeScreenLoadingTitle": "Please wait",
     "walletPersonalizeScreenProcessingDigiDResultDescription": "Data is being retrieved",
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Please wait",
-    "walletPersonalizeScreenStopDigidDialogNegativeCta": "Back",
-    "walletPersonalizeScreenStopDigidDialogPositiveCta": "Stop login",
+    "walletPersonalizeScreenStopDigidDialogNegativeCta": "BACK",
+    "walletPersonalizeScreenStopDigidDialogPositiveCta": "STOP LOGIN",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "If you stop, you'll need to start over.",
     "walletPersonalizeScreenStopDigidDialogTitle": "Stop DigiD login?",
     "walletPersonalizeSetupFailedScreenCta": "Try again",

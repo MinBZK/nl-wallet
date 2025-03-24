@@ -6,6 +6,7 @@ use reqwest::Request;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use configuration::http::TlsPinningConfig;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::Instruction;
@@ -18,7 +19,6 @@ use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
-use wallet_common::config::http::TlsPinningConfig;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::reqwest::parse_content_type;
 use wallet_common::reqwest::RequestBuilder;
@@ -179,7 +179,7 @@ mod tests {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use wallet_common::config::http::test::HttpConfig;
+    use configuration::http::test::HttpConfig;
     use wallet_common::reqwest::JsonReqwestBuilder;
     use wallet_common::urls::BaseUrl;
 

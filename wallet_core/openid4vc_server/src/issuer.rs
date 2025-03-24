@@ -32,7 +32,7 @@ use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WalletSettings;
+use openid4vc::issuer::WteConfig;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionStore;
@@ -54,9 +54,10 @@ struct ApplicationState<A, K, S, W> {
 pub fn create_issuance_router<A, K, S, W>(
     public_url: &BaseUrl,
     attestation_config: AttestationTypesConfig<K>,
-    sessions: S,
+    sessions: Arc<S>,
     attr_service: A,
-    wallet_settings: WalletSettings<W>,
+    wallet_client_ids: Vec<String>,
+    wte_settings: Option<WteConfig<W>>,
 ) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
@@ -65,7 +66,14 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     let application_state = Arc::new(ApplicationState {
-        issuer: Issuer::new(sessions, attr_service, attestation_config, public_url, wallet_settings),
+        issuer: Issuer::new(
+            sessions,
+            attr_service,
+            attestation_config,
+            public_url,
+            wallet_client_ids,
+            wte_settings,
+        ),
     });
 
     Router::new()

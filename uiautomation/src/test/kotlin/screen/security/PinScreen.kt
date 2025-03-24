@@ -1,5 +1,6 @@
 package screen.security
 
+import data.TestConfigRepository.Companion.testConfig
 import util.MobileActions
 
 class PinScreen : MobileActions() {
@@ -15,6 +16,7 @@ class PinScreen : MobileActions() {
     private val appInfoButton = find.byToolTip(l10n.getString("generalWCAGInfo"))
     private val forgotPinButton = find.byText(l10n.getString("pinScreenForgotPinCta"))
     private val confirmPinErrorFatalCta = find.byText(l10n.getString("pinConfirmationErrorDialogFatalCta"))
+    private val skipBiometricsCta = find.byText(l10n.getString("setupBiometricsPageSkipCta"))
     private val closeAlertDialogButton = find.byText(l10n.getString("generalOkCta"))
 
     private val pinValidationErrorTooFewUniqueDigits =
@@ -74,6 +76,14 @@ class PinScreen : MobileActions() {
     }
 
     fun clickConfirmPinErrorFatalCta() = clickElement(confirmPinErrorFatalCta)
+
+    fun skipBiometricsIfConfigurable() {
+        if (!testConfig.remote) {
+            if (isElementVisible(skipBiometricsCta)) {
+                clickElement(skipBiometricsCta)
+            }
+        }
+    }
 
     fun closeAlertDialog() = clickElement(closeAlertDialogButton)
 }

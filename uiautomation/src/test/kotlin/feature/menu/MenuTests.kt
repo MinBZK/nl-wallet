@@ -3,8 +3,8 @@ package feature.menu
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestMethodOrder
@@ -31,24 +31,14 @@ class MenuTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The app menu is accessible from the footer menu. [$JIRA_ID]")
+    @DisplayName("$USE_CASE.1 The app menu is accessible from the footer menu. 2 The app menu offers an option to log out. 3 The app menu contains the following items: Help, History, Settings, Feedback, About.[$JIRA_ID]")
     fun verifyMenuScreen() {
         setUp()
-        assertTrue(menuScreen.visible(), "menu screen is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The app menu offers an option to log out. [$JIRA_ID]")
-    fun verifyLogoutButtonVisible() {
-        setUp()
-        assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The app menu contains the following items: Help, History, Settings, Feedback, About. [$JIRA_ID]")
-    fun verifyMenuItemsVisible() {
-        setUp()
-        assertTrue(menuScreen.menuListButtonsVisible(), "menu list buttons are not visible")
+        assertAll(
+            { assertTrue(menuScreen.visible(), "menu screen is not visible") },
+            { assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible") },
+            { assertTrue(menuScreen.menuListButtonsVisible(), "menu list buttons are not visible") }
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

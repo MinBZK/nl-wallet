@@ -63,14 +63,15 @@ tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
-uuid = { workspace = true, features = ["v4"] }
+uuid = {workspace = true, features = [ "v4", "v7" ] }
 
 mockall = { workspace = true, optional = true }
 
+configuration.path = "../wallet_configuration/configuration"
 entity.path = "entity"
 error_category = { path = "../error_category", features = ["sentry"] }
 jwt.path = "../jwt"
-migration.path = "migrations"
+wallet_migrations.path = "migrations"
 mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
@@ -93,6 +94,7 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 wiremock.workspace = true
 
+configuration = { path = "../wallet_configuration/configuration", features = ["insecure_http_client"] }
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
 mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
@@ -100,14 +102,11 @@ openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 platform_support = { path = "../platform_support", features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
-wallet_common = { path = "../wallet_common", features = [
-    "mock_secure_keys",
-    "mock_remote_key",
-    "insecure_http_client",
-] }
+wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_remote_key"] }
 
 [build-dependencies]
 serde.workspace = true
 serde_json.workspace = true
 
-wallet_common = { path = "../wallet_common" }
+configuration.path = "../wallet_configuration/configuration"
+wallet_common.path = "../wallet_common"

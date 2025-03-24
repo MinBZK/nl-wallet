@@ -5,6 +5,8 @@ use tracing::info;
 use tracing::instrument;
 use tracing::warn;
 
+use configuration::http::TlsPinningConfig;
+use configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use jwt::error::JwtError;
@@ -15,8 +17,6 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
 use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
-use wallet_common::config::http::TlsPinningConfig;
-use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::keys::EcdsaKey;
 use wallet_common::update_policy::VersionState;
 use wallet_common::utils;

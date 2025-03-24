@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
+use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use chrono::Days;
@@ -35,7 +36,7 @@ use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WalletSettings;
+use openid4vc::issuer::WteConfig;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::MemorySessionStore;
@@ -112,15 +113,15 @@ fn setup(
         .into();
 
     let issuer = MockIssuer::new(
-        MemorySessionStore::default(),
+        Arc::new(MemorySessionStore::default()),
         attr_service,
         attestation_config,
         &server_url,
-        WalletSettings {
-            wallet_client_ids: vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
-            wte_issuer_pubkey: *wte_issuer_privkey.verifying_key(),
-            wte_tracker: MemoryWteTracker::new(),
-        },
+        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+        Some(WteConfig {
+            wte_issuer_pubkey: wte_issuer_privkey.verifying_key().into(),
+            wte_tracker: Arc::new(MemoryWteTracker::new()),
+        }),
     );
 
     (

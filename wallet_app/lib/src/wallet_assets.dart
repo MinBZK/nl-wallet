@@ -3,7 +3,14 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class WalletAssets {
   static Future<void> preloadPidSvgs() async {
-    final svgs = [svg_rijks_card_holo, svg_rijks_card_bg_light, svg_rijks_card_bg_dark, svg_qr_button];
+    final svgs = [
+      svg_rijks_card_holo,
+      svg_rijks_card_bg_light,
+      svg_rijks_card_bg_dark,
+      svg_qr_button,
+      svg_qr_button_focused,
+      svg_qr_button_focused_dark,
+    ];
     final loaders = svgs.map(SvgAssetLoader.new);
     await Future.wait(
       loaders.map(
@@ -25,6 +32,8 @@ class WalletAssets {
   static const svg_rijks_card_bg_light = 'assets/non-free/svg/rijks_card_bg_light.svg';
   static const svg_rijks_card_bg_dark = 'assets/non-free/svg/rijks_card_bg_dark.svg';
   static const svg_qr_button = 'assets/non-free/svg/qr_button.svg';
+  static const svg_qr_button_focused = 'assets/non-free/svg/qr_button_focused.svg';
+  static const svg_qr_button_focused_dark = 'assets/non-free/svg/qr_button_focused_dark.svg';
   static const svg_app_store = 'assets/non-free/svg/app_store_logo.svg';
   static const svg_play_store = 'assets/non-free/svg/play_store_logo.svg';
 
@@ -49,7 +58,8 @@ class WalletAssets {
   static const svg_placeholder = 'assets/non-free/svg/NL_WALLET_placeholder.svg';
   static const svg_biometrics_finger = 'assets/non-free/svg/NL_WALLET_biometrics_finger.svg';
   static const svg_biometrics_face = 'assets/non-free/svg/NL_WALLET_biometrics_face.svg';
-  static const svg_update_app = 'assets/non-free/svg/NL_WALLET_update_app.svg';
+  static const svg_update_app = 'assets/non-free/svg/NL_WALLET_update_android.svg';
+  static const svg_update_app_ios = 'assets/non-free/svg/NL_WALLET_update_ios.svg';
 
   static const svg_icon_face_id = 'assets/non-free/svg/icon_face_id.svg';
 

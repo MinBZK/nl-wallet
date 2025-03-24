@@ -26,6 +26,7 @@ use wallet_common::wte::WteClaims;
 use crate::credential_formats::CredentialFormat;
 use crate::credential_formats::CredentialType;
 use crate::issuance_session::IssuanceSessionError;
+use crate::token::AuthorizationCode;
 use crate::Format;
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-8.1>.
@@ -164,6 +165,69 @@ impl CredentialRequestProof {
     }
 }
 
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CredentialOffer {
+    pub credential_issuer: BaseUrl,
+    pub credential_configuration_ids: Vec<String>,
+    pub grants: Option<Grants>,
+}
+
+/// Grants for a Verifiable Credential.
+/// May contain either or both. If it contains both, it is up to the wallet which one it uses.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Grants {
+    Both {
+        #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
+        pre_authorized_code: GrantPreAuthorizedCode,
+        authorization_code: GrantAuthorizationCode,
+    },
+    AuthorizationCode {
+        authorization_code: GrantAuthorizationCode,
+    },
+    PreAuthorizedCode {
+        #[serde(rename = "urn:ietf:params:oauth:grant-type:pre-authorized_code")]
+        pre_authorized_code: GrantPreAuthorizedCode,
+    },
+}
+
+impl Grants {
+    pub fn authorization_code(&self) -> Option<AuthorizationCode> {
+        match self {
+            Grants::Both {
+                pre_authorized_code, ..
+            } => Some(pre_authorized_code.pre_authorized_code.clone()),
+            Grants::PreAuthorizedCode { pre_authorized_code } => Some(pre_authorized_code.pre_authorized_code.clone()),
+            Grants::AuthorizationCode { .. } => None,
+        }
+    }
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GrantAuthorizationCode {
+    pub issuer_state: Option<String>,
+    pub authorization_server: Option<BaseUrl>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GrantPreAuthorizedCode {
+    #[serde(rename = "pre-authorized_code")]
+    pub pre_authorized_code: AuthorizationCode,
+    pub tx_code: Option<PreAuthTransactionCode>,
+    pub authorization_server: Option<BaseUrl>,
+}
+
+#[skip_serializing_none]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct PreAuthTransactionCode {
+    pub input_mode: Option<String>,
+    pub length: Option<u64>,
+    pub description: Option<String>,
+}
+
 /// Stores multiple copies of credentials that have identical attributes.
 #[nutype(
     validate(predicate = |copies| !copies.is_empty()),
@@ -184,5 +248,38 @@ impl<T> CredentialCopies<T> {
 
     pub fn is_empty(&self) -> bool {
         self.as_ref().is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use serde_json::json;
+
+    use crate::credential::Grants;
+
+    #[test]
+    fn test_grants_serialization() {
+        let json = json!({
+            "authorization_code": { "issuer_state": "foo" },
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
+        });
+        assert_matches!(serde_json::from_value::<Grants>(json).unwrap(), Grants::Both { .. });
+
+        let json = json!({
+            "urn:ietf:params:oauth:grant-type:pre-authorized_code": { "pre-authorized_code": "bar" }
+        });
+        assert_matches!(
+            serde_json::from_value::<Grants>(json).unwrap(),
+            Grants::PreAuthorizedCode { .. }
+        );
+
+        let json = json!({
+            "authorization_code": { "issuer_state": "foo" }
+        });
+        assert_matches!(
+            serde_json::from_value::<Grants>(json).unwrap(),
+            Grants::AuthorizationCode { .. }
+        );
     }
 }

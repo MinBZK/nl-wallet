@@ -2,7 +2,6 @@
 members = [
     "android_attest",
     "apple_app_attest",
-    "configuration_server",
     "error_category",
     "error_category/error_category_derive",
     "flutter_api",
@@ -24,6 +23,8 @@ members = [
     "wallet/migrations",
     "wallet_ca",
     "wallet_common",
+    "wallet_configuration/configuration",
+    "wallet_configuration/configuration_server",
     "wallet_provider",
     "wallet_provider/database_settings",
     "wallet_provider/domain",
@@ -31,6 +32,7 @@ members = [
     "wallet_provider/persistence",
     "wallet_provider/service",
     "wallet_provider/wallet_account",
+    "wallet_server/issuer_settings",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/pid_issuer",
@@ -51,9 +53,12 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
 [workspace.lints.clippy]
 cloned_instead_of_copied = "warn"
 expl_impl_clone_on_copy = "warn"
+explicit_into_iter_loop = "warn"
+explicit_iter_loop = "warn"
 needless_pass_by_value = "warn"
 redundant_allocation = "warn"
 trivially_copy_pass_by_ref = "warn"
+unnecessary_join = "warn"
 unnecessary_wraps = "warn"
 unused_async = "warn"
 unused_self = "warn"
@@ -184,7 +189,7 @@ trait-variant = "0.1.2"
 trybuild = "1.0.103"
 uniffi = { version = "0.29.0", default-features = false }
 url = "2.5.4"
-uuid = "1.12.1"
+uuid = "1.15.1"
 wiremock = "0.6.2"
 x509-cert = { version = "0.2.5", default-features = false }
 x509-parser = "0.17.0"

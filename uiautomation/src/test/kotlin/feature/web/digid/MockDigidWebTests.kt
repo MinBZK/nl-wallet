@@ -13,7 +13,6 @@ class MockDigidWebTests : TestBase() {
 
     private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
 
-    @BeforeEach
     fun setUp() {
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.DigidLoginStartWebPage)
 

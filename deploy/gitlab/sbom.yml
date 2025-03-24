@@ -37,6 +37,7 @@ build-sbom:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
   artifacts:
+    name: sbom
     when: always
     reports:
       cyclonedx: bom.json

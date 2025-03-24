@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-03-10T14:55:51+01:00",
+    "@@last_modified": "2025-03-18T11:50:25+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -39,7 +39,7 @@
             }
         }
     },
-    "biometricSettingsScreenSetupDialogOpenSettingsCta": "Open instellingen",
+    "biometricSettingsScreenSetupDialogOpenSettingsCta": "OPEN INSTELLINGEN",
     "biometricSettingsScreenSetupDialogTitle": "Zet {supportedBiometrics} eerst aan",
     "@biometricSettingsScreenSetupDialogTitle": {
         "placeholders": {
@@ -209,7 +209,6 @@
     "dashboardScreenFooterCta": "Over de app",
     "dashboardScreenMenuWCAGLabel": "Navigatiemenu",
     "dashboardScreenOverviewAnnouncement": "NL Wallet overzicht",
-    "dashboardScreenQrCta": "Scan QR-code",
     "dashboardScreenTitle": "Menu",
     "dataAttributeSectionTitle": "Uit {source}",
     "@dataAttributeSectionTitle": {
@@ -419,6 +418,7 @@
             }
         }
     },
+    "generalDialogCloseCta": "SLUITEN",
     "generalHours": "{hours, plural, one {{hours} uur} other {{hours} uur}}",
     "@generalHours": {
         "placeholders": {
@@ -942,6 +942,7 @@
     "resetWalletDialogTitle": "Wil je alle gegevens verwijderen?",
     "rootDetectedScreenDescription": "Om je gegevens te beschermen, kun je de NL Wallet niet op dit apparaat gebruiken. \n\nDit apparaat is niet meer in de originele staat en is daarom niet veilig. Bekijk de hulppagina voor meer informatie.",
     "rootDetectedScreenTitle": "Je apparaat is niet veilig",
+    "scanQrButtonCta": "Scan QR-code",
     "scanWithWalletDialogBody": "Het lijkt erop dat je een QR-code hebt gescand met een andere app. Scan voor de zekerheid de QR-code met de NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR-code",
     "scanWithWalletDialogTitle": "Scan QR-code met NL Wallet",
@@ -1106,12 +1107,12 @@
     "walletPersonalizeScreenExitSheetTitle": "Stop",
     "walletPersonalizeScreenLoadingDigiDUrlDescription": "DigiD app wordt geopend",
     "walletPersonalizeScreenLoadingDigiDUrlTitle": "Even geduld",
-    "walletPersonalizeScreenLoadingSubtitle": "Gegevens worden opgehaald",
+    "walletPersonalizeScreenLoadingSubtitle": "De aanvraag wordt verwerkt",
     "walletPersonalizeScreenLoadingTitle": "Even geduld",
     "walletPersonalizeScreenProcessingDigiDResultDescription": "Gegevens worden opgehaald",
     "walletPersonalizeScreenProcessingDigiDResultTitle": "Even geduld",
-    "walletPersonalizeScreenStopDigidDialogNegativeCta": "Terug",
-    "walletPersonalizeScreenStopDigidDialogPositiveCta": "Inloggen stoppen",
+    "walletPersonalizeScreenStopDigidDialogNegativeCta": "TERUG",
+    "walletPersonalizeScreenStopDigidDialogPositiveCta": "INLOGGEN STOPPEN",
     "walletPersonalizeScreenStopDigidDialogSubtitle": "Als je stopt, moet je opnieuw beginnen.",
     "walletPersonalizeScreenStopDigidDialogTitle": "DigiD inloggen stoppen?",
     "walletPersonalizeSetupFailedScreenCta": "Probeer opnieuw",

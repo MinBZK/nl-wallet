@@ -4,10 +4,10 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use tracing::info;
 
+use configuration::wallet_config::WalletConfiguration;
 use jwt::validations;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
-use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::reqwest::ReqwestBuilder;
 
 use crate::config::ConfigurationError;

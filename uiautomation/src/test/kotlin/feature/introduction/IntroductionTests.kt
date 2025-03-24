@@ -2,7 +2,6 @@ package feature.introduction
 
 import helper.TestBase
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
@@ -40,15 +39,7 @@ class IntroductionTests : TestBase() {
     inner class IntroductoryScreens {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.2.1 The security benefits of the app (online identification). [${JIRA_ID}]")
-        fun verifySecurityScreen() {
-            setUp()
-            introductionScreen.clickNextButton() // page 1 -> 2
-            assertTrue(introductionScreen.page2Visible(), "page 2 is not visible")
-        }
-
-        @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.2.2 The privacy benefits of the app (selective disclosure). [${JIRA_ID}]")
+        @DisplayName("$USE_CASE.2.1 The security benefits of the app (online identification). 2.2 The privacy benefits of the app (selective disclosure). [${JIRA_ID}]")
         fun verifyPrivacyScreen() {
             setUp()
             introductionScreen.clickNextButton() // page 1 -> 2

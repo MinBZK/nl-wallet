@@ -3,11 +3,11 @@ use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::fmt::Write;
 
 use derive_more::AsRef;
 use derive_more::From;
 use http::Uri;
-use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
@@ -32,9 +32,6 @@ pub enum TypeMetadataError {
 
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
-
-    #[error("unsupported claim path '{}'", .0.iter().join("."))]
-    UnsupportedClaimPath(VecNonEmpty<ClaimPath>),
 
     #[error("detected claim path collision: {0}")]
     ClaimPathCollision(String),
@@ -61,8 +58,7 @@ impl<T> SpecOptionalImplRequired<T> {
 ///
 /// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
 /// * Attributes contained in arrays are not (yet) supported.
-/// * Optional attributes are not yet supported. This means that every claim path in the metadata must be present as an
-///   attribute provided by the issuer.
+/// * Optional attributes are not yet supported.
 /// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
 ///   type is known.
 /// * Every attribute in the attestation received from the issuer should have corresponding claim metadata, so that the
@@ -117,12 +113,9 @@ impl UncheckedTypeMetadata {
             let flattened_key = claim
                 .path
                 .iter()
-                .map(|path| {
-                    path.try_key_path()
-                        .ok_or(TypeMetadataError::UnsupportedClaimPath(claim.path.clone()))
-                })
-                .try_collect()
-                .map(|paths: Vec<&str>| paths.join("."))?;
+                .filter_map(|path| path.try_key_path())
+                .collect::<Vec<_>>()
+                .join(".");
 
             // If the flattened key is already present in the set, this means
             // that two different claims paths lead to the same flattened path.
@@ -391,11 +384,10 @@ impl Display for ClaimMetadata {
         write!(
             f,
             "{}",
-            self.path
-                .iter()
-                .map(|p| format!("[{}]", p))
-                .collect::<Vec<String>>()
-                .join("")
+            self.path.iter().fold(String::new(), |mut output, p| {
+                let _ = write!(output, "[{p}]");
+                output
+            })
         )
     }
 }
@@ -719,7 +711,7 @@ mod test {
 
     #[test]
     fn should_detect_claim_path_collision_for_deserializing_typemetadata() {
-        assert!(serde_json::from_value::<TypeMetadata>(json!({
+        let result = serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "claims": [
                 { "path": ["address.street"] },
@@ -731,6 +723,8 @@ mod test {
                 "properties": {}
             }
         }))
-        .is_err());
+        .expect_err("Should fail deserializing type metadata because of path collision");
+
+        assert!(result.to_string().contains("detected claim path collision"));
     }
 }

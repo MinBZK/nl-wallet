@@ -1,6 +1,7 @@
 #test-android:
 #  rules: !reference [.default-or-release-or-merge-request, rules]
 #  artifacts:
+#    name: test-android
 #    when: always
 #    reports:
 #      coverage_report:
@@ -43,7 +44,7 @@
     - job: test-rust-compilation-android
       artifacts: false
   artifacts:
-    name: "wallet-android"
+    name: wallet-android
     paths:
       - "*.aab"
       - "*.apk"
@@ -52,6 +53,7 @@
     LANG: "C.UTF-8"
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
+    - VERSION=${CI_COMMIT_TAG#v}
     - set -euo pipefail
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.keystore}' | base64 --decode > wallet_app/android/upload-keystore.jks
     - kubectl get secret nl-wallet-play-store-upload-key -o jsonpath='{.data.key-properties}' | base64 --decode > wallet_app/android/key.properties
@@ -66,7 +68,7 @@
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${CI_COMMIT_TAG:-}"
+        version:"${VERSION:-}"
   after_script:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
@@ -130,8 +132,9 @@ build-android-app-mock:
 
 .build-android-app-demo:
   extends: .build-android-app-release-tag
+  rules:
+    - !reference [.on-demo-build, rules]
   needs:
-    - !reference [.build-android-app, needs]
     - job: wallet-config-demo
       artifacts: true
   variables:
@@ -226,7 +229,7 @@ build-android-app-production:
     - |
       bundle exec fastlane android ci_deploy \
         package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"${CI_COMMIT_TAG}"
+        version:"${CI_COMMIT_TAG#v}"
 
 deploy-android-app-ont:
   extends: .deploy-android-app
@@ -253,6 +256,8 @@ deploy-android-app-mock:
 
 deploy-android-app-demo:
   extends: .deploy-android-app-release-tag
+  rules:
+    - !reference [.on-demo-build, rules]
   needs:
     - job: build-android-app-demo
       artifacts: true

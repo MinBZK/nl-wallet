@@ -206,8 +206,14 @@ async fn start_wallet_server<S>(
     let public_url = settings.server_settings.public_url.clone();
 
     tokio::spawn(async move {
-        if let Err(error) =
-            server::serve_with_listeners(wallet_listener, requester_listener, settings, hsm, disclosure_sessions).await
+        if let Err(error) = server::serve_with_listeners(
+            wallet_listener,
+            requester_listener,
+            settings,
+            hsm,
+            Arc::new(disclosure_sessions),
+        )
+        .await
         {
             println!("Could not start wallet_server: {error:?}");
 

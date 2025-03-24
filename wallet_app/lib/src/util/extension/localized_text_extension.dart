@@ -11,41 +11,39 @@ extension LocalizedLabelsExtension on LocalizedText {
   String l10nValue(BuildContext context) => l10nValueForLanguageCode(context.localeName);
 
   TextSpan l10nSpan(BuildContext context) =>
-      TextSpan(text: l10nValueForLanguageCode(context.localeName), locale: _resolveSelectedLocale(context));
+      TextSpan(text: l10nValueForLanguageCode(context.localeName), locale: localeForLanguageCode(context.localeName));
 
-  /// Match the fallback logic of [l10nValueForLanguageCode]
-  Locale _resolveSelectedLocale(BuildContext context) {
-    try {
-      if (this[context.localeName] != null) return Locale(context.localeName);
-      if (this['en'] != null) return const Locale('en');
-      return Locale(keys.firstOrNull ?? context.activeLocale.languageCode);
-    } catch (ex) {
-      Fimber.e('Failed to resolve locale for $this', ex: ex);
-      return context.activeLocale;
-    }
-  }
-
-  /// Retrieve the translation for the provided languageCode, falling back to a sane default if none it found.
+  /// Retrieve the entry for the provided languageCode, falling back to a sane default if none is found.
   /// Fallback logic:
   /// 1. Select the english translation
   /// 2. Provide any (the first) available translation
-  /// 3. Return an empty string
-  String l10nValueForLanguageCode(String languageCode) {
+  /// 3. Return null
+  MapEntry<String, String>? resolveEntryForLanguageCode(String languageCode) {
     // Resolve the correct locale
     for (final entry in entries) {
       final availableLocale = LocaleExtension.tryParseLocale(entry.key);
-      if (availableLocale?.languageCode == languageCode) return entry.value;
+      if (availableLocale?.languageCode == languageCode) return entry;
     }
 
     // Fallback to english locale
     for (final entry in entries) {
       final availableLocale = LocaleExtension.tryParseLocale(entry.key);
-      if (availableLocale?.languageCode == 'en') return entry.value;
+      if (availableLocale?.languageCode == 'en') return entry;
     }
 
-    // Fallback to any available locale, or empty string if LocalizedText is empty.
+    // Fallback to any available locale, or empty entry if LocalizedText is empty.
     Fimber.d('Could not resolve localized value for: $this');
-    return values.firstOrNull ?? '';
+    return entries.firstOrNull;
+  }
+
+  // Resolve the most appropriate localization for the provided language code, falling back to an empty string if none is found.
+  String l10nValueForLanguageCode(String languageCode) => resolveEntryForLanguageCode(languageCode)?.value ?? '';
+
+  // Resolve the most relevant locale based on the provided language code, matching the logic used by [l10nValueForLanguageCode].
+  Locale? localeForLanguageCode(String languageCode) {
+    final locale = resolveEntryForLanguageCode(languageCode)?.key;
+    if (locale == null || locale.isEmpty) return null;
+    return LocaleExtension.tryParseLocale(locale);
   }
 
   String get testValue {

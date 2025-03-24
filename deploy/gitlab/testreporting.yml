@@ -56,6 +56,7 @@ build-test-report:
     - gzip testreporting/.allure/history.jsonl
     - deploy/bin/store-artifact.sh testreporting/.allure/history.jsonl.gz qt/quality-time/allure-history.jsonl.gz
   artifacts:
+    name: test-report
     paths:
       - testreporting/allure-report.zip
       - testreporting/.allure/history.jsonl.gz

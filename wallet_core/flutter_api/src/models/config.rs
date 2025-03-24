@@ -1,4 +1,4 @@
-use wallet::wallet_common::WalletConfiguration;
+use wallet::configuration::WalletConfiguration;
 
 pub struct FlutterConfiguration {
     pub inactive_lock_timeout: u16,

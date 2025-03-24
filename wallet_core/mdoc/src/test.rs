@@ -283,7 +283,7 @@ impl TestDocuments {
             doc_type: expected_doc_type,
             namespaces: expected_namespaces,
             issuer_uri: expected_issuer,
-        } in self.0.iter()
+        } in &self.0
         {
             // verify the disclosed attributes
             let disclosed_namespaces = disclosed_documents

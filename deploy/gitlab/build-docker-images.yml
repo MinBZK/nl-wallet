@@ -72,10 +72,10 @@ build-mock-relying-party-image:
       artifacts: true
   before_script:
     - !reference [.build-docker-image, before_script]
-    - export ARG_CSP_SCRIPT_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt)"
-    - export ARG_CSP_STYLE_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt)"
-    - export ARG_WALLET_WEB_FILENAME="$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)"
-    - export ARG_WALLET_WEB_SHA256="$(cat wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt)"
+    - ARG_CSP_SCRIPT_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt)"
+    - ARG_CSP_STYLE_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt)"
+    - ARG_WALLET_WEB_FILENAME="$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)"
+    - ARG_WALLET_WEB_SHA256="$(cat wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt)"
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/mock_relying_party/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-mock-relying-party

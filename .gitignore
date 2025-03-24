@@ -10,8 +10,9 @@
 .history
 .svn/
 migrate_working_dir/
-.env*
+.env
 .ruby-version
+.direnv
 
 # IntelliJ related
 *.iml

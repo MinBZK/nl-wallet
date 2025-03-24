@@ -4,10 +4,10 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
+use configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::config::wallet_config::WalletConfiguration;
 use wallet_common::urls;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
