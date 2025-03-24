@@ -36,6 +36,7 @@ use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 async fn test_pid_issuance_digid_bridge() {
     let settings = pid_issuer_settings();
     let hsm = settings
+        .issuer_settings
         .server_settings
         .hsm
         .clone()
@@ -44,9 +45,9 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     let attr_service = BrpPidAttributeService::new(
-        HttpBrpClient::new(settings.pid_settings.brp_server.clone()),
-        &settings.pid_settings.digid.bsn_privkey,
-        settings.pid_settings.digid.http_config.clone(),
+        HttpBrpClient::new(settings.brp_server.clone()),
+        &settings.digid.bsn_privkey,
+        settings.digid.http_config.clone(),
     )
     .unwrap();
     let port = start_issuer_server(settings.clone(), hsm, attr_service).await;

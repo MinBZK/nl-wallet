@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use openid4vc::server_state::test;
-use pid_issuer::settings::IssuerSettings;
+use pid_issuer::settings::PidIssuerSettings;
 use pid_issuer::wte_tracker::PostgresWteTracker;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Storage;
@@ -9,8 +9,9 @@ use server_utils::store::postgres;
 use wallet_common::generator::mock::MockTimeGenerator;
 
 fn storage_settings() -> Storage {
-    IssuerSettings::new("pid_issuer.toml", "pid_issuer")
+    PidIssuerSettings::new("pid_issuer.toml", "pid_issuer")
         .unwrap()
+        .issuer_settings
         .server_settings
         .storage
 }

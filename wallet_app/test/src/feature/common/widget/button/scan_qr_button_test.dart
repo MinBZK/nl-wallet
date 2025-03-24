@@ -44,6 +44,18 @@ void main() {
     );
 
     testGoldens(
+      'light 4x textScaleSize',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          ScanQrButton(onPressed: () {}),
+          surfaceSize: const Size(240, 320),
+          textScaleSize: 4,
+        );
+        await screenMatchesGolden(tester, 'scan_qr_button/light.4x_scaled');
+      },
+    );
+
+    testGoldens(
       'dark',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
