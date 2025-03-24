@@ -22,7 +22,7 @@ nutype.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with = { workspace = true, features = ["base64"] }
+serde_with = { workspace = true, features = ["base64", "chrono"] }
 ssri.workspace = true
 thiserror.workspace = true
 
@@ -35,13 +35,12 @@ async-trait.workspace = true
 chrono.workspace = true
 json-pointer.workspace = true
 rand.workspace = true
-serde_with = { workspace = true, features = ["chrono"] }
 strum.workspace = true
 
 [dev-dependencies]
 assert_matches.workspace = true
 async-trait.workspace = true
-josekit = { version = "0.8.4", features = ["vendored"] }
+josekit.workspace = true
 p256 = { workspace = true, features = ["default", "pem"] }
 rand_core.workspace = true
 rstest.workspace = true

@@ -20,6 +20,12 @@ use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::signer::JsonObject;
 use sd_jwt::signer::JwsSigner;
 
+// Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
+const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/simple_structured.jwt");
+
+// Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-complex-structured-sd-jwt
+const COMPLEX_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/complex_structured.jwt");
+
 const HMAC_SECRET: &[u8; 32] = b"0123456789ABCDEF0123456789ABCDEF";
 
 struct HmacSignerAdapter(HmacJwsSigner);
@@ -56,9 +62,7 @@ fn make_kb_jwt_builder() -> KeyBindingJwtBuilder {
 
 #[test]
 fn simple_sd_jwt() {
-    // Values taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-06.html#name-example-2-handling-structur
-    let sd_jwt = "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0In0.eyJfc2QiOiBbIkM5aW5wNllvUmFFWFI0Mjd6WUpQN1FyazFXSF84YmR3T0FfWVVyVW5HUVUiLCAiS3VldDF5QWEwSElRdlluT1ZkNTloY1ZpTzlVZzZKMmtTZnFZUkJlb3d2RSIsICJNTWxkT0ZGekIyZDB1bWxtcFRJYUdlcmhXZFVfUHBZZkx2S2hoX2ZfOWFZIiwgIlg2WkFZT0lJMnZQTjQwVjd4RXhad1Z3ejd5Um1MTmNWd3Q1REw4Ukx2NGciLCAiWTM0em1JbzBRTExPdGRNcFhHd2pCZ0x2cjE3eUVoaFlUMEZHb2ZSLWFJRSIsICJmeUdwMFdUd3dQdjJKRFFsbjFsU2lhZW9iWnNNV0ExMGJRNTk4OS05RFRzIiwgIm9tbUZBaWNWVDhMR0hDQjB1eXd4N2ZZdW8zTUhZS08xNWN6LVJaRVlNNVEiLCAiczBCS1lzTFd4UVFlVTh0VmxsdE03TUtzSVJUckVJYTFQa0ptcXhCQmY1VSJdLCAiaXNzIjogImh0dHBzOi8vaXNzdWVyLmV4YW1wbGUuY29tIiwgImlhdCI6IDE2ODMwMDAwMDAsICJleHAiOiAxODgzMDAwMDAwLCAiYWRkcmVzcyI6IHsiX3NkIjogWyI2YVVoelloWjdTSjFrVm1hZ1FBTzN1MkVUTjJDQzFhSGhlWnBLbmFGMF9FIiwgIkF6TGxGb2JrSjJ4aWF1cFJFUHlvSnotOS1OU2xkQjZDZ2pyN2ZVeW9IemciLCAiUHp6Y1Z1MHFiTXVCR1NqdWxmZXd6a2VzRDl6dXRPRXhuNUVXTndrclEtayIsICJiMkRrdzBqY0lGOXJHZzhfUEY4WmN2bmNXN3p3Wmo1cnlCV3ZYZnJwemVrIiwgImNQWUpISVo4VnUtZjlDQ3lWdWIyVWZnRWs4anZ2WGV6d0sxcF9KbmVlWFEiLCAiZ2xUM2hyU1U3ZlNXZ3dGNVVEWm1Xd0JUdzMyZ25VbGRJaGk4aEdWQ2FWNCIsICJydkpkNmlxNlQ1ZWptc0JNb0d3dU5YaDlxQUFGQVRBY2k0MG9pZEVlVnNBIiwgInVOSG9XWWhYc1poVkpDTkUyRHF5LXpxdDd0NjlnSkt5NVFhRnY3R3JNWDQiXX0sICJfc2RfYWxnIjogInNoYS0yNTYifQ.gR6rSL7urX79CNEvTQnP1MH5xthG11ucIV44SqKFZ4Pvlu_u16RfvXQd4k4CAIBZNKn2aTI18TfvFwV97gJFoA~WyJHMDJOU3JRZmpGWFE3SW8wOXN5YWpBIiwgInJlZ2lvbiIsICJcdTZlMmZcdTUzM2EiXQ~WyJsa2x4RjVqTVlsR1RQVW92TU5JdkNBIiwgImNvdW50cnkiLCAiSlAiXQ~";
-    let sd_jwt: SdJwt = SdJwt::parse(sd_jwt).unwrap();
+    let sd_jwt: SdJwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT).unwrap();
     let disclosed = sd_jwt.into_disclosed_object(&Sha256Hasher::new()).unwrap();
     let expected_object = json!({
       "address": {
@@ -70,6 +74,37 @@ fn simple_sd_jwt() {
       "exp": 1883000000
     }
     );
+    assert_eq!(expected_object.as_object().unwrap(), &disclosed);
+}
+
+#[test]
+fn complex_sd_jwt() {
+    let sd_jwt: SdJwt = SdJwt::parse(COMPLEX_STRUCTURED_SD_JWT).unwrap();
+    let disclosed = sd_jwt.into_disclosed_object(&Sha256Hasher::new()).unwrap();
+    let expected_object = json!({
+      "verified_claims": {
+            "verification": {
+                "time": "2012-04-23T18:25Z",
+                "trust_framework": "de_aml",
+                "evidence": [
+                    { "method": "pipp" }
+                ]
+            },
+            "claims": {
+                "address": {
+                    "locality": "Maxstadt",
+                    "postal_code": "12344",
+                    "country": "DE",
+                    "street_address": "Weidenstraße 22"
+                },
+                "given_name": "Max",
+                "family_name": "Müller"
+            }
+      },
+      "iss": "https://issuer.example.com",
+      "iat": 1683000000,
+      "exp": 1883000000
+    });
     assert_eq!(expected_object.as_object().unwrap(), &disclosed);
 }
 

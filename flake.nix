@@ -44,7 +44,6 @@
         default = pkgs.mkShell {
           packages = with pkgs; [
             clippy
-            rustfmtNightly
             rustToolchain
             rustup
             openssl

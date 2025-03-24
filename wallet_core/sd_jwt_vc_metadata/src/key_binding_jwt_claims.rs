@@ -233,7 +233,10 @@ mod test {
     use crate::signer::JsonObject;
     use crate::signer::JwsSigner;
 
+    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
     const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/simple_structured.jwt");
+
+    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-presentation
     const WITH_KB_SD_JWT: &str = include_str!("../examples/sd_jwt/with_kb.jwt");
 
     struct EcdsaSigner(EcdsaJwsSigner);

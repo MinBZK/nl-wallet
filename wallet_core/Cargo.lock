@@ -3209,24 +3209,6 @@ dependencies = [
 
 [[package]]
 name = "josekit"
-version = "0.8.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54b85e2125819afc4fd2ae57416207e792c7e12797858e5db2a6c6f24a166829"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "flate2",
- "once_cell",
- "openssl",
- "regex",
- "serde",
- "serde_json",
- "thiserror 1.0.69",
- "time",
-]
-
-[[package]]
-name = "josekit"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe0633782b10949cf7d5aca9ec7c87ce642cbe4fff7d34602b2ec2e890ad56e5"
@@ -3917,7 +3899,7 @@ dependencies = [
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "josekit 0.10.1",
+ "josekit",
  "jsonwebtoken",
  "jwt",
  "mdoc",
@@ -5185,13 +5167,14 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "async-trait",
+ "chrono",
  "crypto",
  "derive_more",
  "http",
  "http-serde",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "josekit 0.8.7",
+ "josekit",
  "json-pointer",
  "jsonschema",
  "jsonwebtoken",
