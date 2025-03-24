@@ -60,8 +60,12 @@ class _ScanQrButtonState extends State<ScanQrButton> {
         attributedLabel: context.l10n.scanQrButtonCta.toAttributedString(context),
         button: true,
         excludeSemantics: true /* exclude child semantics */,
-        child: SizedBox.fromSize(
-          size: scanQrButtonSize,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: scanQrButtonSize.height,
+            minWidth: scanQrButtonSize.width,
+            maxWidth: scanQrButtonSize.width,
+          ),
           child: Material(
             color: _statesController.value.isPressedOrFocused ? context.theme.focusColor : Colors.transparent,
             shape: RoundedRectangleBorder(
