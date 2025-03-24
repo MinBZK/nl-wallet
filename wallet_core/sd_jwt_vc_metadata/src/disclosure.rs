@@ -7,6 +7,8 @@ use base64::prelude::*;
 use serde_json::json;
 use serde_json::Value;
 
+use wallet_common::vec_at_least::VecNonEmpty;
+
 use crate::error::Error;
 
 /// A disclosable value.
@@ -59,7 +61,7 @@ impl Disclosure {
     ///
     /// Returns an [`Error::InvalidDisclosure`] if input is not a valid disclosure.
     pub fn parse(disclosure: &str) -> Result<Self, Error> {
-        let decoded: Vec<Value> = BASE64_URL_SAFE_NO_PAD
+        let decoded: VecNonEmpty<Value> = BASE64_URL_SAFE_NO_PAD
             .decode(disclosure)
             .map_err(|_e| {
                 Error::InvalidDisclosure(format!(
@@ -76,55 +78,42 @@ impl Disclosure {
                 })
             })?;
 
-        if decoded.len() == 2 {
-            Ok(Self {
-                salt: decoded
-                    .first()
-                    .ok_or(Error::InvalidDisclosure("invalid salt".to_string()))?
-                    .as_str()
-                    .ok_or(Error::InvalidDisclosure(
-                        "salt could not be parsed as a string".to_string(),
-                    ))?
-                    .to_owned(),
-                claim_name: None,
-                claim_value: decoded
-                    .get(1)
-                    .ok_or(Error::InvalidDisclosure("invalid claim name".to_string()))?
-                    .clone(),
-                unparsed: disclosure.to_string(),
-            })
-        } else if decoded.len() == 3 {
-            Ok(Self {
-                salt: decoded
-                    .first()
-                    .ok_or(Error::InvalidDisclosure("invalid salt".to_string()))?
-                    .as_str()
-                    .ok_or(Error::InvalidDisclosure(
-                        "salt could not be parsed as a string".to_string(),
-                    ))?
-                    .to_owned(),
-                claim_name: Some(
-                    decoded
-                        .get(1)
-                        .ok_or(Error::InvalidDisclosure("invalid claim name".to_string()))?
-                        .as_str()
-                        .ok_or(Error::InvalidDisclosure(
-                            "claim name could not be parsed as a string".to_string(),
-                        ))?
-                        .to_owned(),
-                ),
-                claim_value: decoded
-                    .get(2)
-                    .ok_or(Error::InvalidDisclosure("invalid claim name".to_string()))?
-                    .clone(),
-                unparsed: disclosure.to_string(),
-            })
-        } else {
-            Err(Error::InvalidDisclosure(format!(
+        if ![2, 3].contains(&decoded.len().get()) {
+            return Err(Error::InvalidDisclosure(format!(
                 "deserialized array has an invalid length of {}",
                 decoded.len()
-            )))
+            )));
         }
+
+        let salt = decoded
+            .first()
+            .as_str()
+            .ok_or(Error::InvalidDisclosure(
+                "salt could not be parsed as a string".to_string(),
+            ))?
+            .to_owned();
+
+        let claim_value = decoded.last().clone();
+
+        let claim_name = if decoded.len().get() == 3 {
+            Some(
+                decoded[1]
+                    .as_str()
+                    .ok_or(Error::InvalidDisclosure(
+                        "claim name could not be parsed as a string".to_string(),
+                    ))?
+                    .to_owned(),
+            )
+        } else {
+            None
+        };
+
+        Ok(Self {
+            salt,
+            claim_name,
+            claim_value,
+            unparsed: disclosure.to_string(),
+        })
     }
 
     pub fn as_str(&self) -> &str {
@@ -146,12 +135,21 @@ impl PartialEq for Disclosure {
 
 #[cfg(test)]
 mod test {
+    use assert_matches::assert_matches;
+    use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+    use base64::Engine;
+    use serde_json::json;
+
+    use wallet_common::utils::random_bytes;
+
+    use crate::error::Error;
+
     use super::Disclosure;
 
     // Test values from:
     // https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#appendix-A.2-7
     #[test]
-    fn test_parsing() {
+    fn test_parsing_value() {
         let disclosure = Disclosure::new(
             "2GLC42sKQveCfGfryNRN9w".to_string(),
             Some("time".to_owned()),
@@ -161,5 +159,22 @@ mod test {
         let parsed =
             Disclosure::parse("WyIyR0xDNDJzS1F2ZUNmR2ZyeU5STjl3IiwgInRpbWUiLCAiMjAxMi0wNC0yM1QxODoyNVoiXQ").unwrap();
         assert_eq!(parsed, disclosure);
+    }
+
+    #[test]
+    fn test_parsing_array_value() {
+        let disclosure = Disclosure::new("lklxF5jMYlGTPUovMNIvCA".to_string(), None, "US".to_owned().into());
+
+        let parsed = Disclosure::parse("WyJsa2x4RjVqTVlsR1RQVW92TU5JdkNBIiwgIlVTIl0").unwrap();
+        assert_eq!(parsed, disclosure);
+    }
+
+    #[test]
+    fn test_parsing_error_empty_disclosure() {
+        let salt = BASE64_URL_SAFE_NO_PAD.encode(random_bytes(32));
+        let disclosure = serde_json::to_vec(&json!([salt])).unwrap();
+        let encoded = BASE64_URL_SAFE_NO_PAD.encode(disclosure);
+
+        assert_matches!(Disclosure::parse(&encoded), Err(Error::InvalidDisclosure(_)));
     }
 }
