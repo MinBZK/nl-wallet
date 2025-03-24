@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::num::NonZeroUsize;
 
 use assert_matches::assert_matches;
@@ -50,8 +51,8 @@ use sd_jwt::metadata::ClaimMetadata;
 use sd_jwt::metadata::ClaimPath;
 use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::UncheckedTypeMetadata;
+use sd_jwt::metadata_chain::TypeMetadataDocuments;
 use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -83,28 +84,31 @@ fn setup(
     let attestation_config = MOCK_DOCTYPES
         .iter()
         .map(|doctype| {
+            let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(mock_type_metadata(doctype));
+
             (
                 doctype.to_string(),
-                AttestationTypeConfig {
+                AttestationTypeConfig::try_new(
+                    doctype,
                     // KeyPair doesn't implement clone, so manually construct a new KeyPair.
-                    key_pair: KeyPair::new_from_signing_key(
+                    KeyPair::new_from_signing_key(
                         issuance_keypair.private_key().clone(),
                         issuance_keypair.certificate().clone(),
                     )
                     .unwrap(),
-                    valid_days: Days::new(365),
-                    copy_count: 4.try_into().unwrap(),
-                    issuer_uri: issuance_keypair
+                    Days::new(365),
+                    4.try_into().unwrap(),
+                    issuance_keypair
                         .certificate()
                         .san_dns_name_or_uris()
                         .unwrap()
-                        .first()
-                        .clone(),
-                    metadata: TypeMetadataChain::create(mock_type_metadata(doctype), vec![]).unwrap(),
-                },
+                        .into_first(),
+                    metadata_documents,
+                )
+                .unwrap(),
             )
         })
-        .collect::<IndexMap<_, _>>()
+        .collect::<HashMap<_, _>>()
         .into();
 
     let issuer = MockIssuer::new(
@@ -159,7 +163,7 @@ async fn accept_issuance(
 
     issued_creds
         .into_iter()
-        .zip(previews.into_iter().flatten().collect_vec())
+        .zip(previews.into_iter().flat_map(|(preview, _)| preview).collect_vec())
         .for_each(|(copies, preview)| match copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
                 .first()

@@ -101,7 +101,7 @@ impl<I> ProposedDocument<I> {
             mdoc,
         } = stored_mdoc;
 
-        let metadata = mdoc.type_metadata()?;
+        let type_metadata = mdoc.type_metadata()?;
 
         // As this method should only ever be called when we know that it
         // matches the `requested_attributes`, we know that it should result
@@ -149,7 +149,7 @@ impl<I> ProposedDocument<I> {
             issuer_signed,
             device_signed_challenge,
             issuer_certificate,
-            type_metadata: metadata.into_first(), // TODO: handle chain: PVW-3824
+            type_metadata,
         };
         Ok(proposed_document)
     }

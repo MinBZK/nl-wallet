@@ -46,8 +46,7 @@ where
 {
     let log_requests = settings.server_settings.log_requests;
 
-    let type_metadata = settings.metadata();
-    let attestation_config = settings.attestation_settings.parse(&hsm, &type_metadata).await?;
+    let attestation_config = settings.attestation_settings.parse(&hsm, &settings.metadata).await?;
 
     let wallet_issuance_router = create_issuance_router(
         &settings.server_settings.public_url,

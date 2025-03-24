@@ -2,6 +2,7 @@ use itertools::Itertools;
 use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 
+use sd_jwt::metadata_chain::TypeMetadataDocuments;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::token::CredentialPreview;
@@ -13,7 +14,11 @@ pub trait CredentialFormat {
 }
 
 pub trait CredentialType: CredentialFormat {
-    fn credential_type(&self) -> String;
+    fn credential_type(&self) -> &str;
+}
+
+pub trait Credential: CredentialType {
+    fn metadata_type(&self) -> &TypeMetadataDocuments;
 }
 
 impl CredentialFormat for CredentialPreview {
@@ -25,9 +30,9 @@ impl CredentialFormat for CredentialPreview {
 }
 
 impl CredentialType for CredentialPreview {
-    fn credential_type(&self) -> String {
+    fn credential_type(&self) -> &str {
         match self {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.doc_type.clone(),
+            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => &unsigned_mdoc.doc_type,
         }
     }
 }
@@ -64,7 +69,6 @@ impl<T: CredentialType> IntoIterator for CredentialFormats<T> {
 impl<T: CredentialType> CredentialFormats<T> {
     fn validate(formats: &VecNonEmpty<T>) -> Result<(), CredentialFormatsError> {
         formats
-            .as_slice()
             .iter()
             .counts_by(T::format)
             .values()
@@ -73,7 +77,6 @@ impl<T: CredentialType> CredentialFormats<T> {
             .ok_or(CredentialFormatsError::DuplicateFormats)?;
 
         formats
-            .as_slice()
             .iter()
             .map(T::credential_type)
             .all_equal()
@@ -82,18 +85,11 @@ impl<T: CredentialType> CredentialFormats<T> {
 
         Ok(())
     }
-
-    pub fn credential_type(&self) -> String {
-        assert!(self.as_ref().as_slice().iter().map(T::credential_type).all_equal());
-
-        self.as_ref().first().credential_type()
-    }
 }
 
 impl CredentialFormats<CredentialPreview> {
     pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CredentialPreviewError> {
         self.as_ref()
-            .as_slice()
             .iter()
             .map(|preview| preview.verify(trust_anchors))
             .collect::<Result<Vec<()>, CredentialPreviewError>>()?;
@@ -103,7 +99,6 @@ impl CredentialFormats<CredentialPreview> {
 
     pub fn flatten_copies(&self) -> VecNonEmpty<CredentialPreview> {
         self.as_ref()
-            .as_slice()
             .iter()
             .flat_map(|preview| itertools::repeat_n(preview.clone(), preview.copy_count().into()))
             .collect_vec()
@@ -133,8 +128,8 @@ mod tests {
     }
 
     impl CredentialType for TestCredential {
-        fn credential_type(&self) -> String {
-            self.credential_type.clone()
+        fn credential_type(&self) -> &str {
+            &self.credential_type
         }
     }
 

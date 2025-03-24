@@ -3435,6 +3435,7 @@ dependencies = [
  "serde_repr",
  "serde_urlencoded",
  "serde_with",
+ "ssri",
  "strum 0.26.3",
  "thiserror 2.0.11",
  "time",
@@ -3845,6 +3846,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_valid",
  "serde_with",
+ "ssri",
  "strfmt",
  "strum 0.26.3",
  "thiserror 2.0.11",
@@ -5094,7 +5096,6 @@ name = "sd_jwt"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
- "base64 0.22.1",
  "derive_more",
  "http",
  "http-serde",

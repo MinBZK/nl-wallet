@@ -4,47 +4,31 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 
-use base64::prelude::*;
 use derive_more::AsRef;
 use derive_more::From;
-use derive_more::Into;
 use http::Uri;
 use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
 use nutype::nutype;
-use serde::de;
-use serde::ser;
 use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
-use serde::Serializer;
 use serde_json::Value;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use ssri::Integrity;
 
-use wallet_common::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
-    #[error("json schema validation failed {0}")]
+    #[error("json schema validation failed: {0}")]
     JsonSchemaValidation(#[from] ValidationError<'static>),
 
-    #[error("serialization failed {0}")]
-    Serialization(#[from] serde_json::Error),
-
-    #[error("decoding failed {0}")]
-    Decoding(#[from] base64::DecodeError),
-
-    #[error("resource integrity check failed, expected: {expected:?}, actual: {actual:?}")]
-    ResourceIntegrity {
-        expected: ResourceIntegrity,
-        actual: ResourceIntegrity,
-    },
+    #[error("could not deserialize JSON schema: {0}")]
+    JsonSchema(#[from] serde_json::Error),
 
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
@@ -66,77 +50,6 @@ impl<T> SpecOptionalImplRequired<T> {
         let SpecOptionalImplRequired(inner) = self;
 
         inner
-    }
-}
-
-pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
-pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TypeMetadataChain {
-    metadata: VecNonEmpty<EncodedTypeMetadata>,
-    root_integrity: ResourceIntegrity,
-}
-
-impl TypeMetadataChain {
-    pub fn create(
-        root: TypeMetadata,
-        mut extended_metadata: Vec<TypeMetadata>,
-    ) -> Result<TypeMetadataChain, TypeMetadataError> {
-        let root_bytes: Vec<u8> = (&root).try_into()?;
-        let root_integrity = ResourceIntegrity::from_bytes(&root_bytes);
-        extended_metadata.push(root);
-        let metadata = VecNonEmpty::try_from(
-            extended_metadata
-                .into_iter()
-                .map(EncodedTypeMetadata)
-                .collect::<Vec<_>>(),
-        )
-        .unwrap(); // unwrap is safe here because there is always at least one item (root)
-        let result = Self {
-            metadata,
-            root_integrity,
-        };
-        Ok(result)
-    }
-
-    fn into_destructured(self) -> (VecNonEmpty<TypeMetadata>, ResourceIntegrity) {
-        (
-            // Unwrapping is safe since we're mapping from a `VecNonEmpty` to a `VecNonEmpty`
-            VecNonEmpty::try_from(self.metadata.into_inner().into_iter().map(|m| m.0).collect::<Vec<_>>()).unwrap(),
-            self.root_integrity,
-        )
-    }
-
-    pub fn verify_and_destructure(self) -> Result<(VecNonEmpty<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
-        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?; // TODO: verify chain in PVW-3824
-        self.root_integrity.verify(&bytes)?;
-        Ok(self.into_destructured())
-    }
-
-    pub fn verify(&self) -> Result<TypeMetadata, TypeMetadataError> {
-        let root = self.metadata.first().0.clone();
-        let bytes: Vec<u8> = (&root).try_into()?; // TODO: verify chain in PVW-3824
-        self.root_integrity.verify(&bytes)?;
-        Ok(root)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EncodedTypeMetadata(TypeMetadata);
-
-impl Serialize for EncodedTypeMetadata {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let encoded = self.0.try_as_base64().map_err(ser::Error::custom)?;
-        encoded.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for EncodedTypeMetadata {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let metadata: TypeMetadata =
-            TypeMetadata::try_from_base64(&String::deserialize(deserializer)?).map_err(de::Error::custom)?;
-        Ok(Self(metadata))
     }
 }
 
@@ -225,16 +138,6 @@ impl UncheckedTypeMetadata {
 }
 
 impl TypeMetadata {
-    pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
-        let bytes: Vec<u8> = serde_json::to_vec(&self.as_ref())?;
-        Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
-    }
-
-    pub fn try_from_base64(encoded: &str) -> Result<Self, TypeMetadataError> {
-        let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
-        Self::try_new(serde_json::from_slice::<UncheckedTypeMetadata>(&bytes)?)
-    }
-
     pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
         if let SchemaOption::Embedded { schema } = &self.as_ref().schema {
             schema
@@ -245,39 +148,6 @@ impl TypeMetadata {
         } else {
             Err(TypeMetadataError::UnsupportedSchemaOption(self.as_ref().schema.clone()))
         }
-    }
-}
-
-impl TryFrom<&TypeMetadata> for Vec<u8> {
-    type Error = serde_json::Error;
-
-    fn try_from(value: &TypeMetadata) -> Result<Self, Self::Error> {
-        serde_json::to_vec(value)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Into, Serialize, Deserialize)]
-pub struct ResourceIntegrity(String);
-
-impl ResourceIntegrity {
-    const ALG_PREFIX: &'static str = "sha256";
-
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        let sig = sha256(bytes);
-        let integrity = format!("{}-{}", Self::ALG_PREFIX, BASE64_STANDARD.encode(sig));
-        ResourceIntegrity(integrity)
-    }
-
-    pub fn verify(&self, bytes: &[u8]) -> Result<(), TypeMetadataError> {
-        let integrity = Self::from_bytes(bytes);
-        if self != &integrity {
-            return Err(TypeMetadataError::ResourceIntegrity {
-                expected: self.clone(),
-                actual: integrity,
-            });
-        }
-
-        Ok(())
     }
 }
 
@@ -548,7 +418,7 @@ pub struct ClaimDisplayMetadata {
 }
 
 #[cfg(any(test, feature = "example_constructors"))]
-pub mod mock {
+mod example_constructors {
     use std::collections::HashMap;
 
     use serde_json::json;
@@ -689,7 +559,6 @@ mod test {
 
     use crate::metadata::ClaimPath;
     use crate::metadata::MetadataExtends;
-    use crate::metadata::ResourceIntegrity;
     use crate::metadata::SchemaOption;
     use crate::metadata::TypeMetadata;
     use crate::metadata::TypeMetadataError;
@@ -822,14 +691,6 @@ mod test {
             })) if instance.to_string() == format!("\"{}\"", date_str)
                     && format == "date" && instance_path.to_string() == "/birth_date"
         );
-    }
-
-    #[test]
-    fn test_protect_verify() {
-        let metadata = TypeMetadata::example();
-        let bytes = serde_json::to_vec(&metadata).unwrap();
-        let integrity = ResourceIntegrity::from_bytes(&bytes);
-        integrity.verify(&bytes).unwrap();
     }
 
     #[rstest]

@@ -14,8 +14,8 @@ use wallet_common::generator::Generator;
 use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::keys::CredentialKeyType;
 use wallet_common::urls::HttpsUri;
-use wallet_common::vec_at_least::VecNonEmpty;
 
+use crate::errors::Error;
 use crate::identifiers::AttributeIdentifier;
 use crate::iso::*;
 use crate::unsigned::Entry;
@@ -71,8 +71,12 @@ impl Mdoc {
         &self.mso.validity_info
     }
 
-    pub fn type_metadata(&self) -> crate::Result<VecNonEmpty<TypeMetadata>> {
-        let (metadata, _) = self.issuer_signed.type_metadata()?.verify_and_destructure()?;
+    pub fn type_metadata(&self) -> Result<TypeMetadata, Error> {
+        let (integrity, documents) = self.issuer_signed.type_metadata_documents()?;
+        let unverified_metadata_chain = documents.into_unverified_metadata_chain(&self.mso.doc_type)?;
+        let (metadata_chain, _) = unverified_metadata_chain.into_metadata_chain_and_source(integrity)?;
+        let metadata = metadata_chain.into_metadata();
+
         Ok(metadata)
     }
 

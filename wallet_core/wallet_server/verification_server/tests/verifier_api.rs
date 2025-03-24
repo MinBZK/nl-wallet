@@ -61,7 +61,7 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt::metadata_chain::TypeMetadataDocuments;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
@@ -970,16 +970,22 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
     };
 
     // NOTE: This metadata does not match the attributes.
-    let metadata = TypeMetadata::empty_example();
-    let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+    let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(
+        TypeMetadata::empty_example_with_attestation_type(&unsigned_mdoc.doc_type),
+    );
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
     let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, &issuer_key_pair)
-        .await
-        .unwrap();
+    let issuer_signed = IssuerSigned::sign(
+        unsigned_mdoc,
+        (&metadata_integrity, &metadata_documents),
+        mdoc_public_key,
+        &issuer_key_pair,
+    )
+    .await
+    .unwrap();
     let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(
         mdoc_private_key_id,
         issuer_signed,

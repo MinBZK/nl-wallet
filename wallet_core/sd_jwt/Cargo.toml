@@ -11,8 +11,7 @@ workspace = true
 example_constructors = []
 
 [dependencies]
-base64.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "from", "into"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 http.workspace = true
 http-serde.workspace = true
 itertools.workspace = true
@@ -22,7 +21,7 @@ nutype.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with.workspace = true
+serde_with = { workspace = true, features = ["base64"] }
 ssri.workspace = true
 thiserror.workspace = true
 

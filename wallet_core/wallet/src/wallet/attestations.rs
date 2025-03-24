@@ -68,8 +68,7 @@ where
                 let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
                     .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                // TODO: PVW-3812
-                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?.into_first();
+                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?;
                 let attestation = Attestation::create_for_issuance(
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),
