@@ -33,9 +33,9 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let wte_tracker = WteTrackerVariant::new(db_connection);
 
     let pid_attr_service = BrpPidAttributeService::new(
-        HttpBrpClient::new(settings.brp_server.clone()),
+        HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
-        settings.digid.http_config.clone(),
+        settings.digid.http_config,
     )?;
 
     // This will block until the server shuts down.
