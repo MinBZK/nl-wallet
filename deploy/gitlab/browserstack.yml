@@ -12,7 +12,7 @@
     - |
       bundle exec fastlane android ci_browserstack \
         package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
-        version:"${CI_COMMIT_TAG}"
+        version:"${CI_COMMIT_TAG#v}"
 
 upload-browserstack-android-app-ont:
   extends: [.env-ont-k8s, .upload-browserstack-android-app]

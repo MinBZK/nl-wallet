@@ -3,8 +3,8 @@ package feature.settings
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
@@ -37,17 +37,13 @@ class ChangeLanguageTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 App settings menu displays option to change language. [$JIRA_ID]")
+    @DisplayName("$USE_CASE.1 App settings menu displays option to change language. 2 Language screen offers two options: English & Dutch. [$JIRA_ID]")
     fun verifyChangeLanguageScreen() {
         setUp()
-        assertTrue(changeLanguageScreen.visible(), "change language screen is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 Language screen offers two options: English & Dutch. [$JIRA_ID]")
-    fun verifyLanguageButtonsVisible() {
-        setUp()
-        assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible")
+        assertAll(
+            { assertTrue(changeLanguageScreen.visible(), "change language screen is not visible") },
+            { assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible") }
+        )
     }
 
     @Nested

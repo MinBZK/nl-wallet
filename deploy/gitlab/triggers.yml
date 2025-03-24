@@ -51,5 +51,33 @@ build-demo-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'demo'
+
+trigger-scheduled-automation-tests:
+  rules:
+    - !reference [.default-or-release, rules]
+  needs:
+    - job: deploy-mock-relying-party-demo
+      artifacts: false
+      optional: true
+    - job: deploy-wallet-provider-ont
+      artifacts: false
+      optional: true
+    - job: deploy-pid-issuer-ont
+      artifacts: false
+      optional: true
+    - job: deploy-update-policy-server-ont
+      artifacts: false
+      optional: true
+    - job: deploy-gba-hc-converter-ont
+      artifacts: false
+      optional: true
+    - job: deploy-gba-fetch-frontend-ont
+      artifacts: false
+      optional: true
+  trigger:
+    include:
+      - local: .gitlab-ci.yml
+  variables:
+    SCHEDULED: true
   when: manual
   allow_failure: true

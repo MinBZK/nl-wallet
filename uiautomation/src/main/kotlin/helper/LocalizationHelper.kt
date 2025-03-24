@@ -12,7 +12,23 @@ class LocalizationHelper {
         loadLocalizedStrings()
     }
 
-    fun getString(key: String) = localizedStringsMap[language.lowercase()]?.get(key) as? String ?: ""
+    fun getString(key: String): String = localizedStringsMap[language]?.let {
+        it[key]?.toString() ?: throw IllegalArgumentException("Key $key does not exist in '$language'")
+    } ?: throw IllegalArgumentException("Language '$language' is not configured")
+
+
+    fun translate(text: String): String {
+        require(language in localizedStringsMap) { "Language '$language' is not supported" }
+        if (language == "nl") {
+            return text
+        }
+        check(language == "en") { "Unknown translation for language: $language" }
+        return when (text) {
+            "NL Wallet persoonsgegevens" -> "NL Wallet Personal Data"
+            "NL Wallet adres" -> "NL Wallet address"
+            else -> throw IllegalArgumentException("No translation for: $text")
+        }
+    }
 
     private fun loadLocalizedStrings() {
         val moshi = Moshi.Builder()

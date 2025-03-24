@@ -11,7 +11,7 @@ class DashboardScreen : MobileActions() {
     private val pidIdCard = find.byValueKey("com.example.pid")
     private val pidAddressCard = find.byValueKey("com.example.address")
 
-    private val pidIdTitleText = find.byText(l10n.getString("pidIdCardTitle"))
+    private val pidIdTitleText = find.byText(l10n.translate("NL Wallet persoonsgegevens"))
     private val showDetailsText = find.byText(l10n.getString("showDetailsCta"))
 
     fun visible() = isElementVisible(screen, false)
@@ -29,5 +29,8 @@ class DashboardScreen : MobileActions() {
 
     fun clickMenuButton() = clickElement(menuButton, false)
 
-    fun clickPidCard() = clickElement(pidIdCard, false)
+    fun clickPidCard() {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        clickElement(pidIdCard, false)
+    }
 }

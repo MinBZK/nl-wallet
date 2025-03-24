@@ -165,8 +165,8 @@ impl Storage for MockStorage {
             .values()
             .flatten()
             .map(|mdoc_copies| StoredMdocCopy {
-                mdoc_id: Uuid::new_v4(),
-                mdoc_copy_id: Uuid::new_v4(),
+                mdoc_id: Uuid::now_v7(),
+                mdoc_copy_id: Uuid::now_v7(),
                 mdoc: mdoc_copies.first().clone(),
             })
             .collect();

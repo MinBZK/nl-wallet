@@ -454,7 +454,7 @@ where
                 .expect("should have received at least one issued mdoc");
 
             // Validate all issuer_certificates
-            for mdoc in mdocs.as_ref().iter() {
+            for mdoc in mdocs.as_ref() {
                 let certificate = mdoc
                     .issuer_certificate()
                     .map_err(PidIssuanceError::InvalidIssuerCertificate)?;

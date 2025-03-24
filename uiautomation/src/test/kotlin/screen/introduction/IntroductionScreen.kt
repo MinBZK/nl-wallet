@@ -8,9 +8,9 @@ class IntroductionScreen : MobileActions() {
     private val page2 = find.byValueKey("introductionPage2")
     private val page3 = find.byValueKey("introductionPage3")
 
-    private val nextButton = find.byText(l10n.getString("introductionNextPageCta"))
-    private val skipButton = find.byText(l10n.getString("introductionSkipCta"))
-    private val backButton = find.byToolTip(l10n.getString("generalWCAGBack"))
+    private val nextButton by lazy { find.byText(l10n.getString("introductionNextPageCta")) }
+    private val skipButton by lazy { find.byText(l10n.getString("introductionSkipCta")) }
+    private val backButton by lazy { find.byToolTip(l10n.getString("generalWCAGBack")) }
 
     fun page1Visible(): Boolean {
         explicitWait()

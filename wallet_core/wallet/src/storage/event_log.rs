@@ -91,7 +91,7 @@ impl WalletEvent {
             .unwrap();
 
         Self::Issuance {
-            id: Uuid::new_v4(),
+            id: Uuid::now_v7(),
             attestations,
             timestamp: Utc::now(),
         }
@@ -133,7 +133,7 @@ impl WalletEvent {
         .collect();
 
         Self::Disclosure {
-            id: Uuid::new_v4(),
+            id: Uuid::now_v7(),
             attestations,
             timestamp: Utc::now(),
             reader_certificate: Box::new(reader_certificate),
@@ -297,7 +297,7 @@ mod test {
             issuer_certificate: &BorrowingCertificate,
         ) -> Self {
             Self::Issuance {
-                id: Uuid::new_v4(),
+                id: Uuid::now_v7(),
                 attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate)
                     .try_into()
                     .unwrap(),
@@ -316,7 +316,7 @@ mod test {
                 .unwrap();
 
             Self::Disclosure {
-                id: Uuid::new_v4(),
+                id: Uuid::now_v7(),
                 attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
@@ -337,7 +337,7 @@ mod test {
                 .unwrap();
 
             Self::Disclosure {
-                id: Uuid::new_v4(),
+                id: Uuid::now_v7(),
                 attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
@@ -353,7 +353,7 @@ mod test {
                 .unwrap();
 
             Self::Disclosure {
-                id: Uuid::new_v4(),
+                id: Uuid::now_v7(),
                 attestations: Vec::new(),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),
@@ -369,7 +369,7 @@ mod test {
                 .unwrap();
 
             Self::Disclosure {
-                id: Uuid::new_v4(),
+                id: Uuid::now_v7(),
                 attestations: Vec::new(),
                 timestamp,
                 reader_certificate: Box::new(reader_certificate),

@@ -23,6 +23,7 @@ dependency-check:
   after_script:
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext qt/quality-time/dependency-check/report.$ext; done
   artifacts:
+    name: dependency-check
     when: always
     paths:
       - dependency-check-report.json
@@ -47,6 +48,7 @@ osv-scanner:
   after_script:
     - deploy/bin/store-artifact.sh osv.sarif qt/quality-time/
   artifacts:
+    name: osv-scanner
     when: always
     paths:
       - osv.sarif
@@ -65,6 +67,7 @@ rust-audit:
   after_script:
     - deploy/bin/store-artifact.sh audit.json qt/quality-time/rust-audit.json
   artifacts:
+    name: rust-audit
     when: always
     paths:
       - audit.json
@@ -161,6 +164,8 @@ trivy-scan:
   after_script:
     - deploy/bin/store-artifact.sh trivy/* qt/quality-time/trivy/
   artifacts:
+    name: trivy
+    when: always
     paths:
       - trivy
   allow_failure: true

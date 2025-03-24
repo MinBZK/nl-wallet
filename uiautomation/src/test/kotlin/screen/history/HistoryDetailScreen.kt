@@ -17,8 +17,9 @@ class HistoryDetailScreen : MobileActions() {
     }
 
     fun disclosureOrganizationVisible(organization: String): Boolean {
-        val selector = find.byText(organization)
-        return isElementVisible(selector, false)
+        scrollToEnd(ScrollableType.CustomScrollView)
+        val link = l10n.getString("historyDetailScreenAboutOrganizationCta").replace("{organization}", organization)
+        return isElementVisible(find.byText(link), false)
     }
 
     fun titleCorrectForIssuance(card: String): Boolean {

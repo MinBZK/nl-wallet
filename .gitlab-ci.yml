@@ -98,11 +98,7 @@ variables:
 .on-schedule:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-
-.on-web-trigger:
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: manual
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline" && $SCHEDULED == "true"
 
 .on-mock-build:
   rules:

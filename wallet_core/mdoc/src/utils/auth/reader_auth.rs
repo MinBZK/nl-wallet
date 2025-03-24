@@ -368,9 +368,9 @@ mod tests {
         let (doc_type, namespaces) = request_doctypes.remove(0);
 
         let mut name_spaces = IndexMap::new();
-        for (namespace, attrs) in namespaces.into_iter() {
+        for (namespace, attrs) in namespaces {
             let mut attribute_map = IndexMap::new();
-            for attr in attrs.into_iter() {
+            for attr in attrs {
                 attribute_map.insert(attr.to_owned(), true);
             }
             name_spaces.insert(namespace.to_owned(), attribute_map);
@@ -386,11 +386,11 @@ mod tests {
     // Utility function to easily create [`ReaderRegistration`]
     fn create_registration(registered_doctypes: DocTypes) -> ReaderRegistration {
         let mut attributes = IndexMap::new();
-        for (doc_type, namespaces) in registered_doctypes.into_iter() {
+        for (doc_type, namespaces) in registered_doctypes {
             let mut namespace_map = IndexMap::new();
-            for (ns, attrs) in namespaces.into_iter() {
+            for (ns, attrs) in namespaces {
                 let mut attribute_map = IndexMap::new();
-                for attr in attrs.into_iter() {
+                for attr in attrs {
                     attribute_map.insert(attr.to_owned(), AuthorizedAttribute {});
                 }
                 namespace_map.insert(ns.to_owned(), AuthorizedNamespace(attribute_map));

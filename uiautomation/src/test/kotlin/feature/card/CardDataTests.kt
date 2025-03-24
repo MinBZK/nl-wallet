@@ -3,8 +3,8 @@ package feature.card
 import helper.TestBase
 import navigator.CardNavigator
 import navigator.screen.CardNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
@@ -37,41 +37,31 @@ class CardDataTests : TestBase() {
     @DisplayName("$USE_CASE.1 The Card attributes page displays all attributes on the card. [${JIRA_ID}]")
     fun verifyCardData() {
         setUp()
-        assertTrue(cardDataScreen.visible(), "card data screen is not visible")
-        assertTrue(cardDataScreen.dataAttributesVisible(), "data attributes are not visible")
+        assertAll(
+            { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
+            { assertTrue(cardDataScreen.dataAttributesVisible(), "data attributes are not visible") }
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The User can go back to the Card detail page. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.2 The User can go back to the Card detail page. 3 The App displays a warning indicating that the shown data is only for the User to see. [${JIRA_ID}]")
     fun verifyBackButton() {
         setUp()
         cardDataScreen.clickBottomBackButton()
 
         val cardDetailScreen = CardDetailScreen()
-        assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The App displays a warning indicating that the shown data is only for the User to see. [${JIRA_ID}]")
-    fun verifyDataPrivacyBanner() {
-        setUp()
-        assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "data privacy banner not visible")
+        assertAll(
+            { assertTrue(cardDetailScreen.visible(), "card detail screen is not visible") },
+            { assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "data privacy banner not visible") }
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @Tags(Tag("english"))
-    @DisplayName("$USE_CASE.4 The Card attribute labels are multi-lingual. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.4 The Card attribute labels are multi-lingual. 5 The Card attribute values are multi-lingual if applicable and are rendered according to their schema. [${JIRA_ID}]")
     fun verifyDataLabelMultiLingual() {
         setUp()
         assertTrue(cardDataScreen.englishDataLabelsVisible(), "english data labels are not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @Tags(Tag("english"))
-    @DisplayName("$USE_CASE.5 The Card attribute values are multi-lingual if applicable and are rendered according to their schema. [${JIRA_ID}]")
-    fun verifyDataValueMultiLingual() {
-        setUp()
-        assertTrue(cardDataScreen.englishDataValuesVisible(), "english data values are not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

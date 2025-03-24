@@ -27,6 +27,7 @@ use sea_orm::Set;
 use sea_orm::StatementBuilder;
 use sea_orm::TransactionTrait;
 use sea_query::OnConflict;
+use sea_query::Order;
 use sea_query::SimpleExpr;
 use tokio::fs;
 use tracing::warn;
@@ -231,7 +232,8 @@ impl<K> DatabaseStorage<K> {
                 mdoc_copy::Column::Mdoc,
             ])
             .column_as(mdoc_copy::Column::DisclosureCount.min(), "disclosure_count")
-            .group_by(mdoc_copy::Column::MdocId);
+            .group_by(mdoc_copy::Column::MdocId)
+            .order_by(mdoc_copy::Column::Id, Order::Asc);
 
         let mdoc_copies = transform_select(select).all(database.connection()).await?;
 
@@ -494,14 +496,14 @@ where
         let mdoc_models = mdocs
             .into_iter()
             .map(|mdoc_copies| {
-                let mdoc_id = Uuid::new_v4();
+                let mdoc_id = Uuid::now_v7();
 
                 let copy_models = mdoc_copies
                     .as_ref()
                     .iter()
                     .map(|mdoc| {
                         let model = mdoc_copy::ActiveModel {
-                            id: Set(Uuid::new_v4()),
+                            id: Set(Uuid::now_v7()),
                             mdoc_id: Set(mdoc_id),
                             mdoc: Set(cbor_serialize(&mdoc)?),
                             ..Default::default()
@@ -594,7 +596,7 @@ where
             .into_iter()
             .filter(|entity_type| !existing_entity_types.contains(entity_type))
             .map(|entity_type| history_attestation_type::Model {
-                id: Uuid::new_v4(),
+                id: Uuid::now_v7(),
                 attestation_type: entity_type.to_owned(),
             })
             .collect::<Vec<_>>();

@@ -2,6 +2,7 @@ test-ios:
   extends: [.env-macos-runner, .ruby-cache-macos]
   rules: !reference [.default-or-release-or-merge-request, rules]
   artifacts:
+    name: test-ios
     when: always
     reports:
       coverage_report:
@@ -37,8 +38,8 @@ test-ios:
     - job: test-rust-compilation-ios
       artifacts: false
   artifacts:
+    name: wallet-ios
     when: always
-    name: "wallet-ios"
     paths:
       - "*.ipa"
       - "wallet_app/ios/compile_rust_core.log"
@@ -46,6 +47,7 @@ test-ios:
     UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
     APPLE_ATTESTATION_ENVIRONMENT: "production"
   script:
+    - VERSION=${CI_COMMIT_TAG#v}
     - set -euo pipefail
     - MATCH_PASSWORD="$(kubectl get secret nl-wallet-fastlane-match -o jsonpath='{.data.password}' | base64 --decode)"
     - export MATCH_PASSWORD
@@ -61,7 +63,7 @@ test-ios:
         mock_relying_party_url:"${MOCK_RELYING_PARTY_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
-        version:"${CI_COMMIT_TAG:-}"
+        version:"${VERSION:-}"
 
 .build-ios-app-ont:
   extends: .build-ios-app

@@ -16,6 +16,7 @@ test-flutter:
   after_script:
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
   artifacts:
+    name: test-flutter
     reports:
       junit: wallet_app/build/reports/test-results.xml
     paths:
@@ -27,7 +28,7 @@ test-flutter-ui:
   extends: [.flutter, .env-macos-runner]
   rules: !reference [.default-or-release-or-merge-request, rules]
   artifacts:
-    name: "ui-test"
+    name: test-flutter-ui
     when: always
     paths:
       - "**/failures/*.png"
@@ -43,6 +44,7 @@ test-flutter-ui:
   after_script:
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results-ui.xml qt/quality-time/junit-results/flutter-ui.xml
   artifacts:
+    name: test-flutter-ui
     reports:
       junit: wallet_app/build/reports/test-results-ui.xml
     paths:

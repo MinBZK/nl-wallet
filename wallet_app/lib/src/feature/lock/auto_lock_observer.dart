@@ -55,7 +55,11 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   void _setupSemanticActionListener() {
     PlatformDispatcher.instance.onSemanticsActionEvent = (SemanticsActionEvent event) {
       if (event.type != SemanticsAction.didLoseAccessibilityFocus) _resetIdleTimeout();
-      WidgetsBinding.instance.performSemanticsAction(event);
+      try {
+        WidgetsBinding.instance.performSemanticsAction(event);
+      } catch (ex) {
+        Fimber.e('Failed to propagate semantics action: $event', ex: ex);
+      }
     };
   }
 
