@@ -395,17 +395,45 @@ pub struct CertificateConfiguration {
 
 #[cfg(test)]
 mod test {
+
+    use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
+    use p256::pkcs8::ObjectIdentifier;
+    use rcgen::CustomExtension;
     use time::macros::datetime;
     use time::OffsetDateTime;
     use x509_parser::certificate::X509Certificate;
 
+    use wallet_common::generator::TimeGenerator;
+
     use crate::server_keys::generate::Ca;
 
-    use super::BorrowingCertificate;
-    use super::CertificateConfiguration;
+    use super::*;
+
+    struct MdlExtension;
+
+    impl TryFrom<MdlExtension> for Vec<CustomExtension> {
+        type Error = CertificateError;
+
+        fn try_from(_value: MdlExtension) -> Result<Self, Self::Error> {
+            Ok(vec![CertificateUsage::Mdl.into()])
+        }
+    }
+
+    #[test]
+    fn mdoc_eku_encoding_works() {
+        CertificateUsage::Mdl.eku();
+        CertificateUsage::ReaderAuth.eku();
+    }
+
+    #[test]
+    fn parse_oid() {
+        let mdl_kp: ObjectIdentifier = "1.0.18013.5.1.2".parse().unwrap();
+        let mdl_kp: &'static [u8] = Box::leak(mdl_kp.into()).as_bytes();
+        assert_eq!(mdl_kp, CertificateUsage::Mdl.eku());
+    }
 
     #[test]
     fn generate_ca() {
@@ -434,6 +462,42 @@ mod test {
         let x509_cert = certificate.x509_certificate();
         assert_certificate_common_name(x509_cert, &["myca"]);
         assert_certificate_validity(x509_cert, now, later);
+    }
+
+    fn generate_and_verify_issuer_for_validity(
+        not_before: Option<DateTime<Utc>>,
+        not_after: Option<DateTime<Utc>>,
+    ) -> CertificateError {
+        let ca = generate_ca_for_validity_test();
+
+        let config = CertificateConfiguration { not_before, not_after };
+        let mdl = MdlExtension;
+
+        let issuer_key_pair = ca.generate_key_pair("mycert", mdl, config).unwrap();
+        issuer_key_pair
+            .certificate()
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
+            .expect_err("Expected verify to fail")
+    }
+
+    #[test]
+    fn generate_and_verify_not_yet_valid_issuer_cert() {
+        let now = Utc::now();
+        let start = Some(now + Duration::days(1));
+        let end = Some(now + Duration::days(2));
+
+        let error = generate_and_verify_issuer_for_validity(start, end);
+        assert_matches!(error, CertificateError::Verification(webpki::Error::CertNotValidYet));
+    }
+
+    #[test]
+    fn generate_and_verify_expired_issuer_cert() {
+        let now = Utc::now();
+        let start = Some(now - Duration::days(2));
+        let end = Some(now - Duration::days(1));
+
+        let error = generate_and_verify_issuer_for_validity(start, end);
+        assert_matches!(error, CertificateError::Verification(webpki::Error::CertExpired));
     }
 
     fn assert_certificate_default_validity(certificate: &X509Certificate) {
@@ -466,5 +530,18 @@ mod test {
             .map(|cn| cn.as_str().unwrap())
             .collect::<Vec<_>>();
         assert_eq!(actual_common_name, expected_common_name);
+    }
+
+    fn generate_ca_for_validity_test() -> Ca {
+        let now = Utc::now();
+        let start = now - Duration::weeks(52);
+        let end = now + Duration::weeks(52);
+
+        let config = CertificateConfiguration {
+            not_before: Some(start),
+            not_after: Some(end),
+        };
+
+        Ca::generate("myca", config).unwrap()
     }
 }
