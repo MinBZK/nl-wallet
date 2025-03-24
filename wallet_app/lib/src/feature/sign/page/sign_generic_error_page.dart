@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/legacy_terminal_page.dart';
+import '../../../wallet_assets.dart';
+import '../../common/page/page_illustration.dart';
+import '../../common/page/terminal_page.dart';
 
 class SignGenericErrorPage extends StatelessWidget {
   final VoidCallback onClosePressed;
@@ -13,9 +15,8 @@ class SignGenericErrorPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LegacyTerminalPage(
-      icon: Icons.not_interested,
-      iconColor: context.theme.primaryColorDark,
+    return TerminalPage(
+      illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
       title: context.l10n.signGenericErrorPageTitle,
       description: context.l10n.signGenericErrorPageDescription,
       primaryButtonCta: context.l10n.signGenericErrorPageCloseCta,

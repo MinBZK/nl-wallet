@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
-import '../../common/page/legacy_terminal_page.dart';
+import '../../../wallet_assets.dart';
+import '../../common/page/page_illustration.dart';
+import '../../common/page/terminal_page.dart';
 
 class IssuanceIdentityValidationFailedPage extends StatelessWidget {
   final VoidCallback onSomethingNotRightPressed;
@@ -15,9 +17,8 @@ class IssuanceIdentityValidationFailedPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LegacyTerminalPage(
-      icon: Icons.priority_high,
-      iconColor: context.theme.primaryColorDark,
+    return TerminalPage(
+      illustration: const PageIllustration(asset: WalletAssets.svg_error_general),
       title: context.l10n.issuanceIdentityValidationFailedPageTitle,
       description: context.l10n.issuanceIdentityValidationFailedPageDescription,
       primaryButtonCta: context.l10n.issuanceIdentityValidationFailedPageCloseCta,
