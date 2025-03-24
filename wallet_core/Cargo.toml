@@ -32,6 +32,7 @@ members = [
     "wallet_provider/persistence",
     "wallet_provider/service",
     "wallet_provider/wallet_account",
+    "wallet_server/issuer_settings",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
     "wallet_server/pid_issuer",

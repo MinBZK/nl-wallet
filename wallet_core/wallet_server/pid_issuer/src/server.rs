@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use axum::Router;
+use p256::ecdsa::VerifyingKey;
 use tokio::net::TcpListener;
 use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
+use issuer_settings::settings::IssuerSettings;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::WteConfig;
 use openid4vc::server_state::SessionStore;
@@ -15,13 +17,12 @@ use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use wallet_common::built_info::version_string;
 
-use crate::settings::IssuerSettings;
-
 pub async fn serve<A, IS, W>(
     attr_service: A,
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
 ) -> Result<()>
 where
@@ -30,7 +31,16 @@ where
     W: WteTracker + Send + Sync + 'static,
 {
     let listener = create_wallet_listener(&settings.server_settings.wallet_server).await?;
-    serve_with_listener(listener, attr_service, settings, hsm, issuance_sessions, wte_tracker).await
+    serve_with_listener(
+        listener,
+        attr_service,
+        settings,
+        hsm,
+        issuance_sessions,
+        wte_issuer_pubkey,
+        wte_tracker,
+    )
+    .await
 }
 
 pub async fn serve_with_listener<A, IS, W>(
@@ -39,6 +49,7 @@ pub async fn serve_with_listener<A, IS, W>(
     settings: IssuerSettings,
     hsm: Option<Pkcs11Hsm>,
     issuance_sessions: Arc<IS>,
+    wte_issuer_pubkey: VerifyingKey,
     wte_tracker: W,
 ) -> Result<()>
 where
@@ -58,7 +69,7 @@ where
         attr_service,
         settings.wallet_client_ids,
         Some(WteConfig {
-            wte_issuer_pubkey: settings.wte_issuer_pubkey.as_inner().into(),
+            wte_issuer_pubkey: (&wte_issuer_pubkey).into(),
             wte_tracker: Arc::new(wte_tracker),
         }),
     );

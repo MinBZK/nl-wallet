@@ -41,15 +41,13 @@ integration_test = ["allow_insecure_url", "server_utils/integration_test"]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
-chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-derive_more = { workspace = true, features = ["as_ref", "from"] }
+chrono = { workspace = true, features = ["serde", "std"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
-rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
@@ -69,12 +67,12 @@ sea-orm = { workspace = true, optional = true, features = [
 ] }
 
 configuration.path = "../../wallet_configuration/configuration"
+issuer_settings.path = "../issuer_settings"
 hsm = { path = "../../hsm", features = ["settings"] }
 jwt.path = "../../jwt"
 mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../openid4vc_server", features = ["issuance"] }
-sd_jwt.path = "../../sd_jwt"
 wallet_common = { path = "../../wallet_common", features = ["axum"] }
 server_utils.path = "../server_utils"
 

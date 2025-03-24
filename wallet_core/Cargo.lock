@@ -3085,6 +3085,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
+name = "issuer_settings"
+version = "0.3.0-dev"
+dependencies = [
+ "chrono",
+ "config",
+ "derive_more",
+ "futures",
+ "hsm",
+ "indexmap 2.7.1",
+ "mdoc",
+ "openid4vc",
+ "rustls-pki-types",
+ "sd_jwt",
+ "serde",
+ "serde_json",
+ "server_utils",
+ "thiserror 2.0.11",
+ "tracing",
+ "wallet_common",
+]
+
+[[package]]
 name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4106,11 +4128,11 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
- "derive_more",
  "futures",
  "hsm",
  "http",
  "indexmap 2.7.1",
+ "issuer_settings",
  "jwt",
  "mdoc",
  "openid4vc",
@@ -4118,7 +4140,6 @@ dependencies = [
  "p256",
  "reqwest",
  "rstest",
- "rustls-pki-types",
  "sd_jwt",
  "sea-orm",
  "serde",
