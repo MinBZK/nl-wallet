@@ -930,6 +930,7 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use chrono::Utc;
+    use futures::FutureExt;
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
@@ -1023,53 +1024,85 @@ mod tests {
         )
     }
 
-    #[tokio::test]
-    async fn test_start_issuance_untrusted_credential_preview() {
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
+    fn test_start_issuance(
+        ca: &Ca,
+        trust_anchor: TrustAnchor,
+        type_metadata: TypeMetadata,
+    ) -> Result<(HttpIssuanceSession<MockVcMessageClient>, CredentialPreviewsWithMetadata), IssuanceSessionError> {
+        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
             .expect_request_token()
-            .return_once(|_url, _token_request, _dpop_header| {
-                // Generate the credential previews with some other CA than what the
-                // HttpIssuanceSession::start_issuance() will accept
-                let ca = Ca::generate_issuer_mock_ca().unwrap();
-                let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+            .return_once(move |_url, _token_request, _dpop_header| {
                 let unsigned_mdoc = UnsignedMdoc::from(data::pid_family_name().into_first().unwrap());
-                // NOTE: This metadata does not match the attributes.
-                let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(
-                    TypeMetadata::empty_example_with_attestation_type(&unsigned_mdoc.doc_type),
-                );
+                let (_, _, type_metadata) = TypeMetadataDocuments::from_single_example(type_metadata);
 
                 let preview = CredentialPreview::MsoMdoc {
-                    unsigned_mdoc: UnsignedMdoc::from(data::pid_family_name().into_first().unwrap()),
+                    unsigned_mdoc,
                     issuer_certificate: issuance_key.certificate().clone(),
-                    type_metadata: metadata_documents,
+                    type_metadata,
                 };
 
-                Ok((
-                    TokenResponseWithPreviews {
-                        token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                        credential_previews: VecNonEmpty::try_from(vec![CredentialFormats::try_new(
-                            VecNonEmpty::try_from(vec![preview]).unwrap(),
-                        )
-                        .unwrap()])
-                        .unwrap(),
-                    },
-                    None,
-                ))
+                let token_response = TokenResponseWithPreviews {
+                    token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
+                    credential_previews: VecNonEmpty::try_from(vec![CredentialFormats::try_new(
+                        VecNonEmpty::try_from(vec![preview]).unwrap(),
+                    )
+                    .unwrap()])
+                    .unwrap(),
+                };
+
+                Ok((token_response, None))
             });
 
-        let token_request = TokenRequest::new_mock();
-
-        let error = HttpIssuanceSession::start_issuance(
+        HttpIssuanceSession::start_issuance(
             mock_msg_client,
             "https://example.com".parse().unwrap(),
-            token_request,
-            &[ca.to_trust_anchor()],
+            TokenRequest::new_mock(),
+            &[trust_anchor],
         )
-        .await
-        .unwrap_err();
+        .now_or_never()
+        .unwrap()
+    }
+
+    #[test]
+    fn test_start_issuance_ok() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let (_, previews_with_metadata) = test_start_issuance(&ca, ca.to_trust_anchor(), TypeMetadata::pid_example())
+            .expect("starting issuance session should succeed");
+
+        let (formats, metadata) = &previews_with_metadata[0];
+        match &formats.as_ref().as_ref()[0] {
+            CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                type_metadata,
+                ..
+            } => {
+                let first_attribute = &unsigned_mdoc.attributes.as_ref()[0][0];
+
+                assert_eq!(first_attribute.name, "family_name");
+                assert_eq!(first_attribute.value.as_text().unwrap(), "De Bruijn");
+
+                assert_eq!(
+                    metadata.first().unwrap(),
+                    &type_metadata
+                        .clone()
+                        .into_unverified_metadata_chain(&unsigned_mdoc.doc_type)
+                        .unwrap()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_start_issuance_untrusted_credential_preview() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let other_ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let error = test_start_issuance(&ca, other_ca.to_trust_anchor(), TypeMetadata::pid_example())
+            .expect_err("starting issuance session should not succeed");
 
         assert_matches!(
             error,
@@ -1077,6 +1110,34 @@ mod tests {
                 CertificateError::Verification(_)
             ))
         );
+    }
+
+    #[test]
+    fn test_start_issuance_type_metadata_verification_error() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let error = test_start_issuance(
+            &ca,
+            ca.to_trust_anchor(),
+            TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
+        )
+        .expect_err("starting issuance session should not succeed");
+
+        assert_matches!(error, IssuanceSessionError::TypeMetadataVerification(_));
+    }
+
+    #[test]
+    fn test_start_issuance_type_credential_payload_error() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let error = test_start_issuance(
+            &ca,
+            ca.to_trust_anchor(),
+            TypeMetadata::empty_example_with_attestation_type(data::PID),
+        )
+        .expect_err("starting issuance session should not succeed");
+
+        assert_matches!(error, IssuanceSessionError::CredentialPayload(_));
     }
 
     /// Return a new session ready for `accept_issuance()`.
