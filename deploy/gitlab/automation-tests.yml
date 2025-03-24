@@ -5,19 +5,10 @@ automation-compile-check:
     - cd uiautomation
     - ./gradlew --no-daemon compileTestKotlin
 
-.run-automation-tests-common-setup:
-  resource_group: automation-tests
+.run-automation-tests-base:
   extends: .env-ont-k8s
   environment:
     action: access
-  artifacts:
-    when: always
-    paths:
-      - uiautomation/build/test-results/**/*.xml
-      - uiautomation/build/allure-results
-      - uiautomation/build/reports
-    reports:
-      junit: uiautomation/build/test-results/**/*.xml
   before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER
@@ -26,6 +17,24 @@ automation-compile-check:
     - java -version
     - cd uiautomation
     - set -euxo pipefail
+  variables:
+    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
+    DEVICE_NAME: "Google Pixel 8"
+    PLATFORM_NAME: "Android"
+    PLATFORM_VERSION: "14.0"
+
+.run-automation-tests-common-setup:
+  resource_group: automation-tests
+  extends: .run-automation-tests-base
+  artifacts:
+    name: uiautomation
+    when: always
+    paths:
+      - uiautomation/build/test-results/**/*.xml
+      - uiautomation/build/allure-results
+      - uiautomation/build/reports
+    reports:
+      junit: uiautomation/build/test-results/**/*.xml
 
 .run-automation-tests-default:
   extends: .run-automation-tests-common-setup
@@ -39,30 +48,8 @@ automation-compile-check:
       -Dfile.encoding=UTF-8 || true
     # Allow failure in tests and pass when there are test results (Quality Time should report on failed test)
     - compgen -G "build/test-results/test/*.xml"
-  variables:
-    APP_IDENTIFIER: "nl.ictu.edi.wallet.latest"
-    DEVICE_NAME: "Google Pixel 8"
-    PLATFORM_NAME: "Android"
-    PLATFORM_VERSION: "14.0"
-  needs:
-    - job: deploy-mock-relying-party-demo
-      artifacts: false
-      optional: true
-    - job: deploy-wallet-provider-ont
-      artifacts: false
-      optional: true
-    - job: deploy-pid-issuer-ont
-      artifacts: false
-      optional: true
-    - job: deploy-update-policy-server-ont
-      artifacts: false
-      optional: true
-    - job: deploy-gba-hc-converter-ont
-      artifacts: false
-      optional: true
   rules:
     - !reference [.on-schedule, rules]
-    - !reference [.on-web-trigger, rules]
 
 run-automation-tests-suite-appstart:
   extends: .run-automation-tests-default
@@ -151,7 +138,6 @@ run-automation-smoke-test-ont:
       -Dtest.config.platform.version="$PLATFORM_VERSION"
       -Dtest.config.remote=true
       -Dfile.encoding=UTF-8
-  variables: !reference [.run-automation-tests-default, variables]
 
 browsertests-format-lint:
   rules: !reference [.default-or-merge-request, rules]
@@ -185,13 +171,13 @@ run-mrp-browsertest-test-ont:
     - deploy/bin/store-artifact.sh browsertests/packages/mock-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-mrp.zip browsertests/packages/mock-relying-party/allure-results/*
   artifacts:
+    name: browsertest-mrp
     when: always
     paths:
       - browsertests/packages/mock-relying-party/test-results/*.xml
       - browsertests/packages/mock-relying-party/allure-results/
     reports:
       junit: browsertests/packages/mock-relying-party/test-results/*.xml
-  allow_failure: false
 
 run-fallback-page-browsertest-test-ont:
   extends: .run-browsertest-common
@@ -212,23 +198,18 @@ run-fallback-page-browsertest-test-ont:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-fallback-pages.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip browsertests/packages/fallback-pages/allure-results/*
   artifacts:
+    name: browsertest-fallback-page
     when: always
     paths:
       - browsertests/packages/fallback-pages/test-results/*.xml
       - browsertests/packages/fallback-pages/allure-results/
     reports:
       junit: browsertests/packages/fallback-pages/test-results/*.xml
-  allow_failure: false
 
 run-gba-fetch-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
     - !reference [.on-schedule, rules]
-    - !reference [.on-web-trigger, rules]
-  needs:
-    - job: deploy-gba-fetch-frontend-ont
-      artifacts: false
-      optional: true
   before_script: |
     kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
@@ -245,13 +226,13 @@ run-gba-fetch-browsertest-test-ont:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/test-results-*/*.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/allure-results/*
   artifacts:
+    name: browsertest-gba-fetch
     when: always
     paths:
       - browsertests/packages/gba-fetch/test-results-*/*.xml
       - browsertests/packages/gba-fetch/allure-results/
     reports:
       junit: browsertests/packages/gba-fetch/test-results*/*.xml
-  allow_failure: false
 
 run-performance-test-ont:
   rules: !reference [.default-branch, rules]
@@ -277,24 +258,14 @@ run-performance-test-ont:
 
 create-pipeline-for-running-test-on-all-browserstack-androids:
   resource_group: automation-tests
-  extends: .env-ont-k8s
-  environment:
-    action: access
+  extends: .run-automation-tests-base
+  needs:
+    - !reference [run-automation-smoke-test-ont, needs]
   rules:
-    - !reference [ .on-web-trigger, rules ]
-  allow_failure: false
-  before_script:
-    - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
-    - export BROWSERSTACK_USER
-    - BROWSERSTACK_KEY=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.key}' | base64 --decode)
-    - export BROWSERSTACK_KEY
-    - java -version
-    - set -euxo pipefail
-  variables:
-    BROWSERSTACK_USER: "$BROWSERSTACK_USER"
-    BROWSERSTACK_KEY: "$BROWSERSTACK_KEY"
+    - !reference [.default-branch, rules]
+  allow_failure: true
+  when: manual
   script: |
-      DEVICE_LIST=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json")
       TEST_SETS=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json" | 
                   jq -r '.[] | select(.os == "android" and .realMobile == true) | "\(.device)|\(.os_version)"')
     
@@ -309,49 +280,55 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
     
       cat <<EOT > test-all-android-devices.yml
       include:
-        - local: "/.gitlab-ci.yml"
+        - ".gitlab-ci.yml"
+
+      .run-automation-test-ont:
+        rules:
+         - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+        extends: .run-automation-tests-common-setup
+        script:
+          - ./gradlew --no-daemon --info --stacktrace runOnAll
+            -Dtest.config.app.identifier="\$APP_ID"
+            -Dtest.config.device.name="\$DEVICE_NAME"
+            -Dtest.config.platform.name="\$PLATFORM_NAME"
+            -Dtest.config.platform.version="\$PLATFORM_VERSION"
+            -Dtest.config.remote=true
+            -Dfile.encoding=UTF-8
+        variables:
+          APP_ID: "${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
+          PLATFORM_NAME: "Android"
+        allow_failure: true
       EOT
     
       while IFS="|" read -r DEVICE_NAME PLATFORM_VERSION; do
         JOB_NAME=$(echo "$DEVICE_NAME" | tr ' ' '_')
-        PLATFORM_NAME="Android"
-        APP_IDENTIFIER="nl.ictu.edi.wallet.latest"
       
         cat <<EOT >> test-all-android-devices.yml
       
       run-automation-test-ont-$JOB_NAME:
-        extends: .run-automation-tests-common-setup
-        script:
-          - ./gradlew --no-daemon --info --stacktrace runOnAll
-            -Dtest.config.app.identifier="$APP"
-            -Dtest.config.device.name="$DEVICE_NAME"
-            -Dtest.config.platform.name="$PLATFORM_NAME"
-            -Dtest.config.platform.version="$PLATFORM_VERSION"
-            -Dtest.config.remote=true
-            -Dfile.encoding=UTF-8
+        extends: .run-automation-test-ont
         variables:
           DEVICE_NAME: "$DEVICE_NAME"
-          PLATFORM_NAME: "$PLATFORM_NAME"
           PLATFORM_VERSION: "$PLATFORM_VERSION"
-          APP: "${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
       EOT
       done <<< "$TEST_SETS"
       
       echo "Generated test-all-android-devices.yml:"
       cat test-all-android-devices.yml
   artifacts:
+    name: browserstack-all-devices
     paths:
       - test-all-android-devices.yml
     expire_in: 1 hour
 
 run-pipeline-for-running-test-on-all-browserstack-androids:
   rules:
-    - !reference [ .on-web-trigger, rules ]
+    - !reference [.default-branch, rules]
   needs:
-    - create-pipeline-for-running-test-on-all-browserstack-androids
+    - job: create-pipeline-for-running-test-on-all-browserstack-androids
+      artifacts: true
   trigger:
     include:
       - artifact: test-all-android-devices.yml
         job: create-pipeline-for-running-test-on-all-browserstack-androids
     strategy: depend
-

@@ -27,6 +27,7 @@ build-wallet-web:
     - deploy/bin/store-artifact.sh wallet_web/test-results/junit.xml qt/quality-time/junit-results/web.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/web.zip wallet_web/allure-results/*
   artifacts:
+    name: wallet-web
     reports:
       junit: wallet_web/test-results/junit.xml
     paths:

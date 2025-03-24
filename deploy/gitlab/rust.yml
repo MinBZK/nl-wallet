@@ -45,6 +45,7 @@ test-rust:
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit.xml qt/quality-time/junit-results/rust.xml
   artifacts:
+    name: test-rust
     reports:
       coverage_report:
         path: wallet_core/rust-coverage.xml
@@ -105,6 +106,7 @@ build-update-policy-server-binary:
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "update_policy_server" --bin update_policy_server
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "update_policy_server" --bin update_policy_server
   artifacts:
+    name: update_policy_server
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/update_policy_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/update_policy_server
@@ -115,6 +117,7 @@ build-wallet-provider-binary:
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "wallet_provider" --bin wallet_provider
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider" --bin wallet_provider
   artifacts:
+    name: wallet_provider
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/wallet_provider
       - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_provider
@@ -124,6 +127,7 @@ build-wallet-provider-migrations-binary:
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider_migrations" --bin wallet_provider_migrations
   artifacts:
+    name: wallet_provider_migrations
     paths:
       - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_provider_migrations
 
@@ -133,6 +137,7 @@ build-pid-issuer-binary:
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres
   artifacts:
+    name: pid_issuer
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/pid_issuer
       - wallet_core/target/x86_64-unknown-linux-musl/release/pid_issuer
@@ -143,6 +148,7 @@ build-verification-server-binary:
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package verification_server --bin verification_server --no-default-features --features postgres
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package verification_server --bin verification_server --no-default-features --features postgres
   artifacts:
+    name: verification_server
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/verification_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/verification_server
@@ -152,6 +158,7 @@ build-wallet-server-migrations-binary:
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_server_migrations" --bin wallet_server_migrations
   artifacts:
+    name: wallet_server_migrations
     paths:
       - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_server_migrations
 
@@ -161,6 +168,7 @@ build-demo-relying-party-binary:
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "mock_relying_party" --bin mock_relying_party
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "mock_relying_party" --bin mock_relying_party
   artifacts:
+    name: mock_relying_party
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/mock_relying_party
       - wallet_core/target/x86_64-unknown-linux-musl/release/mock_relying_party
@@ -171,6 +179,7 @@ build-gba-hc-converter-binary:
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "gba_hc_converter" --bin gba_hc_converter
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin gba_hc_converter
   artifacts:
+    name: gba_hc_converter
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/gba_hc_converter
       - wallet_core/target/x86_64-unknown-linux-musl/release/gba_hc_converter
@@ -180,6 +189,7 @@ build-gba-fetch-binary:
   script:
     - cargo build --locked --target x86_64-unknown-linux-gnu --package "gba_hc_converter" --bin gba_fetch
   artifacts:
+    name: gba_fetch
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_fetch
 
@@ -188,6 +198,7 @@ build-gba-encrypt-binary:
   script:
     - cargo build --locked --target x86_64-unknown-linux-gnu --package "gba_hc_converter" --bin gba_encrypt
   artifacts:
+    name: gba_encrypt
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_encrypt
 
@@ -196,5 +207,6 @@ build-gba-fetch-frontend-binary:
   script:
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin gba_fetch_frontend
   artifacts:
+    name: gba_fetch_frontend
     paths:
       - wallet_core/target/x86_64-unknown-linux-musl/release/gba_fetch_frontend
