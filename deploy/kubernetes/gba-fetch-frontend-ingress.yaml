@@ -17,6 +17,9 @@ metadata:
       more_set_headers "Permissions-Policy: camera=(), microphone=()";
       more_set_headers "Content-Security-Policy: default-src 'none'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
       more_set_headers "X-Permitted-Cross-Domain-Policies: none";
+      more_set_headers "Cross-Origin-Resource-Policy: same-origin";
+      more_set_headers "Cross-Origin-Embedder-Policy: require-corp";
+      more_set_headers "Cross-Origin-Opener-Policy: same-origin";
 spec:
   ingressClassName: nginx
   rules:
