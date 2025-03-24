@@ -31,7 +31,7 @@ use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::x509::BorrowingCertificate;
-use mdoc::utils::x509::CertificateUsage;
+use crypto::x509::CertificateUsage;
 use wallet_common::generator::Generator;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -534,7 +534,7 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
-    use mdoc::utils::x509::CertificateUsage;
+    use crypto::x509::CertificateUsage;
     use wallet_common::generator::TimeGenerator;
 
     use super::*;

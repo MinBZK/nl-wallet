@@ -14,6 +14,7 @@ use serde_with::IfIsHumanReadable;
 use tracing::debug;
 use tracing::warn;
 
+use crypto::x509::CertificateUsage;
 use wallet_common::generator::Generator;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -28,7 +29,6 @@ use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::JsonCborValue;
 use crate::utils::serialization::TaggedBytes;
-use crate::utils::x509::CertificateUsage;
 use crate::Result;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].

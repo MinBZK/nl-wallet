@@ -358,8 +358,7 @@ mod tests {
     use p256::ecdsa::VerifyingKey;
 
     use crypto::examples::Examples;
-
-    use crate::utils::x509::CertificateUsage;
+    use crypto::x509::CertificateUsage;
 
     use super::*;
 

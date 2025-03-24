@@ -1,64 +1,12 @@
 use crypto::x509::BorrowingCertificateExtension;
 use derive_more::Debug;
-use x509_parser::der_parser::Oid;
-use x509_parser::oid_registry::asn1_rs::oid;
-use x509_parser::prelude::ExtendedKeyUsage;
-use x509_parser::prelude::X509Certificate;
 
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 
 use super::issuer_auth::IssuerRegistration;
 use super::reader_auth::ReaderRegistration;
-
-/// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
-/// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
-/// being verified.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CertificateUsage {
-    Mdl,
-    ReaderAuth,
-}
-
-pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013 .5 .1 .2);
-pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013 .5 .1 .6);
-
-impl CertificateUsage {
-    fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {
-        let usage = cert
-            .extended_key_usage()?
-            .map(|eku| Self::from_key_usage(eku.value))
-            .transpose()?
-            .ok_or_else(|| CertificateError::IncorrectEkuCount(0))?;
-
-        Ok(usage)
-    }
-
-    fn from_key_usage(ext_key_usage: &ExtendedKeyUsage) -> Result<Self, CertificateError> {
-        if ext_key_usage.other.len() != 1 {
-            return Err(CertificateError::IncorrectEkuCount(ext_key_usage.other.len()));
-        }
-
-        let key_usage_oid = ext_key_usage.other.first().unwrap();
-
-        // Unfortunately we cannot use a match statement here.
-        if key_usage_oid == EXTENDED_KEY_USAGE_MDL {
-            return Ok(Self::Mdl);
-        } else if key_usage_oid == EXTENDED_KEY_USAGE_READER_AUTH {
-            return Ok(Self::ReaderAuth);
-        }
-
-        Err(CertificateError::IncorrectEku(key_usage_oid.to_id_string()))
-    }
-
-    pub fn eku(self) -> &'static [u8] {
-        match self {
-            CertificateUsage::Mdl => EXTENDED_KEY_USAGE_MDL,
-            CertificateUsage::ReaderAuth => EXTENDED_KEY_USAGE_READER_AUTH,
-        }
-        .as_bytes()
-    }
-}
 
 /// Acts as configuration for the [Certificate::new] function.
 #[derive(Debug, Clone, PartialEq)]

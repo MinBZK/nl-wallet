@@ -15,11 +15,11 @@ use url::Url;
 
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::x509::CertificateType;
-use mdoc::utils::x509::CertificateUsage;
 use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::HttpsUri;

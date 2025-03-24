@@ -25,7 +25,6 @@ x509-parser.workspace = true
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"
-mdoc.path = "../mdoc"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]

@@ -20,9 +20,9 @@ use serde_with::serde_as;
 
 use configuration::http::TlsPinningConfig;
 use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use mdoc::utils::x509::CertificateType;
-use mdoc::utils::x509::CertificateUsage;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::server_state::SessionStoreTimeouts;

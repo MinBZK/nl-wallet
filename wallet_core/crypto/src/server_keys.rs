@@ -78,7 +78,10 @@ impl<S: EcdsaKey> EcdsaKey for KeyPair<S> {
 #[cfg(any(test, feature = "generate"))]
 pub mod generate {
     use p256::ecdsa::SigningKey;
+    use p256::pkcs8::der::asn1::SequenceOf;
+    use p256::pkcs8::der::Encode;
     use p256::pkcs8::DecodePrivateKey;
+    use p256::pkcs8::ObjectIdentifier;
     use rcgen::BasicConstraints;
     use rcgen::CertificateParams;
     use rcgen::CustomExtension;
@@ -91,15 +94,16 @@ pub mod generate {
     use rustls_pki_types::CertificateDer;
     use rustls_pki_types::TrustAnchor;
     use time::OffsetDateTime;
-
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
+
+    use wallet_common::trust_anchor::BorrowingTrustAnchor;
 
     use crate::server_keys::KeyPair;
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateError;
+    use crate::x509::CertificateUsage;
 
     fn rcgen_cert_privkey(keypair: &rcgen::KeyPair) -> Result<SigningKey, CertificateError> {
         SigningKey::from_pkcs8_der(keypair.serialized_der()).map_err(CertificateError::GeneratingPrivateKey)
@@ -277,6 +281,22 @@ pub mod generate {
                 result.not_after = OffsetDateTime::from_unix_timestamp_nanos(not_after as i128).unwrap();
             }
             result
+        }
+    }
+
+    impl From<CertificateUsage> for CustomExtension {
+        fn from(value: CertificateUsage) -> Self {
+            const OID_EXT_KEY_USAGE: &[u64] = &[2, 5, 29, 37];
+
+            // The spec requires that we add mdoc-specific OIDs to the extended key usage extension, but
+            // [`CertificateParams`] only supports a whitelist of key usages that it is aware of. So we
+            // DER-serialize it manually and add it to the custom extensions.
+            // We unwrap in these functions because they have fixed input for which they always succeed.
+            let mut seq = SequenceOf::<ObjectIdentifier, 1>::new();
+            seq.add(ObjectIdentifier::from_bytes(value.eku()).unwrap()).unwrap();
+            let mut ext = CustomExtension::from_oid_content(OID_EXT_KEY_USAGE, seq.to_der().unwrap());
+            ext.set_criticality(true);
+            ext
         }
     }
 

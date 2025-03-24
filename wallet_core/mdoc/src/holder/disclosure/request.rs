@@ -4,6 +4,7 @@ use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateUsage;
 use wallet_common::generator::Generator;
 
 use crate::device_retrieval::DeviceRequest;
@@ -20,7 +21,6 @@ use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 use crate::utils::x509::CertificateType;
-use crate::utils::x509::CertificateUsage;
 use crate::ItemsRequest;
 
 impl DeviceRequest {
