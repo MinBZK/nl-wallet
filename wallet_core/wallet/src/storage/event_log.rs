@@ -5,14 +5,14 @@ use chrono::Utc;
 use itertools::Itertools;
 use uuid::Uuid;
 
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::BorrowingCertificateExtension;
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event::EventType;
 use mdoc::holder::Mdoc;
 use mdoc::holder::ProposedAttributes;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::reader_auth::ReaderRegistration;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::MdocCertificateExtension;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
@@ -214,12 +214,13 @@ mod test {
     use indexmap::IndexMap;
     use rstest::rstest;
 
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::BorrowingCertificate;
     use mdoc::holder::ProposedDocumentAttributes;
-    use mdoc::server_keys::generate::Ca;
+    use mdoc::server_keys::generate::mock::generate_issuer_mock;
     use mdoc::unsigned::Entry;
     use mdoc::unsigned::UnsignedMdoc;
     use mdoc::utils::issuer_auth::IssuerRegistration;
-    use mdoc::utils::x509::BorrowingCertificate;
     use mdoc::DataElementValue;
     use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
@@ -230,7 +231,7 @@ mod test {
 
     static ISSUER_CERTIFICATE: LazyLock<BorrowingCertificate> = LazyLock::new(|| {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key_pair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+        let issuer_key_pair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
         issuer_key_pair.certificate().clone()
     });

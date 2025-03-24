@@ -18,10 +18,10 @@ use std::io;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
+use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
-use mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::credential::MdocCopies;
 
 pub use self::data::ChangePinData;

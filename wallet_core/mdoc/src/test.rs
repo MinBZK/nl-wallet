@@ -3,6 +3,7 @@ use std::num::NonZeroU8;
 
 use ciborium::Value;
 use coset::CoseSign1;
+use crypto::server_keys::generate::Ca;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
@@ -17,6 +18,7 @@ use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::DocRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::mdocs::DataElementValue;
+use crate::server_keys::generate::mock::generate_issuer_mock;
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
@@ -166,12 +168,7 @@ impl TestDocument {
     }
 
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
-    pub async fn sign<KF>(
-        self,
-        ca: &crate::server_keys::generate::Ca,
-        key_factory: &KF,
-        copy_count: NonZeroU8,
-    ) -> crate::holder::Mdoc
+    pub async fn sign<KF>(self, ca: &Ca, key_factory: &KF, copy_count: NonZeroU8) -> crate::holder::Mdoc
     where
         KF: crypto::factory::KeyFactory,
     {
@@ -195,7 +192,7 @@ impl TestDocument {
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
     pub async fn issuer_signed<KF>(
         self,
-        ca: &crate::server_keys::generate::Ca,
+        ca: &Ca,
         key_factory: &KF,
         copy_count: NonZeroU8,
     ) -> (crate::IssuerSigned, KF::Key)
@@ -215,7 +212,7 @@ impl TestDocument {
         // NOTE: This metadata does not match the attributes.
         let metadata = TypeMetadata::empty_example();
         let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
-        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
@@ -371,7 +368,7 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 pub mod data {
     use super::*;
 
-    use crate::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 
     pub const PID: &str = "com.example.pid";
     const ADDR: &str = "com.example.address";

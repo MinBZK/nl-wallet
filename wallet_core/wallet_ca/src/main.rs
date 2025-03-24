@@ -5,10 +5,10 @@ use clap::Parser;
 use clap::Subcommand;
 use clio::CachedInput;
 
-use mdoc::server_keys::generate;
+use crypto::server_keys::generate;
+use crypto::x509::CertificateConfiguration;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::reader_auth::ReaderRegistration;
-use mdoc::utils::x509::CertificateConfiguration;
 use wallet_ca::read_public_key;
 use wallet_ca::read_self_signed_ca;
 use wallet_ca::write_certificate;
@@ -190,7 +190,7 @@ impl Command {
                 let issuer_registration: IssuerRegistration = serde_json::from_reader(issuer_auth_file)?;
                 let key_pair = ca.generate_key_pair(
                     &common_name,
-                    &issuer_registration.into(),
+                    issuer_registration,
                     Self::get_certificate_configuration(days),
                 )?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
@@ -209,7 +209,7 @@ impl Command {
                 let reader_registration: ReaderRegistration = serde_json::from_reader(reader_auth_file)?;
                 let key_pair = ca.generate_key_pair(
                     &common_name,
-                    &reader_registration.into(),
+                    reader_registration,
                     Self::get_certificate_configuration(days),
                 )?;
                 write_key_pair(key_pair.certificate(), key_pair.private_key(), &file_prefix, force)?;
@@ -232,7 +232,7 @@ impl Command {
                 let certificate = ca.generate_certificate(
                     public_key.contents(),
                     &common_name,
-                    &issuer_registration.into(),
+                    issuer_registration,
                     Self::get_certificate_configuration(days),
                 )?;
                 write_certificate(&certificate, &file_prefix, force)?;
@@ -254,7 +254,7 @@ impl Command {
                 let certificate = ca.generate_certificate(
                     public_key.contents(),
                     &common_name,
-                    &reader_registration.into(),
+                    reader_registration,
                     Self::get_certificate_configuration(days),
                 )?;
                 write_certificate(&certificate, &file_prefix, force)?;

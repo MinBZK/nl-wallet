@@ -29,8 +29,8 @@ use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
-use mdoc::server_keys::KeyPair;
-use mdoc::utils::x509::BorrowingCertificate;
+use crypto::server_keys::KeyPair;
+use crypto::x509::BorrowingCertificate;
 use mdoc::utils::x509::CertificateUsage;
 use wallet_common::generator::Generator;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -224,7 +224,7 @@ where
         // The `VecDeque` containing the certificates will be contiguous at this point, so the second value is empty.
         let (intermediates, _) = certs.as_slices();
         leaf_cert
-            .verify(CertificateUsage::ReaderAuth, intermediates, time, trust_anchors)
+            .verify(CertificateUsage::ReaderAuth.eku(), intermediates, time, trust_anchors)
             .map_err(JwtX5cError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.
@@ -525,14 +525,15 @@ mod tests {
     use base64::prelude::*;
     use futures::StreamExt;
     use jsonwebtoken::Header;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
 
     use crypto::mock_remote::MockRemoteKeyFactory;
-    use mdoc::server_keys::generate::Ca;
-    use mdoc::utils::x509::CertificateConfiguration;
-    use mdoc::utils::x509::CertificateError;
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateConfiguration;
+    use crypto::x509::CertificateError;
     use mdoc::utils::x509::CertificateUsage;
     use wallet_common::generator::TimeGenerator;
 
@@ -712,7 +713,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_cert() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let keypair = ca.generate_reader_mock(None).unwrap();
+        let keypair = generate_reader_mock(&ca, None).unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = Jwt::sign_with_certificate(&payload, &keypair).await.unwrap();
@@ -733,25 +734,25 @@ mod tests {
         let intermediate1 = ca
             .generate_intermediate(
                 "myintermediate1",
-                CertificateUsage::ReaderAuth,
+                CertificateUsage::ReaderAuth.into(),
                 CertificateConfiguration::default(),
             )
             .unwrap();
         let intermediate2 = intermediate1
             .generate_intermediate(
                 "myintermediate2",
-                CertificateUsage::ReaderAuth,
+                CertificateUsage::ReaderAuth.into(),
                 CertificateConfiguration::default(),
             )
             .unwrap();
         let intermediate3 = intermediate2
             .generate_intermediate(
                 "myintermediate3",
-                CertificateUsage::ReaderAuth,
+                CertificateUsage::ReaderAuth.into(),
                 CertificateConfiguration::default(),
             )
             .unwrap();
-        let keypair = intermediate3.generate_reader_mock(None).unwrap();
+        let keypair = generate_reader_mock(&intermediate3, None).unwrap();
 
         // Construct a JWT with the `x5c` field containing the X.509 certificates
         // of the leaf certificate and the intermediates, in reverse order.
@@ -791,7 +792,7 @@ mod tests {
     #[tokio::test]
     async fn test_parse_and_verify_jwt_with_wrong_cert() {
         let ca = Ca::generate("myca", Default::default()).unwrap();
-        let keypair = ca.generate_reader_mock(None).unwrap();
+        let keypair = generate_reader_mock(&ca, None).unwrap();
 
         let payload = json!({"hello": "world"});
         let jwt = Jwt::sign_with_certificate(&payload, &keypair).await.unwrap();

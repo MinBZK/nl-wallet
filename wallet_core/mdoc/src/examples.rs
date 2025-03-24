@@ -10,11 +10,12 @@ use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use crypto::server_keys::generate::Ca;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use wallet_common::generator::Generator;
 
-use crate::server_keys::generate::Ca;
+use crate::server_keys::generate::mock::generate_issuer_mock;
 use crate::utils::issuer_auth::IssuerRegistration;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
@@ -80,7 +81,7 @@ impl DeviceResponse {
 
         // Re sign document with a newly generated certificate that includes a SAN DNS name
         for doc in device_response.documents.as_mut().unwrap().iter_mut() {
-            let new_key = ca.generate_issuer_mock(Some(IssuerRegistration::new_mock())).unwrap();
+            let new_key = generate_issuer_mock(ca, Some(IssuerRegistration::new_mock())).unwrap();
             let new_cert = new_key.certificate();
 
             // NOTE: This metadata does not match the attributes.
@@ -255,6 +256,7 @@ pub mod mock {
     use sd_jwt::metadata::TypeMetadataChain;
 
     use crate::holder::Mdoc;
+    use crate::server_keys::generate::mock::generate_issuer_mock;
     use crate::test::data::pid_example;
     use crate::utils::cose::CoseKey;
     use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
@@ -321,7 +323,7 @@ pub mod mock {
 
         async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
             let device_key = CoseKey::try_from(key.verifying_key()).unwrap();
-            let issuer_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+            let issuer_keypair = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
             let unsigned_mdoc = pid_example().0.remove(0).into();
             let metadata_chain = TypeMetadataChain::create(TypeMetadata::pid_example(), vec![]).unwrap();
             let mut issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, device_key, &issuer_keypair)

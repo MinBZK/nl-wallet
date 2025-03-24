@@ -12,11 +12,11 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
+use crypto::server_keys::KeyPair as ParsedKeyPair;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
-use mdoc::server_keys::KeyPair as ParsedKeyPair;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
 use mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -186,7 +186,7 @@ where
         if !trust_anchors.is_empty() {
             key_pair
                 .certificate
-                .verify(usage, &[], time, trust_anchors)
+                .verify(usage.eku(), &[], time, trust_anchors)
                 .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.clone()))?;
         }
 

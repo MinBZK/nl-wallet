@@ -354,6 +354,7 @@ mod tests {
     use rstest::rstest;
 
     use crypto::examples::Examples;
+    use crypto::server_keys::generate::Ca;
 
     use crate::examples::example_items_requests;
     use crate::examples::Example;
@@ -363,7 +364,6 @@ mod tests {
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::EXAMPLE_NAMESPACE;
     use crate::identifiers::AttributeIdentifierHolder;
-    use crate::server_keys::generate::Ca;
     use crate::test;
     use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;

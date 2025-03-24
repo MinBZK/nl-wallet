@@ -11,6 +11,7 @@ use futures::future;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use mdoc::server_keys::generate::mock::generate_reader_mock;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -23,6 +24,8 @@ use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::mock_remote::MockRemoteKeyFactoryError;
+use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
 use jwt::Jwt;
 use mdoc::examples::example_items_requests;
 use mdoc::examples::IsoCertTimeGenerator;
@@ -31,8 +34,6 @@ use mdoc::holder::DisclosureRequestMatch;
 use mdoc::holder::Mdoc;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
-use mdoc::server_keys::generate::Ca;
-use mdoc::server_keys::KeyPair;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
@@ -79,7 +80,7 @@ use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 #[tokio::test]
 async fn disclosure_direct() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
-    let auth_keypair = ca.generate_reader_mock(None).unwrap();
+    let auth_keypair = generate_reader_mock(&ca, None).unwrap();
 
     // RP assembles the Authorization Request and signs it into a JWS.
     let nonce = "nonce".to_string();
@@ -174,11 +175,11 @@ async fn disclosure_jwe(
 #[tokio::test]
 async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
-    let rp_keypair = ca
-        .generate_reader_mock(Some(ReaderRegistration::new_mock_from_requests(
-            &example_items_requests(),
-        )))
-        .unwrap();
+    let rp_keypair = generate_reader_mock(
+        &ca,
+        Some(ReaderRegistration::new_mock_from_requests(&example_items_requests())),
+    )
+    .unwrap();
 
     // Initialize the "wallet"
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -780,7 +781,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
         (
             NO_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
-                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::Neither,
             )
             .unwrap(),
@@ -788,7 +789,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
-                rp_ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
             )
             .unwrap(),
@@ -796,7 +797,7 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
-                rp_ca.generate_reader_mock(reader_registration).unwrap(),
+                generate_reader_mock(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
             )
             .unwrap(),

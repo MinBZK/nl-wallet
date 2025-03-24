@@ -28,6 +28,8 @@ use serde::Serialize;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::EcdsaKey;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
 
@@ -35,8 +37,6 @@ use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::CborError;
 
-use super::x509::BorrowingCertificate;
-use super::x509::CertificateError;
 use super::x509::CertificateUsage;
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
@@ -256,7 +256,7 @@ impl<T> MdocCose<CoseSign1, T> {
         let cert = self.signing_cert()?;
 
         // Verify the certificate against the trusted IACAs
-        cert.verify(usage, &[], time, trust_anchors)
+        cert.verify(usage.eku(), &[], time, trust_anchors)
             .map_err(CoseError::Certificate)?;
 
         // Grab the certificate's public key and verify the Cose
@@ -491,9 +491,9 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
+    use crypto::server_keys::generate::Ca;
     use wallet_common::generator::TimeGenerator;
 
-    use crate::server_keys::generate::Ca;
     use crate::utils::cose;
     use crate::utils::cose::CoseError;
     use crate::utils::issuer_auth::IssuerRegistration;
@@ -588,11 +588,7 @@ mod tests {
     async fn cose_with_certificate() {
         let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
-            .generate_key_pair(
-                "cert.example.com",
-                &IssuerRegistration::new_mock().into(),
-                Default::default(),
-            )
+            .generate_key_pair("cert.example.com", IssuerRegistration::new_mock(), Default::default())
             .unwrap();
 
         let payload = ToyMessage::default();

@@ -8,6 +8,7 @@ use coset::HeaderBuilder;
 use coset::Label;
 
 use crypto::keys::EcdsaKey;
+use crypto::server_keys::KeyPair;
 use sd_jwt::metadata::ResourceIntegrity;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
@@ -17,7 +18,6 @@ use sd_jwt::metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::iso::*;
-use crate::server_keys::KeyPair;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
@@ -142,6 +142,7 @@ mod tests {
     use chrono::Days;
     use ciborium::Value;
     use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -150,7 +151,7 @@ mod tests {
     use wallet_common::generator::TimeGenerator;
 
     use crate::holder::Mdoc;
-    use crate::server_keys::generate::Ca;
+    use crate::server_keys::generate::mock::generate_issuer_mock;
     use crate::unsigned::Entry;
     use crate::unsigned::UnsignedMdoc;
     use crate::utils::cose::CoseKey;
@@ -166,7 +167,7 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
         let now = chrono::Utc::now();

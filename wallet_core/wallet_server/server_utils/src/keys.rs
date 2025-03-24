@@ -5,10 +5,10 @@ use p256::ecdsa::VerifyingKey;
 
 use crypto::keys::EcdsaKey;
 use crypto::keys::EcdsaKeySend;
+use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use mdoc::utils::x509::CertificateError;
 use sd_jwt::metadata::TypeMetadataError;
 
 use crate::settings::PrivateKey;

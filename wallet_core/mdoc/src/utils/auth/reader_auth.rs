@@ -7,12 +7,12 @@ use url::Url;
 use x509_parser::der_parser::asn1_rs::oid;
 use x509_parser::der_parser::Oid;
 
+use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::utils::x509::CertificateType;
-use crate::utils::x509::MdocCertificateExtension;
 use crate::ItemsRequest;
 
 use super::LocalizedStrings;
@@ -45,6 +45,17 @@ impl ReaderRegistration {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(feature = "generate")]
+impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
+    type Error = crypto::x509::CertificateError;
+
+    fn try_from(value: ReaderRegistration) -> Result<Self, Self::Error> {
+        let certificate_type = CertificateType::from(value);
+        let result = certificate_type.try_into()?;
+        Ok(result)
     }
 }
 
@@ -109,7 +120,7 @@ pub enum ValidationError {
     UnregisteredAttributes(Vec<AttributeIdentifier>),
 }
 
-impl MdocCertificateExtension for ReaderRegistration {
+impl BorrowingCertificateExtension for ReaderRegistration {
     /// oid: 2.1.123.1
     /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
     /// suffix: 1, unofficial id for Reader Authentication

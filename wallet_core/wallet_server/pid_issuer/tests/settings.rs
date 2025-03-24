@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use assert_matches::assert_matches;
 
-use mdoc::server_keys::generate::Ca;
+use crypto::server_keys::generate::Ca;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use pid_issuer::settings::AttestationTypeConfigSettings;
 use pid_issuer::settings::IssuerSettings;
@@ -31,9 +32,8 @@ fn test_settings_success() {
     let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
-    let issuer_cert_valid = issuer_ca
-        .generate_issuer_mock(IssuerRegistration::new_mock().into())
-        .expect("generate valid issuer cert");
+    let issuer_cert_valid =
+        generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).expect("generate valid issuer cert");
 
     settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
     settings.attestation_settings = mock_attestation_data(issuer_cert_valid.into()).into();
@@ -46,9 +46,8 @@ fn test_settings_no_issuer_trust_anchors() {
     let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
-    let issuer_cert_valid = issuer_ca
-        .generate_issuer_mock(IssuerRegistration::new_mock().into())
-        .expect("generate valid issuer cert");
+    let issuer_cert_valid =
+        generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).expect("generate valid issuer cert");
 
     settings.server_settings.issuer_trust_anchors = vec![];
     settings.attestation_settings = mock_attestation_data(issuer_cert_valid.into()).into();
@@ -65,12 +64,10 @@ fn test_settings_no_issuer_registration() {
     let mut settings = IssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
-    let issuer_cert_valid = issuer_ca
-        .generate_issuer_mock(IssuerRegistration::new_mock().into())
-        .expect("generate valid issuer cert");
-    let issuer_cert_no_registration = issuer_ca
-        .generate_issuer_mock(None)
-        .expect("generate issuer cert without issuer registration");
+    let issuer_cert_valid =
+        generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).expect("generate valid issuer cert");
+    let issuer_cert_no_registration =
+        generate_issuer_mock(&issuer_ca, None).expect("generate issuer cert without issuer registration");
 
     settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
 

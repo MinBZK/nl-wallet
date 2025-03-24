@@ -1,3 +1,4 @@
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use sd_jwt::metadata::TypeMetadataError;
 
@@ -6,7 +7,6 @@ use crate::utils::cose::CoseError;
 use crate::utils::cose::KeysError;
 use crate::utils::crypto::CryptoError;
 use crate::utils::serialization::CborError;
-use crate::utils::x509::CertificateError;
 use crate::verifier::VerificationError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

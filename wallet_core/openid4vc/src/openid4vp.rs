@@ -21,14 +21,14 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use jwt::error::JwtX5cError;
 use jwt::Jwt;
 use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::CertificateError;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
@@ -821,6 +821,7 @@ mod tests {
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
     use jwt::Jwt;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
@@ -828,11 +829,11 @@ mod tests {
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
+    use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::KeyPair;
     use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
     use mdoc::examples::IsoCertTimeGenerator;
-    use mdoc::server_keys::generate::Ca;
-    use mdoc::server_keys::KeyPair;
     use mdoc::test::data::addr_street;
     use mdoc::test::data::pid_full_name;
     use mdoc::utils::serialization::cbor_serialize;
@@ -885,7 +886,7 @@ mod tests {
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
-        let rp_keypair = ca.generate_reader_mock(None).unwrap();
+        let rp_keypair = generate_reader_mock(&ca, None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 

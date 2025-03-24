@@ -19,8 +19,8 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use configuration::http::TlsPinningConfig;
+use crypto::x509::CertificateError;
 use hsm::service::Pkcs11Hsm;
-use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
 use mdoc::utils::x509::CertificateUsage;
 use openid4vc::issuer::AttestationTypeConfig;

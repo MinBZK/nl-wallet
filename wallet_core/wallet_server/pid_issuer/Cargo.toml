@@ -69,6 +69,7 @@ sea-orm = { workspace = true, optional = true, features = [
 ] }
 
 configuration.path = "../../wallet_configuration/configuration"
+crypto.path = "../../crypto"
 hsm = { path = "../../hsm", features = ["settings"] }
 jwt.path = "../../jwt"
 mdoc.path = "../../mdoc"

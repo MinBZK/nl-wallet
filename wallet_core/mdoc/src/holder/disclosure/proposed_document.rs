@@ -3,6 +3,7 @@ use indexmap::IndexSet;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
+use crypto::x509::BorrowingCertificate;
 use sd_jwt::metadata::TypeMetadata;
 
 use crate::errors::Result;
@@ -12,7 +13,6 @@ use crate::iso::disclosure::Document;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DocType;
 use crate::unsigned::Entry;
-use crate::utils::x509::BorrowingCertificate;
 use crate::NameSpace;
 
 use super::StoredMdoc;

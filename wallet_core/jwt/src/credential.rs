@@ -135,7 +135,8 @@ mod tests {
     use indexmap::IndexMap;
 
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use mdoc::server_keys::generate::Ca;
+    use crypto::server_keys::generate::Ca;
+    use mdoc::server_keys::generate::mock::generate_issuer_mock;
 
     use super::JwtCredential;
     use super::JwtCredentialClaims;
@@ -144,10 +145,8 @@ mod tests {
     async fn test_jwt_credential() {
         let holder_key_id = "key";
         let holder_keypair = MockRemoteEcdsaKey::new_random(holder_key_id.to_string());
-        let issuer_keypair = Ca::generate_issuer_mock_ca()
-            .unwrap()
-            .generate_issuer_mock(None)
-            .unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = generate_issuer_mock(&ca, None).unwrap();
 
         // Produce a JWT with `JwtCredentialClaims` in it
         let jwt = JwtCredentialClaims::new_signed(

@@ -6,18 +6,19 @@ use chrono::Utc;
 use derive_more::Debug;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use mdoc::server_keys::generate::mock::generate_reader_mock;
 use parking_lot::Mutex;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
 use jwt::Jwt;
 use mdoc::examples::EXAMPLE_ATTRIBUTES;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::iso::device_retrieval::ItemsRequest;
-use mdoc::server_keys::generate::Ca;
-use mdoc::server_keys::KeyPair;
 use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::verifier::ItemsRequests;
 use wallet_common::urls::BaseUrl;
@@ -93,7 +94,7 @@ where
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
-        let key_pair = ca.generate_reader_mock(reader_registration.clone()).unwrap();
+        let key_pair = generate_reader_mock(&ca, reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.
         let nonce = random_string(32);
@@ -399,16 +400,18 @@ where
 
 pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
     let ca = Ca::generate_reader_mock_ca().unwrap();
-    let key_pair = ca
-        .generate_reader_mock(Some(ReaderRegistration {
+    let key_pair = generate_reader_mock(
+        &ca,
+        Some(ReaderRegistration {
             attributes: ReaderRegistration::create_attributes(
                 EXAMPLE_DOC_TYPE.to_string(),
                 EXAMPLE_NAMESPACE.to_string(),
                 EXAMPLE_ATTRIBUTES.iter().copied(),
             ),
             ..ReaderRegistration::new_mock()
-        }))
-        .unwrap();
+        }),
+    )
+    .unwrap();
 
     IsoVpAuthorizationRequest::new(
         &vec![ItemsRequest::new_example()].into(),

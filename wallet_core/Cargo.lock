@@ -1366,20 +1366,28 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "assert_matches",
+ "chrono",
  "derive_more",
+ "error_category",
  "futures",
  "hex",
  "hex-literal",
+ "indexmap 2.7.1",
  "p256",
  "parking_lot",
  "rand_core",
+ "rcgen",
  "rstest",
  "rustls-pki-types",
  "rustls-webpki",
  "serde",
+ "serde_json",
  "thiserror 2.0.11",
+ "time",
  "trait-variant",
  "wallet_common",
+ "x509-parser 0.17.0",
+ "yoke",
 ]
 
 [[package]]
@@ -3486,7 +3494,6 @@ dependencies = [
  "url",
  "wallet_common",
  "x509-parser 0.17.0",
- "yoke",
 ]
 
 [[package]]
@@ -7181,6 +7188,7 @@ dependencies = [
  "chrono",
  "clap",
  "clio",
+ "crypto",
  "itertools 0.14.0",
  "mdoc",
  "p256",

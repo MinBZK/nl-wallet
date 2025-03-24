@@ -13,11 +13,11 @@ use serde_with::DurationSeconds;
 use serde_with::StringWithSeparator;
 use url::Url;
 
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
 use mdoc::utils::x509::CertificateUsage;
 use sd_jwt::metadata::TypeMetadataChain;
@@ -184,7 +184,7 @@ impl CredentialPreview {
                 // protocol each mdoc is verified against the corresponding certificate in the
                 // credential preview, which implicitly authenticates the issuer because only it could
                 // have produced an mdoc against that certificate.
-                issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
+                issuer_certificate.verify(CertificateUsage::Mdl.eku(), &[], &TimeGenerator, trust_anchors)?;
 
                 // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
                 if !issuer_certificate

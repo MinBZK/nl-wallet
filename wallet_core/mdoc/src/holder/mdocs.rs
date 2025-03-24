@@ -10,6 +10,7 @@ use serde::Serialize;
 
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
+use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use sd_jwt::metadata::TypeMetadata;
 use wallet_common::generator::Generator;
@@ -21,7 +22,6 @@ use crate::iso::*;
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
-use crate::utils::x509::BorrowingCertificate;
 use crate::verifier::ValidityRequirement;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
