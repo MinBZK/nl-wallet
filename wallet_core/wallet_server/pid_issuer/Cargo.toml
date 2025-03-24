@@ -29,7 +29,7 @@ default = ["postgres"]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url"]
 # Include session storage in PostgreSQL
-postgres = ["server_utils/postgres", "dep:chrono", "dep:sea-orm"]
+postgres = ["server_utils/postgres", "dep:sea-orm"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["postgres", "allow_insecure_url", "openid4vc/test", "tokio/sync"]
 # Enable mock PID issuance
@@ -42,6 +42,7 @@ anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
 config = { workspace = true, features = ["toml"] }
+chrono = { workspace = true, features = ["serde", "std"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
@@ -57,7 +58,6 @@ tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trac
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
-chrono = { workspace = true, optional = true, features = ["clock", "serde", "std"] }
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
