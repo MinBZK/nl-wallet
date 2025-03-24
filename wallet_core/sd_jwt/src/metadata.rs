@@ -551,6 +551,8 @@ mod example_constructors {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashMap;
+
     use assert_matches::assert_matches;
     use jsonschema::error::ValidationErrorKind;
     use jsonschema::ValidationError;
@@ -694,12 +696,15 @@ mod test {
     }
 
     #[rstest]
-    #[case(json!([{"path": ["address.street"]}, {"path": ["address", "street"]}]), "address.street")]
-    #[case(json!([{"path": ["x.y", "z"]}, {"path": ["x", "y.z"]}]), "x.y.z")]
-    fn test_claim_path_collision(#[case] claims: serde_json::Value, #[case] expected_path: &str) {
+    #[case(vec![vec!["a.b"], vec!["a", "b"]], "a.b")]
+    #[case(vec![vec!["x.y.z"], vec!["x", "y.z"]], "x.y.z")]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y.z"]], "x.y.z")]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y", "z"]], "x.y.z")]
+    #[case(vec![vec!["x", "y.z"], vec!["x.y", "z"]], "x.y.z")]
+    fn test_claim_path_collision(#[case] claims: Vec<Vec<&str>>, #[case] expected_path: &str) {
         let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "claims": claims,
+            "claims": claims.into_iter().map(|claim| HashMap::from([("path", claim)])).collect::<Vec<_>>(),
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
                 "type": "object",
