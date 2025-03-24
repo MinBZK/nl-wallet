@@ -212,7 +212,7 @@ impl BorrowingCertificate {
     /// Verify the certificate against the specified trust anchors.
     pub fn verify(
         &self,
-        usage: &'static [u8],
+        usage: CertificateUsage,
         intermediate_certs: &[CertificateDer],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -224,7 +224,7 @@ impl BorrowingCertificate {
                 intermediate_certs,
                 // unwrap is safe here because we assume the time that is generated lies after the epoch
                 UnixTime::since_unix_epoch(Duration::from_secs(time.generate().timestamp().try_into().unwrap())),
-                webpki::KeyUsage::required(usage),
+                webpki::KeyUsage::required(usage.eku()),
                 None,
                 None,
             )

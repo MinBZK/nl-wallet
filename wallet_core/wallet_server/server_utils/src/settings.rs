@@ -186,7 +186,7 @@ where
         if !trust_anchors.is_empty() {
             key_pair
                 .certificate
-                .verify(usage.eku(), &[], time, trust_anchors)
+                .verify(usage, &[], time, trust_anchors)
                 .map_err(|e| CertificateVerificationError::InvalidCertificate(e, key_pair_id.clone()))?;
         }
 

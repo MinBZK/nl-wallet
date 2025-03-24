@@ -224,7 +224,7 @@ where
         // The `VecDeque` containing the certificates will be contiguous at this point, so the second value is empty.
         let (intermediates, _) = certs.as_slices();
         leaf_cert
-            .verify(CertificateUsage::ReaderAuth.eku(), intermediates, time, trust_anchors)
+            .verify(CertificateUsage::ReaderAuth, intermediates, time, trust_anchors)
             .map_err(JwtX5cError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.

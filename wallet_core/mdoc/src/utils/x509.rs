@@ -120,12 +120,7 @@ mod test {
         let issuer_key_pair = ca.generate_key_pair("mycert", mdl, config).unwrap();
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl.eku(),
-                &[],
-                &TimeGenerator,
-                &[ca.to_trust_anchor()],
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .expect_err("Expected verify to fail")
     }
 
@@ -158,12 +153,7 @@ mod test {
 
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl.eku(),
-                &[],
-                &TimeGenerator,
-                &[ca.to_trust_anchor()],
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -192,12 +182,7 @@ mod test {
 
         issuer_key_pair
             .certificate()
-            .verify(
-                CertificateUsage::Mdl.eku(),
-                &[],
-                &TimeGenerator,
-                &[ca.to_trust_anchor()],
-            )
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, &[ca.to_trust_anchor()])
             .unwrap();
 
         // Verify whether the parsed CertificateType equals the original Mdl usage
@@ -221,7 +206,7 @@ mod test {
         reader_key_pair
             .certificate()
             .verify(
-                CertificateUsage::ReaderAuth.eku(),
+                CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
                 &[ca.to_trust_anchor()],
@@ -255,7 +240,7 @@ mod test {
         reader_key_pair
             .certificate()
             .verify(
-                CertificateUsage::ReaderAuth.eku(),
+                CertificateUsage::ReaderAuth,
                 &[],
                 &TimeGenerator,
                 &[ca.to_trust_anchor()],
