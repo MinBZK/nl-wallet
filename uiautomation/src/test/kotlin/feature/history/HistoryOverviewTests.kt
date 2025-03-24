@@ -5,6 +5,7 @@ import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -55,32 +56,29 @@ class HistoryOverviewTests : TestBase() {
         setUp()
 
         val historyOverviewScreen = HistoryOverviewScreen()
-        assertTrue(historyOverviewScreen.visible(), "history overview screen is not visible")
-        assertTrue(
-            historyOverviewScreen.pidIssuanceLogEntryVisible(),
-            "pid issuance log entry is not visible"
-        )
-        assertTrue(
-            historyOverviewScreen.addressIssuanceLogEntryVisible(),
-            "address issuance log entry is not visible"
-        )
-        assertTrue(
-            historyOverviewScreen.loginDisclosureLogEntryVisible(),
-            "login log entry is not visible"
+        assertAll(
+            { assertTrue(historyOverviewScreen.visible(), "history overview screen is not visible") },
+            { assertTrue(historyOverviewScreen.pidIssuanceLogEntryVisible(), "pid issuance log entry is not visible") },
+            { assertTrue(historyOverviewScreen.addressIssuanceLogEntryVisible(), "address issuance log entry is not visible") },
+            { assertTrue(historyOverviewScreen.loginDisclosureLogEntryVisible(), "login log entry is not visible") }
         )
 
         historyOverviewScreen.clickPidCardTitle()
 
         val historyDetailScreen = HistoryDetailScreen()
         val i18n = LocalizationHelper()
-        assertTrue(historyDetailScreen.issuanceOrganizationVisible("RvIG"), "organization not visible")
-        assertTrue(historyDetailScreen.titleCorrectForIssuance(i18n.translate("NL Wallet persoonsgegevens")), "title not visible")
+        assertAll(
+            { assertTrue(historyDetailScreen.issuanceOrganizationVisible("RvIG"), "organization not visible") },
+            { assertTrue(historyDetailScreen.titleCorrectForIssuance(i18n.translate("NL Wallet persoonsgegevens")), "title not visible") }
+        )
 
         historyDetailScreen.clickBottomBackButton()
 
         historyOverviewScreen.clickLoginEntryTitle()
-        assertTrue(historyDetailScreen.disclosureOrganizationVisible("Gemeente Amsterdam"), "organization not visible")
-        assertTrue(historyDetailScreen.titleCorrectForLogin("Gemeente Amsterdam"), "title not visible")
+        assertAll(
+            { assertTrue(historyDetailScreen.disclosureOrganizationVisible("Gemeente Amsterdam"), "organization not visible") },
+            { assertTrue(historyDetailScreen.titleCorrectForLogin("Gemeente Amsterdam"), "title not visible") }
+        )
     }
 
     /**

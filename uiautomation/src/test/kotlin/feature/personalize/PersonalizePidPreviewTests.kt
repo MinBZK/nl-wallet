@@ -3,6 +3,7 @@ package feature.personalize
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -30,24 +31,14 @@ class PersonalizePidPreviewTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 When the PID provider offers PID data, the app displays this PID data to the user. [$JIRA_ID]")
+    @DisplayName("$USE_CASE.1 When the PID provider offers PID data, the app displays this PID data to the user. 2 The App displays the PID data in a user friendly / human readable format. 3 The App asks the User to check whether the data is correct, and offers two buttons: confirm and reject. [$JIRA_ID]")
     fun verifyPersonalizePidPreviewScreen() {
         setUp()
-        assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 The App displays the PID data in a user friendly / human readable format. [$JIRA_ID]")
-    fun verifyHumanReadablePidPreviewData() {
-        setUp()
-        assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(), "human readable pid data is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.3 The App asks the User to check whether the data is correct, and offers two buttons: confirm and reject. [$JIRA_ID]")
-    fun verifyConfirmationButtons() {
-        setUp()
-        assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible")
+        assertAll(
+            { assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible") }
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

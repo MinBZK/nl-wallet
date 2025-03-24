@@ -31,14 +31,7 @@ class UserLocksWalletTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The User can log out of the app (lock the app) from the app menu. [${JIRA_ID}]")
-    fun verifyLogoutButton() {
-        setUp()
-        assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible")
-    }
-
-    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.2 When logging out of the app, the PIN entry screen is displayed. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.1 The User can log out of the app (lock the app) from the app menu. 2 When logging out of the app, the PIN entry screen is displayed. [${JIRA_ID}]")
     @Tags(Tag("smoke"))
     fun verifyLockedState() {
         setUp()

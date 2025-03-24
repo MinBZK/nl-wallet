@@ -10,7 +10,10 @@ import io.github.ashwith.flutter.FlutterElement
 import io.github.ashwith.flutter.FlutterFinder
 import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.By
+import org.openqa.selenium.InvalidArgumentException
 import org.openqa.selenium.JavascriptExecutor
+import org.openqa.selenium.TimeoutException
+import org.openqa.selenium.WebDriverException
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.support.ui.ExpectedConditions
@@ -37,16 +40,25 @@ open class MobileActions {
      * @param frameSync Whether to wait executing an action until no pending frames are scheduled. Defaults to `true`, set to `false` when testing a screen with a long or infinite animation.
      */
     protected fun isElementVisible(element: FlutterElement, frameSync: Boolean = true): Boolean {
-        performAction(frameSync) {
-            driver.executeScript("flutter:waitFor", element, WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS)
+        return try {
+            performAction(frameSync) {
+                driver.executeScript("flutter:waitFor", element, WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS)
+            }
+            true
+        } catch (e: TimeoutException) {
+            println("TimeoutException: Element not visible within ${WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS}ms — $element")
+            false
+        } catch (e: NoSuchElementException) {
+            println("NoSuchElementException: Element not found in the widget tree — $element")
+            false
+        } catch (e: InvalidArgumentException) {
+            println("InvalidArgumentException: Invalid argument passed to driver.executeScript — $element")
+            false
+        } catch (e: WebDriverException) {
+            println("WebDriverException: Communication issue with the driver while checking visibility — $element")
+            println("   → ${e.message}")
+            false
         }
-
-        // Ideally we would use `element.isDisplayed` as return value,
-        // but this isn't possible due to missing `FlutterElement` implementations.
-        //
-        // The `driver.executeScript()` method will throw (fail test) when the element is not found,
-        // therefore returning hardcode value for the sake of test assertions.
-        return true
     }
 
     protected fun isElementAbsent(element: FlutterElement, frameSync: Boolean = true): Boolean {
@@ -120,7 +132,7 @@ open class MobileActions {
     fun switchToWebViewContext() {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
-            "iOS" -> driver as IOSDriver
+            "IOS" -> driver as IOSDriver
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
         val context = driver.context ?: ""
@@ -156,7 +168,7 @@ open class MobileActions {
     fun switchToAppContext() {
         val driver = when (val platform = platformName()) {
             "ANDROID" -> driver as AndroidDriver
-            "iOS" -> driver as IOSDriver
+            "IOS" -> driver as IOSDriver
             else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
         if (driver.context != FLUTTER_APP_CONTEXT) {
