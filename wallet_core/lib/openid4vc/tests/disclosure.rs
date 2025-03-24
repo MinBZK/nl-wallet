@@ -962,7 +962,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
             .verifier
             .process_get_request(
                 &session_token.into(),
-                "https://example.com/verifier_base_url".parse().unwrap(),
+                &"https://example.com/verifier_base_url".parse().unwrap(),
                 url.as_ref().query(),
                 wallet_nonce,
             )

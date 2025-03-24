@@ -47,7 +47,7 @@ where
 
     let (wallet_disclosure_router, requester_router) = verifier::create_routers(
         VerifierConfig {
-            public_url: settings.server_settings.public_url,
+            public_url: settings.server_settings.public_url.join_base_url("disclosure/sessions"),
             universal_link_base_url: settings.universal_link_base_url,
             use_cases: settings.usecases.parse(hsm).await?,
             ephemeral_id_secret: Some((&settings.ephemeral_id_secret).into()),
@@ -68,8 +68,8 @@ where
     listen(
         wallet_listener,
         requester_listener,
-        Router::new().nest("/disclosure", wallet_disclosure_router),
-        Router::new().nest("/disclosure", requester_router),
+        Router::new().nest("/disclosure/sessions", wallet_disclosure_router),
+        Router::new().nest("/disclosure/sessions", requester_router),
         log_requests,
     )
     .await

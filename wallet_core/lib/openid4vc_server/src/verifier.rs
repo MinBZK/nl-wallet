@@ -161,10 +161,7 @@ where
         )
         .with_state(application_state);
 
-    (
-        Router::new().nest("/sessions", wallet_router),
-        Router::new().nest("/sessions", requester_router),
-    )
+    (wallet_router, requester_router)
 }
 
 async fn retrieve_request_by_usecase<S, K, H>(
@@ -210,12 +207,7 @@ where
 
     let response = state
         .verifier
-        .process_get_request(
-            &session_id,
-            state.public_url.join_base_url("disclosure/sessions"),
-            uri.query(),
-            wallet_request.wallet_nonce,
-        )
+        .process_get_request(&session_id, &state.public_url, uri.query(), wallet_request.wallet_nonce)
         .await
         .inspect_err(|error| {
             warn!("processing request for Authorization Request JWT failed, returning error: {error}");
@@ -274,9 +266,7 @@ where
             &session_token,
             query.session_type,
             &urls::disclosure_base_uri(&state.universal_link_base_url),
-            state
-                .public_url
-                .join_base_url(&format!("disclosure/sessions/{session_token}/request_uri")),
+            state.public_url.join_base_url(&format!("{session_token}/request_uri")),
             &TimeGenerator,
         )
         .await

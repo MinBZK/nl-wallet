@@ -698,7 +698,7 @@ where
     pub async fn process_get_request(
         &self,
         session_identifier: &SessionIdentifier,
-        response_uri: BaseUrl,
+        response_uri: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
@@ -1462,7 +1462,7 @@ mod tests {
         verifier
             .process_get_request(
                 &session_token.clone().into(),
-                "https://example.com/disclosure".to_string().parse().unwrap(),
+                &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1505,7 +1505,7 @@ mod tests {
         let error = verifier
             .process_get_request(
                 &session_token.into(),
-                "https://example.com/disclosure".to_string().parse().unwrap(),
+                &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1550,7 +1550,7 @@ mod tests {
         let error = verifier
             .process_get_request(
                 &session_token.into(),
-                "https://example.com/disclosure".to_string().parse().unwrap(),
+                &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1748,7 +1748,7 @@ mod tests {
         verifier
             .process_get_request(
                 &SessionIdentifier::UseCaseId(DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string()),
-                "https://example.com/response_uri".parse().unwrap(),
+                &"https://example.com/response_uri".parse().unwrap(),
                 Some(&query_params),
                 None,
             )
