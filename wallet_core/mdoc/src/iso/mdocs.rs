@@ -150,6 +150,7 @@ impl From<CoseKey> for DeviceKeyInfo {
 /// Public key of an mdoc, contained in [`DeviceKeyInfo`] which is contained in [`MobileSecurityObject`].
 pub type DeviceKey = CoseKey;
 
+// TODO move to separate crate (PVW-4241)
 #[derive(
     Debug, Clone, Copy, Default, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
 )]
