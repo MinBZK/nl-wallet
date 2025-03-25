@@ -35,7 +35,7 @@ pub enum TypeMetadataChainError {
     CircularChain(String),
 
     #[error("excess metadata documents detected: {}", .0.join(", "))]
-    ExcessMetadata(Vec<String>),
+    ExcessDocuments(Vec<String>),
 
     #[error("resource integrity did not validate: {0}")]
     ResourceIntegrity(#[from] ssri::Error),
@@ -169,7 +169,7 @@ impl TypeMetadataDocuments {
                 .map(|index| metadata_by_index.remove(&index).unwrap().into_inner().vct)
                 .collect();
 
-            return Err(TypeMetadataChainError::ExcessMetadata(excess_vcst));
+            return Err(TypeMetadataChainError::ExcessDocuments(excess_vcst));
         }
 
         // Specifically remember the index of the starting document within the original JSON array. There is guaranteed
@@ -253,7 +253,7 @@ impl UnverifiedTypeMetadataChain {
 
 /// A fully verified ordered chain of SD-JWT Type Metadata documents. The order of these documents is from the lowest
 /// extension to the highest extended document.
-#[derive(Debug, Clone, PartialEq, Eq, IntoIterator)]
+#[derive(Debug, Clone, PartialEq, Eq, AsRef, IntoIterator)]
 pub struct TypeMetadataChain(VecNonEmpty<TypeMetadata>);
 
 impl TypeMetadataChain {
@@ -269,6 +269,12 @@ impl TypeMetadataChain {
         let Self(chain) = self;
 
         chain.into_first()
+    }
+
+    pub fn into_inner(self) -> VecNonEmpty<TypeMetadata> {
+        let Self(inner) = self;
+
+        inner
     }
 }
 
