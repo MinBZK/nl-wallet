@@ -24,6 +24,9 @@ build-test-report:
     - job: test-rust
       artifacts: false
       optional: true
+    - job: test-rust-gba-pid
+      artifacts: false
+      optional: true
     - job: run-automation-tests-publish-results
       artifacts: false
       optional: true
@@ -48,7 +51,7 @@ build-test-report:
       npm run generate
       allure-results/browsertest-*.zip
       allure-results/{e2e,web}.zip
-      junit-results/{flutter,flutter-ui,ios,rust}.xml
+      junit-results/{flutter,flutter-ui,ios,rust,rust-gba-pid}.xml
     - mv allure-report/awesome/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
     - zip -j allure-report.zip allure-report-$CI_COMMIT_SHORT_SHA.html
   after_script:
