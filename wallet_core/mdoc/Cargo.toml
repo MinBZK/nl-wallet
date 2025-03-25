@@ -80,6 +80,6 @@ rstest.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-crypto = { path = "../crypto", features = ["examples", "mock_secure_keys", "mock_remote_key"] }
+crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
 wallet_common = { path = "../wallet_common", features = ["mock_time"] }
