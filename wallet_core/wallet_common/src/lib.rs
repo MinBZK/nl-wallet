@@ -3,6 +3,7 @@ pub mod generator;
 pub mod http_error;
 pub mod reqwest;
 pub mod spawn;
+pub mod spec;
 pub mod update_policy;
 pub mod urls;
 pub mod utils;

@@ -4,7 +4,6 @@ use std::fmt::Formatter;
 
 use futures::future::try_join_all;
 use nutype::nutype;
-use sd_jwt::metadata::SpecOptionalImplRequired;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -19,6 +18,7 @@ use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::IssuerSigned;
 use poa::Poa;
+use wallet_common::spec::SpecOptional;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
@@ -53,12 +53,11 @@ impl WteDisclosure {
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
 /// Sent JSON-encoded to `POST /credential`.
-// TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination` (PVW-2361, PVW-2362)
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequest {
     #[serde(flatten)]
-    pub credential_type: SpecOptionalImplRequired<CredentialRequestType>,
+    pub credential_type: SpecOptional<CredentialRequestType>,
     pub proof: Option<CredentialRequestProof>,
     pub attestations: Option<WteDisclosure>,
     pub poa: Option<Poa>,
