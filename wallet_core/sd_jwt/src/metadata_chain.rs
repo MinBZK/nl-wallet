@@ -278,12 +278,15 @@ impl TypeMetadataChain {
     }
 }
 
-#[cfg(feature = "example_constructors")]
+#[cfg(any(test, feature = "example_constructors"))]
 mod example_constructors {
     use ssri::Integrity;
 
     use wallet_common::vec_at_least::VecNonEmpty;
 
+    use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
+    use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::PID_METADATA_BYTES;
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
 
@@ -329,5 +332,235 @@ mod example_constructors {
         pub fn from_single_example(example_metadata: TypeMetadata) -> (String, Integrity, Self) {
             Self::new_metadata_chain(vec![example_metadata].try_into().unwrap()).unwrap()
         }
+
+        pub fn example() -> (Integrity, Self) {
+            (
+                Integrity::from(EXAMPLE_METADATA_BYTES),
+                Self::new(vec![EXAMPLE_METADATA_BYTES.to_vec()].try_into().unwrap()),
+            )
+        }
+
+        pub fn pid_example() -> (Integrity, Self) {
+            (
+                Integrity::from(PID_METADATA_BYTES),
+                Self::new(vec![PID_METADATA_BYTES.to_vec()].try_into().unwrap()),
+            )
+        }
+
+        pub fn example_with_extension() -> (Integrity, Self) {
+            (
+                Integrity::from(EXAMPLE_EXTENSION_METADATA_BYTES),
+                Self::new(
+                    vec![
+                        EXAMPLE_EXTENSION_METADATA_BYTES.to_vec(),
+                        EXAMPLE_METADATA_BYTES.to_vec(),
+                    ]
+                    .try_into()
+                    .unwrap(),
+                ),
+            )
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use assert_matches::assert_matches;
+    use itertools::Itertools;
+    use rstest::rstest;
+    use serde_json::json;
+    use ssri::Algorithm;
+    use ssri::Integrity;
+    use ssri::IntegrityOpts;
+
+    use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
+    use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::PID_METADATA_BYTES;
+    use crate::metadata::MetadataExtends;
+    use crate::metadata::TypeMetadata;
+
+    use super::TypeMetadataChainError;
+    use super::TypeMetadataDocuments;
+
+    fn reversed_example_with_extension() -> (Integrity, TypeMetadataDocuments) {
+        let (integrity, source_documents) = TypeMetadataDocuments::example_with_extension();
+        let source_documents =
+            TypeMetadataDocuments::new(source_documents.into_iter().rev().collect_vec().try_into().unwrap());
+
+        (integrity, source_documents)
+    }
+
+    #[rstest]
+    #[case(
+        "https://sd_jwt_vc_metadata.example.com/example_credential",
+        TypeMetadataDocuments::example()
+    )]
+    #[case("com.example.pid", TypeMetadataDocuments::pid_example())]
+    #[case(
+        "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
+        TypeMetadataDocuments::example_with_extension()
+    )]
+    #[case(
+        "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
+        reversed_example_with_extension()
+    )]
+    fn test_type_metadata_chain(
+        #[case] vct: &str,
+        #[case] (integrity, source_documents): (Integrity, TypeMetadataDocuments),
+    ) {
+        let unverified_chain = source_documents
+            .clone()
+            .into_unverified_metadata_chain(vct)
+            .expect("parsing metadata document chain should succeed");
+        let (unverified_metadata, unverified_documents) = unverified_chain.clone().into_metadata_and_source();
+
+        assert_eq!(unverified_chain.as_metadata().as_ref().vct, vct);
+        assert_eq!(unverified_metadata, *unverified_chain.as_metadata());
+        assert_eq!(unverified_documents, source_documents);
+
+        unverified_chain
+            .verify(integrity.clone())
+            .expect("veryfing first metadata document integrity should succeed");
+        let (chain, documents) = unverified_chain.into_metadata_chain_and_source(integrity).expect(
+            "veryfing first metadata document integrity and extracting chain and source documents should succeed",
+        );
+
+        assert_eq!(chain.as_ref().len(), source_documents.as_ref().len());
+        assert_eq!(chain.as_metadata().as_ref().vct, vct);
+        assert_eq!(documents, source_documents);
+        assert_eq!(documents, unverified_documents);
+        assert_eq!(chain.clone().into_metadata(), *chain.as_metadata());
+    }
+
+    #[test]
+    fn test_type_metadata_documents_error_json() {
+        let document = serde_json::to_vec(&json!({
+            "vct": "abc"
+        }))
+        .unwrap();
+        let documents = TypeMetadataDocuments::new(vec![document].try_into().unwrap());
+
+        let error = documents
+            .into_unverified_metadata_chain("abc")
+            .expect_err("parsing metadata document chain should not succeed");
+
+        assert_matches!(error, TypeMetadataChainError::Json(_));
+    }
+
+    #[test]
+    fn test_type_metadata_documents_error_vct_not_found() {
+        let (_, documents) = TypeMetadataDocuments::example_with_extension();
+
+        let error = documents
+            .into_unverified_metadata_chain("wrong_vct")
+            .expect_err("parsing metadata document chain should not succeed");
+
+        assert_matches!(error, TypeMetadataChainError::VctNotFound(vct) if vct == "wrong_vct");
+    }
+
+    #[test]
+    fn test_type_metadata_documents_error_circular_chain() {
+        let example_extension_document = EXAMPLE_EXTENSION_METADATA_BYTES.to_vec();
+
+        let mut example_metadata = TypeMetadata::example().into_inner();
+        example_metadata.extends = Some(MetadataExtends {
+            extends: "https://sd_jwt_vc_metadata.example.com/example_credential".to_string(),
+            extends_integrity: Integrity::from(&example_extension_document).into(),
+        });
+        let example_metadata = TypeMetadata::try_new(example_metadata).unwrap();
+
+        let (vct, _, documents) = TypeMetadataDocuments::new_metadata_chain(
+            vec![TypeMetadata::example_extension(), example_metadata]
+                .try_into()
+                .unwrap(),
+        )
+        .unwrap();
+
+        let error = documents
+            .into_unverified_metadata_chain(&vct)
+            .expect_err("parsing metadata document chain should not succeed");
+
+        assert_matches!(
+            error,
+            TypeMetadataChainError::CircularChain(vct)
+                if vct == "https://sd_jwt_vc_metadata.example.com/example_credential"
+        );
+    }
+
+    #[test]
+    fn test_type_metadata_documents_error_excess_documents() {
+        let (_, documents) = TypeMetadataDocuments::example_with_extension();
+        let mut json_documents = documents.into_inner().into_inner();
+        json_documents.push(PID_METADATA_BYTES.to_vec());
+        let documents = TypeMetadataDocuments::new(json_documents.try_into().unwrap());
+
+        let error = documents
+            .into_unverified_metadata_chain("https://sd_jwt_vc_metadata.example.com/example_credential_v2")
+            .expect_err("parsing metadata document chain should not succeed");
+
+        assert_matches!(error, TypeMetadataChainError::ExcessDocuments(vcts) if vcts == vec!["com.example.pid"]);
+    }
+
+    fn test_type_metadata_documents_incorrect_extended_resource_integrity(
+        integrity: Integrity,
+    ) -> TypeMetadataChainError {
+        let mut extension_metadata = TypeMetadata::example_extension().into_inner();
+        extension_metadata.extends.as_mut().unwrap().extends_integrity = integrity.into();
+        let extension_metadata = TypeMetadata::try_new(extension_metadata).unwrap();
+
+        let documents = TypeMetadataDocuments::new(
+            vec![
+                serde_json::to_vec(&extension_metadata).unwrap(),
+                EXAMPLE_METADATA_BYTES.to_vec(),
+            ]
+            .try_into()
+            .unwrap(),
+        );
+
+        documents
+            .into_unverified_metadata_chain("https://sd_jwt_vc_metadata.example.com/example_credential_v2")
+            .expect_err("parsing metadata document chain should not succeed")
+    }
+
+    #[test]
+    fn test_type_metadata_documents_error_resource_integrity() {
+        let error = test_type_metadata_documents_incorrect_extended_resource_integrity(Integrity::from("wrong_data"));
+
+        assert_matches!(error, TypeMetadataChainError::ResourceIntegrity(_));
+    }
+
+    #[test]
+    fn test_type_metadata_documents_error_integrity_algorithm_insecure() {
+        let integrity = IntegrityOpts::new()
+            .algorithm(Algorithm::Sha1)
+            .chain(EXAMPLE_METADATA_BYTES)
+            .result();
+        let error = test_type_metadata_documents_incorrect_extended_resource_integrity(integrity);
+
+        assert_matches!(error, TypeMetadataChainError::IntegrityAlgorithmInsecure(_));
+    }
+
+    fn test_unverified_type_metadata_chain_incorrect_resource_integrity(
+        integrity: Integrity,
+    ) -> TypeMetadataChainError {
+        let (_, documents) = TypeMetadataDocuments::example_with_extension();
+        let unverified_chain = documents
+            .into_unverified_metadata_chain("https://sd_jwt_vc_metadata.example.com/example_credential_v2")
+            .expect("parsing metadata document chain should succeed");
+
+        unverified_chain
+            .into_metadata_chain_and_source(integrity)
+            .expect_err("veryfing first metadata document integrity should not succeed")
+    }
+
+    #[test]
+    fn test_unverified_type_metadata_chain_error_resource_integrity() {
+        let integrity = IntegrityOpts::new()
+            .algorithm(Algorithm::Sha1)
+            .chain(EXAMPLE_EXTENSION_METADATA_BYTES)
+            .result();
+        let error = test_unverified_type_metadata_chain_incorrect_resource_integrity(integrity);
+
+        assert_matches!(error, TypeMetadataChainError::IntegrityAlgorithmInsecure(_));
     }
 }

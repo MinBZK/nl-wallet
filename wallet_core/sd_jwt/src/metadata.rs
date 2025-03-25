@@ -417,22 +417,23 @@ mod example_constructors {
 
     use wallet_common::utils::random_string;
 
-    use crate::metadata::ClaimDisplayMetadata;
-    use crate::metadata::ClaimMetadata;
-    use crate::metadata::ClaimPath;
-    use crate::metadata::ClaimSelectiveDisclosureMetadata;
-    use crate::metadata::JsonSchema;
-    use crate::metadata::JsonSchemaProperties;
-    use crate::metadata::JsonSchemaProperty;
-    use crate::metadata::JsonSchemaPropertyFormat;
-    use crate::metadata::JsonSchemaPropertyType;
-    use crate::metadata::SchemaOption;
-    use crate::metadata::TypeMetadata;
-    use crate::metadata::UncheckedTypeMetadata;
+    use crate::examples::ADDRESS_METADATA_BYTES;
+    use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
+    use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::PID_METADATA_BYTES;
 
-    const ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/address-metadata.json");
-    const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
-    const PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/pid-metadata.json");
+    use super::ClaimDisplayMetadata;
+    use super::ClaimMetadata;
+    use super::ClaimPath;
+    use super::ClaimSelectiveDisclosureMetadata;
+    use super::JsonSchema;
+    use super::JsonSchemaProperties;
+    use super::JsonSchemaProperty;
+    use super::JsonSchemaPropertyFormat;
+    use super::JsonSchemaPropertyType;
+    use super::SchemaOption;
+    use super::TypeMetadata;
+    use super::UncheckedTypeMetadata;
 
     impl UncheckedTypeMetadata {
         pub fn empty_example() -> Self {
@@ -499,16 +500,20 @@ mod example_constructors {
             .unwrap()
         }
 
-        pub fn address_example() -> Self {
-            serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
-        }
-
         pub fn example() -> Self {
             serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
         }
 
+        pub fn example_extension() -> Self {
+            serde_json::from_slice(EXAMPLE_EXTENSION_METADATA_BYTES).unwrap()
+        }
+
         pub fn pid_example() -> Self {
             serde_json::from_slice(PID_METADATA_BYTES).unwrap()
+        }
+
+        pub fn address_example() -> Self {
+            serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
         }
     }
 
@@ -551,12 +556,12 @@ mod test {
     use rstest::rstest;
     use serde_json::json;
 
-    use crate::metadata::ClaimPath;
-    use crate::metadata::MetadataExtends;
-    use crate::metadata::SchemaOption;
-    use crate::metadata::TypeMetadata;
-    use crate::metadata::TypeMetadataError;
-    use crate::metadata::UncheckedTypeMetadata;
+    use super::ClaimPath;
+    use super::MetadataExtends;
+    use super::SchemaOption;
+    use super::TypeMetadata;
+    use super::TypeMetadataError;
+    use super::UncheckedTypeMetadata;
 
     #[test]
     fn test_deserialize() {
@@ -635,11 +640,11 @@ mod test {
         let metadata = TypeMetadata::example();
 
         let claims = json!({
-          "vct":"https://credentials.example.com/identity_credential",
-          "iss":"https://example.com/issuer",
-          "iat":1683000000,
-          "address":{
-            "country":123
+          "vct": "https://credentials.example.com/identity_credential",
+          "iss": "https://example.com/issuer",
+          "iat": 1683000000,
+          "financial": {
+            "has_job": "yes"
           }
         });
 

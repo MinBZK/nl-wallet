@@ -151,7 +151,6 @@
       "iss",
       "iat",
       "exp"
-    ],
-    "additionalProperties": false
+    ]
   }
 }

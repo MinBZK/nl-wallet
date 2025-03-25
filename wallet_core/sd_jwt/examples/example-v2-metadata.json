@@ -1,17 +1,19 @@
 {
-  "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "name": "NL Wallet PID credential",
-  "description": "Working version of the NL Wallet PID credential",
+  "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
+  "name": "NL Wallet extended PID credential",
+  "description": "Working version of the NL Wallet extended PID credential",
+  "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
+  "extends#integrity": "sha256-fptH1lPvK4xw/HfWD3BIHSbaZFNzE0MSS1XNcaxiQVI=",
   "display": [
     {
       "lang": "en-US",
       "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet"
+      "description": "The Personal Data credential for the NL Wallet, part 2"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2"
     }
   ],
   "claims": [
@@ -23,20 +25,7 @@
         {
           "lang": "en-US",
           "label": "Birth date",
-          "description": "Birth date of the person"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": [
-        "place_of_birth",
-        "locality"
-      ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Locality"
+          "description": "Date of birth"
         }
       ],
       "sd": "always"
@@ -45,39 +34,12 @@
       "path": [
         "place_of_birth",
         "country",
-        "name"
+        "is_eu_member"
       ],
       "display": [
         {
           "lang": "en-US",
-          "label": "Country"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": [
-        "place_of_birth",
-        "country",
-        "area_code"
-      ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Country area code"
-        }
-      ],
-      "sd": "always"
-    },
-    {
-      "path": [
-        "financial",
-        "has_debt"
-      ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Has debt"
+          "label": "Country is a member of the EU"
         }
       ],
       "sd": "always"
@@ -90,7 +52,7 @@
       "display": [
         {
           "lang": "en-US",
-          "label": "Has job"
+          "label": "Is gainfully employed"
         }
       ],
       "sd": "always"
@@ -103,7 +65,19 @@
       "display": [
         {
           "lang": "en-US",
-          "label": "Debt amount"
+          "label": "Amount of debt (in euros)"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "nickname"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Cool nickname"
         }
       ],
       "sd": "always"
@@ -111,8 +85,8 @@
   ],
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet PID VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet PID VCT",
+    "title": "NL Wallet extended PID VCT Schema",
+    "description": "The JSON schema that defines the NL Wallet extended PID VCT",
     "type": "object",
     "properties": {
       "birth_date": {
@@ -133,6 +107,9 @@
               },
               "area_code": {
                 "type": "integer"
+              },
+              "is_eu_member": {
+                "type": "boolean"
               }
             }
           }
@@ -151,6 +128,9 @@
             "type": "integer"
           }
         }
+      },
+      "nickname": {
+        "type": "string"
       },
       "vct": {
         "type": "string"
