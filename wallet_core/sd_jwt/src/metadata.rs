@@ -24,6 +24,7 @@ use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 
 use crypto::utils::sha256;
+use wallet_common::spec::SpecOptional;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -48,23 +49,6 @@ pub enum TypeMetadataError {
 
     #[error("detected claim path collision")]
     ClaimPathCollision,
-}
-
-/// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
-/// various reasons.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SpecOptionalImplRequired<T>(pub T);
-
-impl<T> From<T> for SpecOptionalImplRequired<T> {
-    fn from(value: T) -> Self {
-        Self(value)
-    }
-}
-
-impl<T> AsRef<T> for SpecOptionalImplRequired<T> {
-    fn as_ref(&self) -> &T {
-        &self.0
-    }
 }
 
 pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
@@ -299,7 +283,7 @@ pub struct MetadataExtends {
     ///   starts from a digest included in a signed section of the attestation acts as a de facto signature, protecting
     ///   against tampering. In SD-JWT the `vct#integrity` claim would contain this first digest.
     #[serde(rename = "extends#integrity")]
-    pub extends_integrity: SpecOptionalImplRequired<String>,
+    pub extends_integrity: SpecOptional<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -318,7 +302,7 @@ pub enum SchemaOption {
         /// if the schema is to be fetched from an external URI, in order to check that this matches the
         /// contents as intended by the issuer.
         #[serde(rename = "schema_uri#integrity")]
-        schema_uri_integrity: SpecOptionalImplRequired<String>,
+        schema_uri_integrity: SpecOptional<String>,
     },
 }
 
@@ -466,11 +450,11 @@ pub struct LogoMetadata {
     /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended
     /// by the issuer.
     #[serde(rename = "uri#integrity")]
-    pub uri_integrity: SpecOptionalImplRequired<String>,
+    pub uri_integrity: SpecOptional<String>,
 
     /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
     /// because of accessibility requirements.
-    pub alt_text: SpecOptionalImplRequired<String>,
+    pub alt_text: SpecOptional<String>,
 }
 
 #[skip_serializing_none]
