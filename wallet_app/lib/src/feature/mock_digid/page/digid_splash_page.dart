@@ -43,7 +43,7 @@ class DigidSplashPage extends StatelessWidget {
                     children: [
                       Text(
                         context.l10n.mockDigidScreenTitle,
-                        style: context.textTheme.displayMedium?.copyWith(color: Colors.black),
+                        style: context.textTheme.headlineLarge?.copyWith(color: Colors.black),
                       ),
                     ],
                   ),

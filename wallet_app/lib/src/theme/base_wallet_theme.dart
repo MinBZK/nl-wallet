@@ -14,36 +14,35 @@ class BaseWalletTheme {
   //region Font & TextStyles
   static const fontFamily = 'RijksoverheidSansWebText';
 
-  // Only reference through Theme, as fontFamily/color is applied later.
-  static const _displayLargeTextStyle = TextStyle(fontSize: 34, fontWeight: FontWeight.bold);
-  static const _displayMediumTextStyle = TextStyle(fontSize: 24, fontWeight: FontWeight.bold);
-  static const _displaySmallTextStyle = TextStyle(fontSize: 20, fontWeight: FontWeight.bold);
-  static const _headlineMediumTextStyle = TextStyle(fontSize: 18, fontWeight: FontWeight.bold);
-  static const _headlineSmallTextStyle =
-      TextStyle(fontSize: 20, fontWeight: FontWeight.w700, height: 24 / 20, letterSpacing: 0.15);
-  static const _titleLargeTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.4);
-  static const _titleMediumTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 1.4);
-  static const _titleSmallTextStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);
-  static const _bodyLargeTextStyle = TextStyle(fontSize: 16, height: 1.5);
-  static const _bodyMediumTextStyle = TextStyle(fontSize: 14, height: 1.4);
-  static const _labelLargeTextStyle = TextStyle(fontSize: 16, fontWeight: FontWeight.bold);
-  static const _bodySmallTextStyle = TextStyle(fontSize: 12);
-  static const _labelSmallTextStyle = TextStyle(fontSize: 14, fontWeight: FontWeight.bold);
+  static const headlineExtraSmallTextStyle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.bold,
+    height: 26 / 18,
+    letterSpacing: 0.15,
+    fontFamily: fontFamily,
+  );
 
   static final baseTextTheme = const TextTheme(
-    displayLarge: _displayLargeTextStyle,
-    displayMedium: _displayMediumTextStyle,
-    displaySmall: _displaySmallTextStyle,
-    headlineMedium: _headlineMediumTextStyle,
-    headlineSmall: _headlineSmallTextStyle,
-    titleLarge: _titleLargeTextStyle,
-    titleMedium: _titleMediumTextStyle,
-    titleSmall: _titleSmallTextStyle,
-    bodyLarge: _bodyLargeTextStyle,
-    bodyMedium: _bodyMediumTextStyle,
-    labelLarge: _labelLargeTextStyle,
-    bodySmall: _bodySmallTextStyle,
-    labelSmall: _labelSmallTextStyle,
+    // DISPLAY
+    displayLarge: TextStyle(fontSize: 56, fontWeight: FontWeight.normal, height: 84 / 56, letterSpacing: 0.25),
+    displayMedium: TextStyle(fontSize: 44, fontWeight: FontWeight.normal, height: 66 / 44, letterSpacing: 0),
+    displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.normal, height: 54 / 36, letterSpacing: 0),
+    // HEADLINE
+    headlineLarge: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, height: 44 / 30, letterSpacing: 0),
+    headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, height: 36 / 24, letterSpacing: 0.15),
+    headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 30 / 20, letterSpacing: 0.15),
+    // TITLE
+    titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, height: 26 / 18, letterSpacing: 0.15),
+    titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 24 / 16, letterSpacing: 0.15),
+    titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, height: 20 / 14, letterSpacing: 0.15),
+    // LABEL
+    labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 20 / 16, letterSpacing: 1),
+    labelMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, height: 20 / 14, letterSpacing: 1),
+    labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, height: 18 / 12, letterSpacing: 1),
+    // BODY
+    bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, height: 24 / 16, letterSpacing: 0.5),
+    bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, height: 20 / 14, letterSpacing: 0.25),
+    bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, height: 18 / 12, letterSpacing: 0.15),
   ).apply(fontFamily: fontFamily);
 
   //endregion Font & TextStyles
@@ -72,15 +71,10 @@ class BaseWalletTheme {
     (states) => states.isPressedOrFocused ? 30.0 : 24.0,
   );
 
-  static const buttonTextStyle = TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    fontFamily: fontFamily,
-  );
-
-  static final textButtonTextStyle = buttonTextStyle.copyWith(
-    letterSpacing: 1.15,
-  );
+  static final _defaultButtonTextStyle = WidgetStateTextStyle.resolveWith((states) {
+    final textTheme = baseTextTheme.labelLarge!;
+    return states.isPressedOrFocused ? textTheme.underlined : textTheme;
+  });
 
   static final baseElevatedButtonTheme = ElevatedButtonThemeData(
     style: ElevatedButton.styleFrom(
@@ -90,10 +84,7 @@ class BaseWalletTheme {
       shape: _buttonShape,
     ).copyWith(
       iconSize: _baseButtonStyleIconSize,
-      textStyle: WidgetStateTextStyle.resolveWith((states) {
-        if (states.isPressedOrFocused) return buttonTextStyle.underlined;
-        return buttonTextStyle;
-      }),
+      textStyle: _defaultButtonTextStyle,
     ),
   );
 
@@ -105,10 +96,7 @@ class BaseWalletTheme {
       shape: _buttonShape,
     ).copyWith(
       iconSize: _baseButtonStyleIconSize,
-      textStyle: WidgetStateTextStyle.resolveWith((states) {
-        if (states.isPressedOrFocused) return buttonTextStyle.underlined;
-        return buttonTextStyle;
-      }),
+      textStyle: _defaultButtonTextStyle,
     ),
   );
 
@@ -119,10 +107,7 @@ class BaseWalletTheme {
       shape: _buttonShape,
     ).copyWith(
       iconSize: _baseButtonStyleIconSize,
-      textStyle: WidgetStateTextStyle.resolveWith((states) {
-        if (states.isPressedOrFocused) return textButtonTextStyle.underlined;
-        return textButtonTextStyle;
-      }),
+      textStyle: _defaultButtonTextStyle,
     ),
   );
 
@@ -133,31 +118,27 @@ class BaseWalletTheme {
   );
 
   static final floatingActionButtonTheme = FloatingActionButtonThemeData(
-    extendedTextStyle: buttonTextStyle,
+    extendedTextStyle: baseTextTheme.labelLarge,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
   );
 
   //endregion Button Style & Themes
 
   //region Other Themes
-  static const baseDividerTheme = DividerThemeData(
-    space: 1,
-    thickness: 1,
-  );
+  static const baseDividerTheme = DividerThemeData(space: 1, thickness: 1);
 
-  static const baseBottomSheetTheme = BottomSheetThemeData(
-    shape: ContinuousRectangleBorder(),
-  );
+  static const baseBottomSheetTheme = BottomSheetThemeData(shape: ContinuousRectangleBorder());
 
-  static const baseBottomNavigationBarThemeData = BottomNavigationBarThemeData(
+  static final baseBottomNavigationBarThemeData = BottomNavigationBarThemeData(
     elevation: 0,
-    selectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, fontFamily: fontFamily),
-    unselectedLabelStyle: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, fontFamily: fontFamily),
+    selectedLabelStyle: baseTextTheme.labelSmall,
+    unselectedLabelStyle: baseTextTheme.bodySmall,
   );
 
-  static const baseAppBarTheme = AppBarTheme(
+  static final baseAppBarTheme = AppBarTheme(
     centerTitle: false,
     elevation: 0,
+    titleTextStyle: baseTextTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold),
     scrolledUnderElevation: 12,
     shape: LinearBorder.none, /* hides the app bar divider */
   );

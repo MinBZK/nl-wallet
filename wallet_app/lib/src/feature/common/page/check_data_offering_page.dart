@@ -6,6 +6,8 @@ import '../widget/attribute/data_attribute_row.dart';
 import '../widget/button/list_button.dart';
 import '../widget/card/wallet_card_item.dart';
 import '../widget/sliver_sized_box.dart';
+import '../widget/text/body_text.dart';
+import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
 
 /// Generic Page that displays the attributes so the user can check them.
@@ -75,17 +77,11 @@ class CheckDataOfferingPage extends StatelessWidget {
                   style: context.textTheme.labelSmall?.copyWith(color: context.colorScheme.primary),
                 ),
               ),
-            Text(
-              title,
-              style: context.textTheme.displayMedium,
-            ),
+            TitleText(title),
             if (subtitle != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  subtitle,
-                  style: context.textTheme.bodyLarge,
-                ),
+                child: BodyText(subtitle),
               ),
           ],
         ),

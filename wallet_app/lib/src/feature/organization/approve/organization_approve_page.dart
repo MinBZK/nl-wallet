@@ -147,11 +147,7 @@ class OrganizationApprovePage extends StatelessWidget {
       ApprovalPurpose.login =>
         context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
     };
-    return TitleText(
-      title,
-      style: context.textTheme.displayMedium,
-      textAlign: TextAlign.start,
-    );
+    return TitleText(title);
   }
 
   Widget _buildFraudInfoText(BuildContext context) {

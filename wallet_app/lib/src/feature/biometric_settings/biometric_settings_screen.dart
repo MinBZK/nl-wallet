@@ -131,11 +131,8 @@ class BiometricSettingScreen extends StatelessWidget {
         return AlertDialog(
           scrollable: true,
           semanticLabel: title,
-          title: Text(title, style: context.textTheme.displayMedium),
-          content: Text(
-            context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText),
-            style: context.textTheme.bodyLarge,
-          ),
+          title: Text(title),
+          content: Text(context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText)),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.generalDialogCloseCta),
