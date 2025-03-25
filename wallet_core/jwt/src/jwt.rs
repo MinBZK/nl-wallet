@@ -525,7 +525,6 @@ mod tests {
     use base64::prelude::*;
     use futures::StreamExt;
     use jsonwebtoken::Header;
-    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
@@ -535,6 +534,7 @@ mod tests {
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use wallet_common::generator::TimeGenerator;
 
     use super::*;
