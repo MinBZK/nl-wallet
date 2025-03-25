@@ -4,7 +4,6 @@ import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
@@ -62,7 +61,6 @@ class DashboardTests : TestBase() {
         assertTrue(cardDetailScreen.visible(), "card detail screen is not visible")
     }
 
-    @Disabled("TODO: PVW-4055 will fix this")
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5 The card sorting is initially fixed: PID is first, Address is second. [${JIRA_ID}]")
     fun verifyCardsFixedSorting() {
