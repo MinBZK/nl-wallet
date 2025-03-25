@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -53,12 +54,17 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   }
 
   void _setupSemanticActionListener() {
-    PlatformDispatcher.instance.onSemanticsActionEvent = (SemanticsActionEvent event) {
-      if (event.type != SemanticsAction.didLoseAccessibilityFocus) _resetIdleTimeout();
+    PlatformDispatcher.instance.onSemanticsActionEvent = (SemanticsActionEvent action) {
+      if (action.type != SemanticsAction.didLoseAccessibilityFocus) _resetIdleTimeout();
       try {
-        WidgetsBinding.instance.performSemanticsAction(event);
+        final Object? arguments = action.arguments;
+        // Decode the [SemanticsActionEvent] before passing it on. Needed to avoid ex. & support scroll like events.
+        final SemanticsActionEvent decodedAction = arguments is ByteData
+            ? action.copyWith(arguments: const StandardMessageCodec().decodeMessage(arguments))
+            : action;
+        WidgetsBinding.instance.performSemanticsAction(decodedAction);
       } catch (ex) {
-        Fimber.e('Failed to propagate semantics action: $event', ex: ex);
+        Fimber.e('Failed to propagate semantics action: $action', ex: ex);
       }
     };
   }
