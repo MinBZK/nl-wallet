@@ -1,7 +1,8 @@
 use indexmap::IndexMap;
 
-use wallet_common::keys::examples::Examples;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use crypto::examples::Examples;
+use crypto::mock_remote::MockRemoteKeyFactory;
+use crypto::server_keys::generate::Ca;
 
 use crate::errors::Result;
 use crate::examples::Example;
@@ -15,7 +16,6 @@ use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::device_retrieval::ReaderAuthenticationBytes;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::engagement::DeviceAuthenticationBytes;
-use crate::server_keys::generate::Ca;
 use crate::test;
 use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;

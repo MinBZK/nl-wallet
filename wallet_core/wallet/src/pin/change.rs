@@ -325,9 +325,9 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use crypto::utils;
     use jwt::Jwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
-    use wallet_common::utils;
 
     use super::*;
 

@@ -5,16 +5,18 @@ use assert_matches::assert_matches;
 use chrono::Days;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use crypto::mock_remote::MockRemoteKeyFactory;
+use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use mdoc::server_keys::generate::Ca;
-use mdoc::server_keys::KeyPair;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
@@ -53,7 +55,6 @@ use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::UncheckedTypeMetadata;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -61,7 +62,7 @@ type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<Is
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
     setup(
         MockAttributeService {

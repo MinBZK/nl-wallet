@@ -26,16 +26,16 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
+use crypto::keys::EcdsaKey;
+use crypto::server_keys::KeyPair;
+use crypto::utils::random_string;
+use crypto::x509::CertificateError;
 use jwt::error::JwtError;
 use jwt::Jwt;
-use mdoc::server_keys::KeyPair;
-use mdoc::utils::x509::CertificateError;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils::random_string;
 
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
@@ -1132,12 +1132,13 @@ mod tests {
     use chrono::Utc;
     use indexmap::IndexMap;
     use itertools::Itertools;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::rand;
     use rstest::rstest;
 
-    use mdoc::server_keys::generate::Ca;
+    use crypto::server_keys::generate::Ca;
     use mdoc::utils::reader_auth::ReaderRegistration;
     use mdoc::ItemsRequest;
     use wallet_common::generator::Generator;
@@ -1204,7 +1205,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 UseCase {
-                    key_pair: ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                    key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
@@ -1212,7 +1213,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE.to_string(),
                 UseCase {
-                    key_pair: ca.generate_reader_mock(reader_registration.clone()).unwrap(),
+                    key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".to_string(),
                 },
@@ -1220,7 +1221,7 @@ mod tests {
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 UseCase {
-                    key_pair: ca.generate_reader_mock(reader_registration).unwrap(),
+                    key_pair: generate_reader_mock(&ca, reader_registration).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Both,
                     client_id: "client_id".to_string(),
                 },

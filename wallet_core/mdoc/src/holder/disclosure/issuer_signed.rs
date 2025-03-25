@@ -20,7 +20,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
 

@@ -7,8 +7,8 @@ use indexmap::IndexMap;
 use p256::PublicKey;
 use p256::SecretKey;
 
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
 
 use crate::errors::Result;
 use crate::iso::*;
@@ -73,12 +73,12 @@ impl DeviceSigned {
 mod tests {
     use p256::SecretKey;
 
-    use wallet_common::keys::examples::Examples;
+    use crypto::examples::Examples;
+    use crypto::server_keys::generate::Ca;
 
     use crate::examples::Example;
     use crate::examples::IsoCertTimeGenerator;
     use crate::holder::Mdoc;
-    use crate::server_keys::generate::Ca;
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceSigned;
     use crate::Document;

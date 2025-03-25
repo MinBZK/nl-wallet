@@ -1,10 +1,10 @@
+use crypto::keys::EcdsaKey;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::registration::WalletCertificate;
-use wallet_common::keys::EcdsaKey;
 
 use crate::account_provider::AccountProviderClient;
 use crate::errors::AccountProviderError;

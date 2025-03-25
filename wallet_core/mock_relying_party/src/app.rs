@@ -274,7 +274,7 @@ struct UsecaseTemplate<'a> {
 }
 
 static USECASE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(utils::sha256(include_bytes!("../assets/usecase.js"))));
+    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!("../assets/usecase.js"))));
 
 fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
     let mut start_url = public_url.join("/sessions");

@@ -23,7 +23,7 @@ spoof_integrity_verdict_hash = []
 # Exposes the MockPlayIntegrityClient type, which can be used for testing or local development.
 mock_play_integrity = ["android_attest/mock"]
 # Implement InstructionResultSigningKey and related traits on SigningKey
-mock_secure_keys = ["wallet_common/mock_secure_keys"]
+mock_secure_keys = ["crypto/mock_secure_keys"]
 # Include mock implementations and constructors for testing
 mock = [
     "mock_play_integrity",
@@ -35,7 +35,7 @@ mock = [
     "wallet_account/client",
     "wallet_provider_domain/mock",
     "wallet_provider_persistence",
-    "wallet_common/mock_secure_keys",
+    "crypto/mock_secure_keys",
 ]
 # Include and run test that depend on an external PostgreSQL database
 db_test = ["mock_secure_keys", "mock", "dep:tracing-subscriber", "dep:wallet_provider_database_settings"]
@@ -75,6 +75,7 @@ hmac = { workspace = true, optional = true, features = ["std"] }
 
 android_attest.path = "../../android_attest"
 apple_app_attest.path = "../../apple_app_attest"
+crypto.path = "../../crypto"
 hsm.path = "../../hsm"
 jwt.path = "../../jwt"
 poa.path = "../../poa"
@@ -98,8 +99,8 @@ tokio = { workspace = true, features = ["rt", "macros", "parking_lot"] }
 
 android_attest = { path = "../../android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
+crypto = { path = "../../crypto", features = ["mock_remote_key"] }
 platform_support = { path = "../../platform_support", features = ["mock_attested_key_apple"] }
 wallet_account = { path = "../wallet_account", features = ["client", "server"] }
-wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys"] }
 wallet_provider_domain = { path = "../domain", features = ["mock"] }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"] }

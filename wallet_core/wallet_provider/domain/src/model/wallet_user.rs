@@ -95,9 +95,9 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use uuid::uuid;
 
+    use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypted::InitializationVector;
-    use wallet_common::utils::random_bytes;
 
     use crate::model::wallet_user::WalletUser;
 

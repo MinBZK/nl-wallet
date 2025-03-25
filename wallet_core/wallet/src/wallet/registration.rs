@@ -7,6 +7,8 @@ use tracing::warn;
 
 use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
+use crypto::keys::EcdsaKey;
+use crypto::utils;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use jwt::error::JwtError;
@@ -17,9 +19,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
 use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
-use wallet_common::keys::EcdsaKey;
 use wallet_common::update_policy::VersionState;
-use wallet_common::utils;
 use wallet_common::vec_at_least::VecAtLeastNError;
 
 use crate::account_provider::AccountProviderClient;
@@ -328,14 +328,14 @@ mod tests {
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
+    use crypto::utils;
+    use crypto::x509::BorrowingCertificate;
     use jwt::Jwt;
-    use mdoc::utils::x509::BorrowingCertificate;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
     use platform_support::attested_key::mock::KeyHolderType;
     use wallet_account::messages::registration::RegistrationAttestation;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::SequenceNumberComparison;
-    use wallet_common::utils;
 
     use crate::account_provider::AccountProviderResponseError;
     use crate::storage::KeyedData;

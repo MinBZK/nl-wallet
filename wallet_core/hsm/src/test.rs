@@ -68,7 +68,7 @@ impl TestCase<Pkcs11Hsm> {
         let settings = TestSettings::new(config_file.as_ref()).unwrap();
         let hsm = Pkcs11Hsm::from_settings(settings.hsm.clone()).unwrap();
         Self {
-            identifier: format!("{}-{}", identifier_prefix, utils::random_string(8)),
+            identifier: format!("{}-{}", identifier_prefix, crypto::utils::random_string(8)),
             hsm: Some(hsm),
         }
     }

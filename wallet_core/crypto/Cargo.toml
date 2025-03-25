@@ -1,0 +1,59 @@
+[package]
+name = "crypto"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# Include examples from the ISO specification
+examples = ["dep:anyhow", "dep:hex", "dep:hex-literal"]
+# Include code for generating certificates and keys
+generate = ["dep:rcgen", "dep:time"]
+# Include mock implementations and constructors for testing
+mock = []
+# Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
+mock_secure_keys = []
+# Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
+mock_remote_key = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
+
+[dependencies]
+aes-gcm = { workspace = true, features = ["std"] }
+chrono = { workspace = true, features = ["std", "clock"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
+indexmap = { workspace = true, features = ["serde"] }
+p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
+rustls-pki-types.workspace = true
+rustls-webpki.workspace = true
+rand.workspace = true
+ring.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+trait-variant.workspace = true
+x509-parser = { workspace = true, features = ["verify", "validate"] }
+yoke = { workspace = true, features = ["derive"] }
+
+error_category.path = "../error_category"
+wallet_common.path = "../wallet_common"
+
+anyhow = { workspace = true, optional = true }
+futures = { workspace = true, optional = true, features = ["std", "async-await"] }
+hex = { workspace = true, optional = true }
+hex-literal = { workspace = true, optional = true }
+parking_lot = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
+rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_rs"] }
+time = { workspace = true, optional = true }
+
+[dev-dependencies]
+assert_matches.workspace = true
+futures = { workspace = true, features = ["std", "async-await"] }
+parking_lot.workspace = true
+rand_core.workspace = true
+rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
+rstest.workspace = true
+time.workspace = true

@@ -9,6 +9,7 @@ use serde::Serialize;
 use serial_test::parallel;
 use serial_test::serial;
 
+use crypto::utils;
 use openid4vc::server_state::test;
 use openid4vc::server_state::test::RandomData;
 use openid4vc::server_state::Expirable;
@@ -22,7 +23,6 @@ use server_utils::store::postgres;
 use server_utils::store::postgres::PostgresSessionStore;
 use verification_server::settings::VerifierSettings;
 use wallet_common::generator::mock::MockTimeGenerator;
-use wallet_common::utils;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

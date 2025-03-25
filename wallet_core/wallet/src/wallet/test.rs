@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use futures::future::FutureExt;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
@@ -9,10 +10,14 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::p256_der::DerVerifyingKey;
+use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
+use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::utils;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
-use mdoc::server_keys::generate::Ca;
-use mdoc::server_keys::KeyPair;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::IssuerSigned;
@@ -24,10 +29,6 @@ use sd_jwt::metadata::TypeMetadataChain;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-use wallet_common::p256_der::DerVerifyingKey;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
-use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::config::default_config_server_config;
@@ -95,7 +96,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_key = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
@@ -107,7 +108,7 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca.generate_issuer_mock(None).unwrap();
+    let issuance_key = generate_issuer_mock(&ca, None).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {

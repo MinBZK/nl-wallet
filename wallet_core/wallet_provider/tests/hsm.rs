@@ -3,10 +3,10 @@ use std::sync::Arc;
 use p256::ecdsa::signature::Verifier;
 use serial_test::serial;
 
+use crypto::utils::random_bytes;
 use hsm::model::Hsm;
 use hsm::test::AsyncDropper;
 use hsm::test::TestCase;
-use wallet_common::utils::random_bytes;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletId;
 

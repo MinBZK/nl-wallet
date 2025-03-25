@@ -5,8 +5,8 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use wallet_common::keys::AppleAssertion;
-use wallet_common::p256_der::DerSignature;
+use crypto::keys::AppleAssertion;
+use crypto::p256_der::DerSignature;
 
 use super::TypedRawValue;
 
@@ -80,8 +80,8 @@ pub mod client {
     use p256::ecdsa::Signature;
     use serde::Serialize;
 
+    use crypto::keys::EcdsaKey;
     use platform_support::attested_key::AppleAttestedKey;
-    use wallet_common::keys::EcdsaKey;
 
     use crate::error::EncodeError;
 
@@ -427,8 +427,8 @@ mod tests {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
+    use crypto::utils;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use wallet_common::utils;
 
     use crate::error::DecodeError;
 

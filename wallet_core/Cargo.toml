@@ -2,6 +2,7 @@
 members = [
     "android_attest",
     "apple_app_attest",
+    "crypto",
     "error_category",
     "error_category/error_category_derive",
     "flutter_api",

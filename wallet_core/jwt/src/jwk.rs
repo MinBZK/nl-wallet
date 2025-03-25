@@ -7,7 +7,7 @@ use jsonwebtoken::Header;
 use p256::ecdsa::VerifyingKey;
 use p256::EncodedPoint;
 
-use wallet_common::keys::EcdsaKey;
+use crypto::keys::EcdsaKey;
 
 use crate::error::JwkConversionError;
 

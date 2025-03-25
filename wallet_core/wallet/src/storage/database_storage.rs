@@ -33,6 +33,8 @@ use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
 
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::BorrowingCertificateExtension;
 use entity::disclosure_history_event;
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event_attestation_type;
@@ -45,8 +47,6 @@ use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use mdoc::utils::serialization::CborError;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
@@ -727,9 +727,12 @@ pub(crate) mod tests {
     use chrono::Utc;
     use tokio::fs;
 
+    use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::KeyPair;
+    use crypto::utils::random_bytes;
     use mdoc::holder::Mdoc;
-    use mdoc::server_keys::generate::Ca;
-    use mdoc::server_keys::KeyPair;
+    use mdoc::server_keys::generate::mock::generate_issuer_mock;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use mdoc::test::data::PID;
     use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::utils::reader_auth::ReaderRegistration;
@@ -737,7 +740,6 @@ pub(crate) mod tests {
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
     use wallet_account::messages::registration::WalletCertificate;
-    use wallet_common::utils::random_bytes;
 
     use crate::storage::data::RegistrationData;
 
@@ -748,16 +750,14 @@ pub(crate) mod tests {
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-        issuer_ca
-            .generate_issuer_mock(IssuerRegistration::new_mock().into())
-            .unwrap()
+
+        generate_issuer_mock(&issuer_ca, IssuerRegistration::new_mock().into()).unwrap()
     });
 
     static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        reader_ca
-            .generate_reader_mock(ReaderRegistration::new_mock().into())
-            .unwrap()
+
+        generate_reader_mock(&reader_ca, ReaderRegistration::new_mock().into()).unwrap()
     });
 
     #[test]

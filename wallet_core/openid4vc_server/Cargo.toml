@@ -35,6 +35,7 @@ url = { workspace = true, features = ["serde"] }
 axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 ring = { workspace = true, optional = true }
 
+crypto = { path = "../crypto" }
 mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 sd_jwt.path = "../sd_jwt"

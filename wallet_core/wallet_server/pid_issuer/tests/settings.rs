@@ -2,9 +2,10 @@ use std::collections::HashMap;
 
 use assert_matches::assert_matches;
 
+use crypto::server_keys::generate::Ca;
 use issuer_settings::settings::AttestationTypeConfigSettings;
 use issuer_settings::settings::IssuerSettingsError;
-use mdoc::server_keys::generate::Ca;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use pid_issuer::settings::PidIssuerSettings;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::UncheckedTypeMetadata;
@@ -36,9 +37,8 @@ fn test_settings_no_issuer_registration() {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
     let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
-    let issuer_cert_no_registration = issuer_ca
-        .generate_issuer_mock(None)
-        .expect("generate issuer cert without issuer registration");
+    let issuer_cert_no_registration =
+        generate_issuer_mock(&issuer_ca, None).expect("generate issuer cert without issuer registration");
 
     settings.issuer_settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
     settings.issuer_settings.attestation_settings = HashMap::from([(

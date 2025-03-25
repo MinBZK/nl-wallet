@@ -22,9 +22,9 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use x509_parser::nom::AsBytes;
 
+use crypto::utils::hkdf;
+use crypto::utils::sha256;
 use error_category::ErrorCategory;
-use wallet_common::utils::hkdf;
-use wallet_common::utils::sha256;
 
 use crate::utils::cose::CoseKey;
 use crate::utils::serialization::cbor_serialize;
