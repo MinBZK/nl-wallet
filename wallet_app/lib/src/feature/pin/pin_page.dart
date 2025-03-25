@@ -347,8 +347,8 @@ class PinPage extends StatelessWidget {
         return AlertDialog(
           scrollable: true,
           semanticLabel: title,
-          title: Text(title, style: context.textTheme.displayMedium),
-          content: Text(description, style: context.textTheme.bodyLarge),
+          title: Text(title),
+          content: Text(description),
           actions: <Widget>[
             TextButton(
               child: Text(context.l10n.pinErrorDialogForgotCodeCta.toUpperCase()),

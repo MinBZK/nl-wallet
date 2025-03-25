@@ -11,10 +11,7 @@ class ScanWithWalletDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: TitleText(
-        context.l10n.scanWithWalletDialogTitle,
-        style: context.textTheme.displayMedium,
-      ),
+      title: TitleText(context.l10n.scanWithWalletDialogTitle),
       content: BodyText(context.l10n.scanWithWalletDialogBody),
       actions: <Widget>[
         TextButton(

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
@@ -83,11 +82,7 @@ class SetupSecurityPinPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 38),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  title,
-                  style: context.textTheme.displayMedium,
-                  textAlign: TextAlign.start,
-                ),
+                child: TitleText(title),
               ),
             ),
           ),

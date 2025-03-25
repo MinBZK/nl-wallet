@@ -27,6 +27,16 @@ class MockDigidScreen extends StatelessWidget {
         colorScheme: context.colorScheme.copyWith(primary: _kDigidOrange),
         outlinedButtonTheme: outlinedButtonTheme(context),
         elevatedButtonTheme: elevatedButtonTheme(context),
+        textButtonTheme: TextButtonThemeData(
+          style: context.theme.textButtonTheme.style?.copyWith(
+            foregroundColor: WidgetStatePropertyAll(context.textTheme.headlineMedium!.color),
+          ),
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: context.theme.iconButtonTheme.style?.copyWith(
+            iconColor: WidgetStatePropertyAll(context.textTheme.headlineMedium!.color),
+          ),
+        ),
       ),
       child: BlocConsumer<MockDigidBloc, MockDigidState>(
         listener: (context, state) {
@@ -71,11 +81,10 @@ class MockDigidScreen extends StatelessWidget {
     return OutlinedButtonThemeData(
       style: context.theme.outlinedButtonTheme.style?.copyWith(
         side: const WidgetStatePropertyAll(
-          BorderSide(
-            color: Color(0xFFD2762B),
-            width: 1,
-          ),
+          BorderSide(color: _kDigidOrange, width: 1),
         ),
+        foregroundColor: const WidgetStatePropertyAll(_kDigidOrange),
+        iconColor: const WidgetStatePropertyAll(_kDigidOrange),
       ),
     );
   }

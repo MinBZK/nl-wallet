@@ -7,7 +7,7 @@ import 'package:wallet/src/feature/common/widget/text/body_text.dart';
 import '../../../../wallet_app_test_widget.dart';
 
 void main() {
-  const kGoldenSize = Size(350, 213);
+  const kGoldenSize = Size(350, 221);
 
   group('goldens', () {
     testGoldens(

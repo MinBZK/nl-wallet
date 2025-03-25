@@ -7,6 +7,7 @@ import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
@@ -149,16 +150,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           children: [
             const Icon(Icons.info_outline_rounded, size: 24),
             const SizedBox(height: 16),
-            Text(
+            TitleText(
               context.l10n.disclosureConfirmDataAttributesSubtitlePurpose,
-              style: context.textTheme.displaySmall,
-              textAlign: TextAlign.start,
+              style: BaseWalletTheme.headlineExtraSmallTextStyle,
             ),
             const SizedBox(height: 4),
-            Text(
+            BodyText(
               requestPurpose.l10nValue(context),
-              style: context.textTheme.bodyLarge,
-              textAlign: TextAlign.start,
             ),
           ],
         ),
@@ -175,16 +173,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           children: [
             const Icon(Icons.credit_card_outlined, size: 24),
             const SizedBox(height: 16),
-            Text(
+            TitleText(
               context.l10n.disclosureConfirmDataAttributesSubtitleData(totalNrOfAttributes),
-              style: context.textTheme.displaySmall,
-              textAlign: TextAlign.start,
+              style: BaseWalletTheme.headlineExtraSmallTextStyle,
             ),
             const SizedBox(height: 4),
-            Text(
+            BodyText(
               context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes),
-              style: context.textTheme.bodyLarge,
-              textAlign: TextAlign.start,
             ),
           ],
         ),
@@ -204,22 +199,16 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text.rich(
-                  context.l10n.disclosureConfirmDataAttributesSubtitleTerms.toTextSpan(context),
-                  style: context.textTheme.displaySmall,
-                  textAlign: TextAlign.start,
+                TitleText(
+                  context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
+                  style: BaseWalletTheme.headlineExtraSmallTextStyle,
                 ),
                 const SizedBox(height: 4),
-                Text.rich(
-                  context
-                      .read<ContextMapper<OrganizationPolicy, String>>()
-                      .map(
+                BodyText(
+                  context.read<ContextMapper<OrganizationPolicy, String>>().map(
                         context,
                         OrganizationPolicy(organization: relyingParty, policy: policy),
-                      )
-                      .toTextSpan(context),
-                  style: context.textTheme.bodyLarge,
-                  textAlign: TextAlign.start,
+                      ),
                 ),
               ],
             ),

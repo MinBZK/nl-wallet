@@ -6,7 +6,7 @@ import 'package:wallet/src/feature/common/sheet/explanation_sheet.dart';
 import '../../../../wallet_app_test_widget.dart';
 
 void main() {
-  const kGoldenSize = Size(350, 205);
+  const kGoldenSize = Size(350, 213);
 
   group('goldens', () {
     testGoldens(

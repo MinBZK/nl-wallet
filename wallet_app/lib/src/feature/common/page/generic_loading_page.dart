@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../../../../environment.dart';
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 import '../widget/button/list_button.dart';
@@ -83,7 +84,7 @@ class _GenericLoadingPageState extends State<GenericLoadingPage> {
                   children: [
                     TitleText(
                       widget.title,
-                      style: context.textTheme.headlineMedium,
+                      style: BaseWalletTheme.headlineExtraSmallTextStyle,
                       textAlign: TextAlign.center,
                       key: _titleKey,
                     ),
