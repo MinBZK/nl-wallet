@@ -14,6 +14,7 @@ use tracing::warn;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
+use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
@@ -30,7 +31,6 @@ use mdoc::utils::reader_auth::ValidationError;
 use mdoc::utils::x509::CertificateType;
 use poa::factory::PoaFactory;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::openid4vp::AuthRequestValidationError;
@@ -762,6 +762,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::mock_remote::MockRemoteKeyFactoryError;
     use crypto::server_keys::generate::Ca;
+    use crypto::utils::random_string;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use jwt::error::JwtX5cError;
@@ -789,7 +790,6 @@ mod tests {
     use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
-    use wallet_common::utils::random_string;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::openid4vp::AuthRequestValidationError;

@@ -4,12 +4,12 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use crypto::p256_der::DerSignature;
+use crypto::p256_der::DerVerifyingKey;
 use jwt::credential::JwtCredentialClaims;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use poa::Poa;
-use wallet_common::p256_der::DerSignature;
-use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::wte::WteClaims;
 

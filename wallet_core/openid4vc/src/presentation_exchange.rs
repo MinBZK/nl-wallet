@@ -11,11 +11,11 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crypto::utils::random_string;
 use error_category::ErrorCategory;
 use mdoc::verifier::ItemsRequests;
 use mdoc::Document;
 use mdoc::ItemsRequest;
-use wallet_common::utils::random_string;
 
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;

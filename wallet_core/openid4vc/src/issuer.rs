@@ -23,6 +23,7 @@ use tracing::info;
 
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
+use crypto::utils::random_string;
 use crypto::x509::CertificateError;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwkConversionError;
@@ -43,7 +44,6 @@ use sd_jwt::metadata::TypeMetadataChain;
 use sd_jwt::metadata::TypeMetadataError;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::HttpsUri;
-use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 

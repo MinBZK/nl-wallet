@@ -58,6 +58,7 @@ use serde_with::skip_serializing_none;
 use url::Url;
 
 use crypto::keys::EcdsaKey;
+use crypto::utils::random_string;
 use error_category::ErrorCategory;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -65,7 +66,6 @@ use jwt::jwk::jwk_jwt_header;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
-use wallet_common::utils::random_string;
 
 use crate::token::AccessToken;
 

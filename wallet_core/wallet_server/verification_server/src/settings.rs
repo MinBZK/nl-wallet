@@ -16,6 +16,7 @@ use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use mdoc::utils::x509::CertificateType;
@@ -31,7 +32,6 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;

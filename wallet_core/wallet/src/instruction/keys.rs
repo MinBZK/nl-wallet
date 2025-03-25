@@ -14,6 +14,8 @@ use crypto::keys::CredentialKeyType;
 use crypto::keys::EcdsaKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::WithIdentifier;
+use crypto::p256_der::DerSignature;
+use crypto::utils::random_string;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use poa::factory::PoaFactory;
@@ -22,8 +24,6 @@ use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Sign;
-use wallet_common::p256_der::DerSignature;
-use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::account_provider::AccountProviderClient;

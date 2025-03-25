@@ -729,6 +729,7 @@ pub(crate) mod tests {
 
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
+    use crypto::utils::random_bytes;
     use mdoc::holder::Mdoc;
     use mdoc::server_keys::generate::mock::generate_issuer_mock;
     use mdoc::server_keys::generate::mock::generate_reader_mock;
@@ -739,7 +740,6 @@ pub(crate) mod tests {
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
     use wallet_account::messages::registration::WalletCertificate;
-    use wallet_common::utils::random_bytes;
 
     use crate::storage::data::RegistrationData;
 

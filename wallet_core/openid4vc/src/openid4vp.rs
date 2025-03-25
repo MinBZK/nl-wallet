@@ -21,6 +21,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::OneOrMany;
 
+use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
@@ -38,7 +39,6 @@ use poa::PoaVerificationError;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils::random_string;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;

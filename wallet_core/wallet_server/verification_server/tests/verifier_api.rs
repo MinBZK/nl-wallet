@@ -30,6 +30,7 @@ use url::Url;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
+use crypto::utils;
 use hsm::service::Pkcs11Hsm;
 use mdoc::examples::Example;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
@@ -79,7 +80,6 @@ use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils;
 
 const USECASE_NAME: &str = "usecase";
 

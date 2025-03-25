@@ -15,8 +15,8 @@ use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use apple_app_attest::VerifiedAttestation;
+use crypto::utils;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
-use wallet_common::utils;
 
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::RegistrationAttestation;

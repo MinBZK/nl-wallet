@@ -62,6 +62,7 @@ uuid.workspace = true
 mockall = { workspace = true, optional = true }
 
 apple_app_attest.path = "../../apple_app_attest"
+crypto.path = "../../crypto"
 hsm.path = "../../hsm"
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"

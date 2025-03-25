@@ -6,7 +6,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::keys::AppleAssertion;
-use wallet_common::p256_der::DerSignature;
+use crypto::p256_der::DerSignature;
 
 use super::TypedRawValue;
 
@@ -427,8 +427,8 @@ mod tests {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
+    use crypto::utils;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use wallet_common::utils;
 
     use crate::error::DecodeError;
 

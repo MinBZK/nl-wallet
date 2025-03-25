@@ -58,6 +58,7 @@ allow_insecure_url = ["openid4vc?/allow_insecure_url"]
 logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
+    "crypto",
     "hsm",
     "logging",
     "dep:android_attest",

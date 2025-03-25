@@ -97,9 +97,8 @@ pub mod generate {
     use x509_parser::prelude::FromDer;
     use x509_parser::prelude::X509Certificate;
 
-    use wallet_common::trust_anchor::BorrowingTrustAnchor;
-
     use crate::server_keys::KeyPair;
+    use crate::trust_anchor::BorrowingTrustAnchor;
     use crate::x509::BorrowingCertificate;
     use crate::x509::CertificateConfiguration;
     use crate::x509::CertificateError;

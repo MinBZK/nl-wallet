@@ -16,7 +16,7 @@ use apple_app_attest::ClientData;
 use apple_app_attest::VerifiedAssertion;
 use apple_app_attest::VerifiedAttestation;
 use crypto::keys::EcdsaKey;
-use wallet_common::utils;
+use crypto::utils;
 
 use super::AppleAttestedKey;
 use super::AttestedKey;

@@ -13,6 +13,7 @@ use url::Url;
 
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
+use crypto::utils::random_string;
 use jwt::Jwt;
 use mdoc::examples::EXAMPLE_ATTRIBUTES;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
@@ -22,7 +23,6 @@ use mdoc::iso::device_retrieval::ItemsRequest;
 use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::verifier::ItemsRequests;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils::random_string;
 
 use crate::disclosure_session::DisclosureSession;
 use crate::disclosure_session::DisclosureUriSource;

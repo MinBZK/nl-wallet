@@ -27,8 +27,11 @@ indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
 rustls-pki-types.workspace = true
 rustls-webpki.workspace = true
+rand.workspace = true
+ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
+sha2.workspace = true
 thiserror.workspace = true
 trait-variant.workspace = true
 x509-parser = { workspace = true, features = ["verify", "validate"] }

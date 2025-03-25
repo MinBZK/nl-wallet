@@ -28,24 +28,18 @@ indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
-rand.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
-ring.workspace = true
 rustls-webpki.workspace = true
 rustls-pki-types.workspace = true
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serde_with = { workspace = true, features = ["base64"] }
-sha2.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
-x509-parser.workspace = true
-yoke = { workspace = true, features = ["derive"] }
 
 axum = { workspace = true, optional = true, features = ["json"] }
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
@@ -58,6 +52,5 @@ built = { workspace = true, features = ["chrono", "git2"] }
 [dev-dependencies]
 assert_matches.workspace = true
 parking_lot.workspace = true
-rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

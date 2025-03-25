@@ -11,7 +11,7 @@ use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 
-use wallet_common::utils;
+use crate::utils;
 
 #[trait_variant::make(EcdsaKeySend: Send)]
 pub trait EcdsaKey {

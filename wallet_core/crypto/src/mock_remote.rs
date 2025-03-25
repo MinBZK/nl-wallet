@@ -12,7 +12,7 @@ use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use wallet_common::utils;
+use crate::utils;
 
 use crate::factory::KeyFactory;
 use crate::keys::CredentialEcdsaKey;

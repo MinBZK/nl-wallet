@@ -19,8 +19,8 @@ use android_attest::play_integrity::verification::InstallationMethod;
 use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use configuration::http::TlsServerConfig;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::settings::Hsm;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::utils;
 use wallet_provider_database_settings::Database;
 

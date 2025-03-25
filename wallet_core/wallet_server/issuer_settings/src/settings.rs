@@ -12,6 +12,7 @@ use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
 
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
@@ -27,7 +28,6 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::Settings;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::HttpsUri;
 use wallet_common::utils;
 

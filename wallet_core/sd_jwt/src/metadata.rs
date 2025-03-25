@@ -23,7 +23,7 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 
-use wallet_common::utils::sha256;
+use crypto::utils::sha256;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -557,7 +557,7 @@ pub mod mock {
 
     use serde_json::json;
 
-    use wallet_common::utils::random_string;
+    use crypto::utils::random_string;
 
     use crate::metadata::ClaimDisplayMetadata;
     use crate::metadata::ClaimMetadata;

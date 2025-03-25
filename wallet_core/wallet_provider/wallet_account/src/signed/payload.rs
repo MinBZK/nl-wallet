@@ -379,8 +379,8 @@ mod tests {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
+    use crypto::utils;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use wallet_common::utils;
 
     use crate::error::DecodeError;
 

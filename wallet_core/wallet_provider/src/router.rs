@@ -16,6 +16,7 @@ use tracing::info;
 use tracing::warn;
 
 use crypto::keys::EcdsaKey;
+use crypto::p256_der::DerVerifyingKey;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
@@ -37,7 +38,6 @@ use wallet_account::messages::registration::Challenge;
 use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
-use wallet_common::p256_der::DerVerifyingKey;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
 use wallet_provider_service::wte_issuer::WteIssuer;
