@@ -493,21 +493,10 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::sd_jwt::SdJwt;
-
     use rstest::rstest;
 
-    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
-    const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/simple_structured.jwt");
-
-    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-complex-structured-sd-jwt
-    const COMPLEX_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/complex_structured.jwt");
-
-    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-sd-jwt-based-verifiable-cre
-    const SD_JWT_VC: &str = include_str!("../examples/sd_jwt/sd_jwt_vc.jwt");
-
-    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-presentation
-    const WITH_KB_SD_JWT: &str = include_str!("../examples/sd_jwt/with_kb.jwt");
+    use crate::examples::*;
+    use crate::sd_jwt::SdJwt;
 
     #[rstest]
     #[case(SIMPLE_STRUCTURED_SD_JWT)]

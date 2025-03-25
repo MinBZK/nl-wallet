@@ -12,19 +12,15 @@ use serde_json::json;
 use serde_json::Value;
 
 use sd_jwt::builder::SdJwtBuilder;
+use sd_jwt::examples;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
+use sd_jwt::key_binding_jwt_claims::DigitalSignaturAlgorithm;
+use sd_jwt::key_binding_jwt_claims::KeyBindingJwt;
 use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
-use sd_jwt::key_binding_jwt_claims::{DigitalSignaturAlgorithm, KeyBindingJwt};
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::signer::JsonObject;
 use sd_jwt::signer::JwsSigner;
-
-// Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
-const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/simple_structured.jwt");
-
-// Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-complex-structured-sd-jwt
-const COMPLEX_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/complex_structured.jwt");
 
 const HMAC_SECRET: &[u8; 32] = b"0123456789ABCDEF0123456789ABCDEF";
 
@@ -62,7 +58,7 @@ fn make_kb_jwt_builder() -> KeyBindingJwtBuilder {
 
 #[test]
 fn simple_sd_jwt() {
-    let sd_jwt: SdJwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT).unwrap();
+    let sd_jwt = examples::simple_structured_sd_jwt();
     let disclosed = sd_jwt.into_disclosed_object(&Sha256Hasher::new()).unwrap();
     let expected_object = json!({
       "address": {
@@ -79,7 +75,7 @@ fn simple_sd_jwt() {
 
 #[test]
 fn complex_sd_jwt() {
-    let sd_jwt: SdJwt = SdJwt::parse(COMPLEX_STRUCTURED_SD_JWT).unwrap();
+    let sd_jwt: SdJwt = examples::complex_structured_sd_jwt();
     let disclosed = sd_jwt.into_disclosed_object(&Sha256Hasher::new()).unwrap();
     let expected_object = json!({
       "verified_claims": {

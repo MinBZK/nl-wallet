@@ -9,6 +9,7 @@ workspace = true
 
 [features]
 example_constructors = []
+example_sd_jwt = []
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
@@ -45,3 +46,5 @@ p256 = { workspace = true, features = ["default", "pem"] }
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }
+
+sd_jwt_vc_metadata = { path = ".", features = ["example_sd_jwt"] }

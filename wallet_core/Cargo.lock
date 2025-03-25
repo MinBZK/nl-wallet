@@ -5183,6 +5183,7 @@ dependencies = [
  "rand",
  "rand_core",
  "rstest",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
  "serde_urlencoded",

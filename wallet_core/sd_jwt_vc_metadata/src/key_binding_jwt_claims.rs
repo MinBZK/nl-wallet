@@ -225,6 +225,8 @@ mod test {
     use josekit::jwt::JwtPayload;
 
     use crate::error::Error;
+    use crate::examples;
+    use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
     use crate::key_binding_jwt_claims::DigitalSignaturAlgorithm;
@@ -232,12 +234,6 @@ mod test {
     use crate::sd_jwt::SdJwt;
     use crate::signer::JsonObject;
     use crate::signer::JwsSigner;
-
-    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
-    const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/simple_structured.jwt");
-
-    // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-presentation
-    const WITH_KB_SD_JWT: &str = include_str!("../examples/sd_jwt/with_kb.jwt");
 
     struct EcdsaSigner(EcdsaJwsSigner);
 
@@ -283,7 +279,7 @@ mod test {
 
     #[tokio::test]
     async fn test_algorithm_should_match_sd_jwt() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT).unwrap();
+        let sd_jwt = examples::simple_structured_sd_jwt();
 
         let key_pair = ES256.generate_key_pair().unwrap();
         let signer = EcdsaSigner(ES256.signer_from_der(key_pair.to_der_private_key()).unwrap());
@@ -311,7 +307,7 @@ mod test {
 
     #[tokio::test]
     async fn test_should_error_for_existing_kb_sd_jwt() {
-        let sd_jwt = SdJwt::parse(WITH_KB_SD_JWT).unwrap();
+        let sd_jwt = examples::sd_jwt_kb();
 
         let key_pair = ES256.generate_key_pair().unwrap();
         let signer = EcdsaSigner(ES256.signer_from_der(key_pair.to_der_private_key()).unwrap());
