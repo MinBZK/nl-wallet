@@ -1,5 +1,5 @@
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
 
 use crate::errors::Result;
 use crate::iso::disclosure::DeviceResponse;

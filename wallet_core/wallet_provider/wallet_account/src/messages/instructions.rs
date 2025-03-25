@@ -4,12 +4,12 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use crypto::p256_der::DerSignature;
+use crypto::p256_der::DerVerifyingKey;
 use jwt::credential::JwtCredentialClaims;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use poa::Poa;
-use wallet_common::p256_der::DerSignature;
-use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::wte::WteClaims;
 
@@ -192,9 +192,9 @@ mod client {
     use serde::de::DeserializeOwned;
     use serde::Serialize;
 
+    use crypto::keys::EphemeralEcdsaKey;
+    use crypto::keys::SecureEcdsaKey;
     use platform_support::attested_key::AppleAttestedKey;
-    use wallet_common::keys::EphemeralEcdsaKey;
-    use wallet_common::keys::SecureEcdsaKey;
 
     use crate::error::EncodeError;
     use crate::messages::registration::WalletCertificate;

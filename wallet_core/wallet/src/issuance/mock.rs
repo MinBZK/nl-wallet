@@ -4,7 +4,7 @@ use chrono::Days;
 use chrono::Utc;
 use indexmap::IndexMap;
 
-use mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
+use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::DataElementValue;

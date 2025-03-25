@@ -2,13 +2,13 @@ use std::error::Error;
 
 use p256::ecdsa::VerifyingKey;
 
+use crypto::keys::SecureEcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
 use jwt::Jwt;
-use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::wte::WteClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 

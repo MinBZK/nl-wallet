@@ -18,9 +18,9 @@ pub use josekit::JoseError;
 use reqwest::header;
 use url::Url;
 
+use crypto::utils;
 use error_category::ErrorCategory;
 use wallet_common::reqwest::JsonReqwestBuilder;
-use wallet_common::utils;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;

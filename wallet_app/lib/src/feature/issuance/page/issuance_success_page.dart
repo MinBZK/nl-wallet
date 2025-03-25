@@ -6,6 +6,8 @@ import '../../../util/extension/string_extension.dart';
 import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
+import '../../common/widget/text/body_text.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class IssuanceSuccessPage extends StatelessWidget {
@@ -66,18 +68,16 @@ class IssuanceSuccessPage extends StatelessWidget {
           const SizedBox(height: 32),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
+            child: TitleText(
               context.l10n.issuanceSuccessPageTitle,
-              style: context.textTheme.displayMedium,
               textAlign: TextAlign.center,
             ),
           ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
+            child: BodyText(
               subtitle,
-              style: context.textTheme.bodyLarge,
               textAlign: TextAlign.center,
             ),
           ),

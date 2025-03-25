@@ -13,11 +13,11 @@ use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
 
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::EncryptionKey;
-use wallet_common::keys::SecureEcdsaKey;
-use wallet_common::keys::SecureEncryptionKey;
-use wallet_common::keys::WithIdentifier;
+use crypto::keys::EcdsaKey;
+use crypto::keys::EncryptionKey;
+use crypto::keys::SecureEcdsaKey;
+use crypto::keys::SecureEncryptionKey;
+use crypto::keys::WithIdentifier;
 
 use super::PlatformEcdsaKey;
 use super::PlatformEncryptionKey;

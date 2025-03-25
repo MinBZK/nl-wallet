@@ -92,7 +92,7 @@ impl Database {
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::utils::random_bytes;
+    use crypto::utils::random_bytes;
 
     use super::*;
 

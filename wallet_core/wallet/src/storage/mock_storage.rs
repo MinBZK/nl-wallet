@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
-use mdoc::utils::x509::BorrowingCertificate;
+use crypto::x509::BorrowingCertificate;
 use mdoc::DocType;
 use openid4vc::credential::MdocCopies;
 

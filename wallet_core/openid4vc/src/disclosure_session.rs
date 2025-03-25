@@ -12,6 +12,11 @@ use serde::de::DeserializeOwned;
 use tracing::info;
 use tracing::warn;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::utils::random_string;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use jwt::Jwt;
 use mdoc::disclosure::DeviceResponse;
@@ -23,14 +28,9 @@ use mdoc::holder::ProposedDocument;
 use mdoc::identifiers::AttributeIdentifier;
 use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::utils::reader_auth::ValidationError;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
 use poa::factory::PoaFactory;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::openid4vp::AuthRequestValidationError;
@@ -745,6 +745,7 @@ mod tests {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
     use indexmap::IndexSet;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -755,6 +756,15 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
+    use crypto::factory::KeyFactory;
+    use crypto::keys::CredentialEcdsaKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
+    use crypto::mock_remote::MockRemoteKeyFactoryError;
+    use crypto::server_keys::generate::Ca;
+    use crypto::utils::random_string;
+    use crypto::x509::CertificateConfiguration;
+    use crypto::x509::CertificateError;
     use jwt::error::JwtX5cError;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
@@ -764,7 +774,6 @@ mod tests {
     use mdoc::holder::ProposedDocument;
     use mdoc::identifiers::AttributeIdentifier;
     use mdoc::identifiers::AttributeIdentifierHolder;
-    use mdoc::server_keys::generate::Ca;
     use mdoc::utils::cose::ClonePayload;
     use mdoc::utils::reader_auth::ReaderRegistration;
     use mdoc::utils::reader_auth::ValidationError;
@@ -773,8 +782,6 @@ mod tests {
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::TaggedBytes;
-    use mdoc::utils::x509::CertificateConfiguration;
-    use mdoc::utils::x509::CertificateError;
     use mdoc::utils::x509::CertificateType;
     use mdoc::DeviceAuth;
     use mdoc::DeviceAuthenticationKeyed;
@@ -783,12 +790,6 @@ mod tests {
     use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
-    use wallet_common::keys::factory::KeyFactory;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactoryError;
-    use wallet_common::keys::CredentialEcdsaKey;
-    use wallet_common::utils::random_string;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::openid4vp::AuthRequestValidationError;
@@ -1516,7 +1517,7 @@ mod tests {
         let mock_key_pair = ca
             .generate_key_pair(
                 "mock_keypair",
-                &CertificateType::ReaderAuth(None),
+                CertificateType::ReaderAuth(None),
                 CertificateConfiguration::default(),
             )
             .unwrap();
@@ -1574,10 +1575,8 @@ mod tests {
     where
         F: Fn() -> Option<VpMessageClientError>,
     {
-        let mock_key_pair = Ca::generate_reader_mock_ca()
-            .unwrap()
-            .generate_reader_mock(None)
-            .unwrap();
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let mock_key_pair = generate_reader_mock(&ca, None).unwrap();
         DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,

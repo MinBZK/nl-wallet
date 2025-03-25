@@ -20,7 +20,7 @@ class TitleText extends StatelessWidget {
         width: double.infinity,
         child: Text.rich(
           TextSpan(text: data, locale: context.read<ActiveLocaleProvider>().activeLocale),
-          style: style ?? context.textTheme.displayMedium,
+          style: style ?? context.textTheme.headlineMedium,
           textAlign: textAlign ?? TextAlign.start,
         ),
       ),

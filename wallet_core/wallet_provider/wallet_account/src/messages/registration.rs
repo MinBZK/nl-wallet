@@ -3,9 +3,9 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use crypto::p256_der::DerVerifyingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
-use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwo;
 
 /// Registration challenge, sent by account server to wallet after the latter requests enrollment.
@@ -71,10 +71,10 @@ impl JwtSubject for WalletCertificateClaims {
 mod client {
     use futures::TryFutureExt;
 
+    use crypto::keys::EphemeralEcdsaKey;
+    use crypto::keys::SecureEcdsaKey;
+    use crypto::p256_der::DerVerifyingKey;
     use platform_support::attested_key::AppleAttestedKey;
-    use wallet_common::keys::EphemeralEcdsaKey;
-    use wallet_common::keys::SecureEcdsaKey;
-    use wallet_common::p256_der::DerVerifyingKey;
     use wallet_common::vec_at_least::VecAtLeastTwo;
 
     use crate::error::EncodeError;

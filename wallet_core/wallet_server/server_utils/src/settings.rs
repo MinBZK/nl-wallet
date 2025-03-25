@@ -12,17 +12,17 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
+use crypto::p256_der::DerSigningKey;
+use crypto::server_keys::KeyPair as ParsedKeyPair;
+use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
-use mdoc::server_keys::KeyPair as ParsedKeyPair;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
-use mdoc::utils::x509::CertificateUsage;
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::generator::Generator;
-use wallet_common::p256_der::DerSigningKey;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 use crate::keys::PrivateKeySettingsError;

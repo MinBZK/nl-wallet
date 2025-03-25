@@ -148,13 +148,13 @@ mod tests {
     use serde::de::DeserializeOwned;
     use serde::Serialize;
 
+    use crypto::utils;
     use jwt::Jwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinStart;
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::InstructionResultClaims;
-    use wallet_common::utils;
 
     use crate::pin::change::ChangePinStorage;
     use crate::pin::change::State;

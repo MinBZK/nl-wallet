@@ -3,8 +3,8 @@ use std::sync::Arc;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
+use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 
 use crate::model::Hsm;
 use crate::service::HsmError;

@@ -81,6 +81,7 @@ rustls-pki-types = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true, features = ["parking_lot"] }
 uuid = { workspace = true, optional = true, features = ["v4"] }
 
+crypto = { path = "../crypto" }
 error_category.path = "../error_category"
 wallet_common = { path = "../wallet_common" }
 

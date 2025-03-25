@@ -4,18 +4,18 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 use uuid::Uuid;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::x509::BorrowingCertificate;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use mdoc::identifiers::AttributeIdentifier;
 use mdoc::utils::reader_auth::ReaderRegistration;
-use mdoc::utils::x509::BorrowingCertificate;
 use openid4vc::disclosure_session::DisclosureError;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use poa::factory::PoaFactory;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
@@ -186,10 +186,11 @@ mod mock {
     use std::sync::Arc;
     use std::sync::LazyLock;
 
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use parking_lot::Mutex;
 
-    use mdoc::server_keys::generate::Ca;
-    use mdoc::server_keys::KeyPair;
+    use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::KeyPair;
 
     use super::*;
 
@@ -282,9 +283,8 @@ mod mock {
     /// The reader key, generated once for testing.
     static READER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        reader_ca
-            .generate_reader_mock(ReaderRegistration::new_mock().into())
-            .unwrap()
+
+        generate_reader_mock(&reader_ca, ReaderRegistration::new_mock().into()).unwrap()
     });
 
     impl Default for MockMdocDisclosureSession {

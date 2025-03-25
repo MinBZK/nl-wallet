@@ -146,7 +146,8 @@ mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
 
-    use mdoc::server_keys::generate::Ca;
+    use crypto::server_keys::generate::Ca;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use mdoc::utils::reader_auth::ReaderRegistration;
 
     use super::Wallet;
@@ -203,9 +204,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let reader_ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_key = reader_ca
-            .generate_reader_mock(ReaderRegistration::new_mock().into())
-            .unwrap();
+        let reader_key = generate_reader_mock(&reader_ca, ReaderRegistration::new_mock().into()).unwrap();
 
         // history should be empty
         let history = wallet.get_history().await.unwrap();

@@ -62,12 +62,12 @@ mod postgres {
     use sea_orm::QueryFilter;
     use sea_orm::SqlErr;
 
+    use crypto::utils::sha256;
     use jwt::credential::JwtCredentialClaims;
     use jwt::VerifiedJwt;
     use server_utils::entity::used_wtes;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::utils::sha256;
     use wallet_common::wte::WteClaims;
 
     use openid4vc::server_state::WteTracker;

@@ -2,8 +2,8 @@ use std::mem;
 
 use p256::ecdsa::signature::Verifier;
 
-use wallet_common::keys::SecureEcdsaKey;
-use wallet_common::keys::SecureEncryptionKey;
+use crypto::keys::SecureEcdsaKey;
+use crypto::keys::SecureEncryptionKey;
 
 use super::StoredByIdentifier;
 

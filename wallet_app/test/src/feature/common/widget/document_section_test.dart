@@ -8,7 +8,7 @@ import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
-  const kGoldenSize = Size(350, 126);
+  const kGoldenSize = Size(350, 128);
 
   group('goldens', () {
     testGoldens(

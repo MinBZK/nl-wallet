@@ -8,6 +8,8 @@ import '../../common/widget/attribute/attribute_row.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/sliver_divider.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text/body_text.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class DisclosureMissingAttributesPage extends StatelessWidget {
@@ -56,16 +58,12 @@ class DisclosureMissingAttributesPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.l10n.disclosureMissingAttributesPageTitle,
-            style: context.textTheme.displayMedium,
-            textAlign: TextAlign.start,
-          ),
+          TitleText(context.l10n.disclosureMissingAttributesPageTitle),
           const SizedBox(height: 8),
-          Text(
-            context.l10n.disclosureMissingAttributesPageDescription(organization.displayName.l10nValue(context)),
-            style: context.textTheme.bodyLarge,
-            textAlign: TextAlign.start,
+          BodyText(
+            context.l10n.disclosureMissingAttributesPageDescription(
+              organization.displayName.l10nValue(context),
+            ),
           ),
         ],
       ),

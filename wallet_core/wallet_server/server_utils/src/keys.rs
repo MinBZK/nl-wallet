@@ -3,13 +3,13 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 
+use crypto::keys::EcdsaKey;
+use crypto::keys::EcdsaKeySend;
+use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use mdoc::utils::x509::CertificateError;
 use sd_jwt::metadata::TypeMetadataError;
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::EcdsaKeySend;
 
 use crate::settings::PrivateKey;
 

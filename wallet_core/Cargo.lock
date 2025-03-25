@@ -1180,6 +1180,7 @@ name = "configuration"
 version = "0.3.0-dev"
 dependencies = [
  "axum-server",
+ "crypto",
  "derive_more",
  "etag",
  "http",
@@ -1358,6 +1359,40 @@ name = "crunchy"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
+
+[[package]]
+name = "crypto"
+version = "0.3.0-dev"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "assert_matches",
+ "chrono",
+ "derive_more",
+ "error_category",
+ "futures",
+ "hex",
+ "hex-literal",
+ "indexmap 2.7.1",
+ "p256",
+ "parking_lot",
+ "rand",
+ "rand_core",
+ "rcgen",
+ "ring",
+ "rstest",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.11",
+ "time",
+ "trait-variant",
+ "wallet_common",
+ "x509-parser 0.17.0",
+ "yoke",
+]
 
 [[package]]
 name = "crypto-bigint"
@@ -2238,6 +2273,7 @@ dependencies = [
  "clap",
  "clio",
  "config",
+ "crypto",
  "crypto-common",
  "csv",
  "ctor",
@@ -2614,6 +2650,7 @@ dependencies = [
  "async-dropper",
  "async-trait",
  "config",
+ "crypto",
  "cryptoki",
  "dashmap 6.1.0",
  "der",
@@ -3090,6 +3127,7 @@ version = "0.3.0-dev"
 dependencies = [
  "chrono",
  "config",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -3243,6 +3281,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "error_category",
  "futures",
  "indexmap 2.7.1",
@@ -3448,6 +3487,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "coset",
+ "crypto",
  "derive_more",
  "error_category",
  "futures",
@@ -3483,7 +3523,6 @@ dependencies = [
  "url",
  "wallet_common",
  "x509-parser 0.17.0",
- "yoke",
 ]
 
 [[package]]
@@ -3567,6 +3606,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "config",
+ "crypto",
  "futures",
  "http",
  "indexmap 2.7.1",
@@ -3846,6 +3886,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "configuration",
+ "crypto",
  "dashmap 6.1.0",
  "derive_more",
  "error_category",
@@ -3900,6 +3941,7 @@ dependencies = [
  "axum-extra",
  "cfg-if",
  "chrono",
+ "crypto",
  "derive_more",
  "http",
  "indexmap 2.7.1",
@@ -4153,6 +4195,8 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
+ "crypto",
+ "derive_more",
  "futures",
  "hsm",
  "http",
@@ -4256,6 +4300,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "cfg-if",
+ "crypto",
  "derive_more",
  "error_category",
  "futures",
@@ -4280,6 +4325,7 @@ name = "poa"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "crypto",
  "derive_more",
  "futures",
  "jsonwebtoken",
@@ -5128,6 +5174,7 @@ name = "sd_jwt"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "crypto",
  "derive_more",
  "http",
  "http-serde",
@@ -5661,6 +5708,7 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
+ "crypto",
  "futures",
  "hsm",
  "http",
@@ -6234,6 +6282,7 @@ dependencies = [
  "chrono",
  "configuration",
  "configuration_server",
+ "crypto",
  "ctor",
  "dotenvy",
  "gba_hc_converter",
@@ -7058,6 +7107,7 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -7132,6 +7182,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "configuration",
+ "crypto",
  "derive_more",
  "entity",
  "error_category",
@@ -7190,6 +7241,7 @@ dependencies = [
  "android_attest",
  "apple_app_attest",
  "assert_matches",
+ "crypto",
  "error_category",
  "futures",
  "jwt",
@@ -7217,6 +7269,7 @@ dependencies = [
  "chrono",
  "clap",
  "clio",
+ "crypto",
  "itertools 0.14.0",
  "mdoc",
  "p256",
@@ -7232,8 +7285,6 @@ dependencies = [
 name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
- "aes-gcm",
- "anyhow",
  "assert_matches",
  "axum",
  "axum-server",
@@ -7241,20 +7292,13 @@ dependencies = [
  "cfg-if",
  "chrono",
  "derive_more",
- "futures",
- "hex",
- "hex-literal",
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "mime",
  "nutype",
- "p256",
  "parking_lot",
- "rand",
- "rand_core",
  "reqwest",
- "ring",
  "rstest",
  "rustls-pki-types",
  "rustls-webpki",
@@ -7262,15 +7306,12 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
  "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",
  "tower-http",
  "trait-variant",
  "url",
- "x509-parser 0.17.0",
- "yoke",
 ]
 
 [[package]]
@@ -7294,6 +7335,7 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -7337,6 +7379,7 @@ version = "0.3.0-dev"
 dependencies = [
  "apple_app_attest",
  "chrono",
+ "crypto",
  "derive_more",
  "futures",
  "hmac",
@@ -7367,6 +7410,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "ctor",
  "hsm",
  "mockall",
@@ -7393,6 +7437,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "der",
  "derive_more",
  "futures",

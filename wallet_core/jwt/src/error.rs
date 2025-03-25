@@ -2,8 +2,8 @@ use base64::DecodeError;
 use jsonwebtoken::jwk::EllipticCurve;
 use p256::ecdsa::signature;
 
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
-use mdoc::utils::x509::CertificateError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum JwtError {

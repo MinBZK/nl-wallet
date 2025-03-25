@@ -20,8 +20,8 @@ use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 
+use crypto::utils::random_bytes;
 use wallet_common::urls::HttpsUri;
-use wallet_common::utils::random_bytes;
 
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedAttributes;

@@ -16,6 +16,8 @@ use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
+use mdoc::server_keys::generate::mock::generate_reader_mock;
 use parking_lot::RwLock;
 use reqwest::Client;
 use reqwest::Response;
@@ -25,6 +27,10 @@ use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::mock_remote::MockRemoteKeyFactory;
+use crypto::server_keys::generate::Ca;
+use crypto::utils;
 use hsm::service::Pkcs11Hsm;
 use mdoc::examples::Example;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
@@ -33,7 +39,6 @@ use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::holder::Mdoc;
-use mdoc::server_keys::generate::Ca;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::issuer_auth::IssuerRegistration;
@@ -73,11 +78,8 @@ use verification_server::settings::VerifierSettings;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -152,7 +154,7 @@ async fn wallet_server_settings_and_listener(
     ));
 
     // Set up the use case, based on RP CA and reader registration.
-    let usecase_keypair = rp_ca.generate_reader_mock(reader_registration).unwrap();
+    let usecase_keypair = generate_reader_mock(&rp_ca, reader_registration).unwrap();
     let usecases = HashMap::from([(
         USECASE_NAME.to_string(),
         UseCaseSettings {
@@ -957,9 +959,7 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
         })
         .collect::<IndexMap<_, Vec<_>>>();
 
-    let issuer_key_pair = issuer_ca
-        .generate_issuer_mock(Some(IssuerRegistration::new_mock()))
-        .unwrap();
+    let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
     // Use these attributes to create an unsigned Mdoc.
     let now = Utc::now();
     let unsigned_mdoc = UnsignedMdoc {

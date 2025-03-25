@@ -9,13 +9,13 @@ use tracing::info;
 use uuid::Uuid;
 
 use android_attest::root_public_key::RootPublicKey;
+use crypto::keys::EcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_common::generator::Generator;
-use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;

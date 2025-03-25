@@ -25,6 +25,7 @@ serde_with = { workspace = true, features = ["base64"] }
 ssri.workspace = true
 thiserror.workspace = true
 
+crypto.path = "../crypto"
 wallet_common.path = "../wallet_common"
 
 [dev-dependencies]

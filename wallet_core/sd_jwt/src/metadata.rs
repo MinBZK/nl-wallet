@@ -415,7 +415,7 @@ mod example_constructors {
 
     use serde_json::json;
 
-    use wallet_common::utils::random_string;
+    use crypto::utils::random_string;
 
     use crate::examples::ADDRESS_METADATA_BYTES;
     use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;

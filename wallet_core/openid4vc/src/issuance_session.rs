@@ -18,6 +18,8 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
 use error_category::ErrorCategory;
 use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
@@ -38,8 +40,6 @@ use poa::Poa;
 use sd_jwt::metadata_chain::TypeMetadataChainError;
 use sd_jwt::metadata_chain::UnverifiedTypeMetadataChain;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -907,9 +907,9 @@ pub async fn mock_wte<KF>(key_factory: &KF, privkey: &SigningKey) -> JwtCredenti
 where
     KF: KeyFactory,
 {
+    use crypto::keys::EcdsaKey;
+    use crypto::keys::WithIdentifier;
     use jwt::credential::JwtCredentialClaims;
-    use wallet_common::keys::EcdsaKey;
-    use wallet_common::keys::WithIdentifier;
 
     let wte_privkey = key_factory.generate_new().await.unwrap();
 
@@ -934,21 +934,22 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
+    use crypto::factory::KeyFactory;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateError;
     use mdoc::holder::IssuedDocumentMismatchError;
-    use mdoc::server_keys::generate::Ca;
+    use mdoc::server_keys::generate::mock::generate_issuer_mock;
     use mdoc::test::data;
     use mdoc::unsigned::UnsignedMdoc;
     use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
-    use mdoc::utils::x509::CertificateError;
     use mdoc::IssuerSigned;
     use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
     use sd_jwt::metadata_chain::TypeMetadataDocuments;
-    use wallet_common::keys::factory::KeyFactory;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
     use crate::token::TokenResponse;
 
@@ -974,7 +975,7 @@ mod tests {
         MockRemoteKeyFactory,
     ) {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
         let key_factory = MockRemoteKeyFactory::default();
         let trust_anchor = ca.to_trust_anchor().to_owned();
 
@@ -1029,7 +1030,7 @@ mod tests {
         trust_anchor: TrustAnchor,
         type_metadata: TypeMetadata,
     ) -> Result<(HttpIssuanceSession<MockVcMessageClient>, CredentialPreviewsWithMetadata), IssuanceSessionError> {
-        let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+        let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let mut mock_msg_client = mock_openid_message_client();
         mock_msg_client
@@ -1370,9 +1371,7 @@ mod tests {
         // Converting a `CredentialResponse` into an `Mdoc` using a different issuer
         // public key in the preview than is contained within the response should fail.
         let other_ca = Ca::generate_issuer_mock_ca().unwrap();
-        let other_issuance_key = other_ca
-            .generate_issuer_mock(IssuerRegistration::new_mock().into())
-            .unwrap();
+        let other_issuance_key = generate_issuer_mock(&other_ca, IssuerRegistration::new_mock().into()).unwrap();
         let preview = match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,

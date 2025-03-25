@@ -6,6 +6,7 @@ import '../../../../domain/model/event/wallet_event.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/organization_policy.dart';
 import '../../../../domain/model/policy/policy.dart';
+import '../../../../theme/base_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../../../util/extension/wallet_event_extension.dart';
@@ -18,6 +19,7 @@ import '../../../common/widget/card/shared_attributes_card.dart';
 import '../../../common/widget/sliver_divider.dart';
 import '../../../common/widget/sliver_sized_box.dart';
 import '../../../common/widget/text/body_text.dart';
+import '../../../common/widget/text/title_text.dart';
 import '../../../info/info_screen.dart';
 import '../../../organization/detail/organization_detail_screen.dart';
 import '../../../policy/policy_screen.dart';
@@ -58,9 +60,9 @@ class HistoryDetailCommonBuilders {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      BodyText(
+                      TitleText(
                         context.l10n.historyDetailScreenPurposeTitle,
-                        style: context.textTheme.headlineMedium,
+                        style: BaseWalletTheme.headlineExtraSmallTextStyle,
                       ),
                       const SizedBox(height: 8),
                       BodyText(event.purpose.l10nValue(context)),
@@ -134,9 +136,9 @@ class HistoryDetailCommonBuilders {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      BodyText(
+                      TitleText(
                         title,
-                        style: context.textTheme.headlineMedium,
+                        style: BaseWalletTheme.headlineExtraSmallTextStyle,
                       ),
                       const SizedBox(height: 8),
                       BodyText(
@@ -182,9 +184,9 @@ class HistoryDetailCommonBuilders {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      BodyText(
+                      TitleText(
                         context.l10n.historyDetailScreenTermsTitle,
-                        style: context.textTheme.headlineMedium,
+                        style: BaseWalletTheme.headlineExtraSmallTextStyle,
                       ),
                       const SizedBox(height: 8),
                       BodyText(
