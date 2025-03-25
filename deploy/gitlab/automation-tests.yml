@@ -247,12 +247,12 @@ run-performance-test-ont:
     - job: wallet-config-ont
       artifacts: true
   variables:
+    APPLE_ATTESTATION_ENVIRONMENT: "production"
     CONFIG_ENV: ont
     UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
     RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
     PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
     INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
-    APPLE_ATTESTATION_ENVIRONMENT: "production"
   script: wallet_core/tests_integration/run_performance_test.sh 50
   allow_failure: true
 

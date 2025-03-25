@@ -101,4 +101,4 @@ And run the actual test with:
 
 For mass accepting all `.snap.new` files, use the following command in the `tests/snapshots` folder:
 
-    for i in ./*.snap.new ; do mv "$i" $(echo "$i" | cut -d . -f1-3); done
+    for i in ./*.snap.new ; do mv "$i" "${i%%.new}; done

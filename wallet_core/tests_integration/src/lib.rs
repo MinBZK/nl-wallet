@@ -15,11 +15,24 @@ pub mod default {
     use apple_app_attest::AttestationEnvironment;
 
     pub fn attestation_environment() -> AttestationEnvironment {
-        AttestationEnvironment::Development
+        option_env!("APPLE_ATTESTATION_ENVIRONMENT")
+            .map(|environment| match environment {
+                "development" => AttestationEnvironment::Development,
+                "production" => AttestationEnvironment::Production,
+                _ => panic!("Invalid Apple attestation environment"),
+            })
+            .unwrap_or(AttestationEnvironment::Development)
     }
 
     pub fn app_identifier() -> AppIdentifier {
-        // This is the default iOS team and bundle identifier configured for the Wallet Provider.
-        AppIdentifier::new("XGL6UKBPLP", "nl.ictu.edi.wallet.latest")
+        let team_identifier = option_env!("TEAM_IDENTIFIER");
+        let bundle_identifier = option_env!("BUNDLE_IDENTIFIER");
+
+        // Create an iOS app identifier if both environment variables are provided, otherwise fall back to the default.
+        if let (Some(team_identifier), Some(bundle_identifier)) = (team_identifier, bundle_identifier) {
+            AppIdentifier::new(team_identifier, bundle_identifier)
+        } else {
+            AppIdentifier::new("XGL6UKBPLP", "nl.ictu.edi.wallet.latest")
+        }
     }
 }

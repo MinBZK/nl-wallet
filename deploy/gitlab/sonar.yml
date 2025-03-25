@@ -17,6 +17,8 @@ sonar-rust:
       artifacts: true
     - job: test-rust-doctest
       artifacts: false
+    - job: test-rust-gba-pid
+      artifacts: true
   script:
     - cd wallet_core
     - sonar-scanner
@@ -26,8 +28,8 @@ sonar-rust:
       -Dsonar.exclusions="target/**,platform_support/android/**,platform_support/ios/**,flutter_api/src/frb_generated.rs"
       -Dsonar.coverage.exclusions=flutter_api/src/frb_generated.rs,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/server_utils/migration/**
       -Dcommunity.rust.cpd.ignoretests=true
-      -Dcommunity.rust.lcov.reportPaths="lcov.info"
-      -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
+      -Dcommunity.rust.lcov.reportPaths="lcov*.info"
+      -Dcommunity.rust.test.reportPath="target/nextest/ci/junit*.xml"
   allow_failure: true
 
 sonar-flutter:
