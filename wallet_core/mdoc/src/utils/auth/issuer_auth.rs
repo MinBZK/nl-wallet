@@ -30,7 +30,7 @@ impl From<IssuerRegistration> for CertificateType {
     }
 }
 
-#[cfg(feature = "generate")]
+#[cfg(any(test, feature = "generate"))]
 impl TryFrom<IssuerRegistration> for Vec<rcgen::CustomExtension> {
     type Error = crypto::x509::CertificateError;
 
