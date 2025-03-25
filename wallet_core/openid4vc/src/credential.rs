@@ -53,7 +53,6 @@ impl WteDisclosure {
 
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#section-7.2>.
 /// Sent JSON-encoded to `POST /credential`.
-// TODO: add `wallet_attestation`, `wallet_attestation_pop`, and `proof_of_secure_combination` (PVW-2361, PVW-2362)
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialRequest {
