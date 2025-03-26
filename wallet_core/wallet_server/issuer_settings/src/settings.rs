@@ -17,6 +17,7 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use mdoc::utils::x509::CertificateType;
+use mdoc::AttestationQualification;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
 use sd_jwt::metadata::TypeMetadata;
@@ -59,6 +60,9 @@ pub struct AttestationTypeConfigSettings {
 
     pub valid_days: u64,
     pub copy_count: NonZeroU8,
+
+    #[serde(default)]
+    pub attestation_qualification: AttestationQualification,
 
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
@@ -120,6 +124,7 @@ impl AttestationTypesConfigSettings {
                         valid_days: Days::new(attestation.valid_days),
                         copy_count: attestation.copy_count,
                         issuer_uri: issuer_uri.clone(),
+                        attestation_qualification: attestation.attestation_qualification,
                         metadata,
                     },
                 ))

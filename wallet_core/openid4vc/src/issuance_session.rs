@@ -901,6 +901,7 @@ mod tests {
     use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
+    use mdoc::AttestationQualification;
     use mdoc::IssuerSigned;
     use sd_jwt::metadata::JsonSchemaPropertyType;
     use sd_jwt::metadata::TypeMetadata;
@@ -1413,6 +1414,42 @@ mod tests {
         assert_matches!(
             error,
             IssuanceSessionError::IssuedMdocMismatch(IssuedDocumentMismatchError::IssuedValidityInfoMismatch(_, _))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_credential_response_into_mdoc_issued_attestation_qualification_mismatch_error() {
+        let (credential_response, preview, trust_anchor, mdoc_public_key, _) = create_credential_response().await;
+
+        // Converting a `CredentialResponse` into an `Mdoc` with a different doc_type in the preview than contained
+        // within the response should fail.
+        let preview = match preview {
+            CredentialPreview::MsoMdoc {
+                mut unsigned_mdoc,
+                issuer_certificate,
+                metadata_chain,
+            } => {
+                unsigned_mdoc.attestation_qualification = AttestationQualification::PubEAA;
+                CredentialPreview::MsoMdoc {
+                    unsigned_mdoc,
+                    issuer_certificate,
+                    metadata_chain,
+                }
+            }
+        };
+
+        let error = credential_response
+            .into_credential::<MockRemoteEcdsaKey>("key_id".to_string(), &mdoc_public_key, &preview, &[trust_anchor])
+            .expect_err("should not be able to convert CredentialResponse into Mdoc");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::IssuedMdocMismatch(
+                IssuedDocumentMismatchError::IssuedAttestationQualificationMismatch(
+                    AttestationQualification::PubEAA,
+                    AttestationQualification::EAA,
+                )
+            )
         );
     }
 }

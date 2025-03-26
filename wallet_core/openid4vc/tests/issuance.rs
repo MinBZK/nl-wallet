@@ -102,6 +102,7 @@ fn setup(
                         .unwrap()
                         .first()
                         .clone(),
+                    attestation_qualification: Default::default(),
                     metadata: TypeMetadataChain::create(mock_type_metadata(doctype), vec![]).unwrap(),
                 },
             )

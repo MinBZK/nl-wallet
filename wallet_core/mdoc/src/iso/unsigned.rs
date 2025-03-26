@@ -15,6 +15,8 @@ use crate::DocType;
 use crate::NameSpace;
 use crate::Tdate;
 
+use super::AttestationQualification;
+
 #[nutype(
     derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),
     validate(predicate = |attributes|
@@ -42,6 +44,7 @@ pub struct UnsignedMdoc {
 
     /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate.
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
 }
 
 /// An attribute name and value.

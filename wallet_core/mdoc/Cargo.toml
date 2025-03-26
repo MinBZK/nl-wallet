@@ -48,7 +48,7 @@ serde-aux.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 serde_repr.workspace = true
 serde_urlencoded.workspace = true
-serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2"] }
+serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2", "macros"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 time.workspace = true

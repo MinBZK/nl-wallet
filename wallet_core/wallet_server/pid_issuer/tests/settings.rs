@@ -47,6 +47,7 @@ fn test_settings_no_issuer_registration() {
             keypair: issuer_cert_no_registration.into(),
             valid_days: 365,
             copy_count: 4.try_into().unwrap(),
+            attestation_qualification: Default::default(),
             certificate_san: None,
         },
     )])

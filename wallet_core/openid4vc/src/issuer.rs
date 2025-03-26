@@ -37,6 +37,7 @@ use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::utils::crypto::CryptoError;
 use mdoc::utils::serialization::CborError;
+use mdoc::AttestationQualification;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
@@ -289,6 +290,7 @@ pub struct AttestationTypeConfig<K> {
     pub valid_days: Days,
     pub copy_count: NonZeroU8,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
     pub metadata: TypeMetadataChain,
 }
 
@@ -648,6 +650,7 @@ impl Session<Created> {
                     valid_until.into(),
                     attestation_data.copy_count,
                     attestation_data.issuer_uri.clone(),
+                    attestation_data.attestation_qualification,
                 )?;
 
                 CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), &attestation_data.metadata)?;

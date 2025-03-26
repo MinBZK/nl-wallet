@@ -32,6 +32,7 @@ fn create_empty_unsigned_mdoc() -> UnsignedMdoc {
         .try_into()
         .unwrap(),
         issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
+        attestation_qualification: Default::default(),
     }
 }
 
