@@ -34,7 +34,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cfg-if.workspace = true
 ciborium.workspace = true
-derive_more = { workspace = true, features = ["debug"] }
+derive_more = { workspace = true, features = ["constructor", "debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 http.workspace = true
@@ -63,7 +63,7 @@ tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
-uuid = {workspace = true, features = [ "v4", "v7" ] }
+uuid = { workspace = true, features = ["v4", "v7"] }
 
 mockall = { workspace = true, optional = true }
 

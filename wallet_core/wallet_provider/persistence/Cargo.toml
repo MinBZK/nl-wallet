@@ -38,7 +38,7 @@ db_test = [
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ctor = { workspace = true, optional = true }
-derive_more = { workspace = true, features = ["constructor"] }
+derive_more = { workspace = true, features = ["from"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 rand_core = { workspace = true, optional = true }
 sea-orm = { workspace = true, features = [

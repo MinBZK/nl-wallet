@@ -1,4 +1,3 @@
-use derive_more::Constructor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -21,7 +20,7 @@ impl SubjectPayload for ChallengeRequestPayload {
 
 /// Sent to the Wallet Provider to request an instruction challenge. This
 /// is signed with either the device's hardware key or Apple attested key.
-#[derive(Debug, Serialize, Deserialize, Constructor)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
 
 #[serde_as]
