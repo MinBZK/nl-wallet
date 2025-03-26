@@ -39,6 +39,7 @@ dashmap.workspace = true
 derive_more = { workspace = true, features = [
     "debug",
     "display",
+    "constructor",
     "as_ref",
     "from",
     "from_str",

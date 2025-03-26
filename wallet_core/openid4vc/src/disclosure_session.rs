@@ -1,5 +1,6 @@
 use std::sync::LazyLock;
 
+use derive_more::Constructor;
 use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
@@ -165,7 +166,7 @@ impl VpMessageClientError {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Constructor)]
 #[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
 pub struct DisclosureError<E: std::error::Error> {
     pub data_shared: bool,
@@ -174,10 +175,6 @@ pub struct DisclosureError<E: std::error::Error> {
 }
 
 impl<E: std::error::Error> DisclosureError<E> {
-    pub fn new(data_shared: bool, error: E) -> Self {
-        Self { data_shared, error }
-    }
-
     pub fn before_sharing(error: E) -> Self {
         Self {
             data_shared: false,

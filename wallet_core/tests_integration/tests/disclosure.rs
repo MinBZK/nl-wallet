@@ -115,7 +115,7 @@ async fn test_disclosure_usecases_ok(
     // retain [`MockDigidSession::Context`]
     let _context = setup_digid_context();
 
-    let pin = "112233".to_string();
+    let pin = "112233";
     let (mut wallet, urls) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
@@ -125,8 +125,8 @@ async fn test_disclosure_usecases_ok(
         pid_issuer_settings(),
     )
     .await;
-    wallet = do_wallet_registration(wallet, pin.clone()).await;
-    wallet = do_pid_issuance(wallet, pin.clone()).await;
+    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let client = reqwest::Client::new();
 
@@ -183,7 +183,7 @@ async fn test_disclosure_usecases_ok(
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
     let return_url = wallet
-        .accept_disclosure(pin)
+        .accept_disclosure(pin.to_owned())
         .await
         .expect("Could not accept disclosure");
 
@@ -241,7 +241,7 @@ async fn test_disclosure_without_pid() {
         Ok((session, Url::parse("http://localhost/").unwrap()))
     });
 
-    let pin = "112233".to_string();
+    let pin = "112233";
     let (mut wallet, urls) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
@@ -251,7 +251,7 @@ async fn test_disclosure_without_pid() {
         pid_issuer_settings(),
     )
     .await;
-    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_wallet_registration(wallet, pin).await;
 
     let client = reqwest::Client::new();
 

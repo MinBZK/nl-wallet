@@ -11,6 +11,7 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
+use mdoc::AttestationQualification;
 use mdoc::NameSpace;
 use sd_jwt::metadata::TypeMetadata;
 use sd_jwt::metadata::TypeMetadataError;
@@ -40,6 +41,10 @@ pub enum CredentialPayloadError {
     #[error("mdoc is missing issuer URI")]
     #[category(critical)]
     MissingIssuerUri,
+
+    #[error("mdoc is missing attestation qualification")]
+    #[category(critical)]
+    MissingAttestationQualification,
 
     #[error("attribute error: {0}")]
     #[category(pd)]
@@ -73,6 +78,8 @@ pub struct CredentialPayload {
     #[serde_as(as = "Option<TimestampSeconds<i64>>")]
     pub not_before: Option<DateTime<Utc>>,
 
+    pub attestation_qualification: AttestationQualification,
+
     #[serde(flatten)]
     pub attributes: IndexMap<String, Attribute>,
 }
@@ -89,6 +96,7 @@ impl CredentialPayload {
             Some(Utc::now()),
             Some((&unsigned_mdoc.valid_until).try_into()?),
             Some((&unsigned_mdoc.valid_from).try_into()?),
+            unsigned_mdoc.attestation_qualification,
         )
     }
 
@@ -100,6 +108,9 @@ impl CredentialPayload {
             Some((&mdoc.mso.validity_info.signed).try_into()?),
             Some((&mdoc.mso.validity_info.valid_until).try_into()?),
             Some((&mdoc.mso.validity_info.valid_from).try_into()?),
+            mdoc.mso
+                .attestation_qualification
+                .ok_or(CredentialPayloadError::MissingAttestationQualification)?,
         )
     }
 
@@ -110,6 +121,7 @@ impl CredentialPayload {
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,
         not_before: Option<DateTime<Utc>>,
+        attestation_qualification: AttestationQualification,
     ) -> Result<Self, CredentialPayloadError> {
         let attributes = Attribute::from_mdoc_attributes(metadata, mdoc_attributes)?;
 
@@ -119,6 +131,7 @@ impl CredentialPayload {
             issued_at,
             expires,
             not_before,
+            attestation_qualification,
             attributes,
         };
 
@@ -155,6 +168,7 @@ mod test {
             issued_at: Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap()),
             expires: None,
             not_before: None,
+            attestation_qualification: "QEAA".parse().unwrap(),
             attributes: IndexMap::from([
                 (
                     String::from("birth_date"),
@@ -200,6 +214,7 @@ mod test {
             "vct": "com.example.pid",
             "iss": "https://com.example.org/pid/issuer",
             "iat": 61,
+            "attestation_qualification": "QEAA",
             "birth_date": "1963-08-12",
             "place_of_birth": {
                 "locality": "The Hague",

@@ -7,6 +7,7 @@ use config::Environment;
 use config::File;
 use crypto_common::Key;
 use crypto_common::KeySizeUser;
+use derive_more::From;
 use serde::de;
 use serde::Deserialize;
 use serde_with::base64::Base64;
@@ -65,15 +66,12 @@ impl HttpGbavClient {
     }
 }
 
+#[derive(From)]
 pub struct SymmetricKey {
     bytes: Vec<u8>,
 }
 
 impl SymmetricKey {
-    pub fn new(bytes: Vec<u8>) -> Self {
-        Self { bytes }
-    }
-
     pub fn key<B>(&self) -> &Key<B>
     where
         B: KeySizeUser,
@@ -86,7 +84,7 @@ impl<'de> Deserialize<'de> for SymmetricKey {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer)
             .map(hex::decode)?
-            .map(Self::new)
+            .map(Into::into)
             .map_err(de::Error::custom)
     }
 }

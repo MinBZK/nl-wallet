@@ -16,9 +16,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "family_name"
-      ],
+      "path": ["family_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -34,9 +32,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "given_name"
-      ],
+      "path": ["given_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -52,9 +48,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "nl-NL",
@@ -70,9 +64,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "age_over_18"
-      ],
+      "path": ["age_over_18"],
       "display": [
         {
           "lang": "nl-NL",
@@ -88,9 +80,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "bsn"
-      ],
+      "path": ["bsn"],
       "display": [
         {
           "lang": "nl-NL",
@@ -145,14 +135,12 @@
       },
       "exp": {
         "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "exp"
-    ],
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"],
     "additionalProperties": false
   }
 }

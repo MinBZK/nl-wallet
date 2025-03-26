@@ -26,7 +26,7 @@ async fn test_wallet_registration(
     .await;
 
     let before = wallet_user_count(&connection).await;
-    do_wallet_registration(wallet, String::from("123344")).await;
+    do_wallet_registration(wallet, "123344").await;
     let after = wallet_user_count(&connection).await;
 
     assert_eq!(before + 1, after);
@@ -49,7 +49,7 @@ async fn test_registration_blocked() {
     )
     .await;
 
-    let result = wallet.register("123344".to_owned()).await;
+    let result = wallet.register("123344").await;
     assert!(wallet.is_blocked());
 
     assert!(matches!(result, Err(WalletRegistrationError::VersionBlocked)));

@@ -144,7 +144,10 @@ where
 
         let challenge = self.instruction_challenge::<I>(&mut storage).await?;
 
-        let pin_key = PinKey::new(&self.pin, &self.parameters.registration.pin_salt);
+        let pin_key = PinKey {
+            pin: &self.pin,
+            salt: &self.parameters.registration.pin_salt,
+        };
 
         let instruction = construct(challenge.clone()).await?;
 

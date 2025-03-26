@@ -122,7 +122,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn register(&mut self, pin: String) -> Result<(), WalletRegistrationError>
+    pub async fn register(&mut self, pin: &str) -> Result<(), WalletRegistrationError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -151,7 +151,7 @@ where
 
         // Make sure the PIN adheres to the requirements.
         // TODO: do not keep PIN in memory while request is in flight (PVW-1290)
-        validate_pin(&pin).map_err(WalletRegistrationError::InvalidPin)?;
+        validate_pin(pin).map_err(WalletRegistrationError::InvalidPin)?;
 
         info!("Requesting challenge from account server");
 
@@ -227,7 +227,7 @@ where
         // Create a registration message and double sign it with the challenge.
         // Generate a new PIN salt and derive the private key from the provided PIN.
         let pin_salt = pin_key::new_pin_salt();
-        let pin_key = PinKey::new(&pin, &pin_salt);
+        let pin_key = PinKey { pin, salt: &pin_salt };
 
         // Sign the registration message based on the attestation type.
         let (registration_message, attested_key) = match key_with_attestation {
@@ -437,10 +437,7 @@ mod tests {
             });
 
         // Register the wallet with a valid PIN.
-        wallet
-            .register(PIN.to_string())
-            .await
-            .expect("Could not register wallet");
+        wallet.register(PIN).await.expect("Could not register wallet");
 
         // The wallet should now report that it is registered and unlocked.
         assert!(wallet.has_registration());
@@ -511,7 +508,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -525,7 +522,7 @@ mod tests {
 
         // Try to register with an insecure PIN.
         let error = wallet
-            .register("123456".to_string())
+            .register("123456")
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -545,7 +542,7 @@ mod tests {
             .return_once(|_| Err(AccountProviderResponseError::Status(StatusCode::INTERNAL_SERVER_ERROR).into()));
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -575,7 +572,7 @@ mod tests {
         wallet.key_holder.error_scenario = error_scenario;
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -626,7 +623,7 @@ mod tests {
         wallet.key_holder.error_scenario = KeyHolderErrorScenario::RetryableAttestationError;
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -662,7 +659,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -687,7 +684,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::UNAUTHORIZED).into()));
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -727,7 +724,7 @@ mod tests {
             });
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -753,7 +750,7 @@ mod tests {
             });
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
@@ -783,7 +780,7 @@ mod tests {
         wallet.storage.write().await.set_keyed_data_error(RegistrationData::KEY);
 
         let error = wallet
-            .register(PIN.to_string())
+            .register(PIN)
             .await
             .expect_err("Wallet registration should have resulted in error");
 
