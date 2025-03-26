@@ -38,5 +38,5 @@ ring = { workspace = true, optional = true }
 crypto = { path = "../crypto" }
 mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
-sd_jwt.path = "../sd_jwt"
+sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wallet_common = { path = "../wallet_common", features = ["axum"] }

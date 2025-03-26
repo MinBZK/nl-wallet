@@ -1,6 +1,6 @@
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
-use sd_jwt::metadata_chain::TypeMetadataChainError;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::holder::HolderError;
 use crate::utils::cose::CoseError;

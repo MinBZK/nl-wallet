@@ -2,7 +2,7 @@ use itertools::Itertools;
 use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 
-use sd_jwt::metadata_chain::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::token::CredentialPreview;

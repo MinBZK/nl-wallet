@@ -50,12 +50,12 @@ use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
 use poa::Poa;
 use poa::PoaPayload;
-use sd_jwt::metadata::ClaimMetadata;
-use sd_jwt::metadata::ClaimPath;
-use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::UncheckedTypeMetadata;
-use sd_jwt::metadata_chain::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::ClaimMetadata;
+use sd_jwt_vc_metadata::ClaimPath;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 

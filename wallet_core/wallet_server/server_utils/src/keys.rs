@@ -9,7 +9,7 @@ use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt_vc_metadata::TypeMetadataError;
 
 use crate::settings::PrivateKey;
 

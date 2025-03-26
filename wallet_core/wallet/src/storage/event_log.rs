@@ -222,8 +222,8 @@ mod test {
     use mdoc::unsigned::UnsignedMdoc;
     use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::DataElementValue;
-    use sd_jwt::metadata::JsonSchemaPropertyType;
-    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::issuance;
 

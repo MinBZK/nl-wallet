@@ -12,8 +12,8 @@ use mdoc::holder::Mdoc;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::NameSpace;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataError;
 use wallet_common::urls::HttpsUri;
 
 use crate::attributes::Attribute;
@@ -141,7 +141,7 @@ mod test {
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
-    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;

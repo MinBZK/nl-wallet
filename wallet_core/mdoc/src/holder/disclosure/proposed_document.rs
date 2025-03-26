@@ -4,7 +4,7 @@ use indexmap::IndexSet;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
 
 use crate::errors::Result;
 use crate::identifiers::AttributeIdentifier;
@@ -205,7 +205,7 @@ impl<I> ProposedDocument<I> {
 #[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::holder::Mdoc;
 

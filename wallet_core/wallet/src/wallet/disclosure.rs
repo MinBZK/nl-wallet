@@ -575,8 +575,8 @@ mod tests {
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
-    use sd_jwt::metadata::JsonSchemaPropertyType;
-    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;

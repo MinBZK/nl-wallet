@@ -1,5 +1,5 @@
 [package]
-name = "sd_jwt"
+name = "sd_jwt_vc_metadata"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -37,8 +37,8 @@ use mdoc::utils::serialization::TaggedBytes;
 use mdoc::ATTR_RANDOM_LENGTH;
 use poa::factory::PoaFactory;
 use poa::Poa;
-use sd_jwt::metadata_chain::TypeMetadataChainError;
-use sd_jwt::metadata_chain::UnverifiedTypeMetadataChain;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
+use sd_jwt_vc_metadata::UnverifiedTypeMetadataChain;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
@@ -947,9 +947,9 @@ mod tests {
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::IssuerSigned;
-    use sd_jwt::metadata::JsonSchemaPropertyType;
-    use sd_jwt::metadata::TypeMetadata;
-    use sd_jwt::metadata_chain::TypeMetadataDocuments;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
     use crate::token::TokenResponse;
 

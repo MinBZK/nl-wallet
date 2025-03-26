@@ -27,7 +27,7 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt_vc_metadata::TypeMetadataError;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
@@ -497,7 +497,7 @@ mod tests {
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt::metadata_chain::TypeMetadataDocuments;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use crate::issuance;

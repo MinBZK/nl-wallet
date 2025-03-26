@@ -7,8 +7,8 @@ use crypto::server_keys::generate::Ca;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata_chain::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_common::urls::HttpsUri;
 
 use crate::identifiers::AttributeIdentifier;
