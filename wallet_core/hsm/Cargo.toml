@@ -9,22 +9,9 @@ workspace = true
 
 [features]
 # Include mock implementations and constructors for testing
-mock = [
-     "dep:dashmap",
-     "dep:hmac",
-     "dep:rand",
-     "dep:sha2",
-]
-settings = [
-    "dep:serde",
-    "dep:serde_with",
-]
-test = [
-    "dep:async-dropper",
-    "dep:async-trait",
-    "dep:config",
-    "dep:rand_core",
-]
+mock = ["dep:dashmap", "dep:hmac", "dep:rand", "dep:sha2"]
+settings = ["dep:serde", "dep:serde_with"]
+test = ["dep:async-dropper", "dep:async-trait", "dep:config", "dep:rand_core"]
 
 [[test]]
 name = "hsm"
@@ -34,6 +21,7 @@ required-features = ["settings", "test"]
 [dependencies]
 cryptoki.workspace = true
 der = { workspace = true, features = ["std"] }
+derive_more = { workspace = true, features = ["constructor"] }
 p256 = { workspace = true, features = ["ecdsa", "std"] }
 r2d2-cryptoki.workspace = true
 sec1.workspace = true

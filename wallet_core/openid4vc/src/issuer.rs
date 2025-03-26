@@ -678,8 +678,8 @@ impl Session<Created> {
 }
 
 impl TokenResponse {
-    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> TokenResponse {
-        TokenResponse {
+    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> Self {
+        Self {
             access_token,
             c_nonce: Some(c_nonce),
             token_type: TokenType::DPoP,

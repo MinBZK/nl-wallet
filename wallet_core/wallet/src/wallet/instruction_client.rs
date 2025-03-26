@@ -31,7 +31,7 @@ where
     /// will try to finalize any unfinished PIN change process.
     pub(super) async fn new_instruction_client(
         &self,
-        pin: String,
+        pin: &str,
         attested_key: Arc<AttestedKey<AKH::AppleKey, AKH::GoogleKey>>,
         registration_data: RegistrationData,
         client_config: TlsPinningConfig,
@@ -40,11 +40,11 @@ where
         tracing::info!("Try to finalize PIN change if it is in progress");
 
         if self.storage.get_change_pin_state().await?.is_some() {
-            self.continue_change_pin(pin.clone()).await?;
+            self.continue_change_pin(pin).await?;
         }
 
         let client = InstructionClient::new(
-            pin,
+            pin.to_owned(),
             Arc::clone(&self.storage),
             attested_key,
             Arc::clone(&self.account_provider_client),

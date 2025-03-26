@@ -1,3 +1,4 @@
+use derive_more::Constructor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
@@ -20,7 +21,7 @@ impl SubjectPayload for ChallengeRequestPayload {
 
 /// Sent to the Wallet Provider to request an instruction challenge. This
 /// is signed with either the device's hardware key or Apple attested key.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct ChallengeRequest(SignedSubjectMessage<ChallengeRequestPayload>);
 
 #[serde_as]
@@ -60,16 +61,6 @@ pub mod client {
     use super::ChallengeResponsePayload;
     use super::SignedSubjectMessage;
 
-    impl ChallengeRequestPayload {
-        pub fn new(wallet_id: String, sequence_number: u64, instruction_name: String) -> Self {
-            ChallengeRequestPayload {
-                wallet_id,
-                sequence_number,
-                instruction_name,
-            }
-        }
-    }
-
     impl ChallengeRequest {
         pub async fn sign_apple<K>(
             wallet_id: String,
@@ -80,7 +71,11 @@ pub mod client {
         where
             K: AppleAttestedKey,
         {
-            let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
+            let challenge_request = ChallengeRequestPayload {
+                wallet_id,
+                sequence_number,
+                instruction_name,
+            };
             let signed = SignedSubjectMessage::sign_apple(challenge_request, attested_key).await?;
 
             Ok(Self(signed))
@@ -95,7 +90,11 @@ pub mod client {
         where
             K: SecureEcdsaKey,
         {
-            let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
+            let challenge_request = ChallengeRequestPayload {
+                wallet_id,
+                sequence_number,
+                instruction_name,
+            };
             let signed =
                 SignedSubjectMessage::sign_ecdsa(challenge_request, EcdsaSignatureType::Google, hardware_signing_key)
                     .await?;

@@ -99,7 +99,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             android_config,
             google_crl_client,
             play_integrity_client,
-        )?;
+        );
 
         let db = Db::new(
             settings.database.connection_string(),

@@ -64,11 +64,7 @@ pub struct PinKey<'a> {
     pub salt: &'a [u8],
 }
 
-impl<'a> PinKey<'a> {
-    pub fn new(pin: &'a str, salt: &'a [u8]) -> Self {
-        PinKey { pin, salt }
-    }
-
+impl PinKey<'_> {
     pub fn verifying_key(&self) -> Result<VerifyingKey, PinKeyError> {
         let signing_key = pin_private_key(self.salt, self.pin)?;
         let verifying_key = *signing_key.verifying_key();
@@ -195,10 +191,10 @@ mod tests {
     #[tokio::test]
     async fn it_works() {
         let pin = "123456";
-        let salt = new_pin_salt();
+        let salt = &new_pin_salt();
         let challenge = b"challenge";
 
-        let pin_key = PinKey::new(pin, &salt);
+        let pin_key = PinKey { pin, salt };
         let public_key = pin_key.verifying_key().expect("Cannot get public key from PIN key");
         let response = pin_key
             .try_sign(challenge)

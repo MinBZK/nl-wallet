@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Constructor;
 use p256::ecdsa::VerifyingKey;
 use uuid;
 use uuid::Uuid;
@@ -23,13 +24,8 @@ use crate::transaction::Transaction;
 use crate::wallet_user;
 use crate::wallet_user_key;
 
+#[derive(Constructor)]
 pub struct Repositories(Db);
-
-impl Repositories {
-    pub fn new(db: Db) -> Self {
-        Self(db)
-    }
-}
 
 impl TransactionStarter for Repositories {
     type TransactionType = Transaction;

@@ -5,6 +5,7 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Constructor;
 use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
@@ -339,6 +340,7 @@ pub struct AccountServerKeys {
     pub pin_public_disclosure_protection_key_identifier: String,
 }
 
+#[derive(Constructor)]
 pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityClient> {
     pub name: String,
     instruction_challenge_timeout: Duration,
@@ -356,38 +358,7 @@ pub struct UserState<R, H, W> {
     pub wrapping_key_identifier: String,
 }
 
-impl<R, H, W> UserState<R, H, W> {
-    pub fn new(repositories: R, wallet_user_hsm: H, wte_issuer: W, wrapping_key_identifier: String) -> Self {
-        Self {
-            repositories,
-            wallet_user_hsm,
-            wte_issuer,
-            wrapping_key_identifier,
-        }
-    }
-}
-
 impl<GRC, PIC> AccountServer<GRC, PIC> {
-    pub fn new(
-        name: String,
-        instruction_challenge_timeout: Duration,
-        keys: AccountServerKeys,
-        apple_config: AppleAttestationConfiguration,
-        android_config: AndroidAttestationConfiguration,
-        google_crl_client: GRC,
-        play_integrity_client: PIC,
-    ) -> Result<Self, AccountServerInitError> {
-        Ok(AccountServer {
-            instruction_challenge_timeout,
-            name,
-            keys,
-            apple_config,
-            android_config,
-            google_crl_client,
-            play_integrity_client,
-        })
-    }
-
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
     pub async fn registration_challenge(
@@ -1226,7 +1197,6 @@ pub mod mock {
             crl,
             integrity_client,
         )
-        .unwrap()
     }
 
     pub type MockUserState = UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWteIssuer>;
