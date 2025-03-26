@@ -5,8 +5,6 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Write;
 
-use derive_more::AsRef;
-use derive_more::From;
 use http::Uri;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
@@ -20,6 +18,7 @@ use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use ssri::Integrity;
 
+use wallet_common::spec::SpecOptional;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -35,19 +34,6 @@ pub enum TypeMetadataError {
 
     #[error("detected claim path collision: {0}")]
     ClaimPathCollision(String),
-}
-
-/// Communicates that a type is optional in the specification it is derived from but implemented as mandatory due to
-/// various reasons.
-#[derive(Debug, Clone, PartialEq, Eq, From, AsRef, Serialize, Deserialize)]
-pub struct SpecOptionalImplRequired<T>(T);
-
-impl<T> SpecOptionalImplRequired<T> {
-    pub fn into_inner(self) -> T {
-        let SpecOptionalImplRequired(inner) = self;
-
-        inner
-    }
 }
 
 /// SD-JWT VC type metadata document.
@@ -157,7 +143,7 @@ pub struct MetadataExtends {
     ///   starts from a digest included in a signed section of the attestation acts as a de facto signature, protecting
     ///   against tampering. In SD-JWT the `vct#integrity` claim would contain this first digest.
     #[serde(rename = "extends#integrity")]
-    pub extends_integrity: SpecOptionalImplRequired<Integrity>,
+    pub extends_integrity: SpecOptional<Integrity>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -176,7 +162,7 @@ pub enum SchemaOption {
         /// if the schema is to be fetched from an external URI, in order to check that this matches the
         /// contents as intended by the issuer.
         #[serde(rename = "schema_uri#integrity")]
-        schema_uri_integrity: SpecOptionalImplRequired<Integrity>,
+        schema_uri_integrity: SpecOptional<Integrity>,
     },
 }
 
@@ -324,11 +310,11 @@ pub struct LogoMetadata {
     /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended
     /// by the issuer.
     #[serde(rename = "uri#integrity")]
-    pub uri_integrity: SpecOptionalImplRequired<Integrity>,
+    pub uri_integrity: SpecOptional<Integrity>,
 
     /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
     /// because of accessibility requirements.
-    pub alt_text: SpecOptionalImplRequired<String>,
+    pub alt_text: SpecOptional<String>,
 }
 
 #[skip_serializing_none]

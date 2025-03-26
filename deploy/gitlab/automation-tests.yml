@@ -124,6 +124,8 @@ run-automation-smoke-test-ont:
   needs:
     - job: upload-browserstack-android-app-ont
       artifacts: false
+    - job: deploy-gba-hc-converter-ont
+      artifacts: false
     - job: deploy-mock-relying-party-ont
       artifacts: false
     - job: deploy-wallet-provider-ont
@@ -238,6 +240,8 @@ run-performance-test-ont:
   rules: !reference [.default-branch, rules]
   extends: [.rust, .env-ont-k8s]
   needs:
+    - job: deploy-gba-hc-converter-ont
+      artifacts: false
     - job: deploy-mock-relying-party-ont
       artifacts: false
     - job: deploy-wallet-provider-ont
