@@ -21,13 +21,13 @@ async fn test_unlock_ok(#[values(WalletDeviceVendor::Apple, WalletDeviceVendor::
     wallet.lock();
     assert!(wallet.is_locked());
 
-    wallet.unlock(pin).await.expect("Should unlock wallet");
+    wallet.unlock(pin.to_owned()).await.expect("Should unlock wallet");
     assert!(!wallet.is_locked());
 
     wallet.lock();
 
     // Test multiple instructions
-    wallet.unlock(pin).await.expect("Should unlock wallet");
+    wallet.unlock(pin.to_owned()).await.expect("Should unlock wallet");
     assert!(!wallet.is_locked());
 }
 
@@ -56,7 +56,7 @@ async fn test_block() {
     assert!(wallet.is_locked());
 
     let result = wallet
-        .unlock("555555")
+        .unlock("555555".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -69,13 +69,16 @@ async fn test_block() {
     assert!(wallet.is_locked());
 
     let result = wallet
-        .unlock("555556")
+        .unlock("555556".to_owned())
         .await
         .expect_err("invalid pin should block wallet");
     assert_matches!(result, WalletUnlockError::Instruction(InstructionError::Blocked));
     assert!(wallet.is_locked());
 
-    let result = wallet.unlock("112234").await.expect_err("wallet should be blocked");
+    let result = wallet
+        .unlock("112234".to_owned())
+        .await
+        .expect_err("wallet should be blocked");
     assert_matches!(result, WalletUnlockError::Instruction(InstructionError::Blocked));
     assert!(wallet.is_locked());
 }
@@ -91,7 +94,7 @@ async fn test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r1 = wallet
-        .unlock("555555")
+        .unlock("555555".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -104,7 +107,7 @@ async fn test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r2 = wallet
-        .unlock("555556")
+        .unlock("555556".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -117,7 +120,7 @@ async fn test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r3 = wallet
-        .unlock("555557")
+        .unlock("555557".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -133,7 +136,7 @@ async fn test_unlock_error() {
     sleep(Duration::from_millis(200)).await;
 
     let r4 = wallet
-        .unlock("555557")
+        .unlock("555557".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -143,7 +146,7 @@ async fn test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r5 = wallet
-        .unlock("555557")
+        .unlock("555557".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(r5, WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis: t }) if t < 200);
@@ -152,7 +155,7 @@ async fn test_unlock_error() {
     sleep(Duration::from_millis(200)).await;
 
     let r6 = wallet
-        .unlock("555557")
+        .unlock("555557".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -165,7 +168,7 @@ async fn test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r7 = wallet
-        .unlock("555557")
+        .unlock("555557".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -178,7 +181,7 @@ async fn test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r8 = wallet
-        .unlock("555557")
+        .unlock("555557".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -191,7 +194,7 @@ async fn test_unlock_error() {
     assert!(wallet.is_locked());
 
     let r8 = wallet
-        .unlock("555557")
+        .unlock("555557".to_owned())
         .await
         .expect_err("invalid pin should return error");
     assert_matches!(
@@ -202,6 +205,6 @@ async fn test_unlock_error() {
 
     sleep(Duration::from_millis(400)).await;
 
-    wallet.unlock(pin).await.expect("should unlock wallet");
+    wallet.unlock(pin.to_owned()).await.expect("should unlock wallet");
     assert!(!wallet.is_locked());
 }

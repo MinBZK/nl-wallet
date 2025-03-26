@@ -103,7 +103,7 @@ async fn main() {
         .expect("Could not continue pid issuance");
 
     wallet
-        .accept_pid_issuance(pin)
+        .accept_pid_issuance(pin.to_owned())
         .await
         .expect("Could not accept pid issuance");
 
@@ -170,7 +170,7 @@ async fn main() {
     assert_eq!(proposal.attestations.len(), 1);
 
     let return_url = wallet
-        .accept_disclosure(pin)
+        .accept_disclosure(pin.to_owned())
         .await
         .expect("Could not accept disclosure");
 

@@ -555,7 +555,7 @@ pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> W
     wallet
 }
 
-pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: &str) -> WalletWithMocks {
+pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> WalletWithMocks {
     let redirect_url = wallet
         .create_pid_issuance_auth_url()
         .await

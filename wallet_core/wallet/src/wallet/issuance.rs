@@ -335,7 +335,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_pid_issuance(&mut self, pin: &str) -> Result<(), PidIssuanceError>
+    pub async fn accept_pid_issuance(&mut self, pin: String) -> Result<(), PidIssuanceError>
     where
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
         S: Storage,
@@ -377,7 +377,7 @@ where
 
         let remote_instruction = self
             .new_instruction_client(
-                pin.to_owned(),
+                pin,
                 Arc::clone(attested_key),
                 registration_data.clone(),
                 config.account_server.http_config.clone(),
@@ -892,7 +892,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect("Could not accept PID issuance");
 
@@ -950,7 +950,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         let error = wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -971,7 +971,7 @@ mod tests {
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -987,7 +987,7 @@ mod tests {
 
         // Accepting PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1005,7 +1005,7 @@ mod tests {
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1033,7 +1033,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1112,7 +1112,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1137,7 +1137,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN)
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 

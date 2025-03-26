@@ -344,7 +344,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_disclosure(&mut self, pin: &str) -> Result<Option<Url>, DisclosureError>
+    pub async fn accept_disclosure(&mut self, pin: String) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
         UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
@@ -419,7 +419,7 @@ where
 
         let remote_instruction = self
             .new_instruction_client(
-                pin.to_owned(),
+                pin,
                 Arc::clone(attested_key),
                 registration_data.clone(),
                 config.account_server.http_config.clone(),
@@ -1114,7 +1114,7 @@ mod tests {
 
         // Accepting disclosure should succeed and give us the return URL.
         let accept_result = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect("Could not accept disclosure");
 
@@ -1168,7 +1168,7 @@ mod tests {
 
         // Accepting disclosure on a locked wallet should result in an error.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1203,7 +1203,7 @@ mod tests {
 
         // Accepting disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1230,7 +1230,7 @@ mod tests {
         // Accepting disclosure on a wallet without an active
         // disclosure session should result in an error.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1253,7 +1253,7 @@ mod tests {
         // Accepting disclosure on a wallet that has a disclosure session
         // with missing attributes should result in an error.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1307,7 +1307,7 @@ mod tests {
         // Accepting disclosure when the verifier responds with
         // an invalid request error should result in an error.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1369,7 +1369,7 @@ mod tests {
         // Accepting disclosure when the wallet provider responds that key with
         // a particular identifier is not present should result in an error.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1447,7 +1447,7 @@ mod tests {
         // Accepting disclosure when the verifier responds with an `InstructionError` indicating
         // that the account is blocked should result in a `DisclosureError::Instruction` error.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1549,7 +1549,7 @@ mod tests {
         // Accepting disclosure when the verifier responds with an error indicating that
         // attributes were shared should result in a disclosure event being recorded.
         let error = wallet
-            .accept_disclosure(PIN)
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 

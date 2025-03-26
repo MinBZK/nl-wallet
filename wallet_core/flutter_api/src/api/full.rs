@@ -148,7 +148,7 @@ pub async fn clear_recent_history_stream() {
 }
 
 #[flutter_api_error]
-pub async fn unlock_wallet(pin: &str) -> anyhow::Result<WalletInstructionResult> {
+pub async fn unlock_wallet(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
     let result = wallet.unlock(pin).await.try_into()?;
@@ -163,7 +163,7 @@ pub async fn lock_wallet() {
 }
 
 #[flutter_api_error]
-pub async fn check_pin(pin: &str) -> anyhow::Result<WalletInstructionResult> {
+pub async fn check_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let wallet = wallet().read().await;
 
     let result = wallet.check_pin(pin).await.try_into()?;
@@ -242,7 +242,7 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Attestatio
 }
 
 #[flutter_api_error]
-pub async fn accept_pid_issuance(pin: &str) -> anyhow::Result<WalletInstructionResult> {
+pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_pid_issuance(pin).await.try_into()?;
@@ -284,7 +284,7 @@ pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
 }
 
 #[flutter_api_error]
-pub async fn accept_disclosure(pin: &str) -> anyhow::Result<AcceptDisclosureResult> {
+pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureResult> {
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_disclosure(pin).await.try_into()?;

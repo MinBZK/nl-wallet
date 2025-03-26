@@ -60,7 +60,7 @@ fn wire__crate__api__full__accept_disclosure_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::accept_disclosure(&api_pin).await?;
+                        let output_ok = crate::api::full::accept_disclosure(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -84,7 +84,7 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::accept_pid_issuance(&api_pin).await?;
+                        let output_ok = crate::api::full::accept_pid_issuance(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -174,7 +174,7 @@ fn wire__crate__api__full__check_pin_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::check_pin(&api_pin).await?;
+                        let output_ok = crate::api::full::check_pin(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -853,7 +853,7 @@ fn wire__crate__api__full__unlock_wallet_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::unlock_wallet(&api_pin).await?;
+                        let output_ok = crate::api::full::unlock_wallet(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
