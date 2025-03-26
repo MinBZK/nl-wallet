@@ -6,6 +6,7 @@ use std::fmt::Formatter;
 use std::fmt::Write;
 
 use http::Uri;
+use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
@@ -34,6 +35,16 @@ pub enum TypeMetadataError {
 
     #[error("detected claim path collision: {0}")]
     ClaimPathCollision(String),
+
+    #[error("detected duplicate display metadata language(s): {}", .0.join(", "))]
+    DuplicateDisplayLanguages(Vec<String>),
+
+    #[error(
+        "detected duplicate claim display metadata language(s) at path {}: {}",
+        ClaimMetadata::path_to_string(.0.as_ref()),
+        .1.join(", ")
+    )]
+    DuplicateClaimDisplayLanguages(VecNonEmpty<ClaimPath>, Vec<String>),
 }
 
 /// SD-JWT VC type metadata document.
@@ -88,7 +99,10 @@ pub struct TypeMetadata(UncheckedTypeMetadata);
 
 impl UncheckedTypeMetadata {
     pub fn check_metadata_consistency(unchecked_metadata: &UncheckedTypeMetadata) -> Result<(), TypeMetadataError> {
-        unchecked_metadata.detect_path_collisions()
+        unchecked_metadata.detect_path_collisions()?;
+        unchecked_metadata.detect_duplicate_languages()?;
+
+        Ok(())
     }
 
     fn detect_path_collisions(&self) -> Result<(), TypeMetadataError> {
@@ -110,6 +124,25 @@ impl UncheckedTypeMetadata {
             }
 
             paths.insert(flattened_key);
+        }
+
+        Ok(())
+    }
+
+    fn detect_duplicate_languages(&self) -> Result<(), TypeMetadataError> {
+        let duplicates = self
+            .display
+            .iter()
+            .duplicates_by(|display| display.lang.as_str())
+            .map(|display| display.lang.clone())
+            .collect_vec();
+
+        if !duplicates.is_empty() {
+            return Err(TypeMetadataError::DuplicateDisplayLanguages(duplicates));
+        }
+
+        for claim in &self.claims {
+            claim.detect_duplicate_languages()?;
         }
 
         Ok(())
@@ -331,6 +364,39 @@ pub struct ClaimMetadata {
     pub svg_id: Option<String>,
 }
 
+impl ClaimMetadata {
+    fn path_to_string(path: &[ClaimPath]) -> String {
+        path.iter().fold(String::new(), |mut output, path| {
+            let _ = write!(output, "[{path}]");
+            output
+        })
+    }
+
+    fn detect_duplicate_languages(&self) -> Result<(), TypeMetadataError> {
+        let duplicates = self
+            .display
+            .iter()
+            .duplicates_by(|display| &display.lang)
+            .map(|display| display.lang.clone())
+            .collect_vec();
+
+        if !duplicates.is_empty() {
+            return Err(TypeMetadataError::DuplicateClaimDisplayLanguages(
+                self.path.clone(),
+                duplicates,
+            ));
+        }
+
+        Ok(())
+    }
+}
+
+impl Display for ClaimMetadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", Self::path_to_string(self.path.as_ref()))
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ClaimPath {
@@ -362,19 +428,6 @@ impl Display for ClaimPath {
             ClaimPath::SelectAll => f.write_str("*"),
             ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
         }
-    }
-}
-
-impl Display for ClaimMetadata {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.path.iter().fold(String::new(), |mut output, p| {
-                let _ = write!(output, "[{p}]");
-                output
-            })
-        )
     }
 }
 
@@ -541,6 +594,7 @@ mod test {
     use jsonschema::ValidationError;
     use rstest::rstest;
     use serde_json::json;
+    use wallet_common::vec_at_least::VecNonEmpty;
 
     use super::ClaimPath;
     use super::MetadataExtends;
@@ -721,5 +775,86 @@ mod test {
         .expect_err("Should fail deserializing type metadata because of path collision");
 
         assert!(result.to_string().contains("detected claim path collision"));
+    }
+
+    fn duplicate_display_language_metadata_json() -> serde_json::Value {
+        json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "display": [
+                { "lang": "en", "name": "Name" },
+                { "lang": "en", "name": "Other name" }
+            ],
+            "claims": [],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        })
+    }
+
+    #[test]
+    fn test_error_duplicate_display_languages() {
+        let error = serde_json::from_value::<UncheckedTypeMetadata>(duplicate_display_language_metadata_json())
+            .unwrap()
+            .detect_duplicate_languages()
+            .expect_err("duplicate display metadata languages should result in an error");
+
+        assert_matches!(error, TypeMetadataError::DuplicateDisplayLanguages(duplicates) if duplicates == vec!["en"]);
+    }
+
+    #[test]
+    fn test_deserialize_type_metadata_error_duplicate_display_languages() {
+        let error = serde_json::from_value::<TypeMetadata>(duplicate_display_language_metadata_json())
+            .expect_err("deserializing duplicate display metadata languages should result in an error");
+
+        assert!(error
+            .to_string()
+            .contains("detected duplicate display metadata language(s)"));
+    }
+
+    fn duplicate_claim_display_language_metadata_json() -> serde_json::Value {
+        json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                {
+                    "path": ["address.street"],
+                    "display": [
+                        { "lang": "en", "label": "Street" },
+                        { "lang": "en", "label": "Street name" }
+                    ],
+                },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        })
+    }
+
+    #[test]
+    fn test_error_duplicate_claim_display_languages() {
+        let error = serde_json::from_value::<UncheckedTypeMetadata>(duplicate_claim_display_language_metadata_json())
+            .unwrap()
+            .detect_duplicate_languages()
+            .expect_err("duplicate claim display metadata languages should result in an error");
+
+        let expected_path = VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("address.street".to_string())]).unwrap();
+        assert_matches!(
+            error,
+            TypeMetadataError::DuplicateClaimDisplayLanguages(path, duplicates)
+                if path == expected_path && duplicates == vec!["en"]
+        );
+    }
+
+    #[test]
+    fn test_deserialize_type_metadata_error_duplicate_claim_display_languages() {
+        let error = serde_json::from_value::<TypeMetadata>(duplicate_claim_display_language_metadata_json())
+            .expect_err("deserializing duplicate claim display metadata languages should result in an error");
+
+        assert!(error
+            .to_string()
+            .contains("detected duplicate claim display metadata language(s)"));
     }
 }
