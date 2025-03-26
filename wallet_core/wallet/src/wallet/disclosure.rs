@@ -419,7 +419,7 @@ where
 
         let remote_instruction = self
             .new_instruction_client(
-                pin,
+                pin.to_owned(),
                 Arc::clone(attested_key),
                 registration_data.clone(),
                 config.account_server.http_config.clone(),
