@@ -16,7 +16,7 @@ lint-rust:
 .test-rust:
   extends: .rust
   tags:
-    - wallet-ci
+    - linux
   variables:
     NEXTEST_PROFILE: "ci"
   before_script:

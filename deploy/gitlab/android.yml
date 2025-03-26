@@ -29,7 +29,7 @@
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
   extends: .ruby-cache
   tags:
-    - wallet-ci
+    - linux
   needs:
     - job: test-flutter
       artifacts: false
