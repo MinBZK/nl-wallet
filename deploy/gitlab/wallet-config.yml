@@ -14,7 +14,7 @@
 
 wallet-config-ont:
   extends: .wallet-config
-  rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.default-branch, rules]
   variables:
     WALLET_ENV: ont
     STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ONT

@@ -15,7 +15,6 @@ lint-rust:
 
 .test-rust:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
   tags:
     - wallet-ci
   variables:
@@ -25,6 +24,7 @@ lint-rust:
 
 test-rust:
   extends: .test-rust
+  rules: !reference [.default-or-release-or-merge-request, rules]
   variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
@@ -62,7 +62,16 @@ test-rust:
 
 test-rust-gba-pid:
   extends: [.env-ont-k8s, .test-rust]
+  rules: !reference [.default-branch, rules]
   needs:
+    - job: deploy-gba-hc-converter-ont
+      artifacts: false
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
+    - job: deploy-wallet-provider-ont
+      artifacts: false
+    - job: deploy-pid-issuer-ont
+      artifacts: false
     - job: wallet-config-ont
       artifacts: true
   variables:
@@ -138,8 +147,6 @@ test-rust-compilation-ios:
     - job: test-rust
       artifacts: false
     - job: test-rust-doctest
-      artifacts: false
-    - job: test-rust-gba-pid
       artifacts: false
   variables:
     RUSTFLAGS: "-D warnings"
