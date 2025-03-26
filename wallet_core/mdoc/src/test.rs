@@ -218,7 +218,8 @@ impl TestDocument {
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
         let issuer_signed = IssuerSigned::sign(
             unsigned,
-            (&metadata_integrity, &metadata_documents),
+            metadata_integrity,
+            &metadata_documents,
             mdoc_public_key,
             &issuance_key,
         )

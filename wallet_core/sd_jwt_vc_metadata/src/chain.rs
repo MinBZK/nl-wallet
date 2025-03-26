@@ -21,7 +21,6 @@ use wallet_common::vec_at_least::VecNonEmpty;
 use crate::metadata::TypeMetadata;
 
 pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
-pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataChainError {

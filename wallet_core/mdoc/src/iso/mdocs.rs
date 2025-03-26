@@ -19,6 +19,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
+use ssri::Integrity;
 
 use crypto::utils::random_bytes;
 use wallet_common::urls::HttpsUri;
@@ -168,6 +169,9 @@ pub struct MobileSecurityObject {
     /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate. Optional because it is not in
     /// the spec.
     pub issuer_uri: Option<HttpsUri>,
+
+    /// This value is optional, as it is not part of the spec.
+    pub type_metadata_integrity: Option<Integrity>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

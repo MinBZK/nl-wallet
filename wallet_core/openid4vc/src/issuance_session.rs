@@ -859,19 +859,24 @@ impl CredentialResponse {
 
                 // Check that the metadata received in the mdoc unsigned header
                 // is the same as the one received for the preview.
-                let (metadata_integrity, metadata_documents) = issuer_signed
+                let metadata_documents = issuer_signed
                     .type_metadata_documents()
                     .map_err(IssuanceSessionError::Metadata)?;
                 if metadata_documents != *type_metadata {
                     return Err(IssuanceSessionError::MetadataMismatch);
                 }
-                // Check that the integrity hash received in the mdoc unsigned header
-                // matches that of encoded JSON of the first metadata document.
-                unverified_metadata_chain.verify(metadata_integrity)?;
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
                 let mdoc = Mdoc::new::<K>(key_id, issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(IssuanceSessionError::MdocVerification)?;
+
+                // Check that the integrity hash received in the mdoc unsigned header
+                // matches that of encoded JSON of the first metadata document.
+                let type_metadata_integrity = mdoc
+                    .type_metadata_integrity()
+                    .map_err(IssuanceSessionError::Metadata)?
+                    .clone();
+                unverified_metadata_chain.verify(type_metadata_integrity)?;
 
                 // Check that our mdoc contains exactly the attributes the issuer said it would have.
                 // Note that this also means that the mdoc's attributes must match the received metadata,
@@ -993,7 +998,8 @@ mod tests {
         let mdoc_public_key = mdoc_key.verifying_key();
         let issuer_signed = IssuerSigned::sign(
             unsigned_mdoc.clone(),
-            (&metadata_integrity, &metadata_documents),
+            metadata_integrity,
+            &metadata_documents,
             mdoc_public_key.try_into().unwrap(),
             &issuance_key,
         )

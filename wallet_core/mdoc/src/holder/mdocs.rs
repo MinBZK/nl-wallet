@@ -7,6 +7,7 @@ use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
+use ssri::Integrity;
 
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
@@ -23,6 +24,8 @@ use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
 use crate::verifier::ValidityRequirement;
+
+use super::HolderError;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -71,10 +74,26 @@ impl Mdoc {
         &self.mso.validity_info
     }
 
+    pub fn type_metadata_integrity(&self) -> Result<&Integrity, Error> {
+        let integrity = self
+            .mso
+            .type_metadata_integrity
+            .as_ref()
+            .ok_or(HolderError::MissingMetadataIntegrity)?;
+
+        Ok(integrity)
+    }
+
     pub fn type_metadata(&self) -> Result<TypeMetadata, Error> {
-        let (integrity, documents) = self.issuer_signed.type_metadata_documents()?;
-        let unverified_metadata_chain = documents.into_unverified_metadata_chain(&self.mso.doc_type)?;
-        let (metadata_chain, _) = unverified_metadata_chain.into_metadata_chain_and_source(integrity)?;
+        let documents = self.issuer_signed.type_metadata_documents()?;
+        let integrity = self.type_metadata_integrity()?.clone();
+
+        let unverified_metadata_chain = documents
+            .into_unverified_metadata_chain(&self.mso.doc_type)
+            .map_err(HolderError::TypeMetadata)?;
+        let (metadata_chain, _) = unverified_metadata_chain
+            .into_metadata_chain_and_source(integrity)
+            .map_err(HolderError::TypeMetadata)?;
         let metadata = metadata_chain.into_metadata();
 
         Ok(metadata)
