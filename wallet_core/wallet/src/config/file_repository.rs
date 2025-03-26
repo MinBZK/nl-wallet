@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use configuration::wallet_config::WalletConfiguration;
+use derive_more::Constructor;
 use jwt::EcdsaDecodingKey;
 use wallet_common::reqwest::ReqwestBuilder;
 
@@ -13,6 +14,7 @@ use super::config_file;
 use super::ConfigurationError;
 use super::HttpConfigurationRepository;
 
+#[derive(Constructor)]
 pub struct FileStorageConfigurationRepository<T> {
     wrapped: T,
     storage_path: PathBuf,
@@ -39,15 +41,6 @@ impl<B> FileStorageConfigurationRepository<HttpConfigurationRepository<B>> {
             HttpConfigurationRepository::new(signing_public_key, storage_path.clone(), default_config).await?,
             storage_path,
         ))
-    }
-}
-
-impl<T> FileStorageConfigurationRepository<T>
-where
-    T: Repository<Arc<WalletConfiguration>>,
-{
-    fn new(wrapped: T, storage_path: PathBuf) -> FileStorageConfigurationRepository<T> {
-        Self { wrapped, storage_path }
     }
 }
 

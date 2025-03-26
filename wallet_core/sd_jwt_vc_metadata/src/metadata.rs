@@ -599,13 +599,14 @@ mod test {
         let metadata = TypeMetadata::example();
 
         let claims = json!({
-          "vct":"https://credentials.example.com/identity_credential",
-          "iss":"https://example.com/issuer",
-          "nbf":1683000000,
-          "iat":1683000000,
-          "exp":1883000000,
-          "place_of_birth":{
-            "locality":"DE"
+          "vct": "https://credentials.example.com/identity_credential",
+          "iss": "https://example.com/issuer",
+          "nbf": 1683000000,
+          "iat": 1683000000,
+          "exp": 1883000000,
+          "attestation_qualification": "EAA",
+          "place_of_birth": {
+            "locality": "DE"
           }
         });
 
@@ -629,6 +630,7 @@ mod test {
           "vct": "https://credentials.example.com/identity_credential",
           "iss": "https://example.com/issuer",
           "iat": 1683000000,
+          "attestation_qualification": "EAA",
           "financial": {
             "has_job": "yes"
           }
@@ -644,10 +646,11 @@ mod test {
         let metadata = TypeMetadata::example();
 
         let claims = json!({
-            "vct":"https://credentials.example.com/identity_credential",
-            "iss":"https://example.com/issuer",
-            "iat":1683000000,
-            "birth_date":date_str,
+            "vct": "https://credentials.example.com/identity_credential",
+            "iss": "https://example.com/issuer",
+            "iat": 1683000000,
+            "attestation_qualification": "EAA",
+            "birth_date": date_str,
         });
         metadata.validate(&claims).unwrap();
     }
@@ -660,10 +663,11 @@ mod test {
         let metadata = TypeMetadata::example();
 
         let claims = json!({
-            "vct":"https://credentials.example.com/identity_credential",
-            "iss":"https://example.com/issuer",
-            "iat":1683000000,
-            "birth_date":date_str,
+            "vct": "https://credentials.example.com/identity_credential",
+            "iss": "https://example.com/issuer",
+            "iat": 1683000000,
+            "attestation_qualification": "EAA",
+            "birth_date": date_str,
         });
 
         assert_matches!(

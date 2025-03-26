@@ -169,12 +169,16 @@
       },
       "nbf": {
         "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
       }
     },
     "required": [
       "vct",
       "iss",
-      "iat"
+      "iat",
+      "attestation_qualification"
     ]
   }
 }

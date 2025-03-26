@@ -19,6 +19,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use ssri::Integrity;
 
 use crypto::utils::random_bytes;
@@ -149,6 +151,24 @@ impl From<CoseKey> for DeviceKeyInfo {
 /// Public key of an mdoc, contained in [`DeviceKeyInfo`] which is contained in [`MobileSecurityObject`].
 pub type DeviceKey = CoseKey;
 
+// TODO move to separate crate (PVW-4241)
+#[derive(
+    Debug, Clone, Copy, Default, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
+)]
+#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
+pub enum AttestationQualification {
+    /// Qualified Electronic Attestation of Attributes
+    QEAA,
+
+    /// Electronic attestation of attributes issued by or on behalf of a public sector body
+    #[strum(to_string = "PuB-EAA")]
+    PubEAA,
+
+    /// Electronic attestation of attributes (non-qualified)
+    #[default]
+    EAA,
+}
+
 /// Data signed by the issuer, containing a.o.
 /// - The public key of the mdoc (in [`DeviceKeyInfo`])
 /// - the digests of the attributes ([`ValueDigests`]), but not their randoms (for that see the containing struct
@@ -169,6 +189,9 @@ pub struct MobileSecurityObject {
     /// The SAN DNS name or URI of the issuer, as it appears in the issuer's certificate. Optional because it is not in
     /// the spec.
     pub issuer_uri: Option<HttpsUri>,
+
+    /// Optional because it is not in the spec.
+    pub attestation_qualification: Option<AttestationQualification>,
 
     /// This value is optional, as it is not part of the spec.
     pub type_metadata_integrity: Option<Integrity>,

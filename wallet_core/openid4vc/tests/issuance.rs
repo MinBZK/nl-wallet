@@ -6,7 +6,6 @@ use assert_matches::assert_matches;
 use chrono::Days;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use rstest::rstest;
@@ -18,7 +17,9 @@ use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use jwt::JsonJwt;
 use jwt::Jwt;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::AttestationQualification;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use openid4vc::credential::CredentialRequest;
@@ -105,6 +106,7 @@ fn setup(
                         .san_dns_name_or_uris()
                         .unwrap()
                         .into_first(),
+                    AttestationQualification::default(),
                     metadata_documents,
                 )
                 .unwrap(),

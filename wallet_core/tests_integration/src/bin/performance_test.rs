@@ -86,9 +86,9 @@ async fn main() {
     .await
     .expect("Could not create test wallet");
 
-    let pin = String::from("123344");
+    let pin = "123344";
 
-    wallet.register(pin.clone()).await.expect("Could not register wallet");
+    wallet.register(pin).await.expect("Could not register wallet");
 
     let authorization_url = wallet
         .create_pid_issuance_auth_url()
@@ -103,7 +103,7 @@ async fn main() {
         .expect("Could not continue pid issuance");
 
     wallet
-        .accept_pid_issuance(pin.clone())
+        .accept_pid_issuance(pin.to_owned())
         .await
         .expect("Could not accept pid issuance");
 
@@ -170,7 +170,7 @@ async fn main() {
     assert_eq!(proposal.attestations.len(), 1);
 
     let return_url = wallet
-        .accept_disclosure(pin)
+        .accept_disclosure(pin.to_owned())
         .await
         .expect("Could not accept disclosure");
 

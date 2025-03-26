@@ -47,6 +47,7 @@ impl IssuerSigned {
             device_key_info: device_public_key.into(),
             validity_info: validity,
             issuer_uri: Some(unsigned_mdoc.issuer_uri),
+            attestation_qualification: Some(unsigned_mdoc.attestation_qualification),
             type_metadata_integrity: Some(metadata_integrity),
         };
 
@@ -161,6 +162,7 @@ mod tests {
             .try_into()
             .unwrap(),
             issuer_uri: issuance_key.certificate().san_dns_name_or_uris().unwrap().into_first(),
+            attestation_qualification: Default::default(),
         };
 
         // NOTE: This metadata does not match the attributes.

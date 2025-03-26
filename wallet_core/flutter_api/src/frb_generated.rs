@@ -308,7 +308,7 @@ fn wire__crate__api__full__continue_change_pin_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::continue_change_pin(api_pin).await?;
+                        let output_ok = crate::api::full::continue_change_pin(&api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -625,7 +625,7 @@ fn wire__crate__api__full__register_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::register(api_pin).await?;
+                        let output_ok = crate::api::full::register(&api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,

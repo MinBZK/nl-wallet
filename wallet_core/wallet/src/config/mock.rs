@@ -17,7 +17,7 @@ pub struct LocalConfigurationRepository {
 
 impl LocalConfigurationRepository {
     pub fn new(config: WalletConfiguration) -> Self {
-        LocalConfigurationRepository {
+        Self {
             config: Arc::new(config),
         }
     }

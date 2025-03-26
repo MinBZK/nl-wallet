@@ -2,6 +2,7 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter;
 
+use derive_more::Constructor;
 use itertools::Itertools;
 use p256::ecdsa::signature;
 use p256::ecdsa::signature::Verifier;
@@ -44,6 +45,7 @@ pub enum RemoteEcdsaKeyError {
     KeyNotFound(String),
 }
 
+#[derive(Constructor)]
 pub struct RemoteEcdsaKeyFactory<S, AK, GK, A> {
     instruction_client: InstructionClient<S, AK, GK, A>,
 }
@@ -65,12 +67,6 @@ impl<S, AK, GK, A> Eq for RemoteEcdsaKey<S, AK, GK, A> {}
 impl<S, AK, GK, A> Hash for RemoteEcdsaKey<S, AK, GK, A> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.identifier.hash(state);
-    }
-}
-
-impl<S, AK, GK, A> RemoteEcdsaKeyFactory<S, AK, GK, A> {
-    pub fn new(instruction_client: InstructionClient<S, AK, GK, A>) -> Self {
-        Self { instruction_client }
     }
 }
 

@@ -23,8 +23,8 @@ pub async fn read_file(name: &str) -> String {
 }
 
 pub async fn encrypt_xmls() -> (SymmetricKey, SymmetricKey, TempDir) {
-    let encryption_key = SymmetricKey::new(Aes256Gcm::generate_key(OsRng).to_vec());
-    let hmac_key = SymmetricKey::new(HmacSha256::generate_key(OsRng).to_vec());
+    let encryption_key = SymmetricKey::from(Aes256Gcm::generate_key(OsRng).to_vec());
+    let hmac_key = SymmetricKey::from(HmacSha256::generate_key(OsRng).to_vec());
 
     let temp_path = tempfile::tempdir().unwrap();
 

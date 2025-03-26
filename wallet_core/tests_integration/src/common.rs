@@ -539,12 +539,12 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
     wait_for_server(base_url, vec![]).await;
 }
 
-pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: String) -> WalletWithMocks {
+pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> WalletWithMocks {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
 
     // Register with a valid PIN.
-    wallet.register(pin.clone()).await.expect("Could not register wallet");
+    wallet.register(pin).await.expect("Could not register wallet");
 
     // The registration should now be loaded.
     assert!(wallet.has_registration());

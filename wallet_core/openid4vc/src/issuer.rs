@@ -38,6 +38,7 @@ use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::utils::crypto::CryptoError;
 use mdoc::utils::serialization::CborError;
+use mdoc::AttestationQualification;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
@@ -288,6 +289,7 @@ pub struct AttestationTypeConfig<K> {
     pub valid_days: Days,
     pub copy_count: NonZeroU8,
     pub issuer_uri: HttpsUri,
+    pub attestation_qualification: AttestationQualification,
     pub metadata_documents: TypeMetadataDocuments,
     first_metadata_integrity: Integrity,
     metadata: TypeMetadata,
@@ -301,6 +303,7 @@ impl<K> AttestationTypeConfig<K> {
         valid_days: Days,
         copy_count: NonZeroU8,
         issuer_uri: HttpsUri,
+        attestation_qualification: AttestationQualification,
         metadata_documents: TypeMetadataDocuments,
     ) -> Result<Self, TypeMetadataChainError> {
         // Calculate and cache the integrity hash for the first metadata document in the chain.
@@ -313,6 +316,7 @@ impl<K> AttestationTypeConfig<K> {
             valid_days,
             copy_count,
             issuer_uri,
+            attestation_qualification,
             metadata_documents,
             first_metadata_integrity,
             metadata,
@@ -678,6 +682,7 @@ impl Session<Created> {
                     valid_until.into(),
                     attestation_data.copy_count,
                     attestation_data.issuer_uri.clone(),
+                    attestation_data.attestation_qualification,
                 )?;
 
                 CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), &attestation_data.metadata)?;
@@ -708,8 +713,8 @@ impl Session<Created> {
 }
 
 impl TokenResponse {
-    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> TokenResponse {
-        TokenResponse {
+    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> Self {
+        Self {
             access_token,
             c_nonce: Some(c_nonce),
             token_type: TokenType::DPoP,

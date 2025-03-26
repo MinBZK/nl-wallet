@@ -142,9 +142,9 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     .await
     .expect("Could not create test wallet");
 
-    let pin = String::from("123344");
+    let pin = "123344";
 
-    wallet.register(pin.clone()).await.expect("Could not register wallet");
+    wallet.register(pin).await.expect("Could not register wallet");
 
     let authorization_url = wallet
         .create_pid_issuance_auth_url()

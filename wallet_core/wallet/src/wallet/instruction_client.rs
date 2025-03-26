@@ -40,7 +40,7 @@ where
         tracing::info!("Try to finalize PIN change if it is in progress");
 
         if self.storage.get_change_pin_state().await?.is_some() {
-            self.continue_change_pin(pin.clone()).await?;
+            self.continue_change_pin(&pin).await?;
         }
 
         let client = InstructionClient::new(

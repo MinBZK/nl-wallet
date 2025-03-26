@@ -34,7 +34,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cfg-if.workspace = true
 ciborium.workspace = true
-derive_more = { workspace = true, features = ["debug"] }
+derive_more = { workspace = true, features = ["constructor", "debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 http.workspace = true
