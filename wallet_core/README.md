@@ -33,7 +33,7 @@ Additionally, the `wallet` crate has some error types provided for internal func
 To regenerate the bindings, run the following command from the root:
 
 ```
-cargo install flutter_rust_bridge_codegen@2.7.1 && \
+cargo install flutter_rust_bridge_codegen@2.8.0 && \
 flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridge.yaml
 ```
 

@@ -68,7 +68,10 @@ where
         new_pin: &str,
         new_pin_salt: &[u8],
     ) -> Result<WalletCertificate, Self::Error> {
-        let new_pin_key = PinKey::new(new_pin, new_pin_salt);
+        let new_pin_key = PinKey {
+            pin: new_pin,
+            salt: new_pin_salt,
+        };
 
         let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.to_string());
 

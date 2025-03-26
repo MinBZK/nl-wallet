@@ -3,7 +3,7 @@
   "name": "NL Wallet extended PID credential",
   "description": "Working version of the NL Wallet extended PID credential",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-fptH1lPvK4xw/HfWD3BIHSbaZFNzE0MSS1XNcaxiQVI=",
+  "extends#integrity": "sha256-wVuuSExXp2uBk9BWJ7ysb29sn5T0s3q9JufddBVumjE=",
   "display": [
     {
       "lang": "en-US",

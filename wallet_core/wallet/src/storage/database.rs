@@ -1,6 +1,7 @@
 use std::io;
 use std::path::PathBuf;
 
+use derive_more::Constructor;
 use sea_orm::ConnectOptions;
 use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseConnection;
@@ -47,17 +48,13 @@ impl From<SqliteUrl> for String {
 ///   on it in order to also delete the database file.
 /// * Exposing a reference to the database connection as [`ConnectionTrait`], so that a consumer of this struct can run
 ///   queries on the database.
-#[derive(Debug)]
+#[derive(Debug, Constructor)]
 pub struct Database {
     pub url: SqliteUrl,
     connection: DatabaseConnection,
 }
 
 impl Database {
-    fn new(url: SqliteUrl, connection: DatabaseConnection) -> Self {
-        Database { url, connection }
-    }
-
     pub async fn open(url: SqliteUrl, key: SqlCipherKey) -> Result<Self, DbErr> {
         // Open database connection and set database key
         let mut connection_options = ConnectOptions::new(url.clone());

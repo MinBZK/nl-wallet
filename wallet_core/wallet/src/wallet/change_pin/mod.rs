@@ -101,7 +101,7 @@ where
         Ok(())
     }
 
-    pub async fn continue_change_pin(&self, pin: String) -> Result<(), ChangePinError> {
+    pub async fn continue_change_pin(&self, pin: &str) -> Result<(), ChangePinError> {
         info!("Continue PIN change");
 
         info!("Checking if blocked");
@@ -223,7 +223,7 @@ mod tests {
             .times(1)
             .return_once(|_, _: Instruction<ChangePinCommit>| Ok(wp_result));
 
-        let actual = wallet.continue_change_pin("111122".to_string()).await;
+        let actual = wallet.continue_change_pin("111122").await;
         assert_matches!(actual, Ok(()));
 
         let change_pin_state = wallet

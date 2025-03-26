@@ -99,7 +99,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             android_config,
             google_crl_client,
             play_integrity_client,
-        )?;
+        );
 
         let db = Db::new(
             settings.database.connection_string(),
@@ -118,7 +118,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let repositories = Repositories::new(db);
+        let repositories = Repositories::from(db);
         let wte_issuer = HsmWteIssuer::new(
             HsmEcdsaKey::new(settings.wte_signing_key_identifier, hsm.clone()),
             settings.wte_issuer_identifier,

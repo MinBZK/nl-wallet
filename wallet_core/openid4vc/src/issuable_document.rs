@@ -8,6 +8,7 @@ use serde_valid::Validate;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::unsigned::UnsignedMdoc;
+use mdoc::AttestationQualification;
 use mdoc::Tdate;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -114,6 +115,7 @@ impl IssuableDocument {
         valid_until: Tdate,
         copy_count: NonZeroU8,
         issuer_uri: HttpsUri,
+        attestation_qualification: AttestationQualification,
     ) -> Result<UnsignedMdoc, UnsignedAttributesError> {
         let mut flattened = IndexMap::new();
         Self::walk_attributes_recursive(self.attestation_type.clone(), &self.attributes, &mut flattened);
@@ -125,6 +127,7 @@ impl IssuableDocument {
             valid_until,
             copy_count,
             issuer_uri,
+            attestation_qualification,
         })
     }
 
@@ -178,6 +181,7 @@ mod test {
                     Utc::now().add(Days::new(1)).into(),
                     NonZeroU8::new(1).unwrap(),
                     "https://pid.example.com".parse().unwrap(),
+                    Default::default(),
                 )
             })
             .collect::<Result<Vec<_>, _>>()

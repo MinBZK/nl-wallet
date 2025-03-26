@@ -973,6 +973,7 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
             .san_dns_name_or_uris()
             .unwrap()
             .into_first(),
+        attestation_qualification: Default::default(),
     };
 
     // NOTE: This metadata does not match the attributes.
