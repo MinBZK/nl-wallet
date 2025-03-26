@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn encode_to_hash_and_verify() {
         let name = random_string(16);
-        let key = SymmetricKey::new(random_bytes(64));
+        let key = SymmetricKey::from(random_bytes(64));
         let hash = name_to_encoded_hash(&name, key.key::<HmacSha256>());
 
         assert_eq!(

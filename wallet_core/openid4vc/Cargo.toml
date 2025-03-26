@@ -36,7 +36,15 @@ cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 dashmap.workspace = true
-derive_more = { workspace = true, features = ["as_ref", "display", "from", "from_str", "into", "into_iterator"] }
+derive_more = { workspace = true, features = [
+    "as_ref",
+    "constructor",
+    "display",
+    "from",
+    "from_str",
+    "into",
+    "into_iterator",
+] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 http.workspace = true

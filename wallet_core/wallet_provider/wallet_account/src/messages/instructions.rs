@@ -1,3 +1,4 @@
+use derive_more::Constructor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
@@ -19,14 +20,14 @@ use crate::signed::ChallengeResponse;
 use super::registration::WalletCertificate;
 
 /// Request for a challenge, sent by wallet to account server before sending an instruction.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct InstructionChallengeRequest {
     pub request: ChallengeRequest,
     pub certificate: WalletCertificate,
 }
 
 /// Request to execute an instruction, sent by wallet to account server after receiving the challenge.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct Instruction<T> {
     pub instruction: ChallengeResponse<T>,
     pub certificate: WalletCertificate,
@@ -210,13 +211,6 @@ mod client {
     where
         T: Serialize + DeserializeOwned,
     {
-        fn new(instruction: ChallengeResponse<T>, certificate: WalletCertificate) -> Self {
-            Self {
-                instruction,
-                certificate,
-            }
-        }
-
         pub async fn new_apple(
             instruction: T,
             challenge: Vec<u8>,
@@ -259,10 +253,6 @@ mod client {
     }
 
     impl InstructionChallengeRequest {
-        fn new(request: ChallengeRequest, certificate: WalletCertificate) -> Self {
-            Self { request, certificate }
-        }
-
         pub async fn new_apple<I>(
             wallet_id: String,
             instruction_sequence_number: u64,

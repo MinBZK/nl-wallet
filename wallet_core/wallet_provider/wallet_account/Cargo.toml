@@ -21,6 +21,7 @@ server = ["dep:p256", "dep:thiserror", "dep:apple_app_attest"]
 integration_test = ["client", "server", "dep:rustls-pki-types", "dep:android_attest"]
 
 [dependencies]
+derive_more = { workspace = true, features = ["constructor"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std", "raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
