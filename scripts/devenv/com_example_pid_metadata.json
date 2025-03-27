@@ -2,6 +2,7 @@
   "vct": "com.example.pid",
   "name": "NL Wallet PID credential",
   "description": "Working version of the NL Wallet PID credential",
+  "summary": "{{given_name}} {{family_name}}",
   "display": [
     {
       "lang": "en-US",
@@ -29,7 +30,8 @@
           "description": "Family name of the person, including any prefixes"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "family_name"
     },
     {
       "path": ["given_name"],
@@ -45,7 +47,8 @@
           "description": "First name of the person"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "given_name"
     },
     {
       "path": ["birth_date"],

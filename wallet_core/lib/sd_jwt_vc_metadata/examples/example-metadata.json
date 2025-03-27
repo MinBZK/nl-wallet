@@ -2,6 +2,7 @@
   "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
   "name": "NL Wallet PID credential",
   "description": "Working version of the NL Wallet PID credential",
+  "summary": "Example PID credential",
   "display": [
     {
       "lang": "en-US",
@@ -16,9 +17,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "en-US",
@@ -29,10 +28,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "locality"
-      ],
+      "path": ["place_of_birth", "locality"],
       "display": [
         {
           "lang": "en-US",
@@ -42,11 +38,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "name"
-      ],
+      "path": ["place_of_birth", "country", "name"],
       "display": [
         {
           "lang": "en-US",
@@ -56,11 +48,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "area_code"
-      ],
+      "path": ["place_of_birth", "country", "area_code"],
       "display": [
         {
           "lang": "en-US",
@@ -70,10 +58,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "has_debt"
-      ],
+      "path": ["financial", "has_debt"],
       "display": [
         {
           "lang": "en-US",
@@ -83,10 +68,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "has_job"
-      ],
+      "path": ["financial", "has_job"],
       "display": [
         {
           "lang": "en-US",
@@ -96,10 +78,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "debt_amount"
-      ],
+      "path": ["financial", "debt_amount"],
       "display": [
         {
           "lang": "en-US",
@@ -174,11 +153,6 @@
         "type": "string"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "attestation_qualification"
-    ]
+    "required": ["vct", "iss", "iat", "attestation_qualification"]
   }
 }

@@ -2,6 +2,7 @@
   "vct": "com.example.address",
   "name": "NL Wallet address credential",
   "description": "Working version of the NL Wallet address credential",
+  "summary": "{{resident_city}}",
   "display": [
     {
       "lang": "en-US",
@@ -77,7 +78,8 @@
           "description": "City of the address"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "resident_city"
     },
     {
       "path": ["resident_country"],

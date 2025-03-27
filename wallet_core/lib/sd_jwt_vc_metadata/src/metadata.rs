@@ -63,6 +63,9 @@ pub struct UncheckedTypeMetadata {
     /// A human-readable description for the type, intended for developers reading the JSON document.
     pub description: Option<String>,
 
+    /// A templated summary for the type. Intended to be rendered, optionally with attributes filled in.
+    pub summary: Option<String>,
+
     /// Another type that this type extends.
     #[serde(flatten)]
     pub extends: Option<MetadataExtends>,
@@ -427,6 +430,7 @@ mod example_constructors {
                 vct: random_string(16),
                 name: Some(random_string(8)),
                 description: None,
+                summary: None,
                 extends: None,
                 display: vec![],
                 claims: vec![],
