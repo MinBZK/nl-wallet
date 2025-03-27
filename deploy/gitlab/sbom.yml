@@ -45,3 +45,32 @@ build-sbom:
       - bom.xml
       - bom.json
   allow_failure: true
+
+upload-sbom-to-dependency-track:
+  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  extends: .env-ont-k8s
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-sbom
+      artifacts: true
+  script: |
+    # Define variables
+    BOM_FILENAME="bom.json"
+    API_KEY=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.api_key}' | base64 --decode)
+    PROJECT_ID=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.project_id}' | base64 --decode)
+    URL=$(kubectl get secret nl-wallet-dependency-track-secret -o jsonpath='{.data.url}' | base64 --decode)
+    # Read and encode the BOM file
+    BOM_CONTENTS=$(cat "$BOM_FILENAME" | base64 -w 0)
+    # Remove UTF-8 BOM if present
+    case $BOM_CONTENTS in
+      77u/*) BOM_CONTENTS=${BOM_CONTENTS:4};;
+    esac
+    # Create JSON payload
+    BOM_PAYLOAD="{\"project\": \"$PROJECT_ID\", \"bom\": \"$BOM_CONTENTS\"}"
+    echo "$BOM_PAYLOAD" > /tmp/bomPayload.json
+    # Send to Dependency-Track
+    curl -f -X PUT "$URL" \
+      -H "X-API-Key: $API_KEY" \
+      -H "Content-Type: application/json" \
+      --data-binary @/tmp/bomPayload.json
+  allow_failure: true
