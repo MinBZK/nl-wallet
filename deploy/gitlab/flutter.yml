@@ -1,5 +1,7 @@
 .flutter:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-flutter:${BUILD_TAG}"
+  tags:
+    - linux
   before_script:
     - cd wallet_app
     - set -euxo pipefail
