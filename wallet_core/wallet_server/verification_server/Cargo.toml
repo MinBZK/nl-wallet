@@ -42,20 +42,17 @@ db_test = ["integration_test", "postgres", "futures/std", "futures/async-await",
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
-base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 futures.workspace = true
 http.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 ring.workspace = true
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "hex"] }
-thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
@@ -86,7 +83,6 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-configuration = { path = "../../wallet_configuration/configuration", features = ["insecure_http_client"] }
 crypto = { path = "../../crypto", features = ["mock_remote_key"] }
 mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../sd_jwt_vc_metadata", features = ["example_constructors"] }
