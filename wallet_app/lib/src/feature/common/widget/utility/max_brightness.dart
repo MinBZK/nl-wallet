@@ -35,7 +35,7 @@ class _MaxBrightnessState extends State<MaxBrightness> {
 
   Future<void> setMaxBrightness() async {
     try {
-      await _screenBrightness.setScreenBrightness(1);
+      await _screenBrightness.setApplicationScreenBrightness(1);
     } catch (e, stack) {
       Fimber.e('Failed to set max brightness', ex: e, stacktrace: stack);
     }
@@ -43,7 +43,7 @@ class _MaxBrightnessState extends State<MaxBrightness> {
 
   Future<void> resetBrightness() async {
     try {
-      await _screenBrightness.resetScreenBrightness();
+      await _screenBrightness.resetApplicationScreenBrightness();
     } catch (e, stack) {
       Fimber.e('Failed to set reset brightness', ex: e, stacktrace: stack);
     }

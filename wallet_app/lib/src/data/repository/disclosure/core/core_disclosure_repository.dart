@@ -35,36 +35,34 @@ class CoreDisclosureRepository implements DisclosureRepository {
   @override
   Future<StartDisclosureResult> startDisclosure(String disclosureUri, {bool isQrCode = false}) async {
     final result = await _walletCore.startDisclosure(disclosureUri, isQrCode: isQrCode);
-    return result.map(
-      request: (value) {
-        final cards = _attestationMapper.mapList(value.requestedAttestations);
+    switch (result) {
+      case core.StartDisclosureResult_Request():
+        final cards = _attestationMapper.mapList(result.requestedAttestations);
         final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
-        final relyingParty = _relyingPartyMapper.map(value.relyingParty);
-        final policy = _requestPolicyMapper.map(value.policy);
+        final relyingParty = _relyingPartyMapper.map(result.relyingParty);
+        final policy = _requestPolicyMapper.map(result.policy);
         return StartDisclosureReadyToDisclose(
           relyingParty,
-          value.requestOriginBaseUrl,
-          _localizedStringMapper.map(value.requestPurpose),
-          _disclosureSessionTypeMapper.map(value.sessionType),
-          _disclosureTypeMapper.map(value.requestType),
+          result.requestOriginBaseUrl,
+          _localizedStringMapper.map(result.requestPurpose),
+          _disclosureSessionTypeMapper.map(result.sessionType),
+          _disclosureTypeMapper.map(result.requestType),
           requestedAttributes,
           policy,
-          sharedDataWithOrganizationBefore: value.sharedDataWithRelyingPartyBefore,
+          sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
-      },
-      requestAttributesMissing: (value) {
-        final relyingParty = _relyingPartyMapper.map(value.relyingParty);
-        final missingAttributes = _missingAttributeMapper.mapList(value.missingAttributes);
+      case core.StartDisclosureResult_RequestAttributesMissing():
+        final relyingParty = _relyingPartyMapper.map(result.relyingParty);
+        final missingAttributes = _missingAttributeMapper.mapList(result.missingAttributes);
         return StartDisclosureMissingAttributes(
           relyingParty,
-          value.requestOriginBaseUrl,
-          _localizedStringMapper.map(value.requestPurpose),
-          _disclosureSessionTypeMapper.map(value.sessionType),
+          result.requestOriginBaseUrl,
+          _localizedStringMapper.map(result.requestPurpose),
+          _disclosureSessionTypeMapper.map(result.sessionType),
           missingAttributes,
-          sharedDataWithOrganizationBefore: value.sharedDataWithRelyingPartyBefore,
+          sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
-      },
-    );
+    }
   }
 
   @override
