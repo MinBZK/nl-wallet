@@ -88,10 +88,10 @@ impl TypeMetadataDocuments {
     }
 
     /// Parse and verify the internal consistency of the chain of SD-JWT metadata documents, except for checking the
-    /// resource integrity of the first document. As this is meant to be done when a preview of the attestation is
-    /// received, this first document's resource integrity is not yet available. It will be received later as part of
+    /// resource integrity of the leaf document. As this is meant to be done when a preview of the attestation is
+    /// received, the leaf document's resource integrity is not yet available. It will be received later as part of
     /// the actual attestation. This method consumes the [`TypeMetadataDocuments`] type and turns it into a
-    /// [`UnverifiedTypeMetadataChain`] and takes the first `vct` field as input.
+    /// [`UnverifiedTypeMetadataChain`] and takes the leaf `vct` field as input.
     ///
     /// Note that, as the specification does not clearly specify the order of the documents within their array
     /// representation, we do not make assumptions about it. This means that the received documents may be in any order.
