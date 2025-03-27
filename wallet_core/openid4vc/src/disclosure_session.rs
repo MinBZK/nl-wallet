@@ -1780,7 +1780,7 @@ mod tests {
             || {
                 Some(VpMessageClientError::Http(futures::executor::block_on(async {
                     // This seems to be the only way to create a reqwest::Error whose is_connect() method returns true.
-                    reqwest::get("http://asdfasdf-nonexisting-domain-name")
+                    reqwest::get("http://nonexisting-domain-name.invalid")
                         .await
                         .unwrap_err()
                 })))

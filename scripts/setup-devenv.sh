@@ -107,47 +107,47 @@ mkdir -p "${TARGET_DIR}/wallet_provider"
 # Configure digid-connector
 ########################################################################
 
-echo -e "${SECTION}Configure and start digid-connector${NC}"
-
-# Check for existing nl-rdo-max, re-use if existing, clone if not
-if [ -d "${DIGID_CONNECTOR_PATH}" ]; then
-echo -e "${INFO}Using existing nl-rdo-max repository (not cloning)${NC}"
-else
-echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
-# Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
-git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
-fi
-
-# Enter nl-rdo-max git repository
-cd "${DIGID_CONNECTOR_PATH}"
-
-# Checkout validated-working commit
-echo -e "${INFO}Switching to commit: ${DIGID_CONNECTOR_BASE_COMMIT}${NC}"
-git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
-
-# Apply the patches, if not applied before
-for p in "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*; do
-if git apply --check "$p" 2> /dev/null; then
-  echo -e "${INFO}Applying patch: $p${NC}"
-  git apply "$p"
-else
-  echo -e "${INFO}Skipping previously applied patch: $p${NC}"
-fi
-done
-
-make setup-secrets setup-saml setup-config
-
-render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
-render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
-render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
-
-generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
-openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
-      -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
-DIGID_CA_CRT=$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})
-export DIGID_CA_CRT
-
 if [[ -z "${SKIP_DIGID_CONNECTOR:-}" ]]; then
+  echo -e "${SECTION}Configure and start digid-connector${NC}"
+
+  # Check for existing nl-rdo-max, re-use if existing, clone if not
+  if [[ -d "${DIGID_CONNECTOR_PATH}" ]]; then
+    echo -e "${INFO}Using existing nl-rdo-max repository (not cloning)${NC}"
+  else
+    echo -e "${INFO}Cloning nl-rdo-max repository: ${DIGID_CONNECTOR_PATH}${NC}"
+    # Unfortunately we can't directly clone a commit hash, so clone the tag and reset to the commit
+    git clone --depth 1 -b "${DIGID_CONNECTOR_BASE_TAG}" "${DIGID_CONNECTOR_REPOSITORY}" "${DIGID_CONNECTOR_PATH}"
+  fi
+
+  # Enter nl-rdo-max git repository
+  cd "${DIGID_CONNECTOR_PATH}"
+
+  # Checkout validated-working commit
+  echo -e "${INFO}Switching to commit: ${DIGID_CONNECTOR_BASE_COMMIT}${NC}"
+  git checkout -q "${DIGID_CONNECTOR_BASE_COMMIT}"
+
+  # Apply the patches, if not applied before
+  for p in "${BASE_DIR}/scripts/devenv/digid-connector/patches"/*; do
+    if git apply --check "$p" 2> /dev/null; then
+      echo -e "${INFO}Applying patch: $p${NC}"
+      git apply "$p"
+    else
+      echo -e "${INFO}Skipping previously applied patch: $p${NC}"
+    fi
+  done
+
+  make setup-secrets setup-saml setup-config
+
+  render_template "${DEVENV}/digid-connector/max.conf" "${DIGID_CONNECTOR_PATH}/max.conf"
+  render_template "${DEVENV}/digid-connector/clients.json" "${DIGID_CONNECTOR_PATH}/clients.json"
+  render_template "${DEVENV}/digid-connector/login_methods.json" "${DIGID_CONNECTOR_PATH}/login_methods.json"
+
+  generate_ssl_key_pair_with_san "${DIGID_CONNECTOR_PATH}/secrets/ssl" server "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" "${DIGID_CONNECTOR_PATH}/secrets/cacert.key"
+  openssl x509 -in "${DIGID_CONNECTOR_PATH}/secrets/cacert.crt" \
+      -outform der -out "${DIGID_CONNECTOR_PATH}/secrets/cacert.der"
+  DIGID_CA_CRT=$(< "${DIGID_CONNECTOR_PATH}/secrets/cacert.der" ${BASE64})
+  export DIGID_CA_CRT
+
   # Build max docker container
   docker compose build max
   # Generate JWK from private RSA key of test_client.
