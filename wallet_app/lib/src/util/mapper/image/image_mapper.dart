@@ -7,10 +7,12 @@ class ImageMapper extends Mapper<Image, AppImageData> {
   ImageMapper();
 
   @override
-  AppImageData map(Image input) => input.map(
-        svg: (svg) => SvgImage(svg.xml),
-        png: (png) => Base64Image(png.base64),
-        jpg: (jpg) => Base64Image(jpg.base64),
-        asset: (asset) => AppAssetImage(asset.path),
-      );
+  AppImageData map(Image input) {
+    return switch (input) {
+      Image_Svg(:final xml) => SvgImage(xml),
+      Image_Png(:final base64) => Base64Image(base64),
+      Image_Jpg(:final base64) => Base64Image(base64),
+      Image_Asset(:final path) => AppAssetImage(path),
+    };
+  }
 }

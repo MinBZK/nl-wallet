@@ -13,50 +13,49 @@ class WalletEventLog {
 
   Stream<List<WalletEvent>> get logStream => _logSubject.stream;
 
+  bool _eventContainsCardWithDocType(WalletEvent_Disclosure disclosure, String docType) {
+    if (disclosure.requestedAttestations == null) return false;
+
+    /// Check if the provided docType was used in this request
+    return disclosure.requestedAttestations!.any(
+      (card) =>
+          switch (card.identity) {
+            AttestationIdentity_Ephemeral() => '',
+            AttestationIdentity_Fixed(:final id) => id,
+          } ==
+          docType,
+    );
+  }
+
   List<WalletEvent> logForDocType(String docType) => log
       .where(
-        (event) => event.map(
-          disclosure: (WalletEvent_Disclosure disclosure) {
-            if (disclosure.requestedAttestations == null) return false;
-
-            /// Check if the provided docType was used in this request
-            return disclosure.requestedAttestations!.any(
-              (card) =>
-                  card.identity.map(
-                    ephemeral: (_) => '',
-                    fixed: (fixed) => fixed.id,
-                  ) ==
-                  docType,
-            );
-          },
-          issuance: (WalletEvent_Issuance issuance) => issuance.attestation.attestationType == docType,
-        ),
+        (event) => switch (event) {
+          WalletEvent_Disclosure() => _eventContainsCardWithDocType(event, docType),
+          WalletEvent_Issuance() => event.attestation.attestationType == docType,
+        },
       )
       .toList();
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
-    final bool isLogin =
-        disclosure.mapOrNull(request: (request) => request.requestedAttestations.onlyContainsBsn) ?? false;
+    final List<Attestation> requestedAttestations = switch (disclosure) {
+      StartDisclosureResult_Request(:final requestedAttestations) => requestedAttestations,
+      StartDisclosureResult_RequestAttributesMissing() => [],
+    };
+    final RequestPolicy policy = switch (disclosure) {
+      StartDisclosureResult_Request(:final policy) => policy,
+      StartDisclosureResult_RequestAttributesMissing(:final relyingParty) => RequestPolicy(
+          dataSharedWithThirdParties: false,
+          dataDeletionPossible: false,
+          policyUrl: relyingParty.privacyPolicyUrl ?? relyingParty.webUrl ?? '',
+        ) /* We invent a policy here, mainly because it's only for the mock and not used in the current setup. */,
+    };
+    final bool isLogin = requestedAttestations.onlyContainsBsn;
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: disclosure.relyingParty,
       purpose: disclosure.requestPurpose,
-      requestedAttestations: disclosure.map(
-        request: (request) => request.requestedAttestations,
-        requestAttributesMissing: (requestAttributesMissing) => [],
-      ),
-      requestPolicy: disclosure.map(
-        request: (request) => request.policy,
-        requestAttributesMissing: (requestAttributesMissing) {
-          /// We invent a policy here, mainly because it's only for the mock and not used in the current setup.
-          final relyingParty = requestAttributesMissing.relyingParty;
-          return RequestPolicy(
-            dataSharedWithThirdParties: false,
-            dataDeletionPossible: false,
-            policyUrl: relyingParty.privacyPolicyUrl ?? relyingParty.webUrl ?? '',
-          );
-        },
-      ),
+      requestedAttestations: requestedAttestations,
+      requestPolicy: policy,
       status: status,
       typ: isLogin ? DisclosureType.Login : DisclosureType.Regular,
     );
@@ -99,15 +98,9 @@ class WalletEventLog {
 
   bool includesInteractionWith(Organization organization) {
     return _log.any(
-      (event) {
-        return event.map(
-          disclosure: (disclosure) {
-            return disclosure.relyingParty == organization;
-          },
-          issuance: (issuance) {
-            return issuance.attestation.issuer == organization;
-          },
-        );
+      (event) => switch (event) {
+        WalletEvent_Disclosure(:final relyingParty) => relyingParty == organization,
+        WalletEvent_Issuance(:final attestation) => attestation.issuer == organization,
       },
     );
   }

@@ -9,8 +9,8 @@ use ssri::Integrity;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use sd_jwt_vc_metadata::COSE_METADATA_HEADER_LABEL;
 use sd_jwt_vc_metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
+use sd_jwt_vc_metadata::SD_JWT_VC_TYPE_METADATA_KEY;
 
 use crate::iso::*;
 use crate::unsigned::UnsignedMdoc;
@@ -76,7 +76,7 @@ impl IssuerSigned {
                 Value::Text(metadata_integrity.to_string()),
             )
             .text_value(
-                String::from(COSE_METADATA_HEADER_LABEL),
+                String::from(SD_JWT_VC_TYPE_METADATA_KEY),
                 Value::serialized(metadata_documents).map_err(CborError::Value)?,
             )
             .build();
@@ -86,7 +86,7 @@ impl IssuerSigned {
 
     pub fn type_metadata_documents(&self) -> Result<(Integrity, TypeMetadataDocuments)> {
         let integrity_label = Label::Text(String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL));
-        let documents_label = Label::Text(String::from(COSE_METADATA_HEADER_LABEL));
+        let documents_label = Label::Text(String::from(SD_JWT_VC_TYPE_METADATA_KEY));
 
         let metadata_integrity = self
             .issuer_auth
