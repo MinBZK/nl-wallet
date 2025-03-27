@@ -22,7 +22,7 @@ use error_category::ErrorCategory;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::x509::CertificateType;
-use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt::metadata_chain::TypeMetadataDocuments;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -157,7 +157,7 @@ pub enum CredentialPreview {
         unsigned_mdoc: UnsignedMdoc,
         #[serde_as(as = "Base64")]
         issuer_certificate: BorrowingCertificate,
-        metadata_chain: TypeMetadataChain,
+        type_metadata: TypeMetadataDocuments,
     },
 }
 

@@ -80,7 +80,7 @@ impl WalletEvent {
 
                 Attestation::create_for_issuance(
                     AttestationIdentity::Ephemeral,
-                    metadata.into_first(), // TODO: PVW-3812
+                    metadata,
                     issuer_registration.organization,
                     mdoc.issuer_signed.into_entries_by_namespace(),
                 )

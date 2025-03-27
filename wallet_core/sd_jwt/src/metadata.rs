@@ -5,121 +5,35 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Write;
 
-use base64::prelude::*;
-use derive_more::Into;
 use http::Uri;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
 use nutype::nutype;
-use serde::de;
-use serde::ser;
 use serde::Deserialize;
-use serde::Deserializer;
 use serde::Serialize;
-use serde::Serializer;
 use serde_json::Value;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
+use ssri::Integrity;
 
-use crypto::utils::sha256;
 use wallet_common::spec::SpecOptional;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
-    #[error("json schema validation failed {0}")]
+    #[error("json schema validation failed: {0}")]
     JsonSchemaValidation(#[from] ValidationError<'static>),
 
-    #[error("serialization failed {0}")]
-    Serialization(#[from] serde_json::Error),
-
-    #[error("decoding failed {0}")]
-    Decoding(#[from] base64::DecodeError),
-
-    #[error("resource integrity check failed, expected: {expected:?}, actual: {actual:?}")]
-    ResourceIntegrity {
-        expected: ResourceIntegrity,
-        actual: ResourceIntegrity,
-    },
+    #[error("could not deserialize JSON schema: {0}")]
+    JsonSchema(#[from] serde_json::Error),
 
     #[error("schema option {0:?} is not supported")]
     UnsupportedSchemaOption(SchemaOption),
 
-    #[error("detected claim path collision")]
-    ClaimPathCollision,
-}
-
-pub const COSE_METADATA_HEADER_LABEL: &str = "vctm";
-pub const COSE_METADATA_INTEGRITY_HEADER_LABEL: &str = "type_metadata_integrity";
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TypeMetadataChain {
-    metadata: VecNonEmpty<EncodedTypeMetadata>,
-    root_integrity: ResourceIntegrity,
-}
-
-impl TypeMetadataChain {
-    pub fn create(
-        root: TypeMetadata,
-        mut extended_metadata: Vec<TypeMetadata>,
-    ) -> Result<TypeMetadataChain, TypeMetadataError> {
-        let root_bytes: Vec<u8> = (&root).try_into()?;
-        let root_integrity = ResourceIntegrity::from_bytes(&root_bytes);
-        extended_metadata.push(root);
-        let metadata = VecNonEmpty::try_from(
-            extended_metadata
-                .into_iter()
-                .map(EncodedTypeMetadata)
-                .collect::<Vec<_>>(),
-        )
-        .unwrap(); // unwrap is safe here because there is always at least one item (root)
-        let result = Self {
-            metadata,
-            root_integrity,
-        };
-        Ok(result)
-    }
-
-    fn into_destructured(self) -> (VecNonEmpty<TypeMetadata>, ResourceIntegrity) {
-        (
-            // Unwrapping is safe since we're mapping from a `VecNonEmpty` to a `VecNonEmpty`
-            VecNonEmpty::try_from(self.metadata.into_inner().into_iter().map(|m| m.0).collect::<Vec<_>>()).unwrap(),
-            self.root_integrity,
-        )
-    }
-
-    pub fn verify_and_destructure(self) -> Result<(VecNonEmpty<TypeMetadata>, ResourceIntegrity), TypeMetadataError> {
-        let bytes: Vec<u8> = (&self.metadata.first().0).try_into()?; // TODO: verify chain in PVW-3824
-        self.root_integrity.verify(&bytes)?;
-        Ok(self.into_destructured())
-    }
-
-    pub fn verify(&self) -> Result<TypeMetadata, TypeMetadataError> {
-        let root = self.metadata.first().0.clone();
-        let bytes: Vec<u8> = (&root).try_into()?; // TODO: verify chain in PVW-3824
-        self.root_integrity.verify(&bytes)?;
-        Ok(root)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct EncodedTypeMetadata(TypeMetadata);
-
-impl Serialize for EncodedTypeMetadata {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let encoded = self.0.try_as_base64().map_err(ser::Error::custom)?;
-        encoded.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for EncodedTypeMetadata {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let metadata: TypeMetadata =
-            TypeMetadata::try_from_base64(&String::deserialize(deserializer)?).map_err(de::Error::custom)?;
-        Ok(Self(metadata))
-    }
+    #[error("detected claim path collision: {0}")]
+    ClaimPathCollision(String),
 }
 
 /// SD-JWT VC type metadata document.
@@ -151,7 +65,7 @@ pub struct UncheckedTypeMetadata {
 
     /// Another type that this type extends.
     #[serde(flatten)]
-    pub extends: Option<MetadataExtendsOption>,
+    pub extends: Option<MetadataExtends>,
 
     /// An array of objects containing display information for the type.
     #[serde(default)]
@@ -189,11 +103,13 @@ impl UncheckedTypeMetadata {
                 .collect::<Vec<_>>()
                 .join(".");
 
-            // If inserting the flattened key in the set returns false, it means it is already in the set and there
-            // is a collision.
-            if !paths.insert(flattened_key) {
-                return Err(TypeMetadataError::ClaimPathCollision);
+            // If the flattened key is already present in the set, this means
+            // that two different claims paths lead to the same flattened path.
+            if paths.contains(&flattened_key) {
+                return Err(TypeMetadataError::ClaimPathCollision(flattened_key));
             }
+
+            paths.insert(flattened_key);
         }
 
         Ok(())
@@ -201,16 +117,6 @@ impl UncheckedTypeMetadata {
 }
 
 impl TypeMetadata {
-    pub fn try_as_base64(&self) -> Result<String, TypeMetadataError> {
-        let bytes: Vec<u8> = serde_json::to_vec(&self.as_ref())?;
-        Ok(BASE64_URL_SAFE_NO_PAD.encode(bytes))
-    }
-
-    pub fn try_from_base64(encoded: &str) -> Result<Self, TypeMetadataError> {
-        let bytes: Vec<u8> = BASE64_URL_SAFE_NO_PAD.decode(encoded.as_bytes())?;
-        Self::try_new(serde_json::from_slice::<UncheckedTypeMetadata>(&bytes)?)
-    }
-
     pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
         if let SchemaOption::Embedded { schema } = &self.as_ref().schema {
             schema
@@ -224,56 +130,10 @@ impl TypeMetadata {
     }
 }
 
-impl TryFrom<&TypeMetadata> for Vec<u8> {
-    type Error = serde_json::Error;
-
-    fn try_from(value: &TypeMetadata) -> Result<Self, Self::Error> {
-        serde_json::to_vec(value)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Into, Serialize, Deserialize)]
-pub struct ResourceIntegrity(String);
-
-impl ResourceIntegrity {
-    const ALG_PREFIX: &'static str = "sha256";
-
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        let sig = sha256(bytes);
-        let integrity = format!("{}-{}", Self::ALG_PREFIX, BASE64_STANDARD.encode(sig));
-        ResourceIntegrity(integrity)
-    }
-
-    pub fn verify(&self, bytes: &[u8]) -> Result<(), TypeMetadataError> {
-        let integrity = Self::from_bytes(bytes);
-        if self != &integrity {
-            return Err(TypeMetadataError::ResourceIntegrity {
-                expected: self.clone(),
-                actual: integrity,
-            });
-        }
-
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum MetadataExtendsOption {
-    Uri {
-        #[serde(flatten)]
-        extends: MetadataExtends,
-    },
-    Identifier {
-        extends: String,
-    },
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MetadataExtends {
-    /// A URI of another type that this type extends.
-    #[serde(with = "http_serde::uri")]
-    pub extends: Uri,
+    /// A string or URI of another type that this type extends.
+    pub extends: String,
 
     /// Validating the integrity of the extends field.
     /// Note that this is optional in the specification, but we consider this mandatory:
@@ -283,7 +143,7 @@ pub struct MetadataExtends {
     ///   starts from a digest included in a signed section of the attestation acts as a de facto signature, protecting
     ///   against tampering. In SD-JWT the `vct#integrity` claim would contain this first digest.
     #[serde(rename = "extends#integrity")]
-    pub extends_integrity: SpecOptional<String>,
+    pub extends_integrity: SpecOptional<Integrity>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -302,7 +162,7 @@ pub enum SchemaOption {
         /// if the schema is to be fetched from an external URI, in order to check that this matches the
         /// contents as intended by the issuer.
         #[serde(rename = "schema_uri#integrity")]
-        schema_uri_integrity: SpecOptional<String>,
+        schema_uri_integrity: SpecOptional<Integrity>,
     },
 }
 
@@ -450,7 +310,7 @@ pub struct LogoMetadata {
     /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended
     /// by the issuer.
     #[serde(rename = "uri#integrity")]
-    pub uri_integrity: SpecOptional<String>,
+    pub uri_integrity: SpecOptional<Integrity>,
 
     /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
     /// because of accessibility requirements.
@@ -536,29 +396,30 @@ pub struct ClaimDisplayMetadata {
 }
 
 #[cfg(any(test, feature = "example_constructors"))]
-pub mod mock {
+mod example_constructors {
     use std::collections::HashMap;
 
     use serde_json::json;
 
     use crypto::utils::random_string;
 
-    use crate::metadata::ClaimDisplayMetadata;
-    use crate::metadata::ClaimMetadata;
-    use crate::metadata::ClaimPath;
-    use crate::metadata::ClaimSelectiveDisclosureMetadata;
-    use crate::metadata::JsonSchema;
-    use crate::metadata::JsonSchemaProperties;
-    use crate::metadata::JsonSchemaProperty;
-    use crate::metadata::JsonSchemaPropertyFormat;
-    use crate::metadata::JsonSchemaPropertyType;
-    use crate::metadata::SchemaOption;
-    use crate::metadata::TypeMetadata;
-    use crate::metadata::UncheckedTypeMetadata;
+    use crate::examples::ADDRESS_METADATA_BYTES;
+    use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
+    use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::PID_METADATA_BYTES;
 
-    const ADDRESS_METADATA_BYTES: &[u8] = include_bytes!("../examples/address-metadata.json");
-    const EXAMPLE_METADATA_BYTES: &[u8] = include_bytes!("../examples/example-metadata.json");
-    const PID_METADATA_BYTES: &[u8] = include_bytes!("../examples/pid-metadata.json");
+    use super::ClaimDisplayMetadata;
+    use super::ClaimMetadata;
+    use super::ClaimPath;
+    use super::ClaimSelectiveDisclosureMetadata;
+    use super::JsonSchema;
+    use super::JsonSchemaProperties;
+    use super::JsonSchemaProperty;
+    use super::JsonSchemaPropertyFormat;
+    use super::JsonSchemaPropertyType;
+    use super::SchemaOption;
+    use super::TypeMetadata;
+    use super::UncheckedTypeMetadata;
 
     impl UncheckedTypeMetadata {
         pub fn empty_example() -> Self {
@@ -625,16 +486,20 @@ pub mod mock {
             .unwrap()
         }
 
-        pub fn address_example() -> Self {
-            serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
-        }
-
         pub fn example() -> Self {
             serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
         }
 
+        pub fn example_extension() -> Self {
+            serde_json::from_slice(EXAMPLE_EXTENSION_METADATA_BYTES).unwrap()
+        }
+
         pub fn pid_example() -> Self {
             serde_json::from_slice(PID_METADATA_BYTES).unwrap()
+        }
+
+        pub fn address_example() -> Self {
+            serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
         }
     }
 
@@ -674,16 +539,15 @@ mod test {
     use assert_matches::assert_matches;
     use jsonschema::error::ValidationErrorKind;
     use jsonschema::ValidationError;
-    use rstest::*;
+    use rstest::rstest;
     use serde_json::json;
 
-    use crate::metadata::ClaimPath;
-    use crate::metadata::MetadataExtendsOption;
-    use crate::metadata::ResourceIntegrity;
-    use crate::metadata::SchemaOption;
-    use crate::metadata::TypeMetadata;
-    use crate::metadata::TypeMetadataError;
-    use crate::metadata::UncheckedTypeMetadata;
+    use super::ClaimPath;
+    use super::MetadataExtends;
+    use super::SchemaOption;
+    use super::TypeMetadata;
+    use super::TypeMetadataError;
+    use super::UncheckedTypeMetadata;
 
     #[test]
     fn test_deserialize() {
@@ -695,35 +559,18 @@ mod test {
     }
 
     #[test]
-    fn test_extends_with_identifier() {
-        let metadata = serde_json::from_value::<TypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "extends": "random_string",
-            "display": [],
-            "schema_uri": "https://sd_jwt_vc_metadata.example.com/",
-            "schema_uri#integrity": "abc123",
-        }))
-        .unwrap();
-
-        assert_matches!(
-            metadata.as_ref().extends,
-            Some(MetadataExtendsOption::Identifier { .. })
-        );
-    }
-
-    #[test]
-    fn test_with_uri() {
+    fn test_extends() {
         let metadata = serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
-            "extends#integrity": "abc123",
+            "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
             "display": [],
             "schema_uri": "https://sd_jwt_vc_metadata.example.com/",
-            "schema_uri#integrity": "abc123",
+            "schema_uri#integrity": "sha256-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1VLmXfh-WRL5",
         }))
         .unwrap();
 
-        assert_matches!(metadata.as_ref().extends, Some(MetadataExtendsOption::Uri { .. }));
+        assert_matches!(metadata.as_ref().extends, Some(MetadataExtends { .. }));
         assert_matches!(metadata.as_ref().schema, SchemaOption::Remote { .. });
     }
 
@@ -732,7 +579,7 @@ mod test {
         assert!(serde_json::from_value::<TypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
-            "extends#integrity": "abc123",
+            "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
             "display": [],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -784,9 +631,9 @@ mod test {
           "iss": "https://example.com/issuer",
           "iat": 1683000000,
           "attestation_qualification": "EAA",
-          "address": {
-            "country": 123
-          },
+          "financial": {
+            "has_job": "yes"
+          }
         });
 
         assert!(metadata.validate(&claims).is_err());
@@ -835,41 +682,13 @@ mod test {
         );
     }
 
-    #[test]
-    fn test_protect_verify() {
-        let metadata = TypeMetadata::example();
-        let bytes = serde_json::to_vec(&metadata).unwrap();
-        let integrity = ResourceIntegrity::from_bytes(&bytes);
-        integrity.verify(&bytes).unwrap();
-    }
-
-    #[test]
-    fn test_claim_path_collision() {
-        let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-            "claims": [
-                { "path": ["address.street"] },
-                { "path": ["address", "street"] },
-            ],
-            "schema": {
-                "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
-            }
-        }))
-        .unwrap()
-        .detect_path_collisions();
-
-        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
-    }
-
     #[rstest]
-    #[case(vec![vec!["a.b"], vec!["a", "b"]])]
-    #[case(vec![vec!["x.y.z"], vec!["x", "y.z"]])]
-    #[case(vec![vec!["x.y", "z"], vec!["x", "y.z"]])]
-    #[case(vec![vec!["x.y", "z"], vec!["x", "y", "z"]])]
-    #[case(vec![vec!["x", "y.z"], vec!["x.y", "z"]])]
-    fn test_claim_path_collisions(#[case] claims: Vec<Vec<&str>>) {
+    #[case(vec![vec!["a.b"], vec!["a", "b"]], "a.b")]
+    #[case(vec![vec!["x.y.z"], vec!["x", "y.z"]], "x.y.z")]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y.z"]], "x.y.z")]
+    #[case(vec![vec!["x.y", "z"], vec!["x", "y", "z"]], "x.y.z")]
+    #[case(vec![vec!["x", "y.z"], vec!["x.y", "z"]], "x.y.z")]
+    fn test_claim_path_collision(#[case] claims: Vec<Vec<&str>>, #[case] expected_path: &str) {
         let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "claims": claims.into_iter().map(|claim| HashMap::from([("path", claim)])).collect::<Vec<_>>(),
@@ -882,7 +701,7 @@ mod test {
         .unwrap()
         .detect_path_collisions();
 
-        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision));
+        assert_matches!(result, Err(TypeMetadataError::ClaimPathCollision(path)) if path == expected_path);
     }
 
     #[test]

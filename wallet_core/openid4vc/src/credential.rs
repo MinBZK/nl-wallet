@@ -92,9 +92,9 @@ impl CredentialFormat for CredentialRequestType {
 }
 
 impl CredentialType for CredentialRequestType {
-    fn credential_type(&self) -> String {
+    fn credential_type(&self) -> &str {
         match self {
-            CredentialRequestType::MsoMdoc { doctype } => doctype.clone(),
+            CredentialRequestType::MsoMdoc { doctype } => doctype,
         }
     }
 }

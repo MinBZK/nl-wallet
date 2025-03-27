@@ -1,21 +1,16 @@
-use std::collections::VecDeque;
-
 use chrono::Utc;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
+use ssri::Integrity;
 
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
-use sd_jwt::metadata::ResourceIntegrity;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
-use sd_jwt::metadata::TypeMetadataError;
-use sd_jwt::metadata::COSE_METADATA_HEADER_LABEL;
-use sd_jwt::metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
-use wallet_common::vec_at_least::VecNonEmpty;
+use sd_jwt::metadata_chain::TypeMetadataDocuments;
+use sd_jwt::metadata_chain::COSE_METADATA_INTEGRITY_HEADER_LABEL;
+use sd_jwt::metadata_chain::SD_JWT_VC_TYPE_METADATA_KEY;
 
 use crate::iso::*;
 use crate::unsigned::UnsignedMdoc;
@@ -23,14 +18,14 @@ use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
+use crate::utils::serialization::CborError;
 use crate::utils::serialization::TaggedBytes;
-use crate::Error;
 use crate::Result;
 
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
-        type_metadata: TypeMetadataChain,
+        metadata: (&Integrity, &TypeMetadataDocuments),
         device_public_key: CoseKey,
         key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
@@ -56,8 +51,7 @@ impl IssuerSigned {
             attestation_qualification: Some(unsigned_mdoc.attestation_qualification),
         };
 
-        let (metadata, integrity) = type_metadata.verify_and_destructure()?;
-        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata, integrity)?;
+        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata)?;
 
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
@@ -73,53 +67,41 @@ impl IssuerSigned {
 
     pub(crate) fn create_unprotected_header(
         x5chain: Vec<u8>,
-        metadata_chain: VecNonEmpty<TypeMetadata>,
-        metadata_integrity: ResourceIntegrity,
+        (metadata_integrity, metadata_documents): (&Integrity, &TypeMetadataDocuments),
     ) -> Result<Header> {
         let header = HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(x5chain))
             .text_value(
-                String::from(COSE_METADATA_HEADER_LABEL),
-                Value::Array(
-                    metadata_chain
-                        .into_iter()
-                        .map(|m| {
-                            let encoded = m.try_as_base64()?;
-                            Ok(Value::Text(encoded))
-                        })
-                        .collect::<Result<_, TypeMetadataError>>()?,
-                ),
+                String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL),
+                Value::Text(metadata_integrity.to_string()),
             )
             .text_value(
-                String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL),
-                Value::Text(metadata_integrity.into()),
+                String::from(SD_JWT_VC_TYPE_METADATA_KEY),
+                Value::serialized(metadata_documents).map_err(CborError::Value)?,
             )
             .build();
 
         Ok(header)
     }
 
-    pub fn type_metadata(&self) -> Result<TypeMetadataChain> {
-        let metadata_label = Label::Text(String::from(COSE_METADATA_HEADER_LABEL));
+    pub fn type_metadata_documents(&self) -> Result<(Integrity, TypeMetadataDocuments)> {
+        let integrity_label = Label::Text(String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL));
+        let documents_label = Label::Text(String::from(SD_JWT_VC_TYPE_METADATA_KEY));
 
-        let encoded_chain = self
+        let metadata_integrity = self
             .issuer_auth
-            .unprotected_header_item(&metadata_label)?
-            .as_array()
-            .ok_or(CoseError::MissingLabel(metadata_label.clone()))?;
+            .unprotected_header_item(&integrity_label)?
+            .as_text()
+            .and_then(|text| text.parse().ok())
+            .ok_or(CoseError::MissingLabel(integrity_label))?;
 
-        let mut chain = encoded_chain
-            .iter()
-            .map(|value| {
-                let encoded = value.as_text().ok_or(CoseError::MissingLabel(metadata_label.clone()))?;
-                let type_metadata = TypeMetadata::try_from_base64(encoded).map_err(Error::TypeMetadata)?;
-                Ok(type_metadata)
-            })
-            .collect::<Result<VecDeque<_>, Error>>()?;
+        let metadata_documents = self
+            .issuer_auth
+            .unprotected_header_item(&documents_label)?
+            .deserialized()
+            .map_err(CborError::Value)?;
 
-        let root = chain.pop_front().ok_or(CoseError::MissingLabel(metadata_label))?;
-
-        Ok(TypeMetadataChain::create(root, chain.into())?)
+        Ok((metadata_integrity, metadata_documents))
     }
 
     #[cfg(any(test, feature = "test"))]
@@ -148,7 +130,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use sd_jwt::metadata::TypeMetadata;
-    use sd_jwt::metadata::TypeMetadataChain;
+    use sd_jwt::metadata_chain::TypeMetadataDocuments;
     use wallet_common::generator::TimeGenerator;
 
     use crate::holder::Mdoc;
@@ -194,11 +176,18 @@ mod tests {
         };
 
         // NOTE: This metadata does not match the attributes.
-        let metadata_chain = TypeMetadataChain::create(TypeMetadata::empty_example(), vec![]).unwrap();
+        let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(
+            TypeMetadata::empty_example_with_attestation_type(ISSUANCE_DOC_TYPE),
+        );
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned.clone(), metadata_chain, device_key, &issuance_key)
-            .await
-            .unwrap();
+        let issuer_signed = IssuerSigned::sign(
+            unsigned.clone(),
+            (&metadata_integrity, &metadata_documents),
+            device_key,
+            &issuance_key,
+        )
+        .await
+        .unwrap();
 
         // The IssuerSigned should be valid
         issuer_signed

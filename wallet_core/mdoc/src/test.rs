@@ -8,8 +8,7 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 
 use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
-
+use sd_jwt::metadata_chain::TypeMetadataDocuments;
 use wallet_common::urls::HttpsUri;
 
 use crate::identifiers::AttributeIdentifier;
@@ -210,15 +209,21 @@ impl TestDocument {
             unsigned
         };
         // NOTE: This metadata does not match the attributes.
-        let metadata = TypeMetadata::empty_example();
-        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+        let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(
+            TypeMetadata::empty_example_with_attestation_type(&unsigned.doc_type),
+        );
         let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc_key = key_factory.generate_new().await.unwrap();
         let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let issuer_signed = IssuerSigned::sign(unsigned, metadata_chain, mdoc_public_key, &issuance_key)
-            .await
-            .unwrap();
+        let issuer_signed = IssuerSigned::sign(
+            unsigned,
+            (&metadata_integrity, &metadata_documents),
+            mdoc_public_key,
+            &issuance_key,
+        )
+        .await
+        .unwrap();
 
         (issuer_signed, mdoc_key)
     }

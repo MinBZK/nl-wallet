@@ -1,6 +1,6 @@
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt::metadata_chain::TypeMetadataChainError;
 
 use crate::holder::HolderError;
 use crate::utils::cose::CoseError;
@@ -29,7 +29,7 @@ pub enum Error {
     KeysError(#[from] KeysError),
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
-    #[error("type metadata error: {0}")]
+    #[error("type metadata chain error: {0}")]
     #[category(critical)]
-    TypeMetadata(#[from] TypeMetadataError),
+    TypeMetadata(#[from] TypeMetadataChainError),
 }

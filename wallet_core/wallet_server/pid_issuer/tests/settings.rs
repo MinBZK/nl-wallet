@@ -53,14 +53,22 @@ fn test_settings_no_issuer_registration() {
     )])
     .into();
 
-    settings.issuer_settings.metadata = vec![
-        TypeMetadata::try_new(UncheckedTypeMetadata {
-            vct: "com.example.no_registration".to_string(),
-            ..UncheckedTypeMetadata::empty_example()
-        })
-        .unwrap(),
-        TypeMetadata::pid_example(),
-    ];
+    let no_registration_metadata = UncheckedTypeMetadata {
+        vct: "com.example.no_registration".to_string(),
+        ..UncheckedTypeMetadata::empty_example()
+    };
+    let pid_metadata = TypeMetadata::pid_example();
+
+    settings.issuer_settings.metadata = HashMap::from([
+        (
+            no_registration_metadata.vct.clone(),
+            serde_json::to_vec(&no_registration_metadata).unwrap(),
+        ),
+        (
+            pid_metadata.as_ref().vct.clone(),
+            serde_json::to_vec(&pid_metadata).unwrap(),
+        ),
+    ]);
 
     assert_matches!(
         settings.validate().expect_err("should fail"),

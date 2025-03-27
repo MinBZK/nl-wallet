@@ -10,7 +10,7 @@ use poa::factory::PoaFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::wte::WteClaims;
 
-use crate::credential_formats::CredentialFormats;
+use crate::issuance_session::CredentialPreviewsWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
@@ -19,7 +19,6 @@ use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
 use crate::metadata::IssuerMetadata;
 use crate::oidc::Config;
-use crate::token::CredentialPreview;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
@@ -28,7 +27,7 @@ use crate::token::TokenRequestGrantType;
 
 mockall::mock! {
     pub IssuanceSession {
-        pub fn start() -> Result<(Self, Vec<CredentialFormats<CredentialPreview>>), IssuanceSessionError>
+        pub fn start() -> Result<(Self, CredentialPreviewsWithMetadata), IssuanceSessionError>
         where
             Self: Sized;
 
@@ -46,7 +45,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: BaseUrl,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
-    ) -> Result<(Self, Vec<CredentialFormats<CredentialPreview>>), IssuanceSessionError>
+    ) -> Result<(Self, CredentialPreviewsWithMetadata), IssuanceSessionError>
     where
         Self: Sized,
     {

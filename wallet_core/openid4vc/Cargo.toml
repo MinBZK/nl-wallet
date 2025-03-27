@@ -37,9 +37,10 @@ chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 dashmap.workspace = true
 derive_more = { workspace = true, features = [
-    "as_ref",
-    "constructor",
+    "debug",
     "display",
+    "constructor",
+    "as_ref",
     "from",
     "from_str",
     "into",
@@ -66,6 +67,7 @@ serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_valid.workspace = true
 serde_with.workspace = true
+ssri.workspace = true
 strfmt.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
