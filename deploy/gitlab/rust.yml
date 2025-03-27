@@ -1,5 +1,7 @@
 .rust:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-rust:${BUILD_TAG}"
+  tags:
+    - linux
 
 lint-rust:
   extends: .rust
@@ -15,8 +17,6 @@ lint-rust:
 
 .test-rust:
   extends: .rust
-  tags:
-    - linux
   variables:
     NEXTEST_PROFILE: "ci"
   before_script:
