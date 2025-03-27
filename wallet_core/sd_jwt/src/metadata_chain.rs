@@ -94,7 +94,7 @@ impl TypeMetadataDocuments {
     /// [`UnverifiedTypeMetadataChain`] and takes the first `vct` field as input.
     ///
     /// Note that, as the specification does not clearly specify the order of the documents within their array
-    /// representation, we do not make assumptions about it. This means that the received document may be in any order.
+    /// representation, we do not make assumptions about it. This means that the received documents may be in any order.
     pub fn into_unverified_metadata_chain(
         self,
         vct: &str,
