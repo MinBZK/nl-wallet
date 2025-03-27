@@ -29,10 +29,11 @@ class CardMapper extends Mapper<core.Attestation, WalletCard> {
 
   @override
   WalletCard map(core.Attestation input) {
-    final String cardId = input.identity.map(
-      ephemeral: (ephemeral) => input.attestationType,
-      fixed: (fixed) => fixed.id,
-    );
+    final String cardId = switch (input.identity) {
+      core.AttestationIdentity_Ephemeral() => input.attestationType,
+      core.AttestationIdentity_Fixed(:final id) => id,
+    };
+
     return WalletCard(
       id: cardId,
       docType: input.attestationType,

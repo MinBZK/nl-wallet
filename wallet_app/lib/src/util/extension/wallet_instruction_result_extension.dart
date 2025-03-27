@@ -6,11 +6,14 @@ import 'wallet_instruction_error_extension.dart';
 
 extension WalletInstructionResultExtension on WalletInstructionResult {
   Result<String?> asApplicationResult() {
-    return map(
-      ok: (result) => const Result.success(null),
-      instructionError: (error) => Result.error(
-        IncorrectPinError(error.error.asCheckPinResult(), sourceError: error),
-      ),
-    );
+    return switch (this) {
+      WalletInstructionResult_Ok() => Result.success(null),
+      WalletInstructionResult_InstructionError(:final error) => Result.error(
+          IncorrectPinError(
+            error.asCheckPinResult(),
+            sourceError: this,
+          ),
+        ),
+    };
   }
 }

@@ -25,28 +25,22 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
 
   @override
   WalletEvent map(core.WalletEvent input) {
-    return input.map(
-      disclosure: (disclosure) {
-        final cards = _cardMapper.mapList(disclosure.requestedAttestations ?? []);
-        return WalletEvent.disclosure(
-          dateTime: DateTime.parse(disclosure.dateTime).toLocal(),
-          relyingParty: _relyingPartyMapper.map(disclosure.relyingParty),
-          purpose: _localizedStringMapper.map(disclosure.purpose),
-          cards: cards,
-          policy: _policyMapper.map(disclosure.requestPolicy),
-          status: _resolveInteractionStatus(disclosure.status),
-          type: _disclosureTypeMapper.map(disclosure.typ),
-        );
-      },
-      issuance: (issuance) {
-        final card = _cardMapper.map(issuance.attestation);
-        return WalletEvent.issuance(
-          dateTime: DateTime.parse(issuance.dateTime).toLocal(),
+    return switch (input) {
+      WalletEvent_Disclosure() => WalletEvent.disclosure(
+          dateTime: DateTime.parse(input.dateTime).toLocal(),
+          relyingParty: _relyingPartyMapper.map(input.relyingParty),
+          purpose: _localizedStringMapper.map(input.purpose),
+          cards: _cardMapper.mapList(input.requestedAttestations ?? []),
+          policy: _policyMapper.map(input.requestPolicy),
+          status: _resolveInteractionStatus(input.status),
+          type: _disclosureTypeMapper.map(input.typ),
+        ),
+      WalletEvent_Issuance() => WalletEvent.issuance(
+          dateTime: DateTime.parse(input.dateTime).toLocal(),
           status: EventStatus.success,
-          card: card,
-        );
-      },
-    );
+          card: _cardMapper.map(input.attestation),
+        ),
+    };
   }
 
   EventStatus _resolveInteractionStatus(core.DisclosureStatus status) {
