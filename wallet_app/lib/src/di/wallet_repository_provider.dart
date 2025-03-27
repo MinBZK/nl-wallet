@@ -120,7 +120,7 @@ class WalletRepositoryProvider extends StatelessWidget {
         RepositoryProvider<NetworkRepository>(
           lazy: false /* false to make sure [CoreErrorExtension.networkRepository] is available */,
           create: (context) {
-            final networkRepository = NetworkRepositoryImpl(Connectivity(), InternetConnectionChecker());
+            final networkRepository = NetworkRepositoryImpl(Connectivity(), InternetConnectionChecker.instance);
             CoreErrorExtension.networkRepository = networkRepository;
             return networkRepository;
           },

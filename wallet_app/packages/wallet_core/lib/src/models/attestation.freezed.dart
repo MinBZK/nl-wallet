@@ -1,3 +1,4 @@
+// dart format width=80
 // coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint
@@ -9,205 +10,105 @@ part of 'attestation.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
 /// @nodoc
 mixin _$AttestationIdentity {
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() ephemeral,
-    required TResult Function(String id) fixed,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? ephemeral,
-    TResult? Function(String id)? fixed,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? ephemeral,
-    TResult Function(String id)? fixed,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttestationIdentity_Ephemeral value) ephemeral,
-    required TResult Function(AttestationIdentity_Fixed value) fixed,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttestationIdentity_Ephemeral value)? ephemeral,
-    TResult? Function(AttestationIdentity_Fixed value)? fixed,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttestationIdentity_Ephemeral value)? ephemeral,
-    TResult Function(AttestationIdentity_Fixed value)? fixed,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $AttestationIdentityCopyWith<$Res> {
-  factory $AttestationIdentityCopyWith(AttestationIdentity value, $Res Function(AttestationIdentity) then) =
-      _$AttestationIdentityCopyWithImpl<$Res, AttestationIdentity>;
-}
-
-/// @nodoc
-class _$AttestationIdentityCopyWithImpl<$Res, $Val extends AttestationIdentity>
-    implements $AttestationIdentityCopyWith<$Res> {
-  _$AttestationIdentityCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of AttestationIdentity
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-abstract class _$$AttestationIdentity_EphemeralImplCopyWith<$Res> {
-  factory _$$AttestationIdentity_EphemeralImplCopyWith(
-          _$AttestationIdentity_EphemeralImpl value, $Res Function(_$AttestationIdentity_EphemeralImpl) then) =
-      __$$AttestationIdentity_EphemeralImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$AttestationIdentity_EphemeralImplCopyWithImpl<$Res>
-    extends _$AttestationIdentityCopyWithImpl<$Res, _$AttestationIdentity_EphemeralImpl>
-    implements _$$AttestationIdentity_EphemeralImplCopyWith<$Res> {
-  __$$AttestationIdentity_EphemeralImplCopyWithImpl(
-      _$AttestationIdentity_EphemeralImpl _value, $Res Function(_$AttestationIdentity_EphemeralImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of AttestationIdentity
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-
-class _$AttestationIdentity_EphemeralImpl extends AttestationIdentity_Ephemeral {
-  const _$AttestationIdentity_EphemeralImpl() : super._();
-
-  @override
-  String toString() {
-    return 'AttestationIdentity.ephemeral()';
-  }
-
   @override
   bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType && other is _$AttestationIdentity_EphemeralImpl);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is AttestationIdentity);
   }
 
   @override
   int get hashCode => runtimeType.hashCode;
 
   @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() ephemeral,
-    required TResult Function(String id) fixed,
-  }) {
-    return ephemeral();
+  String toString() {
+    return 'AttestationIdentity()';
   }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? ephemeral,
-    TResult? Function(String id)? fixed,
-  }) {
-    return ephemeral?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? ephemeral,
-    TResult Function(String id)? fixed,
-    required TResult orElse(),
-  }) {
-    if (ephemeral != null) {
-      return ephemeral();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttestationIdentity_Ephemeral value) ephemeral,
-    required TResult Function(AttestationIdentity_Fixed value) fixed,
-  }) {
-    return ephemeral(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttestationIdentity_Ephemeral value)? ephemeral,
-    TResult? Function(AttestationIdentity_Fixed value)? fixed,
-  }) {
-    return ephemeral?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttestationIdentity_Ephemeral value)? ephemeral,
-    TResult Function(AttestationIdentity_Fixed value)? fixed,
-    required TResult orElse(),
-  }) {
-    if (ephemeral != null) {
-      return ephemeral(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class AttestationIdentity_Ephemeral extends AttestationIdentity {
-  const factory AttestationIdentity_Ephemeral() = _$AttestationIdentity_EphemeralImpl;
-  const AttestationIdentity_Ephemeral._() : super._();
 }
 
 /// @nodoc
-abstract class _$$AttestationIdentity_FixedImplCopyWith<$Res> {
-  factory _$$AttestationIdentity_FixedImplCopyWith(
-          _$AttestationIdentity_FixedImpl value, $Res Function(_$AttestationIdentity_FixedImpl) then) =
-      __$$AttestationIdentity_FixedImplCopyWithImpl<$Res>;
+class $AttestationIdentityCopyWith<$Res> {
+  $AttestationIdentityCopyWith(AttestationIdentity _, $Res Function(AttestationIdentity) __);
+}
+
+/// @nodoc
+
+class AttestationIdentity_Ephemeral extends AttestationIdentity {
+  const AttestationIdentity_Ephemeral() : super._();
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is AttestationIdentity_Ephemeral);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() {
+    return 'AttestationIdentity.ephemeral()';
+  }
+}
+
+/// @nodoc
+
+class AttestationIdentity_Fixed extends AttestationIdentity {
+  const AttestationIdentity_Fixed({required this.id}) : super._();
+
+  final String id;
+
+  /// Create a copy of AttestationIdentity
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $AttestationIdentity_FixedCopyWith<AttestationIdentity_Fixed> get copyWith =>
+      _$AttestationIdentity_FixedCopyWithImpl<AttestationIdentity_Fixed>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is AttestationIdentity_Fixed &&
+            (identical(other.id, id) || other.id == id));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, id);
+
+  @override
+  String toString() {
+    return 'AttestationIdentity.fixed(id: $id)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $AttestationIdentity_FixedCopyWith<$Res> implements $AttestationIdentityCopyWith<$Res> {
+  factory $AttestationIdentity_FixedCopyWith(
+          AttestationIdentity_Fixed value, $Res Function(AttestationIdentity_Fixed) _then) =
+      _$AttestationIdentity_FixedCopyWithImpl;
   @useResult
   $Res call({String id});
 }
 
 /// @nodoc
-class __$$AttestationIdentity_FixedImplCopyWithImpl<$Res>
-    extends _$AttestationIdentityCopyWithImpl<$Res, _$AttestationIdentity_FixedImpl>
-    implements _$$AttestationIdentity_FixedImplCopyWith<$Res> {
-  __$$AttestationIdentity_FixedImplCopyWithImpl(
-      _$AttestationIdentity_FixedImpl _value, $Res Function(_$AttestationIdentity_FixedImpl) _then)
-      : super(_value, _then);
+class _$AttestationIdentity_FixedCopyWithImpl<$Res> implements $AttestationIdentity_FixedCopyWith<$Res> {
+  _$AttestationIdentity_FixedCopyWithImpl(this._self, this._then);
+
+  final AttestationIdentity_Fixed _self;
+  final $Res Function(AttestationIdentity_Fixed) _then;
 
   /// Create a copy of AttestationIdentity
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
-  @override
   $Res call({
     Object? id = null,
   }) {
-    return _then(_$AttestationIdentity_FixedImpl(
+    return _then(AttestationIdentity_Fixed(
       id: null == id
-          ? _value.id
+          ? _self.id
           : id // ignore: cast_nullable_to_non_nullable
               as String,
     ));
@@ -215,214 +116,87 @@ class __$$AttestationIdentity_FixedImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
-class _$AttestationIdentity_FixedImpl extends AttestationIdentity_Fixed {
-  const _$AttestationIdentity_FixedImpl({required this.id}) : super._();
-
-  @override
-  final String id;
-
-  @override
-  String toString() {
-    return 'AttestationIdentity.fixed(id: $id)';
-  }
+mixin _$AttributeValue {
+  Object get value;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$AttestationIdentity_FixedImpl &&
-            (identical(other.id, id) || other.id == id));
+            other is AttributeValue &&
+            const DeepCollectionEquality().equals(other.value, value));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, id);
-
-  /// Create a copy of AttestationIdentity
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$AttestationIdentity_FixedImplCopyWith<_$AttestationIdentity_FixedImpl> get copyWith =>
-      __$$AttestationIdentity_FixedImplCopyWithImpl<_$AttestationIdentity_FixedImpl>(this, _$identity);
+  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(value));
 
   @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() ephemeral,
-    required TResult Function(String id) fixed,
-  }) {
-    return fixed(id);
+  String toString() {
+    return 'AttributeValue(value: $value)';
   }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? ephemeral,
-    TResult? Function(String id)? fixed,
-  }) {
-    return fixed?.call(id);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? ephemeral,
-    TResult Function(String id)? fixed,
-    required TResult orElse(),
-  }) {
-    if (fixed != null) {
-      return fixed(id);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttestationIdentity_Ephemeral value) ephemeral,
-    required TResult Function(AttestationIdentity_Fixed value) fixed,
-  }) {
-    return fixed(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttestationIdentity_Ephemeral value)? ephemeral,
-    TResult? Function(AttestationIdentity_Fixed value)? fixed,
-  }) {
-    return fixed?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttestationIdentity_Ephemeral value)? ephemeral,
-    TResult Function(AttestationIdentity_Fixed value)? fixed,
-    required TResult orElse(),
-  }) {
-    if (fixed != null) {
-      return fixed(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class AttestationIdentity_Fixed extends AttestationIdentity {
-  const factory AttestationIdentity_Fixed({required final String id}) = _$AttestationIdentity_FixedImpl;
-  const AttestationIdentity_Fixed._() : super._();
-
-  String get id;
-
-  /// Create a copy of AttestationIdentity
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttestationIdentity_FixedImplCopyWith<_$AttestationIdentity_FixedImpl> get copyWith =>
-      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-mixin _$AttributeValue {
-  Object get value => throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String value) string,
-    required TResult Function(bool value) boolean,
-    required TResult Function(int value) number,
-    required TResult Function(String value) date,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String value)? string,
-    TResult? Function(bool value)? boolean,
-    TResult? Function(int value)? number,
-    TResult? Function(String value)? date,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String value)? string,
-    TResult Function(bool value)? boolean,
-    TResult Function(int value)? number,
-    TResult Function(String value)? date,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttributeValue_String value) string,
-    required TResult Function(AttributeValue_Boolean value) boolean,
-    required TResult Function(AttributeValue_Number value) number,
-    required TResult Function(AttributeValue_Date value) date,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttributeValue_String value)? string,
-    TResult? Function(AttributeValue_Boolean value)? boolean,
-    TResult? Function(AttributeValue_Number value)? number,
-    TResult? Function(AttributeValue_Date value)? date,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttributeValue_String value)? string,
-    TResult Function(AttributeValue_Boolean value)? boolean,
-    TResult Function(AttributeValue_Number value)? number,
-    TResult Function(AttributeValue_Date value)? date,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
+class $AttributeValueCopyWith<$Res> {
+  $AttributeValueCopyWith(AttributeValue _, $Res Function(AttributeValue) __);
 }
 
 /// @nodoc
-abstract class $AttributeValueCopyWith<$Res> {
-  factory $AttributeValueCopyWith(AttributeValue value, $Res Function(AttributeValue) then) =
-      _$AttributeValueCopyWithImpl<$Res, AttributeValue>;
-}
 
-/// @nodoc
-class _$AttributeValueCopyWithImpl<$Res, $Val extends AttributeValue> implements $AttributeValueCopyWith<$Res> {
-  _$AttributeValueCopyWithImpl(this._value, this._then);
+class AttributeValue_String extends AttributeValue {
+  const AttributeValue_String({required this.value}) : super._();
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  @override
+  final String value;
 
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $AttributeValue_StringCopyWith<AttributeValue_String> get copyWith =>
+      _$AttributeValue_StringCopyWithImpl<AttributeValue_String>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is AttributeValue_String &&
+            (identical(other.value, value) || other.value == value));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, value);
+
+  @override
+  String toString() {
+    return 'AttributeValue.string(value: $value)';
+  }
 }
 
 /// @nodoc
-abstract class _$$AttributeValue_StringImplCopyWith<$Res> {
-  factory _$$AttributeValue_StringImplCopyWith(
-          _$AttributeValue_StringImpl value, $Res Function(_$AttributeValue_StringImpl) then) =
-      __$$AttributeValue_StringImplCopyWithImpl<$Res>;
+abstract mixin class $AttributeValue_StringCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_StringCopyWith(AttributeValue_String value, $Res Function(AttributeValue_String) _then) =
+      _$AttributeValue_StringCopyWithImpl;
   @useResult
   $Res call({String value});
 }
 
 /// @nodoc
-class __$$AttributeValue_StringImplCopyWithImpl<$Res>
-    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_StringImpl>
-    implements _$$AttributeValue_StringImplCopyWith<$Res> {
-  __$$AttributeValue_StringImplCopyWithImpl(
-      _$AttributeValue_StringImpl _value, $Res Function(_$AttributeValue_StringImpl) _then)
-      : super(_value, _then);
+class _$AttributeValue_StringCopyWithImpl<$Res> implements $AttributeValue_StringCopyWith<$Res> {
+  _$AttributeValue_StringCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_String _self;
+  final $Res Function(AttributeValue_String) _then;
 
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
-  @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$AttributeValue_StringImpl(
+    return _then(AttributeValue_String(
       value: null == value
-          ? _value.value
+          ? _self.value
           : value // ignore: cast_nullable_to_non_nullable
               as String,
     ));
@@ -431,151 +205,60 @@ class __$$AttributeValue_StringImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$AttributeValue_StringImpl extends AttributeValue_String {
-  const _$AttributeValue_StringImpl({required this.value}) : super._();
+class AttributeValue_Boolean extends AttributeValue {
+  const AttributeValue_Boolean({required this.value}) : super._();
 
   @override
-  final String value;
+  final bool value;
 
-  @override
-  String toString() {
-    return 'AttributeValue.string(value: $value)';
-  }
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $AttributeValue_BooleanCopyWith<AttributeValue_Boolean> get copyWith =>
+      _$AttributeValue_BooleanCopyWithImpl<AttributeValue_Boolean>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$AttributeValue_StringImpl &&
+            other is AttributeValue_Boolean &&
             (identical(other.value, value) || other.value == value));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl> get copyWith =>
-      __$$AttributeValue_StringImplCopyWithImpl<_$AttributeValue_StringImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String value) string,
-    required TResult Function(bool value) boolean,
-    required TResult Function(int value) number,
-    required TResult Function(String value) date,
-  }) {
-    return string(value);
+  String toString() {
+    return 'AttributeValue.boolean(value: $value)';
   }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String value)? string,
-    TResult? Function(bool value)? boolean,
-    TResult? Function(int value)? number,
-    TResult? Function(String value)? date,
-  }) {
-    return string?.call(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String value)? string,
-    TResult Function(bool value)? boolean,
-    TResult Function(int value)? number,
-    TResult Function(String value)? date,
-    required TResult orElse(),
-  }) {
-    if (string != null) {
-      return string(value);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttributeValue_String value) string,
-    required TResult Function(AttributeValue_Boolean value) boolean,
-    required TResult Function(AttributeValue_Number value) number,
-    required TResult Function(AttributeValue_Date value) date,
-  }) {
-    return string(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttributeValue_String value)? string,
-    TResult? Function(AttributeValue_Boolean value)? boolean,
-    TResult? Function(AttributeValue_Number value)? number,
-    TResult? Function(AttributeValue_Date value)? date,
-  }) {
-    return string?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttributeValue_String value)? string,
-    TResult Function(AttributeValue_Boolean value)? boolean,
-    TResult Function(AttributeValue_Number value)? number,
-    TResult Function(AttributeValue_Date value)? date,
-    required TResult orElse(),
-  }) {
-    if (string != null) {
-      return string(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class AttributeValue_String extends AttributeValue {
-  const factory AttributeValue_String({required final String value}) = _$AttributeValue_StringImpl;
-  const AttributeValue_String._() : super._();
-
-  @override
-  String get value;
-
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttributeValue_StringImplCopyWith<_$AttributeValue_StringImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$AttributeValue_BooleanImplCopyWith<$Res> {
-  factory _$$AttributeValue_BooleanImplCopyWith(
-          _$AttributeValue_BooleanImpl value, $Res Function(_$AttributeValue_BooleanImpl) then) =
-      __$$AttributeValue_BooleanImplCopyWithImpl<$Res>;
+abstract mixin class $AttributeValue_BooleanCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_BooleanCopyWith(AttributeValue_Boolean value, $Res Function(AttributeValue_Boolean) _then) =
+      _$AttributeValue_BooleanCopyWithImpl;
   @useResult
   $Res call({bool value});
 }
 
 /// @nodoc
-class __$$AttributeValue_BooleanImplCopyWithImpl<$Res>
-    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_BooleanImpl>
-    implements _$$AttributeValue_BooleanImplCopyWith<$Res> {
-  __$$AttributeValue_BooleanImplCopyWithImpl(
-      _$AttributeValue_BooleanImpl _value, $Res Function(_$AttributeValue_BooleanImpl) _then)
-      : super(_value, _then);
+class _$AttributeValue_BooleanCopyWithImpl<$Res> implements $AttributeValue_BooleanCopyWith<$Res> {
+  _$AttributeValue_BooleanCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_Boolean _self;
+  final $Res Function(AttributeValue_Boolean) _then;
 
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
-  @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$AttributeValue_BooleanImpl(
+    return _then(AttributeValue_Boolean(
       value: null == value
-          ? _value.value
+          ? _self.value
           : value // ignore: cast_nullable_to_non_nullable
               as bool,
     ));
@@ -584,152 +267,60 @@ class __$$AttributeValue_BooleanImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$AttributeValue_BooleanImpl extends AttributeValue_Boolean {
-  const _$AttributeValue_BooleanImpl({required this.value}) : super._();
+class AttributeValue_Number extends AttributeValue {
+  const AttributeValue_Number({required this.value}) : super._();
 
   @override
-  final bool value;
+  final int value;
 
-  @override
-  String toString() {
-    return 'AttributeValue.boolean(value: $value)';
-  }
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $AttributeValue_NumberCopyWith<AttributeValue_Number> get copyWith =>
+      _$AttributeValue_NumberCopyWithImpl<AttributeValue_Number>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$AttributeValue_BooleanImpl &&
+            other is AttributeValue_Number &&
             (identical(other.value, value) || other.value == value));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl> get copyWith =>
-      __$$AttributeValue_BooleanImplCopyWithImpl<_$AttributeValue_BooleanImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String value) string,
-    required TResult Function(bool value) boolean,
-    required TResult Function(int value) number,
-    required TResult Function(String value) date,
-  }) {
-    return boolean(value);
+  String toString() {
+    return 'AttributeValue.number(value: $value)';
   }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String value)? string,
-    TResult? Function(bool value)? boolean,
-    TResult? Function(int value)? number,
-    TResult? Function(String value)? date,
-  }) {
-    return boolean?.call(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String value)? string,
-    TResult Function(bool value)? boolean,
-    TResult Function(int value)? number,
-    TResult Function(String value)? date,
-    required TResult orElse(),
-  }) {
-    if (boolean != null) {
-      return boolean(value);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttributeValue_String value) string,
-    required TResult Function(AttributeValue_Boolean value) boolean,
-    required TResult Function(AttributeValue_Number value) number,
-    required TResult Function(AttributeValue_Date value) date,
-  }) {
-    return boolean(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttributeValue_String value)? string,
-    TResult? Function(AttributeValue_Boolean value)? boolean,
-    TResult? Function(AttributeValue_Number value)? number,
-    TResult? Function(AttributeValue_Date value)? date,
-  }) {
-    return boolean?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttributeValue_String value)? string,
-    TResult Function(AttributeValue_Boolean value)? boolean,
-    TResult Function(AttributeValue_Number value)? number,
-    TResult Function(AttributeValue_Date value)? date,
-    required TResult orElse(),
-  }) {
-    if (boolean != null) {
-      return boolean(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class AttributeValue_Boolean extends AttributeValue {
-  const factory AttributeValue_Boolean({required final bool value}) = _$AttributeValue_BooleanImpl;
-  const AttributeValue_Boolean._() : super._();
-
-  @override
-  bool get value;
-
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttributeValue_BooleanImplCopyWith<_$AttributeValue_BooleanImpl> get copyWith =>
-      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$AttributeValue_NumberImplCopyWith<$Res> {
-  factory _$$AttributeValue_NumberImplCopyWith(
-          _$AttributeValue_NumberImpl value, $Res Function(_$AttributeValue_NumberImpl) then) =
-      __$$AttributeValue_NumberImplCopyWithImpl<$Res>;
+abstract mixin class $AttributeValue_NumberCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_NumberCopyWith(AttributeValue_Number value, $Res Function(AttributeValue_Number) _then) =
+      _$AttributeValue_NumberCopyWithImpl;
   @useResult
   $Res call({int value});
 }
 
 /// @nodoc
-class __$$AttributeValue_NumberImplCopyWithImpl<$Res>
-    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_NumberImpl>
-    implements _$$AttributeValue_NumberImplCopyWith<$Res> {
-  __$$AttributeValue_NumberImplCopyWithImpl(
-      _$AttributeValue_NumberImpl _value, $Res Function(_$AttributeValue_NumberImpl) _then)
-      : super(_value, _then);
+class _$AttributeValue_NumberCopyWithImpl<$Res> implements $AttributeValue_NumberCopyWith<$Res> {
+  _$AttributeValue_NumberCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_Number _self;
+  final $Res Function(AttributeValue_Number) _then;
 
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
-  @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$AttributeValue_NumberImpl(
+    return _then(AttributeValue_Number(
       value: null == value
-          ? _value.value
+          ? _self.value
           : value // ignore: cast_nullable_to_non_nullable
               as int,
     ));
@@ -738,151 +329,60 @@ class __$$AttributeValue_NumberImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$AttributeValue_NumberImpl extends AttributeValue_Number {
-  const _$AttributeValue_NumberImpl({required this.value}) : super._();
+class AttributeValue_Date extends AttributeValue {
+  const AttributeValue_Date({required this.value}) : super._();
 
   @override
-  final int value;
+  final String value;
 
-  @override
-  String toString() {
-    return 'AttributeValue.number(value: $value)';
-  }
+  /// Create a copy of AttributeValue
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $AttributeValue_DateCopyWith<AttributeValue_Date> get copyWith =>
+      _$AttributeValue_DateCopyWithImpl<AttributeValue_Date>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$AttributeValue_NumberImpl &&
+            other is AttributeValue_Date &&
             (identical(other.value, value) || other.value == value));
   }
 
   @override
   int get hashCode => Object.hash(runtimeType, value);
 
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  @pragma('vm:prefer-inline')
-  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl> get copyWith =>
-      __$$AttributeValue_NumberImplCopyWithImpl<_$AttributeValue_NumberImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String value) string,
-    required TResult Function(bool value) boolean,
-    required TResult Function(int value) number,
-    required TResult Function(String value) date,
-  }) {
-    return number(value);
+  String toString() {
+    return 'AttributeValue.date(value: $value)';
   }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String value)? string,
-    TResult? Function(bool value)? boolean,
-    TResult? Function(int value)? number,
-    TResult? Function(String value)? date,
-  }) {
-    return number?.call(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String value)? string,
-    TResult Function(bool value)? boolean,
-    TResult Function(int value)? number,
-    TResult Function(String value)? date,
-    required TResult orElse(),
-  }) {
-    if (number != null) {
-      return number(value);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttributeValue_String value) string,
-    required TResult Function(AttributeValue_Boolean value) boolean,
-    required TResult Function(AttributeValue_Number value) number,
-    required TResult Function(AttributeValue_Date value) date,
-  }) {
-    return number(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttributeValue_String value)? string,
-    TResult? Function(AttributeValue_Boolean value)? boolean,
-    TResult? Function(AttributeValue_Number value)? number,
-    TResult? Function(AttributeValue_Date value)? date,
-  }) {
-    return number?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttributeValue_String value)? string,
-    TResult Function(AttributeValue_Boolean value)? boolean,
-    TResult Function(AttributeValue_Number value)? number,
-    TResult Function(AttributeValue_Date value)? date,
-    required TResult orElse(),
-  }) {
-    if (number != null) {
-      return number(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class AttributeValue_Number extends AttributeValue {
-  const factory AttributeValue_Number({required final int value}) = _$AttributeValue_NumberImpl;
-  const AttributeValue_Number._() : super._();
-
-  @override
-  int get value;
-
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttributeValue_NumberImplCopyWith<_$AttributeValue_NumberImpl> get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class _$$AttributeValue_DateImplCopyWith<$Res> {
-  factory _$$AttributeValue_DateImplCopyWith(
-          _$AttributeValue_DateImpl value, $Res Function(_$AttributeValue_DateImpl) then) =
-      __$$AttributeValue_DateImplCopyWithImpl<$Res>;
+abstract mixin class $AttributeValue_DateCopyWith<$Res> implements $AttributeValueCopyWith<$Res> {
+  factory $AttributeValue_DateCopyWith(AttributeValue_Date value, $Res Function(AttributeValue_Date) _then) =
+      _$AttributeValue_DateCopyWithImpl;
   @useResult
   $Res call({String value});
 }
 
 /// @nodoc
-class __$$AttributeValue_DateImplCopyWithImpl<$Res>
-    extends _$AttributeValueCopyWithImpl<$Res, _$AttributeValue_DateImpl>
-    implements _$$AttributeValue_DateImplCopyWith<$Res> {
-  __$$AttributeValue_DateImplCopyWithImpl(
-      _$AttributeValue_DateImpl _value, $Res Function(_$AttributeValue_DateImpl) _then)
-      : super(_value, _then);
+class _$AttributeValue_DateCopyWithImpl<$Res> implements $AttributeValue_DateCopyWith<$Res> {
+  _$AttributeValue_DateCopyWithImpl(this._self, this._then);
+
+  final AttributeValue_Date _self;
+  final $Res Function(AttributeValue_Date) _then;
 
   /// Create a copy of AttributeValue
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
-  @override
   $Res call({
     Object? value = null,
   }) {
-    return _then(_$AttributeValue_DateImpl(
+    return _then(AttributeValue_Date(
       value: null == value
-          ? _value.value
+          ? _self.value
           : value // ignore: cast_nullable_to_non_nullable
               as String,
     ));
@@ -890,252 +390,47 @@ class __$$AttributeValue_DateImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
-class _$AttributeValue_DateImpl extends AttributeValue_Date {
-  const _$AttributeValue_DateImpl({required this.value}) : super._();
+mixin _$RenderingMetadata {
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is RenderingMetadata);
+  }
 
   @override
-  final String value;
+  int get hashCode => runtimeType.hashCode;
 
   @override
   String toString() {
-    return 'AttributeValue.date(value: $value)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$AttributeValue_DateImpl &&
-            (identical(other.value, value) || other.value == value));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, value);
-
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$AttributeValue_DateImplCopyWith<_$AttributeValue_DateImpl> get copyWith =>
-      __$$AttributeValue_DateImplCopyWithImpl<_$AttributeValue_DateImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(String value) string,
-    required TResult Function(bool value) boolean,
-    required TResult Function(int value) number,
-    required TResult Function(String value) date,
-  }) {
-    return date(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String value)? string,
-    TResult? Function(bool value)? boolean,
-    TResult? Function(int value)? number,
-    TResult? Function(String value)? date,
-  }) {
-    return date?.call(value);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String value)? string,
-    TResult Function(bool value)? boolean,
-    TResult Function(int value)? number,
-    TResult Function(String value)? date,
-    required TResult orElse(),
-  }) {
-    if (date != null) {
-      return date(value);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(AttributeValue_String value) string,
-    required TResult Function(AttributeValue_Boolean value) boolean,
-    required TResult Function(AttributeValue_Number value) number,
-    required TResult Function(AttributeValue_Date value) date,
-  }) {
-    return date(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(AttributeValue_String value)? string,
-    TResult? Function(AttributeValue_Boolean value)? boolean,
-    TResult? Function(AttributeValue_Number value)? number,
-    TResult? Function(AttributeValue_Date value)? date,
-  }) {
-    return date?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(AttributeValue_String value)? string,
-    TResult Function(AttributeValue_Boolean value)? boolean,
-    TResult Function(AttributeValue_Number value)? number,
-    TResult Function(AttributeValue_Date value)? date,
-    required TResult orElse(),
-  }) {
-    if (date != null) {
-      return date(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class AttributeValue_Date extends AttributeValue {
-  const factory AttributeValue_Date({required final String value}) = _$AttributeValue_DateImpl;
-  const AttributeValue_Date._() : super._();
-
-  @override
-  String get value;
-
-  /// Create a copy of AttributeValue
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$AttributeValue_DateImplCopyWith<_$AttributeValue_DateImpl> get copyWith => throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-mixin _$RenderingMetadata {
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor) simple,
-    required TResult Function() svgTemplates,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
-    TResult? Function()? svgTemplates,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
-    TResult Function()? svgTemplates,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(RenderingMetadata_Simple value) simple,
-    required TResult Function(RenderingMetadata_SvgTemplates value) svgTemplates,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(RenderingMetadata_Simple value)? simple,
-    TResult? Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(RenderingMetadata_Simple value)? simple,
-    TResult Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $RenderingMetadataCopyWith<$Res> {
-  factory $RenderingMetadataCopyWith(RenderingMetadata value, $Res Function(RenderingMetadata) then) =
-      _$RenderingMetadataCopyWithImpl<$Res, RenderingMetadata>;
-}
-
-/// @nodoc
-class _$RenderingMetadataCopyWithImpl<$Res, $Val extends RenderingMetadata>
-    implements $RenderingMetadataCopyWith<$Res> {
-  _$RenderingMetadataCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of RenderingMetadata
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-abstract class _$$RenderingMetadata_SimpleImplCopyWith<$Res> {
-  factory _$$RenderingMetadata_SimpleImplCopyWith(
-          _$RenderingMetadata_SimpleImpl value, $Res Function(_$RenderingMetadata_SimpleImpl) then) =
-      __$$RenderingMetadata_SimpleImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({LogoMetadata? logo, String? backgroundColor, String? textColor});
-}
-
-/// @nodoc
-class __$$RenderingMetadata_SimpleImplCopyWithImpl<$Res>
-    extends _$RenderingMetadataCopyWithImpl<$Res, _$RenderingMetadata_SimpleImpl>
-    implements _$$RenderingMetadata_SimpleImplCopyWith<$Res> {
-  __$$RenderingMetadata_SimpleImplCopyWithImpl(
-      _$RenderingMetadata_SimpleImpl _value, $Res Function(_$RenderingMetadata_SimpleImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of RenderingMetadata
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? logo = freezed,
-    Object? backgroundColor = freezed,
-    Object? textColor = freezed,
-  }) {
-    return _then(_$RenderingMetadata_SimpleImpl(
-      logo: freezed == logo
-          ? _value.logo
-          : logo // ignore: cast_nullable_to_non_nullable
-              as LogoMetadata?,
-      backgroundColor: freezed == backgroundColor
-          ? _value.backgroundColor
-          : backgroundColor // ignore: cast_nullable_to_non_nullable
-              as String?,
-      textColor: freezed == textColor
-          ? _value.textColor
-          : textColor // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
+    return 'RenderingMetadata()';
   }
 }
 
 /// @nodoc
+class $RenderingMetadataCopyWith<$Res> {
+  $RenderingMetadataCopyWith(RenderingMetadata _, $Res Function(RenderingMetadata) __);
+}
 
-class _$RenderingMetadata_SimpleImpl extends RenderingMetadata_Simple {
-  const _$RenderingMetadata_SimpleImpl({this.logo, this.backgroundColor, this.textColor}) : super._();
+/// @nodoc
 
-  @override
+class RenderingMetadata_Simple extends RenderingMetadata {
+  const RenderingMetadata_Simple({this.logo, this.backgroundColor, this.textColor}) : super._();
+
   final LogoMetadata? logo;
-  @override
   final String? backgroundColor;
-  @override
   final String? textColor;
 
-  @override
-  String toString() {
-    return 'RenderingMetadata.simple(logo: $logo, backgroundColor: $backgroundColor, textColor: $textColor)';
-  }
+  /// Create a copy of RenderingMetadata
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $RenderingMetadata_SimpleCopyWith<RenderingMetadata_Simple> get copyWith =>
+      _$RenderingMetadata_SimpleCopyWithImpl<RenderingMetadata_Simple>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$RenderingMetadata_SimpleImpl &&
+            other is RenderingMetadata_Simple &&
             (identical(other.logo, logo) || other.logo == logo) &&
             (identical(other.backgroundColor, backgroundColor) || other.backgroundColor == backgroundColor) &&
             (identical(other.textColor, textColor) || other.textColor == textColor));
@@ -1144,197 +439,70 @@ class _$RenderingMetadata_SimpleImpl extends RenderingMetadata_Simple {
   @override
   int get hashCode => Object.hash(runtimeType, logo, backgroundColor, textColor);
 
-  /// Create a copy of RenderingMetadata
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$RenderingMetadata_SimpleImplCopyWith<_$RenderingMetadata_SimpleImpl> get copyWith =>
-      __$$RenderingMetadata_SimpleImplCopyWithImpl<_$RenderingMetadata_SimpleImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor) simple,
-    required TResult Function() svgTemplates,
-  }) {
-    return simple(logo, backgroundColor, textColor);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
-    TResult? Function()? svgTemplates,
-  }) {
-    return simple?.call(logo, backgroundColor, textColor);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
-    TResult Function()? svgTemplates,
-    required TResult orElse(),
-  }) {
-    if (simple != null) {
-      return simple(logo, backgroundColor, textColor);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(RenderingMetadata_Simple value) simple,
-    required TResult Function(RenderingMetadata_SvgTemplates value) svgTemplates,
-  }) {
-    return simple(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(RenderingMetadata_Simple value)? simple,
-    TResult? Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
-  }) {
-    return simple?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(RenderingMetadata_Simple value)? simple,
-    TResult Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
-    required TResult orElse(),
-  }) {
-    if (simple != null) {
-      return simple(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class RenderingMetadata_Simple extends RenderingMetadata {
-  const factory RenderingMetadata_Simple(
-      {final LogoMetadata? logo,
-      final String? backgroundColor,
-      final String? textColor}) = _$RenderingMetadata_SimpleImpl;
-  const RenderingMetadata_Simple._() : super._();
-
-  LogoMetadata? get logo;
-  String? get backgroundColor;
-  String? get textColor;
-
-  /// Create a copy of RenderingMetadata
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$RenderingMetadata_SimpleImplCopyWith<_$RenderingMetadata_SimpleImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$RenderingMetadata_SvgTemplatesImplCopyWith<$Res> {
-  factory _$$RenderingMetadata_SvgTemplatesImplCopyWith(
-          _$RenderingMetadata_SvgTemplatesImpl value, $Res Function(_$RenderingMetadata_SvgTemplatesImpl) then) =
-      __$$RenderingMetadata_SvgTemplatesImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$RenderingMetadata_SvgTemplatesImplCopyWithImpl<$Res>
-    extends _$RenderingMetadataCopyWithImpl<$Res, _$RenderingMetadata_SvgTemplatesImpl>
-    implements _$$RenderingMetadata_SvgTemplatesImplCopyWith<$Res> {
-  __$$RenderingMetadata_SvgTemplatesImplCopyWithImpl(
-      _$RenderingMetadata_SvgTemplatesImpl _value, $Res Function(_$RenderingMetadata_SvgTemplatesImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of RenderingMetadata
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-
-class _$RenderingMetadata_SvgTemplatesImpl extends RenderingMetadata_SvgTemplates {
-  const _$RenderingMetadata_SvgTemplatesImpl() : super._();
-
   @override
   String toString() {
-    return 'RenderingMetadata.svgTemplates()';
+    return 'RenderingMetadata.simple(logo: $logo, backgroundColor: $backgroundColor, textColor: $textColor)';
   }
+}
+
+/// @nodoc
+abstract mixin class $RenderingMetadata_SimpleCopyWith<$Res> implements $RenderingMetadataCopyWith<$Res> {
+  factory $RenderingMetadata_SimpleCopyWith(
+          RenderingMetadata_Simple value, $Res Function(RenderingMetadata_Simple) _then) =
+      _$RenderingMetadata_SimpleCopyWithImpl;
+  @useResult
+  $Res call({LogoMetadata? logo, String? backgroundColor, String? textColor});
+}
+
+/// @nodoc
+class _$RenderingMetadata_SimpleCopyWithImpl<$Res> implements $RenderingMetadata_SimpleCopyWith<$Res> {
+  _$RenderingMetadata_SimpleCopyWithImpl(this._self, this._then);
+
+  final RenderingMetadata_Simple _self;
+  final $Res Function(RenderingMetadata_Simple) _then;
+
+  /// Create a copy of RenderingMetadata
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? logo = freezed,
+    Object? backgroundColor = freezed,
+    Object? textColor = freezed,
+  }) {
+    return _then(RenderingMetadata_Simple(
+      logo: freezed == logo
+          ? _self.logo
+          : logo // ignore: cast_nullable_to_non_nullable
+              as LogoMetadata?,
+      backgroundColor: freezed == backgroundColor
+          ? _self.backgroundColor
+          : backgroundColor // ignore: cast_nullable_to_non_nullable
+              as String?,
+      textColor: freezed == textColor
+          ? _self.textColor
+          : textColor // ignore: cast_nullable_to_non_nullable
+              as String?,
+    ));
+  }
+}
+
+/// @nodoc
+
+class RenderingMetadata_SvgTemplates extends RenderingMetadata {
+  const RenderingMetadata_SvgTemplates() : super._();
 
   @override
   bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$RenderingMetadata_SvgTemplatesImpl);
+    return identical(this, other) || (other.runtimeType == runtimeType && other is RenderingMetadata_SvgTemplates);
   }
 
   @override
   int get hashCode => runtimeType.hashCode;
 
   @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor) simple,
-    required TResult Function() svgTemplates,
-  }) {
-    return svgTemplates();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
-    TResult? Function()? svgTemplates,
-  }) {
-    return svgTemplates?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(LogoMetadata? logo, String? backgroundColor, String? textColor)? simple,
-    TResult Function()? svgTemplates,
-    required TResult orElse(),
-  }) {
-    if (svgTemplates != null) {
-      return svgTemplates();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(RenderingMetadata_Simple value) simple,
-    required TResult Function(RenderingMetadata_SvgTemplates value) svgTemplates,
-  }) {
-    return svgTemplates(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(RenderingMetadata_Simple value)? simple,
-    TResult? Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
-  }) {
-    return svgTemplates?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(RenderingMetadata_Simple value)? simple,
-    TResult Function(RenderingMetadata_SvgTemplates value)? svgTemplates,
-    required TResult orElse(),
-  }) {
-    if (svgTemplates != null) {
-      return svgTemplates(this);
-    }
-    return orElse();
+  String toString() {
+    return 'RenderingMetadata.svgTemplates()';
   }
 }
 
-abstract class RenderingMetadata_SvgTemplates extends RenderingMetadata {
-  const factory RenderingMetadata_SvgTemplates() = _$RenderingMetadata_SvgTemplatesImpl;
-  const RenderingMetadata_SvgTemplates._() : super._();
-}
+// dart format on
