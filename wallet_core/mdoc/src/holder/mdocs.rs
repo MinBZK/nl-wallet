@@ -12,7 +12,7 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
 use wallet_common::generator::Generator;
 use wallet_common::urls::HttpsUri;
 

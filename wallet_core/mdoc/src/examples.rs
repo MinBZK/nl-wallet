@@ -11,8 +11,8 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use crypto::server_keys::generate::Ca;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata_chain::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_common::generator::Generator;
 
 use crate::server_keys::generate::mock::generate_issuer_mock;
@@ -252,7 +252,7 @@ pub mod mock {
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::keys::WithIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::holder::Mdoc;
     use crate::server_keys::generate::mock::generate_issuer_mock;

@@ -22,7 +22,7 @@ use error_category::ErrorCategory;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::x509::CertificateType;
-use sd_jwt::metadata_chain::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::HttpsUri;
 use wallet_common::vec_at_least::VecNonEmpty;

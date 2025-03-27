@@ -8,9 +8,9 @@ use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::DataElementValue;
-use sd_jwt::metadata::JsonSchemaPropertyFormat;
-use sd_jwt::metadata::JsonSchemaPropertyType;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
+use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+use sd_jwt_vc_metadata::TypeMetadata;
 
 use super::PID_DOCTYPE;
 

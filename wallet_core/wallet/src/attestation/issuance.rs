@@ -4,7 +4,7 @@ use mdoc::unsigned::Entry;
 use mdoc::utils::auth::Organization;
 use mdoc::NameSpace;
 use openid4vc::attributes::Attribute;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
 
 use super::Attestation;
 use super::AttestationError;
@@ -33,8 +33,8 @@ mod test {
     use mdoc::utils::auth::Organization;
     use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
-    use sd_jwt::metadata::TypeMetadata;
-    use sd_jwt::metadata::UncheckedTypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::AttestationAttributeValue;

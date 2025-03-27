@@ -41,8 +41,8 @@ pub struct DisplayMetadata {
     pub rendering: Option<RenderingMetadata>,
 }
 
-impl From<wallet::sd_jwt::DisplayMetadata> for DisplayMetadata {
-    fn from(value: wallet::sd_jwt::DisplayMetadata) -> Self {
+impl From<wallet::sd_jwt_vc_metadata::DisplayMetadata> for DisplayMetadata {
+    fn from(value: wallet::sd_jwt_vc_metadata::DisplayMetadata) -> Self {
         Self {
             lang: value.lang,
             name: value.name,
@@ -61,10 +61,10 @@ pub enum RenderingMetadata {
     SvgTemplates,
 }
 
-impl From<wallet::sd_jwt::RenderingMetadata> for RenderingMetadata {
-    fn from(value: wallet::sd_jwt::RenderingMetadata) -> Self {
+impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
+    fn from(value: wallet::sd_jwt_vc_metadata::RenderingMetadata) -> Self {
         match value {
-            wallet::sd_jwt::RenderingMetadata::Simple {
+            wallet::sd_jwt_vc_metadata::RenderingMetadata::Simple {
                 logo,
                 background_color,
                 text_color,
@@ -73,7 +73,7 @@ impl From<wallet::sd_jwt::RenderingMetadata> for RenderingMetadata {
                 background_color,
                 text_color,
             },
-            wallet::sd_jwt::RenderingMetadata::SvgTemplates => RenderingMetadata::SvgTemplates,
+            wallet::sd_jwt_vc_metadata::RenderingMetadata::SvgTemplates => RenderingMetadata::SvgTemplates,
         }
     }
 }
@@ -84,8 +84,8 @@ pub struct LogoMetadata {
     pub alt_text: String,
 }
 
-impl From<wallet::sd_jwt::LogoMetadata> for LogoMetadata {
-    fn from(value: wallet::sd_jwt::LogoMetadata) -> Self {
+impl From<wallet::sd_jwt_vc_metadata::LogoMetadata> for LogoMetadata {
+    fn from(value: wallet::sd_jwt_vc_metadata::LogoMetadata) -> Self {
         Self {
             uri: value.uri.to_string(),
             uri_integrity: value.uri_integrity.into_inner().to_string(),
@@ -100,8 +100,8 @@ pub struct ClaimDisplayMetadata {
     pub description: Option<String>,
 }
 
-impl From<wallet::sd_jwt::ClaimDisplayMetadata> for ClaimDisplayMetadata {
-    fn from(value: wallet::sd_jwt::ClaimDisplayMetadata) -> Self {
+impl From<wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata> for ClaimDisplayMetadata {
+    fn from(value: wallet::sd_jwt_vc_metadata::ClaimDisplayMetadata) -> Self {
         Self {
             lang: value.lang,
             label: value.label,

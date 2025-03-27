@@ -12,10 +12,10 @@ use error_category::ErrorCategory;
 use mdoc::utils::auth::Organization;
 use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;
-use sd_jwt::metadata::ClaimDisplayMetadata;
-use sd_jwt::metadata::DisplayMetadata;
-use sd_jwt::metadata::JsonSchemaProperty;
-use sd_jwt::metadata::SchemaOption;
+use sd_jwt_vc_metadata::ClaimDisplayMetadata;
+use sd_jwt_vc_metadata::DisplayMetadata;
+use sd_jwt_vc_metadata::JsonSchemaProperty;
+use sd_jwt_vc_metadata::SchemaOption;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {

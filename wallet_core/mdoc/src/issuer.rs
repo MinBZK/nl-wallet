@@ -8,9 +8,9 @@ use ssri::Integrity;
 
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
-use sd_jwt::metadata_chain::TypeMetadataDocuments;
-use sd_jwt::metadata_chain::COSE_METADATA_INTEGRITY_HEADER_LABEL;
-use sd_jwt::metadata_chain::SD_JWT_VC_TYPE_METADATA_KEY;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
+use sd_jwt_vc_metadata::SD_JWT_VC_TYPE_METADATA_KEY;
 
 use crate::iso::*;
 use crate::unsigned::UnsignedMdoc;
@@ -129,8 +129,8 @@ mod tests {
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
-    use sd_jwt::metadata::TypeMetadata;
-    use sd_jwt::metadata_chain::TypeMetadataDocuments;
+    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use wallet_common::generator::TimeGenerator;
 
     use crate::holder::Mdoc;
