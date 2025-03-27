@@ -121,8 +121,6 @@ jni = "0.21.1"
 josekit = "0.10.1"
 jsonschema = { version = "0.28.3", default-features = false }
 jsonwebtoken = { version = "9.3.0", default-features = false }
-# held back by sea-orm / sqlx
-libsqlite3-sys = { version = "0.30.1", default-features = false }
 log = "0.4.25"
 mime = "0.3.17"
 mockall = "0.13.1"
@@ -180,7 +178,6 @@ tempfile = "3.16.0"
 thiserror = "2.0.11"
 time = "0.3.37"
 tokio = { version = "1.43.0", default-features = false }
-toml = "0.8.19"
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.2", default-features = false }
 tracing = "0.1.41"

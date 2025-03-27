@@ -55,5 +55,4 @@ futures = { workspace = true, features = ["std", "async-await"] }
 parking_lot.workspace = true
 rand_core.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
-rstest.workspace = true
 time.workspace = true

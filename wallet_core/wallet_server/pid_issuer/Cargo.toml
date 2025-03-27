@@ -40,22 +40,17 @@ integration_test = ["allow_insecure_url", "server_utils/integration_test"]
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
-base64.workspace = true
 chrono = { workspace = true, features = ["serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-derive_more = { workspace = true, features = ["as_ref", "from"] }
 futures = { workspace = true, features = ["std", "async-await"] }
-http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
-serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
-tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
