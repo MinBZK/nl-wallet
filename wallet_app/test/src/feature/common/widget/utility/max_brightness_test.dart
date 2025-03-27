@@ -12,7 +12,7 @@ void main() {
       // Mock the method channel to see if the widget actually sets the brightness
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
           const MethodChannel('github.com/aaassseee/screen_brightness'), (MethodCall methodCall) async {
-        if (methodCall.method == 'setScreenBrightness') {
+        if (methodCall.method == 'setApplicationScreenBrightness') {
           selectedBrightness = methodCall.arguments['brightness'] as double;
         }
         return null;

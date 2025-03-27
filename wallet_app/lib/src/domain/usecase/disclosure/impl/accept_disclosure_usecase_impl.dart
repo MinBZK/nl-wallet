@@ -1,3 +1,5 @@
+import 'package:wallet_core/core.dart';
+
 import '../../../../util/extension/wallet_instruction_error_extension.dart';
 import '../../../model/result/application_error.dart';
 import '../../../model/result/result.dart';
@@ -13,13 +15,13 @@ class AcceptDisclosureUseCaseImpl extends AcceptDisclosureUseCase {
     return tryCatch(
       () async {
         final result = await _disclosureRepository.acceptDisclosure(pin);
-        return result.map(
-          ok: (ok) => ok.returnUrl,
-          instructionError: (error) => throw IncorrectPinError(
-            error.error.asCheckPinResult(),
-            sourceError: error,
-          ),
-        );
+        return switch (result) {
+          AcceptDisclosureResult_Ok() => result.returnUrl,
+          AcceptDisclosureResult_InstructionError() => throw IncorrectPinError(
+              result.error.asCheckPinResult(),
+              sourceError: result,
+            ),
+        };
       },
       'Failed to accept disclosure',
     );
