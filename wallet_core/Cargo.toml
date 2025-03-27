@@ -121,6 +121,8 @@ jni = "0.21.1"
 josekit = "0.10.1"
 jsonschema = { version = "0.28.3", default-features = false }
 jsonwebtoken = { version = "9.3.0", default-features = false }
+# held back by sea-orm / sqlx
+libsqlite3-sys = { version = "0.30.1", default-features = false }
 log = "0.4.25"
 mime = "0.3.17"
 mockall = "0.13.1"

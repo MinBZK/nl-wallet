@@ -3386,6 +3386,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
 dependencies = [
  "cc",
+ "openssl-sys",
  "pkg-config",
  "vcpkg",
 ]
@@ -7164,6 +7165,7 @@ dependencies = [
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
+ "libsqlite3-sys",
  "mdoc",
  "mime",
  "mockall",
