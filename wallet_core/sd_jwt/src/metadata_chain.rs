@@ -62,7 +62,7 @@ fn check_resource_integrity(json: &[u8], integrity: Integrity) -> Result<(), Typ
 ///
 /// Note that when transported using CBOR, the base64 en/decoding is skipped, as that format supports binary data.
 ///
-/// The order of these documents is from the lowest extension to the highest extended document. That means that each
+/// The order of these is from the leaf extension document to the root extended document. That means that each
 /// subsequent document is expected to reference the next one in its `extends*` fields and that these fields should be
 /// absent for the last document, which constitutes the root of the chain.
 ///
@@ -195,10 +195,10 @@ impl TypeMetadataDocuments {
     }
 }
 
-/// Represent an ordered chain of SD-JWT Type Metadata documents that are internally consistent. The order of these
-/// documents is from the lowest extension to the highest extended document. This chain is unverified in that the
-/// resource integrity of the first document has not been checked, which should be done before accepting and storing
-/// the metadata.
+/// Represent an ordered chain of SD-JWT Type Metadata documents that are internally consistent. The order of these is
+/// from the leaf extension document to the root extended document. This chain is unverified in that the resource
+/// integrity of the first document has not been checked, which should be done before accepting and storing the
+/// metadata.
 ///
 /// This type also wraps the received array of JSON source documents, which may need to be stored once verified.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -251,8 +251,8 @@ impl UnverifiedTypeMetadataChain {
     }
 }
 
-/// A fully verified ordered chain of SD-JWT Type Metadata documents. The order of these documents is from the lowest
-/// extension to the highest extended document.
+/// A fully verified ordered chain of SD-JWT Type Metadata documents. The order of these is from the leaf extension
+/// document to the root extended document.
 #[derive(Debug, Clone, PartialEq, Eq, AsRef, IntoIterator)]
 pub struct TypeMetadataChain(VecNonEmpty<TypeMetadata>);
 
