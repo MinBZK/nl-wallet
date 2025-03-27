@@ -120,8 +120,7 @@ impl AttestationTypesConfigSettings {
                     issuer_uri,
                     attestation.attestation_qualification,
                     metadata_documents,
-                )
-                .unwrap();
+                )?;
 
                 Ok((typ, config))
             }

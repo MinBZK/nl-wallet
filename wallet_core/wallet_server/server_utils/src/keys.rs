@@ -9,7 +9,7 @@ use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt::metadata_chain::TypeMetadataChainError;
 
 use crate::settings::PrivateKey;
 
@@ -53,8 +53,8 @@ pub enum PrivateKeySettingsError {
     InvalidCertificate(#[from] CertificateError),
     #[error("missing metadata for attestation type {0}")]
     MissingMetadata(String),
-    #[error("type metadata error: {0}")]
-    TypeMetadata(#[from] TypeMetadataError),
+    #[error("type metadata is not valid: {0}")]
+    TypeMetadata(#[from] TypeMetadataChainError),
 }
 
 impl PrivateKeyVariant {
