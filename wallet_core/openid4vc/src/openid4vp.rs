@@ -19,6 +19,7 @@ use serde::Serialize;
 use serde_with::formats::PreferOne;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::DeserializeFromStr;
 use serde_with::OneOrMany;
 
 use crypto::utils::random_string;
@@ -36,6 +37,7 @@ use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use poa::Poa;
 use poa::PoaVerificationError;
+use serde_with::SerializeDisplay;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::BaseUrl;
@@ -108,10 +110,9 @@ pub struct VpAuthorizationRequest {
     pub wallet_nonce: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, strum::Display)]
+#[derive(Debug, Clone, Default, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
 pub enum VpAuthorizationRequestAudience {
     #[default]
-    #[serde(rename = "https://self-issued.me/v2")]
     #[strum(to_string = "https://self-issued.me/v2")]
     SelfIssued,
 }

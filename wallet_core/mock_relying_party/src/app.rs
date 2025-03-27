@@ -29,6 +29,8 @@ use indexmap::IndexMap;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::cors::Any;
@@ -141,13 +143,24 @@ struct SessionResponse {
     session_token: SessionToken,
 }
 
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize, strum::Display, strum::EnumIter)]
+#[derive(
+    Debug,
+    Default,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    SerializeDisplay,
+    DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
+    strum::EnumIter,
+)]
 pub enum Language {
     #[default]
-    #[serde(rename = "nl")]
     #[strum(to_string = "nl")]
     Nl,
-    #[serde(rename = "en")]
     #[strum(to_string = "en")]
     En,
 }

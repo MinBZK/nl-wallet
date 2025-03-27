@@ -16,8 +16,6 @@ use sea_orm::SqlErr;
 use sea_orm::TransactionTrait;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use strum::Display;
-use strum::EnumString;
 use tracing::log::LevelFilter;
 use url::Url;
 
@@ -37,7 +35,7 @@ use crate::entity::session_state;
 
 const DB_CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 
-#[derive(Debug, Clone, Copy, Display, EnumString)]
+#[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
 #[strum(serialize_all = "snake_case")]
 enum SessionStatus {
     Active,

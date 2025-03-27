@@ -6,6 +6,7 @@ use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::base64::UrlSafe;
 use serde_with::serde_as;
+use serde_with::DeserializeFromStr;
 use serde_with::TimestampMilliSeconds;
 
 /// The decoded integrity verdict, as sent by the Google Play API. Note
@@ -53,9 +54,8 @@ pub struct AppIntegrity {
 }
 
 // Note that the order of this enum is relevant, as we derive Ord.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, strum::Display)]
-#[cfg_attr(feature = "encode", derive(serde::Serialize))]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, DeserializeFromStr, strum::EnumString, strum::Display)]
+#[cfg_attr(feature = "encode", derive(serde_with::SerializeDisplay))]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppRecognitionVerdict {
     Unevaluated,
@@ -129,9 +129,8 @@ pub struct AccountDetails {
 }
 
 // Note that the order of this enum is relevant, as we derive Ord.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Deserialize, strum::Display)]
-#[cfg_attr(feature = "encode", derive(serde::Serialize))]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, DeserializeFromStr, strum::EnumString, strum::Display)]
+#[cfg_attr(feature = "encode", derive(serde_with::SerializeDisplay))]
 #[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
 pub enum AppLicensingVerdict {
     Unevaluated,

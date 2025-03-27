@@ -1866,6 +1866,7 @@ dependencies = [
  "error_category_derive",
  "rstest",
  "sentry",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "tracing",
 ]
@@ -3621,6 +3622,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "serde_with",
  "strum 0.26.3",
  "tokio",
  "tower 0.5.2",
