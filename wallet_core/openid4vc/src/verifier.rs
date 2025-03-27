@@ -21,6 +21,8 @@ use serde::Serialize;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use tokio::task::JoinHandle;
 use tracing::debug;
 use tracing::info;
@@ -433,8 +435,9 @@ impl From<DisclosureData> for SessionStatus {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
-#[serde(rename_all = "snake_case")]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
+)]
 #[strum(serialize_all = "snake_case")]
 pub enum SessionType {
     // Using Universal Link
