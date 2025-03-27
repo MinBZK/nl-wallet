@@ -108,6 +108,7 @@ impl AttestationTypesConfigSettings {
                 let metadata_document = metadata
                     .get(&typ)
                     .ok_or_else(|| PrivateKeySettingsError::MissingMetadata(typ.clone()))?;
+                // This `.unwrap()` is guaranteed to succeed because we are supplying exactly one entry.
                 let metadata_documents =
                     TypeMetadataDocuments::new(vec![metadata_document.clone()].try_into().unwrap());
 
