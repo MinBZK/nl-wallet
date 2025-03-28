@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.frontend.name }}
+  labels:
+    {{- include "common.labels.customname" (list .Values.frontend.name .) | nindent 4 }}
+spec:
+  selector:
+    {{- include "common.labels.customSelectorLabels" (list .Values.frontend.name .) | nindent 4 }}
+    {{ with .Values.frontend.extraLabels }}
+    {{ toYaml . | nindent 6 }}
+    {{- end }}
+  ports:
+    - name: gba-fetch-http
+      port: 3000
+      targetPort: 3000

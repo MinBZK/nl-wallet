@@ -1,0 +1,95 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## String to partially override the chart's fullname template
+## @param nameOverride String to partially override chart's fullname
+##
+nameOverride: ""
+
+## @section Common parameters
+## Number of replicas
+## @param replicaCount Number of replicas
+##
+replicaCount: 1
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag
+##
+image:
+  repository: null
+  pullPolicy: IfNotPresent
+  tag: null
+
+## @section Pod labels
+## Additional labels for the pods
+## @param extraPodlabels Additional labels for the pods
+##
+extraPodlabels: {}
+
+## @section Image pull secrets
+## Secrets for pulling images from private registries
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+# @section Ingress parameters
+## Parameters for the ingress configuration
+## @param ingress.enabled Enable or disable the ingress
+## @param ingress.className Ingress class name
+## @param ingress.cspScriptSrc Content Security Policy script source
+## @param ingress.cspStyleSrc Content Security Policy style source
+## @param ingress.tlsSecretName Name of the TLS secret for the ingress
+## @param ingress.labels Additional labels for the ingress
+##
+ingress:
+  enabled: true
+  className: "nginx"
+  cspScriptSrc: "'none'"
+  cspStyleSrc: "'none'"
+  tlsSecretName: null
+  labels: {}
+
+## @section Resource requests and limits
+## @param resources.limits.memory Memory limit
+## @param resources.limits.cpu CPU limit
+## @param resources.requests.memory Memory request
+## @param resources.requests.cpu CPU request
+##
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "512Mi"
+    cpu: "300m"
+
+## @section Wallet Server parameters
+## Parameters for the wallet server configuration
+## @param walletServer.hostname Hostname for the wallet server
+## @param walletServer.contextPath Context path for the wallet server
+##
+walletServer:
+  hostname: null
+  contextPath: null
+
+## @section Mock Relying Party parameters
+## Parameters for the mock relying party configuration
+## @param mockRelyingParty.hostname Hostname for the mock relying party
+## @param mockRelyingParty.contextPath Context path for the mock relying party
+## @param mockRelyingParty.walletWebFilename Filename for the wallet web
+## @param mockRelyingParty.walletWebSha256 SHA-256 checksum for the wallet web file
+##
+mockRelyingParty:
+  hostname: null
+  contextPath: null
+  walletWebFilename: null
+  walletWebSha256: null
