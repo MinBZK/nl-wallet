@@ -12,7 +12,6 @@ use reqwest::header::HeaderValue;
 use tokio::fs;
 
 use configuration::config_server_config::ConfigServerConfiguration;
-use configuration::http::TlsPinningConfig;
 use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
@@ -22,6 +21,7 @@ use wallet::wallet_deps::HttpConfigurationRepository;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::RepositoryUpdateState;
 use wallet::wallet_deps::UpdateableRepository;
+use wallet_common::http::TlsPinningConfig;
 
 #[tokio::test]
 async fn test_wallet_config() {

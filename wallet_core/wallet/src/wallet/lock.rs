@@ -3,12 +3,12 @@ use std::sync::Arc;
 use tracing::info;
 use tracing::instrument;
 
-use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_account::messages::instructions::CheckPin;
+use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
 
 pub use crate::lock::LockCallback;

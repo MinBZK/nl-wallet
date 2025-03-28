@@ -5,9 +5,9 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
 use platform_support::attested_key::AttestedKeyHolder;
+use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
 
 use crate::account_provider::AccountProviderClient;

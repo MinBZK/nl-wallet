@@ -79,9 +79,9 @@ mod tests {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use configuration::http::TlsPinningConfig;
     use configuration::wallet_config::WalletConfiguration;
     use jwt::EcdsaDecodingKey;
+    use wallet_common::http::TlsPinningConfig;
 
     use crate::config::config_file;
     use crate::config::default_wallet_config;

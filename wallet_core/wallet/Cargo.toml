@@ -95,7 +95,6 @@ tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lo
 wiremock.workspace = true
 
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
-configuration = { path = "../wallet_configuration/configuration", features = ["insecure_http_client"] }
 crypto = { path = "../crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
@@ -103,6 +102,7 @@ openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 platform_support = { path = "../platform_support", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
+wallet_common = { path = "../wallet_common", features = ["insecure_http_client"] }
 
 [build-dependencies]
 serde.workspace = true

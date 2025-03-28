@@ -279,11 +279,11 @@ mod test {
     use wiremock::ResponseTemplate;
 
     use configuration::digid::DigidApp2AppConfiguration;
-    use configuration::http::test::HttpConfig;
     use configuration::wallet_config::DigidConfiguration;
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequestGrantType;
+    use wallet_common::http::test::HttpConfig;
     use wallet_common::reqwest::default_reqwest_client_builder;
     use wallet_common::urls::BaseUrl;
 

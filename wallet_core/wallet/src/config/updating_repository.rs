@@ -9,8 +9,8 @@ use tracing::error;
 use tracing::info;
 
 use configuration::config_server_config::ConfigServerConfiguration;
-use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
+use wallet_common::http::TlsPinningConfig;
 
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;

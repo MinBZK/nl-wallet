@@ -5,7 +5,6 @@ use tracing::info;
 use tracing::instrument;
 use tracing::warn;
 
-use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
 use crypto::keys::EcdsaKey;
 use crypto::utils;
@@ -19,6 +18,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
 use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
+use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
 use wallet_common::vec_at_least::VecAtLeastNError;
 
