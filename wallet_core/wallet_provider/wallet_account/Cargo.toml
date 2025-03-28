@@ -21,11 +21,13 @@ server = ["dep:p256", "dep:thiserror", "dep:apple_app_attest"]
 integration_test = ["client", "server", "dep:rustls-pki-types", "dep:android_attest"]
 
 [dependencies]
+derive_more = { workspace = true, features = ["constructor"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std", "raw_value"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 
+crypto.path = "../../crypto"
 jwt.path = "../../jwt"
 poa.path = "../../poa"
 wallet_common.path = "../../wallet_common"
@@ -47,5 +49,5 @@ rand_core.workspace = true
 rstest.workspace = true
 
 apple_app_attest = { path = "../../apple_app_attest", features = ["mock"] }
+crypto = { path = "../../crypto", features = ["mock_secure_keys"] }
 platform_support = { path = "../../platform_support", features = ["mock_attested_key_apple"] }
-wallet_common = { path = "../../wallet_common", features = ["mock_secure_keys"] }

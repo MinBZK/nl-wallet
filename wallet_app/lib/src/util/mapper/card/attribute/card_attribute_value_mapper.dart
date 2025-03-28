@@ -8,11 +8,11 @@ class CardAttributeValueMapper extends Mapper<core.AttributeValue, AttributeValu
 
   @override
   AttributeValue map(core.AttributeValue input) {
-    return input.map(
-      string: (input) => StringValue(input.value),
-      boolean: (input) => BooleanValue(input.value),
-      number: (input) => NumberValue(input.value),
-      date: (input) => DateValue(DateTime.parse(input.value)),
-    );
+    return switch (input) {
+      core.AttributeValue_String(:final value) => StringValue(value),
+      core.AttributeValue_Boolean(:final value) => BooleanValue(value),
+      core.AttributeValue_Number(:final value) => NumberValue(value),
+      core.AttributeValue_Date(:final value) => DateValue(DateTime.parse(value)),
+    };
   }
 }

@@ -11,6 +11,8 @@ use uuid::Uuid;
 
 use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
+use crypto::x509::BorrowingCertificateExtension;
+use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use mdoc::holder::MdocDataSource;
@@ -18,8 +20,6 @@ use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::reader_auth::ReaderRegistration;
-use mdoc::utils::x509::CertificateError;
-use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -575,8 +575,8 @@ mod tests {
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
-    use sd_jwt::metadata::JsonSchemaPropertyType;
-    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
@@ -1114,7 +1114,7 @@ mod tests {
 
         // Accepting disclosure should succeed and give us the return URL.
         let accept_result = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect("Could not accept disclosure");
 
@@ -1168,7 +1168,7 @@ mod tests {
 
         // Accepting disclosure on a locked wallet should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1203,7 +1203,7 @@ mod tests {
 
         // Accepting disclosure on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1230,7 +1230,7 @@ mod tests {
         // Accepting disclosure on a wallet without an active
         // disclosure session should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1253,7 +1253,7 @@ mod tests {
         // Accepting disclosure on a wallet that has a disclosure session
         // with missing attributes should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1307,7 +1307,7 @@ mod tests {
         // Accepting disclosure when the verifier responds with
         // an invalid request error should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1369,7 +1369,7 @@ mod tests {
         // Accepting disclosure when the wallet provider responds that key with
         // a particular identifier is not present should result in an error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1447,7 +1447,7 @@ mod tests {
         // Accepting disclosure when the verifier responds with an `InstructionError` indicating
         // that the account is blocked should result in a `DisclosureError::Instruction` error.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 
@@ -1549,7 +1549,7 @@ mod tests {
         // Accepting disclosure when the verifier responds with an error indicating that
         // attributes were shared should result in a disclosure event being recorded.
         let error = wallet
-            .accept_disclosure(PIN.to_string())
+            .accept_disclosure(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure should have resulted in an error");
 

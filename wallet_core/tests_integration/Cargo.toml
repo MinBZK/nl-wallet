@@ -58,6 +58,7 @@ allow_insecure_url = ["openid4vc?/allow_insecure_url"]
 logging = ["dep:tracing", "dep:tracing-subscriber"]
 # Include the common submodule, which includes code all integration tests use.
 test_common = [
+    "crypto",
     "hsm",
     "logging",
     "dep:android_attest",
@@ -79,7 +80,7 @@ test_common = [
     "dep:platform_support",
     "dep:pid_issuer",
     "dep:semver",
-    "dep:sd_jwt",
+    "dep:sd_jwt_vc_metadata",
     "dep:tempfile",
     "dep:update_policy_server",
     "dep:uuid",
@@ -214,6 +215,7 @@ android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration = { path = "../wallet_configuration/configuration", optional = true }
 configuration_server = { path = "../wallet_configuration/configuration_server", optional = true }
+crypto = { path = "../crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../hsm", optional = true, features = ["test"] }
 jwt.path = "../jwt"
@@ -222,11 +224,11 @@ openid4vc = { path = "../openid4vc", optional = true }
 openid4vc_server = { path = "../openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
 platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
-sd_jwt = { path = "../sd_jwt", optional = true, features = ["example_constructors"] }
+sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 update_policy_server = { path = "../update_policy_server", optional = true }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
-wallet_common = { path = "../wallet_common", optional = true, features = ["mock_remote_key"] }
+wallet_common = { path = "../wallet_common", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }
@@ -243,6 +245,5 @@ dotenvy = { workspace = true, optional = true }
 openid4vc = { path = "../openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", features = ["integration_test"] }
 platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
-wallet_account = { path = "../wallet_provider/wallet_account", features = ["integration_test"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["integration_test"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["integration_test"] }

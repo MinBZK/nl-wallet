@@ -10,8 +10,8 @@ use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use wallet_common::p256_der::DerVerifyingKey;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
+use crypto::p256_der::DerVerifyingKey;
+use crypto::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
 
 use crate::digid::DigidApp2AppConfiguration;

@@ -1,12 +1,12 @@
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::holder::HolderError;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::KeysError;
 use crate::utils::crypto::CryptoError;
 use crate::utils::serialization::CborError;
-use crate::utils::x509::CertificateError;
 use crate::verifier::VerificationError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -29,7 +29,7 @@ pub enum Error {
     KeysError(#[from] KeysError),
     #[error("certificate error: {0}")]
     CertificateError(#[from] CertificateError),
-    #[error("type metadata error: {0}")]
+    #[error("type metadata chain error: {0}")]
     #[category(critical)]
-    TypeMetadata(#[from] TypeMetadataError),
+    TypeMetadata(#[from] TypeMetadataChainError),
 }

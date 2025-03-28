@@ -125,8 +125,8 @@ pub fn verify_name(name: &str, authentication_code: &str, hmac_key: &Key<HmacSha
 
 #[cfg(test)]
 mod tests {
-    use wallet_common::utils::random_bytes;
-    use wallet_common::utils::random_string;
+    use crypto::utils::random_bytes;
+    use crypto::utils::random_string;
 
     use crate::gba::encryption::name_to_encoded_hash;
     use crate::gba::encryption::verify_name;
@@ -136,7 +136,7 @@ mod tests {
     #[test]
     fn encode_to_hash_and_verify() {
         let name = random_string(16);
-        let key = SymmetricKey::new(random_bytes(64));
+        let key = SymmetricKey::from(random_bytes(64));
         let hash = name_to_encoded_hash(&name, key.key::<HmacSha256>());
 
         assert_eq!(

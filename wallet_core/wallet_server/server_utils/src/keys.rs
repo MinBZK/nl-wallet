@@ -3,13 +3,13 @@ use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 
+use crypto::keys::EcdsaKey;
+use crypto::keys::EcdsaKeySend;
+use crypto::x509::CertificateError;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::HsmError;
 use hsm::service::Pkcs11Hsm;
-use mdoc::utils::x509::CertificateError;
-use sd_jwt::metadata::TypeMetadataError;
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::EcdsaKeySend;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::settings::PrivateKey;
 
@@ -53,8 +53,8 @@ pub enum PrivateKeySettingsError {
     InvalidCertificate(#[from] CertificateError),
     #[error("missing metadata for attestation type {0}")]
     MissingMetadata(String),
-    #[error("type metadata error: {0}")]
-    TypeMetadata(#[from] TypeMetadataError),
+    #[error("type metadata is not valid: {0}")]
+    TypeMetadata(#[from] TypeMetadataChainError),
 }
 
 impl PrivateKeyVariant {

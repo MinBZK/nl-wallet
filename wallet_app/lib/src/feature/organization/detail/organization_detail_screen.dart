@@ -279,11 +279,11 @@ class OrganizationDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DefaultTextStyle(
-                  style: context.textTheme.bodySmall!,
+                  style: context.textTheme.bodyMedium!,
                   child: title,
                 ),
                 DefaultTextStyle(
-                  style: context.textTheme.bodyLarge!.copyWith(fontWeight: FontWeight.w400),
+                  style: context.textTheme.titleMedium!,
                   child: subtitle,
                 ),
               ],
@@ -316,6 +316,7 @@ class OrganizationDetailScreen extends StatelessWidget {
           UrlSpan(
             ctaText: url,
             onPressed: onTap,
+            textStyle: context.textTheme.titleMedium!,
           ),
         ),
       ),

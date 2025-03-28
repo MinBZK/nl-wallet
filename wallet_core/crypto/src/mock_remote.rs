@@ -3,6 +3,7 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter;
 
+use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future;
 use p256::ecdsa::signature::Signer;
@@ -14,12 +15,12 @@ use rand_core::OsRng;
 
 use crate::utils;
 
-use super::factory::KeyFactory;
-use super::CredentialEcdsaKey;
-use super::CredentialKeyType;
-use super::EcdsaKey;
-use super::SecureEcdsaKey;
-use super::WithIdentifier;
+use crate::factory::KeyFactory;
+use crate::keys::CredentialEcdsaKey;
+use crate::keys::CredentialKeyType;
+use crate::keys::EcdsaKey;
+use crate::keys::SecureEcdsaKey;
+use crate::keys::WithIdentifier;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MockRemoteKeyFactoryError {
@@ -33,7 +34,7 @@ pub enum MockRemoteKeyFactoryError {
 
 /// To be used in test in place of `RemoteEcdsaKey`, implementing the
 /// [`EcdsaKey`], [`SecureEcdsaKey`] and [`WithIdentifier`] traits.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Constructor)]
 pub struct MockRemoteEcdsaKey {
     identifier: String,
     #[debug(skip)]
@@ -55,10 +56,6 @@ impl Hash for MockRemoteEcdsaKey {
 }
 
 impl MockRemoteEcdsaKey {
-    pub fn new(identifier: String, key: SigningKey) -> Self {
-        Self { identifier, key }
-    }
-
     pub fn new_random(identifier: String) -> Self {
         Self::new(identifier, SigningKey::random(&mut OsRng))
     }
@@ -121,8 +118,8 @@ impl MockRemoteKeyFactory {
 
     #[cfg(feature = "examples")]
     pub fn new_example() -> Self {
-        use super::examples::Examples;
-        use super::examples::EXAMPLE_KEY_IDENTIFIER;
+        use crate::examples::Examples;
+        use crate::examples::EXAMPLE_KEY_IDENTIFIER;
 
         let keys = HashMap::from([(EXAMPLE_KEY_IDENTIFIER.to_string(), Examples::static_device_key())]);
         Self::new_signing_keys(keys)

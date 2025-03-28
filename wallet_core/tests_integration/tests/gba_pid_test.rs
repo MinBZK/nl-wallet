@@ -116,21 +116,23 @@ async fn test_gba_pid_success(
     assert!(gba_pid(bsn).await.is_ok());
 }
 
+type TestWallet = Wallet<
+    LocalConfigurationRepository,
+    MockUpdatePolicyRepository,
+    MockStorage,
+    MockHardwareAttestedKeyHolder,
+    HttpAccountProviderClient,
+    HttpDigidSession,
+    HttpIssuanceSession,
+    DisclosureSession<HttpVpMessageClient, Uuid>,
+    WpWteIssuanceClient,
+>;
+
 async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let config_repository = LocalConfigurationRepository::new(default_wallet_config());
     let pid_issuance_config = &config_repository.get().pid_issuance;
 
-    let mut wallet: Wallet<
-        LocalConfigurationRepository,
-        MockUpdatePolicyRepository,
-        MockStorage,
-        MockHardwareAttestedKeyHolder,
-        HttpAccountProviderClient,
-        HttpDigidSession,
-        HttpIssuanceSession,
-        DisclosureSession<HttpVpMessageClient, Uuid>,
-        WpWteIssuanceClient,
-    > = Wallet::init_registration(
+    let mut wallet: TestWallet = Wallet::init_registration(
         config_repository,
         MockUpdatePolicyRepository::default(),
         MockStorage::default(),
@@ -140,9 +142,9 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     .await
     .expect("Could not create test wallet");
 
-    let pin = String::from("123344");
+    let pin = "123344";
 
-    wallet.register(pin.clone()).await.expect("Could not register wallet");
+    wallet.register(pin).await.expect("Could not register wallet");
 
     let authorization_url = wallet
         .create_pid_issuance_auth_url()

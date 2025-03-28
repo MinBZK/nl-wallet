@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../util/extension/build_context_extension.dart';
+import '../../common/widget/text/title_text.dart';
 
 class DigidSignInWithHeader extends StatelessWidget {
   const DigidSignInWithHeader({super.key});
@@ -13,9 +14,9 @@ class DigidSignInWithHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          TitleText(
             context.l10n.mockDigidScreenHeaderTitle,
-            style: context.textTheme.displayMedium?.copyWith(color: context.colorScheme.primary),
+            style: context.textTheme.headlineLarge?.copyWith(color: context.colorScheme.primary),
           ),
           const SizedBox(height: 8),
           Text(

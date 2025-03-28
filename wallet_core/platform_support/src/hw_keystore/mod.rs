@@ -7,9 +7,9 @@ pub mod test;
 
 use std::error::Error;
 
-use wallet_common::keys::SecureEcdsaKey;
-use wallet_common::keys::SecureEncryptionKey;
-use wallet_common::keys::WithIdentifier;
+use crypto::keys::SecureEcdsaKey;
+use crypto::keys::SecureEncryptionKey;
+use crypto::keys::WithIdentifier;
 
 pub use crate::bridge::hw_keystore::KeyStoreError;
 

@@ -19,23 +19,17 @@ disclosure = ["dep:ring"]
 
 [dependencies]
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tower-log", "tracing"] }
-cfg-if.workspace = true
-chrono = { workspace = true, features = ["clock", "serde", "std"] }
-derive_more = { workspace = true, features = ["as_ref", "from"] }
 http.workspace = true
-indexmap.workspace = true
-p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
-thiserror.workspace = true
 tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
-url = { workspace = true, features = ["serde"] }
 
 axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 ring = { workspace = true, optional = true }
 
+crypto = { path = "../crypto" }
 mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
-sd_jwt.path = "../sd_jwt"
+sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wallet_common = { path = "../wallet_common", features = ["axum"] }

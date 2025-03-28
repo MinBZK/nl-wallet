@@ -38,6 +38,7 @@ db_test = [
 base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ctor = { workspace = true, optional = true }
+derive_more = { workspace = true, features = ["from"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
 rand_core = { workspace = true, optional = true }
 sea-orm = { workspace = true, features = [
@@ -62,6 +63,7 @@ uuid.workspace = true
 mockall = { workspace = true, optional = true }
 
 apple_app_attest.path = "../../apple_app_attest"
+crypto.path = "../../crypto"
 hsm.path = "../../hsm"
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"

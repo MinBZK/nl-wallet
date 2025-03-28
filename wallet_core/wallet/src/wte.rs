@@ -1,11 +1,11 @@
 use p256::ecdsa::VerifyingKey;
 
+use crypto::utils::random_string;
 use jwt::credential::JwtCredential;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::IssueWte;
 use wallet_account::messages::instructions::IssueWteResult;
-use wallet_common::utils::random_string;
 use wallet_common::wte::WteClaims;
 
 use crate::account_provider::AccountProviderClient;
@@ -62,11 +62,11 @@ impl Default for WpWteIssuanceClient {
 pub(crate) mod tests {
     use p256::ecdsa::VerifyingKey;
 
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::utils::random_string;
     use jwt::credential::JwtCredential;
     use platform_support::attested_key::AppleAttestedKey;
     use platform_support::attested_key::GoogleAttestedKey;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::utils::random_string;
     use wallet_common::wte::WteClaims;
 
     use crate::account_provider::AccountProviderClient;

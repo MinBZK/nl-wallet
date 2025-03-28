@@ -2,12 +2,21 @@ use std::hash::Hash;
 use std::hash::Hasher;
 use std::iter;
 
+use derive_more::Constructor;
 use itertools::Itertools;
 use p256::ecdsa::signature;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::CredentialKeyType;
+use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
+use crypto::keys::WithIdentifier;
+use crypto::p256_der::DerSignature;
+use crypto::utils::random_string;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use poa::factory::PoaFactory;
@@ -16,14 +25,6 @@ use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Sign;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::CredentialKeyType;
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
-use wallet_common::keys::WithIdentifier;
-use wallet_common::p256_der::DerSignature;
-use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::account_provider::AccountProviderClient;
@@ -45,6 +46,7 @@ pub enum RemoteEcdsaKeyError {
     KeyNotFound(String),
 }
 
+#[derive(Constructor)]
 pub struct RemoteEcdsaKeyFactory<S, AK, GK, A> {
     instruction_client: InstructionClient<S, AK, GK, A>,
 }
@@ -66,12 +68,6 @@ impl<S, AK, GK, A> Eq for RemoteEcdsaKey<S, AK, GK, A> {}
 impl<S, AK, GK, A> Hash for RemoteEcdsaKey<S, AK, GK, A> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.identifier.hash(state);
-    }
-}
-
-impl<S, AK, GK, A> RemoteEcdsaKeyFactory<S, AK, GK, A> {
-    pub fn new(instruction_client: InstructionClient<S, AK, GK, A>) -> Self {
-        Self { instruction_client }
     }
 }
 

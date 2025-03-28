@@ -2,6 +2,7 @@
 members = [
     "android_attest",
     "apple_app_attest",
+    "crypto",
     "error_category",
     "error_category/error_category_derive",
     "flutter_api",
@@ -15,7 +16,7 @@ members = [
     "openid4vc_server",
     "platform_support",
     "poa",
-    "sd_jwt",
+    "sd_jwt_vc_metadata",
     "tests_integration",
     "update_policy_server",
     "wallet",
@@ -171,6 +172,7 @@ serde_with = "3.12.0"
 serial_test = "3.2.0"
 sha2 = "0.10.8"
 spki = "0.7.3"
+ssri = "9.2.0"
 strfmt = "0.2.4"
 strum = "0.26.3"
 syn = "2.0.98"
@@ -178,7 +180,6 @@ tempfile = "3.16.0"
 thiserror = "2.0.11"
 time = "0.3.37"
 tokio = { version = "1.43.0", default-features = false }
-toml = "0.8.19"
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.2", default-features = false }
 tracing = "0.1.41"

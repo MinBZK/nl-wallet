@@ -17,12 +17,12 @@ use tokio::time;
 use tokio::time::MissedTickBehavior;
 use tracing::warn;
 
+use crypto::utils::random_string;
+use crypto::utils::sha256;
 use jwt::credential::JwtCredentialClaims;
 use jwt::VerifiedJwt;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::utils::random_string;
-use wallet_common::utils::sha256;
 use wallet_common::wte::WteClaims;
 
 /// The cleanup task that removes stale sessions runs every so often.
@@ -320,7 +320,7 @@ pub mod test {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use crypto::mock_remote::MockRemoteKeyFactory;
     use wallet_common::wte::WTE_EXPIRY;
 
     use crate::issuance_session::mock_wte;
@@ -567,8 +567,8 @@ pub mod test {
 mod tests {
     use parking_lot::RwLock;
 
+    use crypto::utils;
     use wallet_common::generator::mock::MockTimeGenerator;
-    use wallet_common::utils;
 
     use self::test::RandomData;
 

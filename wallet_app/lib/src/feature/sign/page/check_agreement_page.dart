@@ -14,6 +14,7 @@ import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/document_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class CheckAgreementPage extends StatelessWidget {
@@ -90,11 +91,7 @@ class CheckAgreementPage extends StatelessWidget {
             width: double.infinity,
           ),
           const SizedBox(height: 32),
-          Text(
-            context.l10n.checkAgreementPageTitle,
-            style: context.textTheme.displayMedium,
-            textAlign: TextAlign.start,
-          ),
+          TitleText(context.l10n.checkAgreementPageTitle),
           const SizedBox(height: 8),
           Text(
             context.l10n.checkAgreementPageSubtitle,

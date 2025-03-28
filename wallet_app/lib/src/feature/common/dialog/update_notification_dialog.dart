@@ -16,13 +16,8 @@ class UpdateNotificationDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: TitleText(
-        context.l10n.updateNotificationDialogTitle,
-        style: context.textTheme.displayMedium,
-      ),
-      content: BodyText(
-        _resolveDescription(context),
-      ),
+      title: TitleText(context.l10n.updateNotificationDialogTitle),
+      content: BodyText(_resolveDescription(context)),
       actions: <Widget>[
         TextButton(
           child: Text(context.l10n.generalClose.toUpperCase()),

@@ -25,19 +25,18 @@ use rustls_pki_types::TrustAnchor;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::EcdsaKey;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use wallet_common::generator::Generator;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::EcdsaKey;
 
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::CborError;
-
-use super::x509::BorrowingCertificate;
-use super::x509::CertificateError;
-use super::x509::CertificateUsage;
 
 /// Trait for supported Cose variations ([`CoseSign1`] or [`CoseMac0`]).
 pub trait Cose {
@@ -491,13 +490,13 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
+    use crypto::server_keys::generate::Ca;
+    use crypto::x509::CertificateUsage;
     use wallet_common::generator::TimeGenerator;
 
-    use crate::server_keys::generate::Ca;
     use crate::utils::cose;
     use crate::utils::cose::CoseError;
     use crate::utils::issuer_auth::IssuerRegistration;
-    use crate::utils::x509::CertificateUsage;
 
     use super::ClonePayload;
     use super::MdocCose;
@@ -588,11 +587,7 @@ mod tests {
     async fn cose_with_certificate() {
         let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
-            .generate_key_pair(
-                "cert.example.com",
-                &IssuerRegistration::new_mock().into(),
-                Default::default(),
-            )
+            .generate_key_pair("cert.example.com", IssuerRegistration::new_mock(), Default::default())
             .unwrap();
 
         let payload = ToyMessage::default();

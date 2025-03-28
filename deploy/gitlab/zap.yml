@@ -4,6 +4,8 @@
   rules:
     - !reference [ .on-schedule, rules ]
     - !reference [ .default-branch, rules ]
+    - if: $CI_PIPELINE_SOURCE == "web"
+      when: manual
   allow_failure: true
   artifacts:
     name: $CI_JOB_NAME_SLUG
@@ -13,11 +15,12 @@
   before_script:
     - mkdir zapreports
 
+# install all addons before scan to ensure latest versions are used
 .run-zap-scan:
   script:
     - |
       envsubst < deploy/zap/${SUT}_zap_scan.yaml > ${ZAP_HOME}/${SUT}_zap_scan.yaml
-      zap.sh -cmd -autorun ${SUT}_zap_scan.yaml
+      zap.sh -addoninstallall -cmd -autorun ${SUT}_zap_scan.yaml
       ALERT_COUNT=$(jq '[.site[].alerts[] | select(.riskdesc | contains("Informational") | not) | select(.riskdesc | contains("False Positive") | not)] | length' zapreports/${SUT}-zap.json)
       if [ "$ALERT_COUNT" -gt 0 ]; then
         echo "ZAP Scan Completed: Non informational alerts found: $ALERT_COUNT"

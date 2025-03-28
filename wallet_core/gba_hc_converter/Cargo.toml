@@ -22,6 +22,7 @@ clio = { workspace = true, features = ["clap-parse"] }
 config = { workspace = true, features = ["toml"] }
 crypto-common.workspace = true
 csv.workspace = true
+derive_more = { workspace = true, features = ["from"] }
 hex = { workspace = true, features = ["serde"] }
 hmac.workspace = true
 http.workspace = true
@@ -54,6 +55,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 trait-variant.workspace = true
 
+crypto.path = "../crypto"
 wallet_common = { path = "../wallet_common", features = ["axum"] }
 
 [dev-dependencies]

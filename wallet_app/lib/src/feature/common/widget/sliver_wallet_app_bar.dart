@@ -59,6 +59,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
 
   @override
   Widget build(BuildContext context) {
+    final titleTextStyle = context.theme.appBarTheme.titleTextStyle;
     final topPadding = context.mediaQuery.padding.top;
 
     /// Decide if we should show the [WalletBackButton] when no [leading] widget is provided.
@@ -74,11 +75,15 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
           );
         },
         valueListenable: collapsedRatio,
-        child: TitleText(widget.title),
+        child: TitleText(
+          widget.title,
+          style: titleTextStyle,
+        ),
       ),
       leading: widget.leading ?? (showBackButton ? const BackIconButton() : null),
       titleSpacing: widget.leading == null && !showBackButton ? null : 0.0,
       actions: widget.actions,
+      titleTextStyle: titleTextStyle,
       collapsedHeight: toolbarHeight,
       expandedHeight: expandedHeight,
       flexibleSpace: LayoutBuilder(
@@ -114,7 +119,10 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
                   child: SafeArea(
                     top: false,
                     bottom: false,
-                    child: TitleText(widget.title),
+                    child: TitleText(
+                      widget.title,
+                      style: titleTextStyle,
+                    ),
                   ),
                 ),
               ),
@@ -158,7 +166,7 @@ class _SliverWalletAppBarState extends State<SliverWalletAppBar> {
 
   double _calculateTextHeight(String text) {
     final TextPainter tp = TextPainter(
-      text: TextSpan(text: text, style: context.textTheme.displayMedium),
+      text: TextSpan(text: text, style: context.theme.appBarTheme.titleTextStyle),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.of(context).textScaler,
     );

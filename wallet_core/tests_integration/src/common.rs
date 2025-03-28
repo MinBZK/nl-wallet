@@ -29,6 +29,8 @@ use configuration::config_server_config::ConfigServerConfiguration;
 use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
 use configuration_server::settings::Settings as CsSettings;
+use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::utils;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -61,9 +63,7 @@ use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
 use wallet_common::reqwest::trusted_reqwest_client_builder;
 use wallet_common::reqwest::ReqwestTrustAnchor;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_provider::settings::AppleEnvironment;
 use wallet_provider::settings::Ios;
@@ -539,12 +539,12 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
     wait_for_server(base_url, vec![]).await;
 }
 
-pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: String) -> WalletWithMocks {
+pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> WalletWithMocks {
     // No registration should be loaded initially.
     assert!(!wallet.has_registration());
 
     // Register with a valid PIN.
-    wallet.register(pin.clone()).await.expect("Could not register wallet");
+    wallet.register(pin).await.expect("Could not register wallet");
 
     // The registration should now be loaded.
     assert!(wallet.has_registration());

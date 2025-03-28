@@ -1,6 +1,8 @@
 use std::array::TryFromSliceError;
 use std::fmt::Write;
 
+use derive_more::Constructor;
+
 // Utility function for converting bytes to uppercase hex.
 fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes
@@ -16,17 +18,13 @@ const SALT_LENGTH: usize = 16;
 
 /// This represents a 32-bytes encryption key and 16-byte salt. See:
 /// https://www.zetetic.net/sqlcipher/sqlcipher-api/#example-3-raw-key-data-with-explicit-salt-without-key-derivation
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Constructor)]
 pub struct SqlCipherKey {
     key: [u8; KEY_LENGTH],
     salt: Option<[u8; SALT_LENGTH]>,
 }
 
 impl SqlCipherKey {
-    pub fn new(key: [u8; KEY_LENGTH], salt: Option<[u8; SALT_LENGTH]>) -> Self {
-        SqlCipherKey { key, salt }
-    }
-
     pub fn size() -> usize {
         KEY_LENGTH
     }

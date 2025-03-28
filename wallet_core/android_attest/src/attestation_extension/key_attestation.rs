@@ -13,6 +13,7 @@ use std::time::Duration;
 use bitflags::bitflags;
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Constructor;
 use int_enum::IntEnum;
 use rasn::error::DecodeError;
 use rasn::types::Integer;
@@ -196,21 +197,11 @@ pub enum KeyOrigin {
 
 integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
 pub struct OsVersion {
     pub major: u8,
     pub minor: u8,
     pub sub_minor: u8,
-}
-
-impl OsVersion {
-    pub fn new(major: u8, minor: u8, sub_minor: u8) -> Self {
-        Self {
-            major,
-            minor,
-            sub_minor,
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -284,17 +275,11 @@ pub enum PatchLevelError {
 ///
 /// - Sometimes DD is set to `00`, which is not a valid date
 /// - Sometimes the whole `PatchLevel` was set to `0`
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
 pub struct PatchLevel {
     year: u16,
     month: u8,
     day: Option<u8>,
-}
-
-impl PatchLevel {
-    pub fn new(year: u16, month: u8, day: Option<u8>) -> Self {
-        Self { year, month, day }
-    }
 }
 
 impl TryFrom<Integer> for PatchLevel {

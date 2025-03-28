@@ -1180,6 +1180,7 @@ name = "configuration"
 version = "0.3.0-dev"
 dependencies = [
  "axum-server",
+ "crypto",
  "derive_more",
  "etag",
  "http",
@@ -1201,9 +1202,7 @@ dependencies = [
  "configuration",
  "etag",
  "http",
- "mime",
  "serde",
- "serde_with",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1358,6 +1357,39 @@ name = "crunchy"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
+
+[[package]]
+name = "crypto"
+version = "0.3.0-dev"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "assert_matches",
+ "chrono",
+ "derive_more",
+ "error_category",
+ "futures",
+ "hex",
+ "hex-literal",
+ "indexmap 2.7.1",
+ "p256",
+ "parking_lot",
+ "rand",
+ "rand_core",
+ "rcgen",
+ "ring",
+ "rustls-pki-types",
+ "rustls-webpki",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.11",
+ "time",
+ "trait-variant",
+ "wallet_common",
+ "x509-parser 0.17.0",
+ "yoke",
+]
 
 [[package]]
 name = "crypto-bigint"
@@ -1831,6 +1863,7 @@ dependencies = [
  "error_category_derive",
  "rstest",
  "sentry",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "tracing",
 ]
@@ -2005,9 +2038,9 @@ dependencies = [
 
 [[package]]
 name = "flutter_rust_bridge"
-version = "2.8.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdc62f583dff79c7ea34b775b2cc4158adc17cb69ad4c1d276be7fe95c63d597"
+checksum = "2f8c0dee6249225e815dcff3f3a39b98d9f66fdb3c392a432715b646bfa4da02"
 dependencies = [
  "allo-isolate",
  "android_logger 0.13.3",
@@ -2034,9 +2067,9 @@ dependencies = [
 
 [[package]]
 name = "flutter_rust_bridge_macros"
-version = "2.8.0"
+version = "2.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac75354933904c334c13a7c9e08c65be528f0820ab587e03f255203a28d5efec"
+checksum = "8e88d604908d9eccb4ca9c26640ce41033165cbef041460e704ae28bd5208bce"
 dependencies = [
  "hex",
  "md-5",
@@ -2238,9 +2271,11 @@ dependencies = [
  "clap",
  "clio",
  "config",
+ "crypto",
  "crypto-common",
  "csv",
  "ctor",
+ "derive_more",
  "hex",
  "hmac",
  "http",
@@ -2614,9 +2649,11 @@ dependencies = [
  "async-dropper",
  "async-trait",
  "config",
+ "crypto",
  "cryptoki",
  "dashmap 6.1.0",
  "der",
+ "derive_more",
  "futures",
  "hmac",
  "p256",
@@ -3089,7 +3126,7 @@ name = "issuer_settings"
 version = "0.3.0-dev"
 dependencies = [
  "chrono",
- "config",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -3097,7 +3134,7 @@ dependencies = [
  "mdoc",
  "openid4vc",
  "rustls-pki-types",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
  "server_utils",
@@ -3243,6 +3280,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "error_category",
  "futures",
  "indexmap 2.7.1",
@@ -3442,18 +3480,17 @@ name = "mdoc"
 version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
- "anyhow",
  "assert_matches",
  "base64 0.22.1",
  "chrono",
  "ciborium",
  "coset",
+ "crypto",
  "derive_more",
  "error_category",
  "futures",
  "hex",
  "hex-literal",
- "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "nutype",
@@ -3461,19 +3498,17 @@ dependencies = [
  "rand_core",
  "rcgen",
  "regex",
- "reqwest",
  "ring",
  "rstest",
  "rustls-pki-types",
- "rustls-webpki",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde-aux",
  "serde_bytes",
  "serde_json",
  "serde_repr",
- "serde_urlencoded",
  "serde_with",
+ "ssri",
  "strum 0.26.3",
  "thiserror 2.0.11",
  "time",
@@ -3482,7 +3517,6 @@ dependencies = [
  "url",
  "wallet_common",
  "x509-parser 0.17.0",
- "yoke",
 ]
 
 [[package]]
@@ -3490,6 +3524,29 @@ name = "memchr"
 version = "2.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
+
+[[package]]
+name = "miette"
+version = "5.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59bb584eaeeab6bd0226ccf3509a69d7936d148cf3d036ad350abe35e8c6856e"
+dependencies = [
+ "miette-derive",
+ "once_cell",
+ "thiserror 1.0.69",
+ "unicode-width",
+]
+
+[[package]]
+name = "miette-derive"
+version = "5.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "49e7bc1560b95a3c4a25d03de42fe76ca718ab92d1a22a55b9b4cf67b3ae635c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "mime"
@@ -3543,6 +3600,7 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "config",
+ "crypto",
  "futures",
  "http",
  "indexmap 2.7.1",
@@ -3555,6 +3613,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "serde_with",
  "strum 0.26.3",
  "tokio",
  "tower 0.5.2",
@@ -3822,13 +3881,13 @@ dependencies = [
  "chrono",
  "ciborium",
  "configuration",
+ "crypto",
  "dashmap 6.1.0",
  "derive_more",
  "error_category",
  "futures",
  "hex",
  "http",
- "http-serde",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
@@ -3847,13 +3906,14 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_bytes",
  "serde_json",
  "serde_urlencoded",
  "serde_valid",
  "serde_with",
+ "ssri",
  "strfmt",
  "strum 0.26.3",
  "thiserror 2.0.11",
@@ -3864,7 +3924,6 @@ dependencies = [
  "url",
  "wallet_common",
  "wiremock",
- "x509-parser 0.17.0",
 ]
 
 [[package]]
@@ -3873,22 +3932,16 @@ version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-extra",
- "cfg-if",
- "chrono",
- "derive_more",
+ "crypto",
  "http",
- "indexmap 2.7.1",
  "mdoc",
  "openid4vc",
- "p256",
  "ring",
  "rustls-pki-types",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "serde",
- "thiserror 2.0.11",
  "tower-http",
  "tracing",
- "url",
  "wallet_common",
 ]
 
@@ -4124,13 +4177,12 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "axum",
- "base64 0.22.1",
  "chrono",
  "config",
  "configuration",
+ "crypto",
  "futures",
  "hsm",
- "http",
  "indexmap 2.7.1",
  "issuer_settings",
  "jwt",
@@ -4140,16 +4192,14 @@ dependencies = [
  "p256",
  "reqwest",
  "rstest",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "serde_with",
  "server_utils",
  "thiserror 2.0.11",
  "tokio",
- "tower-http",
  "tracing",
  "url",
  "wallet_common",
@@ -4231,6 +4281,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "cfg-if",
+ "crypto",
  "derive_more",
  "error_category",
  "futures",
@@ -4255,6 +4306,7 @@ name = "poa"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "crypto",
  "derive_more",
  "futures",
  "jsonwebtoken",
@@ -5099,11 +5151,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "sd_jwt"
+name = "sd_jwt_vc_metadata"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
- "base64 0.22.1",
+ "crypto",
  "derive_more",
  "http",
  "http-serde",
@@ -5116,6 +5168,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "serde_with",
+ "ssri",
  "thiserror 2.0.11",
  "tokio",
  "wallet_common",
@@ -5636,15 +5689,14 @@ dependencies = [
  "base64 0.22.1",
  "chrono",
  "config",
- "futures",
+ "crypto",
  "hsm",
  "http",
  "mdoc",
  "openid4vc",
- "openid4vc_server",
  "p256",
  "rustls-pki-types",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "sea-orm",
  "serde",
  "serde_json",
@@ -5657,6 +5709,17 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "wallet_common",
+]
+
+[[package]]
+name = "sha-1"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5058ada175748e33390e40e872bd0fe59a19f265d0158daa551c5a88a76009c"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "digest",
 ]
 
 [[package]]
@@ -6003,6 +6066,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ssri"
+version = "9.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da7a2b3c2bc9693bcb40870c4e9b5bf0d79f9cb46273321bf855ec513e919082"
+dependencies = [
+ "base64 0.21.7",
+ "digest",
+ "hex",
+ "miette",
+ "serde",
+ "sha-1",
+ "sha2",
+ "thiserror 1.0.69",
+ "xxhash-rust",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6181,6 +6261,7 @@ dependencies = [
  "chrono",
  "configuration",
  "configuration_server",
+ "crypto",
  "ctor",
  "dotenvy",
  "gba_hc_converter",
@@ -6200,7 +6281,7 @@ dependencies = [
  "reqwest",
  "rstest",
  "rustls-pki-types",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "sea-orm",
  "semver",
  "serde_json",
@@ -6216,7 +6297,6 @@ dependencies = [
  "uuid",
  "verification_server",
  "wallet",
- "wallet_account",
  "wallet_common",
  "wallet_provider",
  "wallet_provider_persistence",
@@ -6749,6 +6829,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f6ccf251212114b54433ec949fd6a7841275f9ada20dddd2f29e9ceea4501493"
 
 [[package]]
+name = "unicode-width"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dd6e30e90baa6f72411720665d41d89b9a3d039dc45b8faea1ddd07f617f6af"
+
+[[package]]
 name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6893,7 +6979,6 @@ dependencies = [
  "indexmap 2.7.1",
  "postcard",
  "rstest",
- "semver",
  "serde",
  "serde_json",
  "serde_with",
@@ -6995,10 +7080,9 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "axum",
- "base64 0.22.1",
  "chrono",
  "config",
- "configuration",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
@@ -7009,20 +7093,18 @@ dependencies = [
  "nutype",
  "openid4vc",
  "openid4vc_server",
- "p256",
  "parking_lot",
  "reqwest",
  "ring",
  "rstest",
  "rustls-pki-types",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "serde_with",
  "serial_test",
  "server_utils",
- "thiserror 2.0.11",
  "tokio",
  "tower-http",
  "tracing",
@@ -7073,11 +7155,11 @@ dependencies = [
  "chrono",
  "ciborium",
  "configuration",
+ "crypto",
  "derive_more",
  "entity",
  "error_category",
  "futures",
- "hex",
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
@@ -7100,7 +7182,7 @@ dependencies = [
  "rstest",
  "rustls-pki-types",
  "sanitize-filename",
- "sd_jwt",
+ "sd_jwt_vc_metadata",
  "sea-orm",
  "sea-query",
  "semver",
@@ -7109,7 +7191,6 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
- "sha2",
  "strum 0.26.3",
  "tempfile",
  "thiserror 2.0.11",
@@ -7131,6 +7212,8 @@ dependencies = [
  "android_attest",
  "apple_app_attest",
  "assert_matches",
+ "crypto",
+ "derive_more",
  "error_category",
  "futures",
  "jwt",
@@ -7158,6 +7241,7 @@ dependencies = [
  "chrono",
  "clap",
  "clio",
+ "crypto",
  "itertools 0.14.0",
  "mdoc",
  "p256",
@@ -7173,45 +7257,30 @@ dependencies = [
 name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
- "aes-gcm",
- "anyhow",
- "assert_matches",
  "axum",
  "axum-server",
  "built",
  "cfg-if",
  "chrono",
  "derive_more",
- "futures",
- "hex",
- "hex-literal",
  "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "mime",
  "nutype",
- "p256",
  "parking_lot",
- "rand",
- "rand_core",
  "reqwest",
- "ring",
  "rstest",
- "rustls-pki-types",
- "rustls-webpki",
  "semver",
  "serde",
  "serde_json",
  "serde_with",
- "sha2",
  "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",
  "tower-http",
  "trait-variant",
  "url",
- "x509-parser 0.17.0",
- "yoke",
 ]
 
 [[package]]
@@ -7235,17 +7304,14 @@ dependencies = [
  "chrono",
  "config",
  "configuration",
+ "crypto",
  "derive_more",
  "futures",
  "hsm",
  "http",
- "nutype",
  "p256",
  "rand_core",
- "rustls-pki-types",
- "rustls-webpki",
  "serde",
- "serde_json",
  "serde_with",
  "serial_test",
  "spki",
@@ -7278,6 +7344,7 @@ version = "0.3.0-dev"
 dependencies = [
  "apple_app_attest",
  "chrono",
+ "crypto",
  "derive_more",
  "futures",
  "hmac",
@@ -7308,7 +7375,9 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "ctor",
+ "derive_more",
  "hsm",
  "mockall",
  "p256",
@@ -7334,6 +7403,7 @@ dependencies = [
  "assert_matches",
  "base64 0.22.1",
  "chrono",
+ "crypto",
  "der",
  "derive_more",
  "futures",

@@ -1,11 +1,11 @@
 use tracing::info;
 
+use crypto::x509::BorrowingCertificateExtension;
+use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::x509::CertificateError;
-use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential_payload::CredentialPayloadError;
 use platform_support::attested_key::AttestedKeyHolder;
 
@@ -68,8 +68,7 @@ where
                 let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
                     .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                // TODO: PVW-3812
-                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?.into_first();
+                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?;
                 let attestation = Attestation::create_for_issuance(
                     AttestationIdentity::Fixed {
                         id: mdoc_id.to_string(),

@@ -29,6 +29,7 @@ reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
+serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower.workspace = true
@@ -46,6 +47,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url = { workspace = true, features = ["serde"] }
 
+crypto.path = "../crypto"
 mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 wallet_common = { path = "../wallet_common", features = ["axum"] }

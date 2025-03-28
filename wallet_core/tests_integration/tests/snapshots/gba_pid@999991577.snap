@@ -1,5 +1,6 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 194
 description: "BSN: 999991577"
 expression: attributes
 ---
@@ -7,35 +8,35 @@ expression: attributes
   "com.example.pid": {
     [
       "family_name",
-    ]: "Bultenaar",
+    ]: Basic("Bultenaar"),
     [
       "given_name",
-    ]: "Berend",
+    ]: Basic("Berend"),
     [
       "birth_date",
-    ]: "2005-01-23",
+    ]: Date("2005-01-23"),
     [
       "age_over_18",
-    ]: true,
+    ]: Basic(true),
     [
       "bsn",
-    ]: "999991577",
+    ]: Basic("999991577"),
   },
   "com.example.address": {
     [
       "resident_street",
-    ]: "Oude Haagweg",
+    ]: Basic("Oude Haagweg"),
     [
       "resident_house_number",
-    ]: "575",
+    ]: Basic("575"),
     [
       "resident_postal_code",
-    ]: "2552GJ",
+    ]: Basic("2552GJ"),
     [
       "resident_city",
-    ]: "\'s-Gravenhage",
+    ]: Basic("\'s-Gravenhage"),
     [
       "resident_country",
-    ]: "Nederland",
+    ]: Basic("Nederland"),
   },
 }

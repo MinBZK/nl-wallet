@@ -13,6 +13,8 @@ import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/policy/policy_section.dart';
 import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/text/body_text.dart';
+import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class IssuanceProofIdentityPage extends StatelessWidget {
@@ -86,15 +88,9 @@ class IssuanceProofIdentityPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              context.l10n.issuanceProofIdentityPageTitle,
-              style: context.textTheme.displayMedium,
-            ),
+            TitleText(context.l10n.issuanceProofIdentityPageTitle),
             const SizedBox(height: 8),
-            Text(
-              issuanceProofIdentityPageSubtitle,
-              style: context.textTheme.bodyLarge,
-            ),
+            BodyText(issuanceProofIdentityPageSubtitle),
           ],
         ),
       ),

@@ -8,12 +8,12 @@ use itertools::Itertools;
 use mdoc::utils::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use sd_jwt::metadata::ClaimPath;
-use sd_jwt::metadata::JsonSchemaProperty;
-use sd_jwt::metadata::JsonSchemaPropertyFormat;
-use sd_jwt::metadata::JsonSchemaPropertyType;
-use sd_jwt::metadata::SchemaOption;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::ClaimPath;
+use sd_jwt_vc_metadata::JsonSchemaProperty;
+use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
+use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+use sd_jwt_vc_metadata::SchemaOption;
+use sd_jwt_vc_metadata::TypeMetadata;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use super::Attestation;
@@ -206,12 +206,12 @@ pub mod test {
 
     use openid4vc::attributes::Attribute;
     use openid4vc::attributes::AttributeValue;
-    use sd_jwt::metadata::ClaimMetadata;
-    use sd_jwt::metadata::ClaimPath;
-    use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
-    use sd_jwt::metadata::JsonSchemaProperty;
-    use sd_jwt::metadata::JsonSchemaPropertyFormat;
-    use sd_jwt::metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::ClaimMetadata;
+    use sd_jwt_vc_metadata::ClaimPath;
+    use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
+    use sd_jwt_vc_metadata::JsonSchemaProperty;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 
     use crate::attestation::attribute::collect_key_paths;
     use crate::attestation::attribute::take_attribute_value_at_key_path;

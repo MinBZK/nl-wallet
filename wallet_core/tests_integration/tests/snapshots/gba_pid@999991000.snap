@@ -1,5 +1,6 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
+assertion_line: 194
 description: "BSN: 999991000"
 expression: attributes
 ---
@@ -7,35 +8,35 @@ expression: attributes
   "com.example.pid": {
     [
       "family_name",
-    ]: "voor in \'t Coetzee",
+    ]: Basic("voor in \'t Coetzee"),
     [
       "given_name",
-    ]: "Liselotte-Anne Daniëlle Celèste Elise 26 Avril Stéphane Maroni jr. Isiah dé Maria de las Mercedes Rosalía J\'adore Grace a Dieu Rhiannon San-che-he-ray Lou\'Lou Elona L\'vovna d\'Alessandra Ariëlle",
+    ]: Basic("Liselotte-Anne Daniëlle Celèste Elise 26 Avril Stéphane Maroni jr. Isiah dé Maria de las Mercedes Rosalía J\'adore Grace a Dieu Rhiannon San-che-he-ray Lou\'Lou Elona L\'vovna d\'Alessandra Ariëlle"),
     [
       "birth_date",
-    ]: "1990-07-07",
+    ]: Date("1990-07-07"),
     [
       "age_over_18",
-    ]: true,
+    ]: Basic(true),
     [
       "bsn",
-    ]: "999991000",
+    ]: Basic("999991000"),
   },
   "com.example.address": {
     [
       "resident_street",
-    ]: "Arlandaweg",
+    ]: Basic("Arlandaweg"),
     [
       "resident_house_number",
-    ]: "14",
+    ]: Basic("14"),
     [
       "resident_postal_code",
-    ]: "1043EW",
+    ]: Basic("1043EW"),
     [
       "resident_city",
-    ]: "Amsterdam",
+    ]: Basic("Amsterdam"),
     [
       "resident_country",
-    ]: "Nederland",
+    ]: Basic("Nederland"),
   },
 }

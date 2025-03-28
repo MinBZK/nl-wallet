@@ -68,8 +68,8 @@ pub mod test;
 
 use std::error::Error;
 
-use wallet_common::keys::AppleAssertion;
-use wallet_common::keys::SecureEcdsaKey;
+use crypto::keys::AppleAssertion;
+use crypto::keys::SecureEcdsaKey;
 
 /// Wrapper for errors encountered during attestation that includes a boolean to indicate
 /// whether the caller should retry the attestation using the same identifier.

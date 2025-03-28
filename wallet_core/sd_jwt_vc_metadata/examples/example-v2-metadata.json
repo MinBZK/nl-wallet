@@ -1,0 +1,160 @@
+{
+  "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
+  "name": "NL Wallet extended PID credential",
+  "description": "Working version of the NL Wallet extended PID credential",
+  "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
+  "extends#integrity": "sha256-wVuuSExXp2uBk9BWJ7ysb29sn5T0s3q9JufddBVumjE=",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "NL Wallet Personal Data",
+      "description": "The Personal Data credential for the NL Wallet, part 2"
+    },
+    {
+      "lang": "nl-NL",
+      "name": "NL Wallet persoonsgegevens",
+      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "birth_date"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Birth date",
+          "description": "Date of birth"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "place_of_birth",
+        "country",
+        "is_eu_member"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country is a member of the EU"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "financial",
+        "has_job"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Is gainfully employed"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "financial",
+        "debt_amount"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Amount of debt (in euros)"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "nickname"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Cool nickname"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "NL Wallet extended PID VCT Schema",
+    "description": "The JSON schema that defines the NL Wallet extended PID VCT",
+    "type": "object",
+    "properties": {
+      "birth_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "place_of_birth": {
+        "type": "object",
+        "properties": {
+          "locality": {
+            "type": "string"
+          },
+          "country": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "area_code": {
+                "type": "integer"
+              },
+              "is_eu_member": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "financial": {
+        "type": "object",
+        "properties": {
+          "has_debt": {
+            "type": "boolean"
+          },
+          "has_job": {
+            "type": "boolean"
+          },
+          "debt_amount": {
+            "type": "integer"
+          }
+        }
+      },
+      "nickname": {
+        "type": "string"
+      },
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "vct",
+      "iss",
+      "iat"
+    ]
+  }
+}

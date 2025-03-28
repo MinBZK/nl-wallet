@@ -14,7 +14,7 @@ class ResetWalletDialog extends StatelessWidget {
     return AlertDialog(
       title: Text.rich(
         context.l10n.resetWalletDialogTitle.toTextSpan(context),
-        style: context.textTheme.displayMedium,
+        style: context.textTheme.headlineMedium,
       ),
       content: Text.rich(context.l10n.resetWalletDialogBody.toTextSpan(context)),
       actions: <Widget>[

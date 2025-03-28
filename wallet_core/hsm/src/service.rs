@@ -25,8 +25,8 @@ use r2d2_cryptoki::SessionManager;
 use r2d2_cryptoki::SessionType;
 use sec1::EcParameters;
 
+use crypto::utils::sha256;
 use wallet_common::spawn;
-use wallet_common::utils::sha256;
 
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypted::InitializationVector;

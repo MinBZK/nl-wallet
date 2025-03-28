@@ -4,8 +4,9 @@ use serde_with::skip_serializing_none;
 use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::oid_registry::Oid;
 
+use crypto::x509::BorrowingCertificateExtension;
+
 use crate::utils::x509::CertificateType;
-use crate::utils::x509::MdocCertificateExtension;
 
 use super::Organization;
 
@@ -16,7 +17,7 @@ pub struct IssuerRegistration {
     pub organization: Organization,
 }
 
-impl MdocCertificateExtension for IssuerRegistration {
+impl BorrowingCertificateExtension for IssuerRegistration {
     /// oid: 2.1.123.2
     /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
     /// suffix: 2, unofficial id for Issuer Authentication
@@ -26,6 +27,17 @@ impl MdocCertificateExtension for IssuerRegistration {
 impl From<IssuerRegistration> for CertificateType {
     fn from(source: IssuerRegistration) -> Self {
         CertificateType::Mdl(Box::new(source).into())
+    }
+}
+
+#[cfg(any(test, feature = "generate"))]
+impl TryFrom<IssuerRegistration> for Vec<rcgen::CustomExtension> {
+    type Error = crypto::x509::CertificateError;
+
+    fn try_from(value: IssuerRegistration) -> Result<Self, Self::Error> {
+        let certificate_type = CertificateType::from(value);
+        let result = certificate_type.try_into()?;
+        Ok(result)
     }
 }
 

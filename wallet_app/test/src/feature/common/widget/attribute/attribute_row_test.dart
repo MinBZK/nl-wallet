@@ -9,7 +9,7 @@ import '../../../../../wallet_app_test_widget.dart';
 /// Note that this test indirectly also verifies:
 /// [DataAttributeRow], [RequestedAttributeRow] and [UiAttributeRow]
 void main() {
-  const kGoldenSize = Size(160, 38);
+  const kGoldenSize = Size(160, 42);
 
   group(
     'goldens',

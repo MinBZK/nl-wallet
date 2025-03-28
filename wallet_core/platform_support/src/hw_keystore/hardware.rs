@@ -8,11 +8,11 @@ use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePublicKey;
 use parking_lot::Mutex;
 
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::EncryptionKey;
-use wallet_common::keys::SecureEcdsaKey;
-use wallet_common::keys::SecureEncryptionKey;
-use wallet_common::keys::WithIdentifier;
+use crypto::keys::EcdsaKey;
+use crypto::keys::EncryptionKey;
+use crypto::keys::SecureEcdsaKey;
+use crypto::keys::SecureEncryptionKey;
+use crypto::keys::WithIdentifier;
 use wallet_common::spawn;
 
 use crate::bridge::hw_keystore::get_encryption_key_bridge;

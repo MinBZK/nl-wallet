@@ -1,4 +1,3 @@
-use apple_app_attest::AttestationEnvironment;
 use ctor::ctor;
 use indexmap::IndexMap;
 use reqwest::StatusCode;
@@ -6,7 +5,6 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use apple_app_attest::AppIdentifier;
 use configuration::http::TlsPinningConfig;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -61,26 +59,6 @@ async fn main() {
     let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
     let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
 
-    let apple_attestation_environment = option_env!("APPLE_ATTESTATION_ENVIRONMENT");
-    let team_identifier = option_env!("TEAM_IDENTIFIER");
-    let bundle_identifier = option_env!("BUNDLE_IDENTIFIER");
-
-    let apple_attestation_environment = apple_attestation_environment
-        .map(|environment| match environment {
-            "development" => AttestationEnvironment::Development,
-            "production" => AttestationEnvironment::Production,
-            _ => panic!("Invalid Apple attestation environment"),
-        })
-        .unwrap_or_else(default::attestation_environment);
-
-    // Create an iOS app identifier if both environment variables are provided, otherwise fall back to the default.
-    let app_identifier = if let (Some(team_identifier), Some(bundle_identifier)) = (team_identifier, bundle_identifier)
-    {
-        AppIdentifier::new(team_identifier, bundle_identifier)
-    } else {
-        default::app_identifier()
-    };
-
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
 
@@ -102,15 +80,15 @@ async fn main() {
         config_repository,
         update_policy_repository,
         MockStorage::default(),
-        MockHardwareAttestedKeyHolder::new_apple_mock(apple_attestation_environment, app_identifier),
+        MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
     )
     .await
     .expect("Could not create test wallet");
 
-    let pin = String::from("123344");
+    let pin = "123344";
 
-    wallet.register(pin.clone()).await.expect("Could not register wallet");
+    wallet.register(pin).await.expect("Could not register wallet");
 
     let authorization_url = wallet
         .create_pid_issuance_auth_url()
@@ -125,7 +103,7 @@ async fn main() {
         .expect("Could not continue pid issuance");
 
     wallet
-        .accept_pid_issuance(pin.clone())
+        .accept_pid_issuance(pin.to_owned())
         .await
         .expect("Could not accept pid issuance");
 
@@ -192,7 +170,7 @@ async fn main() {
     assert_eq!(proposal.attestations.len(), 1);
 
     let return_url = wallet
-        .accept_disclosure(pin)
+        .accept_disclosure(pin.to_owned())
         .await
         .expect("Could not accept disclosure");
 

@@ -34,12 +34,12 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 cfg-if.workspace = true
 ciborium.workspace = true
-derive_more = { workspace = true, features = ["debug"] }
+derive_more = { workspace = true, features = ["constructor", "debug"] }
 futures = { workspace = true, features = ["std", "async-await"] }
-hex.workspace = true
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
+# This feature is necessary on the transitive dependency sqlx.sqlite so it doesn't rely on a local dynamic library
 libsqlite3-sys = { workspace = true, features = ["bundled-sqlcipher-vendored-openssl"] }
 mime.workspace = true
 nutype.workspace = true
@@ -57,17 +57,17 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
-sha2.workspace = true
 strum = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["sync", "fs"] }
 tracing.workspace = true
 trait-variant.workspace = true
 url.workspace = true
-uuid = {workspace = true, features = [ "v4", "v7" ] }
+uuid = { workspace = true, features = ["v4", "v7"] }
 
 mockall = { workspace = true, optional = true }
 
 configuration.path = "../wallet_configuration/configuration"
+crypto.path = "../crypto"
 entity.path = "entity"
 error_category = { path = "../error_category", features = ["sentry"] }
 jwt.path = "../jwt"
@@ -76,9 +76,9 @@ mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
 poa.path = "../poa"
-sd_jwt.path = "../sd_jwt"
+sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
-wallet_common = { path = "../wallet_common" }
+wallet_common.path = "../wallet_common"
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
@@ -94,15 +94,15 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lot"] }
 wiremock.workspace = true
 
-configuration = { path = "../wallet_configuration/configuration", features = ["insecure_http_client"] }
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
+configuration = { path = "../wallet_configuration/configuration", features = ["insecure_http_client"] }
+crypto = { path = "../crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "../platform_support", features = ["mock"] }
-sd_jwt = { path = "../sd_jwt", features = ["example_constructors"] }
+sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
-wallet_common = { path = "../wallet_common", features = ["mock_secure_keys", "mock_remote_key"] }
 
 [build-dependencies]
 serde.workspace = true

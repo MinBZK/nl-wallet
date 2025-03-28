@@ -21,11 +21,8 @@ class PinConfirmationErrorDialog extends StatelessWidget {
     return AlertDialog(
       scrollable: true,
       semanticLabel: Platform.isAndroid ? title : null,
-      title: Text(title, style: context.textTheme.displayMedium),
-      content: Text(
-        content,
-        style: context.textTheme.bodyLarge,
-      ),
+      title: Text(title),
+      content: Text(content),
       actions: <Widget>[
         TextButton(
           child: Text(cta),

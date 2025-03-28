@@ -1,9 +1,10 @@
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
-use sd_jwt::metadata::TypeMetadata;
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::x509::BorrowingCertificate;
+use sd_jwt_vc_metadata::TypeMetadata;
 
 use crate::errors::Result;
 use crate::identifiers::AttributeIdentifier;
@@ -12,7 +13,6 @@ use crate::iso::disclosure::Document;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DocType;
 use crate::unsigned::Entry;
-use crate::utils::x509::BorrowingCertificate;
 use crate::NameSpace;
 
 use super::StoredMdoc;
@@ -101,7 +101,7 @@ impl<I> ProposedDocument<I> {
             mdoc,
         } = stored_mdoc;
 
-        let metadata = mdoc.type_metadata()?;
+        let type_metadata = mdoc.type_metadata()?;
 
         // As this method should only ever be called when we know that it
         // matches the `requested_attributes`, we know that it should result
@@ -149,7 +149,7 @@ impl<I> ProposedDocument<I> {
             issuer_signed,
             device_signed_challenge,
             issuer_certificate,
-            type_metadata: metadata.into_first(), // TODO: handle chain: PVW-3824
+            type_metadata,
         };
         Ok(proposed_document)
     }
@@ -204,8 +204,8 @@ impl<I> ProposedDocument<I> {
 
 #[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
-    use sd_jwt::metadata::TypeMetadata;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::holder::Mdoc;
 
@@ -239,7 +239,7 @@ mod tests {
     use assert_matches::assert_matches;
     use coset::Header;
 
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+    use crypto::mock_remote::MockRemoteKeyFactory;
 
     use crate::errors::Error;
     use crate::holder::Mdoc;

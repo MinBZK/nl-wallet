@@ -1,5 +1,7 @@
 .rust:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-rust:${BUILD_TAG}"
+  tags:
+    - linux
 
 lint-rust:
   extends: .rust
@@ -13,18 +15,19 @@ lint-rust:
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
     - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
 
-test-rust:
+.test-rust:
   extends: .rust
-  rules: !reference [.default-or-release-or-merge-request, rules]
-  tags:
-    - wallet-ci
   variables:
     NEXTEST_PROFILE: "ci"
+  before_script:
+    - set -euxo pipefail
+
+test-rust:
+  extends: .test-rust
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  variables:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
-    WALLET_PROVIDER_DATABASE__HOST: "postgres"
-    VERIFICATION_SERVER_STORE_URL: "postgres://postgres:postgres@postgres:5432/verification_server"
-    PID_ISSUER_STORE_URL: "postgres://postgres:postgres@postgres:5432/pid_issuer"
   services:
     - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
@@ -32,15 +35,23 @@ test-rust:
         POSTGRESQL_USER: "postgres"
         POSTGRESQL_PASSWORD: "postgres"
         POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server,pid_issuer"
-  before_script:
+  script:
     - set -euxo pipefail
+    - |
+      cat > scripts/.env <<EOD
+      export DB_HOST=postgres
+      export DB_USERNAME=postgres
+      export DB_PASSWORD=postgres
+      EOD
     - ./scripts/setup-devenv.sh
     - cd wallet_core
-  script:
     - cargo run --bin wallet_provider_migrations --locked -- up
-    - DATABASE_URL="${VERIFICATION_SERVER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
-    - DATABASE_URL="${PID_ISSUER_STORE_URL}" cargo run --bin wallet_server_migrations --locked -- up
-    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info --no-fail-fast
+    - |
+      for name in pid_issuer verification_server; do
+        DATABASE_URL="postgres://postgres:postgres@postgres:5432/$name" \
+          cargo run --bin wallet_server_migrations --locked -- up
+      done
+    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features integration_test --locked --lcov --output-path lcov.info
     - cargo llvm-cov report --locked --cobertura --output-path rust-coverage.xml
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit.xml qt/quality-time/junit-results/rust.xml
@@ -54,6 +65,60 @@ test-rust:
     paths:
       - wallet_core/lcov.info
       - wallet_core/target/nextest/ci/junit.xml
+
+test-rust-gba-pid:
+  extends: [.env-ont-k8s, .test-rust]
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: deploy-gba-hc-converter-ont
+      artifacts: false
+    - job: deploy-mock-relying-party-ont
+      artifacts: false
+    - job: deploy-wallet-provider-ont
+      artifacts: false
+    - job: deploy-pid-issuer-ont
+      artifacts: false
+    - job: wallet-config-ont
+      artifacts: true
+  variables:
+    APPLE_ATTESTATION_ENVIRONMENT: "production"
+    CONFIG_ENV: ont
+    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
+  script:
+    - cd wallet_core/tests_integration
+    - |
+      set +x
+      GBA_JSON=$(kubectl get secret nl-wallet-gba-hc-converter-secrets -o json | jq -r '.data | map_values(@base64d)')
+      cat <<EOD > gba_hc_converter.toml
+      ip = "0.0.0.0"
+      port = 3008
+
+      [run_mode.gbav]
+      adhoc_url = "https://lap.gbav.idm.diginetwerk.net/gba-v/online/lo3services/adhoc"
+      username = "$(jq -r '.username' <<< "$GBA_JSON")"
+      password = "$(jq -r '.password' <<< "$GBA_JSON")"
+      client_cert = "$(jq -r '.client_cert' <<< "$GBA_JSON")"
+      client_cert_key = "$(jq -r '.client_cert_key' <<< "$GBA_JSON")"
+      trust_anchor = "$(jq -r '.trust_anchor' <<< "$GBA_JSON")"
+      EOD
+      sha256sum gba_hc_converter.toml
+      unset $GBA_JSON
+      set -x
+    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features gba_pid_test --locked --lcov --output-path ../lcov-gba-pid.info
+    - cargo llvm-cov report --locked --cobertura --output-path ../rust-gba-pid-coverage.xml
+    - mv ../target/nextest/ci/junit.xml ../target/nextest/ci/junit-gba-pid.xml
+  after_script:
+    - deploy/bin/store-artifact.sh wallet_core/target/nextest/ci/junit-gba-pid.xml qt/quality-time/junit-results/rust-gba-pid.xml
+  artifacts:
+    name: test-rust-gba-pid
+    reports:
+      coverage_report:
+        path: wallet_core/rust-gba-pid-coverage.xml
+        coverage_format: cobertura
+      junit: wallet_core/target/nextest/ci/junit-gba-pid.xml
+    paths:
+      - wallet_core/lcov-gba-pid.info
+      - wallet_core/target/nextest/ci/junit-gba-pid.xml
 
 test-rust-doctest:
   extends: .rust

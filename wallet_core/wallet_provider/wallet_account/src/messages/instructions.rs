@@ -1,15 +1,16 @@
+use derive_more::Constructor;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use crypto::p256_der::DerSignature;
+use crypto::p256_der::DerVerifyingKey;
 use jwt::credential::JwtCredentialClaims;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use poa::Poa;
-use wallet_common::p256_der::DerSignature;
-use wallet_common::p256_der::DerVerifyingKey;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::wte::WteClaims;
 
@@ -19,14 +20,14 @@ use crate::signed::ChallengeResponse;
 use super::registration::WalletCertificate;
 
 /// Request for a challenge, sent by wallet to account server before sending an instruction.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct InstructionChallengeRequest {
     pub request: ChallengeRequest,
     pub certificate: WalletCertificate,
 }
 
 /// Request to execute an instruction, sent by wallet to account server after receiving the challenge.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Constructor)]
 pub struct Instruction<T> {
     pub instruction: ChallengeResponse<T>,
     pub certificate: WalletCertificate,
@@ -193,9 +194,9 @@ mod client {
     use serde::de::DeserializeOwned;
     use serde::Serialize;
 
+    use crypto::keys::EphemeralEcdsaKey;
+    use crypto::keys::SecureEcdsaKey;
     use platform_support::attested_key::AppleAttestedKey;
-    use wallet_common::keys::EphemeralEcdsaKey;
-    use wallet_common::keys::SecureEcdsaKey;
 
     use crate::error::EncodeError;
     use crate::messages::registration::WalletCertificate;
@@ -211,13 +212,6 @@ mod client {
     where
         T: Serialize + DeserializeOwned,
     {
-        fn new(instruction: ChallengeResponse<T>, certificate: WalletCertificate) -> Self {
-            Self {
-                instruction,
-                certificate,
-            }
-        }
-
         pub async fn new_apple(
             instruction: T,
             challenge: Vec<u8>,
@@ -260,10 +254,6 @@ mod client {
     }
 
     impl InstructionChallengeRequest {
-        fn new(request: ChallengeRequest, certificate: WalletCertificate) -> Self {
-            Self { request, certificate }
-        }
-
         pub async fn new_apple<I>(
             wallet_id: String,
             instruction_sequence_number: u64,

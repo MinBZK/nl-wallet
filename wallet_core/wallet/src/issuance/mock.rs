@@ -4,13 +4,13 @@ use chrono::Days;
 use chrono::Utc;
 use indexmap::IndexMap;
 
-use mdoc::server_keys::generate::mock::ISSUANCE_CERT_CN;
+use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::DataElementValue;
-use sd_jwt::metadata::JsonSchemaPropertyFormat;
-use sd_jwt::metadata::JsonSchemaPropertyType;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
+use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+use sd_jwt_vc_metadata::TypeMetadata;
 
 use super::PID_DOCTYPE;
 
@@ -32,6 +32,7 @@ fn create_empty_unsigned_mdoc() -> UnsignedMdoc {
         .try_into()
         .unwrap(),
         issuer_uri: format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
+        attestation_qualification: Default::default(),
     }
 }
 

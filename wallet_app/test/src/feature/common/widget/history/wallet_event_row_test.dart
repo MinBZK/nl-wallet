@@ -10,7 +10,7 @@ import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
 
 void main() {
-  const kGoldenSize = Size(350, 115);
+  const kGoldenSize = Size(350, 118);
 
   group('goldens', () {
     testGoldens(
@@ -49,7 +49,7 @@ void main() {
             event: WalletMockData.disclosureEvent,
             onPressed: () {},
           ),
-          surfaceSize: const Size(350, 115),
+          surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.success');
       },

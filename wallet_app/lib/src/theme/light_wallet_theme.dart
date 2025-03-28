@@ -41,7 +41,7 @@ class LightWalletTheme {
 
   // DialogTheme
   static final dialogTheme = DialogTheme(
-    titleTextStyle: textTheme.headlineSmall,
+    titleTextStyle: textTheme.headlineMedium,
     surfaceTintColor: Colors.transparent,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
@@ -56,7 +56,7 @@ class LightWalletTheme {
   static final appBarTheme = BaseWalletTheme.baseAppBarTheme.copyWith(
     backgroundColor: colorScheme.surface,
     surfaceTintColor: colorScheme.surface,
-    titleTextStyle: textTheme.displayMedium,
+    titleTextStyle: textTheme.headlineMedium,
     shadowColor: colorScheme.shadow,
   );
 

@@ -12,13 +12,13 @@ use url::Url;
 
 use configuration::http::TlsPinningConfig;
 use configuration::wallet_config::WalletConfiguration;
+use crypto::x509::BorrowingCertificateExtension;
+use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::x509::CertificateError;
-use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
 use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
@@ -28,7 +28,7 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt_vc_metadata::TypeMetadataError;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
 use wallet_common::urls;
@@ -304,21 +304,16 @@ where
         info!("PID received successfully from issuer, returning preview documents");
         let attestations = attestation_previews
             .into_iter()
-            .flatten()
-            .map(|preview| {
+            .flat_map(|(formats, unverified_metadata_chains)| formats.into_iter().zip(unverified_metadata_chains))
+            .map(|(preview, unverified_metadata_chain)| {
                 let issuer_registration = preview.issuer_registration()?;
                 match preview {
-                    CredentialPreview::MsoMdoc {
-                        unsigned_mdoc,
-                        metadata_chain,
-                        ..
-                    } => {
-                        let (metadata, _) = metadata_chain.verify_and_destructure()?;
-                        // TODO: verify JSON representation of unsigned_mdoc against metadata schema (PVW-3812)
+                    CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
+                        let (metadata, _) = unverified_metadata_chain.into_metadata_and_source();
 
                         let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
-                            metadata.into_first(), // TODO: PVW-3812
+                            metadata,
                             issuer_registration.organization,
                             unsigned_mdoc.attributes.into(),
                         )?;
@@ -504,7 +499,7 @@ mod tests {
     use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt::metadata::TypeMetadataChain;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use crate::issuance;
@@ -731,21 +726,26 @@ mod tests {
         let mut wallet = setup_wallet_with_digid_session();
 
         let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
-        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
+        let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
+        let unverified_metadata_chains = vec![metadata_documents
+            .clone()
+            .into_unverified_metadata_chain(&unsigned_mdoc.doc_type)
+            .unwrap()];
+        let credential_formats = CredentialFormats::try_new(
+            VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
+                type_metadata: metadata_documents.clone(),
+            }])
+            .unwrap(),
+        )
+        .unwrap();
         // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
-                vec![CredentialFormats::try_new(
-                    VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
-                        unsigned_mdoc,
-                        issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
-                        metadata_chain,
-                    }])
-                    .unwrap(),
-                )
-                .unwrap()],
+                vec![(credential_formats, unverified_metadata_chains)],
             ))
         });
 
@@ -894,7 +894,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect("Could not accept PID issuance");
 
@@ -952,7 +952,7 @@ mod tests {
 
         // Accept the PID issuance with the PIN.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -973,7 +973,7 @@ mod tests {
 
         // Accepting PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -989,7 +989,7 @@ mod tests {
 
         // Accepting PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1007,7 +1007,7 @@ mod tests {
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1035,7 +1035,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1114,7 +1114,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
@@ -1139,7 +1139,7 @@ mod tests {
 
         // Accepting PID issuance should result in an error.
         let error = wallet
-            .accept_pid_issuance(PIN.to_string())
+            .accept_pid_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 

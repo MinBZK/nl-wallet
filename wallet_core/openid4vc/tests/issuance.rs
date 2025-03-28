@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
 
@@ -12,11 +13,14 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use crypto::mock_remote::MockRemoteKeyFactory;
+use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use mdoc::server_keys::generate::Ca;
-use mdoc::server_keys::KeyPair;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use mdoc::utils::issuer_auth::IssuerRegistration;
+use mdoc::AttestationQualification;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use openid4vc::credential::CredentialRequest;
@@ -48,13 +52,12 @@ use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
 use poa::Poa;
 use poa::PoaPayload;
-use sd_jwt::metadata::ClaimMetadata;
-use sd_jwt::metadata::ClaimPath;
-use sd_jwt::metadata::ClaimSelectiveDisclosureMetadata;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
-use sd_jwt::metadata::UncheckedTypeMetadata;
-use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
+use sd_jwt_vc_metadata::ClaimMetadata;
+use sd_jwt_vc_metadata::ClaimPath;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -62,7 +65,7 @@ type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<Is
 
 fn setup_mock_issuer(attestation_count: NonZeroUsize) -> (MockIssuer, TrustAnchor<'static>, BaseUrl, SigningKey) {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_keypair = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
     setup(
         MockAttributeService {
@@ -85,28 +88,32 @@ fn setup(
     let attestation_config = MOCK_DOCTYPES
         .iter()
         .map(|doctype| {
+            let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(mock_type_metadata(doctype));
+
             (
                 doctype.to_string(),
-                AttestationTypeConfig {
+                AttestationTypeConfig::try_new(
+                    doctype,
                     // KeyPair doesn't implement clone, so manually construct a new KeyPair.
-                    key_pair: KeyPair::new_from_signing_key(
+                    KeyPair::new_from_signing_key(
                         issuance_keypair.private_key().clone(),
                         issuance_keypair.certificate().clone(),
                     )
                     .unwrap(),
-                    valid_days: Days::new(365),
-                    copy_count: 4.try_into().unwrap(),
-                    issuer_uri: issuance_keypair
+                    Days::new(365),
+                    4.try_into().unwrap(),
+                    issuance_keypair
                         .certificate()
                         .san_dns_name_or_uris()
                         .unwrap()
-                        .first()
-                        .clone(),
-                    metadata: TypeMetadataChain::create(mock_type_metadata(doctype), vec![]).unwrap(),
-                },
+                        .into_first(),
+                    AttestationQualification::default(),
+                    metadata_documents,
+                )
+                .unwrap(),
             )
         })
-        .collect::<IndexMap<_, _>>()
+        .collect::<HashMap<_, _>>()
         .into();
 
     let issuer = MockIssuer::new(
@@ -161,7 +168,7 @@ async fn accept_issuance(
 
     issued_creds
         .into_iter()
-        .zip(previews.into_iter().flatten().collect_vec())
+        .zip(previews.into_iter().flat_map(|(preview, _)| preview).collect_vec())
         .for_each(|(copies, preview)| match copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
                 .first()

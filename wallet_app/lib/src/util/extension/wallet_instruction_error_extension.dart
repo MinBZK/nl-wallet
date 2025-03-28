@@ -4,13 +4,12 @@ import '../../domain/model/pin/check_pin_result.dart';
 
 extension WalletInstructionErrorExtension on WalletInstructionError {
   CheckPinResult asCheckPinResult() {
-    return map<CheckPinResult>(
-      incorrectPin: (result) => CheckPinResultIncorrect(
-        attemptsLeftInRound: result.attemptsLeftInRound,
-        isFinalRound: result.isFinalRound,
-      ),
-      timeout: (result) => CheckPinResultTimeout(timeoutMillis: result.timeoutMillis.toInt()),
-      blocked: (result) => CheckPinResultBlocked(),
-    );
+    return switch (this) {
+      WalletInstructionError_IncorrectPin(:final attemptsLeftInRound, :final isFinalRound) =>
+        CheckPinResultIncorrect(attemptsLeftInRound: attemptsLeftInRound, isFinalRound: isFinalRound),
+      WalletInstructionError_Timeout(:final timeoutMillis) =>
+        CheckPinResultTimeout(timeoutMillis: timeoutMillis.toInt()),
+      WalletInstructionError_Blocked() => CheckPinResultBlocked(),
+    };
   }
 }

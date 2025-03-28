@@ -78,7 +78,7 @@ void main() {
           );
         await tester.pumpWidgetBuilder(
           builder.build(),
-          surfaceSize: const Size(344, 490),
+          surfaceSize: const Size(344, 492),
           wrapper: walletAppWrapper(),
         );
         await screenMatchesGolden(tester, 'wallet_card_item/brightness');
@@ -117,7 +117,7 @@ void main() {
 
         await tester.pumpWidgetBuilder(
           builder.build(),
-          surfaceSize: const Size(344, 1500),
+          surfaceSize: const Size(344, 1668),
           wrapper: walletAppWrapper(),
         );
         await screenMatchesGolden(tester, 'wallet_card_item/scaling');

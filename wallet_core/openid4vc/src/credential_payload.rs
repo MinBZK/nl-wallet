@@ -11,9 +11,10 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
+use mdoc::AttestationQualification;
 use mdoc::NameSpace;
-use sd_jwt::metadata::TypeMetadataChain;
-use sd_jwt::metadata::TypeMetadataError;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataError;
 use wallet_common::urls::HttpsUri;
 
 use crate::attributes::Attribute;
@@ -40,6 +41,10 @@ pub enum CredentialPayloadError {
     #[error("mdoc is missing issuer URI")]
     #[category(critical)]
     MissingIssuerUri,
+
+    #[error("mdoc is missing attestation qualification")]
+    #[category(critical)]
+    MissingAttestationQualification,
 
     #[error("attribute error: {0}")]
     #[category(pd)]
@@ -73,6 +78,8 @@ pub struct CredentialPayload {
     #[serde_as(as = "Option<TimestampSeconds<i64>>")]
     pub not_before: Option<DateTime<Utc>>,
 
+    pub attestation_qualification: AttestationQualification,
+
     #[serde(flatten)]
     pub attributes: IndexMap<String, Attribute>,
 }
@@ -80,56 +87,60 @@ pub struct CredentialPayload {
 impl CredentialPayload {
     pub fn from_unsigned_mdoc(
         unsigned_mdoc: UnsignedMdoc,
-        type_metadata: &TypeMetadataChain,
+        metadata: &TypeMetadata,
     ) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            type_metadata,
+            metadata,
             unsigned_mdoc.attributes.into(),
             unsigned_mdoc.issuer_uri,
             Some(Utc::now()),
             Some((&unsigned_mdoc.valid_until).try_into()?),
             Some((&unsigned_mdoc.valid_from).try_into()?),
+            unsigned_mdoc.attestation_qualification,
         )
     }
 
-    pub fn from_mdoc(mdoc: Mdoc, type_metadata: &TypeMetadataChain) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc, metadata: &TypeMetadata) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
-            type_metadata,
+            metadata,
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
             Some((&mdoc.mso.validity_info.valid_until).try_into()?),
             Some((&mdoc.mso.validity_info.valid_from).try_into()?),
+            mdoc.mso
+                .attestation_qualification
+                .ok_or(CredentialPayloadError::MissingAttestationQualification)?,
         )
     }
 
     fn from_mdoc_attributes(
-        type_metadata: &TypeMetadataChain,
+        metadata: &TypeMetadata,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
         issued_at: Option<DateTime<Utc>>,
         expires: Option<DateTime<Utc>>,
         not_before: Option<DateTime<Utc>>,
+        attestation_qualification: AttestationQualification,
     ) -> Result<Self, CredentialPayloadError> {
-        let metadata = type_metadata.verify()?;
-        let attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
+        let attributes = Attribute::from_mdoc_attributes(metadata, mdoc_attributes)?;
 
         let payload = Self {
-            attestation_type: metadata.into_inner().vct,
+            attestation_type: metadata.as_ref().vct.clone(),
             issuer,
             issued_at,
             expires,
             not_before,
+            attestation_qualification,
             attributes,
         };
 
-        payload.validate(type_metadata)?;
+        payload.validate(metadata)?;
 
         Ok(payload)
     }
 
-    fn validate(&self, metadata_chain: &TypeMetadataChain) -> Result<(), CredentialPayloadError> {
-        let metadata = metadata_chain.verify()?;
+    fn validate(&self, metadata: &TypeMetadata) -> Result<(), CredentialPayloadError> {
         metadata.validate(&serde_json::to_value(self)?)?;
         Ok(())
     }
@@ -143,8 +154,7 @@ mod test {
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
-    use sd_jwt::metadata::TypeMetadata;
-    use sd_jwt::metadata::TypeMetadataChain;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -158,6 +168,7 @@ mod test {
             issued_at: Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap()),
             expires: None,
             not_before: None,
+            attestation_qualification: "QEAA".parse().unwrap(),
             attributes: IndexMap::from([
                 (
                     String::from("birth_date"),
@@ -203,6 +214,7 @@ mod test {
             "vct": "com.example.pid",
             "iss": "https://com.example.org/pid/issuer",
             "iat": 61,
+            "attestation_qualification": "QEAA",
             "birth_date": "1963-08-12",
             "place_of_birth": {
                 "locality": "The Hague",
@@ -226,8 +238,7 @@ mod test {
         let payload = serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
 
         let metadata = TypeMetadata::example();
-        let metadata_chain = TypeMetadataChain::create(metadata, vec![]).unwrap();
 
-        payload.validate(&metadata_chain).unwrap();
+        payload.validate(&metadata).unwrap();
     }
 }

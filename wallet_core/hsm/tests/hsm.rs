@@ -11,6 +11,7 @@ use rstest::rstest;
 use rstest::Context;
 use serial_test::serial;
 
+use crypto::utils::random_bytes;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
@@ -19,7 +20,6 @@ use hsm::model::Hsm;
 use hsm::service::Pkcs11Client;
 use hsm::service::Pkcs11Hsm;
 use hsm::test::TestCase;
-use wallet_common::utils::random_bytes;
 
 #[rstest]
 #[case::sign_sha256_hmac(sign_sha256_hmac)]

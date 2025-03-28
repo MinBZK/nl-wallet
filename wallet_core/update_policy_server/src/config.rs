@@ -24,10 +24,10 @@ const WARN_THRESHOLD: Duration = Duration::from_secs(7 * 24 * 60 * 60);
     PartialOrd,
     Ord,
     Hash,
-    strum::Display,
-    strum::EnumString,
     SerializeDisplay,
     DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
 )]
 #[strum(serialize_all = "PascalCase")]
 pub enum VersionPolicy {

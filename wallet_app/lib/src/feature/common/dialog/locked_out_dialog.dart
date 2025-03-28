@@ -14,10 +14,7 @@ class LockedOutDialog extends StatelessWidget {
     final description =
         Platform.isIOS ? context.l10n.lockedOutDialogDescriptioniOSVariant : context.l10n.lockedOutDialogDescription;
     return AlertDialog(
-      title: Text.rich(
-        title.toTextSpan(context),
-        style: context.textTheme.displayMedium,
-      ),
+      title: Text.rich(title.toTextSpan(context)),
       content: Text.rich(description.toTextSpan(context)),
       actions: <Widget>[
         TextButton(

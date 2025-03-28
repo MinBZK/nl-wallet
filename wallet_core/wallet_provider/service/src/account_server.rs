@@ -5,6 +5,7 @@ use std::time::Duration;
 use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
+use derive_more::Constructor;
 use futures::try_join;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
@@ -45,6 +46,7 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
+use crypto::utils;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
@@ -71,7 +73,6 @@ use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
 use wallet_common::generator::Generator;
-use wallet_common::utils;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
@@ -339,6 +340,7 @@ pub struct AccountServerKeys {
     pub pin_public_disclosure_protection_key_identifier: String,
 }
 
+#[derive(Constructor)]
 pub struct AccountServer<GRC = GoogleRevocationListClient, PIC = PlayIntegrityClient> {
     pub name: String,
     instruction_challenge_timeout: Duration,
@@ -356,38 +358,7 @@ pub struct UserState<R, H, W> {
     pub wrapping_key_identifier: String,
 }
 
-impl<R, H, W> UserState<R, H, W> {
-    pub fn new(repositories: R, wallet_user_hsm: H, wte_issuer: W, wrapping_key_identifier: String) -> Self {
-        Self {
-            repositories,
-            wallet_user_hsm,
-            wte_issuer,
-            wrapping_key_identifier,
-        }
-    }
-}
-
 impl<GRC, PIC> AccountServer<GRC, PIC> {
-    pub fn new(
-        name: String,
-        instruction_challenge_timeout: Duration,
-        keys: AccountServerKeys,
-        apple_config: AppleAttestationConfiguration,
-        android_config: AndroidAttestationConfiguration,
-        google_crl_client: GRC,
-        play_integrity_client: PIC,
-    ) -> Result<Self, AccountServerInitError> {
-        Ok(AccountServer {
-            instruction_challenge_timeout,
-            name,
-            keys,
-            apple_config,
-            android_config,
-            google_crl_client,
-            play_integrity_client,
-        })
-    }
-
     // Only used for registration. When a registered user sends an instruction, we should store
     // the challenge per user, instead globally.
     pub async fn registration_challenge(
@@ -1226,7 +1197,6 @@ pub mod mock {
             crl,
             integrity_client,
         )
-        .unwrap()
     }
 
     pub type MockUserState = UserState<WalletUserTestRepo, MockPkcs11Client<HsmError>, MockWteIssuer>;
@@ -1349,6 +1319,8 @@ mod tests {
     use apple_app_attest::AssertionError;
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
+    use crypto::keys::EcdsaKey;
+    use crypto::utils;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
@@ -1365,8 +1337,6 @@ mod tests {
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
     use wallet_common::generator::Generator;
-    use wallet_common::keys::EcdsaKey;
-    use wallet_common::utils;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;

@@ -1,14 +1,15 @@
 use std::error::Error;
 
+use derive_more::Constructor;
 use p256::ecdsa::VerifyingKey;
 
+use crypto::keys::SecureEcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwtError;
 use jwt::Jwt;
-use wallet_common::keys::SecureEcdsaKey;
 use wallet_common::wte::WteClaims;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 
@@ -19,22 +20,12 @@ pub trait WteIssuer {
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
+#[derive(Constructor)]
 pub struct HsmWteIssuer<H, K = HsmEcdsaKey> {
     private_key: K,
     iss: String,
     hsm: H,
     wrapping_key_identifier: String,
-}
-
-impl<H, K> HsmWteIssuer<H, K> {
-    pub fn new(private_key: K, iss: String, hsm: H, wrapping_key_identifier: String) -> Self {
-        Self {
-            private_key,
-            iss,
-            hsm,
-            wrapping_key_identifier,
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

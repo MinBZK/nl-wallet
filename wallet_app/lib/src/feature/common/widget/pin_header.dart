@@ -48,7 +48,6 @@ class PinHeader extends StatelessWidget {
       return TitleText(
         title,
         textAlign: textAlign,
-        style: context.textTheme.displayMedium?.copyWith(color: textColor),
       );
     } else {
       return Column(
@@ -57,7 +56,7 @@ class PinHeader extends StatelessWidget {
         children: [
           TitleText(
             title,
-            style: context.textTheme.displayMedium?.copyWith(color: textColor),
+            style: context.textTheme.headlineMedium?.copyWith(color: textColor),
             textAlign: textAlign,
           ),
           const SizedBox(height: 8),

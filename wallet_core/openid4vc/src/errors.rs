@@ -78,8 +78,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::JsonSerialization(_)
-                | CredentialRequestError::WteTracking(_)
-                | CredentialRequestError::TypeMetadata(_) => CredentialErrorCode::ServerError,
+                | CredentialRequestError::WteTracking(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)
                 | CredentialRequestError::UseBatchIssuance
@@ -157,7 +156,6 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
                 | TokenRequestError::CredentialTypeNotOffered(_)
                 | TokenRequestError::AttributeConversion(_)
                 | TokenRequestError::CredentialPayload(_)
-                | TokenRequestError::TypeMetadata(_)
                 | TokenRequestError::Certificate(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
@@ -309,7 +307,7 @@ where
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
 /// Error codes sent to the Relying Party when an error occurs when handling their request.
-#[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
+#[derive(Debug, Clone, Copy, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
     ServerError,

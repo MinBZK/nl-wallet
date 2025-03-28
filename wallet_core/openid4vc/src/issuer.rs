@@ -8,9 +8,9 @@ use std::sync::LazyLock;
 use chrono::Days;
 use chrono::Utc;
 use derive_more::AsRef;
+use derive_more::Debug;
 use derive_more::From;
 use futures::future::try_join_all;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
@@ -18,9 +18,14 @@ use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
 use serde::Serialize;
+use ssri::Integrity;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use crypto::keys::EcdsaKey;
+use crypto::server_keys::KeyPair;
+use crypto::utils::random_string;
+use crypto::x509::CertificateError;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -29,20 +34,18 @@ use jwt::pop::JwtPopClaims;
 use jwt::validations;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
-use mdoc::server_keys::KeyPair;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::utils::crypto::CryptoError;
 use mdoc::utils::serialization::CborError;
-use mdoc::utils::x509::CertificateError;
+use mdoc::AttestationQualification;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
-use sd_jwt::metadata::TypeMetadataChain;
-use sd_jwt::metadata::TypeMetadataError;
-use wallet_common::keys::EcdsaKey;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::HttpsUri;
-use wallet_common::utils::random_string;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_common::wte::WteClaims;
 
@@ -118,8 +121,6 @@ pub enum TokenRequestError {
     AttributeConversion(#[from] UnsignedAttributesError),
     #[error("error converting unsigned mdoc to credential_payload: {0}")]
     CredentialPayload(#[from] CredentialPayloadError),
-    #[error("error verifying type metadata integrity: {0}")]
-    TypeMetadata(#[from] TypeMetadataError),
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
 }
@@ -179,8 +180,6 @@ pub enum CredentialRequestError {
     MissingPoa,
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
-    #[error("error verifying type metadata integrity: {0}")]
-    TypeMetadata(#[from] TypeMetadataError),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -285,16 +284,51 @@ pub trait AttributeService {
 /// [`IssuableDocument`] to form the attestation.
 #[derive(Debug)]
 pub struct AttestationTypeConfig<K> {
+    #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub valid_days: Days,
     pub copy_count: NonZeroU8,
     pub issuer_uri: HttpsUri,
-    pub metadata: TypeMetadataChain,
+    pub attestation_qualification: AttestationQualification,
+    pub metadata_documents: TypeMetadataDocuments,
+    first_metadata_integrity: Integrity,
+    metadata: TypeMetadata,
+}
+
+impl<K> AttestationTypeConfig<K> {
+    /// Create a new [`AttestationTypeConfig`] and decode and validate the type metadata documents.
+    pub fn try_new(
+        attestation_type: &str,
+        key_pair: KeyPair<K>,
+        valid_days: Days,
+        copy_count: NonZeroU8,
+        issuer_uri: HttpsUri,
+        attestation_qualification: AttestationQualification,
+        metadata_documents: TypeMetadataDocuments,
+    ) -> Result<Self, TypeMetadataChainError> {
+        // Calculate and cache the integrity hash for the first metadata document in the chain.
+        let first_metadata_integrity = Integrity::from(metadata_documents.as_ref().first().as_slice());
+        let unverified_metadata_chain = metadata_documents.into_unverified_metadata_chain(attestation_type)?;
+        let (metadata, metadata_documents) = unverified_metadata_chain.into_metadata_and_source();
+
+        let config = Self {
+            key_pair,
+            valid_days,
+            copy_count,
+            issuer_uri,
+            attestation_qualification,
+            metadata_documents,
+            first_metadata_integrity,
+            metadata,
+        };
+
+        Ok(config)
+    }
 }
 
 /// Static attestation data indexed by attestation type.
 #[derive(Debug, From, AsRef)]
-pub struct AttestationTypesConfig<K>(IndexMap<String, AttestationTypeConfig<K>>);
+pub struct AttestationTypesConfig<K>(HashMap<String, AttestationTypeConfig<K>>);
 
 pub struct Issuer<A, K, S, W> {
     sessions: Arc<S>,
@@ -652,6 +686,7 @@ impl Session<Created> {
                     valid_until.into(),
                     attestation_data.copy_count,
                     attestation_data.issuer_uri.clone(),
+                    attestation_data.attestation_qualification,
                 )?;
 
                 CredentialPayload::from_unsigned_mdoc(unsigned_mdoc.clone(), &attestation_data.metadata)?;
@@ -660,7 +695,7 @@ impl Session<Created> {
                 let mdoc = CredentialPreview::MsoMdoc {
                     unsigned_mdoc,
                     issuer_certificate: attestation_data.key_pair.certificate().to_owned(),
-                    metadata_chain: attestation_data.metadata.clone(),
+                    type_metadata: attestation_data.metadata_documents.clone(),
                 };
 
                 Ok(CredentialFormats::try_new(VecNonEmpty::try_from(vec![mdoc]).unwrap()).unwrap())
@@ -682,8 +717,8 @@ impl Session<Created> {
 }
 
 impl TokenResponse {
-    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> TokenResponse {
-        TokenResponse {
+    pub(crate) fn new(access_token: AccessToken, c_nonce: String) -> Self {
+        Self {
             access_token,
             c_nonce: Some(c_nonce),
             token_type: TokenType::DPoP,
@@ -1029,26 +1064,30 @@ impl CredentialResponse {
         issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let key_id = preview.issuer_key_identifier();
-        let issuer_privkey = &issuer_data
+        let attestation_config = issuer_data
             .attestation_config
             .as_ref()
             .get(key_id)
-            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?
-            .key_pair;
+            .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
         match preview {
             CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
-                metadata_chain,
+                type_metadata,
                 ..
             } => {
                 let cose_pubkey = (&holder_pubkey)
                     .try_into()
                     .map_err(CredentialRequestError::CoseKeyConversion)?;
 
-                let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, cose_pubkey, issuer_privkey)
-                    .await
-                    .map_err(CredentialRequestError::CredentialSigning)?;
+                let issuer_signed = IssuerSigned::sign(
+                    unsigned_mdoc,
+                    (&attestation_config.first_metadata_integrity, &type_metadata),
+                    cose_pubkey,
+                    &attestation_config.key_pair,
+                )
+                .await
+                .map_err(CredentialRequestError::CredentialSigning)?;
 
                 Ok(CredentialResponse::MsoMdoc {
                     credential: Box::new(issuer_signed.into()),
@@ -1140,6 +1179,7 @@ impl WteDisclosure {
 
 #[cfg(test)]
 mod tests {
+    use derive_more::Debug;
     use thiserror::Error;
     use tracing_test::traced_test;
 

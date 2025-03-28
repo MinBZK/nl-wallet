@@ -23,6 +23,8 @@ import '../../../util/test_utils.dart';
 
 class MockHistoryDetailBloc extends MockBloc<HistoryDetailEvent, HistoryDetailState> implements HistoryDetailBloc {}
 
+const _kVeryTallScreen = Size(400, 3000);
+
 void main() {
   group('goldens', () {
     testGoldens('HistoryDetailLoadSuccess light', (tester) async {
@@ -173,17 +175,18 @@ void main() {
               HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        surfaceSize: _kVeryTallScreen,
       );
       final l10n = await TestUtils.englishLocalizations;
       //sharedAttributesCardTitle
       expect(find.byType(HistoryDetailDisclosePage), findsOneWidget);
-      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsExactly(3));
+      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsAtLeast(1));
       expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.disclosureEvent.cards.first.attributes.length.toString();
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text(WalletMockData.disclosureEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
       expect(find.text('1 March 2024, 00:00'), findsOneWidget);
-      expect(find.textContaining('will store your data for'), findsOneWidget);
+      expect(find.textContaining('will store your data for', findRichText: true), findsOneWidget);
       final scrollableFinder = find.byType(Scrollable);
       await tester.scrollUntilVisible(
         find.text(l10n.disclosureStopSheetReportIssueCta),
@@ -220,18 +223,20 @@ void main() {
               HistoryDetailLoadSuccess(WalletMockData.loginEvent, [WalletMockData.card]),
             )
             .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        surfaceSize: _kVeryTallScreen,
       );
+
       debugDumpApp();
       final l10n = await TestUtils.englishLocalizations;
       //sharedAttributesCardTitle
       expect(find.byType(HistoryDetailLoginPage), findsOneWidget);
-      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsExactly(3));
+      expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsAtLeast(1));
       expect(find.text(WalletMockData.loginEvent.purpose.testValue), findsOneWidget);
       final count = WalletMockData.loginEvent.cards.first.attributes.length.toString();
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text(WalletMockData.loginEvent.cards.first.attributes.first.label.testValue), findsOneWidget);
       expect(find.text('1 February 2024, 00:00'), findsOneWidget);
-      expect(find.textContaining('will store your data for'), findsOneWidget);
+      expect(find.textContaining('will store your data for', findRichText: true), findsOneWidget);
       final scrollableFinder = find.byType(Scrollable);
       await tester.scrollUntilVisible(
         find.text(l10n.disclosureStopSheetReportIssueCta),

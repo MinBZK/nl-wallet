@@ -42,7 +42,7 @@ pub mod mock {
     use rand::rngs::OsRng;
     use sha2::Sha256;
 
-    use wallet_common::utils::random_bytes;
+    use crypto::utils::random_bytes;
 
     use crate::model::encrypted::Encrypted;
     use crate::model::encrypted::InitializationVector;

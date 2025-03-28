@@ -1,3 +1,4 @@
+use derive_more::Constructor;
 use wallet_common::update_policy::VersionState;
 
 use crate::repository::BackgroundUpdateableRepository;
@@ -8,15 +9,9 @@ use crate::repository::UpdateableRepository;
 
 use super::UpdatePolicyError;
 
-#[derive(Default)]
+#[derive(Default, Constructor)]
 pub struct MockUpdatePolicyRepository {
     state: VersionState,
-}
-
-impl MockUpdatePolicyRepository {
-    pub fn new(state: VersionState) -> Self {
-        Self { state }
-    }
 }
 
 impl Repository<VersionState> for MockUpdatePolicyRepository {

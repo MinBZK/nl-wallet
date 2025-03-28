@@ -33,6 +33,8 @@ pub enum CborError {
     Deserialization(#[from] ciborium::de::Error<std::io::Error>),
     #[error("serialization failed: {0}")]
     Serialization(#[from] ciborium::ser::Error<std::io::Error>),
+    #[error("encoding or decoding CBOR value failed: {0}")]
+    Value(#[from] ciborium::value::Error),
 }
 
 /// Wrapper for [`ciborium::de::from_reader`] returning our own error type.

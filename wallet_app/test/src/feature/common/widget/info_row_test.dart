@@ -6,7 +6,7 @@ import 'package:wallet/src/feature/common/widget/info_row.dart';
 import '../../../../wallet_app_test_widget.dart';
 
 void main() {
-  const kGoldenSize = Size(300, 106);
+  const kGoldenSize = Size(300, 108);
 
   group('goldens', () {
     testGoldens(
@@ -63,7 +63,7 @@ void main() {
             icon: Icons.padding,
             padding: EdgeInsets.zero,
           ),
-          surfaceSize: const Size(104, 78),
+          surfaceSize: const Size(104, 80),
         );
         await screenMatchesGolden(tester, 'info_row/light.nopadding');
       },

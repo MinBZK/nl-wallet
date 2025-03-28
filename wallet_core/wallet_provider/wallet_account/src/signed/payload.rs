@@ -46,9 +46,9 @@ pub struct ChallengeResponse<T>(SignedMessage<SignedSubjectMessage<ChallengeResp
 pub mod client {
     use serde::Serialize;
 
+    use crypto::keys::EphemeralEcdsaKey;
+    use crypto::keys::SecureEcdsaKey;
     use platform_support::attested_key::AppleAttestedKey;
-    use wallet_common::keys::EphemeralEcdsaKey;
-    use wallet_common::keys::SecureEcdsaKey;
 
     use crate::error::EncodeError;
 
@@ -60,16 +60,6 @@ pub mod client {
     use super::ChallengeResponsePayload;
     use super::SignedSubjectMessage;
 
-    impl ChallengeRequestPayload {
-        pub fn new(wallet_id: String, sequence_number: u64, instruction_name: String) -> Self {
-            ChallengeRequestPayload {
-                wallet_id,
-                sequence_number,
-                instruction_name,
-            }
-        }
-    }
-
     impl ChallengeRequest {
         pub async fn sign_apple<K>(
             wallet_id: String,
@@ -80,7 +70,11 @@ pub mod client {
         where
             K: AppleAttestedKey,
         {
-            let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
+            let challenge_request = ChallengeRequestPayload {
+                wallet_id,
+                sequence_number,
+                instruction_name,
+            };
             let signed = SignedSubjectMessage::sign_apple(challenge_request, attested_key).await?;
 
             Ok(Self(signed))
@@ -95,7 +89,11 @@ pub mod client {
         where
             K: SecureEcdsaKey,
         {
-            let challenge_request = ChallengeRequestPayload::new(wallet_id, sequence_number, instruction_name);
+            let challenge_request = ChallengeRequestPayload {
+                wallet_id,
+                sequence_number,
+                instruction_name,
+            };
             let signed =
                 SignedSubjectMessage::sign_ecdsa(challenge_request, EcdsaSignatureType::Google, hardware_signing_key)
                     .await?;
@@ -379,8 +377,8 @@ mod tests {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
+    use crypto::utils;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
-    use wallet_common::utils;
 
     use crate::error::DecodeError;
 

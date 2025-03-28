@@ -6,20 +6,21 @@ use chrono::Days;
 use derive_more::AsRef;
 use derive_more::From;
 use futures::future::join_all;
-use indexmap::IndexMap;
 use rustls_pki_types::TrustAnchor;
 use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
 
+use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
-use mdoc::utils::x509::CertificateError;
 use mdoc::utils::x509::CertificateType;
-use mdoc::utils::x509::CertificateUsage;
+use mdoc::AttestationQualification;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use server_utils::keys::PrivateKeySettingsError;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::verify_key_pairs;
@@ -27,7 +28,6 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::Settings;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
 use wallet_common::urls::HttpsUri;
 use wallet_common::utils;
 
@@ -36,7 +36,7 @@ pub struct IssuerSettings {
     pub attestation_settings: AttestationTypesConfigSettings,
 
     #[serde(deserialize_with = "deserialize_type_metadata")]
-    pub metadata: Vec<TypeMetadata>,
+    pub metadata: HashMap<String, Vec<u8>>,
 
     /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
     /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
@@ -60,43 +60,40 @@ pub struct AttestationTypeConfigSettings {
     pub valid_days: u64,
     pub copy_count: NonZeroU8,
 
+    #[serde(default)]
+    pub attestation_qualification: AttestationQualification,
+
     /// Which of the SAN fields in the issuer certificate to use as the `issuer_uri`/`iss` field in the mdoc/SD-JWT.
     /// If the certificate contains exactly one SAN, then this may be left blank.
     pub certificate_san: Option<HttpsUri>,
 }
 
-fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<Vec<TypeMetadata>, D::Error>
+fn deserialize_type_metadata<'de, D>(deserializer: D) -> Result<HashMap<String, Vec<u8>>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let path = Vec::<String>::deserialize(deserializer)?;
 
-    let metadatas = path
+    // Map the contents of each JSON file by the `vct` field by decoding the JSON and extracting just that field.
+    let documents = path
         .iter()
         .map(|path| {
-            let metadata_file = fs::read(utils::prefix_local_path(path.as_ref())).map_err(de::Error::custom)?;
-            serde_json::from_slice(metadata_file.as_slice())
+            let json = fs::read(utils::prefix_local_path(path.as_ref())).map_err(de::Error::custom)?;
+            let metadata =
+                serde_json::from_slice::<UncheckedTypeMetadata>(json.as_slice()).map_err(de::Error::custom)?;
+
+            Ok((metadata.vct, json))
         })
-        .collect::<Result<_, _>>()
-        .map_err(de::Error::custom)?;
+        .collect::<Result<_, _>>()?;
 
-    Ok(metadatas)
-}
-
-impl IssuerSettings {
-    pub fn metadata(&self) -> IndexMap<String, TypeMetadata> {
-        self.metadata
-            .iter()
-            .map(|type_metadata| (type_metadata.as_ref().vct.clone(), type_metadata.clone()))
-            .collect()
-    }
+    Ok(documents)
 }
 
 impl AttestationTypesConfigSettings {
     pub async fn parse(
         self,
         hsm: &Option<Pkcs11Hsm>,
-        metadata: &IndexMap<String, TypeMetadata>,
+        metadata: &HashMap<String, Vec<u8>>,
     ) -> Result<AttestationTypesConfig<PrivateKeyVariant>, PrivateKeySettingsError> {
         let issuer_keys = join_all(self.0.into_iter().map(|(typ, attestation)| {
             async move {
@@ -108,26 +105,29 @@ impl AttestationTypesConfigSettings {
                     .map(Ok::<_, CertificateError>) // Make it a result as the next closure is fallible
                     .unwrap_or_else(|| Ok(attestation.keypair.certificate.san_dns_name_or_uris()?.first().clone()))?;
 
-                let metadata = metadata
+                let metadata_document = metadata
                     .get(&typ)
                     .ok_or_else(|| PrivateKeySettingsError::MissingMetadata(typ.clone()))?;
-                let metadata = TypeMetadataChain::create(metadata.clone(), vec![])?;
+                // This `.unwrap()` is guaranteed to succeed because we are supplying exactly one entry.
+                let metadata_documents =
+                    TypeMetadataDocuments::new(vec![metadata_document.clone()].try_into().unwrap());
 
-                Ok((
-                    typ.clone(),
-                    AttestationTypeConfig {
-                        key_pair: attestation.keypair.parse(hsm.clone()).await?,
-                        valid_days: Days::new(attestation.valid_days),
-                        copy_count: attestation.copy_count,
-                        issuer_uri: issuer_uri.clone(),
-                        metadata,
-                    },
-                ))
+                let config = AttestationTypeConfig::try_new(
+                    &typ,
+                    attestation.keypair.parse(hsm.clone()).await?,
+                    Days::new(attestation.valid_days),
+                    attestation.copy_count,
+                    issuer_uri,
+                    attestation.attestation_qualification,
+                    metadata_documents,
+                )?;
+
+                Ok((typ, config))
             }
         }))
         .await
         .into_iter()
-        .collect::<Result<IndexMap<String, AttestationTypeConfig<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
+        .collect::<Result<HashMap<String, AttestationTypeConfig<PrivateKeyVariant>>, PrivateKeySettingsError>>()?;
 
         Ok(issuer_keys.into())
     }
@@ -151,9 +151,8 @@ impl IssuerSettings {
     pub fn validate(&self) -> Result<(), IssuerSettingsError> {
         tracing::debug!("verifying issuer settings");
 
-        let metadata = self.metadata();
         for (typ, attestation) in self.attestation_settings.as_ref() {
-            if !metadata.contains_key(typ) {
+            if !self.metadata.contains_key(typ) {
                 // TODO PVW-3824: recursively check the presence of metadata on which the current metadata depends
                 return Err(IssuerSettingsError::MissingMetadata {
                     attestation_type: typ.clone(),

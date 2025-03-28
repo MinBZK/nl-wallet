@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use futures::future::FutureExt;
+use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
@@ -9,25 +10,25 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use crypto::mock_remote::MockRemoteEcdsaKey;
+use crypto::p256_der::DerVerifyingKey;
+use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
+use crypto::trust_anchor::BorrowingTrustAnchor;
+use crypto::utils;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
-use mdoc::server_keys::generate::Ca;
-use mdoc::server_keys::KeyPair;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
-use sd_jwt::metadata::TypeMetadata;
-use sd_jwt::metadata::TypeMetadataChain;
+use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-use wallet_common::p256_der::DerVerifyingKey;
-use wallet_common::trust_anchor::BorrowingTrustAnchor;
-use wallet_common::utils;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::config::default_config_server_config;
@@ -95,7 +96,7 @@ pub static ACCOUNT_SERVER_KEYS: LazyLock<AccountServerKeys> = LazyLock::new(|| A
 /// The issuer key material, generated once for testing.
 pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca.generate_issuer_mock(IssuerRegistration::new_mock().into()).unwrap();
+    let issuance_key = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
@@ -107,7 +108,7 @@ pub static ISSUER_KEY: LazyLock<IssuerKey> = LazyLock::new(|| {
 /// The unauthenticated issuer key material, generated once for testing.
 pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
     let ca = Ca::generate_issuer_mock_ca().unwrap();
-    let issuance_key = ca.generate_issuer_mock(None).unwrap();
+    let issuance_key = generate_issuer_mock(&ca, None).unwrap();
     let trust_anchor = ca.as_borrowing_trust_anchor().clone();
 
     IssuerKey {
@@ -120,26 +121,31 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 pub fn create_example_pid_mdoc() -> Mdoc {
     let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY)
+    mdoc_from_unsigned(unsigned_mdoc, metadata, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
 pub fn create_example_pid_mdoc_unauthenticated() -> Mdoc {
     let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, &metadata, &ISSUER_KEY_UNAUTHENTICATED)
+    mdoc_from_unsigned(unsigned_mdoc, metadata, &ISSUER_KEY_UNAUTHENTICATED)
 }
 
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc`, the `TypeMetadata` and issuer key.
-pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: &TypeMetadata, issuer_key: &IssuerKey) -> Mdoc {
+pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: TypeMetadata, issuer_key: &IssuerKey) -> Mdoc {
     let private_key_id = utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key().try_into().unwrap();
-    let metadata_chain = TypeMetadataChain::create(metadata.clone(), vec![]).unwrap();
-    let issuer_signed = IssuerSigned::sign(unsigned_mdoc, metadata_chain, mdoc_public_key, &issuer_key.issuance_key)
-        .now_or_never()
-        .unwrap()
-        .unwrap();
+    let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
+    let issuer_signed = IssuerSigned::sign(
+        unsigned_mdoc,
+        (&metadata_integrity, &metadata_documents),
+        mdoc_public_key,
+        &issuer_key.issuance_key,
+    )
+    .now_or_never()
+    .unwrap()
+    .unwrap();
 
     Mdoc::new::<MockRemoteEcdsaKey>(
         private_key_id,

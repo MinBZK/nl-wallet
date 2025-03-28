@@ -12,6 +12,9 @@ use serde::Serialize;
 use tracing::warn;
 use uuid::Uuid;
 
+use crypto::keys::EcdsaKey;
+use crypto::p256_der::DerSignature;
+use crypto::p256_der::DerVerifyingKey;
 use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
@@ -31,9 +34,6 @@ use wallet_account::messages::instructions::IssueWteResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
 use wallet_common::generator::Generator;
-use wallet_common::keys::EcdsaKey;
-use wallet_common::p256_der::DerSignature;
-use wallet_common::p256_der::DerVerifyingKey;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
@@ -450,6 +450,8 @@ mod tests {
     use rand::rngs::OsRng;
     use rstest::rstest;
 
+    use crypto::utils::random_bytes;
+    use crypto::utils::random_string;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::validations;
     use jwt::Jwt;
@@ -459,8 +461,6 @@ mod tests {
     use wallet_account::messages::instructions::GenerateKey;
     use wallet_account::messages::instructions::IssueWte;
     use wallet_account::messages::instructions::Sign;
-    use wallet_common::utils::random_bytes;
-    use wallet_common::utils::random_string;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::repository::MockTransaction;

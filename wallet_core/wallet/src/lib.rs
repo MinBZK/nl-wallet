@@ -54,11 +54,11 @@ pub mod openid4vc {
     pub use openid4vc::verifier::SessionType;
 }
 
-pub mod sd_jwt {
-    pub use sd_jwt::metadata::ClaimDisplayMetadata;
-    pub use sd_jwt::metadata::DisplayMetadata;
-    pub use sd_jwt::metadata::LogoMetadata;
-    pub use sd_jwt::metadata::RenderingMetadata;
+pub mod sd_jwt_vc_metadata {
+    pub use sd_jwt_vc_metadata::ClaimDisplayMetadata;
+    pub use sd_jwt_vc_metadata::DisplayMetadata;
+    pub use sd_jwt_vc_metadata::LogoMetadata;
+    pub use sd_jwt_vc_metadata::RenderingMetadata;
 }
 
 pub mod wallet_common {

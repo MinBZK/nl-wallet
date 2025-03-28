@@ -181,7 +181,7 @@ pub async fn change_pin(old_pin: String, new_pin: String) -> anyhow::Result<Wall
 }
 
 #[flutter_api_error]
-pub async fn continue_change_pin(pin: String) -> anyhow::Result<WalletInstructionResult> {
+pub async fn continue_change_pin(pin: &str) -> anyhow::Result<WalletInstructionResult> {
     let wallet = wallet().read().await;
 
     let result = wallet.continue_change_pin(pin).await.try_into()?;
@@ -194,7 +194,7 @@ pub async fn has_registration() -> bool {
 }
 
 #[flutter_api_error]
-pub async fn register(pin: String) -> anyhow::Result<()> {
+pub async fn register(pin: &str) -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
     wallet.register(pin).await?;

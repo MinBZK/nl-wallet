@@ -7,11 +7,12 @@ class FlutterVersionStateMapper extends Mapper<FlutterVersionState, VersionState
   FlutterVersionStateMapper();
 
   @override
-  VersionState map(FlutterVersionState input) => input.map(
-        ok: (state) => VersionStateOk(),
-        notify: (state) => VersionStateNotify(),
-        recommend: (state) => VersionStateRecommend(),
-        warn: (state) => VersionStateWarn(timeUntilBlocked: Duration(seconds: state.expiresInSeconds.toInt())),
-        block: (state) => VersionStateBlock(),
-      );
+  VersionState map(FlutterVersionState input) => switch (input) {
+        FlutterVersionState_Ok() => VersionStateOk(),
+        FlutterVersionState_Notify() => VersionStateNotify(),
+        FlutterVersionState_Recommend() => VersionStateRecommend(),
+        FlutterVersionState_Warn(:final expiresInSeconds) =>
+          VersionStateWarn(timeUntilBlocked: Duration(seconds: expiresInSeconds.toInt())),
+        FlutterVersionState_Block() => VersionStateBlock(),
+      };
 }

@@ -1,10 +1,10 @@
+use crypto::keys::EcdsaKey;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::ChangePinCommit;
 use wallet_account::messages::instructions::ChangePinRollback;
 use wallet_account::messages::instructions::ChangePinStart;
 use wallet_account::messages::registration::WalletCertificate;
-use wallet_common::keys::EcdsaKey;
 
 use crate::account_provider::AccountProviderClient;
 use crate::errors::AccountProviderError;
@@ -68,7 +68,10 @@ where
         new_pin: &str,
         new_pin_salt: &[u8],
     ) -> Result<WalletCertificate, Self::Error> {
-        let new_pin_key = PinKey::new(new_pin, new_pin_salt);
+        let new_pin_key = PinKey {
+            pin: new_pin,
+            salt: new_pin_salt,
+        };
 
         let client: InstructionClient<S, AK, GK, A> = self.create(old_pin.to_string());
 

@@ -19,25 +19,27 @@ use serde::Serialize;
 use serde_with::formats::PreferOne;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::DeserializeFromStr;
 use serde_with::OneOrMany;
 
+use crypto::utils::random_string;
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use jwt::error::JwtX5cError;
 use jwt::Jwt;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
-use mdoc::utils::x509::BorrowingCertificate;
-use mdoc::utils::x509::CertificateError;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use poa::Poa;
 use poa::PoaVerificationError;
+use serde_with::SerializeDisplay;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::BaseUrl;
-use wallet_common::utils::random_string;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
@@ -107,10 +109,9 @@ pub struct VpAuthorizationRequest {
     pub wallet_nonce: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, strum::Display)]
+#[derive(Debug, Clone, Default, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display)]
 pub enum VpAuthorizationRequestAudience {
     #[default]
-    #[serde(rename = "https://self-issued.me/v2")]
     #[strum(to_string = "https://self-issued.me/v2")]
     SelfIssued,
 }
@@ -822,14 +823,19 @@ mod tests {
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
     use jwt::Jwt;
+    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
+    use crypto::examples::Examples;
+    use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteKeyFactory;
+    use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::KeyPair;
     use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
     use mdoc::examples::IsoCertTimeGenerator;
-    use mdoc::server_keys::generate::Ca;
-    use mdoc::server_keys::KeyPair;
     use mdoc::test::data::addr_street;
     use mdoc::test::data::pid_full_name;
     use mdoc::utils::serialization::cbor_serialize;
@@ -849,10 +855,6 @@ mod tests {
     use wallet_common::generator::mock::MockTimeGenerator;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::keys::examples::Examples;
-    use wallet_common::keys::examples::EXAMPLE_KEY_IDENTIFIER;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
-    use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -887,7 +889,7 @@ mod tests {
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
-        let rp_keypair = ca.generate_reader_mock(None).unwrap();
+        let rp_keypair = generate_reader_mock(&ca, None).unwrap();
 
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 

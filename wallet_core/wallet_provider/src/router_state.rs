@@ -9,13 +9,13 @@ use tracing::info;
 use uuid::Uuid;
 
 use android_attest::root_public_key::RootPublicKey;
+use crypto::keys::EcdsaKey;
 use hsm::keys::HsmEcdsaKey;
 use hsm::service::Pkcs11Hsm;
 use wallet_account::messages::instructions::Instruction;
 use wallet_account::messages::instructions::InstructionAndResult;
 use wallet_account::messages::instructions::InstructionResultMessage;
 use wallet_common::generator::Generator;
-use wallet_common::keys::EcdsaKey;
 use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::account_server::AccountServer;
@@ -99,7 +99,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             android_config,
             google_crl_client,
             play_integrity_client,
-        )?;
+        );
 
         let db = Db::new(
             settings.database.connection_string(),
@@ -118,7 +118,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
                 .collect::<Result<_, _>>()?,
         );
 
-        let repositories = Repositories::new(db);
+        let repositories = Repositories::from(db);
         let wte_issuer = HsmWteIssuer::new(
             HsmEcdsaKey::new(settings.wte_signing_key_identifier, hsm.clone()),
             settings.wte_issuer_identifier,

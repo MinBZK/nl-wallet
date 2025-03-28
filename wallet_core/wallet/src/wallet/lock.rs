@@ -272,6 +272,7 @@ mod tests {
     use rstest::rstest;
 
     use apple_app_attest::AssertionCounter;
+    use crypto::utils;
     use jwt::Jwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
@@ -281,7 +282,6 @@ mod tests {
     use wallet_account::messages::instructions::Instruction;
     use wallet_account::messages::instructions::InstructionResultClaims;
     use wallet_account::signed::SequenceNumberComparison;
-    use wallet_common::utils;
 
     use crate::account_provider::AccountProviderResponseError;
     use crate::pin::key::PinKey;
@@ -380,7 +380,10 @@ mod tests {
             AttestedKey::Google(_) => None,
         };
 
-        let pin_key = PinKey::new(PIN, &registration_data.pin_salt);
+        let pin_key = PinKey {
+            pin: PIN,
+            salt: &registration_data.pin_salt,
+        };
         let pin_pubkey = pin_key.verifying_key().unwrap();
 
         let result_claims = InstructionResultClaims {
@@ -433,7 +436,7 @@ mod tests {
             });
 
         // Unlock the `Wallet` with the PIN.
-        wallet.unlock(PIN.to_string()).await.expect("Could not unlock wallet");
+        wallet.unlock(PIN.to_owned()).await.expect("Could not unlock wallet");
 
         // Infer that the closure is still alive by counting the `Arc` references.
         assert_eq!(Arc::strong_count(&is_locked_vec), 2);
@@ -465,7 +468,7 @@ mod tests {
 
         // Unlocking an unregistered `Wallet` should result in an error.
         let error = wallet
-            .unlock(PIN.to_string())
+            .unlock(PIN.to_owned())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -478,7 +481,7 @@ mod tests {
 
         // Unlocking an already unlocked `Wallet` should result in an error.
         let error = wallet
-            .unlock(PIN.to_string())
+            .unlock(PIN.to_owned())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -499,7 +502,7 @@ mod tests {
             .return_once(|_, _| Err(AccountProviderResponseError::Status(StatusCode::NOT_FOUND).into()));
 
         let error = wallet
-            .unlock(PIN.to_string())
+            .unlock(PIN.to_owned())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -526,7 +529,7 @@ mod tests {
             .return_once(move |_, _: Instruction<CheckPin>| Err(response_error.into()));
 
         wallet
-            .unlock(PIN.to_string())
+            .unlock(PIN.to_owned())
             .await
             .expect_err("Wallet unlocking should have resulted in error")
     }
@@ -617,7 +620,7 @@ mod tests {
         }
 
         let error = wallet
-            .unlock(PIN.to_string())
+            .unlock(PIN.to_owned())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -652,7 +655,7 @@ mod tests {
         // Unlocking the wallet should now result in a
         // `InstructionError::InstructionResultValidation` error.
         let error = wallet
-            .unlock(PIN.to_string())
+            .unlock(PIN.to_owned())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 
@@ -674,7 +677,7 @@ mod tests {
         // Unlocking the wallet should now result in an
         // `InstructionError::StoreInstructionSequenceNumber` error.
         let error = wallet
-            .unlock(PIN.to_string())
+            .unlock(PIN.to_owned())
             .await
             .expect_err("Wallet unlocking should have resulted in error");
 

@@ -6,10 +6,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use wallet_common::keys::factory::KeyFactory;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::CredentialKeyType;
-use wallet_common::keys::EcdsaKey;
+use crypto::factory::KeyFactory;
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::CredentialKeyType;
+use crypto::keys::EcdsaKey;
 
 use crate::error::JwkConversionError;
 use crate::error::JwtError;
@@ -134,8 +134,9 @@ pub struct JwtCredentialConfirmation {
 mod tests {
     use indexmap::IndexMap;
 
-    use mdoc::server_keys::generate::Ca;
-    use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::server_keys::generate::Ca;
+    use mdoc::server_keys::generate::mock::generate_issuer_mock;
 
     use super::JwtCredential;
     use super::JwtCredentialClaims;
@@ -144,10 +145,8 @@ mod tests {
     async fn test_jwt_credential() {
         let holder_key_id = "key";
         let holder_keypair = MockRemoteEcdsaKey::new_random(holder_key_id.to_string());
-        let issuer_keypair = Ca::generate_issuer_mock_ca()
-            .unwrap()
-            .generate_issuer_mock(None)
-            .unwrap();
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuer_keypair = generate_issuer_mock(&ca, None).unwrap();
 
         // Produce a JWT with `JwtCredentialClaims` in it
         let jwt = JwtCredentialClaims::new_signed(

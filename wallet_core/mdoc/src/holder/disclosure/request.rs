@@ -3,6 +3,8 @@ use chrono::Utc;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
+use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateUsage;
 use wallet_common::generator::Generator;
 
 use crate::device_retrieval::DeviceRequest;
@@ -18,9 +20,7 @@ use crate::utils::reader_auth::ReaderRegistration;
 use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::utils::x509::BorrowingCertificate;
 use crate::utils::x509::CertificateType;
-use crate::utils::x509::CertificateUsage;
 use crate::ItemsRequest;
 
 impl DeviceRequest {
@@ -126,12 +126,13 @@ impl DocRequest {
 mod tests {
     use assert_matches::assert_matches;
 
+    use crypto::server_keys::generate::Ca;
+    use crypto::server_keys::KeyPair;
     use wallet_common::generator::TimeGenerator;
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
-    use crate::server_keys::generate::Ca;
-    use crate::server_keys::KeyPair;
+    use crate::server_keys::generate::mock::generate_reader_mock;
     use crate::utils::cose;
     use crate::utils::cose::MdocCose;
 
@@ -170,8 +171,8 @@ mod tests {
         // Create two certificates and private keys.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
-        let private_key1 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
-        let private_key2 = ca.generate_reader_mock(reader_registration.clone().into()).unwrap();
+        let private_key1 = generate_reader_mock(&ca, reader_registration.clone().into()).unwrap();
+        let private_key2 = generate_reader_mock(&ca, reader_registration.clone().into()).unwrap();
 
         let session_transcript = SessionTranscript::new_mock();
 
@@ -225,7 +226,7 @@ mod tests {
         // Create a CA, certificate and private key and trust anchors.
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let reader_registration = ReaderRegistration::new_mock();
-        let private_key = ca.generate_reader_mock(reader_registration.into()).unwrap();
+        let private_key = generate_reader_mock(&ca, reader_registration.into()).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
         // Create a basic session transcript, item request and a `DocRequest`.

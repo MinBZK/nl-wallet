@@ -1,24 +1,20 @@
 use std::sync::Arc;
 
+use derive_more::Constructor;
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
 
-use wallet_common::keys::EcdsaKey;
-use wallet_common::keys::SecureEcdsaKey;
+use crypto::keys::EcdsaKey;
+use crypto::keys::SecureEcdsaKey;
 
 use crate::model::Hsm;
 use crate::service::HsmError;
 use crate::service::Pkcs11Hsm;
 
+#[derive(Constructor)]
 pub struct HsmEcdsaKey {
     identifier: String,
     hsm: Pkcs11Hsm,
-}
-
-impl HsmEcdsaKey {
-    pub fn new(identifier: String, hsm: Pkcs11Hsm) -> Self {
-        Self { identifier, hsm }
-    }
 }
 
 impl EcdsaKey for HsmEcdsaKey {

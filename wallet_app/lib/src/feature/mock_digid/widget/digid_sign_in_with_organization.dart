@@ -5,6 +5,7 @@ import '../../../domain/model/app_image_data.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/widget/organization/organization_logo.dart';
+import '../../common/widget/text/title_text.dart';
 
 const _kOrganizationLogoSize = 72.0;
 
@@ -23,9 +24,8 @@ class DigidSignInWithOrganization extends StatelessWidget {
             size: _kOrganizationLogoSize,
           ),
           const SizedBox(height: 16),
-          Text(
+          TitleText(
             context.l10n.mockDigidScreenSignInOrganization,
-            style: context.textTheme.displayMedium,
             textAlign: TextAlign.center,
           ),
         ],

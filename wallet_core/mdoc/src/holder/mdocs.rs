@@ -8,20 +8,20 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crypto::keys::CredentialEcdsaKey;
+use crypto::keys::CredentialKeyType;
+use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
 use wallet_common::generator::Generator;
-use wallet_common::keys::CredentialEcdsaKey;
-use wallet_common::keys::CredentialKeyType;
 use wallet_common::urls::HttpsUri;
-use wallet_common::vec_at_least::VecNonEmpty;
 
+use crate::errors::Error;
 use crate::identifiers::AttributeIdentifier;
 use crate::iso::*;
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
-use crate::utils::x509::BorrowingCertificate;
 use crate::verifier::ValidityRequirement;
 
 /// A full mdoc: everything needed to disclose attributes from the mdoc.
@@ -71,13 +71,17 @@ impl Mdoc {
         &self.mso.validity_info
     }
 
-    pub fn type_metadata(&self) -> crate::Result<VecNonEmpty<TypeMetadata>> {
-        let (metadata, _) = self.issuer_signed.type_metadata()?.verify_and_destructure()?;
+    pub fn type_metadata(&self) -> Result<TypeMetadata, Error> {
+        let (integrity, documents) = self.issuer_signed.type_metadata_documents()?;
+        let unverified_metadata_chain = documents.into_unverified_metadata_chain(&self.mso.doc_type)?;
+        let (metadata_chain, _) = unverified_metadata_chain.into_metadata_chain_and_source(integrity)?;
+        let metadata = metadata_chain.into_metadata();
+
         Ok(metadata)
     }
 
-    /// Check that the doc_type, issuer, validity_info, namespaces, attribute names and attribute values of this
-    /// instance are equal to to the provided unsigned value.
+    /// Check that the doc_type, issuer, validity_info, attestation_qualification, namespaces, attribute names and
+    /// attribute values of this instance are equal to to the provided unsigned value.
     pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedDocumentMismatchError> {
         if self.mso.doc_type != unsigned.doc_type {
             return Err(IssuedDocumentMismatchError::IssuedDoctypeMismatch(
@@ -108,6 +112,17 @@ impl Mdoc {
                 ),
             ));
         }
+
+        match self.mso.attestation_qualification.as_ref() {
+            None => Err(IssuedDocumentMismatchError::IssuedAttestationQualificationMissing),
+            Some(attestation_qualification) if *attestation_qualification != unsigned.attestation_qualification => {
+                Err(IssuedDocumentMismatchError::IssuedAttestationQualificationMismatch(
+                    unsigned.attestation_qualification,
+                    *attestation_qualification,
+                ))
+            }
+            Some(_) => Ok(()),
+        }?;
 
         let our_attrs = self.issuer_signed.clone().into_entries_by_namespace();
         let our_attrs = &flatten_attributes(self.doc_type(), &our_attrs);
@@ -143,6 +158,12 @@ pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
     #[error("issued attributes mismatch: missing {0}, unexpected {1}")]
     #[category(pd)]
     IssuedAttributesMismatch(Vec<T>, Vec<T>),
+    #[error("issued attestation qualification missing")]
+    #[category(critical)]
+    IssuedAttestationQualificationMissing,
+    #[error("issued attestation qualification mismatch: expected {0}, found {1}")]
+    #[category(critical)]
+    IssuedAttestationQualificationMismatch(AttestationQualification, AttestationQualification),
 }
 
 pub fn map_difference<K, T>(left: &IndexMap<K, T>, right: &IndexMap<K, T>) -> Vec<K>

@@ -8,7 +8,7 @@ use serde::Serialize;
 use mdoc::unsigned::Entry;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
-use sd_jwt::metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -179,7 +179,7 @@ mod test {
 
     use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
-    use sd_jwt::metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
