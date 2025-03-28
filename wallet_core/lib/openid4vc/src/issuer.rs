@@ -392,6 +392,12 @@ where
             .as_ref()
             .map(|wte_config| Arc::clone(&wte_config.wte_tracker));
 
+        let credential_configurations_supported = attestation_config
+            .as_ref()
+            .iter()
+            .map(|(typ, attestation)| (typ.to_string(), attestation.metadata.clone().into()))
+            .collect();
+
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
             attestation_config,
@@ -425,7 +431,7 @@ where
                     },
                     credential_identifiers_supported: Some(false),
                     display: None,
-                    credential_configurations_supported: HashMap::new(),
+                    credential_configurations_supported,
                 },
                 protected_metadata: None,
             },

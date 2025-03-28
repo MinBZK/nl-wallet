@@ -19,6 +19,7 @@ use serde_with::MapSkipError;
 use ssri::Integrity;
 
 use wallet_common::spec::SpecOptional;
+use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -303,8 +304,7 @@ pub enum RenderingMetadata {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
-    #[serde(with = "http_serde::uri")]
-    pub uri: Uri,
+    pub uri: BaseUrl,
 
     /// Note that although this is optional in the specification, we consider validation using a digest mandatory if
     /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended

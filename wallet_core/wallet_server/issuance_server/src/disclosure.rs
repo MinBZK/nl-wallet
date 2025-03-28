@@ -180,6 +180,11 @@ where
             .await
             .context("failed to fetch attributes")?;
 
+        let credential_configuration_ids = to_issue
+            .iter()
+            .map(|attestation| attestation.attestation_type().to_string())
+            .collect();
+
         let token = SessionToken::new_random();
         let session = SessionState::new(
             token.clone(),
@@ -195,7 +200,7 @@ where
 
         let credential_offer = CredentialOffer {
             credential_issuer: self.credential_issuer.clone(),
-            credential_configuration_ids: vec![], // TODO
+            credential_configuration_ids,
             grants: Some(Grants::PreAuthorizedCode {
                 pre_authorized_code: GrantPreAuthorizedCode {
                     pre_authorized_code: token.as_ref().clone().into(),

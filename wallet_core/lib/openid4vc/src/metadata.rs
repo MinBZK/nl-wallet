@@ -7,6 +7,9 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use jwt::Jwt;
+use sd_jwt_vc_metadata::DisplayMetadata;
+use sd_jwt_vc_metadata::RenderingMetadata;
+use sd_jwt_vc_metadata::TypeMetadata;
 use serde_with::skip_serializing_none;
 use wallet_common::urls::BaseUrl;
 
@@ -351,6 +354,61 @@ pub struct CredentialDisplay {
     /// String value of a text color of the Credential represented as numerical color values defined in CSS Color
     /// Module Level 37.
     pub text_color: Option<String>,
+}
+
+impl From<DisplayMetadata> for CredentialDisplay {
+    fn from(value: DisplayMetadata) -> Self {
+        let (logo, background_color, text_color) = match value.rendering {
+            Some(RenderingMetadata::Simple {
+                logo,
+                background_color,
+                text_color,
+            }) => (logo, background_color, text_color),
+            _ => (None, None, None),
+        };
+
+        CredentialDisplay {
+            name: value.name.clone(),
+            locale: Some(value.lang),
+            logo: logo.map(|logo| Logo {
+                uri: logo.uri,
+                alt_text: Some(logo.alt_text.into_inner()),
+            }),
+            description: value.description,
+            background_color,
+            background_image: None,
+            text_color,
+        }
+    }
+}
+
+impl From<TypeMetadata> for CredentialMetadata {
+    fn from(metadata: TypeMetadata) -> Self {
+        CredentialMetadata {
+            format: CredentialFormat::MsoMdoc {
+                doctype: metadata.as_ref().vct.clone(),
+                claims: HashMap::new(),
+                order: None,
+            },
+            display: Some(
+                metadata
+                    .into_inner()
+                    .display
+                    .into_iter()
+                    .map(|display| display.into())
+                    .collect(),
+            ),
+            scope: None,
+            cryptographic_binding_methods_supported: Some(vec![CryptographicBindingMethod::CoseKey]),
+            credential_signing_alg_values_supported: Some(vec![CredentialSigningAlg::ES256]),
+            proof_types_supported: Some(HashMap::from([(
+                ProofType::Jwt,
+                ProofTypeData {
+                    proof_signing_alg_values_supported: vec![ProofSigningAlg::ES256],
+                },
+            )])),
+        }
+    }
 }
 
 /// Object with information about the background image of the Credential.
