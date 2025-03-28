@@ -31,6 +31,8 @@ pub mod mock {
 
     use super::PoaFactory;
 
+    pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
+
     impl PoaFactory for MockRemoteKeyFactory {
         type Key = MockRemoteEcdsaKey;
         type Error = PoaError;
@@ -41,7 +43,7 @@ pub mod mock {
             aud: String,
             nonce: Option<String>,
         ) -> Result<Poa, Self::Error> {
-            let poa = Poa::new(keys, JwtPopClaims::new(nonce, "mock_wallet_client_id".to_string(), aud)).await?;
+            let poa = Poa::new(keys, JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud)).await?;
 
             Ok(poa)
         }
