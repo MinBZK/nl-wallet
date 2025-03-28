@@ -1,10 +1,13 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use jwt::error::JwkConversionError;
+use jwt::error::JwtError;
+
 /// Alias for a `Result` with the error type [`Error`].
 pub type Result<T> = ::core::result::Result<T, Error>;
 
-#[derive(Debug, thiserror::Error, strum::IntoStaticStr, PartialEq)]
+#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
 #[non_exhaustive]
 pub enum Error {
     #[error("invalid input: {0}")]
@@ -31,6 +34,9 @@ pub enum Error {
     #[error("invalid input: {0}")]
     Deserialization(String),
 
+    #[error("error serializing to JSON: {0}")]
+    Serialization(#[from] serde_json::error::Error),
+
     #[error("{0}")]
     Unspecified(String),
 
@@ -45,4 +51,13 @@ pub enum Error {
 
     #[error("Missing required KB-JWT")]
     MissingKeyBindingJwt,
+
+    #[error("Error parsing JWT: {0}")]
+    JwtParsing(#[from] JwtError),
+
+    #[error("error creating JWK from verifying key: {0}")]
+    Jwk(#[from] JwkConversionError),
+
+    #[error("Missing required property: {0}")]
+    MissingRequiredProperty(String),
 }

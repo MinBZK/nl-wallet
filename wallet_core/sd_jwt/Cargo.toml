@@ -1,5 +1,5 @@
 [package]
-name = "sd_jwt_vc_metadata"
+name = "sd_jwt"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,13 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-example_constructors = []
+example_sd_jwt = []
 
 [dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+base64.workspace = true
+chrono.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
 http.workspace = true
 http-serde.workspace = true
@@ -18,12 +22,16 @@ indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true
 jsonschema.workspace = true
+json-pointer.workspace = true
 nutype.workspace = true
+p256 = { workspace = true, features = ["default", "pem"] }
+rand.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 ssri.workspace = true
+strum.workspace = true
 thiserror.workspace = true
 
 jwt.path = "../jwt"
@@ -33,7 +41,8 @@ wallet_common.path = "../wallet_common"
 [dev-dependencies]
 assert_matches.workspace = true
 async-trait.workspace = true
-p256 = { workspace = true, features = ["default", "pem"] }
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }
+
+sd_jwt = { path = ".", features = ["example_sd_jwt"] }

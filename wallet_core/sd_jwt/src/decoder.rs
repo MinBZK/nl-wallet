@@ -49,7 +49,7 @@ impl SdObjectDecoder {
         processed_digests: &mut Vec<String>,
     ) -> Result<Map<String, Value>, Error> {
         let mut output: Map<String, Value> = object.clone();
-        for (key, value) in object.iter() {
+        for (key, value) in object {
             match value {
                 Value::Array(sd_array) if key == DIGESTS_KEY => {
                     for digest in sd_array {
@@ -123,9 +123,9 @@ impl SdObjectDecoder {
         processed_digests: &mut Vec<String>,
     ) -> Result<Vec<Value>, Error> {
         let mut output: Vec<Value> = vec![];
-        for value in array.iter() {
+        for value in array {
             if let Some(object) = value.as_object() {
-                for (key, value) in object.iter() {
+                for (key, value) in object {
                     if key == ARRAY_DIGEST_KEY {
                         if object.keys().len() != 1 {
                             return Err(Error::InvalidArrayDisclosureObject);

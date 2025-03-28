@@ -140,7 +140,7 @@ mod test {
     use base64::Engine;
     use serde_json::json;
 
-    use wallet_common::utils::random_bytes;
+    use crypto::utils::random_bytes;
 
     use crate::error::Error;
 

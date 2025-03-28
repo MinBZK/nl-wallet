@@ -18,7 +18,6 @@ pub(crate) const DIGESTS_KEY: &str = "_sd";
 pub(crate) const ARRAY_DIGEST_KEY: &str = "...";
 pub(crate) const DEFAULT_SALT_SIZE: usize = 30;
 pub(crate) const SD_ALG: &str = "_sd_alg";
-pub const HEADER_TYP: &str = "sd-jwt";
 
 /// Transforms a JSON object into an SD-JWT object by substituting selected values
 /// with their corresponding disclosure digests.

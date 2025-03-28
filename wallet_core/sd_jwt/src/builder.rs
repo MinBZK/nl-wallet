@@ -3,31 +3,34 @@
 
 use std::borrow::Cow;
 
-use anyhow::Context as _;
-use itertools::Itertools;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
+use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
-use serde_json::Value;
+
+use crypto::EcdsaKeySend;
+use jwt::jwk::jwk_from_p256;
+use jwt::VerifiedJwt;
 
 use crate::disclosure::Disclosure;
 use crate::encoder::SdObjectEncoder;
 use crate::encoder::DEFAULT_SALT_SIZE;
-use crate::encoder::HEADER_TYP;
 use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
-use crate::jwt::Jwt;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
+use crate::sd_jwt::sd_jwt_validation;
 use crate::sd_jwt::SdJwt;
 use crate::sd_jwt::SdJwtClaims;
-use crate::signer::JsonObject;
-use crate::signer::JwsSigner;
+
+const SD_JWT_HEADER_TYP: &str = "dc+sd-jwt";
 
 /// Builder structure to create an issuable SD-JWT.
 #[derive(Debug)]
 pub struct SdJwtBuilder<H> {
     encoder: SdObjectEncoder<H>,
-    header: JsonObject,
+    header: Header,
     disclosures: Vec<Disclosure>,
     key_bind: Option<RequiredKeyBinding>,
 }
@@ -56,7 +59,10 @@ impl<H: Hasher> SdJwtBuilder<H> {
             encoder,
             disclosures: vec![],
             key_bind: None,
-            header: JsonObject::default(),
+            header: Header {
+                typ: Some(String::from(SD_JWT_HEADER_TYP)),
+                ..Default::default()
+            },
         })
     }
 
@@ -84,7 +90,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///   .make_concealable("/claim1/abc").unwrap() //"abc": true
     ///   .make_concealable("/claim2/0").unwrap(); //conceals "val_1"
     /// ```
-    ///
     /// ## Error
     /// * [`Error::InvalidPath`] if pointer is invalid.
     /// * [`Error::DataTypeMismatch`] if existing SD format is invalid.
@@ -93,16 +98,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
         self.disclosures.push(disclosure);
 
         Ok(self)
-    }
-
-    /// Sets the JWT header.
-    /// ## Notes
-    /// - if [`SdJwtBuilder::header`] is not called, the default header is used: ```json { "typ": "sd-jwt", "alg":
-    ///   "<algorithm used in SdJwtBuilder::finish>" } ```
-    /// - `alg` is always replaced with the value passed to [`SdJwtBuilder::finish`].
-    pub fn header(mut self, header: JsonObject) -> Self {
-        self.header = header;
-        self
     }
 
     /// Adds a new claim to the underlying object.
@@ -138,16 +133,14 @@ impl<H: Hasher> SdJwtBuilder<H> {
     ///
     /// This operation adds a JWT confirmation (`cnf`) claim as specified in
     /// [RFC8300](https://www.rfc-editor.org/rfc/rfc7800.html#section-3).
-    pub fn require_key_binding(mut self, key_bind: RequiredKeyBinding) -> Self {
-        self.key_bind = Some(key_bind);
-        self
+    pub fn require_jwk_key_binding(mut self, verifying_key: &VerifyingKey) -> Result<Self> {
+        let jwk = jwk_from_p256(verifying_key)?;
+        self.key_bind = Some(RequiredKeyBinding::Jwk(jwk));
+        Ok(self)
     }
 
     /// Creates an SD-JWT with the provided data.
-    pub async fn finish<S>(self, signer: &S, alg: &str) -> Result<SdJwt>
-    where
-        S: JwsSigner,
-    {
+    pub async fn finish(self, alg: Algorithm, signing_key: &impl EcdsaKeySend) -> Result<SdJwt> {
         let SdJwtBuilder {
             mut encoder,
             disclosures,
@@ -165,30 +158,14 @@ impl<H: Hasher> SdJwtBuilder<H> {
                 .insert("cnf".to_string(), key_bind);
         }
 
-        // Check mandatory header properties or insert them.
-        if let Some(Value::String(typ)) = header.get("typ") {
-            if !typ.split('+').contains(&HEADER_TYP) {
-                return Err(Error::DataTypeMismatch(
-                    "invalid header: \"typ\" must contain type \"sd-jwt\"".to_string(),
-                ));
-            }
-        } else {
-            header.insert("typ".to_string(), Value::String(HEADER_TYP.to_string()));
-        }
-        header.insert("alg".to_string(), Value::String(alg.to_string()));
-
-        let jws = signer
-            .sign(&header, object.as_object().expect("encoder::object is a JSON Object"))
-            .await
-            .map_err(|e| anyhow::anyhow!("jws failed: {e}"))
-            .and_then(|jws_bytes| String::from_utf8(jws_bytes).context("invalid JWS"))
-            .map_err(|e| Error::JwsSignerFailure(e.to_string()))?;
+        header.alg = alg;
 
         let claims = serde_json::from_value::<SdJwtClaims>(object)
             .map_err(|e| Error::Deserialization(format!("invalid SD-JWT claims: {e}")))?;
-        let jwt = Jwt { header, claims, jws };
 
-        Ok(SdJwt::new(jwt, disclosures, None))
+        let verified_jwt = VerifiedJwt::sign(&claims, &header, signing_key, &sd_jwt_validation()).await?;
+
+        Ok(SdJwt::new(verified_jwt, disclosures, None))
     }
 }
 
@@ -255,13 +232,15 @@ mod test {
             use super::*;
 
             mod on_top_level {
+                use assert_matches::assert_matches;
+
                 use super::*;
 
                 #[test]
                 fn returns_an_error_for_nonexistant_object_paths() {
                     let result = SdJwtBuilder::new(json!({})).unwrap().make_concealable("/email");
 
-                    assert_eq!(result.unwrap_err(), Error::InvalidPath("/email".to_string()),);
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/email");
                 }
 
                 #[test]
@@ -270,7 +249,7 @@ mod test {
                         .unwrap()
                         .make_concealable("/nationalities/0");
 
-                    assert_eq!(result.unwrap_err(), Error::InvalidPath("/nationalities/0".to_string()),);
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/nationalities/0");
                 }
 
                 #[test]
@@ -281,11 +260,13 @@ mod test {
                     .unwrap()
                     .make_concealable("/nationalities/2");
 
-                    assert_eq!(result.unwrap_err(), Error::InvalidPath("/nationalities/2".to_string()),);
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/nationalities/2");
                 }
             }
 
             mod as_subproperties {
+                use assert_matches::assert_matches;
+
                 use super::*;
 
                 #[test]
@@ -296,7 +277,7 @@ mod test {
                     .unwrap()
                     .make_concealable("/address/region");
 
-                    assert_eq!(result.unwrap_err(), Error::InvalidPath("/address/region".to_string()),);
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/region");
                 }
 
                 #[test]
@@ -307,10 +288,7 @@ mod test {
                     .unwrap()
                     .make_concealable("/address/contact_person/2");
 
-                    assert_eq!(
-                        result.unwrap_err(),
-                        Error::InvalidPath("/address/contact_person/2".to_string()),
-                    );
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/contact_person/2");
                 }
 
                 #[test]
@@ -321,10 +299,7 @@ mod test {
                     .unwrap()
                     .make_concealable("/address/contact_person/2");
 
-                    assert_eq!(
-                        result.unwrap_err(),
-                        Error::InvalidPath("/address/contact_person/2".to_string()),
-                    );
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/contact_person/2");
                 }
             }
         }

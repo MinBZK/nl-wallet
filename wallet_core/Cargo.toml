@@ -16,6 +16,7 @@ members = [
     "openid4vc_server",
     "platform_support",
     "poa",
+    "sd_jwt",
     "sd_jwt_vc_metadata",
     "tests_integration",
     "update_policy_server",

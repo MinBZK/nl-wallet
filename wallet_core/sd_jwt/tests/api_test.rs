@@ -1,52 +1,38 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use async_trait::async_trait;
 use chrono::DateTime;
-use josekit::jws::alg::hmac::HmacJwsSigner;
-use josekit::jws::JwsHeader;
-use josekit::jws::HS256;
-use josekit::jwt;
-use josekit::jwt::JwtPayload;
+use chrono::Utc;
+use jsonwebtoken::Algorithm;
+use p256::ecdsa::SigningKey;
+use rand_core::OsRng;
 use serde_json::json;
 use serde_json::Value;
 
+use jwt::jwk::jwk_from_p256;
+use jwt::EcdsaDecodingKey;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::examples;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
-use sd_jwt::key_binding_jwt_claims::DigitalSignaturAlgorithm;
 use sd_jwt::key_binding_jwt_claims::KeyBindingJwt;
 use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwt;
-use sd_jwt::signer::JsonObject;
-use sd_jwt::signer::JwsSigner;
 
-const HMAC_SECRET: &[u8; 32] = b"0123456789ABCDEF0123456789ABCDEF";
+async fn make_sd_jwt(object: Value, disclosable_values: impl IntoIterator<Item = &str>) -> (SdJwt, EcdsaDecodingKey) {
+    let signing_key = SigningKey::random(&mut OsRng);
+    let decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
 
-struct HmacSignerAdapter(HmacJwsSigner);
-
-#[async_trait]
-impl JwsSigner for HmacSignerAdapter {
-    type Error = josekit::JoseError;
-    async fn sign(&self, header: &JsonObject, payload: &JsonObject) -> Result<Vec<u8>, Self::Error> {
-        let header = JwsHeader::from_map(header.clone())?;
-        let payload = JwtPayload::from_map(payload.clone())?;
-
-        jwt::encode_with_signer(&payload, &header, &self.0).map(String::into_bytes)
-    }
-}
-
-async fn make_sd_jwt(object: Value, disclosable_values: impl IntoIterator<Item = &str>) -> SdJwt {
-    let signer = HmacSignerAdapter(HS256.signer_from_bytes(HMAC_SECRET).unwrap());
-    disclosable_values
+    let sd_jwt = disclosable_values
         .into_iter()
         .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
             builder.make_concealable(path).unwrap()
         })
-        .finish(&signer, "HS256")
+        .finish(Algorithm::ES256, &signing_key)
         .await
-        .unwrap()
+        .unwrap();
+
+    (sd_jwt, decoding_key)
 }
 
 fn make_kb_jwt_builder() -> KeyBindingJwtBuilder {
@@ -107,7 +93,7 @@ fn complex_sd_jwt() {
 #[tokio::test]
 async fn concealing_parent_also_removes_all_sub_disclosures() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
-    let sd_jwt = make_sd_jwt(
+    let (sd_jwt, _) = make_sd_jwt(
         json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
         ["/parent/property1", "/parent/property2/0", "/parent"],
     )
@@ -122,7 +108,7 @@ async fn concealing_parent_also_removes_all_sub_disclosures() -> anyhow::Result<
 #[tokio::test]
 async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
-    let sd_jwt = make_sd_jwt(
+    let (sd_jwt, _) = make_sd_jwt(
         json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
         ["/parent/property1", "/parent/property2/0", "/parent"],
     )
@@ -137,41 +123,35 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
 }
 
 #[tokio::test]
-async fn sd_jwt_is_verifiable() -> anyhow::Result<()> {
-    let sd_jwt = make_sd_jwt(json!({"key": "value"}), []).await;
-    let jwt = sd_jwt.presentation().split_once('~').unwrap().0.to_string();
-    let verifier = HS256.verifier_from_bytes(HMAC_SECRET)?;
-
-    jwt::decode_with_verifier(&jwt, &verifier)?;
-    Ok(())
-}
-
-#[tokio::test]
 async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
-    let sd_jwt = make_sd_jwt(json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}), []).await;
+    let (sd_jwt, decoding_key) =
+        make_sd_jwt(json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}), []).await;
+
     // Try to serialize & deserialize `sd_jwt`.
     let sd_jwt = {
         let s = sd_jwt.to_string();
-        s.parse::<SdJwt>()?
+        SdJwt::parse(&s, &decoding_key, None)?
     };
 
     assert!(sd_jwt.disclosures().is_empty());
     assert!(sd_jwt.key_binding_jwt().is_none());
 
-    let signer = HmacSignerAdapter(HS256.signer_from_bytes(HMAC_SECRET)?);
+    let signing_key = SigningKey::random(&mut OsRng);
+    let kb_decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
 
     let disclosed = sd_jwt
         .clone()
         .into_presentation(&hasher)?
         .attach_key_binding_jwt(make_kb_jwt_builder())
-        .finish_with_key_binding(&hasher, DigitalSignaturAlgorithm::HS256, &signer)
+        .finish_with_key_binding(&hasher, Algorithm::ES256, &signing_key)
         .await?
         .0;
+
     // Try to serialize & deserialize `with_kb`.
     let with_kb = {
         let s = disclosed.to_string();
-        s.parse::<SdJwt>()?
+        SdJwt::parse(&s, &decoding_key, Some(&kb_decoding_key))?
     };
 
     assert!(with_kb.disclosures().is_empty());
@@ -184,7 +164,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let hasher = Sha256Hasher::new();
 
-    let sd_jwt = make_sd_jwt(
+    let (sd_jwt, _) = make_sd_jwt(
         json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
         ["/parent/property1", "/parent/property2/0", "/parent"],
     )
@@ -192,14 +172,14 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     assert!(sd_jwt.key_binding_jwt().is_none());
 
-    let signer = HmacSignerAdapter(HS256.signer_from_bytes(HMAC_SECRET)?);
+    let signing_key = SigningKey::random(&mut OsRng);
 
     let disclosed = sd_jwt
         .clone()
         .into_presentation(&hasher)?
         .conceal("/parent/property1")?
         .attach_key_binding_jwt(make_kb_jwt_builder())
-        .finish_with_key_binding(&hasher, DigitalSignaturAlgorithm::HS256, &signer)
+        .finish_with_key_binding(&hasher, Algorithm::ES256, &signing_key)
         .await?
         .0;
 
@@ -210,6 +190,78 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let expected_sd_hash = hasher.encoded_digest(&format!("{}~", issued_sd_jwt));
 
     assert_eq!(actual_sd_hash, expected_sd_hash);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_presentation() -> anyhow::Result<()> {
+    let object = json!({
+      "sub": "user_42",
+      "given_name": "John",
+      "family_name": "Doe",
+      "email": "johndoe@example.com",
+      "phone_number": "+1-202-555-0101",
+      "phone_number_verified": true,
+      "address": {
+        "street_address": "123 Main St",
+        "locality": "Anytown",
+        "region": "Anystate",
+        "country": "US"
+      },
+      "birthdate": "1940-01-01",
+      "updated_at": 1570000000,
+      "nationalities": [
+        "US",
+        "DE"
+      ]
+    });
+
+    let issuer_privkey = SigningKey::random(&mut OsRng);
+    println!(
+        "issuer_privkey pubkey: {0}",
+        serde_json::to_string_pretty(&jwk_from_p256(issuer_privkey.verifying_key()).unwrap()).unwrap()
+    );
+    let holder_privkey = SigningKey::random(&mut OsRng);
+    println!(
+        "holder_privkey pubkey: {0}",
+        serde_json::to_string_pretty(&jwk_from_p256(holder_privkey.verifying_key()).unwrap()).unwrap()
+    );
+
+    // issuer signs SD-JWT
+    let sd_jwt = SdJwtBuilder::new(object)?
+        .make_concealable("/email")?
+        .make_concealable("/phone_number")?
+        .make_concealable("/address/street_address")?
+        .make_concealable("/address")?
+        .make_concealable("/nationalities/0")?
+        .add_decoys("/nationalities", 1)?
+        .add_decoys("", 2)?
+        .require_jwk_key_binding(holder_privkey.verifying_key())?
+        .finish(Algorithm::ES256, &issuer_privkey)
+        .await?;
+
+    let hasher = Sha256Hasher::new();
+
+    let kb_jwt = KeyBindingJwtBuilder::default()
+        .aud("https://verifier.example.com")
+        .nonce("abcdefghi")
+        .iat(Utc::now());
+
+    // The holder can withhold from a verifier any concealable claim by calling `conceal`.
+    let (presented_sd_jwt, _) = sd_jwt
+        .into_presentation(&hasher)?
+        .conceal("/email")?
+        .attach_key_binding_jwt(kb_jwt)
+        .finish_with_key_binding(&hasher, Algorithm::ES256, &holder_privkey)
+        .await?;
+
+    SdJwt::parse(
+        &presented_sd_jwt.to_string(),
+        &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
+        Some(&EcdsaDecodingKey::from(holder_privkey.verifying_key())),
+    )
+    .unwrap();
 
     Ok(())
 }

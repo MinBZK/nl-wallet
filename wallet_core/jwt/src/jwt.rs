@@ -49,6 +49,7 @@ use crate::error::JwtX5cError;
 /// explicitly as a field in the (de)serialized type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
+
 impl<T, S: Into<String>> From<S> for Jwt<T> {
     fn from(val: S) -> Self {
         Jwt(val.into(), PhantomData)
@@ -64,6 +65,7 @@ impl<T> FromStr for Jwt<T> {
 }
 
 /// A verified JWS, along with its header and payload.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedJwt<T> {
     header: Header,
     payload: T,
@@ -83,9 +85,11 @@ where
     pub fn header(&self) -> &Header {
         &self.header
     }
+
     pub fn payload(&self) -> &T {
         &self.payload
     }
+
     pub fn jwt(&self) -> &Jwt<T> {
         &self.jwt
     }
@@ -242,6 +246,25 @@ where
         let payload = self.parse_and_verify(&pubkey.into(), &validation_options)?;
 
         Ok((payload, leaf_cert))
+    }
+}
+
+impl<T> VerifiedJwt<T>
+where
+    T: Serialize + DeserializeOwned,
+{
+    pub async fn sign(
+        payload: &T,
+        header: &Header,
+        privkey: &impl EcdsaKey,
+        validation_options: &Validation,
+    ) -> Result<VerifiedJwt<T>> {
+        let jwt = Jwt::sign(payload, header, privkey).await?;
+        let decoding_key = privkey
+            .verifying_key()
+            .await
+            .map_err(|e| JwtError::VerifyingKey(Box::new(e)))?;
+        VerifiedJwt::try_new(jwt, &EcdsaDecodingKey::from(&decoding_key), validation_options)
     }
 }
 

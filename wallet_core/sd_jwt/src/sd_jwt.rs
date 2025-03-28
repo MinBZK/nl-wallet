@@ -1,18 +1,25 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::HashSet;
 use std::fmt::Display;
 use std::iter::Peekable;
 use std::ops::Deref;
 use std::ops::DerefMut;
-use std::str::FromStr;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
+use jsonwebtoken::Validation;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::Map;
 use serde_json::Value;
 
+use crypto::EcdsaKeySend;
+use jwt::EcdsaDecodingKey;
+use jwt::VerifiedJwt;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::decoder::SdObjectDecoder;
@@ -23,13 +30,9 @@ use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
 use crate::hasher::SHA_ALG_NAME;
-use crate::jwt::Jwt;
-use crate::key_binding_jwt_claims::DigitalSignaturAlgorithm;
 use crate::key_binding_jwt_claims::KeyBindingJwt;
 use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
-use crate::signer::JsonObject;
-use crate::signer::JwsSigner;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
 pub struct SdJwtClaims {
@@ -40,11 +43,11 @@ pub struct SdJwtClaims {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cnf: Option<RequiredKeyBinding>,
     #[serde(flatten)]
-    properties: JsonObject,
+    properties: Map<String, Value>,
 }
 
 impl Deref for SdJwtClaims {
-    type Target = JsonObject;
+    type Target = Map<String, Value>;
 
     fn deref(&self) -> &Self::Target {
         &self.properties
@@ -61,8 +64,8 @@ impl DerefMut for SdJwtClaims {
 /// `<Issuer-signed JWT>~<Disclosure 1>~<Disclosure 2>~...~<Disclosure N>~<optional KB-JWT>`.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwt {
-    /// The JWT part.
-    jwt: Jwt<SdJwtClaims>,
+    /// The Issuer-signed JWT part.
+    issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
     /// The disclosures part.
     disclosures: Vec<Disclosure>,
     /// The optional key binding JWT.
@@ -72,31 +75,23 @@ pub struct SdJwt {
 impl SdJwt {
     /// Creates a new [`SdJwt`] from its components.
     pub(crate) fn new(
-        jwt: Jwt<SdJwtClaims>,
+        jwt: VerifiedJwt<SdJwtClaims>,
         disclosures: Vec<Disclosure>,
         key_binding_jwt: Option<KeyBindingJwt>,
     ) -> Self {
         Self {
-            jwt,
+            issuer_signed_jwt: jwt,
             disclosures,
             key_binding_jwt,
         }
     }
 
-    pub fn header(&self) -> &JsonObject {
-        &self.jwt.header
+    pub fn header(&self) -> &Header {
+        self.issuer_signed_jwt.header()
     }
 
     pub fn claims(&self) -> &SdJwtClaims {
-        &self.jwt.claims
-    }
-
-    /// Returns a mutable reference to this SD-JWT's claims.
-    /// ## Warning
-    /// Modifying the claims might invalidate the signature.
-    /// Use this method carefully.
-    pub fn claims_mut(&mut self) -> &mut SdJwtClaims {
-        &mut self.jwt.claims
+        self.issuer_signed_jwt.payload()
     }
 
     pub fn disclosures(&self) -> &[Disclosure] {
@@ -112,9 +107,6 @@ impl SdJwt {
     }
 
     /// Serializes the components into the final SD-JWT.
-    ///
-    /// ## Error
-    /// Returns [`Error::Deserialization`] if parsing fails.
     pub fn presentation(&self) -> String {
         let disclosures = self.disclosures.iter().map(ToString::to_string).join("~");
         let key_bindings = self
@@ -123,14 +115,17 @@ impl SdJwt {
             .map(ToString::to_string)
             .unwrap_or_default();
         if disclosures.is_empty() {
-            format!("{}~{}", self.jwt, key_bindings)
+            format!("{}~{}", self.issuer_signed_jwt.jwt().0, key_bindings)
         } else {
-            format!("{}~{}~{}", self.jwt, disclosures, key_bindings)
+            format!("{}~{}~{}", self.issuer_signed_jwt.jwt().0, disclosures, key_bindings)
         }
     }
 
     /// Parses an SD-JWT into its components as [`SdJwt`].
-    pub fn parse(sd_jwt: &str) -> Result<Self> {
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn parse(sd_jwt: &str, pub_key: &EcdsaDecodingKey, kb_pub_key: Option<&EcdsaDecodingKey>) -> Result<Self> {
         let sd_segments: VecNonEmpty<&str> = sd_jwt
             .split('~')
             .collect::<Vec<_>>()
@@ -138,7 +133,7 @@ impl SdJwt {
             .map_err(|_err| Error::Deserialization("SD-JWT format is invalid, less than 2 segments".to_string()))?;
         let num_of_segments = sd_segments.len().get();
 
-        let jwt = sd_segments.first().parse()?;
+        let jwt = VerifiedJwt::try_new(sd_segments.first().parse()?, pub_key, &sd_jwt_validation())?;
 
         let disclosures = sd_segments[1..num_of_segments - 1]
             .iter()
@@ -147,11 +142,12 @@ impl SdJwt {
 
         let key_binding_jwt = Some(sd_segments.last())
             .filter(|segment| !segment.is_empty())
-            .map(|segment| segment.parse())
+            .and_then(|segment| kb_pub_key.map(|key| (segment, key)))
+            .map(|(segment, key)| KeyBindingJwt::parse(segment, key))
             .transpose()?;
 
         Ok(Self {
-            jwt,
+            issuer_signed_jwt: jwt,
             disclosures,
             key_binding_jwt,
         })
@@ -167,9 +163,9 @@ impl SdJwt {
 
     /// Returns the JSON object obtained by replacing all disclosures into their
     /// corresponding JWT concealable claims.
-    pub fn into_disclosed_object(self, hasher: &dyn Hasher) -> Result<JsonObject> {
+    pub fn into_disclosed_object(self, hasher: &dyn Hasher) -> Result<Map<String, Value>> {
         let decoder = SdObjectDecoder;
-        let object = serde_json::to_value(self.claims()).unwrap();
+        let object = serde_json::to_value(self.claims())?;
 
         let disclosure_map = self
             .disclosures
@@ -184,13 +180,6 @@ impl SdJwt {
 impl Display for SdJwt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&(self.presentation()))
-    }
-}
-
-impl FromStr for SdJwt {
-    type Err = Error;
-    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
-        Self::parse(s)
     }
 }
 
@@ -211,7 +200,7 @@ impl Deref for SdJwtPresentationBuilder {
 }
 
 impl SdJwtPresentationBuilder {
-    pub fn new(mut sd_jwt: SdJwt, hasher: &dyn Hasher) -> Result<Self> {
+    pub fn new(sd_jwt: SdJwt, hasher: &dyn Hasher) -> Result<Self> {
         let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
         if required_hasher != hasher.alg_name() {
             return Err(Error::InvalidHasher(format!(
@@ -220,17 +209,17 @@ impl SdJwtPresentationBuilder {
             )));
         }
 
-        let disclosures = std::mem::take(&mut sd_jwt.disclosures)
+        let disclosures = sd_jwt
+            .disclosures
+            .clone()
             .into_iter()
             .map(|disclosure| (hasher.encoded_digest(disclosure.as_str()), disclosure))
             .collect();
 
+        let payload = sd_jwt.issuer_signed_jwt.payload().clone();
         let object = {
-            let sd = std::mem::take(&mut sd_jwt.jwt.claims._sd)
-                .into_iter()
-                .map(Value::String)
-                .collect();
-            let mut object = Value::Object(std::mem::take(&mut sd_jwt.jwt.claims.properties));
+            let sd = payload._sd.into_iter().map(Value::String).collect();
+            let mut object = Value::Object(payload.properties);
             object
                 .as_object_mut()
                 .unwrap()
@@ -289,28 +278,9 @@ impl SdJwtPresentationBuilder {
             mut sd_jwt,
             disclosures,
             removed_disclosures,
-            object,
             ..
         } = self;
         sd_jwt.disclosures = disclosures.into_values().collect_vec();
-
-        let Value::Object(mut obj) = object else {
-            unreachable!();
-        };
-        let Value::Array(sd) = obj.remove(DIGESTS_KEY).unwrap_or(Value::Array(vec![])) else {
-            unreachable!()
-        };
-        sd_jwt.jwt.claims._sd = sd
-            .into_iter()
-            .map(|value| {
-                if let Value::String(s) = value {
-                    s
-                } else {
-                    unreachable!()
-                }
-            })
-            .collect();
-        sd_jwt.jwt.claims.properties = obj;
 
         Ok((sd_jwt, removed_disclosures))
     }
@@ -318,27 +288,29 @@ impl SdJwtPresentationBuilder {
     /// Returns the resulting [`SdJwt`] together with all removed disclosures.
     /// ## Errors
     /// - Fails with [`Error::MissingKeyBindingJwt`] if this [`SdJwt`] requires a key binding but none was provided.
-    pub async fn finish_with_key_binding<S>(
+    pub async fn finish_with_key_binding(
         self,
         hasher: &dyn Hasher,
-        alg: DigitalSignaturAlgorithm,
-        signer: &S,
-    ) -> Result<(SdJwt, Vec<Disclosure>)>
-    where
-        S: JwsSigner,
-    {
-        if self.sd_jwt.required_key_bind().is_some() && self.kb_jwt_builder.is_none() {
-            return Err(Error::MissingKeyBindingJwt);
-        }
+        alg: Algorithm,
+        signing_key: &impl EcdsaKeySend,
+    ) -> Result<(SdJwt, Vec<Disclosure>)> {
+        let kb_jwt_builder = self.kb_jwt_builder.clone().ok_or(Error::MissingKeyBindingJwt)?;
 
-        let kb_builder = self.kb_jwt_builder.clone().unwrap();
         let (mut sd_jwt, removed_disclosures) = self.finish()?;
 
-        let kb_jwt = kb_builder.finish(&sd_jwt, hasher, alg, signer).await?;
+        let kb_jwt = kb_jwt_builder.finish(&sd_jwt, hasher, alg, signing_key).await?;
         sd_jwt.key_binding_jwt = Some(kb_jwt);
 
         Ok((sd_jwt, removed_disclosures))
     }
+}
+
+pub(crate) fn sd_jwt_validation() -> Validation {
+    let mut validation = Validation::new(Algorithm::ES256);
+    validation.validate_exp = false;
+    validation.validate_aud = false;
+    validation.required_spec_claims = HashSet::new();
+    validation
 }
 
 fn conceal<'p, 'o, 'd, I>(
@@ -421,7 +393,7 @@ where
 }
 
 fn find_disclosure<'o>(
-    object: &'o JsonObject,
+    object: &'o Map<String, Value>,
     key: &str,
     disclosures: &IndexMap<String, Disclosure>,
 ) -> Option<&'o str> {
@@ -502,21 +474,31 @@ mod test {
     #[case(SIMPLE_STRUCTURED_SD_JWT)]
     #[case(COMPLEX_STRUCTURED_SD_JWT)]
     #[case(SD_JWT_VC)]
-    #[case(WITH_KB_SD_JWT)]
     fn parse_various(#[case] encoded_sd_jwt: &str) {
-        SdJwt::parse(encoded_sd_jwt).unwrap();
+        SdJwt::parse(encoded_sd_jwt, &examples_sd_jwt_decoding_key(), None).unwrap();
+    }
+
+    #[test]
+    fn parse_kb() {
+        SdJwt::parse(
+            WITH_KB_SD_JWT,
+            &examples_sd_jwt_decoding_key(),
+            Some(&examples_kb_jwt_decoding_key()),
+        )
+        .unwrap();
     }
 
     #[test]
     fn parse() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT).unwrap();
+        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap();
+        dbg!(&sd_jwt);
         assert_eq!(sd_jwt.disclosures.len(), 2);
         assert!(sd_jwt.key_binding_jwt.is_none());
     }
 
     #[test]
     fn round_trip_ser_des() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT).unwrap();
+        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap();
         assert_eq!(&sd_jwt.to_string(), SIMPLE_STRUCTURED_SD_JWT);
     }
 }

@@ -10,30 +10,43 @@ pub enum JwtError {
     #[error("JSON parsing error: {0}")]
     #[category(pd)]
     JsonParsing(#[from] serde_json::Error),
+
     #[error("error validating JWT: {0}")]
     #[category(critical)]
     Validation(#[source] jsonwebtoken::errors::Error),
+
     #[error("error signing JWT: {0}")]
     #[category(critical)]
     Signing(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("error retrieving verifying key from signing key: {0}")]
+    #[category(critical)]
+    VerifyingKey(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
     #[error("trust anchor key of unexpected format: {0}")]
     #[category(critical)]
     TrustAnchorKeyFormat(String),
+
     #[error("failed to parse trust anchor algorithm: {0}")]
     #[category(critical)]
     TrustAnchorAlgorithmParsing(#[source] x509_parser::nom::Err<x509_parser::error::X509Error>),
+
     #[error("failed to parse trust anchor key: {0}")]
     #[category(critical)]
     TrustAnchorKeyParsing(#[from] x509_parser::nom::Err<x509_parser::der_parser::error::Error>),
+
     #[error("unexpected amount of parts in JWT credential: expected 3, found {0}")]
     #[category(critical)]
     UnexpectedNumberOfParts(usize),
+
     #[error("failed to decode Base64: {0}")]
     #[category(pd)]
     Base64Error(#[from] base64::DecodeError),
+
     #[error("JWT conversion error: {0}")]
     #[category(defer)]
     Jwk(#[from] JwkConversionError),
+
     #[error("cannot construct JSON-serialized JWT: received differing payloads: {0}, {1}")]
     #[category(pd)]
     DifferentPayloads(String, String),

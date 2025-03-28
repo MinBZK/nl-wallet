@@ -2,61 +2,58 @@
 // SPDX-License-Identifier: Apache-2.0
 use std::borrow::Cow;
 use std::fmt::Display;
-use std::ops::Deref;
-use std::str::FromStr;
 
+use chrono::serde::ts_seconds;
+use jsonwebtoken::jwk::Jwk;
+use jsonwebtoken::Algorithm;
+use jsonwebtoken::Header;
+use jsonwebtoken::Validation;
+use serde::Deserialize;
+use serde::Serialize;
+use serde_with::chrono::DateTime;
+use serde_with::chrono::Utc;
+
+use crypto::EcdsaKeySend;
+use jwt::EcdsaDecodingKey;
+use jwt::Jwt;
+use jwt::VerifiedJwt;
+
+use crate::error;
 use crate::error::Error;
 use crate::hasher::Hasher;
 use crate::hasher::SHA_ALG_NAME;
-use crate::jwt::Jwt;
 use crate::sd_jwt::SdJwt;
-use crate::signer::JsonObject;
-use crate::signer::JwsSigner;
-
-use anyhow::Context as _;
-use chrono::serde::ts_seconds;
-use derive_more::Display;
-use serde::Deserialize;
-use serde::Serialize;
-use serde_json::Value;
-use serde_with::chrono::DateTime;
-use serde_with::chrono::Utc;
 
 pub const KB_JWT_HEADER_TYP: &str = "kb+jwt";
 
 /// Representation of a [KB-JWT](https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-12.html#name-key-binding-jwt).
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct KeyBindingJwt(Jwt<KeyBindingJwtClaims>);
+pub struct KeyBindingJwt(VerifiedJwt<KeyBindingJwtClaims>);
 
 impl Display for KeyBindingJwt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", &self.0)
+        write!(f, "{}", &self.0.jwt().0)
     }
 }
 
-impl FromStr for KeyBindingJwt {
-    type Err = Error;
+impl KeyBindingJwt {
+    pub fn parse(s: &str, pub_key: &EcdsaDecodingKey) -> error::Result<Self> {
+        let jwt: Jwt<KeyBindingJwtClaims> = s.into();
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let jwt = Jwt::<KeyBindingJwtClaims>::from_str(s)?;
-        let valid_jwt_type = jwt.header.get("typ").is_some_and(|typ| typ == KB_JWT_HEADER_TYP);
+        let (header, _) = jwt.parse_and_verify_with_header(pub_key, &kb_jwt_validation())?;
+
+        let valid_jwt_type = &header.typ.is_some_and(|typ| typ == KB_JWT_HEADER_TYP);
         if !valid_jwt_type {
             return Err(Error::Deserialization(format!(
                 "invalid KB-JWT: typ must be \"{KB_JWT_HEADER_TYP}\""
             )));
         }
-        let valid_alg = jwt.header.get("alg").is_some_and(|alg| alg != "none");
-        if !valid_alg {
-            return Err(Error::Deserialization(
-                "invalid KB-JWT: alg must be set and cannot be \"none\"".to_string(),
-            ));
-        }
 
-        Ok(Self(jwt))
+        let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pub_key, &kb_jwt_validation())?;
+
+        Ok(Self(verified_jwt))
     }
-}
 
-impl KeyBindingJwt {
     /// Returns a [`KeyBindingJwtBuilder`] that allows the creation of a [`KeyBindingJwt`].
     pub fn builder() -> KeyBindingJwtBuilder {
         KeyBindingJwtBuilder::default()
@@ -64,25 +61,40 @@ impl KeyBindingJwt {
 
     /// Returns a reference to this [`KeyBindingJwt`] claim set.
     pub fn claims(&self) -> &KeyBindingJwtClaims {
-        &self.0.claims
+        self.0.payload()
     }
+}
+
+fn kb_jwt_validation() -> Validation {
+    let mut validation = Validation::new(Algorithm::ES256);
+    validation.validate_exp = false;
+    validation.validate_aud = false;
+    // validator.set_audience(&["https://verifier.example.org"]); // TODO: validate aud?
+    validation.set_required_spec_claims(&["aud"]);
+    validation
 }
 
 /// Builder-style struct to ease the creation of an [`KeyBindingJwt`].
 #[derive(Debug, Clone)]
 pub struct KeyBindingJwtBuilder {
-    header: JsonObject,
-    payload: JsonObject,
+    header: Header,
+    iat: Option<DateTime<Utc>>,
+    aud: Option<String>,
+    nonce: Option<String>,
 }
 
 impl Default for KeyBindingJwtBuilder {
     fn default() -> Self {
-        let mut header = JsonObject::default();
-        header.insert(String::from("typ"), String::from(KB_JWT_HEADER_TYP).into());
+        let header = Header {
+            typ: Some(String::from(KB_JWT_HEADER_TYP)),
+            ..Default::default()
+        };
 
         Self {
             header,
-            payload: JsonObject::default(),
+            iat: None,
+            aud: None,
+            nonce: None,
         }
     }
 }
@@ -90,7 +102,7 @@ impl Default for KeyBindingJwtBuilder {
 impl KeyBindingJwtBuilder {
     /// Sets the [iat](https://www.rfc-editor.org/rfc/rfc7519.html#section-4.1.6) property.
     pub fn iat(mut self, iat: DateTime<Utc>) -> Self {
-        self.payload.insert("iat".to_string(), iat.timestamp().into());
+        self.iat = Some(iat);
         self
     }
 
@@ -99,7 +111,7 @@ impl KeyBindingJwtBuilder {
     where
         S: Into<Cow<'a, str>>,
     {
-        self.payload.insert("aud".to_string(), aud.into().into_owned().into());
+        self.aud = Some(aud.into().into_owned());
         self
     }
 
@@ -108,23 +120,28 @@ impl KeyBindingJwtBuilder {
     where
         S: Into<Cow<'a, str>>,
     {
-        self.payload
-            .insert("nonce".to_string(), nonce.into().into_owned().into());
+        self.nonce = Some(nonce.into().into_owned());
         self
     }
 
     /// Builds an [`KeyBindingJwt`] from the data provided to builder.
-    pub async fn finish<S>(
+    pub async fn finish(
         self,
         sd_jwt: &SdJwt,
         hasher: &dyn Hasher,
-        alg: DigitalSignaturAlgorithm,
-        signer: &S,
-    ) -> Result<KeyBindingJwt, Error>
-    where
-        S: JwsSigner,
-    {
-        let mut claims = self.payload;
+        alg: Algorithm,
+        signing_key: &impl EcdsaKeySend,
+    ) -> Result<KeyBindingJwt, Error> {
+        let sd_hash = hasher.encoded_digest(&sd_jwt.to_string());
+
+        let claims = KeyBindingJwtClaims {
+            iat: self.iat.ok_or(Error::MissingRequiredProperty(String::from("iat")))?,
+            aud: self.aud.ok_or(Error::MissingRequiredProperty(String::from("aud")))?,
+            nonce: self
+                .nonce
+                .ok_or(Error::MissingRequiredProperty(String::from("nonce")))?,
+            sd_hash,
+        };
 
         if sd_jwt.key_binding_jwt().is_some() {
             return Err(Error::DataTypeMismatch(
@@ -139,28 +156,12 @@ impl KeyBindingJwtBuilder {
             )));
         }
 
-        let sd_hash = hasher.encoded_digest(&sd_jwt.to_string());
-        claims.insert("sd_hash".to_string(), sd_hash.into());
-
         let mut header = self.header;
-        header.insert("alg".to_string(), alg.to_string().into());
+        header.alg = alg;
 
-        // Validate claims
-        let parsed_claims = serde_json::from_value::<KeyBindingJwtClaims>(claims.clone().into())
-            .map_err(|e| Error::Deserialization(format!("invalid KB-JWT claims: {e}")))?;
+        let verified_jwt = VerifiedJwt::sign(&claims, &header, signing_key, &kb_jwt_validation()).await?;
 
-        let jws = signer
-            .sign(&header, &claims)
-            .await
-            .map_err(|e| anyhow::anyhow!("{e}"))
-            .and_then(|jws_bytes| String::from_utf8(jws_bytes).context("invalid JWS"))
-            .map_err(|e| Error::JwsSignerFailure(e.to_string()))?;
-
-        Ok(KeyBindingJwt(Jwt {
-            header,
-            claims: parsed_claims,
-            jws,
-        }))
+        Ok(KeyBindingJwt(verified_jwt))
     }
 }
 
@@ -172,89 +173,39 @@ pub struct KeyBindingJwtClaims {
     pub aud: String,
     pub nonce: String,
     pub sd_hash: String,
-    #[serde(flatten)]
-    properties: JsonObject,
-}
-
-impl Deref for KeyBindingJwtClaims {
-    type Target = JsonObject;
-    fn deref(&self) -> &Self::Target {
-        &self.properties
-    }
 }
 
 /// Proof of possession of a given key. See [RFC7800](https://www.rfc-editor.org/rfc/rfc7800.html#section-3) for more details.
+/// Currently, only Jwk is supported.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub enum RequiredKeyBinding {
     /// Json Web Key (JWK).
-    Jwk(JsonObject),
-    /// Encoded JWK in its compact serialization form.
-    Jwe(String),
-    /// Key ID.
-    Kid(String),
-    /// JWK from a JWK set identified by `kid`.
-    Jwu {
-        /// URL of the JWK Set.
-        jwu: String,
-        /// kid of the referenced JWK.
-        kid: String,
-    },
-    /// Non standard key-bind.
-    #[serde(untagged)]
-    Custom(Value),
-}
-
-/// JSON Web Algorithms (JWA) [RFC5718](https://www.rfc-editor.org/rfc/rfc7518.html)
-#[derive(Debug, Copy, Clone, Display, Eq, PartialEq, Serialize, Deserialize)]
-pub enum DigitalSignaturAlgorithm {
-    ES256,
-    HS256,
+    Jwk(Jwk),
 }
 
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
-    use async_trait::async_trait;
     use chrono::Utc;
-    use josekit::jwk::KeyPair;
-    use josekit::jws::alg::ecdsa::EcdsaJwsSigner;
-    use josekit::jws::JwsHeader;
-    use josekit::jws::ES256;
-    use josekit::jwt;
-    use josekit::jwt::JwtPayload;
+    use jsonwebtoken::Algorithm;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
     use crate::error::Error;
     use crate::examples;
+    use crate::examples::examples_sd_jwt_decoding_key;
     use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
-    use crate::key_binding_jwt_claims::DigitalSignaturAlgorithm;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
     use crate::sd_jwt::SdJwt;
-    use crate::signer::JsonObject;
-    use crate::signer::JwsSigner;
-
-    struct EcdsaSigner(EcdsaJwsSigner);
-
-    #[async_trait]
-    impl JwsSigner for EcdsaSigner {
-        type Error = josekit::JoseError;
-
-        async fn sign(&self, header: &JsonObject, payload: &JsonObject) -> Result<Vec<u8>, Self::Error> {
-            let header = JwsHeader::from_map(header.clone())?;
-            let payload = JwtPayload::from_map(payload.clone())?;
-
-            jwt::encode_with_signer(&payload, &header, &self.0).map(String::into_bytes)
-        }
-    }
 
     #[tokio::test]
     async fn test_key_binding_jwt_builder() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT).unwrap();
+        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap();
 
-        let key_pair = ES256.generate_key_pair().unwrap();
-        let signer = EcdsaSigner(ES256.signer_from_der(key_pair.to_der_private_key()).unwrap());
+        let signing_key = SigningKey::random(&mut OsRng);
         let hasher = Sha256Hasher::new();
 
         let iat = Utc::now();
@@ -263,7 +214,7 @@ mod test {
             .aud("receiver")
             .iat(iat)
             .nonce("abc123")
-            .finish(&sd_jwt, &hasher, DigitalSignaturAlgorithm::ES256, &signer)
+            .finish(&sd_jwt, &hasher, Algorithm::ES256, &signing_key)
             .await
             .unwrap();
 
@@ -273,16 +224,15 @@ mod test {
         assert_eq!(String::from("receiver"), kb_jwt.claims().aud);
         assert_eq!(String::from("abc123"), kb_jwt.claims().nonce);
         assert_eq!(sd_hash, kb_jwt.claims().sd_hash);
-        assert_eq!("kb+jwt", kb_jwt.0.header.get("typ").unwrap());
-        assert_eq!("ES256", kb_jwt.0.header.get("alg").unwrap());
+        assert_eq!(Some(String::from("kb+jwt")), kb_jwt.0.header().typ);
+        assert_eq!(Algorithm::ES256, kb_jwt.0.header().alg);
     }
 
     #[tokio::test]
     async fn test_algorithm_should_match_sd_jwt() {
         let sd_jwt = examples::simple_structured_sd_jwt();
 
-        let key_pair = ES256.generate_key_pair().unwrap();
-        let signer = EcdsaSigner(ES256.signer_from_der(key_pair.to_der_private_key()).unwrap());
+        let signing_key = SigningKey::random(&mut OsRng);
 
         struct TestHasher;
         impl Hasher for TestHasher {
@@ -299,7 +249,7 @@ mod test {
             .aud("receiver")
             .iat(Utc::now())
             .nonce("abc123")
-            .finish(&sd_jwt, &TestHasher, DigitalSignaturAlgorithm::ES256, &signer)
+            .finish(&sd_jwt, &TestHasher, Algorithm::ES256, &signing_key)
             .await;
 
         assert_matches!(result, Err(Error::InvalidHasher(_)));
@@ -309,8 +259,7 @@ mod test {
     async fn test_should_error_for_existing_kb_sd_jwt() {
         let sd_jwt = examples::sd_jwt_kb();
 
-        let key_pair = ES256.generate_key_pair().unwrap();
-        let signer = EcdsaSigner(ES256.signer_from_der(key_pair.to_der_private_key()).unwrap());
+        let signing_key = SigningKey::random(&mut OsRng);
         let hasher = Sha256Hasher::new();
 
         let iat = Utc::now();
@@ -319,7 +268,7 @@ mod test {
             .aud("receiver")
             .iat(iat)
             .nonce("abc123")
-            .finish(&sd_jwt, &hasher, DigitalSignaturAlgorithm::ES256, &signer)
+            .finish(&sd_jwt, &hasher, Algorithm::ES256, &signing_key)
             .await;
 
         assert_matches!(result, Err(Error::DataTypeMismatch(_)));
