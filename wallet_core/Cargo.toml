@@ -25,7 +25,7 @@ members = [
     "wallet/migrations",
     "wallet_ca",
     "wallet_common",
-    "wallet_configuration/configuration_server",
+    "configuration_server",
     "wallet_provider",
     "wallet_provider/database_settings",
     "wallet_provider/domain",

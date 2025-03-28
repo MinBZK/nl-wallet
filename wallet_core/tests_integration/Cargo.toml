@@ -214,7 +214,7 @@ uuid = { workspace = true, optional = true }
 android_attest = { path = "../android_attest", optional = true }
 apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
 configuration = { path = "../wallet/configuration", optional = true }
-configuration_server = { path = "../wallet_configuration/configuration_server", optional = true }
+configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../hsm", optional = true, features = ["test"] }
