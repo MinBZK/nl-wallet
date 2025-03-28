@@ -15,7 +15,7 @@ pub enum WalletEvent {
         date_time: String,
         relying_party: Organization,
         purpose: Vec<LocalizedString>,
-        requested_attestations: Option<Vec<Attestation>>,
+        shared_attestations: Option<Vec<Attestation>>,
         request_policy: RequestPolicy,
         status: DisclosureStatus,
         typ: DisclosureType,
@@ -72,7 +72,7 @@ impl From<wallet::WalletEvent> for WalletEvents {
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
                     request_policy,
-                    requested_attestations: (!attestations.is_empty()).then_some(attestations),
+                    shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),
                     typ: r#type.into(),
                 }]

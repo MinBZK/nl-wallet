@@ -28,7 +28,7 @@ class HistoryDetailLoadSuccess extends HistoryDetailState {
 
   HistoryDetailLoadSuccess(this.event, this.relatedCards)
       : assert(
-          _verifyAllRelatedCardsProvided(relatedCards, event.attributes),
+          _verifyAllRelatedCardsProvided(relatedCards, event.sharedAttributes),
           'All cards of which data is provided should also be available',
         );
 

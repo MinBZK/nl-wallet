@@ -17,7 +17,7 @@ sealed class WalletEvent extends Equatable {
   final DateTime dateTime;
   final EventStatus status;
 
-  List<DataAttribute> get attributes;
+  List<DataAttribute> get sharedAttributes;
 
   const WalletEvent({
     required this.dateTime,

@@ -4,7 +4,7 @@ class IssuanceEvent extends WalletEvent {
   final WalletCard card;
 
   @override
-  List<DataAttribute> get attributes => card.attributes;
+  List<DataAttribute> get sharedAttributes => card.attributes;
 
   const IssuanceEvent({
     required super.dateTime,

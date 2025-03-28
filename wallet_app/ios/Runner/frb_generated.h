@@ -219,7 +219,7 @@ typedef struct wire_cst_WalletEvent_Disclosure {
   struct wire_cst_list_prim_u_8_strict *date_time;
   struct wire_cst_organization *relying_party;
   struct wire_cst_list_localized_string *purpose;
-  struct wire_cst_list_attestation *requested_attestations;
+  struct wire_cst_list_attestation *shared_attestations;
   struct wire_cst_request_policy *request_policy;
   int32_t status;
   int32_t typ;

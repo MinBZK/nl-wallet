@@ -1512,7 +1512,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           dateTime: dco_decode_String(raw[1]),
           relyingParty: dco_decode_box_autoadd_organization(raw[2]),
           purpose: dco_decode_list_localized_string(raw[3]),
-          requestedAttestations: dco_decode_opt_list_attestation(raw[4]),
+          sharedAttestations: dco_decode_opt_list_attestation(raw[4]),
           requestPolicy: dco_decode_box_autoadd_request_policy(raw[5]),
           status: dco_decode_disclosure_status(raw[6]),
           typ: dco_decode_disclosure_type(raw[7]),
@@ -2192,7 +2192,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_dateTime = sse_decode_String(deserializer);
         var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
         var var_purpose = sse_decode_list_localized_string(deserializer);
-        var var_requestedAttestations = sse_decode_opt_list_attestation(deserializer);
+        var var_sharedAttestations = sse_decode_opt_list_attestation(deserializer);
         var var_requestPolicy = sse_decode_box_autoadd_request_policy(deserializer);
         var var_status = sse_decode_disclosure_status(deserializer);
         var var_typ = sse_decode_disclosure_type(deserializer);
@@ -2200,7 +2200,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
             dateTime: var_dateTime,
             relyingParty: var_relyingParty,
             purpose: var_purpose,
-            requestedAttestations: var_requestedAttestations,
+            sharedAttestations: var_sharedAttestations,
             requestPolicy: var_requestPolicy,
             status: var_status,
             typ: var_typ);
@@ -2880,7 +2880,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           dateTime: final dateTime,
           relyingParty: final relyingParty,
           purpose: final purpose,
-          requestedAttestations: final requestedAttestations,
+          sharedAttestations: final sharedAttestations,
           requestPolicy: final requestPolicy,
           status: final status,
           typ: final typ
@@ -2889,7 +2889,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_String(dateTime, serializer);
         sse_encode_box_autoadd_organization(relyingParty, serializer);
         sse_encode_list_localized_string(purpose, serializer);
-        sse_encode_opt_list_attestation(requestedAttestations, serializer);
+        sse_encode_opt_list_attestation(sharedAttestations, serializer);
         sse_encode_box_autoadd_request_policy(requestPolicy, serializer);
         sse_encode_disclosure_status(status, serializer);
         sse_encode_disclosure_type(typ, serializer);
