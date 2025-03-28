@@ -143,12 +143,6 @@ impl KeyBindingJwtBuilder {
             sd_hash,
         };
 
-        if sd_jwt.key_binding_jwt().is_some() {
-            return Err(Error::DataTypeMismatch(
-                "the provided SD-JWT already has a KB-JWT attached".to_string(),
-            ));
-        }
-
         if sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME) != hasher.alg_name() {
             return Err(Error::InvalidHasher(format!(
                 "invalid hashing algorithm \"{}\"",
@@ -203,7 +197,7 @@ mod test {
 
     #[tokio::test]
     async fn test_key_binding_jwt_builder() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap();
+        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
 
         let signing_key = SigningKey::random(&mut OsRng);
         let hasher = Sha256Hasher::new();
@@ -253,24 +247,5 @@ mod test {
             .await;
 
         assert_matches!(result, Err(Error::InvalidHasher(_)));
-    }
-
-    #[tokio::test]
-    async fn test_should_error_for_existing_kb_sd_jwt() {
-        let sd_jwt = examples::sd_jwt_kb();
-
-        let signing_key = SigningKey::random(&mut OsRng);
-        let hasher = Sha256Hasher::new();
-
-        let iat = Utc::now();
-
-        let result = KeyBindingJwtBuilder::default()
-            .aud("receiver")
-            .iat(iat)
-            .nonce("abc123")
-            .finish(&sd_jwt, &hasher, Algorithm::ES256, &signing_key)
-            .await;
-
-        assert_matches!(result, Err(Error::DataTypeMismatch(_)));
     }
 }

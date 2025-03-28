@@ -20,7 +20,6 @@ use serde_json::Value;
 use crypto::EcdsaKeySend;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
-use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
@@ -68,21 +67,65 @@ pub struct SdJwt {
     issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
     /// The disclosures part.
     disclosures: Vec<Disclosure>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct SdJwtPresentation {
+    sd_jwt: SdJwt,
+
     /// The optional key binding JWT.
-    key_binding_jwt: Option<KeyBindingJwt>,
+    key_binding_jwt: KeyBindingJwt,
+}
+
+impl SdJwtPresentation {
+    /// Parses an SD-JWT into its components as [`SdJwt`].
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn parse(sd_jwt: &str, sd_jwt_pub_key: &EcdsaDecodingKey, kb_jwt_pub_key: &EcdsaDecodingKey) -> Result<Self> {
+        let (rest, kb_segment) = sd_jwt.rsplit_once("~").ok_or(Error::Deserialization(
+            "SD-JWT format is invalid, no segments found".to_string(),
+        ))?;
+        let key_binding_jwt = KeyBindingJwt::parse(kb_segment, kb_jwt_pub_key)?;
+
+        let sd_jwt = SdJwt::parse(&format!("{}~", rest), sd_jwt_pub_key)?;
+
+        Ok(Self {
+            sd_jwt,
+            key_binding_jwt,
+        })
+    }
+
+    pub fn presentation(&self) -> String {
+        let disclosures = self.sd_jwt.disclosures.iter().map(ToString::to_string).join("~");
+        let key_bindings = self.key_binding_jwt.to_string();
+        [self.sd_jwt.issuer_signed_jwt.jwt().clone().0, disclosures, key_bindings]
+            .iter()
+            .filter(|segment| !segment.is_empty())
+            .join("~")
+    }
+
+    pub fn sd_jwt(&self) -> &SdJwt {
+        &self.sd_jwt
+    }
+
+    pub fn key_binding_jwt(&self) -> &KeyBindingJwt {
+        &self.key_binding_jwt
+    }
+}
+
+impl Display for SdJwtPresentation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&(self.presentation()))
+    }
 }
 
 impl SdJwt {
     /// Creates a new [`SdJwt`] from its components.
-    pub(crate) fn new(
-        jwt: VerifiedJwt<SdJwtClaims>,
-        disclosures: Vec<Disclosure>,
-        key_binding_jwt: Option<KeyBindingJwt>,
-    ) -> Self {
+    pub(crate) fn new(jwt: VerifiedJwt<SdJwtClaims>, disclosures: Vec<Disclosure>) -> Self {
         Self {
             issuer_signed_jwt: jwt,
             disclosures,
-            key_binding_jwt,
         }
     }
 
@@ -102,54 +145,44 @@ impl SdJwt {
         self.claims().cnf.as_ref()
     }
 
-    pub fn key_binding_jwt(&self) -> Option<&KeyBindingJwt> {
-        self.key_binding_jwt.as_ref()
-    }
-
     /// Serializes the components into the final SD-JWT.
     pub fn presentation(&self) -> String {
         let disclosures = self.disclosures.iter().map(ToString::to_string).join("~");
-        let key_bindings = self
-            .key_binding_jwt
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_default();
-        if disclosures.is_empty() {
-            format!("{}~{}", self.issuer_signed_jwt.jwt().0, key_bindings)
-        } else {
-            format!("{}~{}~{}", self.issuer_signed_jwt.jwt().0, disclosures, key_bindings)
-        }
+        format!(
+            "{}~",
+            [self.issuer_signed_jwt.jwt().clone().0, disclosures]
+                .iter()
+                .filter(|segment| !segment.is_empty())
+                .join("~")
+        )
     }
 
     /// Parses an SD-JWT into its components as [`SdJwt`].
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse(sd_jwt: &str, pub_key: &EcdsaDecodingKey, kb_pub_key: Option<&EcdsaDecodingKey>) -> Result<Self> {
-        let sd_segments: VecNonEmpty<&str> = sd_jwt
-            .split('~')
-            .collect::<Vec<_>>()
-            .try_into()
-            .map_err(|_err| Error::Deserialization("SD-JWT format is invalid, less than 2 segments".to_string()))?;
-        let num_of_segments = sd_segments.len().get();
+    pub fn parse(sd_jwt: &str, pub_key: &EcdsaDecodingKey) -> Result<Self> {
+        if !sd_jwt.ends_with("~") {
+            return Err(Error::Deserialization(
+                "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
+            ));
+        }
 
-        let jwt = VerifiedJwt::try_new(sd_segments.first().parse()?, pub_key, &sd_jwt_validation())?;
+        let (sd_jwt_segment, disclosure_segments) = sd_jwt.split_once('~').ok_or(Error::Deserialization(
+            "SD-JWT format is invalid, input doesn't contain a '~'".to_string(),
+        ))?;
 
-        let disclosures = sd_segments[1..num_of_segments - 1]
-            .iter()
-            .map(|s| Disclosure::parse(s))
-            .try_collect()?;
+        let jwt = VerifiedJwt::try_new(sd_jwt_segment.parse()?, pub_key, &sd_jwt_validation())?;
 
-        let key_binding_jwt = Some(sd_segments.last())
+        let disclosures = disclosure_segments
+            .split("~")
             .filter(|segment| !segment.is_empty())
-            .and_then(|segment| kb_pub_key.map(|key| (segment, key)))
-            .map(|(segment, key)| KeyBindingJwt::parse(segment, key))
-            .transpose()?;
+            .map(Disclosure::parse)
+            .try_collect()?;
 
         Ok(Self {
             issuer_signed_jwt: jwt,
             disclosures,
-            key_binding_jwt,
         })
     }
 
@@ -157,8 +190,12 @@ impl SdJwt {
     /// ## Errors
     /// - [`Error::InvalidHasher`] is returned if the provided `hasher`'s algorithm doesn't match the algorithm
     ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
-    pub fn into_presentation(self, hasher: &dyn Hasher) -> Result<SdJwtPresentationBuilder> {
-        SdJwtPresentationBuilder::new(self, hasher)
+    pub fn into_presentation(
+        self,
+        kb_jwt_builder: KeyBindingJwtBuilder,
+        hasher: &dyn Hasher,
+    ) -> Result<SdJwtPresentationBuilder> {
+        SdJwtPresentationBuilder::new(self, kb_jwt_builder, hasher)
     }
 
     /// Returns the JSON object obtained by replacing all disclosures into their
@@ -183,24 +220,25 @@ impl Display for SdJwt {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SdJwtPresentationBuilder {
+#[derive(Clone)]
+pub struct SdJwtPresentationBuilder<'a> {
     sd_jwt: SdJwt,
-    kb_jwt_builder: Option<KeyBindingJwtBuilder>,
+    kb_jwt_builder: KeyBindingJwtBuilder,
     disclosures: IndexMap<String, Disclosure>,
     removed_disclosures: Vec<Disclosure>,
     object: Value,
+    hasher: &'a dyn Hasher,
 }
 
-impl Deref for SdJwtPresentationBuilder {
+impl Deref for SdJwtPresentationBuilder<'_> {
     type Target = SdJwt;
     fn deref(&self) -> &Self::Target {
         &self.sd_jwt
     }
 }
 
-impl SdJwtPresentationBuilder {
-    pub fn new(sd_jwt: SdJwt, hasher: &dyn Hasher) -> Result<Self> {
+impl<'a> SdJwtPresentationBuilder<'a> {
+    pub fn new(sd_jwt: SdJwt, kb_jwt_builder: KeyBindingJwtBuilder, hasher: &'a dyn Hasher) -> Result<Self> {
         let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
         if required_hasher != hasher.alg_name() {
             return Err(Error::InvalidHasher(format!(
@@ -230,10 +268,11 @@ impl SdJwtPresentationBuilder {
 
         Ok(Self {
             sd_jwt,
-            kb_jwt_builder: None,
+            kb_jwt_builder,
             disclosures,
             removed_disclosures: vec![],
             object,
+            hasher,
         })
     }
 
@@ -259,49 +298,32 @@ impl SdJwtPresentationBuilder {
         Ok(self)
     }
 
-    // /// Adds a [`KeyBindingJwt`] to this [`SdJwt`]'s presentation.
-    pub fn attach_key_binding_jwt(mut self, kb_jwt: KeyBindingJwtBuilder) -> Self {
-        self.kb_jwt_builder = Some(kb_jwt);
-        self
-    }
-
-    /// Returns the resulting [`SdJwt`] together with all removed disclosures.
+    /// Returns the resulting [`SdJwtPresentation`] together with all removed disclosures.
     /// ## Errors
     /// - Fails with [`Error::MissingKeyBindingJwt`] if this [`SdJwt`] requires a key binding but none was provided.
-    pub fn finish(self) -> Result<(SdJwt, Vec<Disclosure>)> {
-        if self.sd_jwt.required_key_bind().is_some() && self.kb_jwt_builder.is_none() {
-            return Err(Error::MissingKeyBindingJwt);
-        }
-
+    pub async fn finish(
+        self,
+        alg: Algorithm,
+        signing_key: &impl EcdsaKeySend,
+    ) -> Result<(SdJwtPresentation, Vec<Disclosure>)> {
         // Put everything back in its place.
         let SdJwtPresentationBuilder {
             mut sd_jwt,
             disclosures,
             removed_disclosures,
+            kb_jwt_builder,
             ..
         } = self;
         sd_jwt.disclosures = disclosures.into_values().collect_vec();
 
-        Ok((sd_jwt, removed_disclosures))
-    }
+        let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, alg, signing_key).await?;
 
-    /// Returns the resulting [`SdJwt`] together with all removed disclosures.
-    /// ## Errors
-    /// - Fails with [`Error::MissingKeyBindingJwt`] if this [`SdJwt`] requires a key binding but none was provided.
-    pub async fn finish_with_key_binding(
-        self,
-        hasher: &dyn Hasher,
-        alg: Algorithm,
-        signing_key: &impl EcdsaKeySend,
-    ) -> Result<(SdJwt, Vec<Disclosure>)> {
-        let kb_jwt_builder = self.kb_jwt_builder.clone().ok_or(Error::MissingKeyBindingJwt)?;
+        let sd_jwt_presentation = SdJwtPresentation {
+            sd_jwt,
+            key_binding_jwt,
+        };
 
-        let (mut sd_jwt, removed_disclosures) = self.finish()?;
-
-        let kb_jwt = kb_jwt_builder.finish(&sd_jwt, hasher, alg, signing_key).await?;
-        sd_jwt.key_binding_jwt = Some(kb_jwt);
-
-        Ok((sd_jwt, removed_disclosures))
+        Ok((sd_jwt_presentation, removed_disclosures))
     }
 }
 
@@ -469,36 +491,35 @@ mod test {
 
     use crate::examples::*;
     use crate::sd_jwt::SdJwt;
+    use crate::sd_jwt::SdJwtPresentation;
 
     #[rstest]
     #[case(SIMPLE_STRUCTURED_SD_JWT)]
     #[case(COMPLEX_STRUCTURED_SD_JWT)]
     #[case(SD_JWT_VC)]
     fn parse_various(#[case] encoded_sd_jwt: &str) {
-        SdJwt::parse(encoded_sd_jwt, &examples_sd_jwt_decoding_key(), None).unwrap();
+        SdJwt::parse(encoded_sd_jwt, &examples_sd_jwt_decoding_key()).unwrap();
     }
 
     #[test]
     fn parse_kb() {
-        SdJwt::parse(
+        SdJwtPresentation::parse(
             WITH_KB_SD_JWT,
             &examples_sd_jwt_decoding_key(),
-            Some(&examples_kb_jwt_decoding_key()),
+            &examples_kb_jwt_decoding_key(),
         )
         .unwrap();
     }
 
     #[test]
     fn parse() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap();
-        dbg!(&sd_jwt);
+        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
         assert_eq!(sd_jwt.disclosures.len(), 2);
-        assert!(sd_jwt.key_binding_jwt.is_none());
     }
 
     #[test]
     fn round_trip_ser_des() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap();
+        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
         assert_eq!(&sd_jwt.to_string(), SIMPLE_STRUCTURED_SD_JWT);
     }
 }

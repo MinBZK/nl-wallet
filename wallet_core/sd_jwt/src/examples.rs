@@ -5,6 +5,7 @@ use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 
 use crate::sd_jwt::SdJwt;
+use crate::sd_jwt::SdJwtPresentation;
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
 pub const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/simple_structured.jwt");
@@ -19,22 +20,22 @@ pub const SD_JWT_VC: &str = include_str!("../examples/sd_jwt/sd_jwt_vc.jwt");
 pub const WITH_KB_SD_JWT: &str = include_str!("../examples/sd_jwt/with_kb.jwt");
 
 pub fn simple_structured_sd_jwt() -> SdJwt {
-    SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap()
+    SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
 }
 
 pub fn complex_structured_sd_jwt() -> SdJwt {
-    SdJwt::parse(COMPLEX_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), None).unwrap()
+    SdJwt::parse(COMPLEX_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
 }
 
 pub fn sd_jwt_vc() -> SdJwt {
-    SdJwt::parse(SD_JWT_VC, &examples_sd_jwt_decoding_key(), None).unwrap()
+    SdJwt::parse(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
 }
 
-pub fn sd_jwt_kb() -> SdJwt {
-    SdJwt::parse(
+pub fn sd_jwt_kb() -> SdJwtPresentation {
+    SdJwtPresentation::parse(
         WITH_KB_SD_JWT,
         &examples_sd_jwt_decoding_key(),
-        Some(&examples_kb_jwt_decoding_key()),
+        &examples_kb_jwt_decoding_key(),
     )
     .unwrap()
 }

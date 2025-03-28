@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use chrono::DateTime;
-use chrono::Utc;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
@@ -18,6 +17,7 @@ use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::key_binding_jwt_claims::KeyBindingJwt;
 use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::sd_jwt::SdJwtPresentation;
 
 async fn make_sd_jwt(object: Value, disclosable_values: impl IntoIterator<Item = &str>) -> (SdJwt, EcdsaDecodingKey) {
     let signing_key = SigningKey::random(&mut OsRng);
@@ -99,7 +99,14 @@ async fn concealing_parent_also_removes_all_sub_disclosures() -> anyhow::Result<
     )
     .await;
 
-    let removed_disclosures = sd_jwt.into_presentation(&hasher)?.conceal("/parent")?.finish()?.1;
+    let signing_key = SigningKey::random(&mut OsRng);
+
+    let removed_disclosures = sd_jwt
+        .into_presentation(make_kb_jwt_builder(), &hasher)?
+        .conceal("/parent")?
+        .finish(Algorithm::ES256, &signing_key)
+        .await?
+        .1;
     assert_eq!(removed_disclosures.len(), 3);
 
     Ok(())
@@ -114,10 +121,13 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     )
     .await;
 
+    let signing_key = SigningKey::random(&mut OsRng);
+
     sd_jwt
-        .into_presentation(&hasher)?
+        .into_presentation(make_kb_jwt_builder(), &hasher)?
         .conceal("/parent/property2/0")?
-        .finish()?;
+        .finish(Algorithm::ES256, &signing_key)
+        .await?;
 
     Ok(())
 }
@@ -128,34 +138,33 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     let (sd_jwt, decoding_key) =
         make_sd_jwt(json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}), []).await;
 
+    println!("{}", sd_jwt);
+
     // Try to serialize & deserialize `sd_jwt`.
     let sd_jwt = {
         let s = sd_jwt.to_string();
-        SdJwt::parse(&s, &decoding_key, None)?
+        SdJwt::parse(&s, &decoding_key)?
     };
 
     assert!(sd_jwt.disclosures().is_empty());
-    assert!(sd_jwt.key_binding_jwt().is_none());
 
     let signing_key = SigningKey::random(&mut OsRng);
     let kb_decoding_key = EcdsaDecodingKey::from(signing_key.verifying_key());
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(&hasher)?
-        .attach_key_binding_jwt(make_kb_jwt_builder())
-        .finish_with_key_binding(&hasher, Algorithm::ES256, &signing_key)
+        .into_presentation(make_kb_jwt_builder(), &hasher)?
+        .finish(Algorithm::ES256, &signing_key)
         .await?
         .0;
 
     // Try to serialize & deserialize `with_kb`.
     let with_kb = {
         let s = disclosed.to_string();
-        SdJwt::parse(&s, &decoding_key, Some(&kb_decoding_key))?
+        SdJwtPresentation::parse(&s, &decoding_key, &kb_decoding_key)?
     };
 
-    assert!(with_kb.disclosures().is_empty());
-    assert!(with_kb.key_binding_jwt().is_some());
+    assert!(with_kb.sd_jwt().disclosures().is_empty());
 
     Ok(())
 }
@@ -170,23 +179,20 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     )
     .await;
 
-    assert!(sd_jwt.key_binding_jwt().is_none());
-
     let signing_key = SigningKey::random(&mut OsRng);
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(&hasher)?
+        .into_presentation(make_kb_jwt_builder(), &hasher)?
         .conceal("/parent/property1")?
-        .attach_key_binding_jwt(make_kb_jwt_builder())
-        .finish_with_key_binding(&hasher, Algorithm::ES256, &signing_key)
+        .finish(Algorithm::ES256, &signing_key)
         .await?
         .0;
 
     let encoded_kb_jwt = disclosed.to_string();
     let (issued_sd_jwt, _kb) = encoded_kb_jwt.rsplit_once("~").unwrap();
 
-    let actual_sd_hash = disclosed.key_binding_jwt().unwrap().claims().sd_hash.clone();
+    let actual_sd_hash = disclosed.key_binding_jwt().claims().sd_hash.clone();
     let expected_sd_hash = hasher.encoded_digest(&format!("{}~", issued_sd_jwt));
 
     assert_eq!(actual_sd_hash, expected_sd_hash);
@@ -220,12 +226,12 @@ async fn test_presentation() -> anyhow::Result<()> {
     let issuer_privkey = SigningKey::random(&mut OsRng);
     println!(
         "issuer_privkey pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(issuer_privkey.verifying_key()).unwrap()).unwrap()
+        serde_json::to_string_pretty(&jwk_from_p256(issuer_privkey.verifying_key())?)?
     );
     let holder_privkey = SigningKey::random(&mut OsRng);
     println!(
         "holder_privkey pubkey: {0}",
-        serde_json::to_string_pretty(&jwk_from_p256(holder_privkey.verifying_key()).unwrap()).unwrap()
+        serde_json::to_string_pretty(&jwk_from_p256(holder_privkey.verifying_key())?)?
     );
 
     // issuer signs SD-JWT
@@ -243,25 +249,20 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     let hasher = Sha256Hasher::new();
 
-    let kb_jwt = KeyBindingJwtBuilder::default()
-        .aud("https://verifier.example.com")
-        .nonce("abcdefghi")
-        .iat(Utc::now());
-
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
     let (presented_sd_jwt, _) = sd_jwt
-        .into_presentation(&hasher)?
+        .into_presentation(make_kb_jwt_builder(), &hasher)?
         .conceal("/email")?
-        .attach_key_binding_jwt(kb_jwt)
-        .finish_with_key_binding(&hasher, Algorithm::ES256, &holder_privkey)
+        .finish(Algorithm::ES256, &holder_privkey)
         .await?;
 
-    SdJwt::parse(
+    println!("{}", &presented_sd_jwt);
+
+    SdJwtPresentation::parse(
         &presented_sd_jwt.to_string(),
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
-        Some(&EcdsaDecodingKey::from(holder_privkey.verifying_key())),
-    )
-    .unwrap();
+        &EcdsaDecodingKey::from(holder_privkey.verifying_key()),
+    )?;
 
     Ok(())
 }

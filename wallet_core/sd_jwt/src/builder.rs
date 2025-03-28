@@ -165,7 +165,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
         let verified_jwt = VerifiedJwt::sign(&claims, &header, signing_key, &sd_jwt_validation()).await?;
 
-        Ok(SdJwt::new(verified_jwt, disclosures, None))
+        Ok(SdJwt::new(verified_jwt, disclosures))
     }
 }
 
