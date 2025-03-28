@@ -9,12 +9,10 @@ use ssri::Integrity;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use sd_jwt_vc_metadata::COSE_METADATA_INTEGRITY_HEADER_LABEL;
 use sd_jwt_vc_metadata::SD_JWT_VC_TYPE_METADATA_KEY;
 
 use crate::iso::*;
 use crate::unsigned::UnsignedMdoc;
-use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
@@ -25,7 +23,8 @@ use crate::Result;
 impl IssuerSigned {
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
-        metadata: (&Integrity, &TypeMetadataDocuments),
+        metadata_integrity: Integrity,
+        metadata_documents: &TypeMetadataDocuments,
         device_public_key: CoseKey,
         key: &KeyPair<impl EcdsaKey>,
     ) -> Result<Self> {
@@ -49,9 +48,10 @@ impl IssuerSigned {
             validity_info: validity,
             issuer_uri: Some(unsigned_mdoc.issuer_uri),
             attestation_qualification: Some(unsigned_mdoc.attestation_qualification),
+            type_metadata_integrity: Some(metadata_integrity),
         };
 
-        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata)?;
+        let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata_documents)?;
 
         let mso_tagged = mso.into();
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
@@ -67,14 +67,10 @@ impl IssuerSigned {
 
     pub(crate) fn create_unprotected_header(
         x5chain: Vec<u8>,
-        (metadata_integrity, metadata_documents): (&Integrity, &TypeMetadataDocuments),
+        metadata_documents: &TypeMetadataDocuments,
     ) -> Result<Header> {
         let header = HeaderBuilder::new()
             .value(COSE_X5CHAIN_HEADER_LABEL, Value::Bytes(x5chain))
-            .text_value(
-                String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL),
-                Value::Text(metadata_integrity.to_string()),
-            )
             .text_value(
                 String::from(SD_JWT_VC_TYPE_METADATA_KEY),
                 Value::serialized(metadata_documents).map_err(CborError::Value)?,
@@ -84,16 +80,8 @@ impl IssuerSigned {
         Ok(header)
     }
 
-    pub fn type_metadata_documents(&self) -> Result<(Integrity, TypeMetadataDocuments)> {
-        let integrity_label = Label::Text(String::from(COSE_METADATA_INTEGRITY_HEADER_LABEL));
+    pub fn type_metadata_documents(&self) -> Result<TypeMetadataDocuments> {
         let documents_label = Label::Text(String::from(SD_JWT_VC_TYPE_METADATA_KEY));
-
-        let metadata_integrity = self
-            .issuer_auth
-            .unprotected_header_item(&integrity_label)?
-            .as_text()
-            .and_then(|text| text.parse().ok())
-            .ok_or(CoseError::MissingLabel(integrity_label))?;
 
         let metadata_documents = self
             .issuer_auth
@@ -101,15 +89,17 @@ impl IssuerSigned {
             .deserialized()
             .map_err(CborError::Value)?;
 
-        Ok((metadata_integrity, metadata_documents))
+        Ok(metadata_documents)
     }
 
     #[cfg(any(test, feature = "test"))]
-    pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>) -> Result<()> {
+    pub async fn resign(&mut self, key: &KeyPair<impl EcdsaKey>, metadata_integrity: Integrity) -> Result<()> {
         let mut mso = self.issuer_auth.dangerous_parse_unverified()?.0;
 
         // Update (fill) the issuer_uri to match the new key
         mso.issuer_uri = Some(key.certificate().san_dns_name_or_uris()?.into_first());
+
+        mso.type_metadata_integrity = Some(metadata_integrity);
 
         self.issuer_auth = MdocCose::sign(&mso.into(), self.issuer_auth.0.unprotected.clone(), key, true).await?;
 
@@ -182,7 +172,8 @@ mod tests {
         let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
         let issuer_signed = IssuerSigned::sign(
             unsigned.clone(),
-            (&metadata_integrity, &metadata_documents),
+            metadata_integrity.clone(),
+            &metadata_documents,
             device_key,
             &issuance_key,
         )
@@ -204,6 +195,13 @@ mod tests {
         assert_eq!(cose_payload.doc_type, unsigned.doc_type);
         assert_eq!(cose_payload.validity_info.valid_from, unsigned.valid_from);
         assert_eq!(cose_payload.validity_info.valid_until, unsigned.valid_until);
+        assert_eq!(cose_payload.type_metadata_integrity, Some(metadata_integrity));
+
+        let received_metadata_documents = issuer_signed
+            .type_metadata_documents()
+            .expect("retrieving type metadata documents from IssuerSigned should succeed");
+
+        assert_eq!(received_metadata_documents, metadata_documents);
 
         // Construct an mdoc so we can use `compare_unsigned()` to check that the attributes have the expected values
         let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(

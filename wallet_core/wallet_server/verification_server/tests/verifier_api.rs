@@ -987,7 +987,8 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
     let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
     let issuer_signed = IssuerSigned::sign(
         unsigned_mdoc,
-        (&metadata_integrity, &metadata_documents),
+        metadata_integrity,
+        &metadata_documents,
         mdoc_public_key,
         &issuer_key_pair,
     )
