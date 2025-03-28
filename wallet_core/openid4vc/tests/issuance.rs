@@ -5,6 +5,7 @@ use assert_matches::assert_matches;
 use chrono::Days;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use rstest::rstest;
@@ -113,7 +114,7 @@ fn setup(
         attr_service,
         attestation_config,
         &server_url,
-        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+        vec![MOCK_WALLET_CLIENT_ID.to_string()],
         Some(WteConfig {
             wte_issuer_pubkey: wte_issuer_privkey.verifying_key().into(),
             wte_tracker: Arc::new(MemoryWteTracker::new()),
@@ -419,6 +420,10 @@ fn invalidate_jwt(jwt: &str) -> String {
 }
 
 impl VcMessageClient for MockOpenidMessageClient {
+    fn client_id(&self) -> &str {
+        MOCK_WALLET_CLIENT_ID
+    }
+
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
         Ok(IssuerMetadata::new_mock(url))
     }
@@ -436,7 +441,11 @@ impl VcMessageClient for MockOpenidMessageClient {
     ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError> {
         let (token_response, dpop_nonce) = self
             .issuer
-            .process_token_request(token_request.clone(), dpop_header.clone())
+            .process_token_request(
+                token_request.clone(),
+                &[self.client_id().to_string()],
+                dpop_header.clone(),
+            )
             .await
             .map_err(|err| IssuanceSessionError::TokenRequest(err.into()))?;
         Ok((token_response, Some(dpop_nonce)))

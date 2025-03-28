@@ -126,9 +126,10 @@ where
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
+    let accepted_wallet_client_ids = &state.issuer.issuer_data.accepted_wallet_client_ids;
     let (response, dpop_nonce) = state
         .issuer
-        .process_token_request(token_request, dpop)
+        .process_token_request(token_request, accepted_wallet_client_ids, dpop)
         .await
         .inspect_err(|error| {
             warn!("processing token request failed: {}", error);

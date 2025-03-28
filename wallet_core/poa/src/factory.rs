@@ -22,7 +22,6 @@ pub trait PoaFactory {
 #[cfg(feature = "mock")]
 pub mod mock {
     use jwt::pop::JwtPopClaims;
-    use jwt::NL_WALLET_CLIENT_ID;
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
@@ -42,7 +41,7 @@ pub mod mock {
             aud: String,
             nonce: Option<String>,
         ) -> Result<Poa, Self::Error> {
-            let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
+            let poa = Poa::new(keys, JwtPopClaims::new(nonce, "mock_wallet_client_id".to_string(), aud)).await?;
 
             Ok(poa)
         }

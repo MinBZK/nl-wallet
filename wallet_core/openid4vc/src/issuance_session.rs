@@ -24,7 +24,6 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::pop::JwtPopClaims;
 use jwt::Jwt;
-use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::holder::IssuedDocumentMismatchError;
 use mdoc::holder::Mdoc;
 use mdoc::identifiers::AttributeIdentifier;
@@ -276,6 +275,7 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
 /// Contract for sending OpenID4VCI protocol messages.
 #[cfg_attr(test, mockall::automock)]
 pub trait VcMessageClient {
+    fn client_id(&self) -> &str;
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError>;
     async fn discover_oauth_metadata(&self, url: &BaseUrl) -> Result<oidc::Config, IssuanceSessionError>;
 
@@ -307,16 +307,21 @@ pub trait VcMessageClient {
 }
 
 pub struct HttpVcMessageClient {
+    client_id: String,
     http_client: reqwest::Client,
 }
 
-impl From<reqwest::Client> for HttpVcMessageClient {
-    fn from(http_client: reqwest::Client) -> Self {
-        Self { http_client }
+impl HttpVcMessageClient {
+    pub fn new(client_id: String, http_client: reqwest::Client) -> Self {
+        Self { client_id, http_client }
     }
 }
 
 impl VcMessageClient for HttpVcMessageClient {
+    fn client_id(&self) -> &str {
+        &self.client_id
+    }
+
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
         let metadata = IssuerMetadata::discover(&self.http_client, url)
             .await
@@ -579,7 +584,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         // Note that N > 0 because self.session_state.credential_previews which we mapped above is NonEmpty<_>.
         let keys_and_proofs = CredentialRequestProof::new_multiple(
             self.session_state.c_nonce.clone(),
-            NL_WALLET_CLIENT_ID.to_string(),
+            self.message_client.client_id().to_string(),
             credential_issuer_identifier.clone(),
             credential_previews.len().try_into().unwrap(),
             key_factory,
@@ -588,7 +593,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         let pop_claims = JwtPopClaims::new(
             Some(self.session_state.c_nonce.clone()),
-            NL_WALLET_CLIENT_ID.to_string(),
+            self.message_client.client_id().to_string(),
             credential_issuer_identifier.as_ref().to_string(),
         );
 
@@ -905,6 +910,7 @@ mod tests {
     use wallet_common::keys::mock_remote::MockRemoteEcdsaKey;
     use wallet_common::keys::mock_remote::MockRemoteKeyFactory;
 
+    use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::token::TokenResponse;
 
     use super::*;
@@ -917,6 +923,10 @@ mod tests {
         mock_msg_client
             .expect_discover_oauth_metadata()
             .returning(|url| Ok(oidc::Config::new_mock(url)));
+        mock_msg_client
+            .expect_client_id()
+            .return_const(MOCK_WALLET_CLIENT_ID.to_string());
+
         mock_msg_client
     }
 

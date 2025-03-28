@@ -23,6 +23,8 @@ use crate::token::CredentialPreview;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
+pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
+
 // We can't use `mockall::automock!` on the `IssuerClient` trait directly since `automock` doesn't accept
 // traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
 

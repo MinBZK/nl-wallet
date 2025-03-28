@@ -28,6 +28,7 @@ use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
+use crate::NL_WALLET_CLIENT_ID;
 
 use super::InstructionClient;
 use super::InstructionError;
@@ -186,6 +187,7 @@ where
                     .collect_vec()
                     .try_into()
                     .unwrap(), // our iterable is a VecAtLeastTwoUnique
+                iss: NL_WALLET_CLIENT_ID.to_string(),
                 aud,
                 nonce,
             })

@@ -4,13 +4,13 @@ use std::sync::Arc;
 use anyhow::Result;
 use axum::Router;
 use hsm::service::Pkcs11Hsm;
+use openid4vc_server::verifier::VerifierFactory;
 use tokio::net::TcpListener;
 use tower_http::validate_request::ValidateRequestHeaderLayer;
 use tracing::info;
 
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
-use openid4vc_server::verifier;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
@@ -43,7 +43,7 @@ where
     check_request_listener_with_settings(&requester_listener, &settings);
     let log_requests = settings.server_settings.log_requests;
 
-    let (wallet_disclosure_router, requester_router) = verifier::create_routers(
+    let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
         settings.server_settings.public_url,
         settings.universal_link_base_url,
         settings.usecases.parse(hsm).await?,
@@ -54,9 +54,9 @@ where
             .iter()
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
-        settings.allow_origins,
-        disclosure_sessions,
-    );
+        settings.wallet_client_ids,
+    )
+    .create_routers(settings.allow_origins, disclosure_sessions);
 
     let requester_router = secure_requester_router(&settings.requester_server, requester_router);
 

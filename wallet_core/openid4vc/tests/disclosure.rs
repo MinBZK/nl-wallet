@@ -11,6 +11,7 @@ use futures::future;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
+use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -106,6 +107,7 @@ async fn disclosure_direct() {
     let disclosed_attrs = auth_response
         .verify(
             &iso_auth_request,
+            &[MOCK_WALLET_CLIENT_ID.to_string()],
             &mdoc_nonce,
             &IsoCertTimeGenerator,
             &[issuer_ca.to_trust_anchor()],
@@ -294,6 +296,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
         let disclosed_attrs = auth_response
             .verify(
                 &self.auth_request.clone().try_into().unwrap(),
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &mdoc_nonce,
                 &IsoCertTimeGenerator,
                 &self.trust_anchors,
@@ -804,11 +807,14 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
     ])
     .into();
 
+    let accepted_wallet_ids = vec![MOCK_WALLET_CLIENT_ID.to_string()];
+
     let verifier = Arc::new(MockVerifier::new(
         usecases,
         Arc::new(MemorySessionStore::default()),
         vec![issuer_ca.to_trust_anchor().to_owned()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+        accepted_wallet_ids,
     ));
 
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)

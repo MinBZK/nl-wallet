@@ -22,6 +22,7 @@ use mdoc::utils::x509::MdocCertificateExtension;
 use openid4vc::credential::MdocCopies;
 use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::token::CredentialPreview;
@@ -54,6 +55,7 @@ use crate::storage::StorageError;
 use crate::storage::WalletEvent;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::WteIssuanceClient;
+use crate::NL_WALLET_CLIENT_ID;
 
 use super::Wallet;
 
@@ -292,7 +294,7 @@ where
         let config = self.config_repository.get();
 
         let (pid_issuer, attestation_previews) = IS::start_issuance(
-            pid_issuer_http_client.into(),
+            HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), pid_issuer_http_client),
             config.pid_issuance.pid_issuer_url.clone(),
             token_request,
             &config.mdoc_trust_anchors(),

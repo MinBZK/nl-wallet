@@ -60,7 +60,10 @@ impl ServerSettings for PidIssuerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default("wallet_client_ids", vec![jwt::NL_WALLET_CLIENT_ID.to_string()])?
+            .set_default(
+                "wallet_client_ids",
+                vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+            )?
             .set_default("brp_server", "http://localhost:3007/")?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,

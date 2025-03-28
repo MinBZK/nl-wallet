@@ -16,7 +16,6 @@ use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use jwt::pop::JwtPopClaims;
-use jwt::NL_WALLET_CLIENT_ID;
 use poa::Poa;
 use poa::POA_JWT_TYP;
 use wallet_account::messages::instructions::ChangePinCommit;
@@ -349,7 +348,7 @@ impl HandleInstruction for ConstructPoa {
 
         // Poa::new() needs a vec of references. We can unwrap because self.key_identifiers is a VecAtLeastTwo.
         let keys = keys.iter().collect_vec().try_into().unwrap();
-        let claims = JwtPopClaims::new(self.nonce, NL_WALLET_CLIENT_ID.to_string(), self.aud);
+        let claims = JwtPopClaims::new(self.nonce, self.iss, self.aud);
         let poa = Poa::new(keys, claims).await?;
 
         Ok(ConstructPoaResult { poa })
@@ -674,6 +673,7 @@ mod tests {
 
         let instruction = ConstructPoa {
             key_identifiers: vec!["key1".to_string(), "key2".to_string()].try_into().unwrap(),
+            iss: "iss".to_string(),
             aud: "aud".to_string(),
             nonce: None,
         };
@@ -690,6 +690,7 @@ mod tests {
 
         let mut validations = validations();
         validations.set_audience(&["aud"]);
+        validations.set_issuer(&["iss"]);
 
         Vec::<Jwt<PoaPayload>>::from(poa)
             .into_iter()

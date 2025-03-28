@@ -59,6 +59,13 @@ pub struct VerifierSettings {
 
     pub universal_link_base_url: BaseUrl,
 
+    /// `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
+    /// i.e., the `client_id` value of a wallet implementation will be constant across all wallets of that
+    /// implementation).
+    /// The wallet sends this value in the authorization request and as the `iss` claim of its Proof of Possession
+    /// JWTs.
+    pub wallet_client_ids: Vec<String>,
+
     #[serde(flatten)]
     pub server_settings: Settings,
 }
@@ -134,7 +141,11 @@ impl ServerSettings for VerifierSettings {
             )?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("requester_server.ip", "0.0.0.0")?
-            .set_default("requester_server.port", 3002)?;
+            .set_default("requester_server.port", 3002)?
+            .set_default(
+                "wallet_client_ids",
+                vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+            )?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
