@@ -808,14 +808,12 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
     ])
     .into();
 
-    let accepted_wallet_ids = vec![MOCK_WALLET_CLIENT_ID.to_string()];
-
     let verifier = Arc::new(MockVerifier::new(
         usecases,
         Arc::new(MemorySessionStore::default()),
         vec![issuer_ca.to_trust_anchor().to_owned()],
         hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
-        accepted_wallet_ids,
+        vec![MOCK_WALLET_CLIENT_ID.to_string()],
     ));
 
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)

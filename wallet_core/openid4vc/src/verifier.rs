@@ -493,7 +493,7 @@ pub struct Verifier<S, K> {
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<TrustAnchor<'static>>,
     ephemeral_id_secret: hmac::Key,
-    accepted_issuers: Vec<String>,
+    accepted_wallet_client_ids: Vec<String>,
 }
 
 impl<S, K> Drop for Verifier<S, K> {
@@ -522,7 +522,7 @@ where
         sessions: Arc<S>,
         trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: hmac::Key,
-        accepted_issuers: Vec<String>,
+        accepted_wallet_client_ids: Vec<String>,
     ) -> Self
     where
         S: Send + Sync + 'static,
@@ -533,7 +533,7 @@ where
             sessions,
             trust_anchors,
             ephemeral_id_secret,
-            accepted_issuers,
+            accepted_wallet_client_ids,
         }
     }
 
@@ -687,8 +687,12 @@ where
     ) -> Result<VpResponse, WithRedirectUri<PostAuthResponseError>> {
         let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
 
-        let (result, next) =
-            session.process_authorization_response(wallet_response, &self.accepted_issuers, time, &self.trust_anchors);
+        let (result, next) = session.process_authorization_response(
+            wallet_response,
+            &self.accepted_wallet_client_ids,
+            time,
+            &self.trust_anchors,
+        );
 
         self.sessions.write(next.into(), false).await.map_err(|err| {
             WithRedirectUri::new(
@@ -1050,7 +1054,7 @@ impl Session<WaitingForResponse> {
     fn process_authorization_response(
         self,
         wallet_response: WalletAuthResponse,
-        accepted_issuers: &[String],
+        accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> (
@@ -1089,7 +1093,7 @@ impl Session<WaitingForResponse> {
             &jwe,
             self.state().encryption_key.as_ref(),
             &self.state().auth_request,
-            accepted_issuers,
+            accepted_wallet_client_ids,
             time,
             trust_anchors,
         ) {
@@ -1241,14 +1245,12 @@ mod tests {
 
         let session_store = Arc::new(MemorySessionStore::default());
 
-        let accepted_wallet_ids = vec![MOCK_WALLET_CLIENT_ID.to_string()];
-
         Verifier::new(
             use_cases,
             session_store,
             trust_anchors,
             hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
-            accepted_wallet_ids,
+            vec![MOCK_WALLET_CLIENT_ID.to_string()],
         )
     }
 

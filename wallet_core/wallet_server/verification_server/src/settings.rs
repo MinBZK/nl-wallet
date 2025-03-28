@@ -31,6 +31,7 @@ use server_utils::settings::KeyPair;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
+use server_utils::settings::NL_WALLET_CLIENT_ID;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::CorsOrigin;
@@ -142,10 +143,7 @@ impl ServerSettings for VerifierSettings {
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("requester_server.ip", "0.0.0.0")?
             .set_default("requester_server.port", 3002)?
-            .set_default(
-                "wallet_client_ids",
-                vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
-            )?;
+            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.

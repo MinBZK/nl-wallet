@@ -681,13 +681,19 @@ impl VpAuthorizationResponse {
         jwe: &str,
         private_key: &EcKeyPair,
         auth_request: &IsoVpAuthorizationRequest,
-        accepted_issuers: &[String],
+        accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
-        response.verify(auth_request, accepted_issuers, &mdoc_nonce, time, trust_anchors)
+        response.verify(
+            auth_request,
+            accepted_wallet_client_ids,
+            &mdoc_nonce,
+            time,
+            trust_anchors,
+        )
     }
 
     pub fn decrypt(
@@ -749,7 +755,7 @@ impl VpAuthorizationResponse {
     pub fn verify(
         &self,
         auth_request: &IsoVpAuthorizationRequest,
-        accepted_issuers: &[String],
+        accepted_wallet_client_ids: &[String],
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -774,7 +780,7 @@ impl VpAuthorizationResponse {
             self.poa.as_ref().ok_or(AuthResponseError::MissingPoa)?.clone().verify(
                 &used_keys,
                 auth_request.client_id.as_str(),
-                accepted_issuers,
+                accepted_wallet_client_ids,
                 mdoc_nonce,
             )?
         }
@@ -1282,7 +1288,6 @@ mod tests {
     #[tokio::test]
     async fn test_verify_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let expected_issuer = MOCK_WALLET_CLIENT_ID;
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
@@ -1299,7 +1304,7 @@ mod tests {
         auth_response
             .verify(
                 &auth_request,
-                &[expected_issuer.to_string()],
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
                 mdoc_nonce,
                 &TimeGenerator,
                 trust_anchors,
@@ -1310,7 +1315,6 @@ mod tests {
     #[tokio::test]
     async fn test_verify_missing_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let expected_issuer = MOCK_WALLET_CLIENT_ID;
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
@@ -1327,7 +1331,7 @@ mod tests {
         let error = auth_response
             .verify(
                 &auth_request,
-                &[expected_issuer.to_string()],
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
                 mdoc_nonce,
                 &TimeGenerator,
                 trust_anchors,
@@ -1339,7 +1343,6 @@ mod tests {
     #[tokio::test]
     async fn test_verify_invalid_poa() {
         let mdoc_nonce = "mdoc_nonce";
-        let expected_issuer = MOCK_WALLET_CLIENT_ID;
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
         let (issuer_signed_and_keys, auth_request) = setup_poa_test(&ca).await;
@@ -1359,7 +1362,7 @@ mod tests {
         let error = auth_response
             .verify(
                 &auth_request,
-                &[expected_issuer.to_string()],
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
                 mdoc_nonce,
                 &TimeGenerator,
                 trust_anchors,
