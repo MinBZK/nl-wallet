@@ -55,12 +55,12 @@ struct ApplicationState<S, K> {
 }
 
 pub struct VerifierFactory<K> {
-    pub public_url: BaseUrl,
-    pub universal_link_base_url: BaseUrl,
-    pub use_cases: UseCases<K>,
-    pub ephemeral_id_secret: hmac::Key,
-    pub issuer_trust_anchors: Vec<TrustAnchor<'static>>,
-    pub accepted_wallet_client_ids: Vec<String>,
+    public_url: BaseUrl,
+    universal_link_base_url: BaseUrl,
+    use_cases: UseCases<K>,
+    ephemeral_id_secret: hmac::Key,
+    issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+    accepted_wallet_client_ids: Vec<String>,
 }
 
 impl<K> VerifierFactory<K> {
