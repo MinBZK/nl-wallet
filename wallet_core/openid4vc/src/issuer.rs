@@ -349,7 +349,7 @@ pub struct IssuerData<K, W> {
     credential_issuer_identifier: BaseUrl,
 
     /// Wallet IDs accepted by this server, MUST be used by the wallet as `iss` in its PoP JWTs.
-    pub accepted_wallet_client_ids: Vec<String>,
+    accepted_wallet_client_ids: Vec<String>,
 
     /// URL prefix of the `/token`, `/credential` and `/batch_crededential` endpoints.
     server_url: BaseUrl,
