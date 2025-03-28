@@ -1,40 +1,22 @@
 {
-  "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "name": "NL Wallet PID credential",
-  "description": "Working version of the NL Wallet PID credential",
-  "display": [
-    {
-      "lang": "en-US",
-      "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet"
-    }
-  ],
+  "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
+  "name": "NL Wallet PID credential v3",
+  "description": "Working version of the NL Wallet PID credential v3",
+  "extends": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
+  "extends#integrity": "sha256-THQwB8Evn+RS1IdpM/NmUllokJXUQtCIN+nzasA0XFU=",
   "claims": [
     {
       "path": [
         "birth_date"
       ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Birth date",
-          "description": "Birth date of the person"
-        }
-      ],
-      "svg_id": "identifier"
+      "sd": "always"
     },
     {
       "path": [
         "place_of_birth",
         "locality"
       ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Locality"
-        }
-      ],
-      "sd": "allowed"
+      "sd": "always"
     },
     {
       "path": [
@@ -42,13 +24,7 @@
         "country",
         "name"
       ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Country"
-        }
-      ],
-      "sd": "allowed"
+      "sd": "always"
     },
     {
       "path": [
@@ -56,62 +32,54 @@
         "country",
         "area_code"
       ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Country area code"
-        }
+      "sd": "never"
+    },
+    {
+      "path": [
+        "place_of_birth",
+        "country",
+        "is_eu_member"
       ],
-      "sd": "allowed"
+      "sd": "never"
     },
     {
       "path": [
         "financial",
         "has_debt"
       ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Has debt"
-        }
-      ],
-      "sd": "allowed"
-    },
-    {
-      "path": [
-        "financial",
-        "has_job"
-      ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Has job"
-        }
-      ],
-      "sd": "allowed"
+      "sd": "always"
     },
     {
       "path": [
         "financial",
         "debt_amount"
       ],
-      "display": [
-        {
-          "lang": "en-US",
-          "label": "Debt amount"
-        }
+      "sd": "always"
+    },
+    {
+      "path": [
+        "financial",
+        "has_job"
       ],
-      "sd": "allowed"
+      "sd": "always"
+    },
+    {
+      "path": [
+        "nickname"
+      ],
+      "sd": "always",
+      "svg_id": "identifier"
     }
   ],
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet PID VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet PID VCT",
+    "title": "NL Wallet extended PID VCT Schema",
+    "description": "The JSON schema that defines the NL Wallet extended PID VCT",
     "type": "object",
     "properties": {
       "birth_date": {
-        "type": "string"
+        "type": "string",
+        "format": "date"
       },
       "place_of_birth": {
         "type": "object",
@@ -127,6 +95,9 @@
               },
               "area_code": {
                 "type": "integer"
+              },
+              "is_eu_member": {
+                "type": "boolean"
               }
             }
           }
@@ -146,6 +117,9 @@
           }
         }
       },
+      "nickname": {
+        "type": "string"
+      },
       "vct": {
         "type": "string"
       },
@@ -163,16 +137,12 @@
       },
       "nbf": {
         "type": "number"
-      },
-      "attestation_qualification": {
-        "type": "string"
       }
     },
     "required": [
       "vct",
       "iss",
-      "iat",
-      "attestation_qualification"
+      "iat"
     ]
   }
 }

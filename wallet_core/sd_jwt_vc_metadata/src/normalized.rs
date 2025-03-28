@@ -1,0 +1,520 @@
+use std::collections::HashMap;
+use std::mem;
+
+use itertools::Either;
+use itertools::Itertools;
+
+use wallet_common::vec_at_least::VecNonEmpty;
+
+use crate::metadata::ClaimDisplayMetadata;
+use crate::metadata::ClaimMetadata;
+use crate::metadata::ClaimPath;
+use crate::metadata::ClaimSelectiveDisclosureMetadata;
+use crate::metadata::DisplayMetadata;
+use crate::metadata::JsonSchema;
+use crate::metadata::SchemaOption;
+use crate::metadata::TypeMetadata;
+use crate::metadata::UncheckedTypeMetadata;
+
+#[derive(Debug, thiserror::Error)]
+pub enum NormalizedTypeMetadataError {
+    #[error(
+        "claim selective disclosure option is inconsistent for vct \"{}\" at path {}",
+        .0,
+        ClaimMetadata::path_to_string(.1.as_ref())
+    )]
+    InconsistentSelectiveDisclosure(String, VecNonEmpty<ClaimPath>),
+
+    #[error(
+        "metadata extension for vct \"{}\" missing claim(s) at path(s) {}",
+        .0,
+        .1.iter().map(|path| ClaimMetadata::path_to_string(path.as_ref())).join(", ")
+    )]
+    ExtensionMissingClaims(String, Vec<VecNonEmpty<ClaimPath>>),
+
+    #[error("JSON schema is not embedded for vct \"{0}\"")]
+    NoEmbeddedSchema(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct NormalizedTypeMetadata {
+    pub vcts: Vec<String>,
+    pub display: Vec<DisplayMetadata>,
+    pub claims: Vec<ClaimMetadata>,
+    pub schemas: Vec<JsonSchema>,
+}
+
+impl NormalizedTypeMetadata {
+    /// Attempt to combine all of the SD-JWT VC type metadata in a chain into a single [`NormalizedTypeMetadata`], which
+    /// can then be used to both validate a received attestation and convert it to a display representation.
+    pub fn try_from_metadata_chain(chain: VecNonEmpty<TypeMetadata>) -> Result<Self, NormalizedTypeMetadataError> {
+        let mut chain = chain.into_inner();
+        let chain_length = chain.len();
+
+        // Extract the root metadata document, which is at the end of the chain. This is guaranteed to succeed because
+        // of the use of `VecNonEmpty`.
+        let UncheckedTypeMetadata {
+            vct: root_vct,
+            display: root_display,
+            claims: root_claims,
+            schema: root_schema,
+            ..
+        } = chain.pop().unwrap().into_inner();
+
+        // Extract some properties of each of the metadata documents into individual vectors, two of which cover the
+        // entire chain while the other two skip the root document.
+        let mut vcts = Vec::with_capacity(chain_length);
+        let mut schemas = Vec::with_capacity(chain_length);
+
+        let (display_extensions, claims_extensions): (Vec<_>, Vec<_>) = chain
+            .into_iter()
+            .map(|metadata| {
+                let metadata = metadata.into_inner();
+
+                vcts.push(metadata.vct);
+                schemas.push(metadata.schema);
+
+                (metadata.display, metadata.claims)
+            })
+            .unzip();
+
+        vcts.push(root_vct);
+        schemas.push(root_schema);
+
+        // Merge the display properties of all of the documents, going from the root to the leaf.
+        let display = display_extensions
+            .into_iter()
+            .rev()
+            .fold(root_display, extend_display_properties);
+
+        // Merge the claims of all of the documents, going from the root to the leaf.
+        let claims = claims_extensions.into_iter().enumerate().rev().try_fold(
+            root_claims,
+            |normalized_claims, (index, extending_claims)| {
+                ClaimMetadata::extend_claims(normalized_claims, &vcts[index], extending_claims)
+            },
+        )?;
+
+        // Check if all of the JSON schemas are embedded and extract them.
+        let schemas = schemas
+            .into_iter()
+            .zip(vcts.iter())
+            .map(|(schema, vct)| match schema {
+                SchemaOption::Embedded { schema } => Ok(*schema),
+                _ => Err(NormalizedTypeMetadataError::NoEmbeddedSchema(vct.clone())),
+            })
+            .try_collect()?;
+
+        let normalized = Self {
+            vcts,
+            display,
+            claims,
+            schemas,
+        };
+
+        Ok(normalized)
+    }
+}
+
+impl ClaimMetadata {
+    /// Extend a vector of [`ClaimMetadata`] with another one. The extending vector must contain a superset of the claim
+    /// paths contained in the extended vector. Each claim in the extended vector will have both its `display` and `sd`
+    /// fields combined, according to the logic below. The `svg_id` field is simply overwritten by the extending claim.
+    fn extend_claims(
+        extended_claims: Vec<Self>,
+        extending_vct: &str,
+        extending_claims: Vec<Self>,
+    ) -> Result<Vec<Self>, NormalizedTypeMetadataError> {
+        // Convert the extended claims vector to a map, keyed by its original index. The entries will be consumed later.
+        let mut extended_claims_by_index = extended_claims.into_iter().enumerate().collect::<HashMap<_, _>>();
+
+        // Create a map of claim paths to indices into the original extended claims vector. We use this layer of
+        // indirection through the indices so we can use a reference to the claim path as the key.
+        let mut extended_index_by_path = extended_claims_by_index
+            .iter()
+            .map(|(index, claim)| (claim.path.as_ref(), *index))
+            .collect::<HashMap<_, _>>();
+
+        // For each extending claim, find the index into the extended claims vector that match the path, if present.
+        let found_extended_indices = extending_claims
+            .iter()
+            .map(|extending_claim| extended_index_by_path.remove(extending_claim.path.as_ref()))
+            .collect_vec();
+
+        // Finally combine the extended claims vector with the found indices to create a new vector with the merged
+        // result, extending the the individual claims if present.
+        let extending_claims = extending_claims
+            .into_iter()
+            .zip(found_extended_indices)
+            .map(|(extending_claim, extended_index)| {
+                let extended_claim = extended_index.and_then(|index| extended_claims_by_index.remove(&index));
+                if let Some(extended_claim) = extended_claim {
+                    // The display entries for the claim are merged according to the logic described below.
+                    let display = extend_display_properties(extended_claim.display, extending_claim.display);
+
+                    // The selective disclosure option is updated, if the extended option was not already restricive.
+                    let sd = ClaimSelectiveDisclosureMetadata::extend(extended_claim.sd, extending_claim.sd).ok_or(
+                        NormalizedTypeMetadataError::InconsistentSelectiveDisclosure(
+                            extending_vct.to_string(),
+                            extended_claim.path,
+                        ),
+                    )?;
+
+                    // The `svg_id`` is simply overwritten by the extending claim.
+                    let svg_id = extending_claim.svg_id;
+
+                    let claim = Self {
+                        path: extending_claim.path,
+                        display,
+                        sd,
+                        svg_id,
+                    };
+
+                    Ok(claim)
+                } else {
+                    Ok(extending_claim)
+                }
+            })
+            .try_collect()?;
+
+        // All extended claims should have been consumed now, otherwise return an error.
+        if !extended_claims_by_index.is_empty() {
+            let missing_paths = extended_claims_by_index
+                .into_iter()
+                .sorted_by_key(|(index, _)| *index)
+                .map(|(_, claim)| claim.path)
+                .collect();
+
+            return Err(NormalizedTypeMetadataError::ExtensionMissingClaims(
+                extending_vct.to_string(),
+                missing_paths,
+            ));
+        }
+
+        Ok(extending_claims)
+    }
+}
+
+impl ClaimSelectiveDisclosureMetadata {
+    /// Attempt to overwrite one [`ClaimSelectiveDisclosureMetadata`] with another and return the result if possible, or
+    /// `None` if the original value was already restrictive and the new one changes it.
+    fn extend(extended_sd: Self, extending_sd: Self) -> Option<Self> {
+        match (extended_sd, extending_sd) {
+            (extended_sd, extending_sd) if extended_sd == extending_sd => Some(extending_sd),
+            (Self::Allowed, extending_sd) => Some(extending_sd),
+            _ => None,
+        }
+    }
+}
+
+trait HasLanguage {
+    fn language(&self) -> &str;
+}
+
+impl HasLanguage for DisplayMetadata {
+    fn language(&self) -> &str {
+        &self.lang
+    }
+}
+
+impl HasLanguage for ClaimDisplayMetadata {
+    fn language(&self) -> &str {
+        &self.lang
+    }
+}
+
+/// Generic function for extending one vector of either [`DisplayMetadata`] or [`ClaimDisplayMetadata`] entries with
+/// another. Entries in the extended vector with the same language as those in the extending vector will be overwritten,
+/// maintaining the original order of the extended vector. Entries with new languages will be appended after those,
+/// according to the order of the extending vector.
+fn extend_display_properties<T>(mut extended_display: Vec<T>, extending_display: Vec<T>) -> Vec<T>
+where
+    T: HasLanguage,
+{
+    // First, build a map of languages to indices into the extended vector. We use this layer of indirection through the
+    // indices so we can use a reference to the language as the key.
+    let index_by_language = extended_display
+        .iter()
+        .enumerate()
+        .map(|(index, display)| (display.language(), index))
+        .collect::<HashMap<_, _>>();
+
+    // Sort the entries of the extending vector into two groups, one for those replacing an entry in the extended vector
+    // (along with the relevant index) and another for those that have new languages.
+    let (to_be_replaced, to_be_added): (Vec<_>, Vec<_>) = extending_display.into_iter().partition_map(|display| {
+        if let Some(index) = index_by_language.get(display.language()) {
+            Either::Left((*index, display))
+        } else {
+            Either::Right(display)
+        }
+    });
+
+    // Overwrite the entries in the first group...
+    for (index, display) in to_be_replaced {
+        let _ = mem::replace(&mut extended_display[index], display);
+    }
+
+    // ...and append the second group.
+    extended_display.extend(to_be_added);
+
+    extended_display
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use itertools::Itertools;
+    use rstest::rstest;
+    use ssri::Integrity;
+
+    use wallet_common::vec_at_least::VecNonEmpty;
+
+    use crate::metadata::ClaimMetadata;
+    use crate::metadata::ClaimPath;
+    use crate::metadata::ClaimSelectiveDisclosureMetadata;
+    use crate::metadata::JsonSchema;
+    use crate::metadata::SchemaOption;
+    use crate::metadata::TypeMetadata;
+    use crate::metadata::UncheckedTypeMetadata;
+
+    use super::NormalizedTypeMetadata;
+    use super::NormalizedTypeMetadataError;
+
+    fn type_metadata_with_extensions() -> VecNonEmpty<TypeMetadata> {
+        vec![
+            TypeMetadata::example_v3(),
+            TypeMetadata::example_v2(),
+            TypeMetadata::example(),
+        ]
+        .try_into()
+        .unwrap()
+    }
+
+    fn all_claim_paths(claims: &[ClaimMetadata]) -> Vec<&[ClaimPath]> {
+        claims.iter().map(|claim| claim.path.as_ref()).collect()
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_try_from_metadata_chain() {
+        let normalized = NormalizedTypeMetadata::try_from_metadata_chain(type_metadata_with_extensions())
+            .expect("normalizing SD-JWT VC type metadata chain should succeed");
+
+        let metadata = TypeMetadata::example();
+        let metadata_v2 = TypeMetadata::example_v2();
+        let metadata_v3 = TypeMetadata::example_v3();
+
+        // The vcts should be ordered from leaf to root.
+        assert_eq!(
+            normalized.vcts,
+            vec![
+                metadata_v3.as_ref().vct.as_str(),
+                metadata_v2.as_ref().vct.as_str(),
+                metadata.as_ref().vct.as_str()
+            ]
+        );
+
+        // The metadata display values should be merged, with existing values being updated and new values appended.
+        assert_eq!(normalized.display.len(), 2);
+        assert_ne!(normalized.display[0], metadata.as_ref().display[0]);
+        assert_eq!(normalized.display[0], metadata_v2.as_ref().display[1]);
+        assert_eq!(normalized.display[1], metadata_v2.as_ref().display[0]);
+
+        // The claim paths should be in the same order as they are in the leaf extension.
+        assert_ne!(
+            all_claim_paths(&normalized.claims),
+            all_claim_paths(&metadata.as_ref().claims)
+        );
+        assert_ne!(
+            all_claim_paths(&normalized.claims),
+            all_claim_paths(&metadata_v2.as_ref().claims)
+        );
+        assert_eq!(
+            all_claim_paths(&normalized.claims),
+            all_claim_paths(&metadata_v3.as_ref().claims)
+        );
+
+        // All of the claims should have their selective disclosure state changed to a more strict option.
+        assert!(!normalized
+            .claims
+            .iter()
+            .any(|claim| claim.sd == ClaimSelectiveDisclosureMetadata::Allowed));
+
+        // All of the claims should have their "svg_id" property overwritten by the extension.
+        assert!(normalized
+            .claims
+            .iter()
+            .find(|claim| claim.path.as_ref() == vec![ClaimPath::SelectByKey("birth_date".to_string())])
+            .unwrap()
+            .svg_id
+            .is_none());
+        assert_eq!(
+            normalized
+                .claims
+                .iter()
+                .find(|claim| claim.path.as_ref() == vec![ClaimPath::SelectByKey("nickname".to_string())])
+                .unwrap()
+                .svg_id
+                .as_deref(),
+            Some("identifier")
+        );
+
+        // The JSON schemas should be ordered from leaf to root.
+        assert_eq!(normalized.schemas.len(), 3);
+        assert_eq!(
+            normalized.schemas.iter().collect_vec(),
+            vec![
+                &metadata_v3.as_ref().schema,
+                &metadata_v2.as_ref().schema,
+                &metadata.as_ref().schema
+            ]
+            .into_iter()
+            .map(|schema_option| match schema_option {
+                SchemaOption::Embedded { schema } => schema.as_ref(),
+                _ => unreachable!(),
+            })
+            .collect_vec()
+        );
+    }
+
+    fn claim_with_sd(sd: ClaimSelectiveDisclosureMetadata) -> ClaimMetadata {
+        ClaimMetadata {
+            path: vec![ClaimPath::SelectByKey("path".to_string())].try_into().unwrap(),
+            display: vec![],
+            sd,
+            svg_id: None,
+        }
+    }
+
+    fn test_claim_metadata_extend_claims_selective_disclosure_ok(
+        extended_sd: ClaimSelectiveDisclosureMetadata,
+        extending_sd: ClaimSelectiveDisclosureMetadata,
+        expected_sd: ClaimSelectiveDisclosureMetadata,
+    ) {
+        let claims = ClaimMetadata::extend_claims(
+            vec![claim_with_sd(extended_sd)],
+            "test",
+            vec![claim_with_sd(extending_sd)],
+        )
+        .expect("extending claims should succeed");
+
+        assert_eq!(claims[0].sd, expected_sd);
+    }
+
+    #[rstest]
+    fn test_claim_metadata_extend_claims_selective_disclosure_unchanged(
+        #[values(
+            ClaimSelectiveDisclosureMetadata::Always,
+            ClaimSelectiveDisclosureMetadata::Allowed,
+            ClaimSelectiveDisclosureMetadata::Never
+        )]
+        sd: ClaimSelectiveDisclosureMetadata,
+    ) {
+        test_claim_metadata_extend_claims_selective_disclosure_ok(sd, sd, sd);
+    }
+
+    #[rstest]
+    fn test_claim_metadata_extend_claims_selective_disclosure_more_strict(
+        #[values(ClaimSelectiveDisclosureMetadata::Always, ClaimSelectiveDisclosureMetadata::Never)]
+        sd: ClaimSelectiveDisclosureMetadata,
+    ) {
+        test_claim_metadata_extend_claims_selective_disclosure_ok(ClaimSelectiveDisclosureMetadata::Allowed, sd, sd);
+    }
+
+    #[rstest]
+    #[case(ClaimSelectiveDisclosureMetadata::Always, ClaimSelectiveDisclosureMetadata::Allowed)]
+    #[case(ClaimSelectiveDisclosureMetadata::Never, ClaimSelectiveDisclosureMetadata::Allowed)]
+    #[case(ClaimSelectiveDisclosureMetadata::Always, ClaimSelectiveDisclosureMetadata::Never)]
+    #[case(ClaimSelectiveDisclosureMetadata::Never, ClaimSelectiveDisclosureMetadata::Always)]
+    fn test_claim_metadata_extend_claims_error_inconsistent_selective_disclosure(
+        #[case] extended_sd: ClaimSelectiveDisclosureMetadata,
+        #[case] extending_sd: ClaimSelectiveDisclosureMetadata,
+    ) {
+        let error = ClaimMetadata::extend_claims(
+            vec![claim_with_sd(extended_sd)],
+            "inconsistent_sd",
+            vec![claim_with_sd(extending_sd)],
+        )
+        .expect_err("extending claims should not succeed");
+
+        let expected_path = VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path".to_string())]).unwrap();
+        assert_matches!(
+            error,
+            NormalizedTypeMetadataError::InconsistentSelectiveDisclosure(vct, path)
+                if vct == "inconsistent_sd" && path == expected_path
+        );
+    }
+
+    fn claim_with_single_key_path(path: String) -> ClaimMetadata {
+        ClaimMetadata {
+            path: vec![ClaimPath::SelectByKey(path)].try_into().unwrap(),
+            display: vec![],
+            sd: ClaimSelectiveDisclosureMetadata::default(),
+            svg_id: None,
+        }
+    }
+
+    #[test]
+    fn test_claim_metadata_extend_claims_error_extension_missing_claims() {
+        let error = ClaimMetadata::extend_claims(
+            vec![
+                claim_with_single_key_path("path1".to_string()),
+                claim_with_single_key_path("path2".to_string()),
+                claim_with_single_key_path("path3".to_string()),
+            ],
+            "missing_claims",
+            vec![
+                claim_with_single_key_path("path4".to_string()),
+                claim_with_single_key_path("path2".to_string()),
+            ],
+        )
+        .expect_err("extending claims should not succeed");
+
+        let expected_paths = vec![
+            VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path1".to_string())]).unwrap(),
+            VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path3".to_string())]).unwrap(),
+        ];
+        assert_matches!(
+            error,
+            NormalizedTypeMetadataError::ExtensionMissingClaims(vct, paths)
+                if vct == "missing_claims" && paths == expected_paths
+        );
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_error_no_embedded_schema() {
+        let metadata1 = UncheckedTypeMetadata {
+            vct: "metadata_1".to_string(),
+            name: None,
+            description: None,
+            extends: None,
+            display: vec![],
+            claims: vec![],
+            schema: SchemaOption::Embedded {
+                schema: Box::new(JsonSchema::example_with_claim_names(&[])),
+            },
+        };
+        let metadata2 = UncheckedTypeMetadata {
+            vct: "metadata_2".to_string(),
+            schema: SchemaOption::Remote {
+                schema_uri: "https://example.com/schema.json".parse().unwrap(),
+                schema_uri_integrity: Integrity::from("").into(),
+            },
+            ..metadata1.clone()
+        };
+        let metadata3 = UncheckedTypeMetadata {
+            vct: "metadata_3".to_string(),
+            ..metadata1.clone()
+        };
+        let chain = vec![metadata1, metadata2, metadata3]
+            .into_iter()
+            .map(|metadata| TypeMetadata::try_new(metadata).unwrap())
+            .collect_vec()
+            .try_into()
+            .unwrap();
+
+        let error = NormalizedTypeMetadata::try_from_metadata_chain(chain)
+            .expect_err("normalizing SD-JWT VC type metadata chain should not succeed");
+
+        assert_matches!(error, NormalizedTypeMetadataError::NoEmbeddedSchema(vct) if vct == "metadata_2");
+    }
+}

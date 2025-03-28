@@ -1,22 +1,35 @@
 {
   "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
-  "name": "NL Wallet extended PID credential",
-  "description": "Working version of the NL Wallet extended PID credential",
+  "name": "NL Wallet PID credential v2",
+  "description": "Working version of the NL Wallet PID credential v2",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-wVuuSExXp2uBk9BWJ7ysb29sn5T0s3q9JufddBVumjE=",
+  "extends#integrity": "sha256-r5+CzdMSEURESaC/QvHz0vpszA5CKLuoI5TGuyaNlH4=",
   "display": [
-    {
-      "lang": "en-US",
-      "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet, part 2"
-    },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet"
+    },
+    {
+      "lang": "en-US",
+      "name": "NL Wallet personal data",
+      "description": "The personal data credential for the NL Wallet"
     }
   ],
   "claims": [
+    {
+      "path": [
+        "nickname"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Cool nickname"
+        }
+      ],
+      "sd": "always",
+      "svg_id": "identifier"
+    },
     {
       "path": [
         "birth_date"
@@ -33,6 +46,47 @@
     {
       "path": [
         "place_of_birth",
+        "locality"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Locality"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "place_of_birth",
+        "country",
+        "name"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country"
+        }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": [
+        "place_of_birth",
+        "country",
+        "area_code"
+      ],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country area code"
+        }
+      ],
+      "sd": "never"
+    },
+    {
+      "path": [
+        "place_of_birth",
         "country",
         "is_eu_member"
       ],
@@ -42,17 +96,17 @@
           "label": "Country is a member of the EU"
         }
       ],
-      "sd": "always"
+      "sd": "never"
     },
     {
       "path": [
         "financial",
-        "has_job"
+        "has_debt"
       ],
       "display": [
         {
           "lang": "en-US",
-          "label": "Is gainfully employed"
+          "label": "Has debt"
         }
       ],
       "sd": "always"
@@ -72,12 +126,13 @@
     },
     {
       "path": [
-        "nickname"
+        "financial",
+        "has_job"
       ],
       "display": [
         {
           "lang": "en-US",
-          "label": "Cool nickname"
+          "label": "Is gainfully employed"
         }
       ],
       "sd": "always"
@@ -90,8 +145,7 @@
     "type": "object",
     "properties": {
       "birth_date": {
-        "type": "string",
-        "format": "date"
+        "type": "string"
       },
       "place_of_birth": {
         "type": "object",

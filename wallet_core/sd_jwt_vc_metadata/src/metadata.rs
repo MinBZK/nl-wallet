@@ -365,7 +365,7 @@ pub struct ClaimMetadata {
 }
 
 impl ClaimMetadata {
-    fn path_to_string(path: &[ClaimPath]) -> String {
+    pub(crate) fn path_to_string(path: &[ClaimPath]) -> String {
         path.iter().fold(String::new(), |mut output, path| {
             let _ = write!(output, "[{path}]");
             output
@@ -397,7 +397,7 @@ impl Display for ClaimMetadata {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ClaimPath {
     SelectByKey(String),
@@ -431,7 +431,7 @@ impl Display for ClaimPath {
     }
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClaimSelectiveDisclosureMetadata {
     Always,
@@ -457,8 +457,9 @@ mod example_constructors {
     use crypto::utils::random_string;
 
     use crate::examples::ADDRESS_METADATA_BYTES;
-    use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::EXAMPLE_V2_METADATA_BYTES;
+    use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
 
     use super::ClaimDisplayMetadata;
@@ -543,8 +544,12 @@ mod example_constructors {
             serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
         }
 
-        pub fn example_extension() -> Self {
-            serde_json::from_slice(EXAMPLE_EXTENSION_METADATA_BYTES).unwrap()
+        pub fn example_v2() -> Self {
+            serde_json::from_slice(EXAMPLE_V2_METADATA_BYTES).unwrap()
+        }
+
+        pub fn example_v3() -> Self {
+            serde_json::from_slice(EXAMPLE_V3_METADATA_BYTES).unwrap()
         }
 
         pub fn pid_example() -> Self {
@@ -557,7 +562,7 @@ mod example_constructors {
     }
 
     impl JsonSchema {
-        fn example_with_claim_names(
+        pub fn example_with_claim_names(
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
             let properties = JsonSchemaProperties {
@@ -697,7 +702,7 @@ mod test {
     #[case("2004-12-25")]
     #[case("2024-02-29")]
     fn test_schema_validation_date_format_happy(#[case] date_str: &str) {
-        let metadata = TypeMetadata::example();
+        let metadata = TypeMetadata::example_v3();
 
         let claims = json!({
             "vct": "https://credentials.example.com/identity_credential",
@@ -714,7 +719,7 @@ mod test {
     #[case("2025-02-29")]
     #[case("01-01-2000")]
     fn test_schema_validation_date_format_error(#[case] date_str: &str) {
-        let metadata = TypeMetadata::example();
+        let metadata = TypeMetadata::example_v3();
 
         let claims = json!({
             "vct": "https://credentials.example.com/identity_credential",
