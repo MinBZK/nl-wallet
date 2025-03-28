@@ -1,0 +1,33 @@
+{{ $matchComponent := print .Values.networkPolicy.matchComponent }}
+{{ if not .Values.pooling.enabled }}
+  {{ $matchComponent = print "postgres" }}
+{{ end }}
+kind: NetworkPolicy
+apiVersion: {{ include "common.capabilities.networkPolicy.apiVersion" . }}
+metadata:
+  name: "{{ .Release.Name }}-access-db"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: "{{ .Release.Name }}-{{ $matchComponent }}"
+  {{- with .Values.networkPolicy.postgres.ingress }}
+  ingress:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+---
+kind: NetworkPolicy
+apiVersion: {{ include "common.capabilities.networkPolicy.apiVersion" . }}
+metadata:
+  name: "{{ .Release.Name }}-access-postgres-minio"
+spec:
+  podSelector:
+    {{- with .Values.networkPolicy.minio.podSelector.matchLabels }}
+    matchLabels:
+    {{- toYaml . | nindent 6 }}
+    {{- end }}
+
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: "{{ .Release.Name }}-postgres"

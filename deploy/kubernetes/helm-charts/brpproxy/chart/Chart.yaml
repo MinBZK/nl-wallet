@@ -1,0 +1,15 @@
+apiVersion: v2
+name: brpproxy
+description: A Helm chart for brpproxy
+
+type: application
+
+version: 0.3.0
+
+appVersion: "2.1.2"
+
+
+dependencies:
+  - name: sp-common
+    repository: "file://../../sp-common"
+    version: 1.x.x

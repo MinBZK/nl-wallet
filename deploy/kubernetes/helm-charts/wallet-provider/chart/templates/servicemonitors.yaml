@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: wallet-provider-servicemonitor
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  endpoints:
+    - interval: 10s
+      port: wallet-provider-health-http
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,168 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Annotations
+## Annotations for the Kubernetes resources
+## @param annotations Key-value pairs for annotations
+##
+annotations: {}
+
+## @section Database configuration
+## Parameters for the database configuration
+## @param database.name Name of the default database
+##
+database:
+  name: "app"
+
+## @param name String to override Cluster name, default is database name
+##
+name: null
+
+## @section Common parameters
+## Number of replicas
+## @param replicaCount Number of replicas
+##
+replicaCount: 2
+
+## @section Pod labels
+## Additional labels for the pods
+## @param extraPodlabels Additional labels for the pods
+##
+extraPodlabels: {}
+
+## @section Image configuration
+## Parameters for the Docker image
+## @param image.repository Repository for the Docker image
+## @param image.tag Tag for the Docker image
+##
+image:
+  repository: ghcr-io-proxy/cloudnative-pg/postgresql
+  tag: 16.7-bookworm
+
+## @section PgBouncer Image configuration
+## Parameters for the PgBouncer Docker image
+## @param imagePgBouncer.repository Repository for the PgBouncer Docker image
+## @param imagePgBouncer.tag Tag for the PgBouncer Docker image
+##
+imagePgBouncer:
+  repository: ghcr-io-proxy/cloudnative-pg/pgbouncer
+  tag: 1.24.0
+
+## @section Persistence configuration
+## Parameters for the persistence storage
+## @param persistence.storageClass Storage class for the persistence
+## @param persistence.size Size of the persistent storage
+##
+persistence:
+  storageClass: "standard-csi"
+  size: 5Gi
+
+## @section Resource configuration
+## Parameters for the resource requests and limits
+## @param resources.requests.memory Memory request for the container
+## @param resources.requests.cpu CPU request for the container
+## @param resources.limits.memory Memory limit for the container
+## @param resources.limits.cpu CPU limit for the container
+##
+resources:
+  requests:
+    memory: "384Mi"
+    cpu: "400m"
+  limits:
+    memory: "512Mi"
+    cpu: "800m"
+
+## @section PostgreSQL parameters
+## Parameters for PostgreSQL configuration
+## @param parameters.max_connections Maximum number of connections
+## @param parameters.shared_buffers Amount of memory the database server uses for shared memory buffers
+## @param parameters.log_statement Sets the type of SQL statements logged
+## @param parameters.wal_keep_size Size of WAL files to keep for standby servers
+## @param parameters.archive_timeout Maximum time to wait before performing a WAL file switch
+##
+parameters:
+  max_connections: 500
+  shared_buffers: 256MB
+  log_statement: "none"
+  wal_keep_size: 512MB
+  archive_timeout: "5min"
+
+## @section User configuration
+## Parameters for user configuration
+## @param users.migrator.name Name of the migrator user
+## @param users.migrator.nameSecret Secret name for the migrator user's password
+##
+users:
+  migrator:
+    name: migrator
+    nameSecret: null
+
+## @section Backup configuration
+## Parameters for the backup configuration
+## @param backup.enabled Enable or disable backups
+## @param backup.schedule Cron schedule for backups
+## @param backup.endpointURL Endpoint URL for the backup storage
+## @param backup.destinationPath Destination path for the backups
+## @param backup.s3Credentials.accessKeyId.key Key for the S3 access key ID
+## @param backup.s3Credentials.accessKeyId.name Name of the secret containing the S3 access key ID
+## @param backup.s3Credentials.secretAccessKey.key Key for the S3 secret access key
+## @param backup.s3Credentials.secretAccessKey.name Name of the secret containing the S3 secret access key
+## @param backup.wall.maxParallel Maximum number of parallel WAL file transfers
+## @param backup.retentionPolicy Retention policy for the backups
+## @param backup.serverName Name of the backup server
+## @param backup.recovery Enable or disable recovery
+## @param backup.recoveryServerName Name of the recovery server
+## @param backup.targetTime Target time for point-in-time recovery
+##
+backup:
+  enabled: false
+  schedule: "0 0 0 * * 0"
+  endpointURL: null
+  destinationPath: null
+  s3Credentials:
+    accessKeyId:
+      key: user
+      name: null
+    secretAccessKey:
+      key: password
+      name: null
+  wall:
+    maxParallel: 8
+  retentionPolicy: "7d"
+  serverName: null
+  recovery: false
+  recoveryServerName: null
+  targetTime: null
+
+## @section Network Policy configuration
+## Parameters for the network policy configuration
+## @param networkPolicy.matchComponent Component to match for network policies
+## @param networkPolicy.minio.podSelector.matchLabels Labels to match for Minio pods
+## @param networkPolicy.postgres.ingress Ingress rules for PostgreSQL pods
+##
+networkPolicy:
+  matchComponent: "pgbouncer"
+  minio:
+    podSelector:
+      matchLabels: {}
+  postgres:
+    ingress: []
+
+## @section Pooling configuration
+## Parameters for the pooling configuration
+## @param pooling.enabled Enable or disable pooling
+##
+pooling:
+  enabled: true
+
+## @section PgPools configuration
+## Parameters for the PgPools configuration
+## @param pgPools List of pool configurations for PgBouncer
+##
+pgPools: []

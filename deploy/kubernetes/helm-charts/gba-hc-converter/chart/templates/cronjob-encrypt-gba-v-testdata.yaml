@@ -1,0 +1,77 @@
+{{ if .Values.gbaEncryptTestData.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Values.gbaEncryptTestData.name }}
+spec:
+  schedule: "0 0 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "common.labels.customname" (list .Values.gbaEncryptTestData.name .) | nindent 12 }}
+            {{- with .Values.gbaEncryptTestData.extraPodlabels }}
+            {{ toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          restartPolicy: Never
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{ toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ .Values.serviceAccountName }}
+          securityContext:
+            runAsUser: 65532
+          containers:
+            - name: {{ .Values.gbaEncryptTestData.name }}
+              image: {{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}{{- if (.Values.image).tag }}:{{ .Values.image.tag }}{{- end }}
+              imagePullPolicy: {{ .Values.imagePreload.pullPolicy }}
+              command: ["sh", "-c", "--"]
+              args:
+                - ./encrypt_all.sh
+              volumeMounts:
+                - mountPath: /data
+                  name: preloaded-gba-v-data-volume
+                - mountPath: /home/nonroot/encrypt_all.sh
+                  name: script-volume
+                  subPath: encrypt_all.sh
+                - mountPath: /home/nonroot/unencrypted-gba-v-responses/
+                  name: gba-hc-converter-xml-files
+
+              env:
+                - name: RUST_BACKTRACE
+                  value: "1"
+                - name: RUST_LOG
+                  value: "debug,hyper=warn"
+                - name: GBA_HC_CONVERTER__PORT
+                  value: "3006"
+                - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__XML_PATH
+                  value: "/data"
+                - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: nl-wallet-gba-hc-converter-secrets
+                      key: encryption_key
+                - name: GBA_HC_CONVERTER__RUN_MODE__PRELOADED__HMAC_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: nl-wallet-gba-hc-converter-secrets
+                      key: hmac_key
+          volumes:
+            - name: preloaded-gba-v-data-volume
+              persistentVolumeClaim:
+                claimName: preloaded-gba-v-data-pvc
+            - name: gba-hc-converter-xml-files
+              configMap:
+                name: nl-wallet-gba-hc-converter-xml-files
+            - name: script-volume
+              configMap:
+                name: cm-nl-wallet-gba-hc-converter-encrypt-script
+                defaultMode: 0777
+{{- end }}
