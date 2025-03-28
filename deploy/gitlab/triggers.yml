@@ -56,7 +56,7 @@ trigger-scheduled-automation-tests:
   rules:
     - !reference [.default-or-release, rules]
   needs:
-    - job: deploy-mock-relying-party-demo
+    - job: deploy-mock-relying-party-ont
       artifacts: false
       optional: true
     - job: deploy-wallet-provider-ont
