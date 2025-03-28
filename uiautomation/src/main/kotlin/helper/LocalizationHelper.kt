@@ -24,8 +24,8 @@ class LocalizationHelper {
         }
         check(language == "en") { "Unknown translation for language: $language" }
         return when (text) {
-            "NL Wallet persoonsgegevens" -> "NL Wallet Personal Data"
-            "NL Wallet adres" -> "NL Wallet address"
+            "Persoonsgegevens" -> "Personal Data"
+            "Woonadres" -> "Residential address"
             else -> throw IllegalArgumentException("No translation for: $text")
         }
     }
