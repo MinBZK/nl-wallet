@@ -121,17 +121,19 @@ class DisplayMetadata {
   final String lang;
   final String name;
   final String? description;
+  final String? summary;
   final RenderingMetadata? rendering;
 
   const DisplayMetadata({
     required this.lang,
     required this.name,
     this.description,
+    this.summary,
     this.rendering,
   });
 
   @override
-  int get hashCode => lang.hashCode ^ name.hashCode ^ description.hashCode ^ rendering.hashCode;
+  int get hashCode => lang.hashCode ^ name.hashCode ^ description.hashCode ^ summary.hashCode ^ rendering.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -141,6 +143,7 @@ class DisplayMetadata {
           lang == other.lang &&
           name == other.name &&
           description == other.description &&
+          summary == other.summary &&
           rendering == other.rendering;
 }
 

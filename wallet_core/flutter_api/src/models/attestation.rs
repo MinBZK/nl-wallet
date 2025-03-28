@@ -38,6 +38,7 @@ pub struct DisplayMetadata {
     pub lang: String,
     pub name: String,
     pub description: Option<String>,
+    pub summary: Option<String>,
     pub rendering: Option<RenderingMetadata>,
 }
 
@@ -47,6 +48,7 @@ impl From<wallet::sd_jwt_vc_metadata::DisplayMetadata> for DisplayMetadata {
             lang: value.lang,
             name: value.name,
             description: value.description,
+            summary: value.summary,
             rendering: value.rendering.map(RenderingMetadata::from),
         }
     }

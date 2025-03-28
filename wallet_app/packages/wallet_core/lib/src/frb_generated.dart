@@ -1186,12 +1186,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   DisplayMetadata dco_decode_display_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return DisplayMetadata(
       lang: dco_decode_String(arr[0]),
       name: dco_decode_String(arr[1]),
       description: dco_decode_opt_String(arr[2]),
-      rendering: dco_decode_opt_box_autoadd_rendering_metadata(arr[3]),
+      summary: dco_decode_opt_String(arr[3]),
+      rendering: dco_decode_opt_box_autoadd_rendering_metadata(arr[4]),
     );
   }
 
@@ -1777,8 +1778,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_lang = sse_decode_String(deserializer);
     var var_name = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
+    var var_summary = sse_decode_opt_String(deserializer);
     var var_rendering = sse_decode_opt_box_autoadd_rendering_metadata(deserializer);
-    return DisplayMetadata(lang: var_lang, name: var_name, description: var_description, rendering: var_rendering);
+    return DisplayMetadata(
+        lang: var_lang, name: var_name, description: var_description, summary: var_summary, rendering: var_rendering);
   }
 
   @protected
@@ -2532,6 +2535,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_String(self.lang, serializer);
     sse_encode_String(self.name, serializer);
     sse_encode_opt_String(self.description, serializer);
+    sse_encode_opt_String(self.summary, serializer);
     sse_encode_opt_box_autoadd_rendering_metadata(self.rendering, serializer);
   }
 

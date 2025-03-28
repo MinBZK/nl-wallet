@@ -1203,11 +1203,13 @@ impl SseDecode for crate::models::attestation::DisplayMetadata {
         let mut var_lang = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
+        let mut var_summary = <Option<String>>::sse_decode(deserializer);
         let mut var_rendering = <Option<crate::models::attestation::RenderingMetadata>>::sse_decode(deserializer);
         return crate::models::attestation::DisplayMetadata {
             lang: var_lang,
             name: var_name,
             description: var_description,
+            summary: var_summary,
             rendering: var_rendering,
         };
     }
@@ -1998,6 +2000,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::DisplayMetada
             self.lang.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
+            self.summary.into_into_dart().into_dart(),
             self.rendering.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -2620,6 +2623,7 @@ impl SseEncode for crate::models::attestation::DisplayMetadata {
         <String>::sse_encode(self.lang, serializer);
         <String>::sse_encode(self.name, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
+        <Option<String>>::sse_encode(self.summary, serializer);
         <Option<crate::models::attestation::RenderingMetadata>>::sse_encode(self.rendering, serializer);
     }
 }
@@ -3365,6 +3369,7 @@ mod io {
                 lang: self.lang.cst_decode(),
                 name: self.name.cst_decode(),
                 description: self.description.cst_decode(),
+                summary: self.summary.cst_decode(),
                 rendering: self.rendering.cst_decode(),
             }
         }
@@ -3766,6 +3771,7 @@ mod io {
                 lang: core::ptr::null_mut(),
                 name: core::ptr::null_mut(),
                 description: core::ptr::null_mut(),
+                summary: core::ptr::null_mut(),
                 rendering: core::ptr::null_mut(),
             }
         }
@@ -4440,6 +4446,7 @@ mod io {
         lang: *mut wire_cst_list_prim_u_8_strict,
         name: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
+        summary: *mut wire_cst_list_prim_u_8_strict,
         rendering: *mut wire_cst_rendering_metadata,
     }
     #[repr(C)]

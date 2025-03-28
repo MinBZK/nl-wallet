@@ -789,6 +789,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.lang = cst_encode_String(apiObj.lang);
     wireObj.name = cst_encode_String(apiObj.name);
     wireObj.description = cst_encode_opt_String(apiObj.description);
+    wireObj.summary = cst_encode_opt_String(apiObj.summary);
     wireObj.rendering = cst_encode_opt_box_autoadd_rendering_metadata(apiObj.rendering);
   }
 
@@ -2088,6 +2089,8 @@ final class wire_cst_display_metadata extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> name;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> description;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> summary;
 
   external ffi.Pointer<wire_cst_rendering_metadata> rendering;
 }

@@ -57,6 +57,7 @@ typedef struct wire_cst_display_metadata {
   struct wire_cst_list_prim_u_8_strict *lang;
   struct wire_cst_list_prim_u_8_strict *name;
   struct wire_cst_list_prim_u_8_strict *description;
+  struct wire_cst_list_prim_u_8_strict *summary;
   struct wire_cst_rendering_metadata *rendering;
 } wire_cst_display_metadata;
 
