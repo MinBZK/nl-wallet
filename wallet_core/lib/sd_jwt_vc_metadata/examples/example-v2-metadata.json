@@ -2,19 +2,20 @@
   "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
   "name": "NL Wallet extended PID credential",
   "description": "Working version of the NL Wallet extended PID credential",
-  "summary": "Extended example PID credential of {{nickname}}",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-DM5zOo3l1/twwX2HYXzcPQeoW2qAOStJHK/9HPmomxs=",
+  "extends#integrity": "sha256-+SCSaJbTVwa0LQIyG8YbaOx3hTYeEDxZlPos+HQZMyI=",
   "display": [
     {
       "lang": "en-US",
       "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet, part 2"
+      "description": "The Personal Data credential for the NL Wallet, part 2",
+      "summary": "Extended example PID credential of {{nickname}}"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2",
+      "summary": "Uitgebreid voorbeeld persoonsgegevensattestatie van {{nickname}}"
     }
   ],
   "claims": [

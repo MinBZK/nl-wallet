@@ -63,9 +63,6 @@ pub struct UncheckedTypeMetadata {
     /// A human-readable description for the type, intended for developers reading the JSON document.
     pub description: Option<String>,
 
-    /// A templated summary for the type. Intended to be rendered, optionally with attributes filled in.
-    pub summary: Option<String>,
-
     /// Another type that this type extends.
     #[serde(flatten)]
     pub extends: Option<MetadataExtends>,
@@ -286,9 +283,19 @@ pub enum JsonSchemaPropertyFormat {
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DisplayMetadata {
+    ///  A language tag as defined in Section 2 of [RFC5646].
     pub lang: String,
+
+    /// A human-readable name for the type, intended for end users.
     pub name: String,
+
+    /// A human-readable description for the type, intended for end users.
     pub description: Option<String>,
+
+    /// A templated summary for the type, intended to be rendered to the end user.
+    pub summary: Option<String>,
+
+    /// An object containing rendering information for the type, as described in Section 8.1.
     pub rendering: Option<RenderingMetadata>,
 }
 
@@ -323,14 +330,19 @@ pub struct LogoMetadata {
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimMetadata {
+    /// An array indicating the claim or claims that are being addressed, as described below.
     pub path: VecNonEmpty<ClaimPath>,
 
+    /// An array of objects containing display information for the claim.  The array contains an object for each
+    /// language that is supported by the type.
     #[serde(default)]
     pub display: Vec<ClaimDisplayMetadata>,
 
+    /// A string indicating whether the claim is selectively disclosable
     #[serde(default)]
     pub sd: ClaimSelectiveDisclosureMetadata,
 
+    /// A string defining the ID of the claim for reference in the SVG template.
     pub svg_id: Option<String>,
 }
 
@@ -381,12 +393,18 @@ impl Display for ClaimMetadata {
     }
 }
 
+/// An indication whether the claim is selectively disclosable.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClaimSelectiveDisclosureMetadata {
+    /// The Issuer MUST make the claim selectively disclosable.
     Always,
+
+    /// The Issuer MAY make the claim selectively disclosable.
     #[default]
     Allowed,
+
+    /// The Issuer MUST NOT make the claim selectively disclosable.
     Never,
 }
 
@@ -430,7 +448,6 @@ mod example_constructors {
                 vct: random_string(16),
                 name: Some(random_string(8)),
                 description: None,
-                summary: None,
                 extends: None,
                 display: vec![],
                 claims: vec![],

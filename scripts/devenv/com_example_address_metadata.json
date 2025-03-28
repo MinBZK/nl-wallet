@@ -2,17 +2,18 @@
   "vct": "com.example.address",
   "name": "NL Wallet address credential",
   "description": "Working version of the NL Wallet address credential",
-  "summary": "{{resident_city}}",
   "display": [
     {
       "lang": "en-US",
       "name": "NL Wallet address",
-      "description": "The address credential for the NL Wallet"
+      "description": "The address credential for the NL Wallet",
+      "summary": "{{resident_city}}"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet adres",
-      "description": "De adresattestatie voor de NL Wallet"
+      "description": "De adresattestatie voor de NL Wallet",
+      "summary": "{{resident_city}}"
     }
   ],
   "claims": [
