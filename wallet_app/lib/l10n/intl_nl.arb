@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-03-18T11:50:25+01:00",
+    "@@last_modified": "2025-03-27T09:18:56+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -145,11 +145,13 @@
     "cardDetailScreenNoUpdateAvailableSheetDescription": "Er zijn op dit moment geen nieuwe gegevens beschikbaar van deze kaart.\n\nVerwacht je nieuwe gegevens? Dan kan het een paar dagen duren voordat je de nieuwe gegevens kan ophalen. Probeer het later opnieuw.",
     "cardDetailScreenNoUpdateAvailableSheetTitle": "Je hebt de laatste versie",
     "cardHistoryDisclosureCancelled": "Delen gestopt",
-    "cardHistoryDisclosureError": "Delen mislukt",
+    "cardHistoryDisclosureError": "Delen mogelijk mislukt",
+    "cardHistoryDisclosureErrorNoDataShared": "Delen mislukt",
     "cardHistoryDisclosureSuccess": "Gegevens gedeeld",
     "cardHistoryIssuanceSuccess": "Kaart aangemaakt",
     "cardHistoryLoginCancelled": "Inloggen gestopt",
-    "cardHistoryLoginError": "Inloggen mislukt",
+    "cardHistoryLoginError": "Inloggen mogelijk mislukt",
+    "cardHistoryLoginErrorNoDataShared": "Inloggen mislukt",
     "cardHistoryLoginSuccess": "Ingelogd",
     "cardHistoryScreenTitle": "Kaartactiviteiten",
     "cardHistorySigningCancelled": "Ondertekenen gestopt",
@@ -519,7 +521,7 @@
             }
         }
     },
-    "historyDetailScreenDisclosureErrorDescription": "Er zijn geen gegevens gedeeld met {organization}, want er is iets misgegaan.",
+    "historyDetailScreenDisclosureErrorDescription": "Er is iets misgegaan tijdens het delen. Het is niet zeker of {organization} de gegevens heeft ontvangen.",
     "@historyDetailScreenDisclosureErrorDescription": {
         "placeholders": {
             "organization": {
@@ -528,8 +530,19 @@
             }
         }
     },
+    "historyDetailScreenDisclosureErrorNoDataSharedDescription": "Gegevens zijn niet gedeeld met {organization} want er is iets misgegaan.",
+    "@historyDetailScreenDisclosureErrorNoDataSharedDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenErrorNoDataSharedTitleForDisclosure": "Delen mislukt met {organization}",
+    "historyDetailScreenErrorNoDataSharedTitleForLogin": "Inloggen mislukt bij {organization}",
     "historyDetailScreenErrorTitleForDisclosure": "Delen mogelijk mislukt met {organization}",
-    "historyDetailScreenErrorTitleForLogin": "Inloggen bij {organization} mislukt",
+    "historyDetailScreenErrorTitleForLogin": "Inloggen mogelijk mislukt bij {organization}",
     "historyDetailScreenIssuanceSuccessDescription": "Kaart aangemaakt",
     "historyDetailScreenLoginCancelledDescription": "Gegevens zijn niet gedeeld met {organization} want je hebt het inloggen gestopt.",
     "@historyDetailScreenLoginCancelledDescription": {
@@ -540,8 +553,17 @@
             }
         }
     },
-    "historyDetailScreenLoginErrorDescription": "Gegevens zijn niet gedeeld met {organization} want er is iets mis gegaan.",
+    "historyDetailScreenLoginErrorDescription": "Er is iets misgegaan tijdens het inloggen. Het is niet zeker of {organization} de gegevens heeft ontvangen.",
     "@historyDetailScreenLoginErrorDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenLoginErrorNoDataSharedDescription": "Gegevens zijn niet gedeeld met {organization} want er is iets misgegaan.",
+    "@historyDetailScreenLoginErrorNoDataSharedDescription": {
         "placeholders": {
             "organization": {
                 "example": "RvIG",
@@ -1098,7 +1120,7 @@
     "walletPersonalizeScreenAwaitingUserAuthDescription": "Zo haal je je gegevens op",
     "walletPersonalizeScreenAwaitingUserAuthTitle": "Ga verder in je DigiD app",
     "walletPersonalizeScreenDigidLoadingStopCta": "Stop",
-    "walletPersonalizeScreenErrorDescription": "Er is iets mis gegaan, probeer opnieuw.",
+    "walletPersonalizeScreenErrorDescription": "Er is iets misgegaan, probeer opnieuw.",
     "walletPersonalizeScreenErrorRetryCta": "Probeer opnieuw",
     "walletPersonalizeScreenErrorTitle": "Personaliseren mislukt",
     "walletPersonalizeScreenExitSheetCancelCta": "Nee",

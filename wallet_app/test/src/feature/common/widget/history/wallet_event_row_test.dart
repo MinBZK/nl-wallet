@@ -60,20 +60,54 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           WalletEventRow(
-            event: WalletEvent.disclosure(
-              dateTime: DateTime(2024),
-              status: EventStatus.error,
-              relyingParty: WalletMockData.organization,
-              purpose: 'disclosure'.untranslated,
-              cards: [WalletMockData.card],
-              policy: WalletMockData.policy,
-              type: DisclosureType.regular,
-            ),
+            event: WalletMockData.failedDisclosureEvent,
             onPressed: () {},
           ),
           surfaceSize: kGoldenSize,
         );
         await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.failed');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event login failed',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.failedLoginEvent,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden(tester, 'wallet_event_row/light.login.failed');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event interaction failed - no data shared',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.failedDisclosureEventNothingShared,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.failed.no_data_shared');
+      },
+    );
+
+    testGoldens(
+      'light wallet_event login failed - no data shared',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          WalletEventRow(
+            event: WalletMockData.failedLoginEventNothingShared,
+            onPressed: () {},
+          ),
+          surfaceSize: kGoldenSize,
+        );
+        await screenMatchesGolden(tester, 'wallet_event_row/light.login.failed.no_data_shared');
       },
     );
 

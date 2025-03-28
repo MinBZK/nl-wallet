@@ -18,23 +18,34 @@ class WalletEventStatusDescriptionMapper extends ContextMapper<WalletEvent, Stri
   }
 
   String mapDisclosureEvent(BuildContext context, DisclosureEvent event) {
-    final organizationName = event.relyingParty.displayName.l10nValue(context);
     switch (event.status) {
       case EventStatus.success:
         return '';
       case EventStatus.cancelled:
-        if (event.type == DisclosureType.login) {
-          return context.l10n.historyDetailScreenLoginCancelledDescription(organizationName);
-        } else {
-          return context.l10n.historyDetailScreenDisclosureCancelledDescription(organizationName);
-        }
+        return _mapCancelledDisclosureEvent(context, event);
       case EventStatus.error:
-        if (event.type == DisclosureType.login) {
-          return context.l10n.historyDetailScreenLoginErrorDescription(organizationName);
-        } else {
-          return context.l10n.historyDetailScreenDisclosureErrorDescription(organizationName);
-        }
+        return _mapErrorDisclosureEvent(context, event);
     }
+  }
+
+  String _mapErrorDisclosureEvent(BuildContext context, DisclosureEvent event) {
+    final organizationName = event.relyingParty.displayName.l10nValue(context);
+    return switch (event.type) {
+      DisclosureType.regular => event.hasSharedAttributes
+          ? context.l10n.historyDetailScreenDisclosureErrorDescription(organizationName)
+          : context.l10n.historyDetailScreenDisclosureErrorNoDataSharedDescription(organizationName),
+      DisclosureType.login => event.hasSharedAttributes
+          ? context.l10n.historyDetailScreenLoginErrorDescription(organizationName)
+          : context.l10n.historyDetailScreenLoginErrorNoDataSharedDescription(organizationName)
+    };
+  }
+
+  String _mapCancelledDisclosureEvent(BuildContext context, DisclosureEvent event) {
+    final organizationName = event.relyingParty.displayName.l10nValue(context);
+    return switch (event.type) {
+      DisclosureType.regular => context.l10n.historyDetailScreenDisclosureCancelledDescription(organizationName),
+      DisclosureType.login => context.l10n.historyDetailScreenLoginCancelledDescription(organizationName)
+    };
   }
 
   String mapIssuanceEvent(BuildContext context, IssuanceEvent event) {

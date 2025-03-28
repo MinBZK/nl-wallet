@@ -45,13 +45,13 @@ class HistoryDetailLoginPage extends StatelessWidget {
   }
 
   String _resolveLoginTitle(BuildContext context, DisclosureEvent event) {
-    switch (event.status) {
-      case EventStatus.success:
-        return context.l10n.historyDetailScreenTitleForLogin(event.relyingParty.displayName.l10nValue(context));
-      case EventStatus.cancelled:
-        return context.l10n.historyDetailScreenStoppedTitleForLogin(event.relyingParty.displayName.l10nValue(context));
-      case EventStatus.error:
-        return context.l10n.historyDetailScreenErrorTitleForLogin(event.relyingParty.displayName.l10nValue(context));
-    }
+    final organizationName = event.relyingParty.displayName.l10nValue(context);
+    return switch (event.status) {
+      EventStatus.success => context.l10n.historyDetailScreenTitleForLogin(organizationName),
+      EventStatus.cancelled => context.l10n.historyDetailScreenStoppedTitleForLogin(organizationName),
+      EventStatus.error => event.hasSharedAttributes
+          ? context.l10n.historyDetailScreenErrorTitleForLogin(organizationName)
+          : context.l10n.historyDetailScreenErrorNoDataSharedTitleForLogin(organizationName),
+    };
   }
 }

@@ -119,7 +119,7 @@ void main() {
       await screenMatchesGolden(tester, 'cancelled.dark');
     });
 
-    testGoldens('Disclose error', (tester) async {
+    testGoldens('Disclose error - some attributes possibly shared', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
@@ -134,7 +134,25 @@ void main() {
       await screenMatchesGolden(tester, 'disclose.error.light');
     });
 
-    testGoldens('Disclose error - dark', (tester) async {
+    testGoldens('Disclose error - no attributes shared', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(
+            WalletMockData.failedDisclosureEventNothingShared,
+            const [],
+          ),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden(tester, 'disclose.error.nothing_shared.light');
+    });
+
+    testGoldens('Disclose error - dark - some attributes possibly shared', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
           MockHistoryDetailBloc(),
@@ -163,6 +181,21 @@ void main() {
         ],
       );
       await screenMatchesGolden(tester, 'login.error.light');
+    });
+
+    testGoldens('Login error - nothing shared', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.failedLoginEventNothingShared, [WalletMockData.card]),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden(tester, 'login.error.nothing_shared.light');
     });
   });
 
@@ -208,7 +241,7 @@ void main() {
       final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(HistoryDetailIssuePage), findsOneWidget);
       expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsOneWidget);
-      final count = WalletMockData.issuanceEvent.attributes.length;
+      final count = WalletMockData.issuanceEvent.sharedAttributes.length;
       expect(find.text('$count from ${WalletMockData.card.title.testValue}'), findsOneWidget);
       expect(find.text('1 December 2023, 00:00'), findsOneWidget);
       expect(find.textContaining(l10n.disclosureStopSheetReportIssueCta), findsOneWidget);

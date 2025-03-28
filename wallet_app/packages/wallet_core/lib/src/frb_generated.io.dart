@@ -960,7 +960,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       var pre_date_time = cst_encode_String(apiObj.dateTime);
       var pre_relying_party = cst_encode_box_autoadd_organization(apiObj.relyingParty);
       var pre_purpose = cst_encode_list_localized_string(apiObj.purpose);
-      var pre_requested_attestations = cst_encode_opt_list_attestation(apiObj.requestedAttestations);
+      var pre_shared_attestations = cst_encode_opt_list_attestation(apiObj.sharedAttestations);
       var pre_request_policy = cst_encode_box_autoadd_request_policy(apiObj.requestPolicy);
       var pre_status = cst_encode_disclosure_status(apiObj.status);
       var pre_typ = cst_encode_disclosure_type(apiObj.typ);
@@ -968,7 +968,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Disclosure.date_time = pre_date_time;
       wireObj.kind.Disclosure.relying_party = pre_relying_party;
       wireObj.kind.Disclosure.purpose = pre_purpose;
-      wireObj.kind.Disclosure.requested_attestations = pre_requested_attestations;
+      wireObj.kind.Disclosure.shared_attestations = pre_shared_attestations;
       wireObj.kind.Disclosure.request_policy = pre_request_policy;
       wireObj.kind.Disclosure.status = pre_status;
       wireObj.kind.Disclosure.typ = pre_typ;
@@ -2309,7 +2309,7 @@ final class wire_cst_WalletEvent_Disclosure extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_localized_string> purpose;
 
-  external ffi.Pointer<wire_cst_list_attestation> requested_attestations;
+  external ffi.Pointer<wire_cst_list_attestation> shared_attestations;
 
   external ffi.Pointer<wire_cst_request_policy> request_policy;
 

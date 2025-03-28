@@ -7,7 +7,8 @@ import '../../domain/model/organization.dart';
 import 'date_time_extension.dart';
 
 extension WalletEventExtensions on WalletEvent {
-  Map<String, List<DataAttribute>> get attributesByDocType => groupBy(attributes, (attr) => attr.sourceCardDocType);
+  Map<String, List<DataAttribute>> get attributesByDocType =>
+      groupBy(sharedAttributes, (attr) => attr.sourceCardDocType);
 
   Organization get relyingPartyOrIssuer => switch (this) {
         DisclosureEvent() => (this as DisclosureEvent).relyingParty,
