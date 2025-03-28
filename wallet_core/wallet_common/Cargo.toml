@@ -29,8 +29,6 @@ itertools.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
-rustls-webpki.workspace = true
-rustls-pki-types.workspace = true
 semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
@@ -50,7 +48,6 @@ tower-http = { workspace = true, optional = true, features = ["cors"] }
 built = { workspace = true, features = ["chrono", "git2"] }
 
 [dev-dependencies]
-assert_matches.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }

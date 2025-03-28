@@ -49,7 +49,6 @@ derive_more = { workspace = true, features = [
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 http.workspace = true
-http-serde.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
 josekit = { workspace = true, features = ["vendored"] }
@@ -75,7 +74,6 @@ tokio.workspace = true
 tracing.workspace = true
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
-x509-parser.workspace = true
 
 assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["json"] }
@@ -92,7 +90,6 @@ wallet_common.path = "../wallet_common"
 
 [dev-dependencies]
 assert_matches.workspace = true
-http.workspace = true
 mockall.workspace = true
 parking_lot.workspace = true
 rstest.workspace = true

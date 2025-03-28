@@ -21,7 +21,6 @@ axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio"
 base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-futures.workspace = true
 http.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 rustls-pki-types.workspace = true
@@ -57,6 +56,5 @@ crypto.path = "../../crypto"
 hsm = { path = "../../hsm", features = ["settings"] }
 mdoc.path = "../../mdoc"
 openid4vc = { path = "../../openid4vc", features = ["axum"] }
-openid4vc_server.path = "../../openid4vc_server"
 sd_jwt_vc_metadata.path = "../../sd_jwt_vc_metadata"
 wallet_common = { path = "../../wallet_common", features = ["axum"] }

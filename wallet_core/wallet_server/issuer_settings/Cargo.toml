@@ -12,7 +12,6 @@ doctest = false
 
 [dependencies]
 chrono.workspace = true
-config = { workspace = true, features = ["toml"] }
 derive_more = { workspace = true, features = ["as_ref", "from"] }
 futures = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }

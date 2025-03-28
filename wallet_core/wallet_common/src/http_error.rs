@@ -171,7 +171,7 @@ mod tests {
     use super::HttpJsonErrorBody;
     use super::HttpJsonErrorType;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumString)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::EnumString, strum::Display)]
     #[strum(serialize_all = "snake_case")]
     enum TestErrorType {
         Teapot,

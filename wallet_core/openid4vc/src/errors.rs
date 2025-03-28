@@ -307,7 +307,7 @@ where
 // OAuth/OpenID family, which uses `ErrorResponse`, but instead they are specific to this implementation.
 
 /// Error codes sent to the Relying Party when an error occurs when handling their request.
-#[derive(Debug, Clone, Copy, strum::Display, strum::EnumString)]
+#[derive(Debug, Clone, Copy, strum::EnumString, strum::Display)]
 #[strum(serialize_all = "snake_case")]
 pub enum VerificationErrorCode {
     ServerError,
