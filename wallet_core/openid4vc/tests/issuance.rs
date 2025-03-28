@@ -448,11 +448,7 @@ impl VcMessageClient for MockOpenidMessageClient {
     ) -> Result<(TokenResponseWithPreviews, Option<String>), IssuanceSessionError> {
         let (token_response, dpop_nonce) = self
             .issuer
-            .process_token_request(
-                token_request.clone(),
-                &[self.client_id().to_string()],
-                dpop_header.clone(),
-            )
+            .process_token_request(token_request.clone(), dpop_header.clone())
             .await
             .map_err(|err| IssuanceSessionError::TokenRequest(err.into()))?;
         Ok((token_response, Some(dpop_nonce)))

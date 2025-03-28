@@ -333,7 +333,7 @@ pub struct AttestationTypesConfig<K>(HashMap<String, AttestationTypeConfig<K>>);
 pub struct Issuer<A, K, S, W> {
     sessions: Arc<S>,
     attr_service: A,
-    pub issuer_data: IssuerData<K, W>,
+    issuer_data: IssuerData<K, W>,
     sessions_cleanup_task: JoinHandle<()>,
     wte_cleanup_task: Option<JoinHandle<()>>,
     pub metadata: IssuerMetadata,
@@ -449,7 +449,6 @@ where
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
-        accepted_wallet_client_ids: &[String],
         dpop: Dpop,
     ) -> Result<(TokenResponseWithPreviews, String), TokenRequestError> {
         let session_token = token_request.code().clone().into();
@@ -472,7 +471,7 @@ where
         let result = session
             .process_token_request(
                 token_request,
-                accepted_wallet_client_ids,
+                &self.issuer_data.accepted_wallet_client_ids,
                 dpop,
                 &self.attr_service,
                 &self.issuer_data.credential_issuer_identifier,
