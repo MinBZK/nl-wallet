@@ -116,6 +116,7 @@ pub struct AttestationAttribute {
     pub key: String,
     pub labels: Vec<ClaimDisplayMetadata>,
     pub value: AttributeValue,
+    pub svg_id: Option<String>,
 }
 
 impl From<wallet::AttestationAttribute> for AttestationAttribute {
@@ -124,6 +125,7 @@ impl From<wallet::AttestationAttribute> for AttestationAttribute {
             key: value.key.join("__"),
             labels: value.metadata.into_iter().map(ClaimDisplayMetadata::from).collect(),
             value: value.value.into(),
+            svg_id: value.svg_id,
         }
     }
 }

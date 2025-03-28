@@ -693,6 +693,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.key = cst_encode_String(apiObj.key);
     wireObj.labels = cst_encode_list_claim_display_metadata(apiObj.labels);
     cst_api_fill_to_wire_attribute_value(apiObj.value, wireObj.value);
+    wireObj.svg_id = cst_encode_opt_String(apiObj.svgId);
   }
 
   @protected
@@ -2228,6 +2229,8 @@ final class wire_cst_attestation_attribute extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_claim_display_metadata> labels;
 
   external wire_cst_attribute_value value;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> svg_id;
 }
 
 final class wire_cst_list_attestation_attribute extends ffi.Struct {

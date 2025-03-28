@@ -1084,10 +1084,12 @@ impl SseDecode for crate::models::attestation::AttestationAttribute {
         let mut var_key = <String>::sse_decode(deserializer);
         let mut var_labels = <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_decode(deserializer);
         let mut var_value = <crate::models::attestation::AttributeValue>::sse_decode(deserializer);
+        let mut var_svgId = <Option<String>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationAttribute {
             key: var_key,
             labels: var_labels,
             value: var_value,
+            svg_id: var_svgId,
         };
     }
 }
@@ -1855,6 +1857,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationAt
             self.key.into_into_dart().into_dart(),
             self.labels.into_into_dart().into_dart(),
             self.value.into_into_dart().into_dart(),
+            self.svg_id.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -2504,6 +2507,7 @@ impl SseEncode for crate::models::attestation::AttestationAttribute {
         <String>::sse_encode(self.key, serializer);
         <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_encode(self.labels, serializer);
         <crate::models::attestation::AttributeValue>::sse_encode(self.value, serializer);
+        <Option<String>>::sse_encode(self.svg_id, serializer);
     }
 }
 
@@ -3247,6 +3251,7 @@ mod io {
                 key: self.key.cst_decode(),
                 labels: self.labels.cst_decode(),
                 value: self.value.cst_decode(),
+                svg_id: self.svg_id.cst_decode(),
             }
         }
     }
@@ -3717,6 +3722,7 @@ mod io {
                 key: core::ptr::null_mut(),
                 labels: core::ptr::null_mut(),
                 value: Default::default(),
+                svg_id: core::ptr::null_mut(),
             }
         }
     }
@@ -4380,6 +4386,7 @@ mod io {
         key: *mut wire_cst_list_prim_u_8_strict,
         labels: *mut wire_cst_list_claim_display_metadata,
         value: wire_cst_attribute_value,
+        svg_id: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

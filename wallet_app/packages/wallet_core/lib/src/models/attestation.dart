@@ -45,15 +45,17 @@ class AttestationAttribute {
   final String key;
   final List<ClaimDisplayMetadata> labels;
   final AttributeValue value;
+  final String? svgId;
 
   const AttestationAttribute({
     required this.key,
     required this.labels,
     required this.value,
+    this.svgId,
   });
 
   @override
-  int get hashCode => key.hashCode ^ labels.hashCode ^ value.hashCode;
+  int get hashCode => key.hashCode ^ labels.hashCode ^ value.hashCode ^ svgId.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -62,7 +64,8 @@ class AttestationAttribute {
           runtimeType == other.runtimeType &&
           key == other.key &&
           labels == other.labels &&
-          value == other.value;
+          value == other.value &&
+          svgId == other.svgId;
 }
 
 @freezed
