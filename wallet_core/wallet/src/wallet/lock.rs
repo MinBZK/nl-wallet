@@ -3,7 +3,7 @@ use std::sync::Arc;
 use tracing::info;
 use tracing::instrument;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;

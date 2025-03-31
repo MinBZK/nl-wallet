@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::update_policy::VersionState;
 
@@ -58,7 +58,7 @@ mod tests {
     use parking_lot::Mutex;
     use tokio::sync::Notify;
 
-    use configuration::wallet_config::WalletConfiguration;
+    use wallet_configuration::wallet_config::WalletConfiguration;
 
     use crate::config::default_wallet_config;
 

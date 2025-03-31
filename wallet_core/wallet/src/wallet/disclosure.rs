@@ -9,7 +9,7 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;

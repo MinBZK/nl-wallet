@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
-use configuration::config_server_config::ConfigServerConfiguration;
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 

@@ -12,7 +12,7 @@ use openid4vc::token::TokenRequest;
 pub use app2app::App2AppErrorMessage;
 pub use app2app::HttpDigidSession;
 
-use configuration::wallet_config::DigidConfiguration;
+use wallet_configuration::wallet_config::DigidConfiguration;
 use wallet_common::reqwest::JsonReqwestBuilder;
 
 pub const PID_DOCTYPE: &str = "com.example.pid";

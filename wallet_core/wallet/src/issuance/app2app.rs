@@ -15,7 +15,7 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use configuration::wallet_config::DigidConfiguration;
+use wallet_configuration::wallet_config::DigidConfiguration;
 use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
 use openid4vc::token::TokenRequest;
@@ -278,8 +278,8 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use configuration::digid::DigidApp2AppConfiguration;
-    use configuration::wallet_config::DigidConfiguration;
+    use wallet_configuration::digid::DigidApp2AppConfiguration;
+    use wallet_configuration::wallet_config::DigidConfiguration;
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequestGrantType;

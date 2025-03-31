@@ -4,7 +4,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use tracing::info;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 use jwt::validations;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;

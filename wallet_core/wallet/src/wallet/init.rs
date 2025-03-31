@@ -4,7 +4,7 @@ use cfg_if::cfg_if;
 use futures::try_join;
 use tokio::sync::RwLock;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;

@@ -5,7 +5,7 @@ use tracing::info;
 use tracing::instrument;
 use tracing::warn;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 use crypto::keys::EcdsaKey;
 use crypto::utils;
 use error_category::sentry_capture_error;

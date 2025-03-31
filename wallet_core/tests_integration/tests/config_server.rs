@@ -11,7 +11,7 @@ use regex::Regex;
 use reqwest::header::HeaderValue;
 use tokio::fs;
 
-use configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;
