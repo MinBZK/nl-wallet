@@ -54,7 +54,7 @@ export GBA_HC_CONV_HMAC_KEY
 export GOOGLE_CLOUD_PROJECT_NUMBER=12143997365
 
 # Database properties for the wallet_provider, with defaults.
-# The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.
+# The defaults will work when using the `wallet_core/wallet/wallet_provider/docker-compose.yml` file.
 # Set these properties before executing this script
 export DB_HOST="${DB_HOST:-localhost}"
 export DB_USERNAME="${DB_USERNAME:-postgres}"

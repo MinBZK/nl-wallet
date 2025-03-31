@@ -33,7 +33,7 @@ build-sbom:
     - cd ../..
     ## Android
     - (cd wallet_app/android/app && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
-    - (cd wallet_core/platform_support/android && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
+    - (cd wallet_core/wallet/platform_support/android && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)
     # merge sboms into one (this doesn't work when using XML, because the cdxgen bom.xml is invalid)
     - cyclonedx merge --output-version v1_5 --input-files $(find . -name bom.json) --output-file bom.json
     # converting it to xml does work

@@ -207,7 +207,7 @@ render_template "${DEVENV}/softhsm2/softhsm2.conf.template" "${HOME}/.config/sof
 softhsm2-util --delete-token --token test_token --force > /dev/null || true
 softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token" --pin "${HSM_USER_PIN}"
 
-render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/hsm/hsm.toml"
+render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/hsm.toml"
 
 ########################################################################
 # Configure verification_server and mock_relying_party
@@ -398,22 +398,22 @@ generate_wp_random_key pin_pubkey_encryption
 WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH="${TARGET_DIR}/wallet_provider/pin_pubkey_encryption.key"
 export WP_PIN_PUBKEY_ENCRYPTION_KEY_PATH
 
-APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/apple_app_attest/assets/Apple_App_Attestation_Root_CA.pem" -outform DER | ${BASE64})
+APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/lib/apple_app_attest/assets/Apple_App_Attestation_Root_CA.pem" -outform DER | ${BASE64})
 export APPLE_ROOT_CA
 
-MOCK_APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/apple_app_attest/assets/mock_ca.crt.pem" -outform DER | ${BASE64})
+MOCK_APPLE_ROOT_CA=$(openssl x509 -in "${SCRIPTS_DIR}/../wallet_core/lib/apple_app_attest/assets/mock_ca.crt.pem" -outform DER | ${BASE64})
 export MOCK_APPLE_ROOT_CA
 
 # Source: https://developer.android.com/privacy-and-security/security-key-attestation#root_certificate
-ANDROID_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/android_attest/assets/google_hardware_attestation_root_pubkey.pem" -outform DER | ${BASE64})
+ANDROID_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/google_hardware_attestation_root_pubkey.pem" -outform DER | ${BASE64})
 export ANDROID_ROOT_PUBKEY
 
 # Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable EC_ATTEST_ROOT_CERT
-ANDROID_EMULATOR_EC_ROOT_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/android_attest/assets/android_emulator_ec_root_pubkey.pem" -outform DER | ${BASE64})
+ANDROID_EMULATOR_EC_ROOT_PUBKEY=$(openssl ec -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/android_emulator_ec_root_pubkey.pem" -outform DER | ${BASE64})
 export ANDROID_EMULATOR_EC_ROOT_PUBKEY
 
 # Source: repository https://android.googlesource.com/platform/hardware/interfaces, file security/keymint/aidl/default/ta/attest.rs, variable RSA_ATTEST_ROOT_CERT
-ANDROID_EMULATOR_RSA_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/android_attest/assets/android_emulator_rsa_root_pubkey.pem" -outform DER | ${BASE64})
+ANDROID_EMULATOR_RSA_ROOT_PUBKEY=$(openssl rsa -pubin -in "${SCRIPTS_DIR}/../wallet_core/lib/android_attest/assets/android_emulator_rsa_root_pubkey.pem" -outform DER | ${BASE64})
 export ANDROID_EMULATOR_RSA_ROOT_PUBKEY
 
 render_template "${DEVENV}/wallet_provider.toml.template" "${WP_DIR}/wallet_provider.toml"

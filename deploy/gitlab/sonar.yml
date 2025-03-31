@@ -82,7 +82,7 @@ sonar-ios:
     - job: test-ios
       artifacts: true
   script:
-    - cd wallet_core/platform_support/ios
+    - cd wallet_core/wallet/platform_support/ios
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
@@ -101,7 +101,7 @@ sonar-android:
   #    - job: test-android
   #      artifacts: true
   script:
-    - cd wallet_core/platform_support/android
+    - cd wallet_core/wallet/platform_support/android
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
