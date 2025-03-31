@@ -282,7 +282,7 @@ platform :ios do
     # directory higher, because of how Fastlane determines the current working directory.
     Dir.chdir("../wallet_core/wallet/platform_support/ios/PlatformSupport") do
       slather(
-        output_directory: "../../../fastlane/test_output",
+        output_directory: "../../../../fastlane/test_output",
         proj: "PlatformSupport.xcodeproj",
         scheme: "PlatformSupport",
         binary_basename: "libPlatformSupport",
@@ -292,7 +292,7 @@ platform :ios do
       )
 
       slather(
-        output_directory: "../../../fastlane/test_output",
+        output_directory: "../../../../fastlane/test_output",
         proj: "PlatformSupport.xcodeproj",
         scheme: "PlatformSupport",
         binary_basename: "libPlatformSupport",
