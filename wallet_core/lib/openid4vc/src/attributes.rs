@@ -16,6 +16,7 @@ pub enum AttributeValue {
     Integer(i64),
     Bool(bool),
     Text(String),
+    Array(Vec<AttributeValue>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -36,6 +37,7 @@ impl From<&AttributeValue> for ciborium::Value {
             AttributeValue::Integer(number) => ciborium::Value::Integer((*number).into()),
             AttributeValue::Bool(boolean) => ciborium::Value::Bool(*boolean),
             AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
+            AttributeValue::Array(elements) => ciborium::Value::Array(elements.iter().map(Into::into).collect()),
         }
     }
 }

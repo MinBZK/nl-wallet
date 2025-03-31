@@ -1,0 +1,335 @@
+{
+  "vct": "https://bmi.bund.example/credential/pid/1.0",
+  "name": "SD-JWT-based Verifiable Credentials",
+  "description": "SD-JWT-based Verifiable Credentials (SD-JWT VC)",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Example PID",
+      "description": "Example PID"
+    }
+  ],
+  "claims": [
+    {
+      "path": ["family_name"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Name",
+          "description": "Family name of the person, including any prefixes"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["given_name"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "First name",
+          "description": "First name of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["birth_family_name"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Family name birth",
+          "description": "Family name birth"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["also_known_as"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Also known as",
+          "description": "Also known as"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["gender"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Gender",
+          "description": "Gender"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["source_document_type"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Source document type",
+          "description": "Source document type"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["birthdate"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Birth date",
+          "description": "Birth date of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "locality"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Birth locality"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "country"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Birth country"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "street_address"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Street address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "postal_code"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Postal code"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "locality"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Locality"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "country"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["nationalities", null],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Nationalities"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_equal_or_over", "18"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Over 18?"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_equal_or_over", "12"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Over 12?"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_equal_or_over", "65"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Over 65?"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_equal_or_over", "21"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Over 21?"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_equal_or_over", "14"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Over 14?"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_equal_or_over", "16"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Over 16?"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "SD-JWT-based Verifiable Credentials (SD-JWT VC) Schema",
+    "description": "The JSON schema that defines the SD-JWT-based Verifiable Credentials VCT",
+    "type": "object",
+    "properties": {
+      "given_name": {
+        "type": "string"
+      },
+      "family_name": {
+        "type": "string"
+      },
+      "birth_family_name": {
+        "type": "string"
+      },
+      "also_known_as": {
+        "type": "string"
+      },
+      "gender": {
+        "type": "string"
+      },
+      "source_document_type": {
+        "type": "string"
+      },
+      "address": {
+        "type": "object",
+        "properties": {
+          "street_address": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "nationalities": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "birthdate": {
+        "type": "string",
+        "format": "date"
+      },
+      "place_of_birth": {
+        "type": "object",
+        "properties": {
+          "locality": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        }
+      },
+      "age_equal_or_over": {
+        "type": "object",
+        "properties": {
+          "18": {
+            "type": "boolean"
+          },
+          "12": {
+            "type": "boolean"
+          },
+          "65": {
+            "type": "boolean"
+          },
+          "21": {
+            "type": "boolean"
+          },
+          "14": {
+            "type": "boolean"
+          },
+          "16": {
+            "type": "boolean"
+          }
+        }
+      },
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      }
+    },
+    "required": [
+      "vct",
+      "iss",
+      "iat"
+    ],
+    "additionalProperties": false
+  }
+}

@@ -473,6 +473,7 @@ mod example_constructors {
     use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
+    use crate::examples::SD_JWT_VC_SPEC_METADATA_BYTES;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
@@ -566,6 +567,10 @@ mod example_constructors {
 
         pub fn address_example() -> Self {
             serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
+        }
+
+        pub fn sd_jwt_vc_spec_example() -> Self {
+            serde_json::from_slice(SD_JWT_VC_SPEC_METADATA_BYTES).unwrap()
         }
     }
 

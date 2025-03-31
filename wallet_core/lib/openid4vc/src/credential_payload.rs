@@ -2,6 +2,7 @@ use chrono::DateTime;
 use chrono::ParseError;
 use chrono::Utc;
 use indexmap::IndexMap;
+use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -13,6 +14,7 @@ use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::AttestationQualification;
 use mdoc::NameSpace;
+use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use wallet_common::urls::HttpsUri;
@@ -49,6 +51,10 @@ pub enum CredentialPayloadError {
     #[error("attribute error: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
+
+    #[error("unable to convert from SD-JWT: {0}")]
+    #[category(pd)]
+    SdJwt(#[from] sd_jwt::error::Error),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
@@ -57,8 +63,7 @@ pub enum CredentialPayloadError {
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
@@ -78,13 +83,23 @@ pub struct CredentialPayload {
     #[serde_as(as = "Option<TimestampSeconds<i64>>")]
     pub not_before: Option<DateTime<Utc>>,
 
-    pub attestation_qualification: AttestationQualification,
+    pub attestation_qualification: Option<AttestationQualification>,
 
     #[serde(flatten)]
     pub attributes: IndexMap<String, Attribute>,
 }
 
 impl CredentialPayload {
+    pub fn from_sd_jwt(sd_jwt: SdJwt, metadata: &TypeMetadata) -> Result<Self, CredentialPayloadError> {
+        let json = sd_jwt.into_disclosed_object()?;
+        let payload: CredentialPayload =
+            serde_json::from_value(serde_json::Value::Object(json)).map_err(sd_jwt::error::Error::Serialization)?;
+
+        payload.validate(metadata)?;
+
+        Ok(payload)
+    }
+
     pub fn from_unsigned_mdoc(
         unsigned_mdoc: UnsignedMdoc,
         metadata: &TypeMetadata,
@@ -131,7 +146,7 @@ impl CredentialPayload {
             issued_at,
             expires,
             not_before,
-            attestation_qualification,
+            attestation_qualification: Some(attestation_qualification),
             attributes,
         };
 
@@ -168,7 +183,7 @@ mod test {
             issued_at: Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap()),
             expires: None,
             not_before: None,
-            attestation_qualification: "QEAA".parse().unwrap(),
+            attestation_qualification: Some("QEAA".parse().unwrap()),
             attributes: IndexMap::from([
                 (
                     String::from("birth_date"),
@@ -240,5 +255,17 @@ mod test {
         let metadata = TypeMetadata::example();
 
         payload.validate(&metadata).unwrap();
+    }
+
+    #[test]
+    fn test_from_sd_jwt() {
+        let sd_jwt = sd_jwt::examples::sd_jwt_vc();
+        let metadata = TypeMetadata::sd_jwt_vc_spec_example();
+        let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone(), &metadata).unwrap();
+
+        assert_eq!(
+            payload.attestation_type,
+            sd_jwt.claims().properties.get("vct").and_then(|c| c.as_str()).unwrap()
+        );
     }
 }

@@ -10,10 +10,10 @@ workspace = true
 [[test]]
 name = "api_test"
 path = "tests/api_test.rs"
-required-features = ["example_sd_jwt"]
+required-features = ["examples"]
 
 [features]
-example_sd_jwt = []
+examples = []
 
 [dependencies]
 anyhow.workspace = true
