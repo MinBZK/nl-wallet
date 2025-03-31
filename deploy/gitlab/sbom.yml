@@ -23,7 +23,13 @@ build-sbom:
     - cd ios
     - bundle exec pod install --allow-root
     - cyclonedx-cocoapods # only supports single spec version (currently 1.6)
-    - cyclonedx convert --output-version v1_5 --input-file bom.xml --output-file bom.json
+      # Stripping Flutter 1.0.0 because 1.0.0 doesn't present any particular Flutter release
+      # https://github.com/flutter/flutter/issues/154023#issuecomment-2310710611
+      # https://github.com/flutter/flutter/issues/85820#issuecomment-874103549
+    - >
+      cyclonedx convert --output-version v1_5 --input-file bom.xml --output-format json
+      | jq 'del(.components[] | select(."bom-ref" == "pkg:cocoapods/Flutter@1.0.0?file_name=Flutter")) | del(.dependencies[].dependsOn[]? | select(. == "pkg:cocoapods/Flutter@1.0.0?file_name=Flutter"))'
+      > bom.json
     - cd ../..
     ## Android
     - (cd wallet_app/android/app && GRADLE_CMD="../gradlew" cdxgen --fail-on-error --spec-version 1.5 --type gradle --output bom.json)

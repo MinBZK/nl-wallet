@@ -1,0 +1,323 @@
+default:
+  interruptible: true
+  image: "${HARBOR_REGISTRY}/docker-hub-proxy/alpine/k8s:1.29.11"
+
+variables:
+  HELM_CHARTS_PATH: deploy/kubernetes/helm-charts
+  CRANE_DOCKER_ALT_IMAGE: "${HARBOR_REGISTRY}/docker-hub-proxy/alpine/crane:latest"
+
+.deploy-environment: &deploy-environment
+  resource_group: ${DEPLOY_ENV}
+  environment:
+    name: ${K8S_CLUSTER}
+    action: start
+    kubernetes:
+      namespace: ${K8S_NAMESPACE}
+
+.build-helm-dependency:
+  script: |
+    chmod 0600 "${KUBECONFIG}"
+    helm dependency build ${HELM_CHARTS_PATH}/${CHART_NAME}/chart
+
+.docker-login:
+  script: |
+    mkdir -p /root/.docker
+    echo $DOCKER_AUTH_CONFIG > ~/.docker/config.json
+
+.replace-chart-app-version:
+  script: |
+    yq -i ".appVersion = \"${IMAGE_TAG}\"" ${HELM_CHARTS_PATH}/${CHART_NAME}/chart/Chart.yaml
+
+.check-helm-install-status:
+  script:
+    - |
+      if [ $? -ne 0 ]; then
+        echo "Helm upgrade/install failed"
+        exit 1
+      fi
+
+.deploy-postgres-cluster:
+  script:
+    - !reference [ .build-helm-dependency, script ]
+    - !reference [ .parse-config-files, script ]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+      $FILE_OPTIONS
+
+.parse-config-files:
+  script:
+    - |
+      IFS=',' read -r -a file_array <<< "$CONFIG_FILES"
+      FILE_OPTIONS=""
+      for file in "${file_array[@]}"; do
+        FILE_OPTIONS+="-f $file "
+      done
+
+fetch-variables:
+  rules:
+    - when: always
+  script:
+    - |
+      GITLAB_URL_NO_PREFIX=${GITLAB_URL#https://}
+      git clone https://repo-variables-deploy-token:${CI_GITLAB_API_TOKEN}@${GITLAB_URL_NO_PREFIX}/wallet/deployments/variables.git
+  artifacts:
+    paths:
+      - variables/general
+      - variables/${DEPLOY_ENV}
+
+docker-manifest-mrp:
+  rules:
+    - when: always
+  image: $CRANE_DOCKER_ALT_IMAGE
+  script:
+    - !reference [ .docker-login, script ]
+    - crane config ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-mock-relying-party:${DEPLOY_IMAGE_VERSION} > image_mrp_manifest.json
+  artifacts:
+    paths:
+      - image_mrp_manifest.json
+
+read-hash-labels-image-mrp-${DEPLOY_ENV}:
+  rules:
+    - when: always
+  needs:
+    - docker-manifest-mrp
+  script:
+    - |
+      cat image_mrp_manifest.json
+      # Function to extract and validate JSON values
+      extract_and_validate() {
+        local key=$1
+        local output_file=$2
+        local value=$(jq -r ".config.Labels.${key}" image_mrp_manifest.json)
+        if [ -z "$value" ]; then
+          echo "Error: ${key} value is empty"
+          exit 1
+        fi
+        echo "$value" > "$output_file"
+      }
+      extract_and_validate "csp_script_mrp_base64" "csp_script_mrp_base64.txt"
+      extract_and_validate "csp_style_mrp_base64" "csp_style_mrp_base64.txt"
+      extract_and_validate "wallet_web_filename" "wallet_web_filename.txt"
+      extract_and_validate "wallet_web_sha256" "wallet_web_sha256.txt"
+  artifacts:
+    paths:
+      - csp_script_mrp_base64.txt
+      - csp_style_mrp_base64.txt
+      - wallet_web_filename.txt
+      - wallet_web_sha256.txt
+
+db-cluster-provider-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: on_success
+  <<: *deploy-environment
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: database-cnpg
+    RELEASE_NAME: db-cluster-provider
+    CONFIG_NAME: provider
+    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/provider/values.yaml"
+  script:
+    - !reference [ .deploy-postgres-cluster, script ]
+
+db-cluster-mrp-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: on_success
+  <<: *deploy-environment
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: database-cnpg
+    RELEASE_NAME: db-cluster-mrp
+    CONFIG_NAME: mrp
+    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/mrp/values.yaml"
+  script:
+    - !reference [ .deploy-postgres-cluster, script ]
+
+db-cluster-pid-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: on_success
+  <<: *deploy-environment
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: database-cnpg
+    RELEASE_NAME: db-cluster-pid
+    CONFIG_NAME: pid
+    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/pid/values.yaml"
+  script:
+    - !reference [ .deploy-postgres-cluster, script ]
+
+.basic-helm-deployment: &basic-helm-deployment
+  script:
+    - !reference [ .build-helm-dependency, script ]
+    - !reference [ .replace-chart-app-version, script ]
+    - !reference [ .parse-config-files, script ]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+      --set image.tag=${DEPLOY_IMAGE_VERSION} \
+      $FILE_OPTIONS
+    - !reference [ .check-helm-install-status, script ]
+
+wallet-provider-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: wallet-provider
+    RELEASE_NAME: wallet-provider
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/wallet-provider.yaml"
+  <<: *basic-helm-deployment
+
+pid-issuer-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: pid-issuer
+    RELEASE_NAME: pid-issuer
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/pid-issuer.yaml"
+  <<: *basic-helm-deployment
+
+mrp-verification-server-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: mrp-verification-server
+    RELEASE_NAME: mrp-verification-server
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/mrp-verification-server.yaml"
+  <<: *basic-helm-deployment
+
+mock-relying-party-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+    - read-hash-labels-image-mrp-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: mock-relying-party
+    RELEASE_NAME: mock-relying-party
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/mock-relying-party.yaml"
+  script:
+    - !reference [ .build-helm-dependency, script ]
+    - !reference [ .replace-chart-app-version, script ]
+    - !reference [ .parse-config-files, script ]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      cat variables/${DEPLOY_ENV}/mock-relying-party.yaml
+      export CSP_SCRIPT_MRP=$(cat csp_script_mrp_base64.txt | base64 -d)
+      export CSP_STYLE_MRP=$(cat csp_style_mrp_base64.txt | base64 -d)
+      export WALLET_WEB_FILENAME=$(cat wallet_web_filename.txt)
+      export WALLET_WEB_SHA256=$(cat wallet_web_sha256.txt)
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+      --set image.tag=${DEPLOY_IMAGE_VERSION} \
+      --set ingress.cspScriptSrc="${CSP_SCRIPT_MRP}" \
+      --set ingress.cspStyleSrc="${CSP_STYLE_MRP}" \
+      --set mockRelyingParty.walletWebFilename="${WALLET_WEB_FILENAME}" \
+      --set mockRelyingParty.walletWebSha256="${WALLET_WEB_SHA256}" \
+       $FILE_OPTIONS
+    - !reference [ .check-helm-install-status, script ]
+
+update-policy-server-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: update-policy-server
+    RELEASE_NAME: update-policy-server
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/update-policy-server.yaml"
+  <<: *basic-helm-deployment
+
+brpproxy-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: brpproxy
+    RELEASE_NAME: brpproxy
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/brpproxy.yaml"
+  script:
+    - !reference [ .build-helm-dependency, script ]
+    - !reference [ .parse-config-files, script ]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+       $FILE_OPTIONS
+    - !reference [ .check-helm-install-status, script ]
+
+gbamock-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: gbamock
+    RELEASE_NAME: gbamock
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/gbamock.yaml"
+  script:
+    - !reference [ .build-helm-dependency, script ]
+    - !reference [ .parse-config-files, script ]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+       $FILE_OPTIONS
+    - !reference [ .check-helm-install-status, script ]
+
+gba-hc-converter-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: gba-hc-converter
+    RELEASE_NAME: gba-hc-converter
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/gba-hc-converter.yaml"
+  script:
+    - !reference [ .build-helm-dependency, script ]
+    - !reference [ .replace-chart-app-version, script ]
+    - !reference [ .parse-config-files, script ]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - sed -i 's/{{bsn}}/{{`{{bsn}}`}}/g' wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml
+    - cp wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml ${PATH_CHART}/chart/files/
+    - cp wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh ${PATH_CHART}/chart/shell-scripts/
+    - cp -r wallet_core/gba_hc_converter/resources/gba-v-responses/ ${PATH_CHART}/chart/
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+      --set image.tag=${DEPLOY_IMAGE_VERSION} \
+       $FILE_OPTIONS
+    - !reference [ .check-helm-install-status, script ]
+
+run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: manual
+  <<: *deploy-environment
+  needs:
+    - gba-hc-converter-${DEPLOY_ENV}
+  script:
+    - kubectl create job --from=cronjob/cronjob-encrypt-gba-v-testdata job-gba-encrypt-test-data-$(date +%s)

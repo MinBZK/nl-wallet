@@ -317,7 +317,7 @@ mod tests {
     use rstest::rstest;
     use url::Url;
 
-    use configuration::http::test::HttpConfig;
+    use wallet_common::http::test::HttpConfig;
     use wallet_common::urls::BaseUrl;
 
     use crate::oidc::tests::start_discovery_server;

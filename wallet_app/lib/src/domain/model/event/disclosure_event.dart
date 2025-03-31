@@ -18,7 +18,9 @@ class DisclosureEvent extends WalletEvent {
   });
 
   @override
-  List<DataAttribute> get attributes => cards.expand((e) => e.attributes).toList(growable: false);
+  List<DataAttribute> get sharedAttributes => cards.expand((e) => e.attributes).toList(growable: false);
+
+  bool get hasSharedAttributes => sharedAttributes.isNotEmpty;
 
   @override
   List<Object?> get props => [dateTime, status, relyingParty, purpose, cards, policy, type];

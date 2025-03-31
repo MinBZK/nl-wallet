@@ -1,4 +1,3 @@
-use base64::prelude::*;
 use chrono::DateTime;
 use chrono::Utc;
 use p256::ecdsa::VerifyingKey;
@@ -75,10 +74,7 @@ where
 
             wallet_user_android_attestation::ActiveModel {
                 id: Set(id),
-                certificate_chain: Set(certificate_chain
-                    .into_iter()
-                    .map(|cert| BASE64_STANDARD_NO_PAD.encode(cert))
-                    .collect()),
+                certificate_chain: Set(certificate_chain),
                 integrity_verdict_json: Set(integrity_verdict_json),
             }
             .insert(connection)

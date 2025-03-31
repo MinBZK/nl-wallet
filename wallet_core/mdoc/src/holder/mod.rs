@@ -3,6 +3,7 @@
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 use crate::utils::reader_auth;
 
@@ -31,4 +32,10 @@ pub enum HolderError {
     #[error("could not retrieve docs from source: {0}")]
     #[category(critical)]
     MdocDataSource(#[source] Box<dyn std::error::Error + Send + Sync>),
+    #[error("mdoc is missing type metadata integrity digest")]
+    #[category(critical)]
+    MissingMetadataIntegrity,
+    #[error("could not decode type metadata chain: {0}")]
+    #[category(critical)]
+    TypeMetadata(#[from] TypeMetadataChainError),
 }

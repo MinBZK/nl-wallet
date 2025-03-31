@@ -1081,7 +1081,8 @@ impl CredentialResponse {
 
                 let issuer_signed = IssuerSigned::sign(
                     unsigned_mdoc,
-                    (&attestation_config.first_metadata_integrity, &type_metadata),
+                    attestation_config.first_metadata_integrity.clone(),
+                    &type_metadata,
                     cose_pubkey,
                     &attestation_config.key_pair,
                 )

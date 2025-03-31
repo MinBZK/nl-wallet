@@ -1696,7 +1696,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 let mut var_dateTime = <String>::sse_decode(deserializer);
                 let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
                 let mut var_purpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-                let mut var_requestedAttestations =
+                let mut var_sharedAttestations =
                     <Option<Vec<crate::models::attestation::Attestation>>>::sse_decode(deserializer);
                 let mut var_requestPolicy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_status = <crate::models::wallet_event::DisclosureStatus>::sse_decode(deserializer);
@@ -1705,7 +1705,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                     date_time: var_dateTime,
                     relying_party: var_relyingParty,
                     purpose: var_purpose,
-                    requested_attestations: var_requestedAttestations,
+                    shared_attestations: var_sharedAttestations,
                     request_policy: var_requestPolicy,
                     status: var_status,
                     typ: var_typ,
@@ -2313,7 +2313,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 date_time,
                 relying_party,
                 purpose,
-                requested_attestations,
+                shared_attestations,
                 request_policy,
                 status,
                 typ,
@@ -2322,7 +2322,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 date_time.into_into_dart().into_dart(),
                 relying_party.into_into_dart().into_dart(),
                 purpose.into_into_dart().into_dart(),
-                requested_attestations.into_into_dart().into_dart(),
+                shared_attestations.into_into_dart().into_dart(),
                 request_policy.into_into_dart().into_dart(),
                 status.into_into_dart().into_dart(),
                 typ.into_into_dart().into_dart(),
@@ -3041,7 +3041,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 date_time,
                 relying_party,
                 purpose,
-                requested_attestations,
+                shared_attestations,
                 request_policy,
                 status,
                 typ,
@@ -3050,7 +3050,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <String>::sse_encode(date_time, serializer);
                 <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(purpose, serializer);
-                <Option<Vec<crate::models::attestation::Attestation>>>::sse_encode(requested_attestations, serializer);
+                <Option<Vec<crate::models::attestation::Attestation>>>::sse_encode(shared_attestations, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(request_policy, serializer);
                 <crate::models::wallet_event::DisclosureStatus>::sse_encode(status, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
@@ -3623,7 +3623,7 @@ mod io {
                         date_time: ans.date_time.cst_decode(),
                         relying_party: ans.relying_party.cst_decode(),
                         purpose: ans.purpose.cst_decode(),
-                        requested_attestations: ans.requested_attestations.cst_decode(),
+                        shared_attestations: ans.shared_attestations.cst_decode(),
                         request_policy: ans.request_policy.cst_decode(),
                         status: ans.status.cst_decode(),
                         typ: ans.typ.cst_decode(),
@@ -4663,7 +4663,7 @@ mod io {
         date_time: *mut wire_cst_list_prim_u_8_strict,
         relying_party: *mut wire_cst_organization,
         purpose: *mut wire_cst_list_localized_string,
-        requested_attestations: *mut wire_cst_list_attestation,
+        shared_attestations: *mut wire_cst_list_attestation,
         request_policy: *mut wire_cst_request_policy,
         status: i32,
         typ: i32,

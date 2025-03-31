@@ -1,9 +1,9 @@
 use std::sync::LazyLock;
 
-use configuration::config_server_config::ConfigServerConfiguration;
-use configuration::wallet_config::WalletConfiguration;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 const WALLET_CONFIG_JSON: &str = include_str!("../../wallet-config.json");
 const CONFIG_SERVER_CONFIG_JSON: &str = include_str!("../../config-server-config.json");

@@ -21,6 +21,7 @@ use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+use ssri::Integrity;
 
 use crypto::utils::random_bytes;
 use wallet_common::urls::HttpsUri;
@@ -191,6 +192,9 @@ pub struct MobileSecurityObject {
 
     /// Optional because it is not in the spec.
     pub attestation_qualification: Option<AttestationQualification>,
+
+    /// This value is optional, as it is not part of the spec.
+    pub type_metadata_integrity: Option<Integrity>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]

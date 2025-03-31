@@ -66,12 +66,10 @@ uuid = { workspace = true, features = ["v4", "v7"] }
 
 mockall = { workspace = true, optional = true }
 
-configuration.path = "../wallet_configuration/configuration"
 crypto.path = "../crypto"
 entity.path = "entity"
 error_category = { path = "../error_category", features = ["sentry"] }
 jwt.path = "../jwt"
-wallet_migrations.path = "migrations"
 mdoc.path = "../mdoc"
 openid4vc.path = "../openid4vc"
 platform_support.path = "../platform_support"
@@ -79,6 +77,8 @@ poa.path = "../poa"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 wallet_common.path = "../wallet_common"
+wallet_configuration.path = "../wallet/configuration"
+wallet_migrations.path = "migrations"
 
 apple_app_attest = { path = "../apple_app_attest", optional = true }
 
@@ -95,7 +95,6 @@ tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lo
 wiremock.workspace = true
 
 apple_app_attest = { path = "../apple_app_attest", features = ["mock"] }
-configuration = { path = "../wallet_configuration/configuration", features = ["insecure_http_client"] }
 crypto = { path = "../crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 mdoc = { path = "../mdoc", features = ["generate", "mock_example_constructors", "test"] }
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
@@ -103,10 +102,11 @@ openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 platform_support = { path = "../platform_support", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
+wallet_common = { path = "../wallet_common", features = ["insecure_http_client"] }
 
 [build-dependencies]
 serde.workspace = true
 serde_json.workspace = true
 
-configuration.path = "../wallet_configuration/configuration"
 wallet_common.path = "../wallet_common"
+wallet_configuration.path = "../wallet/configuration"

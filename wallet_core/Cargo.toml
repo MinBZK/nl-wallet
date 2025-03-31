@@ -20,12 +20,12 @@ members = [
     "tests_integration",
     "update_policy_server",
     "wallet",
+    "wallet/configuration",
     "wallet/entity",
     "wallet/migrations",
     "wallet_ca",
     "wallet_common",
-    "wallet_configuration/configuration",
-    "wallet_configuration/configuration_server",
+    "configuration_server",
     "wallet_provider",
     "wallet_provider/database_settings",
     "wallet_provider/domain",
@@ -34,9 +34,9 @@ members = [
     "wallet_provider/service",
     "wallet_provider/wallet_account",
     "wallet_server/issuer_settings",
+    "wallet_server/pid_issuer",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
-    "wallet_server/pid_issuer",
     "wallet_server/verification_server",
 ]
 exclude = ["uniffi-bindgen"]
@@ -155,7 +155,7 @@ rstest = "0.24.0"
 rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"
-sea-orm = { version = "1.1.4", default-features = false }
+sea-orm = { version = "1.1.8", default-features = false }
 sea-orm-migration = { version = "1.1.4", default-features = false }
 sea-query = { version = "0.32.1", default-features = false }
 sec1 = "0.7.3"

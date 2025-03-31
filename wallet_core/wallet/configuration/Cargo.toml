@@ -1,0 +1,19 @@
+[package]
+name = "wallet_configuration"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+derive_more = { workspace = true, features = ["debug"] }
+etag.workspace = true
+rustls-pki-types.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_with = { workspace = true, features = ["base64"] }
+url = { workspace = true, features = ["serde"] }
+
+crypto.path = "../../crypto"
+wallet_common.path = "../../wallet_common"

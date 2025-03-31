@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-{{ .Values.nameOverride | default .Chart.Name }}-vpn
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingressVpn.hostname | quote }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  number: 3000
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - {{ .Values.ingressVpn.hostname | quote }}
+      secretName: wildcard-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-{{ .Values.nameOverride | default .Chart.Name }}-public
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- with .Values.ingress.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    odcn.rijksapps.nl/inet-loadbalancer-hostnames: {{ .Values.ingress.hostname | quote }}
+    nginx.ingress.kubernetes.io/rewrite-target: /api/v1/$1
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+      more_set_headers "X-Permitted-Cross-Domain-Policies: none";
+      more_set_headers "Cross-Origin-Resource-Policy: same-origin";
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.hostname | quote }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  number: 3000
+            path: /{{ .Values.ingress.contextPath }}/api/v1/(.*)
+            pathType: Prefix
+  tls:
+    - hosts:
+        - {{ .Values.ingress.hostname }}
+      secretName: {{ .Values.ingress.tlsSecretName | quote }}

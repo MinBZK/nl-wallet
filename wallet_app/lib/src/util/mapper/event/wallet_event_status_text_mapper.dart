@@ -19,24 +19,27 @@ class WalletEventStatusTextMapper extends ContextMapper<WalletEvent, String> {
 
   String mapDisclosureEvent(BuildContext context, DisclosureEvent event) {
     return switch (event.type) {
-      DisclosureType.regular => mapRegularDisclosure(context, event.status),
-      DisclosureType.login => mapLoginDisclosure(context, event.status),
+      DisclosureType.regular => mapRegularDisclosure(context, event),
+      DisclosureType.login => mapLoginDisclosure(context, event),
     };
   }
 
-  String mapRegularDisclosure(BuildContext context, EventStatus status) {
-    return switch (status) {
+  String mapRegularDisclosure(BuildContext context, DisclosureEvent event) {
+    return switch (event.status) {
       EventStatus.success => context.l10n.cardHistoryDisclosureSuccess,
       EventStatus.cancelled => context.l10n.cardHistoryDisclosureCancelled,
-      EventStatus.error => context.l10n.cardHistoryDisclosureError,
+      EventStatus.error => event.hasSharedAttributes
+          ? context.l10n.cardHistoryDisclosureError
+          : context.l10n.cardHistoryDisclosureErrorNoDataShared,
     };
   }
 
-  String mapLoginDisclosure(BuildContext context, EventStatus status) {
-    return switch (status) {
+  String mapLoginDisclosure(BuildContext context, DisclosureEvent event) {
+    return switch (event.status) {
       EventStatus.success => context.l10n.cardHistoryLoginSuccess,
       EventStatus.cancelled => context.l10n.cardHistoryLoginCancelled,
-      EventStatus.error => context.l10n.cardHistoryLoginError,
+      EventStatus.error =>
+        event.hasSharedAttributes ? context.l10n.cardHistoryLoginError : context.l10n.cardHistoryLoginErrorNoDataShared,
     };
   }
 

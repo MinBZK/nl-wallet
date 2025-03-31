@@ -1,0 +1,40 @@
+{{ $chart := . -}}
+{{ $fullName := include "common.names.fullname" . }}
+
+CHART NAME: {{ .Chart.Name }}
+CHART VERSION: {{ .Chart.Version }}
+APP VERSION: {{ .Chart.AppVersion }}
+
+** Please be patient while the chart is being deployed **
+
+To connect to your database from outside the cluster execute the following commands:
+
+{{- range $pgPool := .Values.pgPools -}}
+{{- if gt (int $pgPool.pool.replicas) 0 }}
+    ** Only connecting via PgBouncer is allowed **
+
+    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $fullName }}-pooler-{{ $pgPool.pool.type }} 5432:5432 &
+
+{{ else }}
+
+    ** PgBouncer is disabled, connect directly with the primary **
+
+    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $fullName }}-{{ $pgPool.pool.type }} 5432:5432 &
+
+{{ end -}}
+{{ end -}}
+
+
+To get the password for "{{ .Values.users.migrator.name }}" run:
+
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ .Values.users.migrator.nameSecret }} -o jsonpath="{.data.password}" | base64 -d
+
+
+To get a list of installed database clusters run:
+
+    kubectl get clusters --namespace {{ .Release.Namespace }}
+
+
+To connect to the database from another pod apply the following label to your pod:
+
+    {{ .Release.Name }}-access-database: allow

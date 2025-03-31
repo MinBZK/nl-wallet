@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-extensions-{{ .Release.Name }}
+data:
+  extensions.sql: |-
+    create extension if not exists "uuid-ossp" with schema public;
