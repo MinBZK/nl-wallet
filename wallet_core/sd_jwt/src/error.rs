@@ -40,17 +40,8 @@ pub enum Error {
     #[error("{0}")]
     Unspecified(String),
 
-    #[error("salt size must be greater than or equal to 16")]
-    InvalidSaltSize,
-
     #[error("the validation ended with {0} unused disclosure(s)")]
     UnusedDisclosures(usize),
-
-    #[error("JWS creation failure: {0}")]
-    JwsSignerFailure(String),
-
-    #[error("Missing required KB-JWT")]
-    MissingKeyBindingJwt,
 
     #[error("Error parsing JWT: {0}")]
     JwtParsing(#[from] JwtError),
