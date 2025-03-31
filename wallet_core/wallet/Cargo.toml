@@ -70,7 +70,6 @@ crypto.path = "../lib/crypto"
 entity.path = "entity"
 error_category = { path = "../lib/error_category", features = ["sentry"] }
 jwt.path = "../lib/jwt"
-wallet_migrations.path = "migrations"
 mdoc.path = "../lib/mdoc"
 openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
@@ -79,6 +78,7 @@ sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 wallet_common.path = "../lib/wallet_common"
 wallet_configuration.path = "configuration"
+wallet_migrations.path = "migrations"
 
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
