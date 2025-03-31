@@ -27,7 +27,7 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "tracing-log", "parking_lot"] }
 url.workspace = true
 
-error_category.path = "../error_category"
+error_category.path = "../lib/error_category"
 flutter_api_macros.path = "flutter_api_macros"
 wallet.path = "../wallet"
 

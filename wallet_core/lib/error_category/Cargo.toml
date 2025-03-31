@@ -11,7 +11,7 @@ workspace = true
 sentry = ["dep:sentry", "dep:tracing"]
 
 [dependencies]
-error_category_derive.path = "./error_category_derive"
+error_category_derive.path = "error_category_derive"
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 

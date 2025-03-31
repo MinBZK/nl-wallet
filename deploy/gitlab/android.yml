@@ -5,12 +5,12 @@
 #    when: always
 #    reports:
 #      coverage_report:
-#        path: wallet_core/platform_support/android/src/main/java/cobertura.xml
+#        path: wallet_core/wallet/platform_support/android/src/main/java/cobertura.xml
 #        coverage_format: cobertura
-#      junit: wallet_core/platform_support/android/build/outputs/androidTest-results/connected/*
+#      junit: wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/*
 #    paths:
-#      - wallet_core/platform_support/android/build/reports/**
-#      - wallet_core/platform_support/android/build/outputs/androidTest-results
+#      - wallet_core/wallet/platform_support/android/build/reports/**
+#      - wallet_core/wallet/platform_support/android/build/outputs/androidTest-results
 #  before_script:
 #    - echo "no" | avdmanager -s create avd --name $CI_JOB_NAME_SLUG --package "system-images;android-24;default;arm64-v8a"
 #  script:
@@ -19,8 +19,8 @@
 #    - emulator @${CI_JOB_NAME_SLUG} -show-kernel -log-detailed -no-window -no-snapshot -no-boot-anim -cores 2 -memory 2048 -audio none -accel off -gpu swiftshader_indirect -camera-back none -qemu -machine virt
 #    - EMULATOR_PID=$!
 #    - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
-#    - wallet_core/platform_support/android/gradlew -p wallet_core/platform_support/android connectedAndroidTest
-#    - wallet_core/platform_support/android/gradlew -p wallet_core/platform_support/android jacocoToCobertura
+#    - wallet_core/wallet/platform_support/android/gradlew -p wallet_core/wallet/platform_support/android connectedAndroidTest
+#    - wallet_core/wallet/platform_support/android/gradlew -p wallet_core/wallet/platform_support/android jacocoToCobertura
 #    - kill $EMULATOR_PID && while $(kill -0 $EMULATOR_PID 2>/dev/null); do sleep 1; done
 #    - avdmanager delete avd --name $CI_JOB_NAME_SLUG
 

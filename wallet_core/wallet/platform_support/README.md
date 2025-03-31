@@ -94,7 +94,7 @@ This test simply uses the crate to create a new private key, get its public key,
 
 ### Android
 
-To run the Android integration tests: execute `./gradlew connectedAndroidTest` from the `/wallet_core/platform_support/android` directory.
+To run the Android integration tests: execute `./gradlew connectedAndroidTest` from the `/wallet_core/wallet/platform_support/android` directory.
 
 Note: if you get an error like the following:
 
