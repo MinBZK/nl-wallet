@@ -4,11 +4,11 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-use wallet_configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::urls;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::issuance::DigidSession;

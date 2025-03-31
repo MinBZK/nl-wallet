@@ -5,10 +5,10 @@ use std::path::PathBuf;
 
 use serde::de::DeserializeOwned;
 
+use wallet_common::utils;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_configuration::EnvironmentSpecific;
-use wallet_common::utils;
 
 /// Add a temporary workaround for compiling for the Android x86_64 target, which is missing a symbol required by
 /// "sqlite3-sys". The root cause of the issue is documented here: https://github.com/rust-lang/rust/issues/109717.

@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use wallet_configuration::wallet_config::WalletConfiguration;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::update_policy::VersionState;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;

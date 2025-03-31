@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use wallet_configuration::wallet_config::WalletConfiguration;
 use jwt::EcdsaDecodingKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::errors::ChangePinError;

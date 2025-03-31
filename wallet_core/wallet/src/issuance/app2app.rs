@@ -15,12 +15,12 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use wallet_configuration::wallet_config::DigidConfiguration;
 use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
 use openid4vc::token::TokenRequest;
 use wallet_common::reqwest::JsonReqwestBuilder;
 use wallet_common::urls;
+use wallet_configuration::wallet_config::DigidConfiguration;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 
@@ -278,14 +278,14 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use wallet_configuration::digid::DigidApp2AppConfiguration;
-    use wallet_configuration::wallet_config::DigidConfiguration;
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequestGrantType;
     use wallet_common::http::test::HttpConfig;
     use wallet_common::reqwest::default_reqwest_client_builder;
     use wallet_common::urls::BaseUrl;
+    use wallet_configuration::digid::DigidApp2AppConfiguration;
+    use wallet_configuration::wallet_config::DigidConfiguration;
 
     use super::*;
 
