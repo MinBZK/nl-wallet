@@ -264,7 +264,8 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                     PostAuthResponseErrorCode::CancelledSession
                 }
                 PostAuthResponseError::Session(SessionError::SessionStore(_))
-                | PostAuthResponseError::HandlingDisclosureResult(_) => PostAuthResponseErrorCode::ServerError,
+                | PostAuthResponseError::HandlingDisclosureResult(_)
+                | PostAuthResponseError::ResponseEncoding(_) => PostAuthResponseErrorCode::ServerError,
                 PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
                     PostAuthResponseErrorCode::UnknownSession
                 }

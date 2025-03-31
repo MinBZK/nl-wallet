@@ -5,6 +5,7 @@ use anyhow::anyhow;
 use anyhow::Context;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
+use serde::Serialize;
 
 use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::credential::CredentialOffer;
@@ -173,7 +174,7 @@ where
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<String, Self::Error> {
+    ) -> Result<impl Serialize + Clone + 'static, Self::Error> {
         let to_issue = self
             .attributes_fetcher
             .attributes(usecase_id, disclosed)
@@ -210,10 +211,7 @@ where
             }),
         };
 
-        let credential_offer = serde_urlencoded::to_string(CredentialOfferContainer { credential_offer })
-            .context("failed URL-encode credential offer")?;
-
-        Ok(credential_offer)
+        Ok(CredentialOfferContainer { credential_offer })
     }
 }
 
@@ -324,13 +322,14 @@ mod tests {
             },
         )]);
 
-        let credential_offer = result_handler
+        // IssuanceResultsHandler always returns a CredentialOfferContainer.
+        let credential_offer: &dyn std::any::Any = &result_handler
             .disclosure_result("usecase_id", &mock_disclosed_attrs)
             .await
             .unwrap();
+        let CredentialOfferContainer { credential_offer } = credential_offer.downcast_ref().unwrap();
 
-        let CredentialOfferContainer { credential_offer } = serde_urlencoded::from_str(&credential_offer).unwrap();
-        let code = credential_offer.grants.unwrap().authorization_code().unwrap();
+        let code = credential_offer.grants.as_ref().unwrap().authorization_code().unwrap();
 
         // The session handler should have inserted a new issuance session in the session store.
         let IssuanceData::Created(session) = issuance_sessions

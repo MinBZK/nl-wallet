@@ -20,6 +20,7 @@ use ring::hmac;
 use ring::rand;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
+use serde::Serialize;
 
 use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -371,12 +372,12 @@ impl MdocDataSource for MockMdocDataSource {
 
 #[derive(Debug)]
 pub struct MockDisclosureResultHandler {
-    pub query_param: String,
+    pub key: Option<String>,
 }
 
 impl MockDisclosureResultHandler {
-    pub fn new(query_param: String) -> Self {
-        Self { query_param }
+    pub fn new(key: Option<String>) -> Self {
+        Self { key }
     }
 }
 
@@ -387,8 +388,12 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
         &self,
         _usecase_id: &str,
         _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<String, Self::Error> {
-        Ok(self.query_param.clone())
+    ) -> Result<impl Serialize + Clone + 'static, Self::Error> {
+        Ok(self
+            .key
+            .as_ref()
+            .map(|key| HashMap::from([(key.clone(), "foobar".to_string())]))
+            .unwrap_or_default())
     }
 }
 
@@ -506,7 +511,7 @@ async fn test_client_and_server(
     #[case] stored_documents: TestDocuments,
     #[case] requested_documents: ItemsRequests,
     #[case] expected_documents: TestDocuments,
-    #[values("", "result_query_param")] result_query_param: String,
+    #[values(None, Some("query_param".to_string()))] result_query_param: Option<String>,
 ) {
     let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&requested_documents, result_query_param.clone());
 
@@ -565,9 +570,9 @@ async fn test_client_and_server(
         })
         .unwrap_or_default();
 
-    if !result_query_param.is_empty()
+    if result_query_param.is_some()
         && redirect_uri.is_some()
-        && !redirect_uri_query_pairs.contains_key(&result_query_param)
+        && !redirect_uri_query_pairs.contains_key(result_query_param.as_ref().unwrap())
     {
         panic!("expected query parameter not found in redirect URI");
     }
@@ -607,7 +612,7 @@ async fn test_client_and_server_cancel_after_created() {
     let items_requests = pid_full_name().into();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, "".to_string());
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -660,7 +665,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let items_requests = pid_full_name().into();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, "".to_string());
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -766,7 +771,7 @@ async fn test_disclosure_invalid_poa() {
     let session_type = SessionType::SameDevice;
     let use_case = NO_RETURN_URL_USE_CASE;
 
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests, "".to_string());
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -815,7 +820,7 @@ async fn test_disclosure_invalid_poa() {
 
 fn setup_verifier(
     items_requests: &ItemsRequests,
-    session_result_query_param: String,
+    session_result_query_param: Option<String>,
 ) -> (Arc<MockVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();

@@ -1,5 +1,6 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::fmt::Display;
@@ -152,6 +153,8 @@ pub enum PostAuthResponseError {
     AuthResponse(#[from] AuthResponseError),
     #[error("failed handling disclosure result: {0}")]
     HandlingDisclosureResult(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("failed serializing response: {0}")]
+    ResponseEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
 /// Errors that can occur when creating a [`UseCase`] instance.
@@ -511,7 +514,7 @@ pub trait DisclosureResultHandler {
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<String, Self::Error>;
+    ) -> Result<impl Serialize + Clone + 'static, Self::Error>;
 }
 
 #[derive(Debug)]
@@ -524,8 +527,8 @@ impl DisclosureResultHandler for NoOpDisclosureResultHandler {
         &self,
         _: &str,
         _: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<String, Self::Error> {
-        Ok("".to_string())
+    ) -> Result<impl Serialize + Clone + 'static, Self::Error> {
+        Ok(HashMap::<String, String>::new())
     }
 }
 
@@ -1165,7 +1168,8 @@ impl Session<WaitingForResponse> {
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
-                let response = self.ok_response("".to_string());
+                // The empty map will always URL-serialize without error.
+                let response = self.ok_response(HashMap::<String, String>::new()).unwrap();
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
@@ -1204,7 +1208,10 @@ impl Session<WaitingForResponse> {
         };
 
         let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
-        let response = self.ok_response(query_params);
+        let response = match self.ok_response(query_params) {
+            Ok(response) => response,
+            Err(err) => return self.handle_err(err),
+        };
         let next = self.transition_finish(disclosed, redirect_uri_nonce);
 
         (Ok(response), next)
@@ -1222,18 +1229,35 @@ impl Session<WaitingForResponse> {
         (Err(WithRedirectUri::new(err, redirect_uri)), next)
     }
 
-    fn ok_response(&self, mut url_params: String) -> VpResponse {
-        VpResponse {
-            redirect_uri: self.state().redirect_uri.as_ref().map(|u| {
-                let mut uri = u.uri.clone().into_inner();
-                let query = uri.query().unwrap_or_default().to_string();
-                if !query.is_empty() && !url_params.is_empty() {
-                    url_params = "&".to_string() + &url_params;
-                }
-                uri.set_query(Some(&(query + &url_params)));
-                uri.try_into().unwrap() // safe as this URI was obtained from a BaseUrl
-            }),
-        }
+    fn ok_response<T: Serialize + Clone>(&self, url_params: T) -> Result<VpResponse, PostAuthResponseError> {
+        let response = VpResponse {
+            redirect_uri: self
+                .state()
+                .redirect_uri
+                .as_ref()
+                .map(|u| {
+                    let mut uri = u.uri.clone().into_inner();
+
+                    #[derive(Serialize)]
+                    struct UrlParams<'a, T: Serialize + Clone> {
+                        #[serde(flatten)]
+                        redirect_uri_params: HashMap<Cow<'a, str>, Cow<'a, str>>,
+                        #[serde(flatten)]
+                        disclosure_handler_uri_params: T,
+                    }
+
+                    uri.set_query(Some(&serde_urlencoded::to_string(UrlParams {
+                        redirect_uri_params: uri.query_pairs().collect(),
+                        disclosure_handler_uri_params: url_params,
+                    })?));
+
+                    // This is safe as this URI was obtained from a BaseUrl
+                    Ok::<_, PostAuthResponseError>(uri.try_into().unwrap())
+                })
+                .transpose()?,
+        };
+
+        Ok(response)
     }
 
     fn transition_finish(self, disclosed_attributes: DisclosedAttributes, nonce: Option<String>) -> Session<Done> {
