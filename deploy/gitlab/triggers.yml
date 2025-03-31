@@ -51,6 +51,8 @@ build-demo-trigger:
       - local: .gitlab-ci.yml
   variables:
     BUILD: 'demo'
+  when: manual
+  allow_failure: true
 
 trigger-scheduled-automation-tests:
   rules:
