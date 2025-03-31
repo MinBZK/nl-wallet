@@ -30,7 +30,7 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
           dateTime: DateTime.parse(input.dateTime).toLocal(),
           relyingParty: _relyingPartyMapper.map(input.relyingParty),
           purpose: _localizedStringMapper.map(input.purpose),
-          cards: _cardMapper.mapList(input.requestedAttestations ?? []),
+          cards: _cardMapper.mapList(input.sharedAttestations ?? []),
           policy: _policyMapper.map(input.requestPolicy),
           status: _resolveInteractionStatus(input.status),
           type: _disclosureTypeMapper.map(input.typ),

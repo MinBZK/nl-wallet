@@ -16,7 +16,7 @@ doctest = false
 allow_insecure_url = []
 # Include implementations of the axum IntoResponse trait.
 axum = ["dep:axum", "dep:axum-server", "dep:tower-http"]
-# TODO: find a nice comment for this line
+# Implement the HttpConfig type for insecurely fetching configurations.
 insecure_http_client = []
 # Include MockTimeGenerator
 mock_time = ["dep:parking_lot"]

@@ -4,7 +4,6 @@ use cfg_if::cfg_if;
 use futures::try_join;
 use tokio::sync::RwLock;
 
-use configuration::wallet_config::WalletConfiguration;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -14,6 +13,7 @@ use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
 use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;

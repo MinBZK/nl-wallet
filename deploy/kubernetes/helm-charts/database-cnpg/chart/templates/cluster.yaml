@@ -1,0 +1,162 @@
+{{ $chart := . -}}
+{{ $fullName := include "common.names.fullname" . }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ default .Values.database.name .Values.name }}
+spec:
+  imageName: {{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+  instances: {{ default 1 .Values.replicaCount }}
+  inheritedMetadata:
+    {{- with .Values.annotations }}
+    annotations:
+      {{- . | toYaml | nindent 6 }}
+    {{- end }}
+    labels:
+      app.kubernetes.io/component: "{{ .Release.Name }}-postgres"
+      {{- .Values.extraPodlabels | toYaml | nindent 6 }}
+
+  primaryUpdateMethod: switchover
+
+  storage:
+    storageClass: {{ .Values.persistence.storageClass }}
+    size: {{ .Values.persistence.size }}
+
+{{- with .Values.resources }}
+  resources:
+    {{- . | toYaml | nindent 4}}
+{{- end }}
+
+  managed:
+    roles:
+      - name: {{ .Values.users.migrator.name }}
+        ensure: present
+        comment: owner of the database and allowed to do migrations
+        connectionLimit: -1
+        createdb: true
+        createrole: true
+        inherit: true
+        login: true
+        passwordSecret:
+          name: {{ .Values.users.migrator.nameSecret | quote }}
+
+{{- if .Values.backup.recovery }}
+
+  bootstrap:
+    recovery:
+      source: clusterBackup
+      {{- if .Values.backup.targetTime }}
+      recoveryTarget:
+        targetTime: {{ .Values.backup.targetTime }}
+      {{- end }}
+
+  externalClusters:
+    - name: clusterBackup
+      barmanObjectStore:
+        serverName: {{ .Values.backup.recoveryServerName }}
+        destinationPath: {{ .Values.backup.destinationPath }}
+        endpointURL: {{ default (print "http://minio." .Release.Namespace ".svc.cluster.local:9000") .Values.backup.endpointURL }}
+
+        {{- with .Values.backup.s3Credentials }}
+        s3Credentials:
+        {{- . | toYaml | nindent 10}}
+        {{- end }}
+
+        wal:
+          maxParallel: 2
+
+{{- else }}
+
+  bootstrap:
+    initdb:
+      database: {{ .Values.database.name }}
+      owner: {{ .Values.users.migrator.name }}
+      encoding: "UTF8"
+      localeCollate: "en_US.UTF-8"
+      localeCType: "en_US.UTF-8"
+      secret:
+        name: {{ .Values.users.migrator.nameSecret | quote }}
+      postInitApplicationSQLRefs:
+        configMapRefs:
+          - key: extensions.sql
+            name: config-extensions-{{ .Release.Name }}
+
+{{- end }}
+
+  enableSuperuserAccess: false
+
+  postgresql:
+    parameters:
+      max_connections: {{ .Values.parameters.max_connections | quote }}
+      shared_buffers: {{ .Values.parameters.shared_buffers }}
+      log_statement: {{ default "none" .Values.parameters.log_statement }}
+      {{- if .Values.backup.enabled }}
+      wal_keep_size: {{ .Values.parameters.wal_keep_size }}
+      archive_timeout: {{ .Values.parameters.archive_timeout }}
+      {{- end }}
+
+  affinity:
+    enablePodAntiAffinity: true
+    podAntiAffinityType: preferred
+    topologyKey: kubernetes.io/hostname
+
+{{- if .Values.backup.enabled }}
+  backup:
+    barmanObjectStore:
+      serverName: {{ .Values.backup.serverName }}
+      endpointURL: {{ default (print "http://minio." .Release.Namespace ".svc.cluster.local:9000") .Values.backup.endpointURL }}
+      destinationPath: {{ default (print "s3://" $fullName "-pg-wal") .Values.backup.destinationPath }}
+      tags:
+        backupRetentionPolicy: "expire"
+      historyTags:
+        backupRetentionPolicy: "keep"
+
+  {{- with .Values.backup.s3Credentials }}
+      s3Credentials:
+      {{- . | toYaml | nindent 8}}
+  {{- end }}
+
+      wal:
+        compression: gzip
+        maxParallel: {{ .Values.backup.wall.maxParallel }}
+    retentionPolicy: {{ .Values.backup.retentionPolicy }}
+
+
+{{- end }}
+
+---
+{{ if .Values.pooling.enabled }}
+{{- range $pgPool := .Values.pgPools -}}
+{{- if gt (int $pgPool.pool.replicas) 0 }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: {{ $chart.Release.Name }}-pooler-{{ $pgPool.pool.type }}
+spec:
+  cluster:
+    name: {{ default $chart.Values.database.name $chart.Values.name }}
+  instances: {{ $pgPool.pool.replicas }}
+  type: {{ $pgPool.pool.type }}
+  pgbouncer:
+    poolMode: {{ default "session" $pgPool.pool.poolMode }}
+{{- with $pgPool.pool.parameters }}
+    parameters:
+      {{- . | toYaml | nindent 6 }}
+{{- end }}
+  template:
+    metadata:
+      labels:
+{{- $chart.Values.metadata.labels | toYaml | nindent 8 }}
+        app.kubernetes.io/component: "{{ $chart.Release.Name}}-pgbouncer"
+    spec:
+      containers:
+        - name: pgbouncer
+          image: {{ .Values.image.registry }}/{{ $chart.Values.imagePgBouncer.repository }}:{{ $chart.Values.imagePgBouncer.tag }}
+{{- with $pgPool.pool.resources }}
+          resources:
+            {{- . | toYaml | nindent 12 }}
+{{- end }}
+---
+{{ end -}}
+{{ end -}}
+{{- end }}

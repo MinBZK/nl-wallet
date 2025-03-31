@@ -6,7 +6,7 @@ class SignEvent extends WalletEvent {
   final Document document;
 
   @override
-  List<DataAttribute> get attributes => [];
+  List<DataAttribute> get sharedAttributes => [];
 
   const SignEvent({
     required super.dateTime,

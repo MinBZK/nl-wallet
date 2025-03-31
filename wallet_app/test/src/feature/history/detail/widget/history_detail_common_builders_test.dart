@@ -59,7 +59,7 @@ void main() {
     final l10n = await TestUtils.englishLocalizations;
     expect(find.byType(SharedAttributesCard), findsNWidgets(WalletMockData.disclosureEvent.cards.length));
     expect(find.text(l10n.historyDetailScreenSharedAttributesTitle), findsOneWidget);
-    final totalNrOfAttributes = WalletMockData.disclosureEvent.attributes.length;
+    final totalNrOfAttributes = WalletMockData.disclosureEvent.sharedAttributes.length;
     expect(find.textContaining(totalNrOfAttributes.toString()), findsOneWidget);
   });
 
@@ -76,7 +76,7 @@ void main() {
     final l10n = await TestUtils.englishLocalizations;
     expect(find.byType(SharedAttributesCard), findsNWidgets(WalletMockData.disclosureEvent.cards.length));
     expect(find.text(l10n.requestDetailsScreenAttributesTitle), findsOneWidget);
-    final totalNrOfAttributes = WalletMockData.disclosureEvent.attributes.length;
+    final totalNrOfAttributes = WalletMockData.disclosureEvent.sharedAttributes.length;
     expect(find.textContaining(totalNrOfAttributes.toString()), findsOneWidget);
   });
 

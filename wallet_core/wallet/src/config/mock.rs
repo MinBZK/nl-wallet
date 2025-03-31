@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::data::default_wallet_config;
 use crate::repository::ObservableRepository;

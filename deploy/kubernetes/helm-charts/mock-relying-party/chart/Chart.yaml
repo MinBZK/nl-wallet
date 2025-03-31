@@ -1,0 +1,15 @@
+apiVersion: v2
+name: mock-relying-party
+description: A Helm chart for mock-relying-party
+
+type: application
+
+version: 0.3.0
+
+appVersion: ""
+
+
+dependencies:
+  - name: sp-common
+    repository: "file://../../sp-common"
+    version: 1.x.x

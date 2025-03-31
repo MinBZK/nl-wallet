@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- if .Values.extraPodlabels }}
+        {{ toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{ toYaml . | nindent 10 }}
+      {{- end }}
+      containers:
+        - name: {{ include "common.names.fullname" . }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- with .Values.resources }}
+          resources:
+          {{ toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: wallet-port
+              containerPort: 3001
+            - name: requester-port
+              containerPort: 3002
+          env:
+            - name: VERIFICATION_SERVER__WALLET_SERVER__PORT
+              value: "3001"
+            - name: VERIFICATION_SERVER__REQUESTER_SERVER__IP
+              value: "0.0.0.0"
+            - name: VERIFICATION_SERVER__REQUESTER_SERVER__PORT
+              value: "3002"
+            - name: VERIFICATION_SERVER__PUBLIC_URL
+              value: {{ include "common.urls.combineDomainAndContext" (list .Values.verificationServer.hostname .Values.verificationServer.contextPath) }}
+            - name: VERIFICATION_SERVER__UNIVERSAL_LINK_BASE_URL
+              value: {{ .Values.universalLinkBaseUrl }}
+            - name: VERIFICATION_SERVER__STRUCTURED_LOGGING
+              value: "true"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-mrp-app
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-mrp-app
+                  key: password
+            - name: VERIFICATION_SERVER__STORAGE__URL
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-mrp-rw:5432/verification_server"
+            - name: VERIFICATION_SERVER__ISSUER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: issuer_trust_anchors
+            - name: VERIFICATION_SERVER__READER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: reader_trust_anchors
+            - name: VERIFICATION_SERVER__EPHEMERAL_ID_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-ephemeral-id-secret
+                  key: verifier_ephemeral_id_secret
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-mijn-amsterdam
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__mijn_amsterdam__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-monkey-bike
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-monkey-bike
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__monkey_bike__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-online-marketplace
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-online-marketplace
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__online_marketplace__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-xyz-bank
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-mrp-verification-server-verifier-usecases-xyz-bank
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY_TYPE
+              value: "software"
+            - name: RUST_LOG
+              value: "debug,hyper=warn"

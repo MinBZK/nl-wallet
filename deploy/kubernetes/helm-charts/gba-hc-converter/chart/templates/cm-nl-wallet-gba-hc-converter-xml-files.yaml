@@ -1,0 +1,14 @@
+{{ if .Values.gbaEncryptTestData.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nl-wallet-gba-hc-converter-xml-files
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+data:
+{{- range $path, $bytes := .Files.Glob (printf "gba-v-responses/*") }}
+{{ base $path | indent 2 }}: |
+{{ tpl ($.Files.Get $path) $ | indent 4 }}
+{{- end }}
+{{- end }}

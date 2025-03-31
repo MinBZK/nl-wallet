@@ -14,10 +14,10 @@ class WalletEventLog {
   Stream<List<WalletEvent>> get logStream => _logSubject.stream;
 
   bool _eventContainsCardWithDocType(WalletEvent_Disclosure disclosure, String docType) {
-    if (disclosure.requestedAttestations == null) return false;
+    if (disclosure.sharedAttestations == null) return false;
 
     /// Check if the provided docType was used in this request
-    return disclosure.requestedAttestations!.any(
+    return disclosure.sharedAttestations!.any(
       (card) =>
           switch (card.identity) {
             AttestationIdentity_Ephemeral() => '',
@@ -37,7 +37,7 @@ class WalletEventLog {
       .toList();
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
-    final List<Attestation> requestedAttestations = switch (disclosure) {
+    final List<Attestation> sharedAttestations = switch (disclosure) {
       StartDisclosureResult_Request(:final requestedAttestations) => requestedAttestations,
       StartDisclosureResult_RequestAttributesMissing() => [],
     };
@@ -49,12 +49,12 @@ class WalletEventLog {
           policyUrl: relyingParty.privacyPolicyUrl ?? relyingParty.webUrl ?? '',
         ) /* We invent a policy here, mainly because it's only for the mock and not used in the current setup. */,
     };
-    final bool isLogin = requestedAttestations.onlyContainsBsn;
+    final bool isLogin = sharedAttestations.onlyContainsBsn;
     final event = WalletEvent.disclosure(
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: disclosure.relyingParty,
       purpose: disclosure.requestPurpose,
-      requestedAttestations: requestedAttestations,
+      sharedAttestations: sharedAttestations,
       requestPolicy: policy,
       status: status,
       typ: isLogin ? DisclosureType.Login : DisclosureType.Regular,
@@ -66,7 +66,7 @@ class WalletEventLog {
   void logDisclosureStep(
     Organization organization,
     RequestPolicy policy,
-    List<Attestation> requestedAttestations,
+    List<Attestation> sharedAttestations,
     DisclosureStatus status, {
     List<LocalizedString>? purpose,
   }) {
@@ -74,10 +74,10 @@ class WalletEventLog {
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: organization,
       purpose: purpose ?? ''.untranslated,
-      requestedAttestations: requestedAttestations,
+      sharedAttestations: sharedAttestations,
       requestPolicy: policy,
       status: status,
-      typ: requestedAttestations.onlyContainsBsn ? DisclosureType.Login : DisclosureType.Regular,
+      typ: sharedAttestations.onlyContainsBsn ? DisclosureType.Login : DisclosureType.Regular,
     );
     _logEvent(event);
   }

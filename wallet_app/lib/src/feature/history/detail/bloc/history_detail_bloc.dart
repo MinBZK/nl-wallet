@@ -21,7 +21,7 @@ class HistoryDetailBloc extends Bloc<HistoryDetailEvent, HistoryDetailState> {
 
   Future<void> _onHistoryDetailLoadTriggered(HistoryDetailLoadTriggered event, emit) async {
     emit(const HistoryDetailLoadInProgress());
-    final relatedCardDocTypes = event.event.attributes.map((e) => e.sourceCardDocType).toSet();
+    final relatedCardDocTypes = event.event.sharedAttributes.map((e) => e.sourceCardDocType).toSet();
     final cardsResult = await getWalletCardsUseCase.invoke();
     await cardsResult.process(
       onSuccess: (cards) {

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-03-18T11:50:25+01:00",
+    "@@last_modified": "2025-03-27T09:18:56+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -149,11 +149,13 @@
     "cardDetailScreenNoUpdateAvailableSheetDescription": "At the moment, there are no new data available for this card.\n\nExpecting new data? It may take a few days before you can retrieve the new data. Please try again later.",
     "cardDetailScreenNoUpdateAvailableSheetTitle": "You have the latest version.",
     "cardHistoryDisclosureCancelled": "Sharing stopped",
-    "cardHistoryDisclosureError": "Failed to share",
+    "cardHistoryDisclosureError": "Sharing may have failed",
+    "cardHistoryDisclosureErrorNoDataShared": "Sharing failed",
     "cardHistoryDisclosureSuccess": "Data shared",
     "cardHistoryIssuanceSuccess": "Card created",
     "cardHistoryLoginCancelled": "Log in is stopped",
-    "cardHistoryLoginError": "Log in failed",
+    "cardHistoryLoginError": "Login may have failed",
+    "cardHistoryLoginErrorNoDataShared": "Login failed",
     "cardHistoryLoginSuccess": "Logged in",
     "cardHistoryScreenTitle": "Card activities",
     "cardHistorySigningCancelled": "Signing stopped",
@@ -523,7 +525,7 @@
             }
         }
     },
-    "historyDetailScreenDisclosureErrorDescription": "No data has been shared with {organization}, because something went wrong.",
+    "historyDetailScreenDisclosureErrorDescription": "Something went wrong while sharing. It is not certain whether {organization} received the data.",
     "@historyDetailScreenDisclosureErrorDescription": {
         "placeholders": {
             "organization": {
@@ -532,8 +534,19 @@
             }
         }
     },
-    "historyDetailScreenErrorTitleForDisclosure": "Sharing with {organization} has potentially failed",
-    "historyDetailScreenErrorTitleForLogin": "Login at {organization} failed",
+    "historyDetailScreenDisclosureErrorNoDataSharedDescription": "No data was shared with {organization} because something went wrong.",
+    "@historyDetailScreenDisclosureErrorNoDataSharedDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenErrorNoDataSharedTitleForDisclosure": "Sharing failed with {organization}",
+    "historyDetailScreenErrorNoDataSharedTitleForLogin": "Login failed to {organization}",
+    "historyDetailScreenErrorTitleForDisclosure": "Sharing may have failed with {organization}",
+    "historyDetailScreenErrorTitleForLogin": "Login may have failed to {organization}",
     "historyDetailScreenIssuanceSuccessDescription": "Card created",
     "historyDetailScreenLoginCancelledDescription": "No data was shared with {organization} because you stopped logging in.",
     "@historyDetailScreenLoginCancelledDescription": {
@@ -544,8 +557,17 @@
             }
         }
     },
-    "historyDetailScreenLoginErrorDescription": "No data was shared with {organization} because something went wrong.",
+    "historyDetailScreenLoginErrorDescription": "Something went wrong while logging in. It is not certain whether {organization} received the data.",
     "@historyDetailScreenLoginErrorDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "historyDetailScreenLoginErrorNoDataSharedDescription": "No data was shared with {organization} because something went wrong.",
+    "@historyDetailScreenLoginErrorNoDataSharedDescription": {
         "placeholders": {
             "organization": {
                 "example": "RvIG",

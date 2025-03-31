@@ -45,15 +45,13 @@ class HistoryDetailDisclosePage extends StatelessWidget {
   }
 
   String _resolveDisclosureTitle(BuildContext context, DisclosureEvent event) {
-    switch (event.status) {
-      case EventStatus.success:
-        return context.l10n.historyDetailScreenTitleForDisclosure(event.relyingParty.displayName.l10nValue(context));
-      case EventStatus.cancelled:
-        return context.l10n
-            .historyDetailScreenStoppedTitleForDisclosure(event.relyingParty.displayName.l10nValue(context));
-      case EventStatus.error:
-        return context.l10n
-            .historyDetailScreenErrorTitleForDisclosure(event.relyingParty.displayName.l10nValue(context));
-    }
+    final organizationName = event.relyingParty.displayName.l10nValue(context);
+    return switch (event.status) {
+      EventStatus.success => context.l10n.historyDetailScreenTitleForDisclosure(organizationName),
+      EventStatus.cancelled => context.l10n.historyDetailScreenStoppedTitleForDisclosure(organizationName),
+      EventStatus.error => event.hasSharedAttributes
+          ? context.l10n.historyDetailScreenErrorTitleForDisclosure(organizationName)
+          : context.l10n.historyDetailScreenErrorNoDataSharedTitleForDisclosure(organizationName),
+    };
   }
 }

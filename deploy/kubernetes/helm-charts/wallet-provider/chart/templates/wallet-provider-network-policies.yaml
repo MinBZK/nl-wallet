@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: hsm-in-zeer-vertrouwd
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              hsm-in-zeer-vertrouwd: allow
+  podSelector:
+    matchLabels:
+      app: hsm-simulator
+  policyTypes:
+    - Ingress

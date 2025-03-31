@@ -79,14 +79,14 @@ class HistoryDetailCommonBuilders {
   }
 
   static Widget buildSharedAttributesSliver(BuildContext context, DisclosureEvent event) {
-    final totalNrOfAttributes = event.attributes.length;
+    final totalNrOfAttributes = event.sharedAttributes.length;
     final String title = context.l10n.historyDetailScreenSharedAttributesTitle;
     final subtitle = context.l10n.historyDetailScreenSharedAttributesSubtitle(totalNrOfAttributes);
     return _buildAttributesSliver(context, event, title: title, subtitle: subtitle);
   }
 
   static Widget buildRequestedAttributesSliver(BuildContext context, DisclosureEvent event) {
-    final totalNrOfAttributes = event.attributes.length;
+    final totalNrOfAttributes = event.sharedAttributes.length;
     final String title = context.l10n.requestDetailsScreenAttributesTitle;
     final subtitle = context.l10n.requestDetailsScreenAttributesSubtitle(totalNrOfAttributes);
     return _buildAttributesSliver(context, event, title: title, subtitle: subtitle);

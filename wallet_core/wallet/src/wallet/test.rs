@@ -139,7 +139,8 @@ pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: TypeMetadata, i
     let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
     let issuer_signed = IssuerSigned::sign(
         unsigned_mdoc,
-        (&metadata_integrity, &metadata_documents),
+        metadata_integrity,
+        &metadata_documents,
         mdoc_public_key,
         &issuer_key.issuance_key,
     )

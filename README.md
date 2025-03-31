@@ -208,6 +208,7 @@ To do development work on the NL reference wallet, you need to following tools:
 - Android SDK + NDK (for Android builds)
 - Xcode (for iOS builds)
 - Docker (to run supporting services)
+- PKCS #11 library
 
 In the coming sub-sections we will document how to install and configure those.
 
@@ -276,6 +277,15 @@ system. Likely the easiest way to do so is:
 
 Make sure you can run Docker on your development system. You can follow the
 [getting started guide][25] to do so.
+
+#### PKCS #11 library
+
+The wallet_provider is designed to use a HSM with the [PKCS #11][30] API.
+For local development we use the [SoftHSMv2][29] library.
+The latest release (2.6.1) of this library is more than five years old
+and does *not* work in combination with the latest openssl.
+You need to compile the library from source and set the correct `HSM_LIBRARY_PATH`
+if the setup script does not detect the library.
 
 ### Supporting services
 
@@ -558,3 +568,7 @@ read the text in a regular text editor or pager to see them.
 [27]: https://github.com/minvws/nl-rdo-max
 
 [28]: https://github.com/BRP-API/Haal-Centraal-BRP-bevragen
+
+[29]: https://github.com/softhsm/SoftHSMv2
+
+[30]: https://en.wikipedia.org/wiki/PKCS_11

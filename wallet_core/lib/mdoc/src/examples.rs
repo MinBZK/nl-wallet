@@ -90,10 +90,9 @@ impl DeviceResponse {
             );
 
             doc.issuer_signed.issuer_auth.0.unprotected =
-                IssuerSigned::create_unprotected_header(new_cert.to_vec(), (&metadata_integrity, &metadata_documents))
-                    .unwrap();
+                IssuerSigned::create_unprotected_header(new_cert.to_vec(), &metadata_documents).unwrap();
 
-            doc.issuer_signed.resign(&new_key).await.unwrap();
+            doc.issuer_signed.resign(&new_key, metadata_integrity).await.unwrap();
         }
 
         device_response
@@ -320,7 +319,8 @@ pub mod mock {
                 TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example());
             let issuer_signed = IssuerSigned::sign(
                 unsigned_mdoc,
-                (&metadata_integrity, &metadata_documents),
+                metadata_integrity,
+                &metadata_documents,
                 device_key,
                 &issuer_keypair,
             )

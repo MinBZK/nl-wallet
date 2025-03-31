@@ -1,0 +1,165 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## String to partially override the chart's fullname template
+## @param nameOverride String to partially override chart's fullname
+##
+nameOverride: ""
+
+## @section Common parameters
+## Number of replicas
+## @param replicaCount Number of replicas
+##
+replicaCount: 2
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag
+##
+image:
+  repository: null
+  pullPolicy: IfNotPresent
+  tag: null
+
+## @section Image migration parameters
+## @param imageMigrations.repository Repository for the migration container image
+## @param imageMigrations.pullPolicy Image pull policy for the migration container
+##
+imageMigrations:
+  repository: null
+  pullPolicy: IfNotPresent
+
+## @section Pod labels
+## Additional labels for the pods
+## @param extraPodlabels Additional labels for the pods
+##
+extraPodlabels: {}
+
+## @section Image pull secrets
+## Secrets for pulling images from private registries
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Service account name
+## Name of the service account to use
+## @param serviceAccountName Name of the service account
+##
+serviceAccountName: null
+
+## @section Security context
+## Security context for the containers
+## @param securityContext Security context for the containers
+##
+securityContext: {}
+
+## @section Ingress VPN parameters
+## Parameters for the VPN ingress
+## @param ingressVpn.hostname Hostname for the VPN ingress
+##
+ingressVpn:
+  hostname: null
+
+## @section Ingress parameters
+## @param ingress.className Ingress class name
+## @param ingress.hostname Hostname for the ingress
+## @param ingress.contextPath Context path for the ingress
+## @param ingress.labels Additional labels for the ingress
+##
+ingress:
+  className: "nginx"
+  hostname: null
+  contextPath: null
+  labels: {}
+
+## @section Resource requests and limits
+## @param resources.limits.memory Memory limit
+## @param resources.limits.cpu CPU limit
+## @param resources.requests.memory Memory request
+## @param resources.requests.cpu CPU request
+##
+resources:
+  limits:
+    memory: "1024Mi"
+    cpu: "500m"
+  requests:
+    memory: "512Mi"
+    cpu: "300m"
+
+## @section Volumes
+## Volumes for the container
+## @param volumes[0].name Name of the first volume
+## @param volumes[0].configMap.name Name of the ConfigMap for the first volume
+## @param volumes[1].name Name of the second volume
+## @param volumes[1].secret.secretName Name of the secret for the second volume
+##
+volumes:
+  - name: pkcs11-config-volume
+    configMap:
+      name: nl-wallet-hsm-pkcs11
+  - name: wallet-provider-gcloud-service-account
+    secret:
+      secretName: nl-wallet-gcloud-service-account
+
+## @section Volume mounts
+## Volume mounts for the container
+## @param volumeMounts[0].name Name of the first volume mount
+## @param volumeMounts[0].mountPath Mount path for the first volume mount
+## @param volumeMounts[0].subPath Sub-path within the first volume mount
+## @param volumeMounts[1].name Name of the second volume mount
+## @param volumeMounts[1].mountPath Mount path for the second volume mount
+## @param volumeMounts[1].subPath Sub-path within the second volume mount
+##
+volumeMounts:
+  - name: pkcs11-config-volume
+    mountPath: /cs_pkcs11_R3.cfg
+    subPath: cs_pkcs11_R3.cfg
+  - name: wallet-provider-gcloud-service-account
+    mountPath: /google-cloud-service-account.json
+    subPath: google-cloud-service-account.json
+
+## @section Environment variables from ConfigMaps or Secrets
+## List of sources to populate environment variables in the container
+## @param envFrom[0].configMapRef.name Name of the ConfigMap for the environment variable source
+##
+envFrom:
+  - configMapRef:
+      name: wallet-provider-config
+
+## @section HSM parameters
+## @param hsm.maxSessions Maximum HSM sessions
+##
+hsm:
+  maxSessions: 10
+
+## @section ConfigMap parameters
+## Additional parameters for the ConfigMap
+## @param configmap.iosRootCertificates iOS root certificates override
+## @param configmap.rootPublicKeys Android root public keys
+## @param configmap.playstoreCertificateHashes Google Play Store certificate hashes
+## @param configmap.allowSideLoading Allow installing apps from sources other than the Play Store
+configmap:
+  iosRootCertificates: null
+  rootPublicKeys: null
+  playstoreCertificateHashes: null
+  allowSideLoading: false
+
+## @section iOS parameters
+## Parameters for the iOS configuration
+## @param ios.teamIdentifier Team identifier for iOS
+##
+ios:
+  teamIdentifier: null
+
+## @section Application parameters
+## @param appIdentifier Application identifier
+##
+appIdentifier: null

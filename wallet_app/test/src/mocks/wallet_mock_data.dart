@@ -134,6 +134,16 @@ abstract class WalletMockData {
         type: DisclosureType.login,
       ) as DisclosureEvent;
 
+  static DisclosureEvent get failedLoginEventNothingShared => WalletEvent.disclosure(
+        dateTime: DateTime(2024, 2, 1, 22, 11),
+        status: EventStatus.error,
+        relyingParty: organization,
+        purpose: 'disclosure'.untranslated,
+        cards: const [],
+        policy: policy,
+        type: DisclosureType.login,
+      ) as DisclosureEvent;
+
   static SignEvent get signEvent => WalletEvent.sign(
         dateTime: DateTime(2024, 1, 1),
         status: EventStatus.success,
@@ -154,6 +164,16 @@ abstract class WalletMockData {
         relyingParty: organization,
         purpose: 'disclosure'.untranslated,
         cards: [card],
+        policy: policy,
+        type: DisclosureType.regular,
+      ) as DisclosureEvent;
+
+  static DisclosureEvent get failedDisclosureEventNothingShared => WalletEvent.disclosure(
+        dateTime: DateTime(2023, 5, 9, 11, 23),
+        status: EventStatus.error,
+        relyingParty: organization,
+        purpose: 'disclosure - nothing shared error'.untranslated,
+        cards: const [],
         policy: policy,
         type: DisclosureType.regular,
       ) as DisclosureEvent;

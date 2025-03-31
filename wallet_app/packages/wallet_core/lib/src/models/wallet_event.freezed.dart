@@ -78,12 +78,12 @@ class WalletEvent_Disclosure extends WalletEvent {
       {required this.dateTime,
       required this.relyingParty,
       required final List<LocalizedString> purpose,
-      final List<Attestation>? requestedAttestations,
+      final List<Attestation>? sharedAttestations,
       required this.requestPolicy,
       required this.status,
       required this.typ})
       : _purpose = purpose,
-        _requestedAttestations = requestedAttestations,
+        _sharedAttestations = sharedAttestations,
         super._();
 
   @override
@@ -96,11 +96,11 @@ class WalletEvent_Disclosure extends WalletEvent {
     return EqualUnmodifiableListView(_purpose);
   }
 
-  final List<Attestation>? _requestedAttestations;
-  List<Attestation>? get requestedAttestations {
-    final value = _requestedAttestations;
+  final List<Attestation>? _sharedAttestations;
+  List<Attestation>? get sharedAttestations {
+    final value = _sharedAttestations;
     if (value == null) return null;
-    if (_requestedAttestations is EqualUnmodifiableListView) return _requestedAttestations;
+    if (_sharedAttestations is EqualUnmodifiableListView) return _sharedAttestations;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(value);
   }
@@ -125,7 +125,7 @@ class WalletEvent_Disclosure extends WalletEvent {
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
             (identical(other.relyingParty, relyingParty) || other.relyingParty == relyingParty) &&
             const DeepCollectionEquality().equals(other._purpose, _purpose) &&
-            const DeepCollectionEquality().equals(other._requestedAttestations, _requestedAttestations) &&
+            const DeepCollectionEquality().equals(other._sharedAttestations, _sharedAttestations) &&
             (identical(other.requestPolicy, requestPolicy) || other.requestPolicy == requestPolicy) &&
             (identical(other.status, status) || other.status == status) &&
             (identical(other.typ, typ) || other.typ == typ));
@@ -133,11 +133,11 @@ class WalletEvent_Disclosure extends WalletEvent {
 
   @override
   int get hashCode => Object.hash(runtimeType, dateTime, relyingParty, const DeepCollectionEquality().hash(_purpose),
-      const DeepCollectionEquality().hash(_requestedAttestations), requestPolicy, status, typ);
+      const DeepCollectionEquality().hash(_sharedAttestations), requestPolicy, status, typ);
 
   @override
   String toString() {
-    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, requestedAttestations: $requestedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
+    return 'WalletEvent.disclosure(dateTime: $dateTime, relyingParty: $relyingParty, purpose: $purpose, sharedAttestations: $sharedAttestations, requestPolicy: $requestPolicy, status: $status, typ: $typ)';
   }
 }
 
@@ -151,7 +151,7 @@ abstract mixin class $WalletEvent_DisclosureCopyWith<$Res> implements $WalletEve
       {String dateTime,
       Organization relyingParty,
       List<LocalizedString> purpose,
-      List<Attestation>? requestedAttestations,
+      List<Attestation>? sharedAttestations,
       RequestPolicy requestPolicy,
       DisclosureStatus status,
       DisclosureType typ});
@@ -172,7 +172,7 @@ class _$WalletEvent_DisclosureCopyWithImpl<$Res> implements $WalletEvent_Disclos
     Object? dateTime = null,
     Object? relyingParty = null,
     Object? purpose = null,
-    Object? requestedAttestations = freezed,
+    Object? sharedAttestations = freezed,
     Object? requestPolicy = null,
     Object? status = null,
     Object? typ = null,
@@ -190,9 +190,9 @@ class _$WalletEvent_DisclosureCopyWithImpl<$Res> implements $WalletEvent_Disclos
           ? _self._purpose
           : purpose // ignore: cast_nullable_to_non_nullable
               as List<LocalizedString>,
-      requestedAttestations: freezed == requestedAttestations
-          ? _self._requestedAttestations
-          : requestedAttestations // ignore: cast_nullable_to_non_nullable
+      sharedAttestations: freezed == sharedAttestations
+          ? _self._sharedAttestations
+          : sharedAttestations // ignore: cast_nullable_to_non_nullable
               as List<Attestation>?,
       requestPolicy: null == requestPolicy
           ? _self.requestPolicy

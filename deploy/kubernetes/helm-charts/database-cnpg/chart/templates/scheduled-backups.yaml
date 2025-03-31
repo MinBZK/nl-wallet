@@ -1,0 +1,13 @@
+{{ $fullName := include "common.names.fullname" . }}
+{{- if .Values.backup.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: "{{ $fullName }}-scheduled-backup"
+spec:
+  schedule: {{ default "0 0 0 * * 0" .Values.backup.schedule }}
+  backupOwnerReference: self
+  immediate: true
+  cluster:
+    name: {{ default .Values.database.name .Values.name }}
+{{- end }}

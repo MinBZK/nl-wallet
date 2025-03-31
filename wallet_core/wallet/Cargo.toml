@@ -66,7 +66,6 @@ uuid = { workspace = true, features = ["v4", "v7"] }
 
 mockall = { workspace = true, optional = true }
 
-configuration.path = "configuration"
 crypto.path = "../lib/crypto"
 entity.path = "entity"
 error_category = { path = "../lib/error_category", features = ["sentry"] }
@@ -79,6 +78,7 @@ poa.path = "../lib/poa"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 wallet_common.path = "../lib/wallet_common"
+wallet_configuration.path = "configuration"
 
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true }
 
@@ -108,5 +108,5 @@ wallet_common = { path = "../lib/wallet_common", features = ["insecure_http_clie
 serde.workspace = true
 serde_json.workspace = true
 
-configuration.path = "configuration"
 wallet_common.path = "../lib/wallet_common"
+wallet_configuration.path = "configuration"

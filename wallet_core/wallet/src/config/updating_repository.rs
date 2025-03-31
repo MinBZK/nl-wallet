@@ -8,9 +8,9 @@ use tokio::time::MissedTickBehavior;
 use tracing::error;
 use tracing::info;
 
-use configuration::config_server_config::ConfigServerConfiguration;
-use configuration::wallet_config::WalletConfiguration;
 use wallet_common::http::TlsPinningConfig;
+use wallet_configuration::config_server_config::ConfigServerConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::repository::ObservableRepository;
 use crate::repository::Repository;
@@ -136,7 +136,7 @@ mod tests {
     use tokio::sync::Notify;
     use tokio::time;
 
-    use configuration::wallet_config::WalletConfiguration;
+    use wallet_configuration::wallet_config::WalletConfiguration;
 
     use crate::config::default_config_server_config;
     use crate::config::default_wallet_config;
