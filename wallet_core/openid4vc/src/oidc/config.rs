@@ -130,7 +130,7 @@ pub mod tests {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use configuration::http::test::HttpConfig;
+    use wallet_common::http::test::HttpConfig;
     use wallet_common::reqwest::JsonClientBuilder;
     use wallet_common::urls::BaseUrl;
 

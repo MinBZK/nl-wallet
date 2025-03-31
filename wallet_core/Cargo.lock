@@ -1176,30 +1176,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "configuration"
-version = "0.3.0-dev"
-dependencies = [
- "axum-server",
- "crypto",
- "derive_more",
- "etag",
- "http",
- "reqwest",
- "rustls-pki-types",
- "serde",
- "serde_with",
- "url",
- "wallet_common",
-]
-
-[[package]]
 name = "configuration_server"
 version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-server",
  "config",
- "configuration",
  "etag",
  "http",
  "serde",
@@ -3880,7 +3862,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
- "configuration",
  "crypto",
  "dashmap 6.1.0",
  "derive_more",
@@ -4179,7 +4160,6 @@ dependencies = [
  "axum",
  "chrono",
  "config",
- "configuration",
  "crypto",
  "futures",
  "hsm",
@@ -6259,7 +6239,6 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "chrono",
- "configuration",
  "configuration_server",
  "crypto",
  "ctor",
@@ -6298,6 +6277,7 @@ dependencies = [
  "verification_server",
  "wallet",
  "wallet_common",
+ "wallet_configuration",
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
@@ -6973,7 +6953,6 @@ dependencies = [
  "axum-server",
  "chrono",
  "config",
- "configuration",
  "etag",
  "http",
  "indexmap 2.7.1",
@@ -7154,7 +7133,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
- "configuration",
  "crypto",
  "derive_more",
  "entity",
@@ -7201,6 +7179,7 @@ dependencies = [
  "uuid",
  "wallet_account",
  "wallet_common",
+ "wallet_configuration",
  "wallet_migrations",
  "wiremock",
 ]
@@ -7284,6 +7263,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "wallet_configuration"
+version = "0.3.0-dev"
+dependencies = [
+ "crypto",
+ "derive_more",
+ "etag",
+ "rustls-pki-types",
+ "serde",
+ "serde_with",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "wallet_migrations"
 version = "0.3.0-dev"
 dependencies = [
@@ -7303,7 +7296,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "config",
- "configuration",
  "crypto",
  "derive_more",
  "futures",

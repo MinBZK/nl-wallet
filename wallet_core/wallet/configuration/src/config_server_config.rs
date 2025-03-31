@@ -6,8 +6,8 @@ use serde_with::serde_as;
 use serde_with::DurationSeconds;
 
 use crypto::p256_der::DerVerifyingKey;
+use wallet_common::http::TlsPinningConfig;
 
-use crate::http::TlsPinningConfig;
 use crate::EnvironmentSpecific;
 
 #[serde_as]

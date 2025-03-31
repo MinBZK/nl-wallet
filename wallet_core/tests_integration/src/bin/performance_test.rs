@@ -5,7 +5,6 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use configuration::http::TlsPinningConfig;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
@@ -31,6 +30,7 @@ use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
+use wallet_common::http::TlsPinningConfig;
 
 #[ctor]
 fn init() {
