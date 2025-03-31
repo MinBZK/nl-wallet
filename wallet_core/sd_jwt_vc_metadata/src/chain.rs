@@ -80,12 +80,6 @@ impl TypeMetadataDocuments {
         Self(documents)
     }
 
-    pub fn into_inner(self) -> VecNonEmpty<Vec<u8>> {
-        let Self(inner) = self;
-
-        inner
-    }
-
     /// Parse and verify the internal consistency of the chain of SD-JWT metadata documents, except for checking the
     /// resource integrity of the leaf document. As this is meant to be done when a preview of the attestation is
     /// received, the leaf document's resource integrity is not yet available. It will be received later as part of
@@ -490,7 +484,8 @@ mod test {
     #[test]
     fn test_type_metadata_documents_error_excess_documents() {
         let (_, documents) = TypeMetadataDocuments::example_with_extensions();
-        let mut json_documents = documents.into_inner().into_inner();
+        let TypeMetadataDocuments(documents_vec) = documents;
+        let mut json_documents = documents_vec.into_inner();
         json_documents.push(PID_METADATA_BYTES.to_vec());
         let documents = TypeMetadataDocuments::new(json_documents.try_into().unwrap());
 
