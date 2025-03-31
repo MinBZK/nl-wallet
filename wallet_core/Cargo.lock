@@ -5152,6 +5152,7 @@ dependencies = [
  "jsonschema",
  "jsonwebtoken",
  "nutype",
+ "regex",
  "rstest",
  "serde",
  "serde_json",

@@ -6,6 +6,7 @@ use std::fmt::Formatter;
 use std::fmt::Write;
 
 use http::Uri;
+use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
@@ -34,6 +35,12 @@ pub enum TypeMetadataError {
 
     #[error("detected claim path collision: {0}")]
     ClaimPathCollision(String),
+
+    #[error("detected duplicate `svg_id`s: {0:?}")]
+    DuplicateSvgIds(Vec<String>),
+
+    #[error("found missing `svg_id`s: {0:?}")]
+    MissingSvgIds(Vec<String>),
 }
 
 /// SD-JWT VC type metadata document.
@@ -88,7 +95,10 @@ pub struct TypeMetadata(UncheckedTypeMetadata);
 
 impl UncheckedTypeMetadata {
     pub fn check_metadata_consistency(unchecked_metadata: &UncheckedTypeMetadata) -> Result<(), TypeMetadataError> {
-        unchecked_metadata.detect_path_collisions()
+        unchecked_metadata.detect_path_collisions()?;
+        unchecked_metadata.validate_svg_ids()?;
+
+        Ok(())
     }
 
     fn detect_path_collisions(&self) -> Result<(), TypeMetadataError> {
@@ -111,6 +121,41 @@ impl UncheckedTypeMetadata {
 
             paths.insert(flattened_key);
         }
+
+        Ok(())
+    }
+
+    fn validate_svg_ids(&self) -> Result<(), TypeMetadataError> {
+        // `svg_id` MUST be unique within the type metadata.
+        let svg_ids = self
+            .claims
+            .iter()
+            .filter_map(|claim| claim.svg_id.as_ref())
+            .collect_vec();
+        match svg_ids.iter().duplicates().collect_vec() {
+            dups if !dups.is_empty() => Err(TypeMetadataError::DuplicateSvgIds(
+                dups.into_iter().copied().cloned().collect_vec(),
+            )),
+            _ => Ok(()),
+        }?;
+
+        // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject not render the
+        // SVG template.
+        let re = regex::Regex::new(r"\{\{(\w+)\}\}").unwrap();
+        match self
+            .display
+            .iter()
+            .filter_map(|display| display.summary.as_ref())
+            .flat_map(|summary| re.captures_iter(summary).flat_map(|s| s.extract::<1>().1))
+            .unique()
+            .filter(|id| !svg_ids.contains(&&id.to_string()))
+            .collect_vec()
+        {
+            missing_ids if !missing_ids.is_empty() => Err(TypeMetadataError::MissingSvgIds(
+                missing_ids.iter().map(|s| s.to_string()).collect_vec(),
+            )),
+            _ => Ok(()),
+        }?;
 
         Ok(())
     }
@@ -742,5 +787,120 @@ mod test {
         .expect_err("Should fail deserializing type metadata because of path collision");
 
         assert!(result.to_string().contains("detected claim path collision"));
+    }
+
+    #[rstest]
+    #[case(json!([
+        { "path": vec!["address"] },
+    ]), Ok(()))]
+    #[case(json!([
+        { "path": vec!["address"], "svg_id": "address" },
+    ]), Ok(()))]
+    #[case(json!([
+        { "path": vec!["address"], "svg_id": "address" },
+        { "path": vec!["address", "street"], "svg_id": "address_street" },
+        { "path": vec!["address", "city"] },
+    ]), Ok(()))]
+    #[case(json!([
+        { "path": vec!["address"], "svg_id": "address" },
+        { "path": vec!["address", "street"], "svg_id": "address_street" },
+        { "path": vec!["address", "city"], "svg_id": "address_city" },
+    ]), Ok(()))]
+    #[case(json!([
+        { "path": vec!["address"], "svg_id": "address_street" },
+        { "path": vec!["address", "street"], "svg_id": "address_street" },
+        { "path": vec!["address", "city"] },
+    ]), Err(TypeMetadataError::DuplicateSvgIds(vec!["address_street".to_owned()])))]
+    #[case(json!([
+        { "path": vec!["address"], "svg_id": "address" },
+        { "path": vec!["address", "street"], "svg_id": "address_street" },
+        { "path": vec!["address", "city"], "svg_id": "address_street" },
+    ]), Err(TypeMetadataError::DuplicateSvgIds(vec!["address_street".to_owned()])))]
+    #[case(json!([
+        { "path": vec!["address"], "svg_id": "address" },
+        { "path": vec!["address", "street"], "svg_id": "address_street" },
+        { "path": vec!["address", "city"], "svg_id": "address" },
+        { "path": vec!["address", "number"], "svg_id": "address_street" },
+    ]), Err(TypeMetadataError::DuplicateSvgIds(vec!["address".to_owned(), "address_street".to_owned()])))]
+    #[case(json!([
+        { "path": vec!["address"], "svg_id": "address" },
+        { "path": vec!["address", "street"], "svg_id": "address_street" },
+        { "path": vec!["address", "city"], "svg_id": "address_street" },
+        { "path": vec!["address", "number"], "svg_id": "address" },
+    ]), Err(TypeMetadataError::DuplicateSvgIds(vec!["address_street".to_owned(), "address".to_owned()])))]
+    fn test_claim_svg_ids(#[case] claims: serde_json::Value, #[case] expected: Result<(), TypeMetadataError>) {
+        let mut metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .unwrap();
+        metadata.claims = serde_json::from_value(claims).unwrap();
+
+        let result = metadata.validate_svg_ids();
+        match (result, expected) {
+            (Ok(()), Ok(())) => {}
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
+            (Err(e), Ok(())) => {
+                panic!("assertion failed\n left: {e:?}\nright: ()")
+            }
+            (Ok(()), Err(e)) => {
+                panic!("assertion failed\n left: ()\nright: {e:?}")
+            }
+        };
+    }
+
+    #[rstest]
+    #[case("{{address}}", Ok(()))]
+    #[case("{{address_street}}", Ok(()))]
+    #[case("{{address_street}} {{address_city}}", Ok(()))]
+    #[case(
+        "{{address_street}} {{address_number}}",
+        Err(TypeMetadataError::MissingSvgIds(vec!["address_number".to_owned()]))
+    )]
+    #[case(
+        "{{address_country}} {{address_number}}",
+        Err(TypeMetadataError::MissingSvgIds(vec!["address_country".to_owned(), "address_number".to_owned()])))]
+    #[case("{{address_number}} {{address_country}} {{address_number}}", Err(TypeMetadataError::MissingSvgIds(vec![
+        "address_number".to_owned(),
+        "address_country".to_owned()
+    ])))]
+    fn should_detect_missing_svg_ids(#[case] summary: &str, #[case] expected: Result<(), TypeMetadataError>) {
+        let metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "display": [{
+                    "lang": "en",
+                    "name": "Example Credential",
+                    "summary": summary,
+                }
+            ],
+            "claims": [
+                { "path": vec!["address"], "svg_id": "address" },
+                { "path": vec!["address", "street"], "svg_id": "address_street" },
+                { "path": vec!["address", "city"], "svg_id": "address_city" },
+                { "path": vec!["address", "number"] },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .unwrap();
+        let result = metadata.validate_svg_ids();
+        match (result, expected) {
+            (Ok(()), Ok(())) => {}
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
+            (Err(e), Ok(())) => {
+                panic!("assertion failed\n left: {e:?}\nright: ()")
+            }
+            (Ok(()), Err(e)) => {
+                panic!("assertion failed\n left: ()\nright: {e:?}")
+            }
+        };
     }
 }
