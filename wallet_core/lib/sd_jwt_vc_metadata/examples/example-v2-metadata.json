@@ -3,7 +3,7 @@
   "name": "NL Wallet extended PID credential",
   "description": "Working version of the NL Wallet extended PID credential",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-+SCSaJbTVwa0LQIyG8YbaOx3hTYeEDxZlPos+HQZMyI=",
+  "extends#integrity": "sha256-8ynq/puYBh7QkKDIJv14wi+jQdyzxJShAghNy0bRvl0=",
   "display": [
     {
       "lang": "en-US",
@@ -20,7 +20,9 @@
   ],
   "claims": [
     {
-      "path": ["birth_date"],
+      "path": [
+        "birth_date"
+      ],
       "display": [
         {
           "lang": "en-US",
@@ -31,7 +33,11 @@
       "sd": "always"
     },
     {
-      "path": ["place_of_birth", "country", "is_eu_member"],
+      "path": [
+        "place_of_birth",
+        "country",
+        "is_eu_member"
+      ],
       "display": [
         {
           "lang": "en-US",
@@ -41,7 +47,10 @@
       "sd": "always"
     },
     {
-      "path": ["financial", "has_job"],
+      "path": [
+        "financial",
+        "has_job"
+      ],
       "display": [
         {
           "lang": "en-US",
@@ -51,7 +60,10 @@
       "sd": "always"
     },
     {
-      "path": ["financial", "debt_amount"],
+      "path": [
+        "financial",
+        "debt_amount"
+      ],
       "display": [
         {
           "lang": "en-US",
@@ -61,7 +73,9 @@
       "sd": "always"
     },
     {
-      "path": ["nickname"],
+      "path": [
+        "nickname"
+      ],
       "display": [
         {
           "lang": "en-US",
@@ -130,6 +144,9 @@
       "iss": {
         "type": "string"
       },
+      "cnf": {
+        "type": "object"
+      },
       "iat": {
         "type": "number"
       },
@@ -140,6 +157,10 @@
         "type": "number"
       }
     },
-    "required": ["vct", "iss", "iat"]
+    "required": [
+      "vct",
+      "iss",
+      "iat"
+    ]
   }
 }
