@@ -26,7 +26,7 @@ uuid = { workspace = true, features = ["v4"] }
 hmac = { workspace = true, optional = true, features = ["std"] }
 rand = { workspace = true, optional = true }
 
-apple_app_attest.path = "../../apple_app_attest"
-crypto.path = "../../crypto"
-wallet_common.path = "../../wallet_common"
-hsm.path = "../../hsm"
+apple_app_attest.path = "../../lib/apple_app_attest"
+crypto.path = "../../lib/crypto"
+wallet_common.path = "../../lib/wallet_common"
+hsm.path = "../../lib/hsm"

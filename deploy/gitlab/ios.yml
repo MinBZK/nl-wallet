@@ -11,7 +11,7 @@ test-ios:
       junit: fastlane/test_output/report.junit
     paths:
       - "fastlane/test_output/*"
-      - "wallet_core/platform_support/ios/compile_platform_support.log"
+      - "wallet_core/wallet/platform_support/ios/compile_platform_support.log"
   script:
     - bundle install
     - bundle exec fastlane ios test

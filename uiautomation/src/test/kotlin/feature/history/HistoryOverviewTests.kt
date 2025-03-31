@@ -1,6 +1,7 @@
 package feature.history
 
 import helper.LocalizationHelper
+import helper.LocalizationHelper.Translation.PID_CARD_TITLE
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
@@ -69,7 +70,7 @@ class HistoryOverviewTests : TestBase() {
         val i18n = LocalizationHelper()
         assertAll(
             { assertTrue(historyDetailScreen.issuanceOrganizationVisible("RvIG"), "organization not visible") },
-            { assertTrue(historyDetailScreen.titleCorrectForIssuance(i18n.translate("NL Wallet persoonsgegevens")), "title not visible") }
+            { assertTrue(historyDetailScreen.titleCorrectForIssuance(i18n.translate(PID_CARD_TITLE)), "title not visible") }
         )
 
         historyDetailScreen.clickBottomBackButton()

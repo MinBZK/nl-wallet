@@ -98,10 +98,9 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 
-configuration = { path = "../wallet_configuration/configuration", features = ["insecure_http_client"] }
 crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
 poa = { path = "../poa", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../wallet_common", features = ["mock_time"] }
+wallet_common = { path = "../wallet_common", features = ["mock_time", "insecure_http_client"] }

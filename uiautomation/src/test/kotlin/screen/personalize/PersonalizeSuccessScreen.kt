@@ -1,5 +1,7 @@
 package screen.personalize
 
+import helper.LocalizationHelper.Translation.PID_CARD_TITLE
+import helper.LocalizationHelper.Translation.ADDRESS_CARD_TITLE
 import util.MobileActions
 
 class PersonalizeSuccessScreen : MobileActions() {
@@ -8,8 +10,8 @@ class PersonalizeSuccessScreen : MobileActions() {
 
     private val successTitleText = find.byText(l10n.getString("walletPersonalizeSuccessPageTitle"))
     private val successDescriptionText = find.byText(l10n.getString("walletPersonalizeSuccessPageDescription"))
-    private val pidIdCardTitleText = find.byText(l10n.translate("Persoonsgegevens"))
-    private val pidAddressCardTitleText = find.byText(l10n.translate("NL Wallet adres"))
+    private val pidIdCardTitleText = find.byText(l10n.translate(PID_CARD_TITLE))
+    private val pidAddressCardTitleText = find.byText(l10n.translate(ADDRESS_CARD_TITLE))
 
     private val nextButton = find.byValueKey("primaryButtonCta")
 

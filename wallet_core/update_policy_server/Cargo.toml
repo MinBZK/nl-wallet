@@ -29,12 +29,11 @@ tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "env-filter", "fmt", "json"] }
 
-configuration.path = "../wallet_configuration/configuration"
-wallet_common.path = "../wallet_common"
+wallet_common.path = "../lib/wallet_common"
 
 [dev-dependencies]
 indexmap.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
 
-wallet_common = { path = "../wallet_common", features = ["mock_time"] }
+wallet_common = { path = "../lib/wallet_common", features = ["mock_time"] }

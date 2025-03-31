@@ -8,8 +8,8 @@ use semver::Version;
 use serde::de::DeserializeOwned;
 use tracing::info;
 
-use configuration::http::TlsPinningConfig;
-use configuration::http::TlsPinningConfigHash;
+use wallet_common::http::TlsPinningConfig;
+use wallet_common::http::TlsPinningConfigHash;
 use wallet_common::update_policy::UpdatePolicyResponse;
 use wallet_common::update_policy::VersionState;
 

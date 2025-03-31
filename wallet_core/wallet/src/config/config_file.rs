@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use tokio::fs;
 
-use configuration::wallet_config::WalletConfiguration;
+use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::FileStorageError;
 

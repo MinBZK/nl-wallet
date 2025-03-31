@@ -64,37 +64,37 @@ test_common = [
     "dep:android_attest",
     "dep:apple_app_attest",
     "dep:chrono",
-    "dep:configuration",
+    "dep:configuration_server",
     "dep:ctor",
+    "dep:gba_hc_converter",
     "dep:indexmap",
     "dep:jsonwebtoken",
-    "dep:reqwest",
-    "dep:sea-orm",
-    "dep:serde_json",
-    "dep:tokio",
-    "dep:configuration_server",
-    "dep:gba_hc_converter",
     "dep:mdoc",
     "dep:openid4vc",
     "dep:openid4vc_server",
-    "dep:platform_support",
     "dep:pid_issuer",
-    "dep:semver",
+    "dep:platform_support",
+    "dep:reqwest",
     "dep:sd_jwt_vc_metadata",
+    "dep:sea-orm",
+    "dep:semver",
+    "dep:serde_json",
+    "dep:server_utils",
     "dep:tempfile",
+    "dep:tokio",
     "dep:update_policy_server",
-    "dep:uuid",
     "dep:url",
+    "dep:uuid",
+    "dep:verification_server",
     "dep:wallet",
     "dep:wallet_common",
+    "dep:wallet_configuration",
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
-    "dep:server_utils",
-    "dep:verification_server",
 ]
 # Include the fake_digid submodule
-fake_digid = ["dep:configuration", "dep:reqwest", "dep:url", "dep:wallet_common"]
+fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common", "dep:wallet_configuration"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "pid_issuer?/db_test",
@@ -211,28 +211,28 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
 
-android_attest = { path = "../android_attest", optional = true }
-apple_app_attest = { path = "../apple_app_attest", optional = true, features = ["mock"] }
-configuration = { path = "../wallet_configuration/configuration", optional = true }
-configuration_server = { path = "../wallet_configuration/configuration_server", optional = true }
-crypto = { path = "../crypto", optional = true, features = ["mock_remote_key"] }
+android_attest = { path = "../lib/android_attest", optional = true }
+apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }
+configuration_server = { path = "../configuration_server", optional = true }
+crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
-hsm = { path = "../hsm", optional = true, features = ["test"] }
-jwt.path = "../jwt"
-mdoc = { path = "../mdoc", optional = true, features = ["generate", "test"] }
-openid4vc = { path = "../openid4vc", optional = true }
-openid4vc_server = { path = "../openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
+hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
+jwt.path = "../lib/jwt"
+mdoc = { path = "../lib/mdoc", optional = true, features = ["generate", "test"] }
+openid4vc = { path = "../lib/openid4vc", optional = true }
+openid4vc_server = { path = "../lib/openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
-platform_support = { path = "../platform_support", optional = true, features = ["mock"] }
-sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
+platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
+sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 update_policy_server = { path = "../update_policy_server", optional = true }
+verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
-wallet_common = { path = "../wallet_common", optional = true }
+wallet_common = { path = "../lib/wallet_common", optional = true }
+wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
 wallet_provider_service = { path = "../wallet_provider/service", optional = true, features = ["mock"] }
-verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
 
 [build-dependencies]
 dotenvy = { workspace = true, optional = true }
@@ -242,8 +242,8 @@ dotenvy = { workspace = true, optional = true }
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
-openid4vc = { path = "../openid4vc", features = ["integration"] }
+openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", features = ["integration_test"] }
-platform_support = { path = "../platform_support", features = ["persistent_mock_attested_key"] }
+platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["integration_test"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["integration_test"] }

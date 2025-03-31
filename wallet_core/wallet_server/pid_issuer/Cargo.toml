@@ -62,15 +62,14 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-json",
 ] }
 
-configuration.path = "../../wallet_configuration/configuration"
-crypto.path = "../../crypto"
+crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
-hsm = { path = "../../hsm", features = ["settings"] }
-jwt.path = "../../jwt"
-mdoc.path = "../../mdoc"
-openid4vc = { path = "../../openid4vc", features = ["axum"] }
-openid4vc_server = { path = "../../openid4vc_server", features = ["issuance"] }
-wallet_common = { path = "../../wallet_common", features = ["axum"] }
+hsm = { path = "../../lib/hsm", features = ["settings"] }
+jwt.path = "../../lib/jwt"
+mdoc.path = "../../lib/mdoc"
+openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
+openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
+wallet_common = { path = "../../lib/wallet_common", features = ["axum"] }
 server_utils.path = "../server_utils"
 
 [dev-dependencies]
@@ -78,8 +77,7 @@ assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-configuration = { path = "../../wallet_configuration/configuration", features = ["insecure_http_client"] }
-crypto = { path = "../../crypto", features = ["mock_remote_key"] }
-mdoc = { path = "../../mdoc", features = ["generate", "mock_example_constructors"] }
-sd_jwt_vc_metadata = { path = "../../sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../../wallet_common", features = ["mock_time"] }
+crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
+mdoc = { path = "../../lib/mdoc", features = ["generate", "mock_example_constructors"] }
+sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
+wallet_common = { path = "../../lib/wallet_common", features = ["mock_time"] }

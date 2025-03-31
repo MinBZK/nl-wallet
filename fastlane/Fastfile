@@ -273,14 +273,14 @@ platform :ios do
   desc "Test iOS app"
   lane :test do
     run_tests(
-      project: "wallet_core/platform_support/ios/PlatformSupport.xcodeproj",
+      project: "wallet_core/wallet/platform_support/ios/PlatformSupport.xcodeproj",
       scheme: "PlatformSupport",
     )
 
-    # This adjust the working directory so that the "wallet_core/platform_support/ios/"
+    # This adjust the working directory so that the "wallet_core/wallet/platform_support/ios/"
     # path prefix is not present in the coverage output file. Note that we need to be one
     # directory higher, because of how Fastlane determines the current working directory.
-    Dir.chdir("../wallet_core/platform_support/ios/PlatformSupport") do
+    Dir.chdir("../wallet_core/wallet/platform_support/ios/PlatformSupport") do
       slather(
         output_directory: "../../../fastlane/test_output",
         proj: "PlatformSupport.xcodeproj",

@@ -14,8 +14,8 @@ test-flutter:
     - flutter pub get --enforce-lockfile
     - flutter analyze .
     - flutter test --exclude-tags=golden --coverage --branch-coverage --coverage-path coverage/lcov.info --file-reporter "json:build/reports/test-results.json"
-    - tojunit -i build/reports/test-results.json -o build/reports/test-results.xml -b $PWD/test/src
   after_script:
+    - tojunit -i wallet_app/build/reports/test-results.json -o wallet_app/build/reports/test-results.xml -b $PWD/wallet_app/test/src
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
   artifacts:
     name: test-flutter
@@ -42,8 +42,8 @@ test-flutter-ui:
     - flutter pub get --enforce-lockfile
     - defaults -currentHost write -g AppleFontSmoothing -int 0 # Disable font smoothing, should match the generating platform.
     - flutter test --tags=golden --coverage --branch-coverage --coverage-path coverage/lcov-ui.info --file-reporter "json:build/reports/test-results-ui.json"
-    - $HOME/.pub-cache/bin/tojunit -i build/reports/test-results-ui.json -o build/reports/test-results-ui.xml -b $PWD/test/src
   after_script:
+    - tojunit -i wallet_app/build/reports/test-results-ui.json -o wallet_app/build/reports/test-results-ui.xml -b $PWD/wallet_app/test/src
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results-ui.xml qt/quality-time/junit-results/flutter-ui.xml
   artifacts:
     name: test-flutter-ui

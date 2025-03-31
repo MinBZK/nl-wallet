@@ -272,7 +272,7 @@ create-deployment-demo:
 
 deploy-apps-demo:
   extends: .default-or-release-or-merge-request-manual
-  when: on_success
+  when: manual
   needs:
     - create-deployment-demo
   trigger:
