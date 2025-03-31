@@ -239,7 +239,7 @@ deploy-gba-fetch-frontend-ont:
     ENV: ont
     GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME: $GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT
 
-.deployment-needs: &deployment-needs
+.deployment-needs:
   needs:
     - build-update-policy-server-image
     - build-wallet-provider-image
@@ -255,7 +255,6 @@ deploy-gba-fetch-frontend-ont:
 create-deployment-demo:
   extends: .default-or-release-or-merge-request
   when: on_success
-  <<: *deployment-needs
   script:
     - export DEPLOY_ENV=demo
     - export FILE_NAME=${FILE_NAME}
@@ -275,6 +274,7 @@ deploy-apps-demo:
   when: manual
   needs:
     - create-deployment-demo
+    - !reference [.deployment-needs, needs]
   trigger:
     include:
       - artifact: deploy-demo.yml
@@ -284,7 +284,6 @@ deploy-apps-demo:
 #create-deployment-ont:
 #  extends: .default-or-release-or-merge-request-manual
 #  allow_failure: true
-#  <<: *deployment-needs
 #  script:
 #    - export DEPLOY_ENV=ont
 #    - export FILE_NAME=${FILE_NAME}
@@ -304,6 +303,7 @@ deploy-apps-demo:
 #  allow_failure: true
 #  needs:
 #    - create-deployment-ont
+#    - !reference [.deployment-needs, needs]
 #  trigger:
 #    include:
 #      - artifact: deploy-ont.yml
