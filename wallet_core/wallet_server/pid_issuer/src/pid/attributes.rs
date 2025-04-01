@@ -1,12 +1,12 @@
 use std::num::NonZero;
 
-use configuration::http::TlsPinningConfig;
 use crypto::x509::CertificateError;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
+use wallet_common::http::TlsPinningConfig;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 

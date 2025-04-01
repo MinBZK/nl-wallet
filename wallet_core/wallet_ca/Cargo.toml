@@ -21,9 +21,9 @@ pem.workspace = true
 serde_json.workspace = true
 x509-parser.workspace = true
 
-crypto = { path = "../crypto", features = ["generate"] }
-mdoc = { path = "../mdoc", features = ["generate"] }
-wallet_common.path = "../wallet_common"
+crypto = { path = "../lib/crypto", features = ["generate"] }
+mdoc = { path = "../lib/mdoc", features = ["generate"] }
+wallet_common.path = "../lib/wallet_common"
 
 [dev-dependencies]
 assert_cmd.workspace = true
@@ -31,5 +31,5 @@ assert_fs.workspace = true
 predicates = { workspace = true, features = ["regex"] }
 time.workspace = true
 
-crypto = { path = "../crypto", features = ["mock"] }
-mdoc = { path = "../mdoc", features = ["mock"] }
+crypto = { path = "../lib/crypto", features = ["mock"] }
+mdoc = { path = "../lib/mdoc", features = ["mock"] }

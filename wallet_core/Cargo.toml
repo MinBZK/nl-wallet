@@ -1,32 +1,32 @@
 [workspace]
 members = [
-    "android_attest",
-    "apple_app_attest",
-    "crypto",
-    "error_category",
-    "error_category/error_category_derive",
+    "configuration_server",
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
-    "hsm",
-    "jwt",
-    "mdoc",
+    "lib/android_attest",
+    "lib/apple_app_attest",
+    "lib/crypto",
+    "lib/error_category",
+    "lib/error_category/error_category_derive",
+    "lib/hsm",
+    "lib/jwt",
+    "lib/mdoc",
+    "lib/openid4vc",
+    "lib/openid4vc_server",
+    "lib/poa",
+    "lib/sd_jwt",
+    "lib/sd_jwt_vc_metadata",
+    "lib/wallet_common",
     "mock_relying_party",
-    "openid4vc",
-    "openid4vc_server",
-    "platform_support",
-    "poa",
-    "sd_jwt",
-    "sd_jwt_vc_metadata",
     "tests_integration",
     "update_policy_server",
     "wallet",
+    "wallet/configuration",
     "wallet/entity",
     "wallet/migrations",
+    "wallet/platform_support",
     "wallet_ca",
-    "wallet_common",
-    "wallet_configuration/configuration",
-    "wallet_configuration/configuration_server",
     "wallet_provider",
     "wallet_provider/database_settings",
     "wallet_provider/domain",
@@ -35,9 +35,9 @@ members = [
     "wallet_provider/service",
     "wallet_provider/wallet_account",
     "wallet_server/issuer_settings",
+    "wallet_server/pid_issuer",
     "wallet_server/server_utils",
     "wallet_server/server_utils/migrations",
-    "wallet_server/pid_issuer",
     "wallet_server/verification_server",
 ]
 exclude = ["uniffi-bindgen"]
@@ -157,7 +157,7 @@ rstest = "0.24.0"
 rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"
-sea-orm = { version = "1.1.4", default-features = false }
+sea-orm = { version = "1.1.8", default-features = false }
 sea-orm-migration = { version = "1.1.4", default-features = false }
 sea-query = { version = "0.32.1", default-features = false }
 sec1 = "0.7.3"

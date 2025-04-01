@@ -1,0 +1,99 @@
+{{ $configMapFile := (print $.Template.BasePath "/wallet-provider-configmap.yaml") }}
+{{ $configMapChecksum := sha256sum (tpl (print $configMapFile) .) }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  annotations:
+    checksum/config: "{{ $configMapChecksum }}"
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- if .Values.extraPodlabels }}
+        {{ toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
+      {{- with .Values.securityContext }}
+      securityContext:
+      {{ toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "common.names.fullname" . }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- with .Values.resources }}
+          resources:
+          {{ toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: wp-port
+              containerPort: 3000
+          {{- with .Values.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: WALLET_PROVIDER__WEBSERVER__PORT
+              value: "3000"
+            - name: WALLET_PROVIDER__DATABASE__NAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-app
+                  key: dbname
+            - name: WALLET_PROVIDER__DATABASE__HOST
+              value: db-cluster-rw
+            - name: WALLET_PROVIDER__DATABASE__USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-app
+                  key: username
+            - name: WALLET_PROVIDER__DATABASE__PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-app
+                  key: password
+            - name: WALLET_PROVIDER__HSM__USER_PIN
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-hsm-config
+                  key: user_pin
+            - name: WALLET_PROVIDER__IOS__TEAM_IDENTIFIER
+              value: {{ .Values.ios.teamIdentifier }}
+            - name: WALLET_PROVIDER__IOS__BUNDLE_IDENTIFIER
+              value: {{ .Values.appIdentifier }}
+            - name: WALLET_PROVIDER__ANDROID__PACKAGE_NAME
+              value: {{ .Values.appIdentifier }}
+            - name: WALLET_PROVIDER__ANDROID__CREDENTIALS_FILE
+              value: "/google-cloud-service-account.json"
+            - name: CS_PKCS11_R3_CFG
+              value: "/cs_pkcs11_R3.cfg"
+
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -8,7 +8,7 @@ PID_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/pid_issuer"
 VERIFICATION_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/verification_server"
 WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 MOCK_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/mock_relying_party"
-CS_DIR="${WALLET_CORE_DIR}/wallet_configuration/configuration_server"
+CS_DIR="${WALLET_CORE_DIR}/configuration_server"
 UPS_DIR="${WALLET_CORE_DIR}/update_policy_server"
 GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
@@ -54,7 +54,7 @@ export GBA_HC_CONV_HMAC_KEY
 export GOOGLE_CLOUD_PROJECT_NUMBER=12143997365
 
 # Database properties for the wallet_provider, with defaults.
-# The defaults will work when using the `wallet_core/wallet_provider/docker-compose.yml` file.
+# The defaults will work when using the `wallet_core/wallet/wallet_provider/docker-compose.yml` file.
 # Set these properties before executing this script
 export DB_HOST="${DB_HOST:-localhost}"
 export DB_USERNAME="${DB_USERNAME:-postgres}"

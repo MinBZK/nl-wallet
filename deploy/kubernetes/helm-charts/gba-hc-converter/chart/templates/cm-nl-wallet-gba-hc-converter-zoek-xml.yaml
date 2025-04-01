@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nl-wallet-gba-hc-converter-zoek-xml
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+data:
+{{- range $path, $bytes := .Files.Glob (printf "files/*") }}
+{{ base $path | indent 2 }}: |
+{{ tpl ($.Files.Get $path) $ | indent 4 }}
+{{- end }}

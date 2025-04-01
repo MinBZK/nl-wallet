@@ -1176,30 +1176,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "configuration"
-version = "0.3.0-dev"
-dependencies = [
- "axum-server",
- "crypto",
- "derive_more",
- "etag",
- "http",
- "reqwest",
- "rustls-pki-types",
- "serde",
- "serde_with",
- "url",
- "wallet_common",
-]
-
-[[package]]
 name = "configuration_server"
 version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-server",
  "config",
- "configuration",
  "etag",
  "http",
  "serde",
@@ -3245,9 +3227,9 @@ dependencies = [
 
 [[package]]
 name = "jsonschema"
-version = "0.29.0"
+version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c59cb1733c34377b6067a0419befd7f25073c5249ec3b0614a482bf499e1df5"
+checksum = "161c33c3ec738cfea3288c5c53dfcdb32fd4fc2954de86ea06f71b5a1a40bfcd"
 dependencies = [
  "ahash",
  "base64 0.22.1",
@@ -3889,7 +3871,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
- "configuration",
  "crypto",
  "dashmap 6.1.0",
  "derive_more",
@@ -4180,6 +4161,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
+name = "pgvector"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0e8871b6d7ca78348c6cd29b911b94851f3429f0cd403130ca17f26c1fb91a6"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "pid_issuer"
 version = "0.3.0-dev"
 dependencies = [
@@ -4188,7 +4178,6 @@ dependencies = [
  "axum",
  "chrono",
  "config",
- "configuration",
  "crypto",
  "futures",
  "hsm",
@@ -4696,9 +4685,9 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.29.0"
+version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce52678d53e5ee37e4af0a9036ca834d0cd34b33c82457c6b06a24f8d783344"
+checksum = "40a64b3a635fad9000648b4d8a59c8710c523ab61a23d392a7d91d47683f5adc"
 dependencies = [
  "ahash",
  "fluent-uri",
@@ -5230,17 +5219,18 @@ dependencies = [
 
 [[package]]
 name = "sea-orm"
-version = "1.1.4"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a93194430b419da0801f404baf3b986399d6a2a4f43bc79bc96dea83f92ca43"
+checksum = "013d6c9e421b9c44c6eb6ebbee283b2a2c90eab2682088c4a2449706a42d117f"
 dependencies = [
  "async-stream",
  "async-trait",
  "bigdecimal",
  "chrono",
- "futures",
+ "futures-util",
  "log",
  "ouroboros",
+ "pgvector",
  "rust_decimal",
  "sea-orm-macros",
  "sea-query",
@@ -5249,7 +5239,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "strum 0.26.3",
- "thiserror 1.0.69",
+ "thiserror 2.0.11",
  "time",
  "tracing",
  "url",
@@ -5275,9 +5265,9 @@ dependencies = [
 
 [[package]]
 name = "sea-orm-macros"
-version = "1.1.4"
+version = "1.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d19e8f22fb474a8a622eb516c46885a080535d8d559386188f525977eaad32b3"
+checksum = "31feeff3ad5e999c64b2b8fd30933b2871911567c4d62dcf70b3effd970c7891"
 dependencies = [
  "heck 0.4.1",
  "proc-macro2",
@@ -6294,7 +6284,6 @@ dependencies = [
  "apple_app_attest",
  "assert_matches",
  "chrono",
- "configuration",
  "configuration_server",
  "crypto",
  "ctor",
@@ -6333,6 +6322,7 @@ dependencies = [
  "verification_server",
  "wallet",
  "wallet_common",
+ "wallet_configuration",
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
@@ -7008,7 +6998,6 @@ dependencies = [
  "axum-server",
  "chrono",
  "config",
- "configuration",
  "etag",
  "http",
  "indexmap 2.7.1",
@@ -7189,7 +7178,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "ciborium",
- "configuration",
  "crypto",
  "derive_more",
  "entity",
@@ -7236,6 +7224,7 @@ dependencies = [
  "uuid",
  "wallet_account",
  "wallet_common",
+ "wallet_configuration",
  "wallet_migrations",
  "wiremock",
 ]
@@ -7319,6 +7308,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "wallet_configuration"
+version = "0.3.0-dev"
+dependencies = [
+ "crypto",
+ "derive_more",
+ "etag",
+ "rustls-pki-types",
+ "serde",
+ "serde_with",
+ "url",
+ "wallet_common",
+]
+
+[[package]]
 name = "wallet_migrations"
 version = "0.3.0-dev"
 dependencies = [
@@ -7338,7 +7341,6 @@ dependencies = [
  "cfg-if",
  "chrono",
  "config",
- "configuration",
  "crypto",
  "derive_more",
  "futures",
@@ -7408,7 +7410,6 @@ version = "0.3.0-dev"
 dependencies = [
  "apple_app_attest",
  "assert_matches",
- "base64 0.22.1",
  "chrono",
  "crypto",
  "ctor",

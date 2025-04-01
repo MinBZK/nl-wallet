@@ -1,5 +1,6 @@
 package screen.dashboard
 
+import helper.LocalizationHelper.Translation.PID_CARD_TITLE
 import util.MobileActions
 
 class DashboardScreen : MobileActions() {
@@ -11,7 +12,7 @@ class DashboardScreen : MobileActions() {
     private val pidIdCard = find.byValueKey("com.example.pid")
     private val pidAddressCard = find.byValueKey("com.example.address")
 
-    private val pidIdTitleText = find.byText(l10n.translate("NL Wallet persoonsgegevens"))
+    private val pidIdTitleText = find.byText(l10n.translate(PID_CARD_TITLE))
     private val showDetailsText = find.byText(l10n.getString("showDetailsCta"))
 
     fun visible() = isElementVisible(screen, false)

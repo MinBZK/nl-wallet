@@ -1,0 +1,102 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## String to partially override the chart's fullname template
+## @param nameOverride String to partially override chart's fullname
+##
+nameOverride: ""
+
+## Add labels to all the deployed resources
+## @param extraPodLabels Labels to add to all deployed objects
+##
+extraPodLabels: {}
+
+## Secrets for pulling images from private registries
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag
+##
+image:
+  repository: ""
+  pullPolicy: "IfNotPresent"
+  tag: ""
+
+## @section Deployment parameters
+## Number of replicas
+## @param replicaCount Number of replicas
+##
+replicaCount: 2
+
+## @section Service Account configuration
+## @param serviceAccountName Name of the service account
+##
+serviceAccountName: ""
+
+## @section Security context
+## @param securityContext Security context for the container
+##
+securityContext: {}
+
+## @section Ingress parameters
+## Enable and configure ingress
+## @param ingress.name Name of the ingress
+## @param ingress.className Ingress class name
+## @param ingress.labels Additional labels for the ingress
+## @param ingress.hostname Hostname for the ingress
+## @param ingress.contextPath Context path for the ingress
+## @param ingress.tlsSecretName TLS secret name for the ingress
+##
+ingress:
+  name: ""
+  className: ""
+  labels: {}
+  hostname: ""
+  contextPath: ""
+  tlsSecretName: ""
+
+## @section Resource requests and limits
+## @param resources.limits.memory Memory limit
+## @param resources.limits.cpu CPU limit
+## @param resources.requests.memory Memory request
+## @param resources.requests.cpu CPU request
+##
+resources:
+  limits:
+    memory: "128Mi"
+    cpu: "100m"
+  requests:
+    memory: "64Mi"
+    cpu: "20m"
+
+## @section Volumes
+## Volumes for the container
+## @param volumes[0].name Name of the first volume
+## @param volumes[0].configMap.name Name of the ConfigMap for the first volume
+##
+volumes:
+  - name: config-volume
+    configMap:
+      name: nl-wallet-update-policy-server-data
+
+## @section Volume mounts
+## Volume mounts for the container
+## @param volumeMounts[0].name Name of the first volume mount
+## @param volumeMounts[0].mountPath Mount path for the first volume mount
+## @param volumeMounts[0].subPath Sub-path within the first volume mount
+##
+volumeMounts:
+  - name: config-volume
+    mountPath: /update_policy_server.toml
+    subPath: config.toml

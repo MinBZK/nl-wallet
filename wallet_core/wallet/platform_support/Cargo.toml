@@ -1,0 +1,103 @@
+[package]
+name = "platform_support"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["staticlib", "cdylib", "lib"]
+doctest = false
+
+[features]
+# Implement the mock hardware key types
+mock_hw_keystore = ["dep:aes-gcm", "dep:rand_core"]
+# Include the MockHardwareAttestedKeyHolder type for use in Apple tests
+mock_attested_key_apple = ["dep:apple_app_attest", "dep:cfg-if", "dep:rand_core", "dep:uuid", "apple_app_attest/mock"]
+# Include the MockHardwareAttestedKeyHolder type for use in Android tests
+mock_attested_key_google = [
+    "dep:android_attest",
+    "dep:base64",
+    "dep:cfg-if",
+    "dep:rand_core",
+    "dep:uuid",
+    "android_attest/mock",
+]
+# Include the MockHardwareAttestedKeyHolder type for both types of test
+mock_attested_key = ["mock_attested_key_apple", "mock_attested_key_google"]
+# Include support for the self-signed mock Apple CA in MockHardwareAttestedKeyHolder
+mock_attested_key_apple_ca = ["mock_attested_key_apple", "apple_app_attest/mock_ca"]
+# Include PersistentMockAttestedKeyHolder for use in the iOS simulator
+persistent_mock_attested_key = [
+    "mock_attested_key_apple_ca",
+    "dep:futures",
+    "dep:serde",
+    "dep:serde_json",
+    "dep:serde_with",
+    "tokio/fs",
+    "tokio/sync",
+]
+# Implement extra constructor on PersistentMockAttestedKeyHolder by reading Xcode environment variables
+xcode_env = ["apple_app_attest/xcode_env"]
+# Include the MockHardwareUtilities type for use in tests
+mock_utils = ["dep:tokio"]
+# Include all mock implementations for use in tests
+mock = ["mock_hw_keystore", "mock_attested_key", "mock_utils"]
+# Enable helper code for iOS and Android integration tests
+hardware_integration_test = [
+    "dep:android_attest",
+    "dep:android_logger",
+    "dep:apple_app_attest",
+    "dep:cfg-if",
+    "dep:jni",
+    "dep:log",
+    "dep:rustls-pki-types",
+    "tokio/fs",
+    "tokio/io-util",
+    "tokio/rt",
+    "android_attest/allow_emulator_keys",
+    "apple_app_attest/xcode_env",
+]
+
+[dependencies]
+async-trait.workspace = true
+derive_more = { workspace = true, features = ["debug"] }
+p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
+parking_lot.workspace = true
+thiserror.workspace = true
+uniffi.workspace = true
+
+aes-gcm = { workspace = true, optional = true, features = ["std"] }
+base64 = { workspace = true, optional = true }
+cfg-if = { workspace = true, optional = true }
+futures = { workspace = true, optional = true, features = ["std"] }
+log = { workspace = true, optional = true }
+serde = { workspace = true, optional = true, features = ["derive", "rc"] }
+serde_json = { workspace = true, optional = true }
+serde_with = { workspace = true, optional = true, features = ["base64"] }
+rustls-pki-types = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["parking_lot"] }
+uuid = { workspace = true, optional = true, features = ["v4"] }
+
+crypto = { path = "../../lib/crypto" }
+error_category.path = "../../lib/error_category"
+wallet_common = { path = "../../lib/wallet_common" }
+
+rand_core = { workspace = true, optional = true }
+
+android_attest = { path = "../../lib/android_attest", optional = true }
+apple_app_attest = { path = "../../lib/apple_app_attest", optional = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = { workspace = true, optional = true }
+jni = { workspace = true, optional = true }
+
+[dev-dependencies]
+rustls-pki-types.workspace = true
+log.workspace = true
+tokio = { workspace = true, features = ["macros", "fs", "io-util"] }
+
+[build-dependencies]
+uniffi = { workspace = true, features = ["build"] }

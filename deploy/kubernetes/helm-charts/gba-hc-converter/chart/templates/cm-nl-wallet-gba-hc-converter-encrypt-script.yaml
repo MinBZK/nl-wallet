@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-nl-wallet-gba-hc-converter-encrypt-script
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+data:
+{{- range $path, $bytes := .Files.Glob (printf "shell-scripts/*") }}
+{{ base $path | indent 2 }}: |
+{{ tpl ($.Files.Get $path) $ | indent 4 }}
+{{- end }}

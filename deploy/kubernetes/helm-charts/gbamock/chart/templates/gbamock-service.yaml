@@ -1,0 +1,19 @@
+{{ if .Values.gbaMock.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gbamock
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "common.labels.selectorLabels" . | nindent 4 }}
+    {{- if .Values.extraPodlabels }}
+    {{ toYaml .Values.extraPodlabels | nindent 4 }}
+    {{- end }}
+  ports:
+    - name: "5010"
+      port: 5010
+      targetPort: 5010
+{{ end }}

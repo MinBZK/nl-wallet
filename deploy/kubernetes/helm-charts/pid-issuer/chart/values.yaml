@@ -1,0 +1,100 @@
+## Global Docker image parameters
+## Please, note that this will override the image parameters, including dependencies, configured to use the global value
+## Current available global Docker image parameters: imageRegistry and imagePullSecrets
+## @section Global parameters
+## @param global.imageRegistry Global Docker image registry
+##
+global:
+  imageRegistry: ""
+
+## @section Common parameters
+## String to partially override the chart's fullname template
+## @param nameOverride String to partially override chart's fullname
+##
+nameOverride: ""
+
+## @section Common parameters
+## Number of replicas
+## @param replicaCount Number of replicas
+##
+replicaCount: 2
+
+## @section Image parameters
+## @param image.repository Repository for the container image
+## @param image.pullPolicy Image pull policy
+## @param image.tag Image tag
+##
+image:
+  repository: null
+  pullPolicy: IfNotPresent
+  tag: null
+
+## @section Image migration parameters
+## @param imageMigrations.repository Repository for the migration container image
+## @param imageMigrations.pullPolicy Image pull policy for the migration container
+##
+imageMigrations:
+  repository: null
+  pullPolicy: IfNotPresent
+
+## @section Pod labels
+## Additional labels for the pods
+## @param extraPodlabels Additional labels for the pods
+##
+extraPodlabels: {}
+
+## @section Image pull secrets
+## Secrets for pulling images from private registries
+## @param imagePullSecrets Array of secret names for private registries
+##
+imagePullSecrets: []
+
+## @section Service account name
+## Name of the service account to use
+## @param serviceAccountName Name of the service account
+##
+serviceAccountName: null
+
+## @section Ingress parameters
+## @param ingress.className Ingress class name
+## @param ingress.hostname Hostname for the ingress
+## @param ingress.contextPath Context path for the ingress
+## @param ingress.tlsSecretName Name of the TLS secret for the ingress
+## @param ingress.labels Additional labels for the ingress
+##
+ingress:
+  className: "nginx"
+  hostname: null
+  contextPath: null
+  tlsSecretName: null
+  labels: {}
+
+## @section Resource requests and limits
+## @param resources.limits.memory Memory limit
+## @param resources.limits.cpu CPU limit
+## @param resources.requests.memory Memory request
+## @param resources.requests.cpu CPU request
+##
+resources:
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+  requests:
+    memory: "512Mi"
+    cpu: "300m"
+
+## @section DigiD parameters
+## Parameters for the DigiD configuration
+## @param digid.hostname Hostname for the DigiD service
+## @param digid.contextPath Context path for the DigiD service
+##
+digid:
+  hostname: null
+  contextPath: null
+
+## @section Migration parameters
+## Parameters for the migration configuration
+## @param migration.labels Additional labels for the migration job
+##
+migration:
+  labels: {}

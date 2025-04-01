@@ -17,16 +17,19 @@ class LocalizationHelper {
     } ?: throw IllegalArgumentException("Language '$language' is not configured")
 
 
-    fun translate(text: String): String {
-        require(language in localizedStringsMap) { "Language '$language' is not supported" }
-        if (language == "nl") {
-            return text
-        }
-        check(language == "en") { "Unknown translation for language: $language" }
-        return when (text) {
-            "NL Wallet persoonsgegevens" -> "NL Wallet Personal Data"
-            "NL Wallet adres" -> "NL Wallet address"
-            else -> throw IllegalArgumentException("No translation for: $text")
+    enum class Translation(
+        val nl: String,
+        val en: String,
+    ) {
+        PID_CARD_TITLE("Persoonsgegevens", "Personal Data"),
+        ADDRESS_CARD_TITLE("Woonadres", "Residential address"),
+    }
+
+    fun translate(translation: Translation): String {
+        return when (language) {
+            "nl" -> translation.nl
+            "en" -> translation.en
+            else -> throw IllegalArgumentException("Language `$language` is not supported")
         }
     }
 

@@ -1,0 +1,15 @@
+apiVersion: v2
+name: pid-issuer
+description: A Helm chart for Wallet PID issuer
+
+type: application
+
+version: 0.3.0
+
+appVersion: ""
+
+
+dependencies:
+  - name: sp-common
+    repository: "file://../../sp-common"
+    version: 1.x.x

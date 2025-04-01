@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-    name: db-init-sql
-    labels:
-        group: nl-wallet-db
-data:
-    init.sql: |-
-        create extension if not exists "uuid-ossp" with schema public;
