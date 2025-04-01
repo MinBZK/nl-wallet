@@ -27,6 +27,7 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt_vc_metadata::TypeMetadataError;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_common::http::TlsPinningConfig;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
@@ -55,7 +56,6 @@ use crate::storage::StorageError;
 use crate::storage::WalletEvent;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::WteIssuanceClient;
-use crate::NL_WALLET_CLIENT_ID;
 
 use super::Wallet;
 

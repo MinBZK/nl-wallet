@@ -173,7 +173,6 @@ impl InstructionAndResult for IssueWte {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConstructPoa {
     pub key_identifiers: VecAtLeastTwoUnique<String>,
-    pub iss: String,
     pub aud: String,
     pub nonce: Option<String>,
 }

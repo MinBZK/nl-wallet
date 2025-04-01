@@ -6,10 +6,10 @@ use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
-use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc::HttpOidcClient;
 use pid_issuer::pid::attributes::BrpPidAttributeService;
 use pid_issuer::pid::brp::client::HttpBrpClient;
+use server_utils::settings::NL_WALLET_CLIENT_ID;
 use tests_integration::common::*;
 use tests_integration::fake_digid::fake_digid_auth;
 use wallet::wallet_deps::default_wallet_config;
@@ -79,7 +79,7 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Start issuance by exchanging the authorization code for the attestation previews
     let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(
-        HttpVcMessageClient::new(MOCK_WALLET_CLIENT_ID.to_string(), reqwest::Client::new()),
+        HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), reqwest::Client::new()),
         server_url.clone(),
         token_request,
         &wallet_config.mdoc_trust_anchors(),
