@@ -4,7 +4,6 @@ use std::sync::Arc;
 use anyhow::anyhow;
 use anyhow::Context;
 use indexmap::IndexMap;
-use indexmap::IndexSet;
 use serde::Serialize;
 
 use mdoc::verifier::DocumentDisclosedAttributes;
@@ -70,44 +69,18 @@ where
     }
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config {
-            issuer: issuer_url.clone(),
-            authorization_endpoint: issuer_url.join_base_url("authorize").into_inner(),
-            token_endpoint: issuer_url.join_base_url("token").into_inner(),
-            userinfo_endpoint: None,
-            jwks_uri: issuer_url.join_base_url("jwks").into_inner(),
-            registration_endpoint: None,
-            scopes_supported: None,
-            response_types_supported: IndexSet::new(),
-            response_modes_supported: None,
-            grant_types_supported: None,
-            acr_values_supported: None,
-            subject_types_supported: IndexSet::new(),
-            id_token_signing_alg_values_supported: IndexSet::new(),
-            id_token_encryption_alg_values_supported: None,
-            id_token_encryption_enc_values_supported: None,
-            userinfo_signing_alg_values_supported: None,
-            userinfo_encryption_alg_values_supported: None,
-            userinfo_encryption_enc_values_supported: None,
-            request_object_signing_alg_values_supported: None,
-            request_object_encryption_alg_values_supported: None,
-            request_object_encryption_enc_values_supported: None,
-            token_endpoint_auth_methods_supported: None,
-            token_endpoint_auth_signing_alg_values_supported: None,
-            display_values_supported: None,
-            claim_types_supported: None,
-            claims_supported: None,
-            service_documentation: None,
-            claims_locales_supported: None,
-            ui_locales_supported: None,
-            claims_parameter_supported: false,
-            request_parameter_supported: false,
-            request_uri_parameter_supported: false,
-            require_request_uri_registration: false,
-            op_policy_uri: None,
-            op_tos_uri: None,
-            code_challenge_methods_supported: None,
-        })
+        // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
+        // because they are mandatory in an OIDC Provider Metadata document (see
+        // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
+        // However, OpenID4VCI says that this should return not an OIDC Provider Metadata document but an OAuth
+        // Authorization Metadata document instead, see <https://www.rfc-editor.org/rfc/rfc8414.html>, which to
+        // a large extent has the same fields but `authorize` and `jwks` are optional there.
+        Ok(oidc::Config::new(
+            issuer_url.clone(),
+            issuer_url.join("authorize"),
+            issuer_url.join("token"),
+            issuer_url.join("jwks"),
+        ))
     }
 }
 
