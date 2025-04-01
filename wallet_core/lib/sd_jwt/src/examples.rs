@@ -17,47 +17,49 @@ use crate::sd_jwt::SdJwt;
 use crate::sd_jwt::SdJwtPresentation;
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-simple-structured-sd-jwt
-pub const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/simple_structured.jwt");
+pub const SIMPLE_STRUCTURED_SD_JWT: &str = include_str!("../examples/spec/simple_structured.jwt");
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-complex-structured-sd-jwt
-pub const COMPLEX_STRUCTURED_SD_JWT: &str = include_str!("../examples/sd_jwt/complex_structured.jwt");
+pub const COMPLEX_STRUCTURED_SD_JWT: &str = include_str!("../examples/spec/complex_structured.jwt");
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-sd-jwt-based-verifiable-cre
-pub const SD_JWT_VC: &str = include_str!("../examples/sd_jwt/sd_jwt_vc.jwt");
+pub const SD_JWT_VC: &str = include_str!("../examples/spec/sd_jwt_vc.jwt");
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-presentation
-pub const WITH_KB_SD_JWT: &str = include_str!("../examples/sd_jwt/with_kb.jwt");
+pub const WITH_KB_SD_JWT: &str = include_str!("../examples/spec/with_kb.jwt");
 
 pub const WITH_KB_SD_JWT_AUD: &str = "https://verifier.example.org";
 pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 
-pub fn simple_structured_sd_jwt() -> SdJwt {
-    SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
-}
+impl SdJwt {
+    pub fn spec_simple_structured() -> SdJwt {
+        SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
+    }
 
-pub fn complex_structured_sd_jwt() -> SdJwt {
-    SdJwt::parse_and_verify(
-        COMPLEX_STRUCTURED_SD_JWT,
-        &examples_sd_jwt_decoding_key(),
-        &Sha256Hasher,
-    )
-    .unwrap()
-}
+    pub fn spec_complex_structured() -> SdJwt {
+        SdJwt::parse_and_verify(
+            COMPLEX_STRUCTURED_SD_JWT,
+            &examples_sd_jwt_decoding_key(),
+            &Sha256Hasher,
+        )
+        .unwrap()
+    }
 
-pub fn sd_jwt_vc() -> SdJwt {
-    SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
-}
+    pub fn spec_sd_jwt_vc() -> SdJwt {
+        SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
+    }
 
-pub fn sd_jwt_kb() -> SdJwtPresentation {
-    SdJwtPresentation::parse_and_verify(
-        WITH_KB_SD_JWT,
-        &examples_sd_jwt_decoding_key(),
-        &Sha256Hasher,
-        WITH_KB_SD_JWT_AUD,
-        WITH_KB_SD_JWT_NONCE,
-        Duration::minutes(2),
-    )
-    .unwrap()
+    pub fn spec_sd_jwt_kb() -> SdJwtPresentation {
+        SdJwtPresentation::parse_and_verify(
+            WITH_KB_SD_JWT,
+            &examples_sd_jwt_decoding_key(),
+            &Sha256Hasher,
+            WITH_KB_SD_JWT_AUD,
+            WITH_KB_SD_JWT_NONCE,
+            Duration::minutes(2),
+        )
+        .unwrap()
+    }
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-example-sd-jwt-with-recursi
@@ -103,7 +105,7 @@ pub fn examples_sd_jwt_decoding_key() -> EcdsaDecodingKey {
     decoding_key_from_jwk(jwk)
 }
 
-fn decoding_key_from_jwk(jwk: serde_json::Value) -> EcdsaDecodingKey {
+fn decoding_key_from_jwk(jwk: Value) -> EcdsaDecodingKey {
     let jwk: Jwk = serde_json::from_value(jwk).unwrap();
     let verifying_key = jwk_to_p256(&jwk).unwrap();
     EcdsaDecodingKey::from(&verifying_key)

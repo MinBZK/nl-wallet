@@ -173,7 +173,6 @@ mod test {
     use jwt::Jwt;
 
     use crate::error::Error;
-    use crate::examples;
     use crate::examples::examples_sd_jwt_decoding_key;
     use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
     use crate::hasher::Hasher;
@@ -293,7 +292,7 @@ mod test {
 
     #[tokio::test]
     async fn test_algorithm_should_match_sd_jwt() {
-        let sd_jwt = examples::simple_structured_sd_jwt();
+        let sd_jwt = SdJwt::spec_simple_structured();
 
         let signing_key = SigningKey::random(&mut OsRng);
 

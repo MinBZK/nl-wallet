@@ -470,6 +470,7 @@ mod example_constructors {
     use crypto::utils::random_string;
 
     use crate::examples::ADDRESS_METADATA_BYTES;
+    use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
     use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
@@ -571,6 +572,10 @@ mod example_constructors {
 
         pub fn sd_jwt_vc_spec_example() -> Self {
             serde_json::from_slice(SD_JWT_VC_SPEC_METADATA_BYTES).unwrap()
+        }
+
+        pub fn credential_payload_sd_jwt_metadata() -> Self {
+            serde_json::from_slice(CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES).unwrap()
         }
     }
 

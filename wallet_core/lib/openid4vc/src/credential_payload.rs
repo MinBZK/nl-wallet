@@ -92,7 +92,7 @@ pub struct CredentialPayload {
     #[serde_as(as = "Option<TimestampSeconds<i64>>")]
     pub not_before: Option<DateTime<Utc>>,
 
-    pub attestation_qualification: Option<AttestationQualification>,
+    pub attestation_qualification: AttestationQualification,
 
     #[serde(rename = "cnf")]
     pub confirmation_key: SpecOptional<RequiredKeyBinding>,
@@ -168,7 +168,7 @@ impl CredentialPayload {
             issued_at,
             expires,
             not_before,
-            attestation_qualification: Some(attestation_qualification),
+            attestation_qualification,
             confirmation_key: RequiredKeyBinding::Jwk(holder_jwk).into(),
             attributes,
         };
@@ -186,15 +186,19 @@ impl CredentialPayload {
 
 #[cfg(test)]
 mod test {
+    use std::error::Error;
+
     use chrono::TimeZone;
     use chrono::Utc;
     use indexmap::IndexMap;
+    use jsonwebtoken::Algorithm;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
     use jwt::jwk::jwk_from_p256;
+    use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
     use sd_jwt_vc_metadata::TypeMetadata;
 
@@ -212,7 +216,7 @@ mod test {
             issued_at: Some(Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap()),
             expires: None,
             not_before: None,
-            attestation_qualification: Some("QEAA".parse().unwrap()),
+            attestation_qualification: "QEAA".parse().unwrap(),
             confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()).into(),
             attributes: IndexMap::from([
                 (
@@ -290,15 +294,49 @@ mod test {
         payload.validate(&metadata).unwrap();
     }
 
-    #[test]
-    fn test_from_sd_jwt() {
-        let sd_jwt = sd_jwt::examples::sd_jwt_vc();
-        let metadata = TypeMetadata::sd_jwt_vc_spec_example();
+    #[tokio::test]
+    async fn test_from_sd_jwt() -> Result<(), Box<dyn Error>> {
+        let holder_key = SigningKey::random(&mut OsRng);
+        let confirmation_key = jwk_from_p256(holder_key.verifying_key())?;
+
+        let issuer_key = SigningKey::random(&mut OsRng);
+
+        let claims = json!({
+            "vct": "com.example.pid",
+            "iss": "https://com.example.org/pid/issuer",
+            "iat": 61,
+            "attestation_qualification": "QEAA",
+            "cnf": {
+                "jwk": confirmation_key
+            },
+            "birth_date": "1963-08-12",
+            "place_of_birth": {
+                "locality": "The Hague",
+                "country": {
+                    "name": "The Netherlands",
+                    "area_code": 33
+                }
+            }
+        });
+
+        let sd_jwt = SdJwtBuilder::new(claims)?
+            .make_concealable("/birth_date")?
+            .make_concealable("/place_of_birth/locality")?
+            .make_concealable("/place_of_birth/country/name")?
+            .make_concealable("/place_of_birth/country/area_code")?
+            .add_decoys("/place_of_birth", 1)?
+            .add_decoys("", 2)?
+            .finish(Algorithm::ES256, &issuer_key, holder_key.verifying_key())
+            .await?;
+
+        let metadata = TypeMetadata::credential_payload_sd_jwt_metadata();
         let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone(), &metadata).unwrap();
 
         assert_eq!(
             payload.attestation_type,
             sd_jwt.claims().properties.get("vct").and_then(|c| c.as_str()).unwrap()
         );
+
+        Ok(())
     }
 }

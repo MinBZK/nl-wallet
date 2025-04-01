@@ -13,7 +13,6 @@ use serde_json::Value;
 use jwt::jwk::jwk_from_p256;
 use jwt::EcdsaDecodingKey;
 use sd_jwt::builder::SdJwtBuilder;
-use sd_jwt::examples;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::SdJwt;
@@ -41,7 +40,7 @@ async fn make_sd_jwt(
 
 #[test]
 fn simple_sd_jwt() {
-    let sd_jwt = examples::simple_structured_sd_jwt();
+    let sd_jwt = SdJwt::spec_simple_structured();
     let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "address": {
@@ -57,7 +56,7 @@ fn simple_sd_jwt() {
 
 #[test]
 fn complex_sd_jwt() {
-    let sd_jwt: SdJwt = examples::complex_structured_sd_jwt();
+    let sd_jwt: SdJwt = SdJwt::spec_complex_structured();
     let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "verified_claims": {
