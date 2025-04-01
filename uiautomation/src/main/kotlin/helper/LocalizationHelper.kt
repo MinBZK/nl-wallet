@@ -21,7 +21,7 @@ class LocalizationHelper {
         val nl: String,
         val en: String,
     ) {
-        PID_CARD_TITLE("Persoonsgegevens", "Personal Data"),
+        PID_CARD_TITLE("Persoonsgegevens", "Personal data"),
         ADDRESS_CARD_TITLE("Woonadres", "Residential address"),
     }
 
