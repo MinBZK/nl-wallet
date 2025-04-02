@@ -1,17 +1,17 @@
 {
   "vct": "com.example.diploma",
-  "name": "Dummy Diploma Credential",
-  "description": "Dummy version of a diploma credential",
+  "name": "Diploma credential",
+  "description": "Diploma credential",
   "display": [
     {
       "lang": "en-US",
-      "name": "Dummy Diploma",
-      "description": "A dummy diploma credential"
+      "name": "Diploma",
+      "description": "A diploma credential"
     },
     {
       "lang": "nl-NL",
-      "name": "Dummy Diploma",
-      "description": "Een dummy diploma attestatie"
+      "name": "Diploma",
+      "description": "Een diploma attestatie"
     }
   ],
   "claims": [
@@ -32,17 +32,17 @@
       "sd": "always"
     },
     {
-      "path": ["study"],
+      "path": ["education"],
       "display": [
         {
           "lang": "nl-NL",
-          "label": "Studie",
-          "description": "Naam van de studie"
+          "label": "Opleiding",
+          "description": "Naam van de opleiding waarvoor het diploma is behaald"
         },
         {
           "lang": "en-US",
-          "label": "Study",
-          "description": "Name of the study"
+          "label": "Education",
+          "description": "Name of the education for which the diploma was obtained"
         }
       ],
       "sd": "always"
@@ -98,14 +98,14 @@
   ],
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "Dummy diploma VCT Schema",
-    "description": "The JSON schema that defines a dummy diploma VCT",
+    "title": "Diploma VCT Schema",
+    "description": "The JSON schema that defines a diploma VCT",
     "type": "object",
     "properties": {
       "university": {
         "type": "string"
       },
-      "study": {
+      "education": {
         "type": "string"
       },
       "graduation_date": {
