@@ -15,6 +15,7 @@ use jwt::jwk::jwk_from_p256;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
+use mdoc::utils::crypto::CryptoError;
 use mdoc::AttestationQualification;
 use mdoc::NameSpace;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
@@ -61,9 +62,13 @@ pub enum CredentialPayloadError {
     #[category(pd)]
     SdJwt(#[from] sd_jwt::error::Error),
 
-    #[error("error converting holder public key to JWK: {0}")]
-    #[category(critical)]
-    Jwk(#[from] JwkConversionError),
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    #[category(pd)]
+    JwkConversion(#[from] JwkConversionError),
+
+    #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
+    #[category(pd)]
+    CoseKeyConversion(#[from] CryptoError),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
@@ -129,14 +134,10 @@ impl CredentialPayload {
         )
     }
 
-    pub fn from_mdoc(
-        mdoc: Mdoc,
-        metadata: &TypeMetadata,
-        holder_pub_key: &VerifyingKey,
-    ) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc, metadata: &TypeMetadata) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
             metadata,
-            holder_pub_key,
+            &(&mdoc.mso.device_key_info.device_key).try_into()?,
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
