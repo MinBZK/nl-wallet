@@ -7,13 +7,13 @@
       "lang": "en-US",
       "name": "NL Wallet Personal Data",
       "description": "The Personal Data credential for the NL Wallet",
-      "summary": "{{first_name}} {{last_name}}"
+      "summary": "{{first_name}}"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
       "description": "De persoonsgegevensattestatie voor de NL Wallet",
-      "summary": "{{first_name}} {{last_name}}"
+      "summary": "{{first_name}}"
     }
   ],
   "claims": [
