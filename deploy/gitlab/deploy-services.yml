@@ -1,243 +1,3 @@
-.run-wp-migrations:
-  needs:
-    - job: build-wp-migrations-image
-      artifacts: false
-  variables:
-    WALLET_PROVIDER_MIGRATIONS_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider-migrations:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < deploy/kubernetes/wallet-provider-migration-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=wallet-provider-migrations
-
-run-wp-migrations-ont:
-  extends: [.env-ont-k8s, .run-wp-migrations]
-  rules: !reference [.default-or-merge-request, rules]
-
-.deploy-update-policy-server:
-  needs:
-    - job: build-update-policy-server-image
-      artifacts: false
-  variables:
-    UPDATE_POLICY_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-update-policy-server:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < deploy/kubernetes/update-policy-server-deployment.yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/update-policy-server-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/update-policy-server-service.yaml
-    - kubectl rollout status deployment/update-policy-server
-
-deploy-update-policy-server-ont:
-  extends: [.env-ont-k8s, .deploy-update-policy-server]
-  rules: !reference [.default-or-merge-request, rules]
-  needs:
-    - !reference [.deploy-update-policy-server, needs]
-  variables:
-    UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME: $UPDATE_POLICY_SERVER_EXTERNAL_HOSTNAME_ONT
-
-.deploy-wallet-provider:
-  needs:
-    - job: build-wallet-provider-image
-      artifacts: false
-  variables:
-    WALLET_PROVIDER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-provider:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < deploy/kubernetes/servicemonitors.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/${ENV}/wallet-provider-configmap.yaml
-    - envsubst < deploy/kubernetes/wallet-provider-deployment.yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/wallet-provider-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/wallet-provider-service.yaml
-    - kubectl apply -f deploy/kubernetes/wallet-provider-network-policies.yaml
-    - kubectl rollout status deployment/wallet-provider
-
-deploy-wallet-provider-ont:
-  extends: [.env-ont-k8s, .deploy-wallet-provider]
-  rules: !reference [.default-or-merge-request, rules]
-  needs:
-    - !reference [.deploy-wallet-provider, needs]
-    - job: run-wp-migrations-ont
-      artifacts: false
-  variables:
-    ENV: ont
-    WALLET_PROVIDER_EXTERNAL_HOSTNAME: $WALLET_PROVIDER_EXTERNAL_HOSTNAME_ONT
-    WALLET_PROVIDER_INTERNAL_HOSTNAME: $WALLET_PROVIDER_INTERNAL_HOSTNAME_ONT
-    APP_IDENTIFIER: "${INTERNAL_APP_IDENTIFIER}.latest"
-
-.run-mrp-vs-migrations:
-  needs:
-    - job: build-ws-migrations-image
-      artifacts: false
-  variables:
-    WALLET_SERVER_MIGRATION_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < deploy/kubernetes/mrp-verification-server-migration-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=mrp-verification-server-migrations
-
-run-mrp-vs-migrations-ont:
-  extends: [.env-ont-k8s, .run-mrp-vs-migrations]
-  rules: !reference [.default-or-merge-request, rules]
-
-.deploy-mock-relying-party:
-  needs:
-    - job: build-mock-relying-party-image
-      artifacts: false
-    - job: build-verification-server-image
-      artifacts: false
-    - job: build-wallet-web
-      artifacts: true
-  variables:
-    MOCK_RELYING_PARTY_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-mock-relying-party:${CI_COMMIT_SHORT_SHA}
-    MRP_VERIFICATION_SERVER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-verification-server:${CI_COMMIT_SHORT_SHA}
-    UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
-  script:
-    - set -euxo pipefail
-    - envsubst < deploy/kubernetes/brpproxy-deployment.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/brpproxy-service.yaml
-    - WALLET_WEB_FILENAME=$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)
-    - export WALLET_WEB_FILENAME
-    - WALLET_WEB_SHA256=$(cat wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt)
-    - export WALLET_WEB_SHA256
-    - envsubst < deploy/kubernetes/mrp-verification-server-deployment.yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/mrp-verification-server-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/mrp-verification-server-service.yaml
-    - kubectl apply -f deploy/kubernetes/mrp-verification-server-network-policies.yaml
-    - kubectl rollout status deployment/mrp-verification-server
-    - envsubst < deploy/kubernetes/mock-relying-party-deployment.yaml | kubectl apply -f -
-    - CSP_SCRIPT_SRC_MRP=$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt | base64 -d)
-    - export CSP_SCRIPT_SRC_MRP
-    - CSP_STYLE_SRC_MRP="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt | base64 -d)"
-    - export CSP_STYLE_SRC_MRP
-    - envsubst < deploy/kubernetes/mock-relying-party-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/mock-relying-party-service.yaml
-    - kubectl rollout status deployment/mock-relying-party
-
-deploy-mock-relying-party-ont:
-  extends: [.env-ont-k8s, .deploy-mock-relying-party]
-  rules: !reference [.default-or-merge-request, rules]
-  needs:
-    - !reference [.deploy-mock-relying-party, needs]
-    - job: run-mrp-vs-migrations-ont
-      artifacts: false
-  variables:
-    MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: $MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT
-    MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT
-    MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME: $MRP_VERIFICATION_SERVER_EXTERNAL_HOSTNAME_ONT
-    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
-    UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
-
-.run-pi-migrations:
-  needs:
-    - job: build-ws-migrations-image
-      artifacts: false
-  variables:
-    PID_ISSUER_MIGRATION_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-server-migrations:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < deploy/kubernetes/pid-issuer-migration-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=pid-issuer-migrations
-
-run-pi-migrations-ont:
-  extends: [.env-ont-k8s, .run-pi-migrations]
-  rules: !reference [.default-or-merge-request, rules]
-
-.deploy-pid-issuer:
-  needs:
-    - job: build-pid-issuer-image
-      artifacts: false
-  variables:
-    PID_ISSUER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-pid-issuer:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst < deploy/kubernetes/pid-issuer-deployment.yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/pid-issuer-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/pid-issuer-service.yaml
-    - kubectl apply -f deploy/kubernetes/pid-issuer-network-policies.yaml
-    - kubectl rollout status deployment/pid-issuer
-
-deploy-pid-issuer-ont:
-  extends: [.env-ont-k8s, .deploy-pid-issuer]
-  rules: !reference [.default-or-merge-request, rules]
-  needs:
-    - !reference [.deploy-pid-issuer, needs]
-    - job: run-pi-migrations-ont
-      artifacts: false
-  variables:
-    DIGID_CONNECTOR_EXTERNAL_HOSTNAME: $DIGID_CONNECTOR_EXTERNAL_HOSTNAME_ONT
-    PID_ISSUER_EXTERNAL_HOSTNAME: $PID_ISSUER_EXTERNAL_HOSTNAME_ONT
-    PID_ISSUER_INTERNAL_HOSTNAME: $PID_ISSUER_INTERNAL_HOSTNAME_ONT
-    UL_HOSTNAME: $APP_EXTERNAL_HOSTNAME_ONT
-
-.deploy-gba-hc-converter:
-  needs:
-    - job: build-gba-hc-converter-image
-      artifacts: false
-  variables:
-    CONVERTER_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-hc-converter:${CI_COMMIT_SHORT_SHA}
-  script:
-    - kubectl create configmap nl-wallet-gba-hc-converter-xml-files --dry-run=client --from-file wallet_core/gba_hc_converter/resources/gba-v-responses -o yaml | kubectl apply -f -
-    - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/${ENV}/gba-hc-converter-deployment.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/gba-hc-converter-network-policies.yaml
-    - kubectl apply -f deploy/kubernetes/gba-hc-converter-service.yaml
-    - kubectl apply -f deploy/kubernetes/gba-hc-converter-volume.yaml
-    - kubectl rollout status deployment/gba-hc-converter
-
-deploy-gba-hc-converter-ont:
-  extends: [.env-ont-k8s, .deploy-gba-hc-converter]
-  rules: !reference [.default-or-merge-request, rules]
-  variables:
-    ENV: ont
-
-.deploy-preload-gba-v-pod:
-  needs:
-    - job: build-gba-fetch-image
-      artifacts: false
-  rules: !reference [.default-or-merge-request, rules]
-  when: manual
-  variables:
-    GBA_FETCH_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch:${CI_COMMIT_SHORT_SHA}
-  script:
-    - kubectl create configmap nl-wallet-gba-hc-converter-zoek-xml --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml -o yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/gba-hc-converter-volume.yaml
-    - envsubst < deploy/kubernetes/${ENV}/preload-gba-v-data-pod.yaml | kubectl apply -f -
-
-deploy-preload-gba-v-pod-ont:
-  extends: [.env-ont-k8s, .deploy-preload-gba-v-pod]
-  rules: !reference [.default-or-merge-request, rules]
-  variables:
-    ENV: ont
-
-.run-encrypt-gba-v-testdata-job:
-  needs:
-    - job: build-gba-fetch-image
-      artifacts: false
-  rules: !reference [.default-or-merge-request, rules]
-  when: manual
-  variables:
-    GBA_FETCH_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch:${CI_COMMIT_SHORT_SHA}
-  script:
-    - kubectl create configmap nl-wallet-gba-hc-converter-encrypt-script --dry-run=client --from-file wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh -o yaml | kubectl apply -f -
-    - envsubst < deploy/kubernetes/encrypt-gba-v-testdata-job.yaml | kubectl apply -f -
-    - kubectl wait --for=condition=complete --timeout=300s job -l app=encrypt-gba-v-testdata
-
-run-encrypt-gba-v-testdata-job-ont:
-  extends: [.env-ont-k8s, .run-encrypt-gba-v-testdata-job]
-  rules: !reference [.default-or-merge-request, rules]
-
-.deploy-gba-fetch-frontend:
-  needs:
-    - job: build-gba-fetch-frontend-image
-      artifacts: false
-  rules: !reference [.default-or-merge-request, rules]
-  variables:
-    GBA_FETCH_FRONTEND_IMAGE: ${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-gba-fetch-frontend:${CI_COMMIT_SHORT_SHA}
-  script:
-    - envsubst '$GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME $K8S_NAMESPACE' < deploy/kubernetes/gba-fetch-frontend-ingress.yaml | kubectl apply -f -
-    - kubectl apply -f deploy/kubernetes/gba-fetch-frontend-service.yaml
-    - envsubst < deploy/kubernetes/${ENV}/gba-fetch-frontend-deployment.yaml | kubectl apply -f -
-    - kubectl rollout status deployment/gba-fetch-frontend
-
-deploy-gba-fetch-frontend-ont:
-  extends: [.env-ont-k8s, .deploy-gba-fetch-frontend]
-  rules: !reference [.default-or-merge-request, rules]
-  variables:
-    ENV: ont
-    GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME: $GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT
 
 .deployment-needs:
   needs:
@@ -281,31 +41,29 @@ deploy-apps-demo:
         job: create-deployment-demo
     strategy: depend
 
-#create-deployment-ont:
-#  extends: .default-or-release-or-merge-request-manual
-#  allow_failure: true
-#  script:
-#    - export DEPLOY_ENV=ont
-#    - export FILE_NAME=${FILE_NAME}
-#    - export K8S_CLUSTER=${K8S_CLUSTER}
-#    - export K8S_NAMESPACE=${K8S_NAMESPACE}
-#    - export DEPLOY_IMAGE_VERSION=${CI_COMMIT_SHORT_SHA}
-#    - envsubst '${DEPLOY_ENV} ${K8S_CLUSTER} ${K8S_NAMESPACE} ${DEPLOY_IMAGE_VERSION}' < deploy/gitlab-templates/deploy-template.yml > ${FILE_NAME}
-#  artifacts:
-#    paths:
-#      - ${FILE_NAME}
-#    expire_in: 1 day
-#  variables:
-#    FILE_NAME: deploy-ont.yml
+create-deployment-ont:
+  extends: .default-or-release-or-merge-request
+  script:
+    - export DEPLOY_ENV=ont
+    - export FILE_NAME=${FILE_NAME}
+    - export K8S_CLUSTER=${K8S_CLUSTER}
+    - export K8S_NAMESPACE=${K8S_NAMESPACE}
+    - export DEPLOY_IMAGE_VERSION=${CI_COMMIT_SHORT_SHA}
+    - envsubst '${DEPLOY_ENV} ${K8S_CLUSTER} ${K8S_NAMESPACE} ${DEPLOY_IMAGE_VERSION}' < deploy/gitlab-templates/deploy-template.yml > ${FILE_NAME}
+  artifacts:
+    paths:
+      - ${FILE_NAME}
+    expire_in: 1 day
+  variables:
+    FILE_NAME: deploy-ont.yml
 
-#deploy-apps-ont:
-#  extends: .default-or-release-or-merge-request
-#  allow_failure: true
-#  needs:
-#    - create-deployment-ont
-#    - !reference [.deployment-needs, needs]
-#  trigger:
-#    include:
-#      - artifact: deploy-ont.yml
-#        job: create-deployment-ont
-#    strategy: depend
+deploy-apps-ont:
+  extends: .default-or-release-or-merge-request
+  needs:
+    - create-deployment-ont
+    - !reference [.deployment-needs, needs]
+  trigger:
+    include:
+      - artifact: deploy-ont.yml
+        job: create-deployment-ont
+    strategy: depend

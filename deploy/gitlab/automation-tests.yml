@@ -124,13 +124,7 @@ run-automation-smoke-test-ont:
   needs:
     - job: upload-browserstack-android-app-ont
       artifacts: false
-    - job: deploy-gba-hc-converter-ont
-      artifacts: false
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
-    - job: deploy-wallet-provider-ont
-      artifacts: false
-    - job: deploy-pid-issuer-ont
+    - job: deploy-apps-ont
       artifacts: false
   script:
     - ./gradlew --no-daemon --info --stacktrace smokeTest
@@ -159,7 +153,7 @@ run-mrp-browsertest-test-ont:
   rules:
     - !reference [.default-branch, rules]
   needs:
-    - job: deploy-mock-relying-party-ont
+    - job: deploy-apps-ont
       artifacts: false
   script: |
     cd browsertests
@@ -186,7 +180,7 @@ run-fallback-page-browsertest-test-ont:
   rules:
     - !reference [.default-branch, rules]
   needs:
-    - job: deploy-update-policy-server-ont
+    - job: deploy-apps-ont
       artifacts: false
   script: |
     cd browsertests
@@ -240,13 +234,7 @@ run-performance-test-ont:
   rules: !reference [.default-branch, rules]
   extends: [.rust, .env-ont-k8s]
   needs:
-    - job: deploy-gba-hc-converter-ont
-      artifacts: false
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
-    - job: deploy-wallet-provider-ont
-      artifacts: false
-    - job: deploy-pid-issuer-ont
+    - job: deploy-apps-ont
       artifacts: false
     - job: wallet-config-ont
       artifacts: true

@@ -84,6 +84,7 @@ spec:
             secretKeyRef:
               name: nl-wallet-gba-hc-converter-secrets
               key: trust_anchor
+        {{ if .Values.gbaCliTool.useRijksweb }}
         - name: GBA_HC_CONVERTER__RUN_MODE__ALL__GBAV__CA_API_KEY
           valueFrom:
             secretKeyRef:
@@ -113,6 +114,7 @@ spec:
           value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
         - name: https_proxy
           value: "http://$(GBAV_PROXY_USERNAME):$(GBAV_PROXY_PASSWORD)@$(GBAV_PROXY_IP):$(GBAV_PROXY_PORT)"
+        {{- end }}
   volumes:
     - name: preloaded-gba-v-data-volume
       persistentVolumeClaim:
