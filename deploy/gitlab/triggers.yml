@@ -58,22 +58,7 @@ trigger-scheduled-automation-tests:
   rules:
     - !reference [.default-or-release, rules]
   needs:
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
-      optional: true
-    - job: deploy-wallet-provider-ont
-      artifacts: false
-      optional: true
-    - job: deploy-pid-issuer-ont
-      artifacts: false
-      optional: true
-    - job: deploy-update-policy-server-ont
-      artifacts: false
-      optional: true
-    - job: deploy-gba-hc-converter-ont
-      artifacts: false
-      optional: true
-    - job: deploy-gba-fetch-frontend-ont
+    - job: deploy-apps-ont
       artifacts: false
       optional: true
   trigger:

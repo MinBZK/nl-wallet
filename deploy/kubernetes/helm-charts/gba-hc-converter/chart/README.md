@@ -69,9 +69,10 @@
 
 ### GBA CLI Tool parameters
 
-| Name                 | Description                        | Value   |
-| -------------------- | ---------------------------------- | ------- |
-| `gbaCliTool.enabled` | Enable or disable the GBA CLI Tool | `false` |
+| Name                     | Description                                 | Value   |
+| ------------------------ | ------------------------------------------- | ------- |
+| `gbaCliTool.enabled`     | Enable or disable the GBA CLI Tool          | `false` |
+| `gbaCliTool.useRijksweb` | Enable or disable the use of Rijksweb proxy | `false` |
 
 ### GBA Encrypt Test Data parameters
 

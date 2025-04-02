@@ -70,13 +70,7 @@ test-rust-gba-pid:
   extends: [.env-ont-k8s, .test-rust]
   rules: !reference [.default-branch, rules]
   needs:
-    - job: deploy-gba-hc-converter-ont
-      artifacts: false
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
-    - job: deploy-wallet-provider-ont
-      artifacts: false
-    - job: deploy-pid-issuer-ont
+    - job: deploy-apps-ont
       artifacts: false
     - job: wallet-config-ont
       artifacts: true
