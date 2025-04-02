@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDetailScreen
@@ -24,7 +25,8 @@ class DashboardTests : TestBase() {
 
     private lateinit var dashboardScreen: DashboardScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
 
         dashboardScreen = DashboardScreen()
@@ -33,8 +35,8 @@ class DashboardTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The card overview page displays all cards currently available in the app. [${JIRA_ID}]")
     @Tags(Tag("smoke"))
-    fun verifyIssuedCardsVisible() {
-        setUp()
+    fun verifyIssuedCardsVisible(testInfo: TestInfo) {
+        setUp(testInfo)
         assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible")
     }
 
@@ -46,15 +48,15 @@ class DashboardTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The card information (and images) is displayed in the active language. [${JIRA_ID}]")
     @Tags(Tag("english"))
-    fun verifyActiveLanguage() {
-        setUp()
+    fun verifyActiveLanguage(testInfo: TestInfo) {
+        setUp(testInfo)
         assertTrue(dashboardScreen.cardFaceTextsInActiveLanguage(), "Card face texts are not in active language")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 Tapping the card opens the card's details. [${JIRA_ID}]")
-    fun verifyCardDetailScreen() {
-        setUp()
+    fun verifyCardDetailScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         dashboardScreen.clickPidCard()
 
         val cardDetailScreen = CardDetailScreen()
@@ -63,8 +65,8 @@ class DashboardTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5 The card sorting is initially fixed: PID is first, Address is second. [${JIRA_ID}]")
-    fun verifyCardsFixedSorting() {
-        setUp()
+    fun verifyCardsFixedSorting(testInfo: TestInfo) {
+        setUp(testInfo)
         assertTrue(dashboardScreen.checkCardSorting(), "card sorting not as expected")
     }
 }
