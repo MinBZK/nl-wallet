@@ -28,6 +28,11 @@ android {
                 doNotStrip "**/*.so"
             }
         }
+        profile {
+            minifyEnabled = false
+            shrinkResources = false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         release {
             minifyEnabled = false
             shrinkResources = false
