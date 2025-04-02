@@ -4,7 +4,7 @@ import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.TestInfo
 import org.junitpioneer.jupiter.RetryingTest
 import screen.web.digid.DigidLoginMockWebPage
 import screen.web.digid.DigidLoginStartWebPage
@@ -13,15 +13,16 @@ class MockDigidWebTests : TestBase() {
 
     private lateinit var digidLoginStartWebPage: DigidLoginStartWebPage
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.DigidLoginStartWebPage)
 
         digidLoginStartWebPage = DigidLoginStartWebPage()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    fun verifyMockDigidLogin() {
-        setUp()
+    fun verifyMockDigidLogin(testInfo: TestInfo) {
+        setUp(testInfo)
         assertTrue(digidLoginStartWebPage.visible(), "digid login start web page is not visible")
 
         digidLoginStartWebPage.clickMockLoginButton()

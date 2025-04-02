@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeInformScreen
@@ -24,7 +25,8 @@ class SecuritySetupCompletedTests : TestBase() {
 
     private lateinit var securitySetupCompletedScreen: SecuritySetupCompletedScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.SecuritySetupCompleted)
 
         securitySetupCompletedScreen = SecuritySetupCompletedScreen()
@@ -48,8 +50,8 @@ class SecuritySetupCompletedTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 Wallet confirms setup to user and offers button to start personalization flow. [$JIRA_ID]")
     @Tags(Tag("runonall"))
-    fun verifyStartPersonalization() {
-        setUp()
+    fun verifyStartPersonalization(testInfo: TestInfo) {
+        setUp(testInfo)
         securitySetupCompletedScreen.clickNextButton()
 
         val personalizeInformScreen = PersonalizeInformScreen()

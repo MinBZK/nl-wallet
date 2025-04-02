@@ -6,6 +6,7 @@ import navigator.screen.MenuNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.menu.MenuScreen
@@ -22,7 +23,8 @@ class AppLockedStateTests : TestBase() {
 
     private lateinit var pinScreen: PinScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickLogoutButton()
 
@@ -31,8 +33,8 @@ class AppLockedStateTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 When the app boots it is locked and displays the PIN entry screen. [${JIRA_ID}]")
-    fun verifyAppLocked() {
-        setUp()
+    fun verifyAppLocked(testInfo: TestInfo) {
+        setUp(testInfo)
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
     }
 }
