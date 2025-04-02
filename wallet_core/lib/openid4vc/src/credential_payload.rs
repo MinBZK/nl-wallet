@@ -22,7 +22,6 @@ use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
-use wallet_common::spec::SpecOptional;
 use wallet_common::urls::HttpsUri;
 
 use crate::attributes::Attribute;
@@ -100,7 +99,7 @@ pub struct CredentialPayload {
     pub attestation_qualification: AttestationQualification,
 
     #[serde(rename = "cnf")]
-    pub confirmation_key: SpecOptional<RequiredKeyBinding>,
+    pub confirmation_key: Option<RequiredKeyBinding>,
 
     #[serde(flatten)]
     pub attributes: IndexMap<String, Attribute>,
@@ -120,11 +119,10 @@ impl CredentialPayload {
     pub fn from_unsigned_mdoc(
         unsigned_mdoc: UnsignedMdoc,
         metadata: &TypeMetadata,
-        holder_pub_key: &VerifyingKey,
     ) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
             metadata,
-            holder_pub_key,
+            None,
             unsigned_mdoc.attributes.into(),
             unsigned_mdoc.issuer_uri,
             Some(Utc::now()),
@@ -137,7 +135,7 @@ impl CredentialPayload {
     pub fn from_mdoc(mdoc: Mdoc, metadata: &TypeMetadata) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
             metadata,
-            &(&mdoc.mso.device_key_info.device_key).try_into()?,
+            Some(&(&mdoc.mso.device_key_info.device_key).try_into()?),
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             Some((&mdoc.mso.validity_info.signed).try_into()?),
@@ -152,7 +150,7 @@ impl CredentialPayload {
     #[allow(clippy::too_many_arguments)]
     fn from_mdoc_attributes(
         metadata: &TypeMetadata,
-        holder_pub_key: &VerifyingKey,
+        holder_pub_key: Option<&VerifyingKey>,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
         issued_at: Option<DateTime<Utc>>,
@@ -160,7 +158,10 @@ impl CredentialPayload {
         not_before: Option<DateTime<Utc>>,
         attestation_qualification: AttestationQualification,
     ) -> Result<Self, CredentialPayloadError> {
-        let holder_jwk = jwk_from_p256(holder_pub_key)?;
+        let confirmation_key = holder_pub_key
+            .map(|verifying_key| jwk_from_p256(verifying_key).map(RequiredKeyBinding::Jwk))
+            .transpose()?;
+
         let attributes = Attribute::from_mdoc_attributes(metadata, mdoc_attributes)?;
 
         let payload = Self {
@@ -170,7 +171,7 @@ impl CredentialPayload {
             expires,
             not_before,
             attestation_qualification,
-            confirmation_key: RequiredKeyBinding::Jwk(holder_jwk).into(),
+            confirmation_key,
             attributes,
         };
 

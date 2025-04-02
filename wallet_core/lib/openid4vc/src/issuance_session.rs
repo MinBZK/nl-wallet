@@ -21,7 +21,6 @@ use url::Url;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use error_category::ErrorCategory;
-
 use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
@@ -556,7 +555,6 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             let _credential_payload = CredentialPayload::from_unsigned_mdoc(
                                 unsigned_mdoc.clone(),
                                 unverified_metadata_chain.as_metadata(),
-                                dpop_private_key.verifying_key(),
                             )?;
 
                             Ok(unverified_metadata_chain)
@@ -898,7 +896,7 @@ impl CredentialResponse {
 }
 
 impl IssuanceState {
-    async fn auth_headers(&self, url: Url, method: reqwest::Method) -> Result<(String, String), IssuanceSessionError> {
+    async fn auth_headers(&self, url: Url, method: Method) -> Result<(String, String), IssuanceSessionError> {
         let dpop_header = Dpop::new(
             &self.dpop_private_key,
             url,
