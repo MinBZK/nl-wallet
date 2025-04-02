@@ -52,6 +52,12 @@ enum FlutterApiErrorType {
     /// The request failed, but the server did send a response.
     Server,
 
+    /// Something went wrong during issuance.
+    Issuance,
+
+    /// Something went wrong during disclosure.
+    Disclosure,
+
     /// The wallet is in an unexpected state.
     WalletState,
 
@@ -215,6 +221,13 @@ impl FlutterApiErrorFields for PidIssuanceError {
             | PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
                 FlutterApiErrorType::Server
             }
+            PidIssuanceError::InvalidIssuerCertificate(_)
+            | PidIssuanceError::MissingIssuerRegistration
+            | PidIssuanceError::AttestationPreview(_)
+            | PidIssuanceError::TypeMetadataVerification(_)
+            | PidIssuanceError::CredentialPayload(_)
+            | PidIssuanceError::Attestation(_)
+            | PidIssuanceError::Certificate(_) => FlutterApiErrorType::Issuance,
             PidIssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
         }
@@ -257,6 +270,14 @@ impl FlutterApiErrorFields for DisclosureError {
                 VpMessageClientErrorType::Cancelled => FlutterApiErrorType::CancelledSession,
                 _ => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
             },
+            DisclosureError::VpDisclosureSession(VpClientError::AuthRequestValidation(_))
+            | DisclosureError::VpDisclosureSession(VpClientError::MissingReaderRegistration)
+            | DisclosureError::VpDisclosureSession(VpClientError::RequestedAttributesValidation(_))
+            | DisclosureError::VpDisclosureSession(VpClientError::RpCertificate(_))
+            | DisclosureError::VpDisclosureSession(VpClientError::MultipleCandidates(_))
+            | DisclosureError::VpDisclosureSession(VpClientError::MissingSessionType)
+            | DisclosureError::VpDisclosureSession(VpClientError::MalformedSessionType(_))
+            | DisclosureError::AttestationAttributes(_) => FlutterApiErrorType::Disclosure,
             DisclosureError::VpDisclosureSession(error) => {
                 detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
             }
