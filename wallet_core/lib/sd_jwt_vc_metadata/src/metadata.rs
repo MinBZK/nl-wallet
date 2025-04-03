@@ -340,7 +340,7 @@ pub struct DisplayMetadata {
     /// A templated summary for the type, intended to be rendered to the end user.
     pub summary: Option<String>,
 
-    /// An object containing rendering information for the type, as described in Section 8.1.
+    /// An object containing rendering information for the type
     pub rendering: Option<RenderingMetadata>,
 }
 
