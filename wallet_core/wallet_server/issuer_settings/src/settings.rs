@@ -143,8 +143,6 @@ pub enum IssuerSettingsError {
     CertificateMissingSan { attestation_type: String, san: HttpsUri },
     #[error("multiple SANs in issuer certificate for {attestation_type}: which one to use was not specified")]
     CertificateSanUnspecified { attestation_type: String },
-    #[error("missing metadata for attestation {attestation_type}")]
-    MissingMetadata { attestation_type: String },
 }
 
 impl IssuerSettings {
@@ -152,13 +150,6 @@ impl IssuerSettings {
         tracing::debug!("verifying issuer settings");
 
         for (typ, attestation) in self.attestation_settings.as_ref() {
-            if !self.metadata.contains_key(typ) {
-                // TODO PVW-3824: recursively check the presence of metadata on which the current metadata depends
-                return Err(IssuerSettingsError::MissingMetadata {
-                    attestation_type: typ.clone(),
-                });
-            }
-
             if let Some(certificate_san) = attestation.certificate_san.as_ref() {
                 // If the certificate SAN to be used has been specified, then it has to be present in the certificate.
                 if !attestation

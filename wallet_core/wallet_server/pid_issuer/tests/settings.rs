@@ -74,16 +74,6 @@ fn test_settings_no_issuer_registration() {
 }
 
 #[test]
-fn test_settings_missing_metadata() {
-    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
-
-    settings.issuer_settings.metadata.clear();
-
-    let error = settings.validate().expect_err("should fail");
-    assert_matches!(error, IssuerSettingsError::MissingMetadata { .. });
-}
-
-#[test]
 fn test_settings_wrong_san_field() {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
 
