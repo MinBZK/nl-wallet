@@ -98,19 +98,19 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
 }
 
 fn current_env() -> String {
-    let env = env::var("CONFIG_ENV");
+    let config_env = env::var("CONFIG_ENV");
     let profile = env::var("PROFILE").unwrap();
     if profile == "release" {
-        env.expect("CONFIG_ENV environment variable should be set for releases")
+        config_env.expect("PROFILE=release, so CONFIG_ENV should be set")
     } else {
-        env.unwrap_or(String::from("dev"))
+        config_env.unwrap_or(String::from("dev"))
     }
 }
 
 fn verify_environment(config_env: &str, file: &str) {
     if config_env != current_env() {
         panic!(
-            "Build environment '{}' doesn't match config enviroment '{}' for {}",
+            "Build environment '{}' doesn't match config environment '{}' for {}",
             current_env(),
             config_env,
             file,

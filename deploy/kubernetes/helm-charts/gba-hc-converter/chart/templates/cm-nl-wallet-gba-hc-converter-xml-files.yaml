@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nl-wallet-gba-hc-converter-xml-files
+  name: {{ include "common.names.fullname" . }}-xml-files
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 data:

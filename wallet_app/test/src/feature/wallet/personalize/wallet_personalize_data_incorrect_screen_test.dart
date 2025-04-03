@@ -2,35 +2,27 @@ import 'dart:ui';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_data_incorrect_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
     testGoldens('WalletPersonalizeDataIncorrectScreen Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: WalletPersonalizeDataIncorrectScreen(onDataRejected: () => Fimber.d('Data rejected')),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        WalletPersonalizeDataIncorrectScreen(onDataRejected: () => Fimber.d('Data rejected')),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize_data_incorrect/light');
+      await screenMatchesGolden('wallet_personalize_data_incorrect/light');
     });
 
     testGoldens('WalletPersonalizeDataIncorrectScreen Dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: WalletPersonalizeDataIncorrectScreen(onDataRejected: () => Fimber.d('Data rejected')),
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        WalletPersonalizeDataIncorrectScreen(onDataRejected: () => Fimber.d('Data rejected')),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'wallet_personalize_data_incorrect/dark');
+      await screenMatchesGolden('wallet_personalize_data_incorrect/dark');
     });
   });
 

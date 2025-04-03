@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart';
@@ -21,10 +20,11 @@ import 'package:wallet_core/core.dart' as core;
 
 import 'src/mocks/wallet_mock_data.dart';
 import 'src/mocks/wallet_mocks.dart';
-import 'src/util/golden_diff_comparator.dart';
+import 'src/test_util/font_utils.dart';
+import 'src/test_util/golden_diff_comparator.dart';
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
-  await loadAppFonts();
+  await FontUtils.loadAppFonts();
   _provideDefaultCheckHasInternetMock();
   _setupMockitoDummies();
   _setupGoldenFileComparator();

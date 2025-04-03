@@ -28,6 +28,11 @@ android {
                 doNotStrip "**/*.so"
             }
         }
+        profile {
+            minifyEnabled = false
+            shrinkResources = false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
         release {
             minifyEnabled = false
             shrinkResources = false
@@ -101,53 +106,64 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
         Release: [true, ['--locked', '--release']]
 ].each {
     def taskPostfix = it.key
-    def (doStrip, profileMode) = it.value
-    tasks.whenTaskAdded { task ->
-        if (task.name == "pre${taskPostfix}Build") {
-            task.dependsOn "cargoBuildNativeBindings$taskPostfix"
-        } else if (task.name == "connected${taskPostfix}AndroidTest") {
-            task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
-        }
-    }
-    tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
-        workingDir moduleWorkingDir
-        fileTree("$workingDir").matching {
-            include "**/*.udl"
-        }.each {
-            // Use file name as module name
-            String moduleName = it.name.take(it.name.lastIndexOf('.'))
+    def (doStrip, buildArgs) = it.value
 
-            // Generate Kotlin <> Rust bindings
-            executable = 'bash'
-            args = ['generate_native_bindings.sh',
-                    "$moduleName",
-                    'kotlin'
+    // This checks if a taskPostfix (Debug, Profile, Release) matches how gradle
+    // was called. In effect, this makes sure that when for example the task
+    // assembleDebug was invoked from the command-line, only tasks matching
+    // Debug are registered (created) and executed, and not all of them.
+    boolean matchedStartParameters = project.gradle.startParameter.taskNames.any { it.contains(taskPostfix) }
+
+    if (matchedStartParameters) {
+        tasks.whenTaskAdded { task ->
+            if (task.name == "pre${taskPostfix}Build") {
+                task.dependsOn "cargoBuildNativeBindings$taskPostfix"
+            } else if (task.name == "connected${taskPostfix}AndroidTest") {
+                task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
+            }
+        }
+
+        tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
+            workingDir moduleWorkingDir
+            fileTree("$workingDir").matching {
+                include "**/*.udl"
+            }.each {
+                // Use file name as module name
+                String moduleName = it.name.take(it.name.lastIndexOf('.'))
+
+                // Generate Kotlin <> Rust bindings
+                executable = 'bash'
+                args = ['generate_native_bindings.sh',
+                        "$moduleName",
+                        'kotlin'
+                ]
+            }
+        }
+
+        tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
+            workingDir moduleWorkingDir
+            executable = 'cargo'
+            args = ['ndk',
+                    '-t', 'armeabi-v7a',
+                    '-t', 'arm64-v8a',
+                    '-t', 'x86_64',
+                    '-o', jniTargetDir
             ]
-        }
-    }
-    tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-        workingDir moduleWorkingDir
-        executable = 'cargo'
-        args = ['ndk',
-                '-t', 'armeabi-v7a',
-                '-t', 'arm64-v8a',
-                '-t', 'x86_64',
-                '-o', jniTargetDir
-        ]
-        if (!doStrip) {
-            args += '--no-strip'
-        }
-        args += 'build'
-        if (profileMode != null) {
-            args += profileMode
+            if (!doStrip) {
+                args += '--no-strip'
+            }
+            args += 'build'
+            if (buildArgs != null) {
+                args += buildArgs
+            }
         }
     }
 }
 
 clean.doFirst {
-    println "Cleaning $jniTargetDir"
+    logger.quiet("Cleaning $jniTargetDir")
     delete jniTargetDir
 
-    println "Cleaning $bindingsTargetDir"
+    logger.quiet("Cleaning $bindingsTargetDir")
     delete bindingsTargetDir
 }

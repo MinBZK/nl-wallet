@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
@@ -10,8 +9,8 @@ import 'package:wallet/src/feature/about/about_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   late GetVersionStringUseCase getVersionUsecase;
@@ -23,39 +22,39 @@ void main() {
   });
 
   group('goldens', () {
-    DeviceBuilder deviceBuilder(WidgetTester tester) {
-      return DeviceUtils.deviceBuilderWithPrimaryScrollController
-        ..addScenario(
-          widget: const AboutScreen(),
-          name: 'about',
-        );
-    }
-
     testGoldens('about light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(
-          providers: [
-            RepositoryProvider<GetVersionStringUseCase>(create: (c) => getVersionUsecase),
-            RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
-          ],
-        ),
+      await tester.pumpWidgetWithAppWrapper(
+        const AboutScreen(),
+        providers: [
+          RepositoryProvider<GetVersionStringUseCase>(create: (c) => getVersionUsecase),
+          RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+        ],
       );
-      await screenMatchesGolden(tester, 'light');
+      await screenMatchesGolden('light');
+    });
+
+    testGoldens('about light - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const AboutScreen(),
+        providers: [
+          RepositoryProvider<GetVersionStringUseCase>(create: (c) => getVersionUsecase),
+          RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+        ],
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('light.landscape');
     });
 
     testGoldens('about dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(
-          brightness: Brightness.dark,
-          providers: [
-            RepositoryProvider<GetVersionStringUseCase>(create: (c) => getVersionUsecase),
-            RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
-          ],
-        ),
+      await tester.pumpWidgetWithAppWrapper(
+        const AboutScreen(),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<GetVersionStringUseCase>(create: (c) => getVersionUsecase),
+          RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
+        ],
       );
-      await screenMatchesGolden(tester, 'dark');
+      await screenMatchesGolden('dark');
     });
   });
 

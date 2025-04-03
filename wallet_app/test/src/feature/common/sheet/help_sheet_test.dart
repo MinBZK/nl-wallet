@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/feature/common/sheet/help_sheet.dart';
@@ -11,6 +10,7 @@ import 'package:wallet/src/feature/common/widget/version/os_version_text.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(350, 444);
@@ -36,7 +36,7 @@ void main() {
             RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
           ],
         );
-        await screenMatchesGolden(tester, 'help_sheet/light');
+        await screenMatchesGolden('help_sheet/light');
       },
     );
     testGoldens(
@@ -53,7 +53,7 @@ void main() {
             RepositoryProvider<ConfigurationRepository>(create: (c) => Mocks.create()),
           ],
         );
-        await screenMatchesGolden(tester, 'help_sheet/error_and_support.dark');
+        await screenMatchesGolden('help_sheet/error_and_support.dark');
       },
     );
   });

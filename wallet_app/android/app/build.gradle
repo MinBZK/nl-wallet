@@ -125,22 +125,17 @@ android {
     buildTypes {
         debug {
             keystoreProperties["storeFile"] ? (signingConfig signingConfigs.common) : (signingConfig signingConfigs.debug)
-            logger.quiet("Build type ${name}, using keystore: ${signingConfig.storeFile}")
-
             packagingOptions {
                 doNotStrip "**/*.so"
             }
         }
         profile {
             keystoreProperties["storeFile"] ? (signingConfig signingConfigs.common) : (signingConfig signingConfigs.debug)
-            logger.quiet("Build type ${name}, using keystore: ${signingConfig.storeFile}")
         }
         release {
             signingConfig signingConfigs.common
-            logger.quiet("Build type ${name}, using keystore: ${signingConfig.storeFile}")
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-
             ndk {
                 abiFilters "arm64-v8a", "armeabi-v7a", "x86_64"
             }
@@ -169,50 +164,60 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
 ].each {
     def taskPostfix = it.key
     def (doStrip, profileMode) = it.value
-    tasks.whenTaskAdded { task ->
-        if (task.name == "signReleaseBundle") {
-            task.dependsOn "checkFor${taskPostfix}Keys"
-        }
-        if (task.name == "pre${taskPostfix}Build") {
-            task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
-        }
-    }
-    tasks.register("checkFor${taskPostfix}Keys")
-    tasks.named("checkFor${taskPostfix}Keys") {
-        doFirst() {
-            if (taskPostfix == "Release" && !keystorePropertiesFile.exists()) {
-                throw new GradleException("Attempting a ${taskPostfix} build and ${keystorePropertiesFile} does not exist, Failing build..")
+
+    // This checks if a taskPostfix (Debug, Profile, Release) matches how gradle
+    // was called. In effect, this makes sure that when for example the task
+    // assembleDebug was invoked from the command-line, only tasks matching
+    // Debug are registered (created) and executed, and not all of them.
+    boolean matchedStartParameters = project.gradle.startParameter.taskNames.any { it.contains(taskPostfix) }
+
+    if (matchedStartParameters) {
+        tasks.whenTaskAdded { task ->
+            if (task.name == "signReleaseBundle") {
+                task.dependsOn "checkFor${taskPostfix}Keys"
+            }
+            if (task.name == "pre${taskPostfix}Build") {
+                task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
             }
         }
-    }
-    tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-        workingDir "../../../wallet_core"
-
-        // Build the Rust code (wallet_core)
-        executable = 'cargo'
-        args = ['ndk',
-                '-t', 'armeabi-v7a',
-                '-t', 'arm64-v8a',
-                '-t', 'x86_64',
-                '-o', jniTargetDir
-        ]
-        if (!doStrip) {
-            args += '--no-strip'
+        tasks.register("checkFor${taskPostfix}Keys")
+        tasks.named("checkFor${taskPostfix}Keys") {
+            doFirst() {
+                logger.quiet("Using keystore: $keystorePropertiesFile")
+                if (taskPostfix == "Release" && !keystorePropertiesFile.exists()) {
+                    throw new GradleException("Attempted a ${taskPostfix} build and $keystorePropertiesFile does not exist, Failing build..")
+                }
+            }
         }
-        args += [
+        tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
+            workingDir "../../../wallet_core"
+
+            // Build the Rust code (wallet_core)
+            executable = 'cargo'
+            args = ['ndk',
+                    '-t', 'armeabi-v7a',
+                    '-t', 'arm64-v8a',
+                    '-t', 'x86_64',
+                    '-o', jniTargetDir
+            ]
+            if (!doStrip) {
+                args += '--no-strip'
+            }
+            args += [
                 'build',
                 '-p', 'flutter_api'
-        ]
-        if (profileMode != null) {
-            args += profileMode
-        }
-        if (dartEnvironmentVariables['ALLOW_INSECURE_URL'] == 'true') {
-            args += ['--features', 'wallet/allow_insecure_url']
+            ]
+            if (profileMode != null) {
+                args += profileMode
+            }
+            if (dartEnvironmentVariables['ALLOW_INSECURE_URL'] == 'true') {
+                args += ['--features', 'wallet/allow_insecure_url']
+            }
         }
     }
 }
 
 clean.doFirst {
-    println "Cleaning $jniTargetDir"
+    logger.quiet("Cleaning $jniTargetDir")
     delete jniTargetDir
 }

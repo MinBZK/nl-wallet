@@ -7,7 +7,6 @@ use issuer_settings::settings::AttestationTypeConfigSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use pid_issuer::settings::PidIssuerSettings;
-use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::ServerSettings;

@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDataScreen
@@ -25,7 +26,8 @@ class CardDetailTests : TestBase() {
 
     private lateinit var cardDetailScreen: CardDetailScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         CardNavigator().toScreen(CardNavigatorScreen.CardDetail)
 
         cardDetailScreen = CardDetailScreen()
@@ -33,8 +35,8 @@ class CardDetailTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The Card detail page shows the actual card data as stored in the app. 2 The Card detail page shows the Card face (exactly the same as on the dashboard, minus the 'show details' button). 3 The Card detail page shows: issuer name, empty history state.  [${JIRA_ID}]")
-    fun verifyCardDetailScreen() {
-        setUp()
+    fun verifyCardDetailScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         assertAll(
             { assertTrue(cardDetailScreen.visible(), "card detail screen is not visible") },
             { assertTrue(cardDetailScreen.cardFaceElements(), "card face for detail screen is not visible and/or correct") },
@@ -44,8 +46,8 @@ class CardDetailTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 The Card detail page offers a button to reveal the card attributes. [${JIRA_ID}]")
-    fun verifyCardDataButton() {
-        setUp()
+    fun verifyCardDataButton(testInfo: TestInfo) {
+        setUp(testInfo)
         cardDetailScreen.clickCardDataButton()
 
         val cardDataScreen = CardDataScreen()
@@ -54,8 +56,8 @@ class CardDetailTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5 The Card detail page offers a button to display card history. [${JIRA_ID}]")
-    fun verifyCardHistoryButton() {
-        setUp()
+    fun verifyCardHistoryButton(testInfo: TestInfo) {
+        setUp(testInfo)
         cardDetailScreen.clickCardHistoryButton()
 
         val cardHistoryScreen = CardHistoryScreen()
@@ -64,8 +66,8 @@ class CardDetailTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.6 The Card detail page offers a button to go back to the card overview. [${JIRA_ID}]")
-    fun verifyBackButton() {
-        setUp()
+    fun verifyBackButton(testInfo: TestInfo) {
+        setUp(testInfo)
         cardDetailScreen.clickBottomBackButton()
 
         val dashboardScreen = DashboardScreen()

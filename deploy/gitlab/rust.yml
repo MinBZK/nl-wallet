@@ -70,13 +70,7 @@ test-rust-gba-pid:
   extends: [.env-ont-k8s, .test-rust]
   rules: !reference [.default-branch, rules]
   needs:
-    - job: deploy-gba-hc-converter-ont
-      artifacts: false
-    - job: deploy-mock-relying-party-ont
-      artifacts: false
-    - job: deploy-wallet-provider-ont
-      artifacts: false
-    - job: deploy-pid-issuer-ont
+    - job: deploy-apps-ont
       artifacts: false
     - job: wallet-config-ont
       artifacts: true
@@ -275,3 +269,24 @@ build-gba-fetch-frontend-binary:
     name: gba_fetch_frontend
     paths:
       - wallet_core/target/x86_64-unknown-linux-musl/release/gba_fetch_frontend
+
+build-performance-test:
+  extends: .build-binary
+  rules: !reference [.default-branch, rules]
+  needs:
+    - !reference [.build-binary, needs]
+    - job: wallet-config-ont
+      artifacts: true
+  script:
+    - cargo build --locked --release --package "tests_integration" --bin performance_test --features performance_test,allow_insecure_url
+  variables:
+    APPLE_ATTESTATION_ENVIRONMENT: "production"
+    CONFIG_ENV: ont
+    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
+    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
+  artifacts:
+    name: performance-test
+    paths:
+      - wallet_core/target/release/performance_test

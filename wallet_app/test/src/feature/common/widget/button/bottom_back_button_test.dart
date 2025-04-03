@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/common/widget/button/bottom_back_button.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
-import '../../../../util/test_utils.dart';
+import '../../../../test_util/test_utils.dart';
 
 void main() {
   group('widgets', () {

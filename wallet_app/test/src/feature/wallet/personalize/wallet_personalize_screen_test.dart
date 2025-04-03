@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
@@ -23,8 +22,8 @@ import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 import '../../pin/pin_page_test.dart';
 
 class MockWalletPersonalizeBloc extends MockBloc<WalletPersonalizeEvent, WalletPersonalizeState>
@@ -111,48 +110,33 @@ void main() {
 
   group('goldens', () {
     testGoldens('WalletPersonalizeInitial Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              const WalletPersonalizeInitial(),
-            ),
-            name: 'initial',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeInitial(),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/initial.light');
+      await screenMatchesGolden('wallet_personalize/initial.light');
     });
 
     testGoldens('WalletPersonalizeLoadingIssuanceUrl Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              const WalletPersonalizeLoadingIssuanceUrl(),
-            ),
-            name: 'loading_issuance_url',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeLoadingIssuanceUrl(),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/loading_issuance_url.light');
+      await screenMatchesGolden('wallet_personalize/loading_issuance_url.light');
     });
 
     testGoldens('WalletPersonalizeLoadInProgress Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 1, totalSteps: 2)),
-            ),
-            name: 'load_in_progress',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeLoadInProgress(FlowProgress(currentStep: 1, totalSteps: 2)),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/load_in_progress.light');
+      await screenMatchesGolden('wallet_personalize/load_in_progress.light');
     });
 
     testGoldens('WalletPersonalizeAddingCards Light', (tester) async {
@@ -162,22 +146,17 @@ void main() {
           const WalletPersonalizeAddingCards(FlowProgress(currentStep: 8, totalSteps: 9)),
         ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/adding_cards.light');
+      await screenMatchesGolden('wallet_personalize/adding_cards.light');
     });
 
     testGoldens('WalletPersonalizeAuthenticating Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              const WalletPersonalizeAuthenticating(),
-            ),
-            name: 'authenticating',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeAuthenticating(),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/authenticating.light');
+      await screenMatchesGolden('wallet_personalize/authenticating.light');
     });
 
     testGoldens('WalletPersonalizeConnectDigid Light', (tester) async {
@@ -199,7 +178,7 @@ void main() {
           const WalletPersonalizeConnectDigid(mockUrl),
         ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/connect_digid.light');
+      await screenMatchesGolden('wallet_personalize/connect_digid.light');
 
       // Verify that the mockUrl was passed to the url_launcher plugin
       expect(mockUrlIsOpened, isTrue);
@@ -218,121 +197,87 @@ void main() {
         final cancelButtonFinder = find.text(l10n.walletPersonalizeScreenDigidLoadingStopCta);
         await tester.tap(cancelButtonFinder);
         await tester.pumpAndSettle();
-        await screenMatchesGolden(tester, 'wallet_personalize/authenticating.cancel_dialog.light');
+        await screenMatchesGolden('wallet_personalize/authenticating.cancel_dialog.light');
       },
     );
 
     testGoldens('WalletPersonalizeConfirmPin Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: RepositoryProvider<AcceptOfferedPidUseCase>.value(
-              value: Mocks.create<AcceptOfferedPidUseCase>(),
-              child: const WalletPersonalizeScreen()
-                  .withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-                    MockWalletPersonalizeBloc(),
-                    const WalletPersonalizeConfirmPin([]),
-                  )
-                  .withState<PinBloc, PinState>(
-                    MockPinBloc(),
-                    const PinEntryInProgress(0),
-                  ),
-            ),
-            name: 'confirm_pin',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        RepositoryProvider<AcceptOfferedPidUseCase>.value(
+          value: Mocks.create<AcceptOfferedPidUseCase>(),
+          child: const WalletPersonalizeScreen()
+              .withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+                MockWalletPersonalizeBloc(),
+                const WalletPersonalizeConfirmPin([]),
+              )
+              .withState<PinBloc, PinState>(
+                MockPinBloc(),
+                const PinEntryInProgress(0),
+              ),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/confirm_pin.light');
+      await screenMatchesGolden('wallet_personalize/confirm_pin.light');
     });
 
     testGoldens('WalletPersonalizeCheckData Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              WalletPersonalizeCheckData(availableAttributes: sampleMaleAttributes),
-            ),
-            name: 'check_data',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeCheckData(availableAttributes: sampleMaleAttributes),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/check_data.light');
+      await screenMatchesGolden('wallet_personalize/check_data.light');
     });
 
     testGoldens('WalletPersonalizeSuccess Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
-            ),
-            name: 'success',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/success.light');
+      await screenMatchesGolden('wallet_personalize/success.light');
     });
 
     testGoldens('WalletPersonalizeSuccess Dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
-            ),
-            name: 'success',
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeSuccess([WalletMockData.card, WalletMockData.altCard]),
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/success.dark');
+      await screenMatchesGolden('wallet_personalize/success.dark');
     });
 
     testGoldens('WalletPersonalizeFailure Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              WalletPersonalizeFailure(),
-            ),
-            name: 'failure',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeFailure(),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/failure.light');
+      await screenMatchesGolden('wallet_personalize/failure.light');
     });
 
     testGoldens('WalletPersonalizeDigidFailure Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              const WalletPersonalizeDigidFailure(error: GenericError('', sourceError: 'test')),
-            ),
-            name: 'digid_failure',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeDigidFailure(error: GenericError('', sourceError: 'test')),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/digid_failure.light');
+      await screenMatchesGolden('wallet_personalize/digid_failure.light');
     });
 
     testGoldens('WalletPersonalizeDigidCancelled Light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
-              MockWalletPersonalizeBloc(),
-              WalletPersonalizeDigidCancelled(),
-            ),
-            name: 'digid_cancelled',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeDigidCancelled(),
+        ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/digid_cancelled.light');
+      await screenMatchesGolden('wallet_personalize/digid_cancelled.light');
     });
 
     testGoldens('WalletPersonalizeDigidFailure Light Portrait', (tester) async {
@@ -344,7 +289,7 @@ void main() {
           const WalletPersonalizeDigidFailure(error: GenericError('', sourceError: 'test')),
         ),
       );
-      await screenMatchesGolden(tester, 'wallet_personalize/digid_failure.portrait.light');
+      await screenMatchesGolden('wallet_personalize/digid_failure.portrait.light');
     });
   });
 

@@ -90,9 +90,11 @@ gbaFetch:
 ## @section GBA CLI Tool parameters
 ## Parameters for the GBA CLI Tool configuration
 ## @param gbaCliTool.enabled Enable or disable the GBA CLI Tool
+## @param gbaCliTool.useRijksweb Enable or disable the use of Rijksweb proxy
 ##
 gbaCliTool:
   enabled: false
+  useRijksweb: false
 
 ## @section GBA Encrypt Test Data parameters
 ## Parameters for the GBA Encrypt Test Data configuration

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:wallet/src/feature/common/widget/version/app_version_text.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
+import '../../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(151, 20);
@@ -29,7 +29,7 @@ void main() {
           const AppVersionText(),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'version_text/light');
+        await screenMatchesGolden('version_text/light');
       },
     );
     testGoldens(
@@ -40,7 +40,7 @@ void main() {
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'version_text/dark');
+        await screenMatchesGolden('version_text/dark');
       },
     );
   });

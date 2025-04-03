@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
@@ -30,7 +31,8 @@ class HistoryOverviewTests : TestBase() {
         const val JIRA_ID = "PVW-1038"
     }
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
 
@@ -53,8 +55,8 @@ class HistoryOverviewTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.A log entries are added for the PID issuance and disclosure events. [${JIRA_ID}]")
-    fun verifyIssuanceHistoryEntries() {
-        setUp()
+    fun verifyIssuanceHistoryEntries(testInfo: TestInfo) {
+        setUp(testInfo)
 
         val historyOverviewScreen = HistoryOverviewScreen()
         assertAll(

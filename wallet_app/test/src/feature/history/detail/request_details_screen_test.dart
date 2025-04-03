@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/history/detail/request_details_screen.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
@@ -11,7 +10,7 @@ import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
-import '../../../util/device_utils.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   group('widgets', () {
@@ -42,29 +41,20 @@ void main() {
 
   group('goldens', () {
     testGoldens('RequestDetails', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: RequestDetailsScreen(event: WalletMockData.disclosureEvent)
-                .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
-            name: 'disclosure',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        RequestDetailsScreen(event: WalletMockData.disclosureEvent)
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
       );
-      await screenMatchesGolden(tester, 'request_details.light');
+      await screenMatchesGolden('request_details.light');
     });
 
     testGoldens('RequestDetails', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: RequestDetailsScreen(event: WalletMockData.disclosureEvent)
-                .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
-            name: 'disclosure',
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        RequestDetailsScreen(event: WalletMockData.disclosureEvent)
+            .withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'request_details.dark');
+      await screenMatchesGolden('request_details.dark');
     });
   });
 }

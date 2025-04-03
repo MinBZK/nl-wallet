@@ -1,14 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/update/observe_version_state_usecase.dart';
 import 'package:wallet/src/feature/update/widget/update_banner.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.mocks.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 const updateBannerSize = Size(380, 80);
 
@@ -44,21 +44,21 @@ void main() {
       (tester) async {
         // Should be empty, so drawing it on 1x1 should not throw errors.
         await pumpUpdateBanner(tester, state: VersionStateOk(), surfaceSize: const Size(1, 1));
-        await screenMatchesGolden(tester, 'ok.light');
+        await screenMatchesGolden('ok.light');
       },
     );
     testGoldens(
       'VersionStateNotify',
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateNotify());
-        await screenMatchesGolden(tester, 'notify.light');
+        await screenMatchesGolden('notify.light');
       },
     );
     testGoldens(
       'VersionStateRecommend',
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateRecommend());
-        await screenMatchesGolden(tester, 'recommend.light');
+        await screenMatchesGolden('recommend.light');
       },
     );
 
@@ -66,7 +66,7 @@ void main() {
       'VersionStateWarn 2 weeks',
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateWarn(timeUntilBlocked: const Duration(days: 14)));
-        await screenMatchesGolden(tester, 'warn.2_weeks.light');
+        await screenMatchesGolden('warn.2_weeks.light');
       },
     );
 
@@ -78,7 +78,7 @@ void main() {
           state: VersionStateWarn(timeUntilBlocked: const Duration(days: 14)),
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'warn.2_weeks.dark');
+        await screenMatchesGolden('warn.2_weeks.dark');
       },
     );
 
@@ -86,7 +86,7 @@ void main() {
       'VersionStateWarn 3 days',
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateWarn(timeUntilBlocked: const Duration(days: 3)));
-        await screenMatchesGolden(tester, 'warn.3_days.light');
+        await screenMatchesGolden('warn.3_days.light');
       },
     );
 
@@ -94,7 +94,7 @@ void main() {
       'VersionStateWarn 30 mins',
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateWarn(timeUntilBlocked: const Duration(minutes: 30)));
-        await screenMatchesGolden(tester, 'warn.30_mins.light');
+        await screenMatchesGolden('warn.30_mins.light');
       },
     );
 
@@ -103,7 +103,7 @@ void main() {
       (tester) async {
         // Should be empty, so drawing it on 1x1 should not throw errors.
         await pumpUpdateBanner(tester, state: VersionStateBlock(), surfaceSize: const Size(1, 1));
-        await screenMatchesGolden(tester, 'blocked.light');
+        await screenMatchesGolden('blocked.light');
       },
     );
 
@@ -112,7 +112,8 @@ void main() {
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateNotify());
         await tester.sendKeyEvent(LogicalKeyboardKey.tab); // Trigger focused state
-        await screenMatchesGolden(tester, 'notify.focused.light');
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('notify.focused.light');
       },
     );
 
@@ -120,7 +121,7 @@ void main() {
       'dark focused',
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateNotify(), brightness: Brightness.dark);
-        await screenMatchesGolden(tester, 'notify.dark');
+        await screenMatchesGolden('notify.dark');
       },
     );
 
@@ -129,7 +130,8 @@ void main() {
       (tester) async {
         await pumpUpdateBanner(tester, state: VersionStateNotify(), brightness: Brightness.dark);
         await tester.sendKeyEvent(LogicalKeyboardKey.tab); // Trigger focused state
-        await screenMatchesGolden(tester, 'notify.focused.dark');
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('notify.focused.dark');
       },
     );
 
@@ -143,7 +145,7 @@ void main() {
           brightness: Brightness.dark,
           surfaceSize: const Size(380, 220),
         );
-        await screenMatchesGolden(tester, 'warn.2_hours.scaled.dark');
+        await screenMatchesGolden('warn.2_hours.scaled.dark');
       },
     );
   });

@@ -2,15 +2,24 @@
 
 set -e
 
+export CONFIG_ENV=${CONFIG_ENV:-dev}
+
 SCRIPTS_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+BINARY="$(dirname $SCRIPTS_DIR})/target/release/performance_test"
+
+if [[ ${1:-} == '--skip-build' ]]; then
+    if [[ ! -x $BINARY ]]; then
+        >&2 echo "ERROR: No binary found: $BINARY"
+        exit 1
+    fi
+    shift
+else
+    cargo build --manifest-path "${SCRIPTS_DIR}/Cargo.toml" \
+        --release --bin performance_test \
+        --features performance_test,allow_insecure_url
+fi
+
 NUM="${1:-1}"
-
-export CONFIG_ENV=${CONFIG_ENV:dev}
-
-BINARY=${SCRIPTS_DIR}"/../target/release/performance_test"
-cargo build --manifest-path "${SCRIPTS_DIR}/Cargo.toml" \
-    --release --bin performance_test \
-    --features performance_test,allow_insecure_url
 
 START_DATE=$(date -u +%s)
 

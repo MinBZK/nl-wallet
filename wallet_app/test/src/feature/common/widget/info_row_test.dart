@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/info_row.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(300, 108);
@@ -20,7 +20,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'info_row/light');
+        await screenMatchesGolden('info_row/light');
       },
     );
     testGoldens(
@@ -35,7 +35,7 @@ void main() {
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'info_row/dark');
+        await screenMatchesGolden('info_row/dark');
       },
     );
     testGoldens(
@@ -49,7 +49,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'info_row/light.leading');
+        await screenMatchesGolden('info_row/light.leading');
       },
     );
 
@@ -65,7 +65,7 @@ void main() {
           ),
           surfaceSize: const Size(104, 80),
         );
-        await screenMatchesGolden(tester, 'info_row/light.nopadding');
+        await screenMatchesGolden('info_row/light.nopadding');
       },
     );
   });

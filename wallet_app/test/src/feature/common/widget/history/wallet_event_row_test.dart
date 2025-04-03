@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/feature/common/widget/history/wallet_event_row.dart';
@@ -8,6 +7,7 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
+import '../../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(350, 118);
@@ -23,7 +23,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.operation.issued');
+        await screenMatchesGolden('wallet_event_row/light.operation.issued');
       },
     );
     testGoldens(
@@ -37,7 +37,7 @@ void main() {
           brightness: Brightness.dark,
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/dark.operation.issued');
+        await screenMatchesGolden('wallet_event_row/dark.operation.issued');
       },
     );
 
@@ -51,7 +51,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.success');
+        await screenMatchesGolden('wallet_event_row/light.interaction.success');
       },
     );
 
@@ -65,7 +65,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.failed');
+        await screenMatchesGolden('wallet_event_row/light.interaction.failed');
       },
     );
 
@@ -79,7 +79,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.login.failed');
+        await screenMatchesGolden('wallet_event_row/light.login.failed');
       },
     );
 
@@ -93,7 +93,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.failed.no_data_shared');
+        await screenMatchesGolden('wallet_event_row/light.interaction.failed.no_data_shared');
       },
     );
 
@@ -107,7 +107,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.login.failed.no_data_shared');
+        await screenMatchesGolden('wallet_event_row/light.login.failed.no_data_shared');
       },
     );
 
@@ -129,7 +129,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.interaction.rejected');
+        await screenMatchesGolden('wallet_event_row/light.interaction.rejected');
       },
     );
 
@@ -143,7 +143,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.signing.success');
+        await screenMatchesGolden('wallet_event_row/light.signing.success');
       },
     );
     testGoldens(
@@ -162,7 +162,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'wallet_event_row/light.signing.rejected');
+        await screenMatchesGolden('wallet_event_row/light.signing.rejected');
       },
     );
   });

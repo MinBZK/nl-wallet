@@ -1,42 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/issuance/page/issuance_confirm_pin_page.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
     testGoldens('Confirm page light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: IssuanceConfirmPinPage(
-              bloc: PinBloc(Mocks.create()),
-              onPinValidated: (_) {},
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        IssuanceConfirmPinPage(
+          bloc: PinBloc(Mocks.create()),
+          onPinValidated: (_) {},
+        ),
       );
-      await screenMatchesGolden(tester, 'issuance_confirm_pin/light');
+      await screenMatchesGolden('issuance_confirm_pin/light');
     });
 
     testGoldens('Confirm page dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: IssuanceConfirmPinPage(
-              bloc: PinBloc(Mocks.create()),
-              onPinValidated: (_) {},
-            ),
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        IssuanceConfirmPinPage(
+          bloc: PinBloc(Mocks.create()),
+          onPinValidated: (_) {},
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'issuance_confirm_pin/dark');
+      await screenMatchesGolden('issuance_confirm_pin/dark');
     });
   });
 

@@ -1,10 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/button/scan_qr_button.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
-import '../../../../util/test_utils.dart';
+import '../../../../test_util/golden_utils.dart';
+import '../../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -15,7 +15,7 @@ void main() {
           ScanQrButton(onPressed: () {}),
           surfaceSize: scanQrButtonSize,
         );
-        await screenMatchesGolden(tester, 'scan_qr_button/light');
+        await screenMatchesGolden('scan_qr_button/light');
       },
     );
 
@@ -27,7 +27,8 @@ void main() {
           surfaceSize: scanQrButtonSize,
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab); // Trigger focused state
-        await screenMatchesGolden(tester, 'scan_qr_button/light.focused');
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('scan_qr_button/light.focused');
       },
     );
 
@@ -39,7 +40,7 @@ void main() {
           surfaceSize: scanQrButtonSize,
           textScaleSize: 2,
         );
-        await screenMatchesGolden(tester, 'scan_qr_button/light.scaled');
+        await screenMatchesGolden('scan_qr_button/light.scaled');
       },
     );
 
@@ -51,7 +52,7 @@ void main() {
           surfaceSize: const Size(240, 320),
           textScaleSize: 4,
         );
-        await screenMatchesGolden(tester, 'scan_qr_button/light.4x_scaled');
+        await screenMatchesGolden('scan_qr_button/light.4x_scaled');
       },
     );
 
@@ -63,12 +64,12 @@ void main() {
           surfaceSize: scanQrButtonSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'scan_qr_button/dark');
+        await screenMatchesGolden('scan_qr_button/dark');
       },
     );
 
     testGoldens(
-      'dark',
+      'dark - focused',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           ScanQrButton(onPressed: () {}),
@@ -76,7 +77,8 @@ void main() {
           brightness: Brightness.dark,
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab); // Trigger focused state
-        await screenMatchesGolden(tester, 'scan_qr_button/dark.focused');
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('scan_qr_button/dark.focused');
       },
     );
   });

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/stacked_wallet_cards.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(300, 233);
@@ -23,7 +23,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'stacked_wallet_cards/light');
+        await screenMatchesGolden('stacked_wallet_cards/light');
       },
     );
 
@@ -40,7 +40,7 @@ void main() {
           textScaleSize: 3,
           surfaceSize: const Size(300, 567),
         );
-        await screenMatchesGolden(tester, 'stacked_wallet_cards/light.3x_font');
+        await screenMatchesGolden('stacked_wallet_cards/light.3x_font');
       },
     );
   });

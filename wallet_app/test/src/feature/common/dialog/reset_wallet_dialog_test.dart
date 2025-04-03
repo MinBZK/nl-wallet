@@ -7,7 +7,7 @@ import 'package:wallet/src/feature/common/dialog/reset_wallet_dialog.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.mocks.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   testWidgets('ResetWalletDialog shows expected copy', (tester) async {

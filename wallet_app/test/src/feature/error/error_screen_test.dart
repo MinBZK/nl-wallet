@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
 import 'package:wallet/src/feature/common/widget/button/tertiary_button.dart';
 import 'package:wallet/src/feature/error/error_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
+import '../../test_util/golden_utils.dart';
 
 void main() {
-  DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.deviceBuilderWithPrimaryScrollController
-      ..addScenario(
-        widget: ErrorScreen(
+  group('goldens', () {
+    testGoldens('ErrorScreen light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        ErrorScreen(
           title: 'Headline',
           description: 'Description',
           primaryButton: PrimaryButton(
@@ -24,25 +23,27 @@ void main() {
             onPressed: () {},
           ),
         ),
-        name: 'error_screen',
       );
-  }
-
-  group('goldens', () {
-    testGoldens('ErrorScreen light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(),
-      );
-      await screenMatchesGolden(tester, 'light');
+      await screenMatchesGolden('light');
     });
 
     testGoldens('ErrorScreen dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        ErrorScreen(
+          title: 'Headline',
+          description: 'Description',
+          primaryButton: PrimaryButton(
+            text: const Text('Primary'),
+            onPressed: () {},
+          ),
+          secondaryButton: TertiaryButton(
+            text: const Text('Secondary'),
+            onPressed: () {},
+          ),
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'dark');
+      await screenMatchesGolden('dark');
     });
 
     testGoldens('ErrorScreen.showGeneric()', (tester) async {
@@ -60,7 +61,7 @@ void main() {
       await tester.tap(find.text('generic'));
       await tester.pumpAndSettle();
       // Verify it's displayed correctly
-      await screenMatchesGolden(tester, 'generic.light');
+      await screenMatchesGolden('generic.light');
     });
 
     testGoldens('ErrorScreen.showNetwork()', (tester) async {
@@ -78,7 +79,7 @@ void main() {
       await tester.tap(find.text('network'));
       await tester.pumpAndSettle();
       // Verify it's displayed correctly
-      await screenMatchesGolden(tester, 'network.light');
+      await screenMatchesGolden('network.light');
     });
 
     testGoldens('ErrorScreen.showNoInternet()', (tester) async {
@@ -96,7 +97,7 @@ void main() {
       await tester.tap(find.text('no_internet'));
       await tester.pumpAndSettle();
       // Verify it's displayed correctly
-      await screenMatchesGolden(tester, 'no_internet.light');
+      await screenMatchesGolden('no_internet.light');
     });
   });
 
