@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         {{- include "common.labels.customname" (list .Values.frontend.name .) | nindent 8 }}
-        {{ with .Values.frontend.extraLabels }}
+        {{ with .Values.frontend.extraPodLabels }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
     spec:
@@ -104,3 +104,8 @@ spec:
         - name: zoek-xml-volume
           configMap:
             name: {{ include "common.names.fullname" . }}-zoek-xml
+
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{ toYaml . | nindent 8 }}
+      {{- end }}
