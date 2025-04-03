@@ -3,24 +3,24 @@
   "name": "NL Wallet extended PID credential",
   "description": "Working version of the NL Wallet extended PID credential",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-wVuuSExXp2uBk9BWJ7ysb29sn5T0s3q9JufddBVumjE=",
+  "extends#integrity": "sha256-+SCSaJbTVwa0LQIyG8YbaOx3hTYeEDxZlPos+HQZMyI=",
   "display": [
     {
       "lang": "en-US",
       "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet, part 2"
+      "description": "The Personal Data credential for the NL Wallet, part 2",
+      "summary": "Extended example PID credential of {{nickname}}"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2",
+      "summary": "Uitgebreid voorbeeld persoonsgegevensattestatie van {{nickname}}"
     }
   ],
   "claims": [
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "en-US",
@@ -31,11 +31,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "is_eu_member"
-      ],
+      "path": ["place_of_birth", "country", "is_eu_member"],
       "display": [
         {
           "lang": "en-US",
@@ -45,10 +41,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "has_job"
-      ],
+      "path": ["financial", "has_job"],
       "display": [
         {
           "lang": "en-US",
@@ -58,10 +51,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "debt_amount"
-      ],
+      "path": ["financial", "debt_amount"],
       "display": [
         {
           "lang": "en-US",
@@ -71,16 +61,15 @@
       "sd": "always"
     },
     {
-      "path": [
-        "nickname"
-      ],
+      "path": ["nickname"],
       "display": [
         {
           "lang": "en-US",
           "label": "Cool nickname"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "nickname"
     }
   ],
   "schema": {
@@ -151,10 +140,6 @@
         "type": "number"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat"
-    ]
+    "required": ["vct", "iss", "iat"]
   }
 }
