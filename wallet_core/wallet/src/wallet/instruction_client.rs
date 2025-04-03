@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
+use http_utils::http::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 

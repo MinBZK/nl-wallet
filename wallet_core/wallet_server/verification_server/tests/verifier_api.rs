@@ -32,6 +32,9 @@ use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use crypto::utils;
 use hsm::service::Pkcs11Hsm;
+use http_utils::http_error::HttpJsonErrorBody;
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::urls::BaseUrl;
 use mdoc::examples::Example;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_ATTR_VALUE;
@@ -77,9 +80,6 @@ use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
 use wallet_common::generator::mock::MockTimeGenerator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::urls::BaseUrl;
 
 const USECASE_NAME: &str = "usecase";
 

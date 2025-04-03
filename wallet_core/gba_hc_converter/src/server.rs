@@ -10,8 +10,8 @@ use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
+use http_utils::http_error::HttpJsonError;
 use wallet_common::built_info::version_string;
-use wallet_common::http_error::HttpJsonError;
 
 use crate::error::Error;
 use crate::error::ErrorType;

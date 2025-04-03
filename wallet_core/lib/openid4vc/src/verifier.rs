@@ -32,12 +32,12 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
+use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use jwt::Jwt;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use wallet_common::generator::Generator;
-use wallet_common::urls::BaseUrl;
 
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;

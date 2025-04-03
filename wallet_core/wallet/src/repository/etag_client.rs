@@ -10,7 +10,7 @@ use http::StatusCode;
 use parking_lot::Mutex;
 use tokio::fs;
 
-use wallet_common::reqwest::RequestBuilder;
+use http_utils::reqwest::RequestBuilder;
 
 use super::FileStorageError;
 use super::Filename;
@@ -135,7 +135,7 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use wallet_common::http::test::HttpConfig;
+    use http_utils::http::test::HttpConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;

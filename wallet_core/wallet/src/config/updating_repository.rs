@@ -8,7 +8,7 @@ use tokio::time::MissedTickBehavior;
 use tracing::error;
 use tracing::info;
 
-use wallet_common::http::TlsPinningConfig;
+use http_utils::http::TlsPinningConfig;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 

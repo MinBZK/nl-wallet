@@ -2,6 +2,8 @@ use serial_test::serial;
 
 use crypto::mock_remote::MockRemoteKeyFactory;
 use hsm::service::Pkcs11Hsm;
+use http_utils::urls;
+use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
@@ -14,8 +16,6 @@ use tests_integration::fake_digid::fake_digid_auth;
 use wallet::wallet_deps::default_wallet_config;
 use wallet::wallet_deps::DigidSession;
 use wallet::wallet_deps::HttpDigidSession;
-use wallet_common::urls;
-use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 
 /// Test the full PID issuance flow, i.e. including OIDC with nl-rdo-max and retrieving the PID from BRP
 /// (Haal-Centraal). This test depends on part of the internal API of the DigiD bridge, so it may break when nl-rdo-max

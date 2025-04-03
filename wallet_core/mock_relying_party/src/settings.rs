@@ -9,9 +9,9 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
+use http_utils::urls::BaseUrl;
+use http_utils::urls::CorsOrigin;
 use mdoc::verifier::ItemsRequests;
-use wallet_common::urls::BaseUrl;
-use wallet_common::urls::CorsOrigin;
 use wallet_common::utils;
 
 #[derive(Deserialize, Clone)]

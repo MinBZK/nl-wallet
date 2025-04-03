@@ -40,10 +40,10 @@ use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
+use http_utils::urls::BaseUrl;
+use http_utils::urls::CorsOrigin;
 use mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
-use wallet_common::urls::BaseUrl;
-use wallet_common::urls::CorsOrigin;
 use wallet_common::utils;
 
 use crate::askama_axum;

@@ -10,8 +10,8 @@ use reqwest::Certificate;
 use reqwest::Identity;
 use tracing::info;
 
-use wallet_common::reqwest::tls_pinned_client_builder;
-use wallet_common::urls::BaseUrl;
+use http_utils::reqwest::tls_pinned_client_builder;
+use http_utils::urls::BaseUrl;
 use wallet_common::utils;
 
 use crate::gba::encryption::decrypt_bytes_from_dir;

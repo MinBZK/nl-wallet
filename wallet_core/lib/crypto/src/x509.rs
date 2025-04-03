@@ -34,9 +34,9 @@ use yoke::Yoke;
 use yoke::Yokeable;
 
 use error_category::ErrorCategory;
+use http_utils::urls::HttpsUri;
+use http_utils::urls::HttpsUriParseError;
 use wallet_common::generator::Generator;
-use wallet_common::urls::HttpsUri;
-use wallet_common::urls::HttpsUriParseError;
 use wallet_common::vec_at_least::VecAtLeastNError;
 use wallet_common::vec_at_least::VecNonEmpty;
 

@@ -13,8 +13,8 @@ use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
-use wallet_common::reqwest::ReqwestTrustAnchor;
-use wallet_common::urls::BaseUrl;
+use http_utils::reqwest::ReqwestTrustAnchor;
+use http_utils::urls::BaseUrl;
 use wallet_common::utils;
 
 use crate::gba;

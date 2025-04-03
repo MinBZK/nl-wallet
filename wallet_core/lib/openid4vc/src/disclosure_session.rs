@@ -19,6 +19,7 @@ use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
+use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::disclosure::DeviceResponse;
 use mdoc::engagement::SessionTranscript;
@@ -31,7 +32,6 @@ use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::utils::reader_auth::ValidationError;
 use mdoc::utils::x509::CertificateType;
 use poa::factory::PoaFactory;
-use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::openid4vp::AuthRequestValidationError;

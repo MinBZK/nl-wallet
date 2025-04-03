@@ -62,6 +62,7 @@ rstest = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"
+http_utils.path = "../http_utils"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wallet_common.path = "../wallet_common"
 

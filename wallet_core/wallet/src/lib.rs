@@ -62,9 +62,9 @@ pub mod sd_jwt_vc_metadata {
 }
 
 pub mod wallet_common {
+    pub use http_utils::urls::BaseUrl;
     pub use wallet_common::built_info::version_string;
     pub use wallet_common::update_policy::VersionState;
-    pub use wallet_common::urls::BaseUrl;
 }
 
 #[cfg(feature = "wallet_deps")]

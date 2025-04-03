@@ -6,7 +6,7 @@ use tracing_subscriber::EnvFilter;
 
 use android_attest::android_crl::GoogleRevocationListClient;
 use hsm::service::Pkcs11Hsm;
-use wallet_common::reqwest::default_reqwest_client_builder;
+use http_utils::reqwest::default_reqwest_client_builder;
 use wallet_provider::server;
 use wallet_provider::settings::Settings;
 

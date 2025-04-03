@@ -20,7 +20,7 @@ use url::Url;
 
 use crypto::utils;
 use error_category::ErrorCategory;
-use wallet_common::reqwest::JsonReqwestBuilder;
+use http_utils::reqwest::JsonReqwestBuilder;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
@@ -317,8 +317,8 @@ mod tests {
     use rstest::rstest;
     use url::Url;
 
-    use wallet_common::http::test::HttpConfig;
-    use wallet_common::urls::BaseUrl;
+    use http_utils::http::test::HttpConfig;
+    use http_utils::urls::BaseUrl;
 
     use crate::oidc::tests::start_discovery_server;
     use crate::pkce::MockPkcePair;

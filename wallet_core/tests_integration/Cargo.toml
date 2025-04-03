@@ -67,6 +67,7 @@ test_common = [
     "dep:configuration_server",
     "dep:ctor",
     "dep:gba_hc_converter",
+    "dep:http_utils",
     "dep:indexmap",
     "dep:jsonwebtoken",
     "dep:mdoc",
@@ -94,7 +95,7 @@ test_common = [
     "dep:wallet_provider_service",
 ]
 # Include the fake_digid submodule
-fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common", "dep:wallet_configuration"]
+fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_configuration"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "pid_issuer?/db_test",
@@ -217,6 +218,7 @@ configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
+http_utils = { path = "../lib/http_utils", optional = true }
 jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }

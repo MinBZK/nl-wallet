@@ -1,4 +1,4 @@
-use wallet_common::urls::BaseUrl;
+use http_utils::urls::BaseUrl;
 use wallet_common::utils;
 
 pub fn read_file(file_name: &str) -> Vec<u8> {

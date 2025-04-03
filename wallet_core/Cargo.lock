@@ -1184,6 +1184,7 @@ dependencies = [
  "config",
  "etag",
  "http",
+ "http_utils",
  "serde",
  "tokio",
  "tracing",
@@ -1353,6 +1354,7 @@ dependencies = [
  "futures",
  "hex",
  "hex-literal",
+ "http_utils",
  "indexmap 2.7.1",
  "p256",
  "parking_lot",
@@ -2261,6 +2263,7 @@ dependencies = [
  "hex",
  "hmac",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "nutype",
  "pem",
@@ -2749,6 +2752,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "http_utils"
+version = "0.3.0-dev"
+dependencies = [
+ "axum",
+ "axum-server",
+ "cfg-if",
+ "derive_more",
+ "http",
+ "mime",
+ "nutype",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "trait-variant",
+ "url",
+]
+
+[[package]]
 name = "httparse"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3112,6 +3139,7 @@ dependencies = [
  "derive_more",
  "futures",
  "hsm",
+ "http_utils",
  "indexmap 2.7.1",
  "mdoc",
  "openid4vc",
@@ -3473,6 +3501,7 @@ dependencies = [
  "futures",
  "hex",
  "hex-literal",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "nutype",
@@ -3585,6 +3614,7 @@ dependencies = [
  "crypto",
  "futures",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "mdoc",
  "nutype",
@@ -3869,6 +3899,7 @@ dependencies = [
  "futures",
  "hex",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
@@ -3915,6 +3946,7 @@ dependencies = [
  "axum-extra",
  "crypto",
  "http",
+ "http_utils",
  "mdoc",
  "openid4vc",
  "ring",
@@ -4172,6 +4204,7 @@ dependencies = [
  "crypto",
  "futures",
  "hsm",
+ "http_utils",
  "indexmap 2.7.1",
  "issuer_settings",
  "jwt",
@@ -5682,6 +5715,7 @@ dependencies = [
  "crypto",
  "hsm",
  "http",
+ "http_utils",
  "mdoc",
  "openid4vc",
  "p256",
@@ -6255,6 +6289,7 @@ dependencies = [
  "dotenvy",
  "gba_hc_converter",
  "hsm",
+ "http_utils",
  "indexmap 2.7.1",
  "insta",
  "jsonwebtoken",
@@ -6965,6 +7000,7 @@ dependencies = [
  "config",
  "etag",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "postcard",
  "rstest",
@@ -7076,6 +7112,7 @@ dependencies = [
  "futures",
  "hsm",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "mdoc",
@@ -7149,6 +7186,7 @@ dependencies = [
  "error_category",
  "futures",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
@@ -7246,19 +7284,12 @@ dependencies = [
 name = "wallet_common"
 version = "0.3.0-dev"
 dependencies = [
- "axum",
- "axum-server",
  "built",
- "cfg-if",
  "chrono",
  "derive_more",
- "http",
  "indexmap 2.7.1",
  "itertools 0.14.0",
- "mime",
- "nutype",
  "parking_lot",
- "reqwest",
  "rstest",
  "semver",
  "serde",
@@ -7267,9 +7298,6 @@ dependencies = [
  "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",
- "tower-http",
- "trait-variant",
- "url",
 ]
 
 [[package]]
@@ -7279,11 +7307,11 @@ dependencies = [
  "crypto",
  "derive_more",
  "etag",
+ "http_utils",
  "rustls-pki-types",
  "serde",
  "serde_with",
  "url",
- "wallet_common",
 ]
 
 [[package]]
@@ -7311,6 +7339,7 @@ dependencies = [
  "futures",
  "hsm",
  "http",
+ "http_utils",
  "p256",
  "rand_core",
  "serde",

@@ -20,10 +20,10 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
+use http_utils::urls::BaseUrl;
 use mdoc::utils::x509::CertificateType;
 use openid4vc::server_state::SessionStoreTimeouts;
 use wallet_common::generator::Generator;
-use wallet_common::urls::BaseUrl;
 
 use crate::keys::PrivateKeySettingsError;
 use crate::keys::PrivateKeyVariant;

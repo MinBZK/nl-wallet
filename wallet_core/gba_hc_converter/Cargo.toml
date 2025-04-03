@@ -56,7 +56,8 @@ tracing-subscriber = { workspace = true, features = [
 trait-variant.workspace = true
 
 crypto.path = "../lib/crypto"
-wallet_common = { path = "../lib/wallet_common", features = ["axum"] }
+http_utils = { path = "../lib/http_utils", features = ["axum"] }
+wallet_common = { path = "../lib/wallet_common" }
 
 [dev-dependencies]
 assert-json-diff.workspace = true

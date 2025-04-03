@@ -6,7 +6,7 @@ use config::Environment;
 use config::File;
 use serde::Deserialize;
 
-use wallet_common::http::TlsServerConfig;
+use http_utils::http::TlsServerConfig;
 use wallet_common::utils;
 
 use crate::config::UpdatePolicyConfig;

@@ -7,13 +7,13 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
+use http_utils::http::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::urls::BaseUrl;
 use wallet_common::utils;
 
 #[serde_as]

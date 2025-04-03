@@ -26,6 +26,7 @@ use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
+use http_utils::urls::BaseUrl;
 use jwt::error::JwtX5cError;
 use jwt::Jwt;
 use jwt::NL_WALLET_CLIENT_ID;
@@ -40,7 +41,6 @@ use poa::PoaVerificationError;
 use serde_with::SerializeDisplay;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::urls::BaseUrl;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;

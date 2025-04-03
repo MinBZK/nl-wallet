@@ -6,7 +6,7 @@ mod mock;
 use background_repository::BackgroundUpdateableUpdatePolicyRepository;
 
 use error_category::ErrorCategory;
-use wallet_common::http::TlsPinningConfig;
+use http_utils::http::TlsPinningConfig;
 
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;

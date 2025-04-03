@@ -149,7 +149,7 @@ mod tests {
     use parking_lot::RwLock;
     use tokio::sync::Notify;
 
-    use wallet_common::http::TlsPinningConfig;
+    use http_utils::http::TlsPinningConfig;
     use wallet_common::update_policy::VersionState;
 
     use crate::repository::Repository;

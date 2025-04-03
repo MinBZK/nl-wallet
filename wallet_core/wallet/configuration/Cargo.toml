@@ -16,4 +16,4 @@ serde_with = { workspace = true, features = ["base64"] }
 url = { workspace = true, features = ["serde"] }
 
 crypto.path = "../../lib/crypto"
-wallet_common.path = "../../lib/wallet_common"
+http_utils.path = "../../lib/http_utils"

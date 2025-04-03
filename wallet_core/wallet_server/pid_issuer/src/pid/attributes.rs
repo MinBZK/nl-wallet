@@ -1,13 +1,13 @@
 use std::num::NonZero;
 
 use crypto::x509::CertificateError;
+use http_utils::http::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
 
 use crate::pid::brp::client::BrpClient;

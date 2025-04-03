@@ -5,9 +5,9 @@ use tracing::instrument;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::http::TlsPinningConfig;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_account::messages::instructions::CheckPin;
-use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 

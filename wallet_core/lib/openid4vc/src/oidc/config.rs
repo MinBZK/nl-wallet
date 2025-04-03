@@ -8,8 +8,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use wallet_common::reqwest::JsonReqwestBuilder;
-use wallet_common::urls::BaseUrl;
+use http_utils::reqwest::JsonReqwestBuilder;
+use http_utils::urls::BaseUrl;
 
 use super::OidcError;
 
@@ -130,9 +130,9 @@ pub mod tests {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use wallet_common::http::test::HttpConfig;
-    use wallet_common::reqwest::JsonClientBuilder;
-    use wallet_common::urls::BaseUrl;
+    use http_utils::http::test::HttpConfig;
+    use http_utils::reqwest::JsonClientBuilder;
+    use http_utils::urls::BaseUrl;
 
     use super::Config;
 

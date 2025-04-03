@@ -14,6 +14,9 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::http::TlsPinningConfig;
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::urls;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::issuer_auth::IssuerRegistration;
@@ -26,10 +29,7 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt_vc_metadata::TypeMetadataError;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
-use wallet_common::urls;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -489,6 +489,7 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use http_utils::http::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
@@ -497,7 +498,6 @@ mod tests {
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use wallet_common::http::TlsPinningConfig;
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use crate::issuance;

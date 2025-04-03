@@ -10,6 +10,7 @@ members = [
     "lib/error_category",
     "lib/error_category/error_category_derive",
     "lib/hsm",
+    "lib/http_utils",
     "lib/jwt",
     "lib/mdoc",
     "lib/openid4vc",
