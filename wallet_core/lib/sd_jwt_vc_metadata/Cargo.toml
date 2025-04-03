@@ -11,7 +11,7 @@ workspace = true
 example_constructors = []
 
 [dependencies]
-derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
+derive_more = { workspace = true, features = ["as_ref", "from"] }
 http.workspace = true
 http-serde.workspace = true
 itertools.workspace = true

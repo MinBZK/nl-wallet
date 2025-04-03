@@ -1,6 +1,7 @@
 use std::hash::Hash;
 use std::num::NonZeroUsize;
 
+use derive_more::Index;
 use itertools::Itertools;
 use serde::de;
 use serde::Deserialize;
@@ -29,7 +30,7 @@ pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 /// Newtype for a [`Vec<T>`] that contains at least `N` values, with optional uniquness validation.
 /// For convenience, a number of common use cases have been defined as type aliases. Note that a
 /// type with an `N` value of 0 is not valid and will cause a runtime panic when constructed.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Index, Serialize, Deserialize)]
 pub struct VecAtLeastN<T, const N: usize, const UNIQUE: bool>(Vec<T>);
 
 impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {

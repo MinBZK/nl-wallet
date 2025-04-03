@@ -13,7 +13,7 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use wallet_common::generator::Generator;
 use wallet_common::urls::HttpsUri;
 
@@ -84,17 +84,15 @@ impl Mdoc {
         Ok(integrity)
     }
 
-    pub fn type_metadata(&self) -> Result<TypeMetadata, Error> {
+    pub fn type_metadata(&self) -> Result<NormalizedTypeMetadata, Error> {
         let documents = self.issuer_signed.type_metadata_documents()?;
-        let integrity = self.type_metadata_integrity()?.clone();
 
-        let unverified_metadata_chain = documents
-            .into_unverified_metadata_chain(&self.mso.doc_type)
+        let (metadata, sorted) = documents
+            .into_normalized(&self.mso.doc_type)
             .map_err(HolderError::TypeMetadata)?;
-        let (metadata_chain, _) = unverified_metadata_chain
-            .into_metadata_chain_and_source(integrity)
-            .map_err(HolderError::TypeMetadata)?;
-        let metadata = metadata_chain.into_metadata();
+
+        let integrity = self.type_metadata_integrity()?.clone();
+        let _verified = sorted.into_verified(integrity).map_err(HolderError::TypeMetadata)?;
 
         Ok(metadata)
     }

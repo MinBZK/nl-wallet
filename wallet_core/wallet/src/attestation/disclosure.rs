@@ -4,7 +4,7 @@ use mdoc::unsigned::Entry;
 use mdoc::utils::auth::Organization;
 use mdoc::NameSpace;
 use openid4vc::attributes::Attribute;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use super::Attestation;
 use super::AttestationError;
@@ -12,7 +12,7 @@ use super::AttestationIdentity;
 
 impl Attestation {
     pub(crate) fn create_for_disclosure(
-        metadata: TypeMetadata,
+        metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
@@ -38,7 +38,7 @@ mod test {
     use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
@@ -46,20 +46,18 @@ mod test {
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
 
-    fn example_metadata() -> TypeMetadata {
-        TypeMetadata::try_new(UncheckedTypeMetadata {
+    fn example_metadata() -> NormalizedTypeMetadata {
+        NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
             vct: String::from("example_attestation_type"),
             claims: vec![claim_metadata(&["entry1"]), claim_metadata(&["entry2"])],
-            ..TypeMetadata::example_with_claim_names(
+            ..UncheckedTypeMetadata::example_with_claim_names(
                 "example_attestation_type",
                 &[
                     ("entry1", JsonSchemaPropertyType::String, None),
                     ("entry2", JsonSchemaPropertyType::Boolean, None),
                 ],
             )
-            .into_inner()
         })
-        .unwrap()
     }
 
     #[test]
@@ -120,19 +118,17 @@ mod test {
 
     #[test]
     fn test_attributes_not_processed() {
-        let metadata = TypeMetadata::try_new(UncheckedTypeMetadata {
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
             vct: String::from("example_attestation_type"),
             claims: vec![claim_metadata(&["entry1"])],
-            ..TypeMetadata::example_with_claim_names(
+            ..UncheckedTypeMetadata::example_with_claim_names(
                 "example_attestation_type",
                 &[
                     ("entry1", JsonSchemaPropertyType::String, None),
                     ("entry2", JsonSchemaPropertyType::String, None),
                 ],
             )
-            .into_inner()
-        })
-        .unwrap();
+        });
 
         let mdoc_attributes = IndexMap::from([(
             String::from("example_attestation_type"),

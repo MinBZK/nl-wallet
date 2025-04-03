@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::mem;
+use std::num::NonZeroUsize;
 
 use itertools::Either;
 use itertools::Itertools;
+use jsonschema::ValidationError;
 
 use wallet_common::vec_at_least::VecNonEmpty;
 
@@ -36,18 +38,24 @@ pub enum NormalizedTypeMetadataError {
     NoEmbeddedSchema(String),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, thiserror::Error)]
+#[error("JSON schema validation failed for vct \"{0}\": {1}")]
+pub struct TypeMetadataValidationError(String, #[source] ValidationError<'static>);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NormalizedTypeMetadata {
-    pub vcts: Vec<String>,
-    pub display: Vec<DisplayMetadata>,
-    pub claims: Vec<ClaimMetadata>,
-    pub schemas: Vec<JsonSchema>,
+    vcts: VecNonEmpty<String>,
+    display: Vec<DisplayMetadata>,
+    claims: Vec<ClaimMetadata>,
+    schemas: VecNonEmpty<JsonSchema>,
 }
 
 impl NormalizedTypeMetadata {
     /// Attempt to combine all of the SD-JWT VC type metadata in a chain into a single [`NormalizedTypeMetadata`], which
     /// can then be used to both validate a received attestation and convert it to a display representation.
-    pub fn try_from_metadata_chain(chain: VecNonEmpty<TypeMetadata>) -> Result<Self, NormalizedTypeMetadataError> {
+    pub(crate) fn try_from_metadata_chain(
+        chain: VecNonEmpty<TypeMetadata>,
+    ) -> Result<Self, NormalizedTypeMetadataError> {
         let mut chain = chain.into_inner();
         let chain_length = chain.len();
 
@@ -103,7 +111,11 @@ impl NormalizedTypeMetadata {
                 SchemaOption::Embedded { schema } => Ok(*schema),
                 _ => Err(NormalizedTypeMetadataError::NoEmbeddedSchema(vct.clone())),
             })
-            .try_collect()?;
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap();
+
+        let vcts = vcts.try_into().unwrap();
 
         let normalized = Self {
             vcts,
@@ -113,6 +125,41 @@ impl NormalizedTypeMetadata {
         };
 
         Ok(normalized)
+    }
+
+    pub fn vct_count(&self) -> NonZeroUsize {
+        self.vcts.len()
+    }
+
+    pub fn leaf_vct(&self) -> &str {
+        self.vcts.first()
+    }
+
+    pub fn display(&self) -> &[DisplayMetadata] {
+        &self.display
+    }
+
+    pub fn claims(&self) -> &[ClaimMetadata] {
+        &self.claims
+    }
+
+    pub fn into_leaf_components(self) -> (String, Vec<DisplayMetadata>, Vec<ClaimMetadata>, JsonSchema) {
+        (
+            self.vcts.into_first(),
+            self.display,
+            self.claims,
+            self.schemas.into_first(),
+        )
+    }
+
+    pub fn validate(&self, attestation_json: &serde_json::Value) -> Result<(), TypeMetadataValidationError> {
+        for (vct, schema) in self.vcts.iter().zip(self.schemas.as_slice()) {
+            schema
+                .validate(attestation_json)
+                .map_err(|error| TypeMetadataValidationError(vct.clone(), error))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -260,11 +307,44 @@ where
     extended_display
 }
 
+#[cfg(any(test, feature = "example_constructors"))]
+mod example_constructors {
+    use crate::metadata::SchemaOption;
+    use crate::metadata::UncheckedTypeMetadata;
+
+    use super::NormalizedTypeMetadata;
+
+    impl NormalizedTypeMetadata {
+        pub fn from_single_example(metadata: UncheckedTypeMetadata) -> Self {
+            let schema = match metadata.schema {
+                SchemaOption::Embedded { schema } => *schema,
+                _ => panic!(),
+            };
+
+            Self {
+                vcts: vec![metadata.vct].try_into().unwrap(),
+                display: metadata.display,
+                claims: metadata.claims,
+                schemas: vec![schema].try_into().unwrap(),
+            }
+        }
+
+        pub fn empty_example() -> Self {
+            Self::from_single_example(UncheckedTypeMetadata::empty_example())
+        }
+
+        pub fn example() -> Self {
+            Self::from_single_example(UncheckedTypeMetadata::example())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
     use itertools::Itertools;
     use rstest::rstest;
+    use serde_json::json;
     use ssri::Integrity;
 
     use wallet_common::vec_at_least::VecNonEmpty;
@@ -279,6 +359,7 @@ mod tests {
 
     use super::NormalizedTypeMetadata;
     use super::NormalizedTypeMetadataError;
+    use super::TypeMetadataValidationError;
 
     fn type_metadata_with_extensions() -> VecNonEmpty<TypeMetadata> {
         vec![
@@ -299,38 +380,35 @@ mod tests {
         let normalized = NormalizedTypeMetadata::try_from_metadata_chain(type_metadata_with_extensions())
             .expect("normalizing SD-JWT VC type metadata chain should succeed");
 
-        let metadata = TypeMetadata::example();
-        let metadata_v2 = TypeMetadata::example_v2();
-        let metadata_v3 = TypeMetadata::example_v3();
+        let metadata = UncheckedTypeMetadata::example();
+        let metadata_v2 = UncheckedTypeMetadata::example_v2();
+        let metadata_v3 = UncheckedTypeMetadata::example_v3();
 
         // The vcts should be ordered from leaf to root.
         assert_eq!(
-            normalized.vcts,
+            normalized.vcts.as_ref(),
             vec![
-                metadata_v3.as_ref().vct.as_str(),
-                metadata_v2.as_ref().vct.as_str(),
-                metadata.as_ref().vct.as_str()
+                metadata_v3.vct.as_str(),
+                metadata_v2.vct.as_str(),
+                metadata.vct.as_str()
             ]
         );
 
         // The metadata display values should be merged, with existing values being updated and new values appended.
         assert_eq!(normalized.display.len(), 2);
-        assert_ne!(normalized.display[0], metadata.as_ref().display[0]);
-        assert_eq!(normalized.display[0], metadata_v2.as_ref().display[1]);
-        assert_eq!(normalized.display[1], metadata_v2.as_ref().display[0]);
+        assert_ne!(normalized.display[0], metadata.display[0]);
+        assert_eq!(normalized.display[0], metadata_v2.display[1]);
+        assert_eq!(normalized.display[1], metadata_v2.display[0]);
 
         // The claim paths should be in the same order as they are in the leaf extension.
+        assert_ne!(all_claim_paths(&normalized.claims), all_claim_paths(&metadata.claims));
         assert_ne!(
             all_claim_paths(&normalized.claims),
-            all_claim_paths(&metadata.as_ref().claims)
-        );
-        assert_ne!(
-            all_claim_paths(&normalized.claims),
-            all_claim_paths(&metadata_v2.as_ref().claims)
+            all_claim_paths(&metadata_v2.claims)
         );
         assert_eq!(
             all_claim_paths(&normalized.claims),
-            all_claim_paths(&metadata_v3.as_ref().claims)
+            all_claim_paths(&metadata_v3.claims)
         );
 
         // All of the claims should have their selective disclosure state changed to a more strict option.
@@ -359,21 +437,50 @@ mod tests {
         );
 
         // The JSON schemas should be ordered from leaf to root.
-        assert_eq!(normalized.schemas.len(), 3);
+        assert_eq!(normalized.schemas.len().get(), 3);
         assert_eq!(
             normalized.schemas.iter().collect_vec(),
-            vec![
-                &metadata_v3.as_ref().schema,
-                &metadata_v2.as_ref().schema,
-                &metadata.as_ref().schema
-            ]
-            .into_iter()
-            .map(|schema_option| match schema_option {
-                SchemaOption::Embedded { schema } => schema.as_ref(),
-                _ => unreachable!(),
-            })
-            .collect_vec()
+            vec![&metadata_v3.schema, &metadata_v2.schema, &metadata.schema]
+                .into_iter()
+                .map(|schema_option| match schema_option {
+                    SchemaOption::Embedded { schema } => schema.as_ref(),
+                    _ => unreachable!(),
+                })
+                .collect_vec()
         );
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_validate() {
+        let normalized = NormalizedTypeMetadata::try_from_metadata_chain(type_metadata_with_extensions())
+            .expect("normalizing SD-JWT VC type metadata chain should succeed");
+
+        normalized
+            .validate(&json!({
+              "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
+              "iss": "https://example.com/issuer",
+              "nbf": 1683000000,
+              "iat": 1683000000,
+              "exp": 1883000000,
+              "attestation_qualification": "EAA"
+            }))
+            .expect("all JSON schemas in chain should validate");
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_validate_error() {
+        let normalized = NormalizedTypeMetadata::try_from_metadata_chain(type_metadata_with_extensions())
+            .expect("normalizing SD-JWT VC type metadata chain should succeed");
+
+        let error = normalized
+            .validate(&json!({}))
+            .expect_err("first JSON schemas in chain should fail validation");
+
+        assert_matches!(
+            error,
+            TypeMetadataValidationError(vct, _)
+                if vct == "https://sd_jwt_vc_metadata.example.com/example_credential_v3"
+        )
     }
 
     fn claim_with_sd(sd: ClaimSelectiveDisclosureMetadata) -> ClaimMetadata {

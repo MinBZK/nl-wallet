@@ -8,7 +8,7 @@ use serde::Serialize;
 use mdoc::unsigned::Entry;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -98,13 +98,13 @@ impl Attribute {
     /// Note in particular that attributes in a namespace whose names equals the attestation_type in the metadata
     /// are mapped to the root level of the output.
     pub fn from_mdoc_attributes(
-        type_metadata: &TypeMetadata,
+        type_metadata: &NormalizedTypeMetadata,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<IndexMap<String, Self>, AttributeError> {
         let mut result = IndexMap::new();
 
         // The claims list determines the final order of the converted attributes.
-        for claim in &type_metadata.as_ref().claims {
+        for claim in type_metadata.claims() {
             // First, confirm that the path is made up of key entries by converting to a `Vec<&str>`.
             let key_path = claim
                 .path
@@ -112,7 +112,7 @@ impl Attribute {
                 .filter_map(|path| path.try_key_path())
                 .collect::<VecDeque<_>>();
 
-            Self::traverse_attributes_by_claim(&type_metadata.as_ref().vct, key_path, &mut attributes, &mut result)?;
+            Self::traverse_attributes_by_claim(type_metadata.leaf_vct(), key_path, &mut attributes, &mut result)?;
         }
 
         if !attributes.is_empty() {
@@ -179,7 +179,7 @@ mod test {
 
     use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
@@ -203,7 +203,7 @@ mod test {
             }],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([
             (
@@ -285,7 +285,7 @@ mod test {
             ],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([(
             String::from("com.example.pid.nest.ed"),
@@ -314,7 +314,7 @@ mod test {
             ],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([(
             String::from("com.example.pid.a"),
@@ -353,7 +353,7 @@ mod test {
             ],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([(
             String::from("com.example.pid.b"),

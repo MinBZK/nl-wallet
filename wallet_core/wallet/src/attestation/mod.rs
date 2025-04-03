@@ -15,7 +15,6 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
-use sd_jwt_vc_metadata::SchemaOption;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
@@ -34,10 +33,6 @@ pub enum AttestationError {
     #[error("error converting from mdoc attribute: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
-
-    #[error("type metadata schema not supported: {0:?}")]
-    #[category(pd)]
-    UnsupportedMetadataSchema(SchemaOption),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

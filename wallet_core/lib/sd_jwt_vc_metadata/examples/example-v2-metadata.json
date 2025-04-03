@@ -208,7 +208,8 @@
     "required": [
       "vct",
       "iss",
-      "iat"
+      "iat",
+      "attestation_qualification"
     ]
   }
 }

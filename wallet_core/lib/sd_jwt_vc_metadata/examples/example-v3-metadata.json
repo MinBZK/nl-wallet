@@ -3,7 +3,7 @@
   "name": "NL Wallet PID credential v3",
   "description": "Working version of the NL Wallet PID credential v3",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
-  "extends#integrity": "sha256-THQwB8Evn+RS1IdpM/NmUllokJXUQtCIN+nzasA0XFU=",
+  "extends#integrity": "sha256-ILNOmq2yE5FX6S/ZKXGSvHC/KvfkUR3e2z2TmraxfZ8=",
   "claims": [
     {
       "path": [
@@ -142,7 +142,8 @@
     "required": [
       "vct",
       "iss",
-      "iat"
+      "iat",
+      "attestation_qualification"
     ]
   }
 }

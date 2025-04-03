@@ -30,9 +30,6 @@ pub enum TypeMetadataError {
     #[error("could not deserialize JSON schema: {0}")]
     JsonSchema(#[from] serde_json::Error),
 
-    #[error("schema option {0:?} is not supported")]
-    UnsupportedSchemaOption(SchemaOption),
-
     #[error("detected claim path collision: {0}")]
     ClaimPathCollision(String),
 
@@ -92,7 +89,7 @@ pub struct UncheckedTypeMetadata {
 }
 
 #[nutype(
-    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize),
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Into, Serialize, Deserialize),
     validate(with = UncheckedTypeMetadata::check_metadata_consistency, error = TypeMetadataError),
 )]
 pub struct TypeMetadata(UncheckedTypeMetadata);
@@ -146,20 +143,6 @@ impl UncheckedTypeMetadata {
         }
 
         Ok(())
-    }
-}
-
-impl TypeMetadata {
-    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
-        if let SchemaOption::Embedded { schema } = &self.as_ref().schema {
-            schema
-                .validator
-                .validate(json_claims)
-                .map_err(ValidationError::to_owned)?;
-            Ok(())
-        } else {
-            Err(TypeMetadataError::UnsupportedSchemaOption(self.as_ref().schema.clone()))
-        }
     }
 }
 
@@ -235,6 +218,12 @@ impl JsonSchema {
 
     pub fn into_properties(self) -> JsonSchemaProperties {
         self.properties
+    }
+
+    pub(crate) fn validate(&self, attestation_json: &serde_json::Value) -> Result<(), ValidationError<'static>> {
+        self.validator
+            .validate(attestation_json)
+            .map_err(ValidationError::to_owned)
     }
 }
 
@@ -489,19 +478,12 @@ mod example_constructors {
                 },
             }
         }
-    }
-
-    impl TypeMetadata {
-        pub fn empty_example() -> Self {
-            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example()).unwrap()
-        }
 
         pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
-            TypeMetadata::try_new(UncheckedTypeMetadata {
+            Self {
                 vct: String::from(attestation_type),
                 ..UncheckedTypeMetadata::empty_example()
-            })
-            .unwrap()
+            }
         }
 
         pub fn example_with_claim_name(
@@ -517,7 +499,7 @@ mod example_constructors {
             attestation_type: &str,
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
-            TypeMetadata::try_new(UncheckedTypeMetadata {
+            Self {
                 vct: String::from(attestation_type),
                 claims: names
                     .iter()
@@ -536,8 +518,7 @@ mod example_constructors {
                     schema: Box::new(JsonSchema::example_with_claim_names(names)),
                 },
                 ..UncheckedTypeMetadata::empty_example()
-            })
-            .unwrap()
+            }
         }
 
         pub fn example() -> Self {
@@ -558,6 +539,55 @@ mod example_constructors {
 
         pub fn address_example() -> Self {
             serde_json::from_slice(ADDRESS_METADATA_BYTES).unwrap()
+        }
+    }
+
+    impl TypeMetadata {
+        pub fn empty_example() -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example()).unwrap()
+        }
+
+        pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example_with_attestation_type(
+                attestation_type,
+            ))
+            .unwrap()
+        }
+
+        pub fn example_with_claim_name(
+            attestation_type: &str,
+            name: &str,
+            r#type: JsonSchemaPropertyType,
+            format: Option<JsonSchemaPropertyFormat>,
+        ) -> Self {
+            Self::example_with_claim_names(attestation_type, &[(name, r#type, format)])
+        }
+
+        pub fn example_with_claim_names(
+            attestation_type: &str,
+            names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
+        ) -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::example_with_claim_names(attestation_type, names)).unwrap()
+        }
+
+        pub fn example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example()).unwrap()
+        }
+
+        pub fn example_v2() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v2()).unwrap()
+        }
+
+        pub fn example_v3() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v3()).unwrap()
+        }
+
+        pub fn pid_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::pid_example()).unwrap()
+        }
+
+        pub fn address_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::address_example()).unwrap()
         }
     }
 
@@ -678,7 +708,12 @@ mod test {
             metadata.as_ref().claims[3].path.clone().into_inner()
         );
 
-        metadata.validate(&claims).unwrap();
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        json_schema.validate(&claims).expect("JSON schema should validate");
     }
 
     #[test]
@@ -695,7 +730,14 @@ mod test {
           }
         });
 
-        assert!(metadata.validate(&claims).is_err());
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        let _error = json_schema
+            .validate(&claims)
+            .expect_err("JSON schema should fail validation");
     }
 
     #[rstest]
@@ -711,7 +753,13 @@ mod test {
             "attestation_qualification": "EAA",
             "birth_date": date_str,
         });
-        metadata.validate(&claims).unwrap();
+
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        json_schema.validate(&claims).expect("JSON schema should validate");
     }
 
     #[rstest]
@@ -729,14 +777,23 @@ mod test {
             "birth_date": date_str,
         });
 
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        let error = json_schema
+            .validate(&claims)
+            .expect_err("JSON schema should fail validation");
+
         assert_matches!(
-            metadata.validate(&claims),
-            Err(TypeMetadataError::JsonSchemaValidation(ValidationError {
+            error,
+            ValidationError {
                 instance,
                 kind: ValidationErrorKind::Format { format },
                 instance_path,
                 ..
-            })) if instance.to_string() == format!("\"{}\"", date_str)
+            } if instance.to_string() == format!("\"{}\"", date_str)
                     && format == "date" && instance_path.to_string() == "/birth_date"
         );
     }
