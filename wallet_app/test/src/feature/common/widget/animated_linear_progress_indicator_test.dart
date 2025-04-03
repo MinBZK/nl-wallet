@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/animated_linear_progress_indicator.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(200, 4);
@@ -16,7 +16,7 @@ void main() {
           const AnimatedLinearProgressIndicator(progress: 0.25),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'animated_linear_progress_indicator/light');
+        await screenMatchesGolden('animated_linear_progress_indicator/light');
       },
     );
     testGoldens(
@@ -27,7 +27,7 @@ void main() {
           brightness: Brightness.dark,
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'animated_linear_progress_indicator/dark');
+        await screenMatchesGolden('animated_linear_progress_indicator/dark');
       },
     );
   });

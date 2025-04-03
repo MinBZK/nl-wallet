@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/sheet/confirm_action_sheet.dart';
 import 'package:wallet/src/feature/common/widget/text/body_text.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(350, 221);
@@ -22,7 +22,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'confirm_action_sheet/light');
+        await screenMatchesGolden('confirm_action_sheet/light');
       },
     );
     testGoldens(
@@ -38,7 +38,7 @@ void main() {
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'confirm_action_sheet/dark');
+        await screenMatchesGolden('confirm_action_sheet/dark');
       },
     );
     testGoldens(
@@ -63,7 +63,7 @@ void main() {
           ),
           surfaceSize: const Size(350, 342),
         );
-        await screenMatchesGolden(tester, 'confirm_action_sheet/light.custom');
+        await screenMatchesGolden('confirm_action_sheet/light.custom');
       },
     );
   });

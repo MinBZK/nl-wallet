@@ -2,13 +2,14 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/data/store/active_locale_provider.dart';
 import 'package:wallet/src/theme/wallet_theme.dart';
 import 'package:wallet/src/util/extension/build_context_extension.dart';
+
+import 'src/test_util/test_asset_bundle.dart';
 
 /// Widget that is to be used to wrap pumped test widgets.
 /// Makes sure the theme, translations and MediaQuery is provided.
@@ -43,6 +44,8 @@ class WalletAppTestWidget extends StatelessWidget {
     );
   }
 }
+
+typedef WidgetWrapper = Widget Function(Widget);
 
 WidgetWrapper walletAppWrapper({
   Brightness brightness = Brightness.light,
@@ -98,29 +101,57 @@ extension TestWidgetExtensions on Widget {
       );
 }
 
+const iphoneXSize = Size(375, 812);
+final iphoneXSizeLandscape = iphoneXSize.flipped;
+
 extension WidgetTesterExtensions on WidgetTester {
   /// Convenience method to pump any widget with the wrapped by the
   /// [WalletAppTestWidget] so that it has access to the theme.
   /// This method also provides a default [ActiveLocaleProvider].
   Future<void> pumpWidgetWithAppWrapper(
     Widget widget, {
-    Size surfaceSize = const Size(375, 812), // Iphone X
+    Size surfaceSize = iphoneXSize,
     double textScaleSize = 1.0,
     Brightness brightness = Brightness.light,
     List<SingleChildWidget>? providers,
   }) async {
-    return pumpWidgetBuilder(
-      widget,
-      surfaceSize: surfaceSize,
-      textScaleSize: textScaleSize,
-      wrapper: walletAppWrapper(
-        brightness: brightness,
-        providers: providers ?? [],
-      ),
+    // Surface / config setup
+    await binding.setSurfaceSize(surfaceSize);
+    view.physicalSize = surfaceSize;
+    view.devicePixelRatio = 1.0;
+    platformDispatcher.textScaleFactorTestValue = textScaleSize;
+
+    // Pump the test widget (with basic WalletApp dependencies)
+    final wrapperMethod = walletAppWrapper(
+      brightness: brightness,
+      providers: providers ?? [],
     );
+    await pumpWidget(DefaultAssetBundle(bundle: TestAssetBundle(), child: wrapperMethod(widget)));
+
+    // Make sure asset images are loaded, and pump the final frame
+    await _awaitLoadingOfImageAssets(this);
+    await pumpAndSettle();
   }
 
-  Future<void> pumpDeviceBuilderWithAppWrapper(DeviceBuilder deviceBuilder) {
-    return pumpDeviceBuilder(deviceBuilder, wrapper: walletAppWrapper());
+  Future<void> _awaitLoadingOfImageAssets(WidgetTester tester) async {
+    final imageElements = find.byType(Image, skipOffstage: false).evaluate();
+    final containerElements = find.byType(DecoratedBox, skipOffstage: false).evaluate();
+    await tester.runAsync(() async {
+      for (final imageElement in imageElements) {
+        final widget = imageElement.widget;
+        if (widget is Image) {
+          await precacheImage(widget.image, imageElement);
+        }
+      }
+      for (final container in containerElements) {
+        final widget = container.widget as DecoratedBox;
+        final decoration = widget.decoration;
+        if (decoration is BoxDecoration) {
+          if (decoration.image != null) {
+            await precacheImage(decoration.image!.image, container);
+          }
+        }
+      }
+    });
   }
 }

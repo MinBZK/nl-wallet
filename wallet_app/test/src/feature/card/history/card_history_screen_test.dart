@@ -1,7 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/feature/card/history/bloc/card_history_bloc.dart';
 import 'package:wallet/src/feature/card/history/card_history_screen.dart';
@@ -9,8 +8,8 @@ import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 class MockCardHistoryBloc extends MockBloc<CardHistoryEvent, CardHistoryState> implements CardHistoryBloc {}
 
@@ -26,33 +25,25 @@ void main() {
 
   group('goldens', () {
     testGoldens('CardHistoryLoadSuccess light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
-              MockCardHistoryBloc(),
-              cardHistoryLoadSuccessMock,
-            ),
-            name: 'card data',
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
+          MockCardHistoryBloc(),
+          cardHistoryLoadSuccessMock,
+        ),
       );
-      await screenMatchesGolden(tester, 'success.light');
+
+      await screenMatchesGolden('success.light');
     });
 
     testGoldens('CardHistoryLoadSuccess dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
-              MockCardHistoryBloc(),
-              cardHistoryLoadSuccessMock,
-            ),
-            name: 'card data',
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
+          MockCardHistoryBloc(),
+          cardHistoryLoadSuccessMock,
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'success.dark');
+      await screenMatchesGolden('success.dark');
     });
 
     testGoldens('CardHistoryLoadInProgress state', (tester) async {
@@ -62,7 +53,7 @@ void main() {
           const CardHistoryLoadInProgress(),
         ),
       );
-      await screenMatchesGolden(tester, 'loading.light');
+      await screenMatchesGolden('loading.light');
     });
 
     testGoldens('CardHistoryInitial state', (tester) async {
@@ -72,7 +63,7 @@ void main() {
           CardHistoryInitial(),
         ),
       );
-      await screenMatchesGolden(tester, 'initial.light');
+      await screenMatchesGolden('initial.light');
     });
 
     testGoldens('CardHistoryLoadFailure state', (tester) async {
@@ -82,7 +73,7 @@ void main() {
           const CardHistoryLoadFailure(),
         ),
       );
-      await screenMatchesGolden(tester, 'error.light');
+      await screenMatchesGolden('error.light');
     });
   });
 

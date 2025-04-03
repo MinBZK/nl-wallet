@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/common/dialog/scan_with_wallet_dialog.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   testWidgets('ScanWithWalletDialog shows expected copy', (tester) async {

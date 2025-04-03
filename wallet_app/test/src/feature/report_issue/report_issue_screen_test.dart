@@ -1,30 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/report_issue/report_issue_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
-    DeviceBuilder deviceBuilder(WidgetTester tester) => DeviceUtils.deviceBuilderWithPrimaryScrollController;
-
     testGoldens('ReportIssueScreen light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)..addScenario(widget: const ReportIssueScreen(options: ReportingOption.values)),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const ReportIssueScreen(options: ReportingOption.values),
       );
-      await screenMatchesGolden(tester, 'light');
+      await screenMatchesGolden('light');
     });
 
     testGoldens('ReportIssueScreen dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)..addScenario(widget: const ReportIssueScreen(options: ReportingOption.values)),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const ReportIssueScreen(options: ReportingOption.values),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'dark');
+      await screenMatchesGolden('dark');
     });
   });
 

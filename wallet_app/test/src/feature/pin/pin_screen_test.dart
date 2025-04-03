@@ -8,7 +8,7 @@ import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.mocks.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/test_utils.dart';
 import 'pin_page_test.dart';
 
 void main() {

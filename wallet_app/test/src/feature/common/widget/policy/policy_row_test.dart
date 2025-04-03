@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/policy/policy_row.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
+import '../../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(150, 38);
@@ -16,7 +16,7 @@ void main() {
           const PolicyRow(title: 'Title', icon: Icons.security_outlined),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'policy_row/light');
+        await screenMatchesGolden('policy_row/light');
       },
     );
     testGoldens(
@@ -27,7 +27,7 @@ void main() {
           brightness: Brightness.dark,
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'policy_row/dark');
+        await screenMatchesGolden('policy_row/dark');
       },
     );
   });

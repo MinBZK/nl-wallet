@@ -9,7 +9,7 @@ import 'package:wallet/src/util/mapper/card/attribute/card_attribute_value_mappe
 import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet_core/core.dart' as core;
 
-import '../../../test_utils.dart';
+import '../../../../test_util/test_utils.dart';
 
 const _kSampleLocale = Locale('nl');
 

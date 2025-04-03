@@ -89,7 +89,8 @@ relies heavily on all the logic implemented in the [`wallet_core`](../wallet_cor
 is the component that handles all the business logic (like storage, network and validation) needed
 to achieve the app's functionalities.
 
-A sample command to run the *core* version of the app is provided below. Note that the universal link
+A sample command to run the *core* version of the app is provided below. Note that the universal
+link
 needs to be configured using various environment variables, as is illustrated in this example.
 
 ```sh
@@ -110,7 +111,8 @@ These configurations are parsed and verified at compile time.
 
 In order to make sure the wallet configuration belongs to the environment the app is built for,
 an environment variable named `CONFIG_ENV` is used.
-If, for instance, the app is built for the demo environment, `CONFIG_ENV` should have the value `demo`.
+If, for instance, the app is built for the demo environment, `CONFIG_ENV` should have the value
+`demo`.
 This check is always performed, but when the `--release`-flag is passed to Cargo, the `CONFIG_ENV`
 environment variable is mandatory. Without the `--release`-flag the default (`dev`) is used.
 
@@ -125,10 +127,10 @@ to be taken to make sure that attestation can be be performed for a particular e
 For iOS key and app attestation to succeed, the following variables will need to match between the
 app and the Wallet Provider:
 
-1.  The root CA with which the attestation is signed.
-2.  Apple's attestation environment, which can be either *development* (i.e. a sandbox environment)
-    or *production*.
-3.  The app's bundle identifier.
+1. The root CA with which the attestation is signed.
+2. Apple's attestation environment, which can be either *development* (i.e. a sandbox environment)
+   or *production*.
+3. The app's bundle identifier.
 
 When running the app on real hardware, the root CA is always the one provided by Apple, as the
 attested key is stored within the Secure Element on the device.
@@ -153,6 +155,7 @@ The bundle identifier need not be changed for the local development environment.
 environments it can be changed using:
 
 bash
+
 ```
 flutter pub run rename setBundleId --targets ios --value <BUNDLE ID>
 ```
@@ -310,7 +313,8 @@ new goldens on a mac host. This can be done
 with `flutter test --update-goldens --tags=golden <optional_path_to_single_test_file>`.
 
 - To only verify goldens use `flutter test --tags=golden --dart-define=MOCK_REPOSITORIES=true`
-- To only verify other tests use `flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true`
+- To only verify other tests use
+  `flutter test --exclude-tags=golden --dart-define=MOCK_REPOSITORIES=true`
 
 ##### Widget Test Template
 
@@ -324,25 +328,10 @@ import 'package:golden_toolkit/golden_toolkit.dart';
 
 void main() {
   group('goldens', () {
-    testGoldens(
-      'light text',
-          (tester) async {
-        await tester.pumpWidgetWithAppWrapper(
-          Text('T'),
-        );
-        await screenMatchesGolden(tester, 'text/light');
-      },
-    );
-    testGoldens(
-      'dark text',
-          (tester) async {
-        await tester.pumpWidgetWithAppWrapper(
-          Text('T'),
-          brightness: Brightness.dark,
-        );
-        await screenMatchesGolden(tester, 'text/dark');
-      },
-    );
+    testGoldens('light text', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(Text('T'));
+      await screenMatchesGolden('text/light');
+    });
   });
 
   group('widgets', () {
@@ -458,11 +447,13 @@ export FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD="{App-specific password}"
 - Run `bundle install` from the project root folder
 - Run `bundle exec fastlane match appstore --readonly`  to locally install App Store certificate &
   provisioning profile (password protected: "Fastlane Match Passphrase")
-- Place the latest configuration JSON files for the `ont` environment under `wallet_core/wallet/`, these can be downloaded from the CI as an asset
+- Place the latest configuration JSON files for the `ont` environment under `wallet_core/wallet/`,
+  these can be downloaded from the CI as an asset
 - Check latest iOS build number
   here: [App Store Connect - iOS Builds](https://appstoreconnect.apple.com/apps/SSSS/testflight/ios),
   next build number needs to be `{latest_build_numer} + 1`
 - Build app with updated build
-  number `CONFIG_ENV=ont UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
+  number
+  `CONFIG_ENV=ont UL_HOSTNAME=app.example.com UNIVERSAL_LINK_BASE="https://app.example.com/deeplink/" bundle exec fastlane ios build app_store:true build:{next_build_number} bundle_id:nl.ictu.edi.wallet.latest app_name:"NL Wallet (latest)" universal_link_base:app.example.com`
 - Upload to TestFlight `bundle exec fastlane ios deploy bundle_id:nl.ictu.edi.wallet.latest`  (login
   with Apple ID + password; app specific password!)

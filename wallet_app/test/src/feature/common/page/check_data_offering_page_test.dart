@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/feature/common/page/check_data_offering_page.dart';
 import 'package:wallet/src/feature/common/widget/button/confirm/confirm_buttons.dart';
@@ -9,6 +8,7 @@ import 'package:wallet/src/feature/common/widget/button/secondary_button.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -33,7 +33,7 @@ void main() {
             offeredCard: WalletMockData.altCard,
           ),
         );
-        await screenMatchesGolden(tester, 'check_data_offering_page/light');
+        await screenMatchesGolden('check_data_offering_page/light');
       },
     );
 
@@ -57,7 +57,7 @@ void main() {
             offeredCard: WalletMockData.altCard,
           ),
         );
-        await screenMatchesGolden(tester, 'check_data_offering_page/no_footer.light');
+        await screenMatchesGolden('check_data_offering_page/no_footer.light');
       },
     );
 
@@ -83,7 +83,7 @@ void main() {
           ),
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'check_data_offering_page/dark');
+        await screenMatchesGolden('check_data_offering_page/dark');
       },
     );
   });

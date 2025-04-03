@@ -1,10 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/info/info_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   group('widgets', () {
@@ -17,21 +16,15 @@ void main() {
   });
 
   group('goldens', () {
-    DeviceBuilder deviceBuilder(WidgetTester tester) => DeviceUtils.deviceBuilderWithPrimaryScrollController;
-
     testGoldens('InfoScreen', (tester) async {
       final l10n = await TestUtils.englishLocalizations;
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: InfoScreen(
-              title: l10n.detailsIncorrectScreenTitle,
-              description: l10n.detailsIncorrectScreenDescription,
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        InfoScreen(
+          title: l10n.detailsIncorrectScreenTitle,
+          description: l10n.detailsIncorrectScreenDescription,
+        ),
       );
-      await screenMatchesGolden(tester, 'info_screen');
+      await screenMatchesGolden('info_screen');
     });
   });
 }
