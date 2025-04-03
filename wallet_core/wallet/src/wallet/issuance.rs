@@ -1,3 +1,4 @@
+use std::convert::Infallible;
 use std::mem;
 use std::sync::Arc;
 
@@ -11,14 +12,13 @@ use tracing::instrument;
 use url::Url;
 
 use crypto::x509::BorrowingCertificateExtension;
-use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use jwt::error::JwtError;
+use mdoc::utils::auth::Organization;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::credential::MdocCopies;
-use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
@@ -26,7 +26,6 @@ use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
-use sd_jwt_vc_metadata::TypeMetadataError;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_common::http::TlsPinningConfig;
 use wallet_common::reqwest::default_reqwest_client_builder;
@@ -87,7 +86,14 @@ pub enum PidIssuanceError {
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidSessionError),
     #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[from] IssuanceSessionError),
+    IssuanceSession(#[from] IssuanceSessionError),
+    #[error("could not retrieve PID from issuer: {error}")]
+    IssuerServer {
+        organizations: Vec<Organization>,
+        #[defer]
+        #[source]
+        error: IssuanceSessionError,
+    },
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -118,16 +124,13 @@ pub enum PidIssuanceError {
     JwtCredential(#[from] JwtError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
-    #[error("type metadata verification failed: {0}")]
+    #[error("error converting credential payload to attestation: {error}")]
     #[category(critical)]
-    TypeMetadataVerification(#[from] TypeMetadataError),
-    #[error("error converting mdoc to credential payload: {0}")]
-    CredentialPayload(#[from] CredentialPayloadError),
-    #[error("error converting credential payload to attestation: {0}")]
-    #[category(critical)]
-    Attestation(#[from] AttestationError),
-    #[error("certificate error: {0}")]
-    Certificate(#[from] CertificateError),
+    Attestation {
+        organization: Box<Organization>,
+        #[source]
+        error: AttestationError,
+    },
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -241,8 +244,17 @@ where
         let issuance_session = self.issuance_session.take().ok_or(PidIssuanceError::SessionState)?;
 
         if let PidIssuanceSession::Openid4vci(pid_issuer) = issuance_session {
+            let organizations = pid_issuer
+                .issuer_registrations()?
+                .iter()
+                .map(|registration| registration.organization.clone())
+                .collect_vec();
+
             info!("Rejecting PID");
-            pid_issuer.reject_issuance().await?;
+            pid_issuer
+                .reject_issuance()
+                .await
+                .map_err(|error| PidIssuanceError::IssuerServer { organizations, error })?;
         }
 
         Ok(())
@@ -314,15 +326,19 @@ where
                         let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
                             metadata,
-                            issuer_registration.organization,
+                            issuer_registration.organization.clone(),
                             unsigned_mdoc.attributes.into(),
-                        )?;
+                        )
+                        .map_err(|error| PidIssuanceError::Attestation {
+                            organization: Box::new(issuer_registration.organization),
+                            error,
+                        })?;
 
                         Ok(attestation)
                     }
                 }
             })
-            .collect::<Result<Vec<_>, PidIssuanceError>>()?;
+            .collect::<Result<Vec<_>, PidIssuanceError>>()?; // TODO do we need to "collect" the organization_name here?
 
         self.issuance_session
             .replace(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -394,6 +410,12 @@ where
 
         info!("Accepting PID by signing mdoc using Wallet Provider");
 
+        let organizations = pid_issuer
+            .issuer_registrations()?
+            .iter()
+            .map(|registration| registration.organization.clone())
+            .collect_vec();
+
         let issuance_result = pid_issuer
             .accept_issuance(
                 &config.mdoc_trust_anchors(),
@@ -415,7 +437,7 @@ where
                             RemoteEcdsaKeyError::MissingSignature => PidIssuanceError::MissingSignature,
                         }
                     }
-                    _ => PidIssuanceError::PidIssuer(error),
+                    _ => PidIssuanceError::IssuerServer { organizations, error },
                 }
             });
 
@@ -434,8 +456,9 @@ where
         }
         let issued_mdocs = issuance_result?
             .into_iter()
-            .map(|mdocs| mdocs.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(|mdoc| mdoc.try_into())
+            .collect::<Result<Vec<_>, Infallible>>()
+            .unwrap(); // this is Infallible
 
         info!("Isuance succeeded; removing issuance session state");
         self.issuance_session.take();
@@ -846,7 +869,7 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, PidIssuanceError::PidIssuer(_));
+        assert_matches!(error, PidIssuanceError::IssuanceSession { .. });
     }
 
     #[tokio::test]
@@ -870,7 +893,7 @@ mod tests {
             .await
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
-        assert_matches!(error, PidIssuanceError::PidIssuer(_));
+        assert_matches!(error, PidIssuanceError::IssuanceSession { .. });
     }
 
     const PIN: &str = "051097";
@@ -1118,7 +1141,7 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, PidIssuanceError::PidIssuer(_));
+        assert_matches!(error, PidIssuanceError::IssuanceSession { .. });
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());

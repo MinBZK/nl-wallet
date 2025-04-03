@@ -156,14 +156,14 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let attestations_result = wallet.continue_pid_issuance(redirect_url).await;
     let attestations = match attestations_result {
         Ok(mdocs) => mdocs,
-        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
+        Err(PidIssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(ErrorResponse {
             error: TokenErrorCode::ServerError,
             error_description: Some(description),
             ..
         }))) if description.contains("Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") => {
             return Err(TestError::Conversion)
         }
-        Err(PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
+        Err(PidIssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(ErrorResponse {
             error: TokenErrorCode::ServerError,
             error_description: Some(description),
             ..

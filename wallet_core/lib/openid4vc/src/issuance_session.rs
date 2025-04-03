@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::convert::Infallible;
 
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -30,6 +31,7 @@ use mdoc::holder::IssuedDocumentMismatchError;
 use mdoc::holder::Mdoc;
 use mdoc::identifiers::AttributeIdentifier;
 use mdoc::utils::cose::CoseError;
+use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::CborError;
 use mdoc::utils::serialization::TaggedBytes;
@@ -191,7 +193,7 @@ impl IssuedCredentialCopies {
 }
 
 impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
-    type Error = IssuanceSessionError;
+    type Error = Infallible;
 
     fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match &value {
@@ -201,7 +203,7 @@ impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
 }
 
 impl TryFrom<IssuedCredentialCopies> for MdocCopies {
-    type Error = IssuanceSessionError;
+    type Error = Infallible;
 
     fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
         match value {
@@ -267,6 +269,8 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         KF: PoaFactory<Key = K>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
+
+    fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError>;
 }
 
 #[derive(Debug)]
@@ -744,6 +748,24 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .await?;
 
         Ok(())
+    }
+
+    fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError> {
+        let registrations = self
+            .session_state
+            .credential_previews
+            .iter()
+            .map(|preview| {
+                preview
+                    .0
+                    .as_ref()
+                    .first()
+                    .issuer_registration()
+                    .map(|registration| *registration)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(registrations)
     }
 }
 

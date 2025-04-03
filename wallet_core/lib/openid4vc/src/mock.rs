@@ -6,6 +6,7 @@ use rustls_pki_types::TrustAnchor;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use jwt::credential::JwtCredential;
+use mdoc::utils::issuer_auth::IssuerRegistration;
 use poa::factory::PoaFactory;
 use wallet_common::urls::BaseUrl;
 use wallet_common::wte::WteClaims;
@@ -19,6 +20,7 @@ use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
 use crate::metadata::IssuerMetadata;
 use crate::oidc::Config;
+use crate::token::CredentialPreviewError;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
@@ -39,6 +41,8 @@ mockall::mock! {
         ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
+
+        pub fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError>;
     }
 }
 
@@ -72,6 +76,10 @@ impl IssuanceSession for MockIssuanceSession {
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError> {
         self.reject()
+    }
+
+    fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError> {
+        self.issuer_registrations()
     }
 }
 
