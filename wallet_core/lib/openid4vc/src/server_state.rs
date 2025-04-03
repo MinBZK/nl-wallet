@@ -20,10 +20,10 @@ use tracing::warn;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 use jwt::credential::JwtCredentialClaims;
+use jwt::wte::WteClaims;
 use jwt::VerifiedJwt;
 use wallet_common::generator::Generator;
 use wallet_common::generator::TimeGenerator;
-use wallet_common::wte::WteClaims;
 
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: Duration = Duration::from_secs(120);
@@ -321,7 +321,7 @@ pub mod test {
     use rand_core::OsRng;
 
     use crypto::mock_remote::MockRemoteKeyFactory;
-    use wallet_common::wte::WTE_EXPIRY;
+    use jwt::wte::WTE_EXPIRY;
 
     use crate::issuance_session::mock_wte;
     use crate::issuer::WTE_JWT_VALIDATIONS;

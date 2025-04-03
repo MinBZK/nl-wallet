@@ -5,4 +5,3 @@ pub mod spec;
 pub mod update_policy;
 pub mod utils;
 pub mod vec_at_least;
-pub mod wte;

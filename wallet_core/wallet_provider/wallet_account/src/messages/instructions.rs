@@ -8,11 +8,11 @@ use serde_with::serde_as;
 use crypto::p256_der::DerSignature;
 use crypto::p256_der::DerVerifyingKey;
 use jwt::credential::JwtCredentialClaims;
+use jwt::wte::WteClaims;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use poa::Poa;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
-use wallet_common::wte::WteClaims;
 
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;

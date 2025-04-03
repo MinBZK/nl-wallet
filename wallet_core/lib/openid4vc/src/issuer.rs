@@ -34,6 +34,7 @@ use jwt::error::JwtError;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::validations;
+use jwt::wte::WteClaims;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
 use jwt::NL_WALLET_CLIENT_ID;
@@ -48,7 +49,6 @@ use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use wallet_common::vec_at_least::VecNonEmpty;
-use wallet_common::wte::WteClaims;
 
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;

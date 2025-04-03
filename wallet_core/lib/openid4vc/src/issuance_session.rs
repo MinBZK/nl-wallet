@@ -26,6 +26,7 @@ use jwt::credential::JwtCredential;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 use jwt::pop::JwtPopClaims;
+use jwt::wte::WteClaims;
 use jwt::Jwt;
 use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::holder::IssuedDocumentMismatchError;
@@ -43,7 +44,6 @@ use sd_jwt_vc_metadata::UnverifiedTypeMetadataChain;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 use wallet_common::vec_at_least::VecNonEmpty;
-use wallet_common::wte::WteClaims;
 
 use crate::credential::CredentialCopies;
 use crate::credential::CredentialRequest;

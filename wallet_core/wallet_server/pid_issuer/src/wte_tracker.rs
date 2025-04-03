@@ -1,10 +1,10 @@
 use jwt::credential::JwtCredentialClaims;
+use jwt::wte::WteClaims;
 use jwt::VerifiedJwt;
 use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::server_state::WteTracker;
 use server_utils::store::DatabaseConnection;
 use server_utils::store::DatabaseError;
-use wallet_common::wte::WteClaims;
 
 #[cfg(feature = "postgres")]
 pub use postgres::PostgresWteTracker;
@@ -64,11 +64,11 @@ mod postgres {
 
     use crypto::utils::sha256;
     use jwt::credential::JwtCredentialClaims;
+    use jwt::wte::WteClaims;
     use jwt::VerifiedJwt;
     use server_utils::entity::used_wtes;
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
-    use wallet_common::wte::WteClaims;
 
     use openid4vc::server_state::WteTracker;
 
