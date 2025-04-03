@@ -375,15 +375,15 @@ pub struct LogoMetadata {
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ClaimMetadata {
-    /// An array indicating the claim or claims that are being addressed, as described below.
+    /// A list indicating the claim or claims that are being addressed, as described below.
     pub path: VecNonEmpty<ClaimPath>,
 
-    /// An array of objects containing display information for the claim.  The array contains an object for each
+    /// A list of objects containing display information for the claim.  The array contains an object for each
     /// language that is supported by the type.
     #[serde(default)]
     pub display: Vec<ClaimDisplayMetadata>,
 
-    /// A string indicating whether the claim is selectively disclosable
+    /// Indicates whether the claim is selectively disclosable
     #[serde(default)]
     pub sd: ClaimSelectiveDisclosureMetadata,
 
