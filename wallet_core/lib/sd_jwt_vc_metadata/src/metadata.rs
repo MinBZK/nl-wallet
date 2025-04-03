@@ -139,7 +139,7 @@ impl UncheckedTypeMetadata {
             _ => Ok(()),
         }?;
 
-        // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject not render the
+        // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject the
         // SVG template.
         let re = regex::Regex::new(r"\{\{(\w+)\}\}").unwrap();
         match self
