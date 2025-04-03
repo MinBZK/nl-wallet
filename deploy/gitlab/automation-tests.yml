@@ -272,6 +272,7 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
          - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
         extends: .run-automation-tests-common-setup
         script:
+          - echo "start time: \$(date)"
           - ./gradlew --no-daemon --info --stacktrace runOnAll
             -Dtest.config.app.identifier="\$APP_ID"
             -Dtest.config.device.name="\$DEVICE_NAME"
@@ -279,6 +280,10 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
             -Dtest.config.platform.version="\$PLATFORM_VERSION"
             -Dtest.config.remote=true
             -Dfile.encoding=UTF-8
+        after_script:
+          - echo "DEVICE_NAME: \$DEVICE_NAME" 
+          - echo "PLATFORM_VERSION: \$PLATFORM_VERSION" 
+          - echo "end time: \$(date)" 
         variables:
           APP_ID: "${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
           PLATFORM_NAME: "Android"
