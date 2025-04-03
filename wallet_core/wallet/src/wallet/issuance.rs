@@ -29,7 +29,7 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt_vc_metadata::TypeMetadataError;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::VersionState;
 use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 

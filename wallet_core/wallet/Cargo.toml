@@ -76,6 +76,7 @@ openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
 poa.path = "../lib/poa"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
+update_policy_model.path = "../update_policy/model"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
 wallet_common.path = "../lib/wallet_common"
 wallet_configuration.path = "configuration"

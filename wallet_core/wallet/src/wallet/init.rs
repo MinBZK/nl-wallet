@@ -12,7 +12,7 @@ use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::hardware::HardwareUtilities;
 use platform_support::utils::PlatformUtilities;
 use platform_support::utils::UtilitiesError;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::default_config_server_config;

@@ -4,7 +4,7 @@ use http_utils::http::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;

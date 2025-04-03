@@ -227,7 +227,7 @@ pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features =
 platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
-update_policy_server = { path = "../update_policy_server", optional = true }
+update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
 wallet_common = { path = "../lib/wallet_common", optional = true }

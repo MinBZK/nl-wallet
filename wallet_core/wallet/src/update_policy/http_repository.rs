@@ -10,8 +10,8 @@ use tracing::info;
 
 use http_utils::http::TlsPinningConfig;
 use http_utils::http::TlsPinningConfigHash;
-use wallet_common::update_policy::UpdatePolicyResponse;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::UpdatePolicyResponse;
+use update_policy_model::update_policy::VersionState;
 
 use crate::repository::HttpClient;
 use crate::repository::HttpResponse;

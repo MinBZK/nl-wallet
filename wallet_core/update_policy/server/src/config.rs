@@ -8,10 +8,10 @@ use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
+use update_policy_model::update_policy::UpdatePolicyResponse;
+use update_policy_model::update_policy::VersionReq;
+use update_policy_model::update_policy::VersionState;
 use wallet_common::generator::Generator;
-use wallet_common::update_policy::UpdatePolicyResponse;
-use wallet_common::update_policy::VersionReq;
-use wallet_common::update_policy::VersionState;
 
 const WARN_THRESHOLD: Duration = Duration::from_secs(7 * 24 * 60 * 60);
 

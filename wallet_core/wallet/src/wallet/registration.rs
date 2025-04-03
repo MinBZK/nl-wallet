@@ -16,9 +16,9 @@ use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
+use update_policy_model::update_policy::VersionState;
 use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
-use wallet_common::update_policy::VersionState;
 use wallet_common::vec_at_least::VecAtLeastNError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
