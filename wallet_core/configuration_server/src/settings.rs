@@ -7,7 +7,7 @@ use config::File;
 use serde::Deserialize;
 
 use http_utils::http::TlsServerConfig;
-use wallet_common::utils;
+use utils::utils::prefix_local_path;
 
 #[derive(Clone, Deserialize)]
 pub struct Settings {
@@ -22,7 +22,7 @@ impl Settings {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 3005)?
-            .add_source(File::from(utils::prefix_local_path("config_server.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path("config_server.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("config_server")
                     .separator("__")

@@ -28,8 +28,8 @@ use server_utils::settings::verify_key_pairs;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::Settings;
-use wallet_common::generator::TimeGenerator;
-use wallet_common::utils;
+use utils::generator::TimeGenerator;
+use utils::utils::prefix_local_path;
 
 #[derive(Clone, Deserialize)]
 pub struct IssuerSettings {
@@ -78,7 +78,7 @@ where
     let documents = path
         .iter()
         .map(|path| {
-            let json = fs::read(utils::prefix_local_path(path.as_ref())).map_err(de::Error::custom)?;
+            let json = fs::read(prefix_local_path(path.as_ref())).map_err(de::Error::custom)?;
             let metadata =
                 serde_json::from_slice::<UncheckedTypeMetadata>(json.as_slice()).map_err(de::Error::custom)?;
 

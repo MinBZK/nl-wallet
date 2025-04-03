@@ -67,8 +67,8 @@ mod postgres {
     use jwt::wte::WteClaims;
     use jwt::VerifiedJwt;
     use server_utils::entity::used_wtes;
-    use wallet_common::generator::Generator;
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::Generator;
+    use utils::generator::TimeGenerator;
 
     use openid4vc::server_state::WteTracker;
 

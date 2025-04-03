@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use wallet_common::spawn;
+use utils::spawn;
 
 use crate::bridge::utils::get_utils_bridge;
 

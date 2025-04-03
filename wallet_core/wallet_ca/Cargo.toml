@@ -23,7 +23,7 @@ x509-parser.workspace = true
 
 crypto = { path = "../lib/crypto", features = ["generate"] }
 mdoc = { path = "../lib/mdoc", features = ["generate"] }
-wallet_common.path = "../lib/wallet_common"
+utils.path = "../lib/utils"
 
 [dev-dependencies]
 assert_cmd.workspace = true

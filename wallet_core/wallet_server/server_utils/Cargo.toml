@@ -58,4 +58,4 @@ http_utils = { path = "../../lib/http_utils", features = ["axum"] }
 mdoc.path = "../../lib/mdoc"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
-wallet_common = { path = "../../lib/wallet_common" }
+utils = { path = "../../lib/utils" }

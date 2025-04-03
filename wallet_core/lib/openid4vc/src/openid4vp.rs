@@ -39,8 +39,8 @@ use mdoc::SessionTranscript;
 use poa::Poa;
 use poa::PoaVerificationError;
 use serde_with::SerializeDisplay;
-use wallet_common::generator::Generator;
-use wallet_common::generator::TimeGenerator;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
@@ -851,10 +851,10 @@ mod tests {
     use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
-    use wallet_common::generator::mock::MockTimeGenerator;
-    use wallet_common::generator::Generator;
-    use wallet_common::generator::TimeGenerator;
-    use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+    use utils::generator::mock::MockTimeGenerator;
+    use utils::generator::Generator;
+    use utils::generator::TimeGenerator;
+    use utils::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::IsoVpAuthorizationRequest;

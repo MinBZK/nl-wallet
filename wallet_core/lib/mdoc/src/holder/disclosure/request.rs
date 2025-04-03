@@ -5,7 +5,7 @@ use rustls_pki_types::TrustAnchor;
 
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
-use wallet_common::generator::Generator;
+use utils::generator::Generator;
 
 use crate::device_retrieval::DeviceRequest;
 use crate::device_retrieval::DocRequest;
@@ -128,7 +128,7 @@ mod tests {
 
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::TimeGenerator;
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;

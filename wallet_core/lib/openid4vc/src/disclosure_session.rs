@@ -32,7 +32,7 @@ use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::utils::reader_auth::ValidationError;
 use mdoc::utils::x509::CertificateType;
 use poa::factory::PoaFactory;
-use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use utils::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::openid4vp::AuthRequestValidationError;
 use crate::openid4vp::AuthResponseError;
@@ -787,7 +787,7 @@ mod tests {
     use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
-    use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+    use utils::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::VerifiablePresentation;

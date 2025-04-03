@@ -16,8 +16,8 @@ use tracing::warn;
 
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
-use wallet_common::generator::Generator;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;

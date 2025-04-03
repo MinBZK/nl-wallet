@@ -31,11 +31,11 @@ tracing-subscriber = { workspace = true, features = ["std", "env-filter", "fmt",
 
 http_utils.path = "../../lib/http_utils"
 update_policy_model.path = "../model"
-wallet_common.path = "../../lib/wallet_common"
+utils.path = "../../lib/utils"
 
 [dev-dependencies]
 indexmap.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
 
-wallet_common = { path = "../../lib/wallet_common", features = ["mock_time"] }
+utils = { path = "../../lib/utils", features = ["mock_time"] }

@@ -48,7 +48,7 @@ use poa::PoaVerificationError;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::credential::CredentialRequest;
 use crate::credential::CredentialRequestProof;

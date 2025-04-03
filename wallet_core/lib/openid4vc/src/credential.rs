@@ -20,8 +20,8 @@ use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::IssuerSigned;
 use poa::Poa;
-use wallet_common::spec::SpecOptional;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::spec::SpecOptional;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::credential_formats::CredentialFormat;
 use crate::credential_formats::CredentialType;

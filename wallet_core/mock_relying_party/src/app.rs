@@ -44,7 +44,7 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
-use wallet_common::utils;
+use utils::utils::prefix_local_path;
 
 use crate::askama_axum;
 use crate::client::WalletServerClient;
@@ -118,7 +118,7 @@ pub fn create_router(settings: Settings) -> Router {
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(utils::prefix_local_path("assets".as_ref()).as_ref())
+                    ServeDir::new(prefix_local_path("assets".as_ref()).as_ref())
                         .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
                 ),
         )

@@ -377,7 +377,6 @@ mod tests {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
-    use crypto::utils;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
 
     use crate::error::DecodeError;
@@ -408,7 +407,7 @@ mod tests {
 
     #[test]
     fn test_apple_challenge_request() {
-        let wallet_id = utils::random_string(32);
+        let wallet_id = crypto::utils::random_string(32);
         let sequence_number = 42;
         let instruction_name = "jump";
         let attested_key = create_mock_apple_attested_key();
@@ -469,7 +468,7 @@ mod tests {
 
     #[test]
     fn test_google_challenge_request() {
-        let wallet_id = utils::random_string(32);
+        let wallet_id = crypto::utils::random_string(32);
         let sequence_number = 42;
         let instruction_name = "jump";
         let hw_privkey = SigningKey::random(&mut OsRng);

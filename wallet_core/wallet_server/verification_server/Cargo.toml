@@ -72,7 +72,7 @@ openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosure"] }
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 server_utils.path = "../server_utils"
-wallet_common = { path = "../../lib/wallet_common" }
+utils = { path = "../../lib/utils" }
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -87,4 +87,4 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
 mdoc = { path = "../../lib/mdoc", features = ["generate", "mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../../lib/wallet_common", features = ["mock_time"] }
+utils = { path = "../../lib/utils", features = ["mock_time"] }

@@ -11,7 +11,7 @@ use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::AttestationQualification;
 use mdoc::Tdate;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::Attribute;
 

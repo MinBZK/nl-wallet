@@ -87,7 +87,7 @@ jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 poa.path = "../poa"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -105,4 +105,4 @@ jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
 poa = { path = "../poa", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../wallet_common", features = ["mock_time"] }
+utils = { path = "../utils", features = ["mock_time"] }

@@ -22,8 +22,8 @@ use crypto::utils::sha256;
 use jwt::credential::JwtCredentialClaims;
 use jwt::wte::WteClaims;
 use jwt::VerifiedJwt;
-use wallet_common::generator::Generator;
-use wallet_common::generator::TimeGenerator;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: Duration = Duration::from_secs(120);
@@ -567,8 +567,7 @@ pub mod test {
 mod tests {
     use parking_lot::RwLock;
 
-    use crypto::utils;
-    use wallet_common::generator::mock::MockTimeGenerator;
+    use utils::generator::mock::MockTimeGenerator;
 
     use self::test::RandomData;
 
@@ -587,7 +586,7 @@ mod tests {
             Self {
                 progress,
                 is_expired: false,
-                data: utils::random_bytes(32),
+                data: crypto::utils::random_bytes(32),
             }
         }
     }

@@ -88,7 +88,7 @@ test_common = [
     "dep:uuid",
     "dep:verification_server",
     "dep:wallet",
-    "dep:wallet_common",
+    "dep:utils",
     "dep:wallet_configuration",
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
@@ -144,7 +144,7 @@ performance_test = [
     "dep:serde_urlencoded",
     "dep:tempfile",
     "dep:wallet",
-    "dep:wallet_common",
+    "dep:utils",
     "dep:server_utils",
     "dep:verification_server",
     "dep:dotenvy",
@@ -170,7 +170,7 @@ gba_pid_test = [
     "dep:serde_urlencoded",
     "dep:tokio",
     "dep:wallet",
-    "dep:wallet_common",
+    "dep:utils",
     "platform_support/mock_attested_key_apple_ca",
     "wallet/snapshot_test",
 ]
@@ -230,7 +230,7 @@ server_utils = { path = "../wallet_server/server_utils", optional = true, featur
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
-wallet_common = { path = "../lib/wallet_common", optional = true }
+utils = { path = "../lib/utils", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }

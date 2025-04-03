@@ -6,7 +6,7 @@ use serde_with::serde_as;
 use crypto::p256_der::DerVerifyingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
-use wallet_common::vec_at_least::VecAtLeastTwo;
+use utils::vec_at_least::VecAtLeastTwo;
 
 /// Registration challenge, sent by account server to wallet after the latter requests enrollment.
 #[serde_as]
@@ -75,7 +75,7 @@ mod client {
     use crypto::keys::SecureEcdsaKey;
     use crypto::p256_der::DerVerifyingKey;
     use platform_support::attested_key::AppleAttestedKey;
-    use wallet_common::vec_at_least::VecAtLeastTwo;
+    use utils::vec_at_least::VecAtLeastTwo;
 
     use crate::error::EncodeError;
     use crate::signed::ChallengeResponse;

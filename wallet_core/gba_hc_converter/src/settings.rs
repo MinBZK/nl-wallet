@@ -15,7 +15,7 @@ use serde_with::serde_as;
 
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
-use wallet_common::utils;
+use utils::utils::prefix_local_path;
 
 use crate::gba;
 use crate::gba::client::FileGbavClient;
@@ -124,7 +124,7 @@ impl Settings {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 3008)?
-            .add_source(File::from(utils::prefix_local_path("gba_hc_converter.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path("gba_hc_converter.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("gba_hc_converter")
                     .separator("__")

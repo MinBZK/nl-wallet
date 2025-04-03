@@ -18,7 +18,6 @@ pub use josekit::JoseError;
 use reqwest::header;
 use url::Url;
 
-use crypto::utils;
 use error_category::ErrorCategory;
 use http_utils::reqwest::JsonReqwestBuilder;
 
@@ -147,8 +146,8 @@ where
 
 impl<P: PkcePair> HttpOidcClient<P> {
     pub fn new(config: Config, jwks: JWKSet<Empty>, client_id: String, redirect_uri: Url) -> Self {
-        let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
-        let nonce = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
+        let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
+        let nonce = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
         let pkce_pair = P::generate();
 
         HttpOidcClient {

@@ -19,8 +19,8 @@ use tracing::debug;
 use tracing::info;
 
 use http_utils::http::TlsServerConfig;
-use wallet_common::built_info::version_string;
-use wallet_common::generator::TimeGenerator;
+use utils::built_info::version_string;
+use utils::generator::TimeGenerator;
 
 use crate::config::UpdatePolicyConfig;
 use crate::settings::Settings;

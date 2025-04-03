@@ -11,7 +11,7 @@ use tower_http::trace::TraceLayer;
 use tracing::info;
 
 use http_utils::http_error::HttpJsonError;
-use wallet_common::built_info::version_string;
+use utils::built_info::version_string;
 
 use crate::error::Error;
 use crate::error::ErrorType;

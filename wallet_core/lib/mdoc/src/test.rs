@@ -172,7 +172,7 @@ impl TestDocument {
         KF: crypto::factory::KeyFactory,
     {
         use crypto::keys::WithIdentifier;
-        use wallet_common::generator::TimeGenerator;
+        use utils::generator::TimeGenerator;
 
         use crate::holder::Mdoc;
 

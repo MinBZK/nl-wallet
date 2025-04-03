@@ -76,7 +76,7 @@ crypto = { path = "../lib/crypto" }
 hsm = { path = "../lib/hsm", features = ["settings"] }
 http_utils = { path = "../lib/http_utils", features = ["axum"] }
 wallet_account = { path = "wallet_account", features = ["server"] }
-wallet_common = { path = "../lib/wallet_common" }
+utils = { path = "../lib/utils" }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
 wallet_provider_persistence.path = "persistence"

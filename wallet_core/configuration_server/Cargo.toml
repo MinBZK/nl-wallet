@@ -25,4 +25,4 @@ tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 
 http_utils = { path = "../lib/http_utils", features = ["axum"] }
-wallet_common.path = "../lib/wallet_common"
+utils.path = "../lib/utils"

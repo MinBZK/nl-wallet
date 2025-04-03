@@ -15,7 +15,7 @@ use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::TypeMetadata;
-use wallet_common::generator::Generator;
+use utils::generator::Generator;
 
 use crate::errors::Error;
 use crate::identifiers::AttributeIdentifier;

@@ -148,7 +148,6 @@ mod tests {
     use serde::de::DeserializeOwned;
     use serde::Serialize;
 
-    use crypto::utils;
     use jwt::Jwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::instructions::ChangePinCommit;
@@ -185,7 +184,7 @@ mod tests {
             .unwrap()
             .expect_instruction_challenge()
             .times(2)
-            .returning(|_, _| Ok(utils::random_bytes(32)));
+            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
 
         let (attested_key, registration_data) = wallet.registration.as_key_and_registration_data().unwrap();
         let AttestedKey::Apple(attested_key) = attested_key.as_ref() else {

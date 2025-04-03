@@ -23,7 +23,7 @@ use hsm::settings::Hsm;
 use http_utils::urls::BaseUrl;
 use mdoc::utils::x509::CertificateType;
 use openid4vc::server_state::SessionStoreTimeouts;
-use wallet_common::generator::Generator;
+use utils::generator::Generator;
 
 use crate::keys::PrivateKeySettingsError;
 use crate::keys::PrivateKeyVariant;

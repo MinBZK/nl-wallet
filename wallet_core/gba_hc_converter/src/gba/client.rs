@@ -12,7 +12,7 @@ use tracing::info;
 
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;
-use wallet_common::utils;
+use utils::utils::prefix_local_path;
 
 use crate::gba::encryption::decrypt_bytes_from_dir;
 use crate::gba::encryption::HmacSha256;
@@ -50,7 +50,7 @@ impl HttpGbavClient {
         let key = Pem::new("PRIVATE KEY", client_cert_key);
         let cert_buf = pem::encode(&key) + &pem::encode(&cert);
 
-        let vraag_request_template_path = utils::prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());
+        let vraag_request_template_path = prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
 
         let http_client = tls_pinned_client_builder(vec![trust_anchor])
@@ -114,7 +114,7 @@ pub struct FileGbavClient<T> {
 
 impl<T> FileGbavClient<T> {
     pub fn new(path: &Path, decryption_key: SymmetricKey, hmac_key: SymmetricKey, client: T) -> Self {
-        let base_path = utils::prefix_local_path(path).into_owned();
+        let base_path = prefix_local_path(path).into_owned();
 
         Self {
             base_path,

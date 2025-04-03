@@ -46,7 +46,7 @@ use openid4vc::DisclosureErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
-use wallet_common::generator::TimeGenerator;
+use utils::generator::TimeGenerator;
 
 struct ApplicationState<S, K> {
     verifier: Verifier<S, K>,

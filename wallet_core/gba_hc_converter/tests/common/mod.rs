@@ -6,14 +6,14 @@ use aes_gcm::KeyInit;
 use rand_core::OsRng;
 use tempfile::TempDir;
 
-use wallet_common::utils;
+use utils::utils::prefix_local_path;
 
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;
 use gba_hc_converter::settings::SymmetricKey;
 
 fn xml_resources_path() -> PathBuf {
-    utils::prefix_local_path("tests/resources".as_ref()).into_owned()
+    prefix_local_path("tests/resources".as_ref()).into_owned()
 }
 
 pub async fn read_file(name: &str) -> String {

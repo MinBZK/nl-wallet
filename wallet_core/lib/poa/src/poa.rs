@@ -20,8 +20,8 @@ use jwt::pop::JwtPopClaims;
 use jwt::validations;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use wallet_common::vec_at_least::VecAtLeastTwoUnique;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecAtLeastTwoUnique;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::error::PoaError;
 use crate::error::PoaVerificationError;
@@ -167,7 +167,7 @@ mod tests {
     use jwt::pop::JwtPopClaims;
     use jwt::validations;
     use jwt::Jwt;
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::Poa;
     use super::PoaPayload;

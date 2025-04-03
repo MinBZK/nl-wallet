@@ -12,7 +12,7 @@ use serde::Serialize;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use mdoc::verifier::ItemsRequests;
-use wallet_common::utils;
+use utils::utils::prefix_local_path;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -61,9 +61,7 @@ impl Settings {
             .set_default("webserver.port", 3004)?
             .set_default("public_url", "http://localhost:3004/")?
             .set_default("structured_logging", false)?
-            .add_source(
-                File::from(utils::prefix_local_path("mock_relying_party.toml".as_ref()).as_ref()).required(false),
-            )
+            .add_source(File::from(prefix_local_path("mock_relying_party.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("mock_relying_party")
                     .separator("__")

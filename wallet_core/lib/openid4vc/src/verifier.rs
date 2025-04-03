@@ -37,7 +37,7 @@ use jwt::error::JwtError;
 use jwt::Jwt;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
-use wallet_common::generator::Generator;
+use utils::generator::Generator;
 
 use crate::openid4vp::AuthRequestError;
 use crate::openid4vp::AuthResponseError;
@@ -1144,8 +1144,8 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use mdoc::utils::reader_auth::ReaderRegistration;
     use mdoc::ItemsRequest;
-    use wallet_common::generator::Generator;
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::Generator;
+    use utils::generator::TimeGenerator;
 
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionToken;

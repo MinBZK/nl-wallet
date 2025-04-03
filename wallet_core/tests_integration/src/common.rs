@@ -27,7 +27,6 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::utils;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use http_utils::http::TlsPinningConfig;
@@ -51,6 +50,7 @@ use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
+use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
@@ -62,7 +62,6 @@ use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
-use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AppleEnvironment;
@@ -595,7 +594,7 @@ pub fn setup_digid_context() -> Box<dyn Any> {
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
                 grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: utils::random_string(32).into(),
+                    pre_authorized_code: crypto::utils::random_string(32).into(),
                 },
                 code_verifier: Some("my_code_verifier".to_string()),
                 client_id: Some("my_client_id".to_string()),

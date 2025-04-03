@@ -6,7 +6,6 @@ use tracing::instrument;
 use tracing::warn;
 
 use crypto::keys::EcdsaKey;
-use crypto::utils;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::http::TlsPinningConfig;
@@ -17,9 +16,9 @@ use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::KeyWithAttestation;
 use update_policy_model::update_policy::VersionState;
+use utils::vec_at_least::VecAtLeastNError;
 use wallet_account::messages::registration::Registration;
 use wallet_account::signed::ChallengeResponse;
-use wallet_common::vec_at_least::VecAtLeastNError;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -182,7 +181,7 @@ where
             .key_holder
             .attest(
                 key_identifier.clone(),
-                utils::sha256(&challenge),
+                crypto::utils::sha256(&challenge),
                 config.google_cloud_project_number,
             )
             .await;
@@ -328,7 +327,6 @@ mod tests {
 
     use apple_app_attest::AssertionCounter;
     use apple_app_attest::VerifiedAttestation;
-    use crypto::utils;
     use crypto::x509::BorrowingCertificate;
     use jwt::Jwt;
     use platform_support::attested_key::mock::KeyHolderErrorScenario;
@@ -354,7 +352,7 @@ mod tests {
 
         // Have the account server respond with a random
         // challenge when the wallet sends a request for it.
-        let challenge = utils::random_bytes(32);
+        let challenge = crypto::utils::random_bytes(32);
         let challenge_response = challenge.clone();
 
         Arc::get_mut(&mut wallet.account_provider_client)
@@ -397,7 +395,7 @@ mod tests {
                         let (_, attested_public_key) = VerifiedAttestation::parse_and_verify(
                             &attestation_data,
                             &[trust_anchor],
-                            &utils::sha256(&registration.challenge),
+                            &crypto::utils::sha256(&registration.challenge),
                             &app_identifier,
                             environment,
                         )
@@ -557,7 +555,7 @@ mod tests {
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
             .expect_registration_challenge()
-            .return_once(|_| Ok(utils::random_bytes(32)));
+            .return_once(|_| Ok(crypto::utils::random_bytes(32)));
 
         wallet
     }

@@ -78,7 +78,7 @@ poa.path = "../lib/poa"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
 update_policy_model.path = "../update_policy/model"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
-wallet_common.path = "../lib/wallet_common"
+utils.path = "../lib/utils"
 wallet_configuration.path = "configuration"
 wallet_migrations.path = "migrations"
 
@@ -110,5 +110,5 @@ wallet_account = { path = "../wallet_provider/wallet_account", features = ["clie
 serde.workspace = true
 serde_json.workspace = true
 
-wallet_common.path = "../lib/wallet_common"
+utils.path = "../lib/utils"
 wallet_configuration.path = "configuration"

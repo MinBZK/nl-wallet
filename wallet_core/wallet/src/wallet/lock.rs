@@ -272,7 +272,6 @@ mod tests {
     use rstest::rstest;
 
     use apple_app_attest::AssertionCounter;
-    use crypto::utils;
     use jwt::Jwt;
     use platform_support::attested_key::AttestedKey;
     use wallet_account::messages::errors::AccountError;
@@ -318,7 +317,7 @@ mod tests {
 
         // Mock the responses of the account server for both the instruction challenge
         // and the actual instruction and check the contents of those messages.
-        let challenge = utils::random_bytes(32);
+        let challenge = crypto::utils::random_bytes(32);
 
         // Set up the instruction challenge.
         let challenge_response = challenge.clone();
@@ -522,7 +521,7 @@ mod tests {
 
         account_provider_client
             .expect_instruction_challenge()
-            .return_once(|_, _| Ok(utils::random_bytes(32)));
+            .return_once(|_, _| Ok(crypto::utils::random_bytes(32)));
 
         account_provider_client
             .expect_instruction()
@@ -636,7 +635,7 @@ mod tests {
         let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
         account_provider_client
             .expect_instruction_challenge()
-            .return_once(|_, _| Ok(utils::random_bytes(32)));
+            .return_once(|_, _| Ok(crypto::utils::random_bytes(32)));
 
         // Have the account server sign the instruction result with a key
         // to which the instruction result public key does not belong.

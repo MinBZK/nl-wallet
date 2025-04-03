@@ -1189,7 +1189,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -1370,7 +1370,7 @@ dependencies = [
  "thiserror 2.0.11",
  "time",
  "trait-variant",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
  "yoke",
 ]
@@ -2286,7 +2286,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "trait-variant",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -2653,7 +2653,7 @@ dependencies = [
  "sha2",
  "thiserror 2.0.11",
  "tokio",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -3150,7 +3150,7 @@ dependencies = [
  "server_utils",
  "thiserror 2.0.11",
  "tracing",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -3305,7 +3305,7 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.11",
  "tokio",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
 ]
 
@@ -3526,7 +3526,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
 ]
 
@@ -3633,7 +3633,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -3934,7 +3934,7 @@ dependencies = [
  "tracing-test",
  "trait-variant",
  "url",
- "wallet_common",
+ "utils",
  "wiremock",
 ]
 
@@ -3955,7 +3955,7 @@ dependencies = [
  "serde",
  "tower-http",
  "tracing",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -4224,7 +4224,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -4319,8 +4319,8 @@ dependencies = [
  "thiserror 2.0.11",
  "tokio",
  "uniffi",
+ "utils",
  "uuid",
- "wallet_common",
 ]
 
 [[package]]
@@ -4339,7 +4339,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.11",
  "tokio",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -5193,7 +5193,7 @@ dependencies = [
  "ssri",
  "thiserror 2.0.11",
  "tokio",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -5732,7 +5732,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -6318,10 +6318,10 @@ dependencies = [
  "tracing-subscriber",
  "update_policy_server",
  "url",
+ "utils",
  "uuid",
  "verification_server",
  "wallet",
- "wallet_common",
  "wallet_configuration",
  "wallet_provider",
  "wallet_provider_persistence",
@@ -7026,7 +7026,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "update_policy_model",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -7079,6 +7079,22 @@ name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
+
+[[package]]
+name = "utils"
+version = "0.3.0-dev"
+dependencies = [
+ "built",
+ "chrono",
+ "derive_more",
+ "itertools 0.14.0",
+ "parking_lot",
+ "rstest",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.11",
+ "tokio",
+]
 
 [[package]]
 name = "uuid"
@@ -7150,7 +7166,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -7240,9 +7256,9 @@ dependencies = [
  "trait-variant",
  "update_policy_model",
  "url",
+ "utils",
  "uuid",
  "wallet_account",
- "wallet_common",
  "wallet_configuration",
  "wallet_migrations",
  "wiremock",
@@ -7271,7 +7287,7 @@ dependencies = [
  "serde_with",
  "strum 0.26.3",
  "thiserror 2.0.11",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -7292,24 +7308,8 @@ dependencies = [
  "predicates",
  "serde_json",
  "time",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
-]
-
-[[package]]
-name = "wallet_common"
-version = "0.3.0-dev"
-dependencies = [
- "built",
- "chrono",
- "derive_more",
- "itertools 0.14.0",
- "parking_lot",
- "rstest",
- "serde",
- "serde_with",
- "thiserror 2.0.11",
- "tokio",
 ]
 
 [[package]]
@@ -7363,9 +7363,9 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "utils",
  "uuid",
  "wallet_account",
- "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
@@ -7396,8 +7396,8 @@ dependencies = [
  "rand",
  "serde",
  "thiserror 2.0.11",
+ "utils",
  "uuid",
- "wallet_common",
 ]
 
 [[package]]
@@ -7429,8 +7429,8 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "utils",
  "uuid",
- "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
 ]
@@ -7473,9 +7473,9 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "trait-variant",
+ "utils",
  "uuid",
  "wallet_account",
- "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",

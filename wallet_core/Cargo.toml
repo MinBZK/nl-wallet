@@ -17,7 +17,7 @@ members = [
     "lib/openid4vc_server",
     "lib/poa",
     "lib/sd_jwt_vc_metadata",
-    "lib/wallet_common",
+    "lib/utils",
     "mock_relying_party",
     "tests_integration",
     "update_policy/model",

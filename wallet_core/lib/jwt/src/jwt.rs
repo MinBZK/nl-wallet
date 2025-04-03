@@ -32,8 +32,8 @@ use crypto::keys::SecureEcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
-use wallet_common::generator::Generator;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::generator::Generator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::error::JwtError;
 use crate::error::JwtX5cError;
@@ -535,7 +535,7 @@ mod tests {
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
     use mdoc::server_keys::generate::mock::generate_reader_mock;
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::TimeGenerator;
 
     use super::*;
 

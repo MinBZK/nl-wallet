@@ -41,9 +41,9 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::UnverifiedTypeMetadataChain;
-use wallet_common::generator::TimeGenerator;
-use wallet_common::vec_at_least::VecAtLeastTwoUnique;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecAtLeastTwoUnique;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::credential::CredentialCopies;
 use crate::credential::CredentialRequest;

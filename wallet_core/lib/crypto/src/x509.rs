@@ -36,9 +36,9 @@ use yoke::Yokeable;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use http_utils::urls::HttpsUriParseError;
-use wallet_common::generator::Generator;
-use wallet_common::vec_at_least::VecAtLeastNError;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::generator::Generator;
+use utils::vec_at_least::VecAtLeastNError;
+use utils::vec_at_least::VecNonEmpty;
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
 /// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
@@ -406,7 +406,7 @@ mod test {
     use time::OffsetDateTime;
     use x509_parser::certificate::X509Certificate;
 
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::TimeGenerator;
 
     use crate::server_keys::generate::Ca;
 

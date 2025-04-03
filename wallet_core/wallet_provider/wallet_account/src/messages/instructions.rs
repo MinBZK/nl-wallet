@@ -12,7 +12,7 @@ use jwt::wte::WteClaims;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use poa::Poa;
-use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use utils::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::signed::ChallengeRequest;
 use crate::signed::ChallengeResponse;

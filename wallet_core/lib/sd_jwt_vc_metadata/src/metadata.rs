@@ -18,8 +18,8 @@ use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use ssri::Integrity;
 
-use wallet_common::spec::SpecOptional;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::spec::SpecOptional;
+use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {

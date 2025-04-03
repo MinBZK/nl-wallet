@@ -16,7 +16,7 @@ use ssri::Algorithm;
 use ssri::Integrity;
 use ssri::IntegrityChecker;
 
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::metadata::TypeMetadata;
 
@@ -281,7 +281,7 @@ impl TypeMetadataChain {
 mod example_constructors {
     use ssri::Integrity;
 
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;

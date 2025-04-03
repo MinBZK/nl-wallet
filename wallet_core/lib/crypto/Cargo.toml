@@ -39,7 +39,7 @@ yoke = { workspace = true, features = ["derive"] }
 
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"
 
 anyhow = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }
