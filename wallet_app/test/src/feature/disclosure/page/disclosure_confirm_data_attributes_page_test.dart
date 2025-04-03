@@ -9,7 +9,7 @@ import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   testWidgets('card titles are shown', (tester) async {

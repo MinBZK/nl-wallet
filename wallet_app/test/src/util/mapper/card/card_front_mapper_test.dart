@@ -11,7 +11,7 @@ import 'package:wallet_core/core.dart';
 
 import '../../../mocks/core_mock_data.dart';
 import '../../../mocks/wallet_mocks.dart';
-import '../../test_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 const _kSampleIssuer = CoreMockData.organization;
 

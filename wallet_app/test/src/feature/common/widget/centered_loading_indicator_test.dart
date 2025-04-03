@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(200, 200);
@@ -16,7 +16,7 @@ void main() {
           const CenteredLoadingIndicator(),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'centered_loading_indicator/light');
+        await screenMatchesGolden('centered_loading_indicator/light');
       },
     );
     testGoldens(
@@ -27,7 +27,7 @@ void main() {
           brightness: Brightness.dark,
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'centered_loading_indicator/dark');
+        await screenMatchesGolden('centered_loading_indicator/dark');
       },
     );
   });

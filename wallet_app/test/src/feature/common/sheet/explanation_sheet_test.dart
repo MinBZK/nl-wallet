@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/sheet/explanation_sheet.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(350, 213);
@@ -20,7 +20,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'explanation_sheet/light');
+        await screenMatchesGolden('explanation_sheet/light');
       },
     );
     testGoldens(
@@ -35,7 +35,7 @@ void main() {
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'explanation_sheet/dark');
+        await screenMatchesGolden('explanation_sheet/dark');
       },
     );
   });

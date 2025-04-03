@@ -1,47 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import 'package:wallet/src/feature/settings/settings_screen.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
     testGoldens('SettingsScreen light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const SettingsScreen(),
-          ),
-        wrapper: walletAppWrapper(
-          providers: [
-            RepositoryProvider<GetSupportedBiometricsUseCase>(create: (c) => MockGetSupportedBiometricsUseCase()),
-          ],
-        ),
+      await tester.pumpWidgetWithAppWrapper(
+        const SettingsScreen(),
+        providers: [
+          RepositoryProvider<GetSupportedBiometricsUseCase>(create: (c) => MockGetSupportedBiometricsUseCase()),
+        ],
       );
-      await screenMatchesGolden(tester, 'light');
+      await screenMatchesGolden('light');
     });
 
     testGoldens('SettingsScreen dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const SettingsScreen(),
-          ),
-        wrapper: walletAppWrapper(
-          brightness: Brightness.dark,
-          providers: [
-            RepositoryProvider<GetSupportedBiometricsUseCase>(create: (c) => MockGetSupportedBiometricsUseCase()),
-          ],
-        ),
+      await tester.pumpWidgetWithAppWrapper(
+        const SettingsScreen(),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<GetSupportedBiometricsUseCase>(create: (c) => MockGetSupportedBiometricsUseCase()),
+        ],
       );
-      await screenMatchesGolden(tester, 'dark');
+      await screenMatchesGolden('dark');
     });
   });
 

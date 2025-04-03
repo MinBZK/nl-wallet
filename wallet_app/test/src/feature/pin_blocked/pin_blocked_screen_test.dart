@@ -1,38 +1,28 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/feature/pin_blocked/pin_blocked_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
-  DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.deviceBuilderWithPrimaryScrollController
-      ..addScenario(
-        widget: const PinBlockedScreen(),
-        name: 'pin_blocked_screen',
-      );
-  }
-
   group('goldens', () {
     testGoldens('PinBlockedScreen light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const PinBlockedScreen(),
       );
-      await screenMatchesGolden(tester, 'light');
+      await screenMatchesGolden('light');
     });
 
     testGoldens('PinBlockedScreen dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const PinBlockedScreen(),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'dark');
+      await screenMatchesGolden('dark');
     });
   });
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/event/event_section.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/feature/common/widget/history/history_section_sliver.dart';
@@ -8,6 +7,7 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
+import '../../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(350, 356);
@@ -59,7 +59,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'history_section_sliver/light');
+        await screenMatchesGolden('history_section_sliver/light');
       },
     );
     testGoldens(
@@ -80,7 +80,7 @@ void main() {
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'history_section_sliver/dark');
+        await screenMatchesGolden('history_section_sliver/dark');
       },
     );
   });

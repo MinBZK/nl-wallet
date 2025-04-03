@@ -1,7 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/card_config.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
@@ -13,8 +12,8 @@ import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 class MockCardSummaryBloc extends MockBloc<CardDetailEvent, CardDetailState> implements CardDetailBloc {}
 
@@ -29,35 +28,28 @@ void main() {
 
   group('goldens', () {
     testGoldens('CardDetailLoadSuccess light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: CardDetailScreen(
-              cardTitle: WalletMockData.card.title.testValue,
-            ).withState<CardDetailBloc, CardDetailState>(
-              MockCardSummaryBloc(),
-              cardDetailLoadSuccessMock,
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock,
+        ),
       );
-      await screenMatchesGolden(tester, 'success.light');
+      await screenMatchesGolden('success.light');
     });
 
     testGoldens('CardDetailLoadSuccess dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: CardDetailScreen(
-              cardTitle: WalletMockData.card.title.testValue,
-            ).withState<CardDetailBloc, CardDetailState>(
-              MockCardSummaryBloc(),
-              cardDetailLoadSuccessMock,
-            ),
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock,
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'success.dark');
+      await screenMatchesGolden('success.dark');
     });
 
     testGoldens('CardDetailLoadInProgress light', (tester) async {
@@ -69,7 +61,7 @@ void main() {
           const CardDetailLoadInProgress(),
         ),
       );
-      await screenMatchesGolden(tester, 'loading.light');
+      await screenMatchesGolden('loading.light');
     });
 
     testGoldens('CardDetailLoadFailure light', (tester) async {
@@ -81,7 +73,7 @@ void main() {
           CardDetailLoadFailure(WalletMockData.card.id),
         ),
       );
-      await screenMatchesGolden(tester, 'error.light');
+      await screenMatchesGolden('error.light');
     });
   });
 

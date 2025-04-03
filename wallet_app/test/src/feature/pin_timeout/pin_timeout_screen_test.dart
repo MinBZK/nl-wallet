@@ -2,43 +2,51 @@ import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/feature/pin_timeout/pin_timeout_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
-  DeviceBuilder deviceBuilder(WidgetTester tester) {
-    return DeviceUtils.deviceBuilderWithPrimaryScrollController
-      ..addScenario(
-        widget: Builder(
+  group('goldens', () {
+    testGoldens('PinTimeoutScreen light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
           builder: (context) {
             final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
             return PinTimeoutScreen(expiryTime: expiryTime);
           },
         ),
-        name: 'pin_timeout_screen',
       );
-  }
+      await screenMatchesGolden('light');
+    });
 
-  group('goldens', () {
-    testGoldens('PinTimeoutScreen light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(),
+    testGoldens('PinTimeoutScreen light - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            return PinTimeoutScreen(expiryTime: expiryTime);
+          },
+        ),
+        surfaceSize: iphoneXSizeLandscape,
       );
-      await screenMatchesGolden(tester, 'light');
+      await screenMatchesGolden('light.landscape');
     });
 
     testGoldens('PinTimeoutScreen dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            final expiryTime = DateTime.now().add(const Duration(seconds: 15, milliseconds: 500));
+            return PinTimeoutScreen(expiryTime: expiryTime);
+          },
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'dark');
+      await screenMatchesGolden('dark');
     });
   });
 

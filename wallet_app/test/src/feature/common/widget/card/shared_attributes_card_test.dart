@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
+import '../../../../test_util/golden_utils.dart';
 
 void main() {
   group('widgets', () {
@@ -93,7 +93,7 @@ void main() {
             onTap: () {},
           ),
         );
-        await screenMatchesGolden(tester, 'shared_attributes/simple');
+        await screenMatchesGolden('shared_attributes/simple');
       },
     );
     testGoldens(
@@ -108,7 +108,7 @@ void main() {
           ),
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'shared_attributes/mock');
+        await screenMatchesGolden('shared_attributes/mock');
       },
     );
   });

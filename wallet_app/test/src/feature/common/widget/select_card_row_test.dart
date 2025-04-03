@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/feature/common/widget/select_card_row.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(350, 97);
@@ -23,7 +23,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'select_card_row/light.selected');
+        await screenMatchesGolden('select_card_row/light.selected');
       },
     );
     testGoldens(
@@ -38,7 +38,7 @@ void main() {
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'select_card_row/dark.selected');
+        await screenMatchesGolden('select_card_row/dark.selected');
       },
     );
   });
@@ -54,7 +54,7 @@ void main() {
         ),
         surfaceSize: kGoldenSize,
       );
-      await screenMatchesGolden(tester, 'select_card_row/light.unselected');
+      await screenMatchesGolden('select_card_row/light.unselected');
     },
   );
 
@@ -70,7 +70,7 @@ void main() {
         ),
         surfaceSize: kGoldenSize,
       );
-      await screenMatchesGolden(tester, 'select_card_row/light.selected.error');
+      await screenMatchesGolden('select_card_row/light.selected.error');
     },
   );
 

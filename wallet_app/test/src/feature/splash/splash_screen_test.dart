@@ -2,42 +2,36 @@ import 'dart:ui';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/splash/bloc/splash_bloc.dart';
 import 'package:wallet/src/feature/splash/splash_screen.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
+import '../../test_util/golden_utils.dart';
 
 class MockSplashBloc extends MockBloc<SplashEvent, SplashState> implements SplashBloc {}
 
 void main() {
-  final deviceBuilder = DeviceUtils.deviceBuilder
-    ..addScenario(
-      widget: const SplashScreen().withState<SplashBloc, SplashState>(
-        MockSplashBloc(),
-        SplashInitial(),
-      ),
-    );
-
   group('goldens', () {
     testGoldens('SplashScreeon initial light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder,
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SplashScreen().withState<SplashBloc, SplashState>(
+          MockSplashBloc(),
+          SplashInitial(),
+        ),
       );
-      await screenMatchesGolden(tester, 'initial.light');
+      await screenMatchesGolden('initial.light');
     });
 
     testGoldens('SplashScreen initial dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder,
-        wrapper: walletAppWrapper(
-          brightness: Brightness.dark,
+      await tester.pumpWidgetWithAppWrapper(
+        const SplashScreen().withState<SplashBloc, SplashState>(
+          MockSplashBloc(),
+          SplashInitial(),
         ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'initial.dark');
+      await screenMatchesGolden('initial.dark');
     });
   });
 

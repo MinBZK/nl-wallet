@@ -1,7 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
@@ -9,26 +8,21 @@ import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart'
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 class MockSetupSecurityBloc extends MockBloc<SetupSecurityEvent, SetupSecurityState> implements SetupSecurityBloc {}
 
 void main() {
   group('goldens', () {
     testGoldens('SetupSecuritySelectPinInProgress light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            name: '3 digits',
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecuritySelectPinInProgress(3),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecuritySelectPinInProgress(3),
+        ),
       );
-      await screenMatchesGolden(tester, 'in_progress.light');
+      await screenMatchesGolden('in_progress.light');
     });
 
     testGoldens('SetupSecuritySelectPinFailed (sequentialDigits) light', (tester) async {
@@ -38,7 +32,7 @@ void main() {
           const SetupSecuritySelectPinFailed(reason: PinValidationError.tooFewUniqueDigits),
         ),
       );
-      await screenMatchesGolden(tester, 'error.light');
+      await screenMatchesGolden('error.light');
     });
 
     testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed light', (tester) async {
@@ -48,77 +42,58 @@ void main() {
           const SetupSecurityPinConfirmationFailed(retryAllowed: false),
         ),
       );
-      await screenMatchesGolden(tester, 'pin_confirmation_failed.light');
+      await screenMatchesGolden('pin_confirmation_failed.light');
     });
 
     testGoldens('SetupSecurityPinConfirmationInProgress light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecurityPinConfirmationInProgress(6),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityPinConfirmationInProgress(6),
+        ),
       );
-      await screenMatchesGolden(tester, 'pin_confirmation_in_progress.light');
+      await screenMatchesGolden('pin_confirmation_in_progress.light');
     });
 
     testGoldens('SetupSecurityConfigureBiometrics fingerOnly light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.fingerprint),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityConfigureBiometrics(biometrics: Biometrics.fingerprint),
+        ),
       );
-      await screenMatchesGolden(tester, 'biometrics.finger.light');
+      await screenMatchesGolden('biometrics.finger.light');
     });
 
     testGoldens('SetupSecurityConfigureBiometrics faceOnly light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
+        ),
       );
-      await screenMatchesGolden(tester, 'biometrics.face.light');
+      await screenMatchesGolden('biometrics.face.light');
     });
 
     testGoldens('SetupSecurityConfigureBiometrics some dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
-            ),
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'biometrics.some.dark');
+      await screenMatchesGolden('biometrics.some.dark');
     });
 
     testGoldens('SetupSecurityCompleted light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              const SetupSecurityCompleted(),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityCompleted(),
+        ),
       );
-      await screenMatchesGolden(tester, 'completed.light');
+      await screenMatchesGolden('completed.light');
     });
 
     testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed dark', (tester) async {
@@ -129,21 +104,17 @@ void main() {
         ),
         brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'pin_confirmation_failed.dark');
+      await screenMatchesGolden('pin_confirmation_failed.dark');
     });
 
     testGoldens('SetupSecurityCreatingWallet light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilder
-          ..addScenario(
-            widget: const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
-              MockSetupSecurityBloc(),
-              SetupSecurityCreatingWallet(),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          SetupSecurityCreatingWallet(),
+        ),
       );
-      await screenMatchesGolden(tester, 'creating_wallet.light');
+      await screenMatchesGolden('creating_wallet.light');
     });
 
     testGoldens('SetupSecuritySelectPinFailed (tooFewUniqueDigits) dark', (tester) async {
@@ -154,7 +125,7 @@ void main() {
         ),
         brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'error.dark');
+      await screenMatchesGolden('error.dark');
     });
   });
 

@@ -4,7 +4,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/history/detail/bloc/history_detail_bloc.dart';
@@ -18,8 +17,8 @@ import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 class MockHistoryDetailBloc extends MockBloc<HistoryDetailEvent, HistoryDetailState> implements HistoryDetailBloc {}
 
@@ -28,44 +27,34 @@ const _kVeryTallScreen = Size(400, 3000);
 void main() {
   group('goldens', () {
     testGoldens('HistoryDetailLoadSuccess light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
-              MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
-            ),
-          ),
-        wrapper: walletAppWrapper(
-          providers: [
-            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
-              create: (c) => PolicyBodyTextMapper(),
-            ),
-          ],
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
         ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
       );
-      await screenMatchesGolden(tester, 'success.light');
+      await screenMatchesGolden('success.light');
     });
 
     testGoldens('HistoryDetailLoadSuccess dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
-              MockHistoryDetailBloc(),
-              HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
-            ),
-          ),
-        wrapper: walletAppWrapper(
-          brightness: Brightness.dark,
-          providers: [
-            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
-              create: (c) => PolicyBodyTextMapper(),
-            ),
-          ],
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
         ),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
       );
-      await screenMatchesGolden(tester, 'success.dark');
+      await screenMatchesGolden('success.dark');
     });
 
     testGoldens('HistoryDetailLoadInProgress light', (tester) async {
@@ -75,7 +64,7 @@ void main() {
           const HistoryDetailLoadInProgress(),
         ),
       );
-      await screenMatchesGolden(tester, 'loading.light');
+      await screenMatchesGolden('loading.light');
     });
 
     testGoldens('Error state', (tester) async {
@@ -85,7 +74,7 @@ void main() {
           const HistoryDetailLoadFailure(),
         ),
       );
-      await screenMatchesGolden(tester, 'loading.error.light');
+      await screenMatchesGolden('loading.error.light');
     });
 
     testGoldens('Disclose cancelled', (tester) async {
@@ -100,7 +89,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden(tester, 'cancelled.light');
+      await screenMatchesGolden('cancelled.light');
     });
 
     testGoldens('Disclose cancelled - dark', (tester) async {
@@ -116,7 +105,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden(tester, 'cancelled.dark');
+      await screenMatchesGolden('cancelled.dark');
     });
 
     testGoldens('Disclose error - some attributes possibly shared', (tester) async {
@@ -131,7 +120,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden(tester, 'disclose.error.light');
+      await screenMatchesGolden('disclose.error.light');
     });
 
     testGoldens('Disclose error - no attributes shared', (tester) async {
@@ -149,7 +138,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden(tester, 'disclose.error.nothing_shared.light');
+      await screenMatchesGolden('disclose.error.nothing_shared.light');
     });
 
     testGoldens('Disclose error - dark - some attributes possibly shared', (tester) async {
@@ -165,7 +154,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden(tester, 'disclose.error.dark');
+      await screenMatchesGolden('disclose.error.dark');
     });
 
     testGoldens('Login error', (tester) async {
@@ -180,7 +169,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden(tester, 'login.error.light');
+      await screenMatchesGolden('login.error.light');
     });
 
     testGoldens('Login error - nothing shared', (tester) async {
@@ -195,7 +184,7 @@ void main() {
           ),
         ],
       );
-      await screenMatchesGolden(tester, 'login.error.nothing_shared.light');
+      await screenMatchesGolden('login.error.nothing_shared.light');
     });
   });
 
@@ -237,7 +226,6 @@ void main() {
           HistoryDetailLoadSuccess(WalletMockData.issuanceEvent, [WalletMockData.card]),
         ),
       );
-      debugDumpApp();
       final l10n = await TestUtils.englishLocalizations;
       expect(find.byType(HistoryDetailIssuePage), findsOneWidget);
       expect(find.textContaining(WalletMockData.organization.displayName.testValue), findsOneWidget);
@@ -259,7 +247,6 @@ void main() {
         surfaceSize: _kVeryTallScreen,
       );
 
-      debugDumpApp();
       final l10n = await TestUtils.englishLocalizations;
       //sharedAttributesCardTitle
       expect(find.byType(HistoryDetailLoginPage), findsOneWidget);

@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
@@ -13,7 +12,8 @@ import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.mocks.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 import '../pin/pin_page_test.dart';
 
 class MockChangePinBloc extends MockBloc<ChangePinEvent, ChangePinState> implements ChangePinBloc {}
@@ -38,7 +38,7 @@ void main() {
             providers: [RepositoryProvider<CheckPinUseCase>(create: (c) => MockCheckPinUseCase())],
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/initial.light');
+          await screenMatchesGolden('change_pin/initial.light');
         },
       );
 
@@ -59,7 +59,7 @@ void main() {
             brightness: Brightness.dark,
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/initial.dark');
+          await screenMatchesGolden('change_pin/initial.dark');
         },
       );
 
@@ -73,7 +73,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/select_new_pin.light');
+          await screenMatchesGolden('change_pin/select_new_pin.light');
         },
       );
 
@@ -88,7 +88,7 @@ void main() {
             surfaceSize: const Size(812, 375),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/select_new_pin.landscape.light');
+          await screenMatchesGolden('change_pin/select_new_pin.landscape.light');
         },
       );
 
@@ -102,7 +102,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/select_new_pin_failed.light');
+          await screenMatchesGolden('change_pin/select_new_pin_failed.light');
         },
       );
 
@@ -116,7 +116,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/confirm_new_pin.light');
+          await screenMatchesGolden('change_pin/confirm_new_pin.light');
         },
       );
 
@@ -130,7 +130,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/confirm_new_pin_failed.light');
+          await screenMatchesGolden('change_pin/confirm_new_pin_failed.light');
         },
       );
 
@@ -144,7 +144,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/confirm_new_pin_failed_no_retry.light');
+          await screenMatchesGolden('change_pin/confirm_new_pin_failed_no_retry.light');
         },
       );
 
@@ -158,7 +158,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/updating.light');
+          await screenMatchesGolden('change_pin/updating.light');
         },
       );
 
@@ -172,7 +172,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/generic_error.light');
+          await screenMatchesGolden('change_pin/generic_error.light');
         },
       );
 
@@ -189,7 +189,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/network_error.light');
+          await screenMatchesGolden('change_pin/network_error.light');
         },
       );
 
@@ -203,7 +203,7 @@ void main() {
             ),
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/completed.light');
+          await screenMatchesGolden('change_pin/completed.light');
         },
       );
 
@@ -218,7 +218,7 @@ void main() {
             brightness: Brightness.dark,
           );
           await tester.pumpAndSettle();
-          await screenMatchesGolden(tester, 'change_pin/completed.dark');
+          await screenMatchesGolden('change_pin/completed.dark');
         },
       );
     },

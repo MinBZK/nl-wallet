@@ -1,42 +1,34 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/sign/page/sign_confirm_pin_page.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
     testGoldens('SignConfirmPinPage light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: SignConfirmPinPage(
-              bloc: PinBloc(Mocks.create()),
-              onPinValidated: (_) {},
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        SignConfirmPinPage(
+          bloc: PinBloc(Mocks.create()),
+          onPinValidated: (_) {},
+        ),
       );
-      await screenMatchesGolden(tester, 'sign_confirm_pin/light');
+      await screenMatchesGolden('sign_confirm_pin/light');
     });
 
     testGoldens('SignConfirmPinPage dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: SignConfirmPinPage(
-              bloc: PinBloc(Mocks.create()),
-              onPinValidated: (_) {},
-            ),
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        SignConfirmPinPage(
+          bloc: PinBloc(Mocks.create()),
+          onPinValidated: (_) {},
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'sign_confirm_pin/dark');
+      await screenMatchesGolden('sign_confirm_pin/dark');
     });
   });
 
