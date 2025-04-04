@@ -34,7 +34,6 @@ use jwt::pop::JwtPopClaims;
 use jwt::validations;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
-use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::utils::crypto::CryptoError;
 use mdoc::utils::serialization::CborError;
@@ -192,6 +191,7 @@ pub struct Created {
 pub struct WaitingForResponse {
     pub access_token: AccessToken,
     pub c_nonce: String,
+    pub accepted_wallet_client_ids: Vec<String>,
     pub credential_previews: Vec<CredentialFormats<CredentialPreview>>,
     pub dpop_public_key: VerifyingKey,
     pub dpop_nonce: String,
@@ -471,6 +471,7 @@ where
         let result = session
             .process_token_request(
                 token_request,
+                &self.issuer_data.accepted_wallet_client_ids,
                 dpop,
                 &self.attr_service,
                 &self.issuer_data.credential_issuer_identifier,
@@ -610,6 +611,7 @@ impl Session<Created> {
     pub async fn process_token_request(
         self,
         token_request: TokenRequest,
+        accepted_wallet_client_ids: &[String],
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
@@ -625,6 +627,7 @@ impl Session<Created> {
                 let next = self.transition(WaitingForResponse {
                     access_token: response.token_response.access_token.clone(),
                     c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
+                    accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
                     credential_previews: response.credential_previews.clone().into_inner(),
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
@@ -817,7 +820,7 @@ impl Session<WaitingForResponse> {
         let (verified_wte, wte_pubkey) = wte_disclosure.verify(
             &wte_config.wte_issuer_pubkey,
             issuer_identifier,
-            NL_WALLET_CLIENT_ID,
+            &self.state.data.accepted_wallet_client_ids,
             &self.state.data.c_nonce,
         )?;
 
@@ -854,7 +857,7 @@ impl Session<WaitingForResponse> {
         poa.ok_or(CredentialRequestError::MissingPoa)?.verify(
             &attestation_keys,
             issuer_identifier,
-            NL_WALLET_CLIENT_ID,
+            &issuer_data.accepted_wallet_client_ids,
             &self.state.data.c_nonce,
         )?;
 
@@ -1155,7 +1158,7 @@ impl WteDisclosure {
         self,
         issuer_public_key: &EcdsaDecodingKey,
         expected_aud: &str,
-        expected_issuer: &str,
+        accepted_wallet_client_ids: &[String],
         expected_nonce: &str,
     ) -> Result<(VerifiedJwt<JwtCredentialClaims<WteClaims>>, VerifyingKey), CredentialRequestError> {
         let verified_jwt = VerifiedJwt::try_new(self.0, issuer_public_key, &WTE_JWT_VALIDATIONS)?;
@@ -1163,7 +1166,7 @@ impl WteDisclosure {
 
         let mut validations = validations();
         validations.set_audience(&[expected_aud]);
-        validations.set_issuer(&[expected_issuer]);
+        validations.set_issuer(accepted_wallet_client_ids);
         let wte_disclosure_claims = self.1.parse_and_verify(&(&wte_pubkey).into(), &validations)?;
 
         if wte_disclosure_claims.nonce.as_deref() != Some(expected_nonce) {

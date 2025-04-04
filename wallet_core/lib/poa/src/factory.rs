@@ -24,13 +24,14 @@ pub mod mock {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use jwt::pop::JwtPopClaims;
-    use jwt::NL_WALLET_CLIENT_ID;
     use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::error::PoaError;
     use crate::poa::Poa;
 
     use super::PoaFactory;
+
+    pub const MOCK_WALLET_CLIENT_ID: &str = "mock_wallet_client_id";
 
     impl PoaFactory for MockRemoteKeyFactory {
         type Key = MockRemoteEcdsaKey;
@@ -42,7 +43,7 @@ pub mod mock {
             aud: String,
             nonce: Option<String>,
         ) -> Result<Poa, Self::Error> {
-            let poa = Poa::new(keys, JwtPopClaims::new(nonce, NL_WALLET_CLIENT_ID.to_string(), aud)).await?;
+            let poa = Poa::new(keys, JwtPopClaims::new(nonce, MOCK_WALLET_CLIENT_ID.to_string(), aud)).await?;
 
             Ok(poa)
         }
