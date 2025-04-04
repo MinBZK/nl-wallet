@@ -412,7 +412,7 @@ mod test {
     )]
     #[case("com.example.pid", TypeMetadataDocuments::pid_example())]
     #[case("com.example.address", TypeMetadataDocuments::address_example())]
-    #[case("com.example.diploma", TypeMetadataDocuments::degree_example())]
+    #[case("com.example.degree", TypeMetadataDocuments::degree_example())]
     #[case(
         "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
         TypeMetadataDocuments::example_with_extension()

@@ -3,8 +3,7 @@ issuer_trust_anchors = ["${PID_CA_CRT}"]
 reader_trust_anchors = ["${RP_CA_CRT}"]
 
 metadata = [
-    "${ISSUER_METADATA_PID_PATH}",
-    "${ISSUER_METADATA_ADDRESS_PATH}"
+    "${ISSUER_METADATA_DEGREE_PATH}"
 ]
 
 [storage]
@@ -30,7 +29,7 @@ certificate = "${ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE}"
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { bsn = true } }
 
-[attestation_settings."com.example.address"]
+[attestation_settings."com.example.degree"]
 valid_days = 365
 copy_count = 4
 private_key_type = "hsm"

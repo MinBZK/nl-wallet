@@ -1,0 +1,145 @@
+{
+  "vct": "com.example.degree",
+  "name": "Degree credential",
+  "description": "Degree credential",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Degree",
+      "description": "A degree credential"
+    },
+    {
+      "lang": "nl-NL",
+      "name": "Diploma",
+      "description": "Een diploma attestatie"
+    }
+  ],
+  "claims": [
+    {
+      "path": ["university"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Universiteit",
+          "description": "Universiteit waar het diploma is behaald"
+        },
+        {
+          "lang": "en-US",
+          "label": "University",
+          "description": "University where the degree was obtained"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["education"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Opleiding",
+          "description": "Naam van de opleiding waarvoor het diploma is behaald"
+        },
+        {
+          "lang": "en-US",
+          "label": "Education",
+          "description": "Name of the education for which the degree was obtained"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["graduation_date"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Afstudeerdatum",
+          "description": "Datum waarop het diploma is behaald"
+        },
+        {
+          "lang": "en-US",
+          "label": "Graduation date",
+          "description": "Date on which the degree was obtained"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["grade"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Cijfer",
+          "description": "Cijfer waarmee het diploma is behaald"
+        },
+        {
+          "lang": "en-US",
+          "label": "Grade",
+          "description": "Grade with which the degree was obtained"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["cum_laude"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Cum Laude",
+          "description": "Of het diploma cum laude is behaald"
+        },
+        {
+          "lang": "en-US",
+          "label": "Cum Laude",
+          "description": "Whether the degree was obtained cum laude"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Diploma VCT Schema",
+    "description": "The JSON schema that defines a degree VCT",
+    "type": "object",
+    "properties": {
+      "university": {
+        "type": "string"
+      },
+      "education": {
+        "type": "string"
+      },
+      "graduation_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "grade": {
+        "type": "string"
+      },
+      "cum_laude": {
+        "type": "boolean"
+      },
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      }
+    },
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
+  }
+}

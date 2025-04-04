@@ -436,28 +436,25 @@ pub async fn start_issuance_server(mut settings: IssuanceServerSettings, hsm: Op
 
     let attributes_fetcher = MockAttributesFetcher(
         vec![IssuableDocument::try_new(
-            "com.example.address".to_string(),
+            "com.example.degree".to_string(),
             IndexMap::from([
                 (
-                    "resident_street".to_string(),
-                    Attribute::Single(AttributeValue::Text("resident_street".to_string())),
+                    "university".to_string(),
+                    Attribute::Single(AttributeValue::Text("Example university".to_string())),
                 ),
                 (
-                    "resident_house_number".to_string(),
-                    Attribute::Single(AttributeValue::Text("resident_house_number".to_string())),
+                    "education".to_string(),
+                    Attribute::Single(AttributeValue::Text("Example education".to_string())),
                 ),
                 (
-                    "resident_postal_code".to_string(),
-                    Attribute::Single(AttributeValue::Text("resident_postal_code".to_string())),
+                    "graduation_date".to_string(),
+                    Attribute::Single(AttributeValue::Text("1970-01-01".to_string())),
                 ),
                 (
-                    "resident_city".to_string(),
-                    Attribute::Single(AttributeValue::Text("resident_city".to_string())),
+                    "grade".to_string(),
+                    Attribute::Single(AttributeValue::Text("A".to_string())),
                 ),
-                (
-                    "resident_country".to_string(),
-                    Attribute::Single(AttributeValue::Text("resident_country".to_string())),
-                ),
+                ("cum_laude".to_string(), Attribute::Single(AttributeValue::Bool(true))),
             ]),
         )
         .unwrap()]
