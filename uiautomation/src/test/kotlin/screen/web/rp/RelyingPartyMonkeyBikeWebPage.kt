@@ -10,9 +10,9 @@ class RelyingPartyMonkeyBikeWebPage : MobileActions() {
     val body = RelyingPartyDemoBody()
     val popup = RelyingPartyDemoPopup()
 
-    private val accountWelcomeTextLocator = By.xpath("//div[@role='alert' and contains(./span/text(), 'Welkom')]")
+    private val loginFailedMessage = By.xpath("//div[@role='alert' and contains(./span/text(), 'Inloggen mislukt. Probeer het opnieuw.')]")
 
-    fun welcomeMessageVisible() = isWebElementVisible(findElement(accountWelcomeTextLocator))
+    fun loginFailedMessageVisible() = isWebElementVisible(findElement(loginFailedMessage))
 
     fun openSameDeviceWalletFlow(platform: String) {
         when (platform) {
@@ -30,4 +30,6 @@ class RelyingPartyMonkeyBikeWebPage : MobileActions() {
         }
     }
 }
+
+
 

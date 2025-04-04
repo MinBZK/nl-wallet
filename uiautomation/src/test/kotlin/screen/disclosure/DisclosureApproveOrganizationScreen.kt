@@ -15,6 +15,10 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val viewDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoCta"))
     private val goBackButton = find.byText(l10n.getString("generalBottomBackCta"))
     private val closeDialogButton = find.byValueKey("close_icon_button")
+    private val stopRequestButton = find.byText(l10n.getString("disclosureMissingAttributesPageCloseCta"))
+    private val viewSharedDataButton = find.byText(l10n.getString("sharedAttributesCardCta"))
+    private val readTermsButton = find.byText(l10n.getString("loginDetailScreenAgreementCta"))
+    private val termsSubtitle = find.byText(l10n.getString("policyScreenSubtitle"))
 
 
     fun login() = clickElement(loginButton)
@@ -74,4 +78,29 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     fun closeDialog() {
         clickElement(closeDialogButton)
     }
+
+    fun stopRequestAfterMissingAttributeFailure() {
+        clickElement(stopRequestButton)
+    }
+
+    fun closeDisclosureAfterCompletedOrUncompleted() {
+        clickElement(closeButton)
+    }
+
+    fun viewSharedData() {
+        clickElement(viewSharedDataButton)
+    }
+
+    fun bsnVisible(bsn: String): Boolean {
+        return isElementVisible(find.byText(bsn))
+    }
+
+    fun readTerms() {
+        clickElement(readTermsButton)
+    }
+
+    fun termsVisible(): Boolean {
+        return isElementVisible(termsSubtitle)
+    }
 }
+
