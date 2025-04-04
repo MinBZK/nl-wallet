@@ -187,6 +187,8 @@ pub struct Created {
     pub credential_previews: Option<Vec<CredentialFormats<CredentialPreview>>>,
 }
 
+// TODO (PVW-4110): Do not store the entire preview in the database, but just the attributes that are to be issued.
+//                  Now this also includes the metadata chain and issuer certificate, which should not be necessary.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     pub access_token: AccessToken,
