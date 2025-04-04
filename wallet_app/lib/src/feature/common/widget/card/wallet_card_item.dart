@@ -9,15 +9,18 @@ import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../theme/dark_wallet_theme.dart';
 import '../../../../theme/light_wallet_theme.dart';
+import '../../../../theme/wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/locale_extension.dart';
 import '../../../../util/extension/object_extension.dart';
 import '../../../../util/extension/string_extension.dart';
+import '../../decoration/shadow_decoration.dart';
 import '../animated_fade_in.dart';
 import '../animated_fade_out.dart';
 import '../text/body_text.dart';
 import '../text/headline_small_text.dart';
 import '../utility/disable_text_scaling.dart';
+import 'bottom_clip_shadow.dart';
 import 'card_logo.dart';
 import 'card_network_logo.dart';
 import 'mock_card_background.dart';
@@ -31,7 +34,7 @@ Color _kFallbackTextColor = const Color(0xFF152A62);
 
 // Default card size constraints, configured so the card can expand vertically.
 const _kCardSizeConstraints = BoxConstraints(maxWidth: 328, minHeight: 192);
-const _kCardBorderRadius = BorderRadius.all(Radius.circular(12));
+const _kCardBorderRadius = WalletTheme.kBorderRadius12;
 const _kCardContentPadding = 24.0;
 
 class WalletCardItem extends StatefulWidget {
@@ -212,20 +215,25 @@ class _WalletCardItemState extends State<WalletCardItem> {
         child: FittedBox(
           child: ConstrainedBox(
             constraints: _kCardSizeConstraints,
-            child: ClipRRect(
-              borderRadius: _kCardBorderRadius,
-              child: MergeSemantics(
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: _buildBackground(),
-                    ),
-                    _buildContent(context),
-                    _buildPositionedShowDetailsCta(context),
-                    Positioned.fill(
-                      child: _buildRippleAndFocus(context),
-                    ),
-                  ],
+            child: DecoratedBox(
+              decoration: CardShadowDecoration(),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: _kCardBorderRadius,
+                clipBehavior: Clip.antiAlias,
+                child: MergeSemantics(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _buildBackground(),
+                      ),
+                      _buildContent(context),
+                      _buildPositionedShowDetailsCta(context),
+                      Positioned.fill(
+                        child: _buildRippleAndFocus(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -235,7 +243,15 @@ class _WalletCardItemState extends State<WalletCardItem> {
     );
   }
 
-  Widget _buildBackground() => widget.background ?? const SizedBox.shrink();
+  Widget _buildBackground() {
+    return Stack(
+      children: [
+        Positioned.fill(child: widget.background ?? const SizedBox.shrink()),
+        // Draw a subtle shadow overlay (3d effect) at the bottom.
+        BottomClipShadow(radius: _kCardBorderRadius.bottomLeft.x),
+      ],
+    );
+  }
 
   Widget _buildContent(BuildContext context) {
     return Padding(

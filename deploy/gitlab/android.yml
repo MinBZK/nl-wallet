@@ -130,7 +130,7 @@ build-android-app-mock:
     SENTRY_PROJECT: "${SENTRY_PROJECT_MOCK}"
     SENTRY_URL: "https://sentry.io/"
 
-.build-android-app-demo:
+build-android-app-demo:
   extends: .build-android-app-release-tag
   rules:
     - !reference [.on-demo-build, rules]
@@ -142,23 +142,12 @@ build-android-app-mock:
     APP_NAME: "NL Wallet (demo)"
     UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
     CONFIG_ENV: "demo"
-
-build-android-app-demo:
-  extends: .build-android-app-demo
-  variables:
     SENTRY_DSN: "${SENTRY_DSN_DEMO}"
     SENTRY_ENVIRONMENT: "demo"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
     SENTRY_ORG: "${SENTRY_ORG_DEMO}"
     SENTRY_PROJECT: "${SENTRY_PROJECT_DEMO}"
     SENTRY_URL: "https://sentry.io/"
-
-build-android-app-demo-profile:
-  extends: .build-android-app-demo
-  variables:
-    APP_FILE_FORMAT: "apk" # override .build-android-app-release-tag
-    APP_BUILD_MODE: "profile" # override .build-android-app-release-tag
-    MOCK_RELYING_PARTY_URL: "https://${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_DEMO}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
 
 build-android-app-acceptance:
   extends: .build-android-app-release-tag

@@ -6,12 +6,12 @@ import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
+import '../../decoration/shadow_decoration.dart';
 import '../default_text_and_focus_style.dart';
 import 'card_holograph.dart';
 import 'wallet_card_item.dart';
 
 const _kCornerRadius = Radius.circular(12);
-const _kBorderRadius = BorderRadius.all(_kCornerRadius);
 const _kHolographSize = 134.0;
 const _kHeaderStripHeight = 40.0;
 
@@ -54,7 +54,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
     return Semantics(
       button: true,
       child: DecoratedBox(
-        decoration: _createBorderDecoration(context),
+        decoration: CardShadowDecoration(),
         child: TextButton(
           onPressed: widget.onTap,
           statesController: _statesController,
@@ -194,24 +194,5 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
             width: 1,
           )
         : null;
-  }
-
-  BoxDecoration _createBorderDecoration(BuildContext context) {
-    return BoxDecoration(
-      borderRadius: _kBorderRadius,
-      color: context.colorScheme.surface,
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x0000000D),
-          blurRadius: 15,
-          offset: Offset(0, 1),
-        ),
-        BoxShadow(
-          color: Color(0x152A621A),
-          blurRadius: 4,
-          offset: Offset(0, 4),
-        ),
-      ],
-    );
   }
 }
