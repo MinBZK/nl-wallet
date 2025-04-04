@@ -121,6 +121,6 @@ spec:
         claimName: preloaded-gba-v-data-pvc
     - name: zoek-xml-volume
       configMap:
-        name: nl-wallet-gba-hc-converter-zoek-xml
+        name: {{ include "common.names.fullname" . }}-zoek-xml
 
 {{ end }}

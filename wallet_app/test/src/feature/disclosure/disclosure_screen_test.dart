@@ -574,6 +574,17 @@ void main() {
         await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
         await tester.pumpAndSettle();
         expect(find.byType(LoginDetailScreen), findsOneWidget);
+        expect(find.text(WalletMockData.organization.displayName.testValue), findsOneWidget);
+        expect(
+          find.text(
+            l10n.disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle(
+              3,
+              WalletMockData.organization.displayName.testValue,
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text(l10n.loginDetailScreenAgreementCta), findsOneWidget);
       },
     );
 

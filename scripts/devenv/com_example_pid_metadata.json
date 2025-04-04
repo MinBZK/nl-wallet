@@ -6,12 +6,14 @@
     {
       "lang": "en-US",
       "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet"
+      "description": "The Personal Data credential for the NL Wallet",
+      "summary": "{{given_name}}"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet",
+      "summary": "{{given_name}}"
     }
   ],
   "claims": [
@@ -45,7 +47,8 @@
           "description": "First name of the person"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "given_name"
     },
     {
       "path": ["birth_date"],

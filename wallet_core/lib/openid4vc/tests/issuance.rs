@@ -42,6 +42,7 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::WteConfig;
 use openid4vc::metadata::IssuerMetadata;
+use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::oidc;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::MemoryWteTracker;
@@ -120,7 +121,7 @@ fn setup(
         attr_service,
         attestation_config,
         &server_url,
-        vec!["https://wallet.edi.rijksoverheid.nl".to_string()],
+        vec![MOCK_WALLET_CLIENT_ID.to_string()],
         Some(WteConfig {
             wte_issuer_pubkey: wte_issuer_privkey.verifying_key().into(),
             wte_tracker: Arc::new(MemoryWteTracker::new()),
@@ -426,6 +427,10 @@ fn invalidate_jwt(jwt: &str) -> String {
 }
 
 impl VcMessageClient for MockOpenidMessageClient {
+    fn client_id(&self) -> &str {
+        MOCK_WALLET_CLIENT_ID
+    }
+
     async fn discover_metadata(&self, url: &BaseUrl) -> Result<IssuerMetadata, IssuanceSessionError> {
         Ok(IssuerMetadata::new_mock(url))
     }

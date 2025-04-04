@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: cm-nl-wallet-gba-hc-converter-encrypt-script
+  name: {{ include "common.names.fullname" . }}-encrypt-script
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 data:

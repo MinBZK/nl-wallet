@@ -29,7 +29,6 @@ use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtX5cError;
 use jwt::Jwt;
-use jwt::NL_WALLET_CLIENT_ID;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::verifier::DisclosedAttributes;
@@ -682,12 +681,19 @@ impl VpAuthorizationResponse {
         jwe: &str,
         private_key: &EcKeyPair,
         auth_request: &IsoVpAuthorizationRequest,
+        accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<DisclosedAttributes, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
-        response.verify(auth_request, &mdoc_nonce, time, trust_anchors)
+        response.verify(
+            auth_request,
+            accepted_wallet_client_ids,
+            &mdoc_nonce,
+            time,
+            trust_anchors,
+        )
     }
 
     pub fn decrypt(
@@ -749,6 +755,7 @@ impl VpAuthorizationResponse {
     pub fn verify(
         &self,
         auth_request: &IsoVpAuthorizationRequest,
+        accepted_wallet_client_ids: &[String],
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
@@ -773,7 +780,7 @@ impl VpAuthorizationResponse {
             self.poa.as_ref().ok_or(AuthResponseError::MissingPoa)?.clone().verify(
                 &used_keys,
                 auth_request.client_id.as_str(),
-                NL_WALLET_CLIENT_ID,
+                accepted_wallet_client_ids,
                 mdoc_nonce,
             )?
         }
@@ -856,6 +863,7 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::vec_at_least::VecAtLeastTwoUnique;
 
+    use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::IsoVpAuthorizationRequest;
     use crate::AuthorizationErrorCode;
@@ -1250,6 +1258,7 @@ mod tests {
         auth_response
             .verify(
                 &auth_request,
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
                 mdoc_nonce,
                 &IsoCertTimeGenerator,
                 &[ca.to_trust_anchor()],
@@ -1293,7 +1302,13 @@ mod tests {
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
         auth_response
-            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
+            .verify(
+                &auth_request,
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
+                mdoc_nonce,
+                &TimeGenerator,
+                trust_anchors,
+            )
             .unwrap();
     }
 
@@ -1314,7 +1329,13 @@ mod tests {
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, None);
         let error = auth_response
-            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
+            .verify(
+                &auth_request,
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
+                mdoc_nonce,
+                &TimeGenerator,
+                trust_anchors,
+            )
             .expect_err("should fail due to missing PoA");
         assert!(matches!(error, AuthResponseError::MissingPoa));
     }
@@ -1339,7 +1360,13 @@ mod tests {
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, Some(poa));
         let error = auth_response
-            .verify(&auth_request, mdoc_nonce, &TimeGenerator, trust_anchors)
+            .verify(
+                &auth_request,
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
+                mdoc_nonce,
+                &TimeGenerator,
+                trust_anchors,
+            )
             .expect_err("should fail due to missing PoA");
         assert!(matches!(error, AuthResponseError::PoaVerification(_)));
     }

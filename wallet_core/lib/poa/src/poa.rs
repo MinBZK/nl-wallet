@@ -94,7 +94,7 @@ impl Poa {
         self,
         expected_keys: &[VerifyingKey],
         expected_aud: &str,
-        expected_iss: &str,
+        accepted_issuers: &[String],
         expected_nonce: &str,
     ) -> Result<(), PoaVerificationError> {
         let jwts: Vec<Jwt<_>> = self.into();
@@ -124,7 +124,7 @@ impl Poa {
         // Validate all the JWTs, against the keys in the payload of the JWTs.
         let mut validations = validations();
         validations.set_audience(&[expected_aud]);
-        validations.set_issuer(&[expected_iss]);
+        validations.set_issuer(accepted_issuers);
         for (jwt, jwk) in jwts.into_iter().zip(payload.jwks.as_slice()) {
             let pubkey = jwk_to_p256(jwk)?;
             let (header, _) = jwt.parse_and_verify_with_header(&(&pubkey).into(), &validations)?;
@@ -209,7 +209,7 @@ mod tests {
         poa.verify(
             &[key2, key1], // verify() is insensitive to the order of the keys
             &aud,
-            &iss,
+            &[iss],
             &nonce,
         )
         .unwrap();
@@ -230,7 +230,7 @@ mod tests {
         poa.verify(
             &[key1, key2],
             verification_aud.unwrap_or(&aud),
-            verification_iss.unwrap_or(&iss),
+            &[verification_iss.unwrap_or(&iss).to_string()],
             verification_nonce.unwrap_or(&nonce),
         )
         .unwrap_err();
@@ -241,7 +241,7 @@ mod tests {
         let (poa, key1, _, iss, aud, nonce) = poa_setup().await;
 
         assert_matches!(
-            &poa.verify(&[key1], &aud, &iss, &nonce).unwrap_err(),
+            &poa.verify(&[key1], &aud, &[iss], &nonce).unwrap_err(),
             PoaVerificationError::UnexpectedSignatureCount { .. }
         );
     }
@@ -253,7 +253,7 @@ mod tests {
         let key3 = *SigningKey::random(&mut OsRng).verifying_key();
 
         assert_matches!(
-            &poa.verify(&[key1, key2, key3], &aud, &iss, &nonce).unwrap_err(),
+            &poa.verify(&[key1, key2, key3], &aud, &[iss], &nonce).unwrap_err(),
             PoaVerificationError::UnexpectedSignatureCount { .. }
         );
     }
@@ -268,7 +268,7 @@ mod tests {
         let poa: Poa = jwts.try_into().unwrap();
 
         assert_matches!(
-            &poa.verify(&[key1], &aud, &iss, &nonce).unwrap_err(),
+            &poa.verify(&[key1], &aud, &[iss], &nonce).unwrap_err(),
             PoaVerificationError::UnexpectedKeyCount { .. }
         );
     }
@@ -280,7 +280,7 @@ mod tests {
         let other_key = *SigningKey::random(&mut OsRng).verifying_key();
 
         assert_matches!(
-            &poa.verify(&[key1, other_key], &aud, &iss, &nonce).unwrap_err(),
+            &poa.verify(&[key1, other_key], &aud, &[iss], &nonce).unwrap_err(),
             PoaVerificationError::MissingKey { .. }
         );
     }

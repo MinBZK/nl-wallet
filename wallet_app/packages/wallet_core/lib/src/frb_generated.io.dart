@@ -693,6 +693,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.key = cst_encode_String(apiObj.key);
     wireObj.labels = cst_encode_list_claim_display_metadata(apiObj.labels);
     cst_api_fill_to_wire_attribute_value(apiObj.value, wireObj.value);
+    wireObj.svg_id = cst_encode_opt_String(apiObj.svgId);
   }
 
   @protected
@@ -789,6 +790,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     wireObj.lang = cst_encode_String(apiObj.lang);
     wireObj.name = cst_encode_String(apiObj.name);
     wireObj.description = cst_encode_opt_String(apiObj.description);
+    wireObj.summary = cst_encode_opt_String(apiObj.summary);
     wireObj.rendering = cst_encode_opt_box_autoadd_rendering_metadata(apiObj.rendering);
   }
 
@@ -2089,6 +2091,8 @@ final class wire_cst_display_metadata extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> description;
 
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> summary;
+
   external ffi.Pointer<wire_cst_rendering_metadata> rendering;
 }
 
@@ -2225,6 +2229,8 @@ final class wire_cst_attestation_attribute extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_claim_display_metadata> labels;
 
   external wire_cst_attribute_value value;
+
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> svg_id;
 }
 
 final class wire_cst_list_attestation_attribute extends ffi.Struct {

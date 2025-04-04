@@ -19,6 +19,7 @@ test-flutter:
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results.xml qt/quality-time/junit-results/flutter.xml
   artifacts:
     name: test-flutter
+    when: always
     reports:
       junit: wallet_app/build/reports/test-results.xml
     paths:
@@ -29,14 +30,6 @@ test-flutter:
 test-flutter-ui:
   extends: [.flutter, .env-macos-runner]
   rules: !reference [.default-or-release-or-merge-request, rules]
-  artifacts:
-    name: test-flutter-ui
-    when: always
-    paths:
-      - "**/failures/*.png"
-      - wallet_app/build/reports/test-results-ui.xml
-    reports:
-      junit: wallet_app/build/reports/test-results-ui.xml
   script:
     - flutter --version
     - flutter pub get --enforce-lockfile
@@ -47,12 +40,14 @@ test-flutter-ui:
     - deploy/bin/store-artifact.sh wallet_app/build/reports/test-results-ui.xml qt/quality-time/junit-results/flutter-ui.xml
   artifacts:
     name: test-flutter-ui
+    when: always
     reports:
       junit: wallet_app/build/reports/test-results-ui.xml
     paths:
       - wallet_app/coverage/lcov-ui.info
       - wallet_app/build/reports/test-results-ui.json
       - wallet_app/build/reports/test-results-ui.xml
+      - "**/failures/*.png"
 
 # Checks .arb files for unused keys, indicating an update to Lokalise might be in order
 verify-flutter-localizations:

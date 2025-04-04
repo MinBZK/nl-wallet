@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: nl-wallet-gba-hc-converter-zoek-xml
+  name: {{ include "common.names.fullname" . }}-zoek-xml
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 data:

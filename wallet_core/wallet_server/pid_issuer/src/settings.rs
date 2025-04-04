@@ -14,6 +14,7 @@ use issuer_settings::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
+use server_utils::settings::NL_WALLET_CLIENT_ID;
 use utils::utils::prefix_local_path;
 
 #[serde_as]
@@ -60,7 +61,7 @@ impl ServerSettings for PidIssuerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default("wallet_client_ids", vec![jwt::NL_WALLET_CLIENT_ID.to_string()])?
+            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
             .set_default("brp_server", "http://localhost:3007/")?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,

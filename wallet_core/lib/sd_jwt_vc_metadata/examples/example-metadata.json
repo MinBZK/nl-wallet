@@ -6,19 +6,19 @@
     {
       "lang": "en-US",
       "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet"
+      "description": "The Personal Data credential for the NL Wallet",
+      "summary": "Example PID credential"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet",
+      "summary": "Example PID credential"
     }
   ],
   "claims": [
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "en-US",
@@ -29,10 +29,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "locality"
-      ],
+      "path": ["place_of_birth", "locality"],
       "display": [
         {
           "lang": "en-US",
@@ -42,11 +39,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "name"
-      ],
+      "path": ["place_of_birth", "country", "name"],
       "display": [
         {
           "lang": "en-US",
@@ -56,11 +49,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "area_code"
-      ],
+      "path": ["place_of_birth", "country", "area_code"],
       "display": [
         {
           "lang": "en-US",
@@ -70,10 +59,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "has_debt"
-      ],
+      "path": ["financial", "has_debt"],
       "display": [
         {
           "lang": "en-US",
@@ -83,10 +69,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "has_job"
-      ],
+      "path": ["financial", "has_job"],
       "display": [
         {
           "lang": "en-US",
@@ -96,10 +79,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "debt_amount"
-      ],
+      "path": ["financial", "debt_amount"],
       "display": [
         {
           "lang": "en-US",
@@ -174,11 +154,6 @@
         "type": "string"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "attestation_qualification"
-    ]
+    "required": ["vct", "iss", "iat", "attestation_qualification"]
   }
 }

@@ -231,7 +231,7 @@ mod tests {
 
         assert_eq!(all_keyed_data.len(), 1);
 
-        let keyed_data = all_keyed_data.into_iter().last().unwrap();
+        let keyed_data = all_keyed_data.into_iter().next_back().unwrap();
 
         assert_eq!(keyed_data.key, "config");
         assert_eq!(

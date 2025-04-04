@@ -45,15 +45,17 @@ class AttestationAttribute {
   final String key;
   final List<ClaimDisplayMetadata> labels;
   final AttributeValue value;
+  final String? svgId;
 
   const AttestationAttribute({
     required this.key,
     required this.labels,
     required this.value,
+    this.svgId,
   });
 
   @override
-  int get hashCode => key.hashCode ^ labels.hashCode ^ value.hashCode;
+  int get hashCode => key.hashCode ^ labels.hashCode ^ value.hashCode ^ svgId.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -62,7 +64,8 @@ class AttestationAttribute {
           runtimeType == other.runtimeType &&
           key == other.key &&
           labels == other.labels &&
-          value == other.value;
+          value == other.value &&
+          svgId == other.svgId;
 }
 
 @freezed
@@ -121,17 +124,19 @@ class DisplayMetadata {
   final String lang;
   final String name;
   final String? description;
+  final String? summary;
   final RenderingMetadata? rendering;
 
   const DisplayMetadata({
     required this.lang,
     required this.name,
     this.description,
+    this.summary,
     this.rendering,
   });
 
   @override
-  int get hashCode => lang.hashCode ^ name.hashCode ^ description.hashCode ^ rendering.hashCode;
+  int get hashCode => lang.hashCode ^ name.hashCode ^ description.hashCode ^ summary.hashCode ^ rendering.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -141,6 +146,7 @@ class DisplayMetadata {
           lang == other.lang &&
           name == other.name &&
           description == other.description &&
+          summary == other.summary &&
           rendering == other.rendering;
 }
 

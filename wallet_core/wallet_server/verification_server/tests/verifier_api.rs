@@ -53,6 +53,7 @@ use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -190,6 +191,8 @@ async fn wallet_server_settings_and_listener(
         universal_link_base_url: "http://universal.link/".parse().unwrap(),
 
         server_settings: settings,
+
+        wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
     };
 
     (settings, listener, issuer_ca, rp_trust_anchor)

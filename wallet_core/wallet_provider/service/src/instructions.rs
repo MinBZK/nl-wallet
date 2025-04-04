@@ -19,7 +19,6 @@ use hsm::model::encrypter::Encrypter;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
 use jwt::pop::JwtPopClaims;
-use jwt::NL_WALLET_CLIENT_ID;
 use poa::Poa;
 use poa::POA_JWT_TYP;
 use utils::generator::Generator;
@@ -35,6 +34,7 @@ use wallet_account::messages::instructions::IssueWte;
 use wallet_account::messages::instructions::IssueWteResult;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::wallet_user::WalletUser;
 use wallet_provider_domain::model::wallet_user::WalletUserKey;
@@ -462,6 +462,7 @@ mod tests {
     use wallet_account::messages::instructions::GenerateKey;
     use wallet_account::messages::instructions::IssueWte;
     use wallet_account::messages::instructions::Sign;
+    use wallet_account::NL_WALLET_CLIENT_ID;
     use wallet_provider_domain::model::wallet_user;
     use wallet_provider_domain::model::wallet_user::WalletUser;
     use wallet_provider_domain::repository::MockTransaction;
@@ -690,6 +691,7 @@ mod tests {
 
         let mut validations = validations();
         validations.set_audience(&["aud"]);
+        validations.set_issuer(&[NL_WALLET_CLIENT_ID.to_string()]);
 
         Vec::<Jwt<PoaPayload>>::from(poa)
             .into_iter()
