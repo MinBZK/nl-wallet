@@ -1,0 +1,20 @@
+{
+    "printWidth": 120,
+    "tabWidth": 4,
+    "semi": false,
+    "proseWrap": "always",
+    "overrides": [
+        {
+            "files": ["*.md"],
+            "options": {
+                "printWidth": 80
+            }
+        },
+        {
+            "files": ["*.xml", "*.yml", "*.yaml", "*.mjs", "*.js", "*.json", "*.json.template", "*.ts"],
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
+}
