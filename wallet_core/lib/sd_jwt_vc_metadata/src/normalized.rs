@@ -433,7 +433,7 @@ mod tests {
                 .unwrap()
                 .svg_id
                 .as_deref(),
-            Some("identifier")
+            Some("nickname")
         );
 
         // The JSON schemas should be ordered from leaf to root.

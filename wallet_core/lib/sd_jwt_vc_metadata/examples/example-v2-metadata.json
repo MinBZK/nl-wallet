@@ -3,24 +3,24 @@
   "name": "NL Wallet PID credential v2",
   "description": "Working version of the NL Wallet PID credential v2",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-r5+CzdMSEURESaC/QvHz0vpszA5CKLuoI5TGuyaNlH4=",
+  "extends#integrity": "sha256-EJtMlB/CNZGBMBAvaqr4A3aokUlWdKluHtaB1ognBZY=",
   "display": [
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet",
+      "summary": "Uitgebreid voorbeeld persoonsgegevensattestatie van {{nickname}}"
     },
     {
       "lang": "en-US",
       "name": "NL Wallet personal data",
-      "description": "The personal data credential for the NL Wallet"
+      "description": "The personal data credential for the NL Wallet",
+      "summary": "Extended example PID credential of {{nickname}}"
     }
   ],
   "claims": [
     {
-      "path": [
-        "nickname"
-      ],
+      "path": ["nickname"],
       "display": [
         {
           "lang": "en-US",
@@ -28,12 +28,10 @@
         }
       ],
       "sd": "always",
-      "svg_id": "identifier"
+      "svg_id": "nickname"
     },
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "en-US",
@@ -44,10 +42,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "locality"
-      ],
+      "path": ["place_of_birth", "locality"],
       "display": [
         {
           "lang": "en-US",
@@ -57,11 +52,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "name"
-      ],
+      "path": ["place_of_birth", "country", "name"],
       "display": [
         {
           "lang": "en-US",
@@ -71,11 +62,7 @@
       "sd": "allowed"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "area_code"
-      ],
+      "path": ["place_of_birth", "country", "area_code"],
       "display": [
         {
           "lang": "en-US",
@@ -85,11 +72,7 @@
       "sd": "never"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "is_eu_member"
-      ],
+      "path": ["place_of_birth", "country", "is_eu_member"],
       "display": [
         {
           "lang": "en-US",
@@ -99,10 +82,7 @@
       "sd": "never"
     },
     {
-      "path": [
-        "financial",
-        "has_debt"
-      ],
+      "path": ["financial", "has_debt"],
       "display": [
         {
           "lang": "en-US",
@@ -112,10 +92,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "debt_amount"
-      ],
+      "path": ["financial", "debt_amount"],
       "display": [
         {
           "lang": "en-US",
@@ -125,10 +102,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "has_job"
-      ],
+      "path": ["financial", "has_job"],
       "display": [
         {
           "lang": "en-US",
@@ -205,11 +179,6 @@
         "type": "number"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "attestation_qualification"
-    ]
+    "required": ["vct", "iss", "iat", "attestation_qualification"]
   }
 }

@@ -48,6 +48,7 @@ impl Attestation {
                             key: path,
                             metadata: claim.display,
                             value,
+                            svg_id: claim.svg_id,
                         })
                     })
                     .transpose()

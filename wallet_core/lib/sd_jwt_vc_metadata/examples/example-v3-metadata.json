@@ -3,72 +3,44 @@
   "name": "NL Wallet PID credential v3",
   "description": "Working version of the NL Wallet PID credential v3",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
-  "extends#integrity": "sha256-ILNOmq2yE5FX6S/ZKXGSvHC/KvfkUR3e2z2TmraxfZ8=",
+  "extends#integrity": "sha256-wrBJMDL2BmMi/s/siFTekDcIfGxF8OJEyX0ldjTQbow=",
   "claims": [
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "locality"
-      ],
+      "path": ["place_of_birth", "locality"],
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "name"
-      ],
+      "path": ["place_of_birth", "country", "name"],
       "sd": "always"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "area_code"
-      ],
+      "path": ["place_of_birth", "country", "area_code"],
       "sd": "never"
     },
     {
-      "path": [
-        "place_of_birth",
-        "country",
-        "is_eu_member"
-      ],
+      "path": ["place_of_birth", "country", "is_eu_member"],
       "sd": "never"
     },
     {
-      "path": [
-        "financial",
-        "has_debt"
-      ],
+      "path": ["financial", "has_debt"],
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "debt_amount"
-      ],
+      "path": ["financial", "debt_amount"],
       "sd": "always"
     },
     {
-      "path": [
-        "financial",
-        "has_job"
-      ],
+      "path": ["financial", "has_job"],
       "sd": "always"
     },
     {
-      "path": [
-        "nickname"
-      ],
+      "path": ["nickname"],
       "sd": "always",
-      "svg_id": "identifier"
+      "svg_id": "nickname"
     }
   ],
   "schema": {
@@ -139,11 +111,6 @@
         "type": "number"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "attestation_qualification"
-    ]
+    "required": ["vct", "iss", "iat", "attestation_qualification"]
   }
 }

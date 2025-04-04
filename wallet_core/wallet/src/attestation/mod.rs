@@ -56,6 +56,7 @@ pub struct AttestationAttribute {
     pub key: Vec<String>,
     pub metadata: Vec<ClaimDisplayMetadata>,
     pub value: AttestationAttributeValue,
+    pub svg_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

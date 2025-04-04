@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         {{- include "common.labels.customname" (list .Values.frontend.name .) | nindent 8 }}
-        {{ with .Values.frontend.extraPodLabels }}
+        {{ with .Values.frontend.extraPodlabels }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
     spec:

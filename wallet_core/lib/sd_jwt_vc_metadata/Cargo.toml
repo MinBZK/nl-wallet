@@ -18,6 +18,7 @@ itertools.workspace = true
 jsonwebtoken.workspace = true
 jsonschema.workspace = true
 nutype.workspace = true
+regex.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true

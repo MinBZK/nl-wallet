@@ -78,6 +78,12 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage.switchToAppContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible("Gemeente Amsterdam"))
         disclosureScreen.viewLoginDisclosureDetails()
+        disclosureScreen.viewSharedData()
+        assertTrue(disclosureScreen.bsnVisible("9999991772"), "BSN not visible")
+        disclosureScreen.goBack();
+        disclosureScreen.readTerms();
+        assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
+        disclosureScreen.goBack();
         disclosureScreen.goBack();
         disclosureScreen.login()
         pinScreen.enterPin(OnboardingNavigator.PIN)
@@ -124,5 +130,9 @@ class DisclosureTests : TestBase() {
         disclosureScreen.goBack();
         disclosureScreen.proceed()
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
+        disclosureScreen.stopRequestAfterMissingAttributeFailure()
+        disclosureScreen.closeDisclosureAfterCompletedOrUncompleted()
+        monkeyBikeWebPage.switchToWebViewContext()
+        assertTrue(monkeyBikeWebPage.loginFailedMessageVisible(), "Login failed message not visible")
     }
 }

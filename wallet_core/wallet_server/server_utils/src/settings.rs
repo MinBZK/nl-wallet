@@ -28,6 +28,9 @@ use wallet_common::urls::BaseUrl;
 use crate::keys::PrivateKeySettingsError;
 use crate::keys::PrivateKeyVariant;
 
+/// Used as the `iss` field by the wallet in various JWTs.
+pub const NL_WALLET_CLIENT_ID: &str = "https://wallet.edi.rijksoverheid.nl";
+
 /// Settings shared by all variants of issuer/verifier servers.
 #[serde_as]
 #[derive(Clone, Deserialize)]

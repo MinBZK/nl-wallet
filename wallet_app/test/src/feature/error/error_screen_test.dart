@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
 import 'package:wallet/src/feature/common/widget/button/tertiary_button.dart';
 import 'package:wallet/src/feature/error/error_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   group('goldens', () {
@@ -50,15 +52,10 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            return ElevatedButton(
-              onPressed: () => ErrorScreen.showGeneric(context, secured: false),
-              child: const Text('generic'),
-            );
+            return ErrorScreen.generic(context);
           },
         ),
       );
-      // Tap the button to open the generic error screen
-      await tester.tap(find.text('generic'));
       await tester.pumpAndSettle();
       // Verify it's displayed correctly
       await screenMatchesGolden('generic.light');
@@ -68,36 +65,39 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            return ElevatedButton(
-              onPressed: () => ErrorScreen.showNetwork(context, secured: false),
-              child: const Text('network'),
-            );
+            return ErrorScreen.network(context);
           },
         ),
       );
-      // Tap the button to open the server error screen
-      await tester.tap(find.text('network'));
       await tester.pumpAndSettle();
       // Verify it's displayed correctly
       await screenMatchesGolden('network.light');
     });
 
-    testGoldens('ErrorScreen.showNoInternet()', (tester) async {
+    testGoldens('ErrorScreen.deviceIncompatible()', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {
-            return ElevatedButton(
-              onPressed: () => ErrorScreen.showNoInternet(context, secured: false),
-              child: const Text('no_internet'),
-            );
+            return ErrorScreen.deviceIncompatible(context);
           },
         ),
       );
-      // Tap the button to open the server error screen
-      await tester.tap(find.text('no_internet'));
       await tester.pumpAndSettle();
       // Verify it's displayed correctly
-      await screenMatchesGolden('no_internet.light');
+      await screenMatchesGolden('device_incompatible.light');
+    });
+
+    testGoldens('ErrorScreen.sessionExpired()', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return ErrorScreen.sessionExpired(context);
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Verify it's displayed correctly
+      await screenMatchesGolden('session_expired.light');
     });
   });
 
@@ -130,5 +130,122 @@ void main() {
       expect(primaryActionFinder, findsOneWidget);
       expect(secondaryActionFinder, findsOneWidget);
     });
+
+    testWidgets('No Internet ErrorScreen renders expected widgets', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        Builder(
+          builder: (context) {
+            return ErrorScreen.noInternet(context);
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Setup finders
+      final AppLocalizations locale = await TestUtils.englishLocalizations;
+      final descriptionFinder = find.text(locale.errorScreenNoInternetDescription, findRichText: true);
+      final headlineFinder = find.text(locale.errorScreenNoInternetHeadline, findRichText: true);
+      final primaryActionFinder = find.text(locale.generalRetry, findRichText: true);
+      final secondaryActionFinder = find.text(locale.generalShowDetailsCta, findRichText: true);
+
+      // Verify all expected widgets show up once
+      expect(descriptionFinder, findsOneWidget);
+      expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+      expect(primaryActionFinder, findsOneWidget);
+      expect(secondaryActionFinder, findsOneWidget);
+    });
+  });
+
+  testWidgets('Generic ErrorScreen renders expected widgets', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      Builder(
+        builder: (context) {
+          return ErrorScreen.generic(context);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Setup finders
+    final AppLocalizations locale = await TestUtils.englishLocalizations;
+    final descriptionFinder = find.text(locale.errorScreenGenericDescription, findRichText: true);
+    final headlineFinder = find.text(locale.errorScreenGenericHeadline, findRichText: true);
+    final primaryActionFinder = find.text(locale.generalRetry, findRichText: true);
+    final secondaryActionFinder = find.text(locale.generalShowDetailsCta, findRichText: true);
+
+    // Verify all expected widgets show up once
+    expect(descriptionFinder, findsOneWidget);
+    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(primaryActionFinder, findsOneWidget);
+    expect(secondaryActionFinder, findsOneWidget);
+  });
+
+  testWidgets('Device incompatible ErrorScreen renders expected widgets', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      Builder(
+        builder: (context) {
+          return ErrorScreen.deviceIncompatible(context);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Setup finders
+    final AppLocalizations locale = await TestUtils.englishLocalizations;
+    final descriptionFinder = find.text(locale.errorScreenDeviceIncompatibleDescription, findRichText: true);
+    final headlineFinder = find.text(locale.errorScreenDeviceIncompatibleHeadline, findRichText: true);
+    final secondaryActionFinder = find.text(locale.generalShowDetailsCta, findRichText: true);
+
+    // Verify all expected widgets show up once
+    expect(descriptionFinder, findsOneWidget);
+    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(secondaryActionFinder, findsOneWidget);
+  });
+
+  testWidgets('Network ErrorScreen renders expected widgets', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      Builder(
+        builder: (context) {
+          return ErrorScreen.network(context);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Setup finders
+    final AppLocalizations locale = await TestUtils.englishLocalizations;
+    final descriptionFinder = find.text(locale.errorScreenServerDescription, findRichText: true);
+    final headlineFinder = find.text(locale.errorScreenServerHeadline, findRichText: true);
+    final primaryActionFinder = find.text(locale.generalRetry, findRichText: true);
+    final secondaryActionFinder = find.text(locale.generalShowDetailsCta, findRichText: true);
+
+    // Verify all expected widgets show up once
+    expect(descriptionFinder, findsOneWidget);
+    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(secondaryActionFinder, findsOneWidget);
+    expect(primaryActionFinder, findsOneWidget);
+  });
+
+  testWidgets('Session expired ErrorScreen renders expected widgets', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      Builder(
+        builder: (context) {
+          return ErrorScreen.sessionExpired(context);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    // Setup finders
+    final AppLocalizations locale = await TestUtils.englishLocalizations;
+    final descriptionFinder = find.text(locale.errorScreenSessionExpiredDescription, findRichText: true);
+    final headlineFinder = find.text(locale.errorScreenSessionExpiredHeadline, findRichText: true);
+    final primaryActionFinder = find.text(locale.generalRetry, findRichText: true);
+    final secondaryActionFinder = find.text(locale.generalShowDetailsCta, findRichText: true);
+
+    // Verify all expected widgets show up once
+    expect(descriptionFinder, findsOneWidget);
+    expect(headlineFinder, findsNWidgets(2) /* app bar + content */);
+    expect(primaryActionFinder, findsOneWidget);
+    expect(secondaryActionFinder, findsOneWidget);
   });
 }
