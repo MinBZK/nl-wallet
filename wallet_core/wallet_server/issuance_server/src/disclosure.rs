@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use anyhow::anyhow;
-use anyhow::Context;
 use indexmap::IndexMap;
 use serde::Serialize;
 
@@ -18,16 +16,14 @@ use openid4vc::issuer::IssuanceData;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionStoreError;
 use openid4vc::server_state::SessionToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::verifier::DisclosureResultHandler;
-use wallet_common::reqwest;
+use openid4vc::verifier::DisclosureResultHandlerError;
+use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct DisclosureBasedAttributeError(#[from] anyhow::Error);
 
 pub struct DisclosureBasedAttributeService<IS> {
     issuance_sessions: Arc<IS>,
@@ -39,31 +35,40 @@ impl<IS> DisclosureBasedAttributeService<IS> {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum AttributeServiceError {
+    #[error("failed to get issuance session: {0}")]
+    GetIssuanceSession(#[from] SessionStoreError),
+    #[error("issuance session not found: {0}")]
+    MissingIssuanceSession(SessionToken),
+    #[error("issuance session in unexpected state")]
+    IsuanceSessionUnexpectedState,
+    #[error("no attributes to be issued")]
+    NoIssuableDocuments,
+}
+
 impl<IS> AttributeService for DisclosureBasedAttributeService<IS>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
 {
-    type Error = DisclosureBasedAttributeError;
+    type Error = AttributeServiceError;
 
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        let session_token = token_request.code().clone().into();
         let issuance_data = self
             .issuance_sessions
-            .get(&token_request.code().clone().into())
-            .await
-            .context("failed to get issuance session")?
-            .ok_or(anyhow!(
-                "issuance session not found: {0}",
-                token_request.code().as_ref()
-            ))?
+            .get(&session_token)
+            .await?
+            .ok_or_else(|| AttributeServiceError::MissingIssuanceSession(session_token.clone()))?
             .data;
 
         let IssuanceData::Created(created) = issuance_data else {
-            return Err(anyhow!("issuance session in unexpected state").into());
+            return Err(AttributeServiceError::IsuanceSessionUnexpectedState);
         };
 
         let issuable_documents = created
             .issuable_documents
-            .ok_or(anyhow!("no attributes to be issued"))?;
+            .ok_or_else(|| AttributeServiceError::NoIssuableDocuments)?;
 
         Ok(issuable_documents)
     }
@@ -84,15 +89,23 @@ where
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum AttributesFetcherError {
+    #[error("unknown usecase: {0}")]
+    UnknownUsecase(String),
+    #[error("failed to fetch attributes to be issued: {0}")]
+    AttestationsFetching(#[from] reqwest::Error),
+    #[error("failed to deserialize attributes to be issued: {0}")]
+    AttestationsDeserializing(#[from] serde_json::Error),
+}
+
 #[trait_variant::make(Send)]
 pub trait AttributesFetcher {
-    type Error: std::error::Error + Send + Sync + 'static;
-
     async fn attributes(
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
+    ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError>;
 }
 
 pub struct HttpAttributesFetcher {
@@ -100,31 +113,27 @@ pub struct HttpAttributesFetcher {
 }
 
 impl AttributesFetcher for HttpAttributesFetcher {
-    type Error = DisclosureBasedAttributeError;
-
     async fn attributes(
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+    ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError> {
         let usecase_url = self
             .urls
             .get(usecase_id)
-            .ok_or(anyhow!("unknown usecase: {usecase_id}"))?
+            .ok_or_else(|| AttributesFetcherError::UnknownUsecase(usecase_id.to_string()))?
             .as_ref()
             .clone();
 
-        let to_issue = reqwest::default_reqwest_client_builder()
+        let to_issue = default_reqwest_client_builder()
             .build()
-            .context("failed to construct reqwest instance")?
+            .expect("failed to construct reqwest instance")
             .post(usecase_url)
             .json(disclosed)
             .send()
-            .await
-            .context("failed to fetch attributes to be issued")?
+            .await?
             .json()
-            .await
-            .context("failed to deserialize attributes to be issued")?;
+            .await?;
 
         Ok(to_issue)
     }
@@ -136,23 +145,29 @@ pub struct IssuanceResultHandler<IS, A> {
     pub credential_issuer: BaseUrl,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum IssuanceResultHandlerError {
+    #[error("failed to fetch attributes: {0}")]
+    FetchingAttributes(#[from] AttributesFetcherError),
+    #[error("failed to write issuance session: {0}")]
+    WriteIssuanceSession(#[from] SessionStoreError),
+}
+
 impl<IS, A> DisclosureResultHandler for IssuanceResultHandler<IS, A>
 where
     IS: SessionStore<IssuanceData> + Send + Sync + 'static,
     A: AttributesFetcher + Sync + 'static,
 {
-    type Error = DisclosureBasedAttributeError;
-
     async fn disclosure_result(
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, Self::Error> {
+    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError> {
         let to_issue = self
             .attributes_fetcher
             .attributes(usecase_id, disclosed)
             .await
-            .context("failed to fetch attributes")?;
+            .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
 
         let credential_configuration_ids = to_issue
             .iter()
@@ -170,7 +185,7 @@ where
         self.issuance_sessions
             .write(session, true)
             .await
-            .context("failed to write issuance session")?;
+            .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
 
         let credential_offer = CredentialOffer {
             credential_issuer: self.credential_issuer.clone(),
@@ -190,7 +205,6 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use std::convert::Infallible;
 
     use indexmap::IndexMap;
 
@@ -199,17 +213,16 @@ pub mod mock {
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use super::AttributesFetcher;
+    use super::AttributesFetcherError;
 
     pub struct MockAttributesFetcher(pub VecNonEmpty<IssuableDocument>);
 
     impl AttributesFetcher for MockAttributesFetcher {
-        type Error = Infallible;
-
         async fn attributes(
             &self,
             _usecase_id: &str,
             _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-        ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError> {
             Ok(self.0.clone())
         }
     }
@@ -217,7 +230,6 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::Infallible;
     use std::sync::Arc;
 
     use indexmap::IndexMap;
@@ -238,18 +250,17 @@ mod tests {
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use super::AttributesFetcher;
+    use super::AttributesFetcherError;
     use super::IssuanceResultHandler;
 
     pub struct TestAttributesFetcher;
 
     impl AttributesFetcher for TestAttributesFetcher {
-        type Error = Infallible;
-
         async fn attributes(
             &self,
             _usecase_id: &str,
             disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-        ) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError> {
             // Insert the received attribute type into the issuable document so the caller can see we did our job
             let (attestation_type, _) = disclosed.first().unwrap();
 

@@ -62,6 +62,7 @@ use openid4vc::server_state::SessionToken;
 use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
+use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -382,13 +383,11 @@ impl MockDisclosureResultHandler {
 }
 
 impl DisclosureResultHandler for MockDisclosureResultHandler {
-    type Error = Infallible;
-
     async fn disclosure_result(
         &self,
         _usecase_id: &str,
         _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, Self::Error> {
+    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError> {
         Ok(self
             .key
             .as_ref()

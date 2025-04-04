@@ -2,7 +2,6 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
@@ -506,28 +505,34 @@ impl<K> UseCase<K> {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum DisclosureResultHandlerError {
+    #[error("error handling disclosure result: {0}")]
+    Other(Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    /// Error that should be passed as is to the wallet
+    #[error(transparent)]
+    WalletError(PostAuthResponseError),
+}
+
 #[trait_variant::make(Send)]
 pub trait DisclosureResultHandler {
-    type Error: std::error::Error + Send + Sync + 'static;
-
     async fn disclosure_result(
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, Self::Error>;
+    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError>;
 }
 
 #[derive(Debug)]
 pub struct NoOpDisclosureResultHandler;
 
 impl DisclosureResultHandler for NoOpDisclosureResultHandler {
-    type Error = Infallible;
-
     async fn disclosure_result(
         &self,
         _: &str,
         _: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, Self::Error> {
+    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError> {
         Ok(HashMap::<String, String>::new())
     }
 }
@@ -1204,7 +1209,12 @@ impl Session<WaitingForResponse> {
             .await
         {
             Ok(query_params) => query_params,
-            Err(err) => return self.handle_err(PostAuthResponseError::HandlingDisclosureResult(err.into())),
+            Err(err) => {
+                return self.handle_err(match err {
+                    DisclosureResultHandlerError::WalletError(err) => err, // pass the error on as is to the wallet
+                    DisclosureResultHandlerError::Other(err) => PostAuthResponseError::HandlingDisclosureResult(err),
+                });
+            }
         };
 
         let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
