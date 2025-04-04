@@ -24,5 +24,5 @@ tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 
-http_utils = { path = "../lib/http_utils", features = ["axum"] }
+http_utils = { path = "../lib/http_utils", features = ["axum", "client"] }
 utils.path = "../lib/utils"

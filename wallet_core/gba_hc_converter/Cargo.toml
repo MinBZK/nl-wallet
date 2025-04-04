@@ -56,7 +56,7 @@ tracing-subscriber = { workspace = true, features = [
 trait-variant.workspace = true
 
 crypto.path = "../lib/crypto"
-http_utils = { path = "../lib/http_utils", features = ["axum"] }
+http_utils = { path = "../lib/http_utils", features = ["axum", "client"] }
 utils = { path = "../lib/utils" }
 
 [dev-dependencies]

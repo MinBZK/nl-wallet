@@ -82,7 +82,7 @@ parking_lot = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"
-http_utils.path = "../http_utils"
+http_utils = { path = "../http_utils", features = ["client"] }
 jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 poa.path = "../poa"
