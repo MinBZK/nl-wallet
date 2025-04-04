@@ -107,6 +107,11 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
   List<Widget> _buildMenuItems(BuildContext context) {
     final defaultMenuItems = [
       MenuRow(
+        label: context.l10n.menuScreenTourCta,
+        icon: Icons.play_arrow,
+        onTap: () => PlaceholderScreen.showGeneric(context),
+      ),
+      MenuRow(
         label: context.l10n.menuScreenHelpCta,
         icon: Icons.help_outline,
         onTap: () => PlaceholderScreen.showHelp(context),
