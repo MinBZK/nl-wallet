@@ -4,6 +4,7 @@ import com.codeborne.selenide.Selenide
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import data.TestConfigRepository.Companion.testConfig
 import io.restassured.RestAssured
+import io.restassured.http.ContentType
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.remote.RemoteWebDriver
 import util.EnvironmentUtil
@@ -40,5 +41,16 @@ object BrowserStackHelper {
             ?: DateTimeFormatter.ofPattern("dd/MM-HH:mm:ss")
         val formattedDateTime = currentDateTime.format(formatter)
         return "build-$formattedDateTime"
+    }
+
+    fun setNetwork(endpoint: String, userName: String, accessKey: String, sessionId: String, networkProfile: String) {
+        RestAssured
+            .given()
+            .contentType(ContentType.JSON)
+            .auth().basic(userName, accessKey)
+            .body("{\"networkProfile\":\"$networkProfile\"}")
+            .put("$endpoint$sessionId/update_network.json")
+            .then()
+            .statusCode(200)
     }
 }
