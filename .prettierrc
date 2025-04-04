@@ -11,7 +11,7 @@
             }
         },
         {
-            "files": ["*.xml", "*.yml", "*.yaml", "*.mjs", "*.js", "*.json", "*.json.template", "*.ts"],
+            "files": ["*.xml", "*.yml", "*.yaml", "*.mjs", "*.js", "*.json", "*.json.template", "*.ts", "*.vue"],
             "options": {
                 "tabWidth": 2
             }
