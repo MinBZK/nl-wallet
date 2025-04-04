@@ -26,7 +26,7 @@ void main() {
       'Card with simple rendering is rendered as expected',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          surfaceSize: const Size(328, 192),
+          surfaceSize: const Size(328, 198),
           Builder(
             builder: (context) {
               return WalletCardItem.fromWalletCard(context, WalletMockData.simpleRenderingCard);
@@ -37,21 +37,11 @@ void main() {
       },
     );
 
-    testGoldens('cardfront', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        surfaceSize: const Size(328, 192),
-        Builder(
-          builder: (context) => WalletCardItem.fromWalletCard(context, WalletMockData.altCard),
-        ),
-      );
-      await screenMatchesGolden('wallet_card_item/mock_front_rendering');
-    });
-
     testGoldens(
       'Card with provided CardFront is rendered as expected',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          surfaceSize: const Size(328, 192),
+          surfaceSize: const Size(328, 198),
           Builder(
             builder: (context) => WalletCardItem.fromWalletCard(context, WalletMockData.altCard),
           ),
@@ -86,7 +76,7 @@ void main() {
               ),
             ],
           ),
-          surfaceSize: const Size(330, 400),
+          surfaceSize: const Size(330, 406),
         );
         await screenMatchesGolden('wallet_card_item/brightness');
       },
@@ -123,7 +113,7 @@ void main() {
               ),
             ],
           ),
-          surfaceSize: const Size(330, 1576),
+          surfaceSize: const Size(330, 1584),
         );
         await screenMatchesGolden('wallet_card_item/scaling');
       },
@@ -166,7 +156,7 @@ void main() {
               ),
             ],
           ),
-          surfaceSize: const Size(330, 816),
+          surfaceSize: const Size(330, 824),
         );
 
         await screenMatchesGolden('wallet_card_item/content');
