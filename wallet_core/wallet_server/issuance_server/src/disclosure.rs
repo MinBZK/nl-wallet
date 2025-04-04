@@ -21,6 +21,7 @@ use openid4vc::server_state::SessionToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
+use openid4vc::verifier::PostAuthResponseError;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::urls::BaseUrl;
 use wallet_common::vec_at_least::VecNonEmpty;
@@ -105,7 +106,7 @@ pub trait AttributesFetcher {
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError>;
+    ) -> Result<Vec<IssuableDocument>, AttributesFetcherError>;
 }
 
 pub struct HttpAttributesFetcher {
@@ -117,7 +118,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError> {
+    ) -> Result<Vec<IssuableDocument>, AttributesFetcherError> {
         let usecase_url = self
             .urls
             .get(usecase_id)
@@ -169,6 +170,10 @@ where
             .await
             .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
 
+        let to_issue: VecNonEmpty<_> = to_issue
+            .try_into()
+            .map_err(|_| DisclosureResultHandlerError::WalletError(PostAuthResponseError::NoIssuableAttestations))?;
+
         let credential_configuration_ids = to_issue
             .iter()
             .map(|attestation| attestation.attestation_type().to_string())
@@ -210,19 +215,18 @@ pub mod mock {
 
     use mdoc::verifier::DocumentDisclosedAttributes;
     use openid4vc::issuable_document::IssuableDocument;
-    use wallet_common::vec_at_least::VecNonEmpty;
 
     use super::AttributesFetcher;
     use super::AttributesFetcherError;
 
-    pub struct MockAttributesFetcher(pub VecNonEmpty<IssuableDocument>);
+    pub struct MockAttributesFetcher(pub Vec<IssuableDocument>);
 
     impl AttributesFetcher for MockAttributesFetcher {
         async fn attributes(
             &self,
             _usecase_id: &str,
             _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-        ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError> {
+        ) -> Result<Vec<IssuableDocument>, AttributesFetcherError> {
             Ok(self.0.clone())
         }
     }
@@ -247,7 +251,10 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use openid4vc::verifier::DisclosureResultHandlerError;
+    use openid4vc::verifier::PostAuthResponseError;
+
+    use crate::disclosure::mock::MockAttributesFetcher;
 
     use super::AttributesFetcher;
     use super::AttributesFetcherError;
@@ -255,12 +262,29 @@ mod tests {
 
     pub struct TestAttributesFetcher;
 
+    fn mock_disclosed_attrs(attestation_type: String) -> IndexMap<String, DocumentDisclosedAttributes> {
+        IndexMap::from([(
+            attestation_type,
+            DocumentDisclosedAttributes {
+                attributes: IndexMap::new(),
+                issuer_uri: "https://example.com".parse().unwrap(),
+                ca: "ca".to_string(),
+                validity_info: ValidityInfo {
+                    signed: Tdate::now(),
+                    valid_from: Tdate::now(),
+                    valid_until: Tdate::now(),
+                    expected_update: None,
+                },
+            },
+        )])
+    }
+
     impl AttributesFetcher for TestAttributesFetcher {
         async fn attributes(
             &self,
             _usecase_id: &str,
             disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-        ) -> Result<VecNonEmpty<IssuableDocument>, AttributesFetcherError> {
+        ) -> Result<Vec<IssuableDocument>, AttributesFetcherError> {
             // Insert the received attribute type into the issuable document so the caller can see we did our job
             let (attestation_type, _) = disclosed.first().unwrap();
 
@@ -271,9 +295,7 @@ mod tests {
                     Attribute::Single(AttributeValue::Text("attrvalue".to_string())),
                 )]),
             )
-            .unwrap()]
-            .try_into()
-            .unwrap())
+            .unwrap()])
         }
     }
 
@@ -290,21 +312,7 @@ mod tests {
 
         // The MockAttributesFetcher will return this attestation type in the issuable documents.
         let mock_disclosed_type = "attestation_type";
-
-        let mock_disclosed_attrs = IndexMap::from([(
-            mock_disclosed_type.to_string(),
-            DocumentDisclosedAttributes {
-                attributes: IndexMap::new(),
-                issuer_uri: "https://example.com".parse().unwrap(),
-                ca: "ca".to_string(),
-                validity_info: ValidityInfo {
-                    signed: Tdate::now(),
-                    valid_from: Tdate::now(),
-                    valid_until: Tdate::now(),
-                    expected_update: None,
-                },
-            },
-        )]);
+        let mock_disclosed_attrs = mock_disclosed_attrs(mock_disclosed_type.to_string());
 
         // IssuanceResultsHandler always returns a CredentialOfferContainer.
         let credential_offer: &dyn std::any::Any = &result_handler
@@ -329,5 +337,26 @@ mod tests {
         // The session should contain an issuable attestation with our earlier disclosed attestation type.
         let issuable = session.issuable_documents.as_ref().unwrap().as_ref().first().unwrap();
         assert_eq!(issuable.attestation_type(), mock_disclosed_type);
+    }
+
+    #[tokio::test]
+    async fn no_attestations_error() {
+        let issuance_sessions: Arc<MemorySessionStore<IssuanceData>> =
+            Arc::new(MemorySessionStore::new(SessionStoreTimeouts::default()));
+
+        let result_handler = IssuanceResultHandler {
+            attributes_fetcher: MockAttributesFetcher(vec![]),
+            issuance_sessions: Arc::clone(&issuance_sessions),
+            credential_issuer: "https://example.com".parse().unwrap(),
+        };
+
+        assert!(matches!(
+            result_handler
+                .disclosure_result("usecase_id", &mock_disclosed_attrs("vct".to_string()))
+                .await,
+            Err(DisclosureResultHandlerError::WalletError(
+                PostAuthResponseError::NoIssuableAttestations
+            ))
+        ));
     }
 }

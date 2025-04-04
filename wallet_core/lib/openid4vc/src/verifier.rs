@@ -154,6 +154,8 @@ pub enum PostAuthResponseError {
     HandlingDisclosureResult(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("failed serializing response: {0}")]
     ResponseEncoding(#[from] serde_urlencoded::ser::Error),
+    #[error("issuer has no attestations to be issued")]
+    NoIssuableAttestations,
 }
 
 /// Errors that can occur when creating a [`UseCase`] instance.

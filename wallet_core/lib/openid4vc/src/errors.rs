@@ -241,6 +241,7 @@ impl ErrorStatusCode for GetRequestErrorCode {
     }
 }
 
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#name-error-response>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PostAuthResponseErrorCode {
@@ -250,6 +251,10 @@ pub enum PostAuthResponseErrorCode {
     UnknownSession,
 
     ServerError,
+
+    /// An NL Wallet specific error code, meaning the following: in a disclosure based issuance session,
+    /// the issuer found no attestations to issue.
+    NoIssuableAttestations,
 }
 
 impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
@@ -273,6 +278,7 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                 | PostAuthResponseError::Session(SessionError::UnexpectedState(_)) => {
                     PostAuthResponseErrorCode::InvalidRequest
                 }
+                PostAuthResponseError::NoIssuableAttestations => PostAuthResponseErrorCode::NoIssuableAttestations,
             },
             error_description: Some(description),
             error_uri: None,
@@ -285,7 +291,8 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
         match self {
             PostAuthResponseErrorCode::ExpiredSession
             | PostAuthResponseErrorCode::CancelledSession
-            | PostAuthResponseErrorCode::UnknownSession => StatusCode::NOT_FOUND,
+            | PostAuthResponseErrorCode::UnknownSession
+            | PostAuthResponseErrorCode::NoIssuableAttestations => StatusCode::NOT_FOUND,
             PostAuthResponseErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             PostAuthResponseErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
         }

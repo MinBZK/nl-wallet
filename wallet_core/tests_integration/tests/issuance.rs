@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use serial_test::serial;
+use url::Url;
 
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
@@ -12,6 +13,7 @@ use wallet::Attestation;
 use wallet::AttestationAttributeValue;
 use wallet::DisclosureUriSource;
 use wallet_common::urls::disclosure_based_issuance_base_uri;
+use wallet_common::urls::BaseUrl;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 
 #[tokio::test]
@@ -54,26 +56,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-#[tokio::test]
-#[serial(hsm)]
-async fn test_disclosure_based_issuance() {
-    let _context = setup_digid_context();
-
-    let pin = "112233";
-    let (mut wallet, _, issuance_server_url) = setup_wallet_and_env(
-        WalletDeviceVendor::Apple,
-        config_server_settings(),
-        update_policy_server_settings(),
-        wallet_provider_settings(),
-        verification_server_settings(),
-        pid_issuer_settings(),
-        issuance_server_settings(),
-    )
-    .await;
-
-    wallet = do_wallet_registration(wallet, pin).await;
-    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
-
+fn universal_link(issuance_server_url: BaseUrl) -> Url {
     let params = serde_urlencoded::to_string(VerifierUrlParameters {
         session_type: SessionType::SameDevice,
         ephemeral_id_params: None,
@@ -95,8 +78,64 @@ async fn test_disclosure_based_issuance() {
     let mut uri = disclosure_based_issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
     uri.set_query(Some(&query));
 
-    let _proposal = wallet.start_disclosure(&uri, DisclosureUriSource::Link).await.unwrap();
+    uri
+}
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_disclosure_based_issuance_ok() {
+    let _context = setup_digid_context();
+
+    let pin = "112233";
+    let (mut wallet, _, issuance_server_url) = setup_wallet_and_env(
+        WalletDeviceVendor::Apple,
+        config_server_settings(),
+        update_policy_server_settings(),
+        wallet_provider_settings(),
+        verification_server_settings(),
+        pid_issuer_settings(),
+        issuance_server_settings(),
+    )
+    .await;
+
+    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+
+    let _proposal = wallet
+        .start_disclosure(&universal_link(issuance_server_url), DisclosureUriSource::Link)
+        .await
+        .unwrap();
     let _attestation_previews = wallet.accept_disclosure_based_issuance(pin.to_owned()).await.unwrap();
 
     wallet.accept_issuance(pin.to_owned()).await.unwrap();
+}
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_disclosure_based_issuance_error_no_attributes() {
+    let _context = setup_digid_context();
+
+    let pin = "112233";
+    let (mut wallet, _, issuance_server_url) = setup_wallet_and_env(
+        WalletDeviceVendor::Apple,
+        config_server_settings(),
+        update_policy_server_settings(),
+        wallet_provider_settings(),
+        verification_server_settings(),
+        pid_issuer_settings(),
+        (issuance_server_settings().0, vec![]),
+    )
+    .await;
+
+    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+
+    let _proposal = wallet
+        .start_disclosure(&universal_link(issuance_server_url), DisclosureUriSource::Link)
+        .await
+        .unwrap();
+
+    // If the issuer has no attestations to issue, we receive an empty vec and no error.
+    let attestations = wallet.accept_disclosure_based_issuance(pin.to_owned()).await.unwrap();
+    assert!(attestations.is_empty());
 }

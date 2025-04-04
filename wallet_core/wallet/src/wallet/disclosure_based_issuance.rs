@@ -5,9 +5,12 @@ use tracing::instrument;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use openid4vc::credential::CredentialOfferContainer;
+use openid4vc::disclosure_session::VpClientError;
+use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
+use openid4vc::PostAuthResponseErrorCode;
 use platform_support::attested_key::AttestedKeyHolder;
 use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
@@ -69,7 +72,18 @@ where
         &mut self,
         pin: String,
     ) -> Result<Vec<Attestation>, DisclosureBasedIssuanceError> {
-        let redirect_uri = self.perform_disclosure(pin, RedirectUriPurpose::Issuance).await?;
+        let redirect_uri = match self.perform_disclosure(pin, RedirectUriPurpose::Issuance).await {
+            Ok(redirect_uri) => redirect_uri,
+
+            // If the issuer has no attestations to issue, return an empty Vec.
+            Err(DisclosureError::VpDisclosureSession(VpClientError::Request(
+                VpMessageClientError::AuthPostResponse(err),
+            ))) if err.error_response.error == PostAuthResponseErrorCode::NoIssuableAttestations => {
+                return Ok(vec![]);
+            }
+
+            Err(err) => Err(err)?,
+        };
 
         let query = redirect_uri
             .as_ref()
