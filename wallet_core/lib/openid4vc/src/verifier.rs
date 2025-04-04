@@ -741,10 +741,10 @@ where
                 session_result: SessionResult::Failed { .. },
             }) => StatusResponse::Failed,
             DisclosureData::Done(Done {
-                session_result: SessionResult::Cancelled { .. },
+                session_result: SessionResult::Cancelled,
             }) => StatusResponse::Cancelled,
             DisclosureData::Done(Done {
-                session_result: SessionResult::Expired { .. },
+                session_result: SessionResult::Expired,
             }) => StatusResponse::Expired,
         };
 

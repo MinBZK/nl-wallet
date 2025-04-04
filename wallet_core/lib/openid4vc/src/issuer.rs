@@ -218,7 +218,7 @@ impl HasProgress for IssuanceData {
         match self {
             Self::Created(_) | Self::WaitingForResponse(_) => Progress::Active,
             Self::Done(done) => Progress::Finished {
-                has_succeeded: matches!(done.session_result, SessionResult::Done { .. }),
+                has_succeeded: matches!(done.session_result, SessionResult::Done),
             },
         }
     }
