@@ -83,9 +83,7 @@ test.describe("GBA Fetch BRP preloading", () => {
   test('The clear all data form takes one input: the user must enter the string "clear all data" to avoid accidental deletion.', async ({
     gbaFetchPage,
   }) => {
-    expect(await gbaFetchPage.getClearDataLabelText()).toBe(
-      'Enter the text "clear all data" for confirmation: ',
-    )
+    expect(await gbaFetchPage.getClearDataLabelText()).toBe('Enter the text "clear all data" for confirmation: ')
     await gbaFetchPage.enterClearDataText("clear")
     await gbaFetchPage.clearData()
     expect(await gbaFetchPage.getResult()).toBe("Confirmation text is not correct")
@@ -99,9 +97,7 @@ test.describe("GBA Fetch BRP preloading", () => {
     await gbaFetchPage.preload()
     await gbaFetchPage.goBack()
     expect(await gbaFetchPage.getStatusInfoPreloadedCount()).toBe("1")
-    expect(await gbaFetchPage.getClearDataLabelText()).toBe(
-      'Enter the text "clear all data" for confirmation: ',
-    )
+    expect(await gbaFetchPage.getClearDataLabelText()).toBe('Enter the text "clear all data" for confirmation: ')
     await gbaFetchPage.enterClearDataText("clear all data")
     await gbaFetchPage.clearData()
     expect(await gbaFetchPage.getResult()).toContain("Successfully cleared ")
