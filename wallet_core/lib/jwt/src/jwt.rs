@@ -253,18 +253,9 @@ impl<T> VerifiedJwt<T>
 where
     T: Serialize + DeserializeOwned,
 {
-    pub async fn sign(
-        payload: &T,
-        header: &Header,
-        privkey: &impl EcdsaKey,
-        validation_options: &Validation,
-    ) -> Result<VerifiedJwt<T>> {
-        let jwt = Jwt::sign(payload, header, privkey).await?;
-        let decoding_key = privkey
-            .verifying_key()
-            .await
-            .map_err(|e| JwtError::VerifyingKey(Box::new(e)))?;
-        VerifiedJwt::try_new(jwt, &EcdsaDecodingKey::from(&decoding_key), validation_options)
+    pub async fn sign(payload: T, header: Header, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T>> {
+        let jwt = Jwt::sign(&payload, &header, privkey).await?;
+        Ok(VerifiedJwt { header, payload, jwt })
     }
 }
 

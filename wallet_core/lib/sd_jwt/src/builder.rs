@@ -20,7 +20,6 @@ use crate::error::Result;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
-use crate::sd_jwt::sd_jwt_validation;
 use crate::sd_jwt::SdJwt;
 use crate::sd_jwt::SdJwtClaims;
 
@@ -163,7 +162,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         let claims = serde_json::from_value::<SdJwtClaims>(object)
             .map_err(|e| Error::Deserialization(format!("invalid SD-JWT claims: {e}")))?;
 
-        let verified_jwt = VerifiedJwt::sign(&claims, &header, signing_key, &sd_jwt_validation()).await?;
+        let verified_jwt = VerifiedJwt::sign(claims, header, signing_key).await?;
 
         Ok(SdJwt::new(verified_jwt, disclosures))
     }

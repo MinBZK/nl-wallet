@@ -153,7 +153,7 @@ impl KeyBindingJwtBuilder {
         let mut header = self.header;
         header.alg = alg;
 
-        let verified_jwt = VerifiedJwt::sign(&claims, &header, signing_key, &kb_jwt_validation()).await?;
+        let verified_jwt = VerifiedJwt::sign(claims, header, signing_key).await?;
 
         Ok(KeyBindingJwt(verified_jwt))
     }
