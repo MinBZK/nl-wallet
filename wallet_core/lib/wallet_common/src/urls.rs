@@ -132,9 +132,9 @@ mod tests {
     #[case("https://example.com/path", Ok(()))] // this is okay, since the `.join` method will add a trailing slash
     #[case("data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD", Err(()))]
     #[tokio::test]
-    async fn base_url(#[case] value: &str, #[case] expected_err: Result<(), ()>) {
+    async fn base_url(#[case] value: &str, #[case] expected: Result<(), ()>) {
         // The `BaseUrlParseError` that `nutype` returns does not implement `PartialEq`
-        assert_eq!(value.parse::<BaseUrl>().map(|_| ()).map_err(|_| ()), expected_err);
+        assert_eq!(value.parse::<BaseUrl>().map(|_| ()).map_err(|_| ()), expected);
     }
 
     #[rstest]

@@ -38,6 +38,7 @@ pub struct DisplayMetadata {
     pub lang: String,
     pub name: String,
     pub description: Option<String>,
+    pub summary: Option<String>,
     pub rendering: Option<RenderingMetadata>,
 }
 
@@ -47,6 +48,7 @@ impl From<wallet::sd_jwt_vc_metadata::DisplayMetadata> for DisplayMetadata {
             lang: value.lang,
             name: value.name,
             description: value.description,
+            summary: value.summary,
             rendering: value.rendering.map(RenderingMetadata::from),
         }
     }
@@ -114,6 +116,7 @@ pub struct AttestationAttribute {
     pub key: String,
     pub labels: Vec<ClaimDisplayMetadata>,
     pub value: AttributeValue,
+    pub svg_id: Option<String>,
 }
 
 impl From<wallet::AttestationAttribute> for AttestationAttribute {
@@ -122,6 +125,7 @@ impl From<wallet::AttestationAttribute> for AttestationAttribute {
             key: value.key.join("__"),
             labels: value.metadata.into_iter().map(ClaimDisplayMetadata::from).collect(),
             value: value.value.into(),
+            svg_id: value.svg_id,
         }
     }
 }

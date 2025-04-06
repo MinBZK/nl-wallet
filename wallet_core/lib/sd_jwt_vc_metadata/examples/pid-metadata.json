@@ -6,19 +6,19 @@
     {
       "lang": "en-US",
       "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet"
+      "description": "The Personal Data credential for the NL Wallet",
+      "summary": "{{first_name}}"
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet"
+      "description": "De persoonsgegevensattestatie voor de NL Wallet",
+      "summary": "{{first_name}}"
     }
   ],
   "claims": [
     {
-      "path": [
-        "family_name"
-      ],
+      "path": ["family_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -31,12 +31,11 @@
           "description": "Family name of the person, including any prefixes"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "last_name"
     },
     {
-      "path": [
-        "given_name"
-      ],
+      "path": ["given_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -49,12 +48,11 @@
           "description": "First name of the person"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "first_name"
     },
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "nl-NL",
@@ -70,9 +68,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "age_over_18"
-      ],
+      "path": ["age_over_18"],
       "display": [
         {
           "lang": "nl-NL",
@@ -88,9 +84,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "bsn"
-      ],
+      "path": ["bsn"],
       "display": [
         {
           "lang": "nl-NL",
@@ -150,12 +144,6 @@
         "type": "string"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "exp",
-      "attestation_qualification"
-    ]
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
   }
 }

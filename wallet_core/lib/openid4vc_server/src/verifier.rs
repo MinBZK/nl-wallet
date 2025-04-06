@@ -56,112 +56,141 @@ struct ApplicationState<S, K, H> {
     universal_link_base_url: BaseUrl,
 }
 
-pub struct VerifierConfig<S, K, H> {
-    pub public_url: BaseUrl,
-    pub universal_link_base_url: BaseUrl,
-    pub use_cases: UseCases<K>,
-    pub ephemeral_id_secret: Option<hmac::Key>,
-    pub issuer_trust_anchors: Vec<TrustAnchor<'static>>,
-    pub result_handler: H,
-    pub sessions: Arc<S>,
+pub enum RequestUriBehaviour {
+    BySessionToken,
+    ByUsecaseId,
+}
+
+pub struct VerifierFactory<K> {
+    public_url: BaseUrl,
+    universal_link_base_url: BaseUrl,
+    use_cases: UseCases<K>,
+    ephemeral_id_secret: Option<hmac::Key>,
+    issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+    accepted_wallet_client_ids: Vec<String>,
+    behaviour: RequestUriBehaviour,
+}
+
+impl<K> VerifierFactory<K> {
+    pub fn new(
+        public_url: BaseUrl,
+        universal_link_base_url: BaseUrl,
+        use_cases: UseCases<K>,
+        ephemeral_id_secret: Option<hmac::Key>,
+        issuer_trust_anchors: Vec<TrustAnchor<'static>>,
+        accepted_wallet_client_ids: Vec<String>,
+        behaviour: RequestUriBehaviour,
+    ) -> Self {
+        Self {
+            public_url,
+            universal_link_base_url,
+            use_cases,
+            ephemeral_id_secret,
+            issuer_trust_anchors,
+            accepted_wallet_client_ids,
+            behaviour,
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn wallet_router_and_state<S, H>(
+        self,
+        sessions: Arc<S>,
+        result_handler: H,
+    ) -> (Router<Arc<ApplicationState<S, K, H>>>, Arc<ApplicationState<S, K, H>>)
+    where
+        S: SessionStore<DisclosureData> + Send + Sync + 'static,
+        K: EcdsaKeySend + Sync + 'static,
+        H: DisclosureResultHandler + Send + Sync + 'static,
+    {
+        let application_state = Arc::new(ApplicationState {
+            verifier: Verifier::new(
+                self.use_cases,
+                sessions,
+                self.issuer_trust_anchors,
+                self.ephemeral_id_secret,
+                result_handler,
+                self.accepted_wallet_client_ids.clone(),
+            ),
+            public_url: self.public_url,
+            universal_link_base_url: self.universal_link_base_url,
+        });
+
+        // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
+        // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
+        // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
+        let wallet_router = match self.behaviour {
+            RequestUriBehaviour::BySessionToken => Router::new()
+                .route(
+                    "/{session_token}/request_uri",
+                    get(retrieve_request_by_sessiontoken::<S, K, H>),
+                )
+                .route(
+                    "/{session_token}/request_uri",
+                    post(retrieve_request_by_sessiontoken::<S, K, H>),
+                ),
+            RequestUriBehaviour::ByUsecaseId => Router::new()
+                .route("/{usecase}/request_uri", get(retrieve_request_by_usecase::<S, K, H>))
+                .route("/{usecase}/request_uri", post(retrieve_request_by_usecase::<S, K, H>)),
+        }
+        .route("/{session_token}/response_uri", post(post_response::<S, K, H>));
+
+        (wallet_router, application_state)
+    }
+
+    pub fn create_wallet_router<S, H>(self, sessions: Arc<S>, result_handler: H) -> Router
+    where
+        S: SessionStore<DisclosureData> + Send + Sync + 'static,
+        K: EcdsaKeySend + Sync + 'static,
+        H: DisclosureResultHandler + Send + Sync + 'static,
+    {
+        let (wallet_router, application_state) = self.wallet_router_and_state(sessions, result_handler);
+
+        wallet_router.with_state(application_state)
+    }
+
+    pub fn create_routers<S, H>(
+        self,
+        allow_origins: Option<CorsOrigin>,
+        sessions: Arc<S>,
+        result_handler: H,
+    ) -> (Router, Router)
+    where
+        S: SessionStore<DisclosureData> + Send + Sync + 'static,
+        K: EcdsaKeySend + Sync + 'static,
+        H: DisclosureResultHandler + Send + Sync + 'static,
+    {
+        let (wallet_router, application_state) = self.wallet_router_and_state(sessions, result_handler);
+
+        let mut wallet_web = Router::new()
+            .route("/{session_token}", get(status::<S, K, H>))
+            .route("/{session_token}", delete(cancel::<S, K, H>));
+
+        if let Some(cors_origin) = allow_origins {
+            // The CORS headers should be set for these routes, so that any web browser may call them.
+            wallet_web = wallet_web.layer(cors_layer(cors_origin));
+        }
+
+        let wallet_router = wallet_router
+            .merge(wallet_web)
+            .with_state(Arc::clone(&application_state));
+
+        let requester_router = Router::new()
+            .route("/", post(start::<S, K, H>))
+            .route(
+                "/{session_token}/disclosed_attributes",
+                get(disclosed_attributes::<S, K, H>),
+            )
+            .with_state(application_state);
+
+        (wallet_router, requester_router)
+    }
 }
 
 fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
     CorsLayer::new()
         .allow_origin(allow_origins)
         .allow_methods([Method::GET, Method::DELETE])
-}
-
-pub enum RequestUriBehaviour {
-    BySessionToken,
-    ByUsecaseId,
-}
-
-#[allow(clippy::type_complexity)]
-fn wallet_router_and_state<S, K, H>(
-    params: VerifierConfig<S, K, H>,
-    behaviour: &RequestUriBehaviour,
-) -> (Router<Arc<ApplicationState<S, K, H>>>, Arc<ApplicationState<S, K, H>>)
-where
-    S: SessionStore<DisclosureData> + Send + Sync + 'static,
-    K: EcdsaKeySend + Sync + 'static,
-    H: DisclosureResultHandler + Send + Sync + 'static,
-{
-    let application_state = Arc::new(ApplicationState {
-        verifier: Verifier::new(
-            params.use_cases,
-            params.sessions,
-            params.issuer_trust_anchors,
-            params.ephemeral_id_secret,
-            params.result_handler,
-        ),
-        public_url: params.public_url,
-        universal_link_base_url: params.universal_link_base_url,
-    });
-
-    // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
-    // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
-    // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
-    let wallet_router = match behaviour {
-        RequestUriBehaviour::BySessionToken => Router::new()
-            .route(
-                "/{session_token}/request_uri",
-                get(retrieve_request_by_sessiontoken::<S, K, H>),
-            )
-            .route(
-                "/{session_token}/request_uri",
-                post(retrieve_request_by_sessiontoken::<S, K, H>),
-            ),
-        RequestUriBehaviour::ByUsecaseId => Router::new()
-            .route("/{usecase}/request_uri", get(retrieve_request_by_usecase::<S, K, H>))
-            .route("/{usecase}/request_uri", post(retrieve_request_by_usecase::<S, K, H>)),
-    }
-    .route("/{session_token}/response_uri", post(post_response::<S, K, H>));
-
-    (wallet_router, application_state)
-}
-
-pub fn create_wallet_router<S, K, H>(params: VerifierConfig<S, K, H>, kind: &RequestUriBehaviour) -> Router
-where
-    S: SessionStore<DisclosureData> + Send + Sync + 'static,
-    K: EcdsaKeySend + Sync + 'static,
-    H: DisclosureResultHandler + Send + Sync + 'static,
-{
-    let (wallet_router, application_state) = wallet_router_and_state(params, kind);
-
-    wallet_router.with_state(application_state)
-}
-
-pub fn create_routers<S, K, H>(params: VerifierConfig<S, K, H>, allow_origins: Option<CorsOrigin>) -> (Router, Router)
-where
-    S: SessionStore<DisclosureData> + Send + Sync + 'static,
-    K: EcdsaKeySend + Sync + 'static,
-    H: DisclosureResultHandler + Send + Sync + 'static,
-{
-    let (wallet_router, application_state) = wallet_router_and_state(params, &RequestUriBehaviour::BySessionToken);
-
-    let mut wallet_web = Router::new()
-        .route("/{session_token}", get(status::<S, K, H>))
-        .route("/{session_token}", delete(cancel::<S, K, H>));
-
-    if let Some(cors_origin) = allow_origins {
-        // The CORS headers should be set for these routes, so that any web browser may call them.
-        wallet_web = wallet_web.layer(cors_layer(cors_origin));
-    }
-
-    let wallet_router = wallet_router
-        .merge(wallet_web)
-        .with_state(Arc::clone(&application_state));
-
-    let requester_router = Router::new()
-        .route("/", post(start::<S, K, H>))
-        .route(
-            "/{session_token}/disclosed_attributes",
-            get(disclosed_attributes::<S, K, H>),
-        )
-        .with_state(application_state);
-
-    (wallet_router, requester_router)
 }
 
 async fn retrieve_request_by_usecase<S, K, H>(

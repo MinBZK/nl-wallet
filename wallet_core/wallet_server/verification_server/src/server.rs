@@ -12,8 +12,8 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::NoOpDisclosureResultHandler;
-use openid4vc_server::verifier;
-use openid4vc_server::verifier::VerifierConfig;
+use openid4vc_server::verifier::RequestUriBehaviour;
+use openid4vc_server::verifier::VerifierFactory;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
@@ -45,23 +45,21 @@ where
     check_request_listener_with_settings(&requester_listener, &settings);
     let log_requests = settings.server_settings.log_requests;
 
-    let (wallet_disclosure_router, requester_router) = verifier::create_routers(
-        VerifierConfig {
-            public_url: settings.server_settings.public_url.join_base_url("disclosure/sessions"),
-            universal_link_base_url: settings.universal_link_base_url,
-            use_cases: settings.usecases.parse(hsm).await?,
-            ephemeral_id_secret: Some((&settings.ephemeral_id_secret).into()),
-            issuer_trust_anchors: settings
-                .server_settings
-                .issuer_trust_anchors
-                .iter()
-                .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-                .collect(),
-            result_handler: NoOpDisclosureResultHandler,
-            sessions: disclosure_sessions,
-        },
-        settings.allow_origins,
-    );
+    let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
+        settings.server_settings.public_url.join_base_url("disclosure/sessions"),
+        settings.universal_link_base_url,
+        settings.usecases.parse(hsm).await?,
+        Some((&settings.ephemeral_id_secret).into()),
+        settings
+            .server_settings
+            .issuer_trust_anchors
+            .iter()
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
+            .collect(),
+        settings.wallet_client_ids,
+        RequestUriBehaviour::BySessionToken,
+    )
+    .create_routers(settings.allow_origins, disclosure_sessions, NoOpDisclosureResultHandler);
 
     let requester_router = secure_requester_router(&settings.requester_server, requester_router);
 

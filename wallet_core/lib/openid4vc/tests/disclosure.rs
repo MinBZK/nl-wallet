@@ -52,6 +52,7 @@ use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
+use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
@@ -113,6 +114,7 @@ async fn disclosure_direct() {
     let disclosed_attrs = auth_response
         .verify(
             &iso_auth_request,
+            &[MOCK_WALLET_CLIENT_ID.to_string()],
             &mdoc_nonce,
             &IsoCertTimeGenerator,
             &[issuer_ca.to_trust_anchor()],
@@ -303,6 +305,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
         let disclosed_attrs = auth_response
             .verify(
                 &self.auth_request.clone().try_into().unwrap(),
+                &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &mdoc_nonce,
                 &IsoCertTimeGenerator,
                 &self.trust_anchors,
@@ -870,6 +873,7 @@ fn setup_verifier(
         vec![issuer_ca.to_trust_anchor().to_owned()],
         Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
         MockDisclosureResultHandler::new(session_result_query_param),
+        vec![MOCK_WALLET_CLIENT_ID.to_string()],
     ));
 
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)

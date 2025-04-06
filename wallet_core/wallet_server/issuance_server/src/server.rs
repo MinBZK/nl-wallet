@@ -17,9 +17,8 @@ use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCase;
 use openid4vc_server::issuer::create_issuance_router;
-use openid4vc_server::verifier::create_wallet_router;
 use openid4vc_server::verifier::RequestUriBehaviour;
-use openid4vc_server::verifier::VerifierConfig;
+use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
@@ -101,27 +100,25 @@ where
         attestation_config,
         Arc::clone(&issuance_sessions),
         attr_service,
-        issuer_settings.wallet_client_ids,
+        issuer_settings.wallet_client_ids.clone(),
         Option::<WteConfig<MemoryWteTracker>>::None, // The compiler forces us to explicitly specify a type here
     );
 
-    let disclosure_router = create_wallet_router(
-        VerifierConfig {
-            public_url: issuer_settings.server_settings.public_url.join_base_url("disclosure"),
-            universal_link_base_url: settings.universal_link_base_url.clone(),
-            ephemeral_id_secret: None,
-            use_cases,
-            issuer_trust_anchors: issuer_settings
-                .server_settings
-                .issuer_trust_anchors
-                .iter()
-                .map(BorrowingTrustAnchor::to_owned_trust_anchor)
-                .collect(),
-            result_handler,
-            sessions: disclosure_sessions,
-        },
-        &RequestUriBehaviour::ByUsecaseId,
-    );
+    let disclosure_router = VerifierFactory::new(
+        issuer_settings.server_settings.public_url.join_base_url("disclosure"),
+        settings.universal_link_base_url.clone(),
+        use_cases,
+        None,
+        issuer_settings
+            .server_settings
+            .issuer_trust_anchors
+            .iter()
+            .map(BorrowingTrustAnchor::to_owned_trust_anchor)
+            .collect(),
+        issuer_settings.wallet_client_ids,
+        RequestUriBehaviour::ByUsecaseId,
+    )
+    .create_wallet_router(disclosure_sessions, result_handler);
 
     listen(
         listener,

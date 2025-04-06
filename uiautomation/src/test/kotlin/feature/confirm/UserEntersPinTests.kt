@@ -3,12 +3,14 @@ package feature.confirm
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
+import screen.error.NoInternetErrorScreen
 import screen.personalize.PersonalizePidPreviewScreen
 import screen.personalize.PersonalizeSuccessScreen
 import screen.security.ForgotPinScreen
@@ -67,6 +69,33 @@ class UserEntersPinTests : TestBase() {
      * 5. Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.
      * >> Manual test: https://SSSS/jira/browse/PVW-1998
      */
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("$USE_CASE.5. Upon PIN entry, when the app cannot connect to the server it displays an appropriate error. [${JIRA_ID}]")
+    fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
+        val noInternetErrorScreen = NoInternetErrorScreen()
+        try {
+            setUp(testInfo)
+            val pin = "122222"
+            pinScreen.disableInternetConnection()
+            pinScreen.enterPin(pin)
+            assertAll(
+                { assertTrue(noInternetErrorScreen.headlineVisible(), "Headline is not visible") },
+                { assertTrue(noInternetErrorScreen.descriptionVisible(), "Description is not visible") },
+                { assertTrue(noInternetErrorScreen.tryAgainButtonVisible(), "Try again button is not visible") }
+            )
+            noInternetErrorScreen.seeDetails()
+            assertAll(
+                { assertTrue(noInternetErrorScreen.appVersionLabelVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.osVersionLabelVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.appConfigLabelVisible(), "appConfig is not visible") },
+                { assertTrue(noInternetErrorScreen.appVersionVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.osVersionVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.appConfigVisible(), "appConfig is not visible") }
+            )
+        } finally {
+            noInternetErrorScreen.enableNetworkConnection();
+        }
+    }
 
     /**
      * 6. The app enforces the following PIN-attempt policy.

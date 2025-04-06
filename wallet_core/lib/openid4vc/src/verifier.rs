@@ -558,6 +558,7 @@ pub struct Verifier<S, K, H> {
     trust_anchors: Vec<TrustAnchor<'static>>,
     ephemeral_id_secret: Option<hmac::Key>,
     result_handler: H,
+    accepted_wallet_client_ids: Vec<String>,
 }
 
 impl<S, K, H> Drop for Verifier<S, K, H> {
@@ -588,6 +589,7 @@ where
         trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: Option<hmac::Key>,
         result_handler: H,
+        accepted_wallet_client_ids: Vec<String>,
     ) -> Self
     where
         S: Send + Sync + 'static,
@@ -599,6 +601,7 @@ where
             trust_anchors,
             ephemeral_id_secret,
             result_handler,
+            accepted_wallet_client_ids,
         }
     }
 
@@ -790,7 +793,13 @@ where
         let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
 
         let (result, next) = session
-            .process_authorization_response(wallet_response, time, &self.trust_anchors, &self.result_handler)
+            .process_authorization_response(
+                wallet_response,
+                &self.accepted_wallet_client_ids,
+                time,
+                &self.trust_anchors,
+                &self.result_handler,
+            )
             .await;
 
         self.sessions.write(next.into(), false).await.map_err(|err| {
@@ -837,10 +846,10 @@ where
                 session_result: SessionResult::Failed { .. },
             }) => StatusResponse::Failed,
             DisclosureData::Done(Done {
-                session_result: SessionResult::Cancelled { .. },
+                session_result: SessionResult::Cancelled,
             }) => StatusResponse::Cancelled,
             DisclosureData::Done(Done {
-                session_result: SessionResult::Expired { .. },
+                session_result: SessionResult::Expired,
             }) => StatusResponse::Expired,
         };
 
@@ -1157,6 +1166,7 @@ impl Session<WaitingForResponse> {
     async fn process_authorization_response(
         self,
         wallet_response: WalletAuthResponse,
+        accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
         result_handler: &impl DisclosureResultHandler,
@@ -1199,6 +1209,7 @@ impl Session<WaitingForResponse> {
             &jwe,
             self.state().encryption_key.as_ref(),
             &self.state().auth_request,
+            accepted_wallet_client_ids,
             time,
             trust_anchors,
         ) {
@@ -1310,6 +1321,7 @@ mod tests {
     use wallet_common::generator::Generator;
     use wallet_common::generator::TimeGenerator;
 
+    use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionToken;
     use crate::verifier::EphemeralIdParameters;
@@ -1416,6 +1428,7 @@ mod tests {
             trust_anchors,
             Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
             NoOpDisclosureResultHandler,
+            vec![MOCK_WALLET_CLIENT_ID.to_string()],
         )
     }
 
@@ -1773,6 +1786,7 @@ mod tests {
             trust_anchors,
             None,
             NoOpDisclosureResultHandler,
+            vec![MOCK_WALLET_CLIENT_ID.to_string()],
         );
 
         let query_params = serde_urlencoded::to_string(VerifierUrlParameters {

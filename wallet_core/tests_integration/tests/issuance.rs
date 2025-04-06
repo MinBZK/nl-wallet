@@ -56,7 +56,7 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     Ok(())
 }
 
-fn universal_link(issuance_server_url: BaseUrl) -> Url {
+fn universal_link(issuance_server_url: &BaseUrl) -> Url {
     let params = serde_urlencoded::to_string(VerifierUrlParameters {
         session_type: SessionType::SameDevice,
         ephemeral_id_params: None,
@@ -102,7 +102,7 @@ async fn test_disclosure_based_issuance_ok() {
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let _proposal = wallet
-        .start_disclosure(&universal_link(issuance_server_url), DisclosureUriSource::Link)
+        .start_disclosure(&universal_link(&issuance_server_url), DisclosureUriSource::Link)
         .await
         .unwrap();
     let _attestation_previews = wallet.accept_disclosure_based_issuance(pin.to_owned()).await.unwrap();
@@ -131,7 +131,7 @@ async fn test_disclosure_based_issuance_error_no_attributes() {
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let _proposal = wallet
-        .start_disclosure(&universal_link(issuance_server_url), DisclosureUriSource::Link)
+        .start_disclosure(&universal_link(&issuance_server_url), DisclosureUriSource::Link)
         .await
         .unwrap();
 

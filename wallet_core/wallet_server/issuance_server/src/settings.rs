@@ -20,6 +20,7 @@ use server_utils::settings::verify_key_pairs;
 use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
+use server_utils::settings::NL_WALLET_CLIENT_ID;
 use wallet_common::generator::TimeGenerator;
 use wallet_common::urls::BaseUrl;
 use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -74,7 +75,7 @@ impl ServerSettings for IssuanceServerSettings {
                 "storage.failed_deletion_minutes",
                 default_store_timeouts.failed_deletion.as_secs() / 60,
             )?
-            .set_default("wallet_client_ids", vec![jwt::NL_WALLET_CLIENT_ID.to_string()])?
+            .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
