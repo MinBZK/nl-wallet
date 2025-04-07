@@ -69,10 +69,17 @@ impl SdJwtPresentation {
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
     pub fn parse_and_verify(sd_jwt: &str, issuer_pubkey: &EcdsaDecodingKey) -> Result<Self> {
-        let (rest, kb_segment) = sd_jwt.rsplit_once("~").ok_or(Error::Deserialization(
-            "SD-JWT format is invalid, no segments found".to_string(),
-        ))?;
-        let sd_jwt = SdJwt::parse_and_verify(&format!("{}~", rest), issuer_pubkey)?;
+        let (rest, kb_segment) = sd_jwt
+            .rsplit_once("~")
+            .map(|(head, tail)| {
+                let head_with_tilde = &sd_jwt[..head.len() + 1];
+                (head_with_tilde, tail)
+            })
+            .ok_or(Error::Deserialization(
+                "SD-JWT format is invalid, no segments found".to_string(),
+            ))?;
+
+        let sd_jwt = SdJwt::parse_and_verify(rest, issuer_pubkey)?;
 
         if let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() {
             let key_binding_jwt =
