@@ -185,7 +185,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                 ));
             }
         } else {
-            object.insert(DIGESTS_KEY.to_owned(), Value::Array(vec![Value::String(digest)]));
+            object.insert(DIGESTS_KEY.to_owned(), json!([digest]));
         }
         Ok(())
     }
