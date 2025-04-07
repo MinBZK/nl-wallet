@@ -279,7 +279,7 @@ where
 
     /// Bulk-sign the keys and JWT payloads into JWTs.
     pub async fn sign_bulk<K: CredentialEcdsaKey>(
-        keys_and_messages: Vec<(K, (T, jsonwebtoken::Header))>,
+        keys_and_messages: Vec<(K, (T, Header))>,
         key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<(K, Jwt<T>)>, JwtError> {
         let (keys, to_sign): (Vec<_>, Vec<_>) = keys_and_messages.into_iter().unzip();
@@ -335,7 +335,7 @@ where
         let jwt = Jwt::sign(
             payload,
             &Header {
-                alg: jsonwebtoken::Algorithm::ES256,
+                alg: Algorithm::ES256,
                 x5c: Some(certs),
                 ..Default::default()
             },
@@ -784,7 +784,7 @@ mod tests {
         let jwt = Jwt::sign(
             &payload,
             &Header {
-                alg: jsonwebtoken::Algorithm::ES256,
+                alg: Algorithm::ES256,
                 x5c: Some(certs),
                 ..Default::default()
             },

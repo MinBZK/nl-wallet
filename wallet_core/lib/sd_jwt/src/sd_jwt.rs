@@ -141,14 +141,8 @@ impl SdJwt {
 
     /// Serializes the components into the final SD-JWT.
     pub fn presentation(&self) -> String {
-        let disclosures = self.disclosures.iter().map(ToString::to_string).join("~");
-        format!(
-            "{}~",
-            [self.issuer_signed_jwt.jwt().clone().0, disclosures]
-                .iter()
-                .filter(|segment| !segment.is_empty())
-                .join("~")
-        )
+        let disclosures = self.disclosures.iter().join("~");
+        format!("{}~{}~", self.issuer_signed_jwt.jwt().clone().0, disclosures)
     }
 
     /// Parses an SD-JWT into its components as [`SdJwt`].
