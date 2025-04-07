@@ -1220,10 +1220,12 @@ impl SseDecode for crate::models::attestation::DisplayMetadata {
 impl SseDecode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_inactiveWarningTimeout = <u16>::sse_decode(deserializer);
         let mut var_inactiveLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_version = <u64>::sse_decode(deserializer);
         return crate::models::config::FlutterConfiguration {
+            inactive_warning_timeout: var_inactiveWarningTimeout,
             inactive_lock_timeout: var_inactiveLockTimeout,
             background_lock_timeout: var_backgroundLockTimeout,
             version: var_version,
@@ -2021,6 +2023,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::DisplayMetada
 impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfiguration {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.inactive_warning_timeout.into_into_dart().into_dart(),
             self.inactive_lock_timeout.into_into_dart().into_dart(),
             self.background_lock_timeout.into_into_dart().into_dart(),
             self.version.into_into_dart().into_dart(),
@@ -2635,6 +2638,7 @@ impl SseEncode for crate::models::attestation::DisplayMetadata {
 impl SseEncode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u16>::sse_encode(self.inactive_warning_timeout, serializer);
         <u16>::sse_encode(self.inactive_lock_timeout, serializer);
         <u16>::sse_encode(self.background_lock_timeout, serializer);
         <u64>::sse_encode(self.version, serializer);
@@ -3383,6 +3387,7 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::config::FlutterConfiguration {
             crate::models::config::FlutterConfiguration {
+                inactive_warning_timeout: self.inactive_warning_timeout.cst_decode(),
                 inactive_lock_timeout: self.inactive_lock_timeout.cst_decode(),
                 background_lock_timeout: self.background_lock_timeout.cst_decode(),
                 version: self.version.cst_decode(),
@@ -3790,6 +3795,7 @@ mod io {
     impl NewWithNullPtr for wire_cst_flutter_configuration {
         fn new_with_null_ptr() -> Self {
             Self {
+                inactive_warning_timeout: Default::default(),
                 inactive_lock_timeout: Default::default(),
                 background_lock_timeout: Default::default(),
                 version: Default::default(),
@@ -4459,6 +4465,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_flutter_configuration {
+        inactive_warning_timeout: u16,
         inactive_lock_timeout: u16,
         background_lock_timeout: u16,
         version: u64,

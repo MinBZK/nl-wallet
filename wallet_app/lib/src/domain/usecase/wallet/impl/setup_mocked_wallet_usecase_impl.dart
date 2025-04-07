@@ -4,12 +4,12 @@ import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../setup_mocked_wallet_usecase.dart';
 
 class SetupMockedWalletUseCaseImpl extends SetupMockedWalletUseCase {
-  final WalletRepository walletRepository;
-  final PidRepository pidRepository;
+  final WalletRepository _walletRepository;
+  final PidRepository _pidRepository;
 
   SetupMockedWalletUseCaseImpl(
-    this.walletRepository,
-    this.pidRepository,
+    this._walletRepository,
+    this._pidRepository,
   );
 
   @override
@@ -18,9 +18,9 @@ class SetupMockedWalletUseCaseImpl extends SetupMockedWalletUseCase {
       throw UnsupportedError('Configuring a mocked wallet is only possible on mock builds');
     }
     // Create wallet
-    await walletRepository.createWallet('000000');
+    await _walletRepository.createWallet('000000');
 
     // Add cards + history
-    await pidRepository.acceptOfferedPid('000000');
+    await _pidRepository.acceptOfferedPid('000000');
   }
 }

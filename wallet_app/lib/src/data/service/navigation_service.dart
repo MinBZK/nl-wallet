@@ -7,6 +7,10 @@ import 'package:rxdart/subjects.dart';
 import '../../domain/model/update/update_notification.dart';
 import '../../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import '../../domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
+import '../../feature/common/dialog/idle_warning_dialog.dart';
+import '../../feature/common/dialog/locked_out_dialog.dart';
+import '../../feature/common/dialog/reset_wallet_dialog.dart';
+import '../../feature/common/dialog/scan_with_wallet_dialog.dart';
 import '../../feature/common/dialog/update_notification_dialog.dart';
 import '../../navigation/wallet_routes.dart';
 
@@ -94,6 +98,18 @@ class NavigationService {
     if (queuedRequest != null) await handleNavigationRequest(queuedRequest);
   }
 
+  /// Show the dialog specified by [type]. Useful when caller does not have a valid context.
+  Future<void> showDialog(WalletDialogType type) async {
+    final context = _navigatorKey.currentState?.context;
+    if (context == null || !context.mounted) return;
+    return switch (type) {
+      WalletDialogType.idleWarning => IdleWarningDialog.show(context),
+      WalletDialogType.resetWallet => ResetWalletDialog.show(context),
+      WalletDialogType.scanWithWallet => ScanWithWalletDialog.show(context),
+      WalletDialogType.lockedOut => LockedOutDialog.show(context),
+    };
+  }
+
   Future<void> processUpdateNotification(UpdateNotification notification) async {
     final context = _navigatorKey.currentState?.context;
     if (context == null || !context.mounted) return;
@@ -116,3 +132,5 @@ class NavigationService {
 
   Stream<bool> observeUpdateNotificationDialogVisible() => _updateNotificationDialogVisible.stream.distinct();
 }
+
+enum WalletDialogType { idleWarning, resetWallet, scanWithWallet, lockedOut }
