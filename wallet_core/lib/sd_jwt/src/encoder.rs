@@ -8,6 +8,8 @@ use serde_json::json;
 use serde_json::Map;
 use serde_json::Value;
 
+use crypto::utils::random_bytes;
+
 use crate::disclosure::Disclosure;
 use crate::error::Error;
 use crate::error::Result;
@@ -205,11 +207,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
     }
 
     fn gen_rand(len: usize) -> String {
-        let mut bytes = vec![0; len];
-        let mut rng = rand::thread_rng();
-        rng.fill(&mut bytes[..]);
-
-        BASE64_URL_SAFE_NO_PAD.encode(bytes)
+        BASE64_URL_SAFE_NO_PAD.encode(random_bytes(len))
     }
 }
 
