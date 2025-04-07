@@ -163,7 +163,7 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         Release: [true, ['--locked', '--release']]
 ].each {
     def taskPostfix = it.key
-    def (doStrip, profileMode) = it.value
+    def (doStrip, buildArgs) = it.value
 
     tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
         workingDir "../../../wallet_core"
@@ -183,8 +183,8 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
             'build',
             '-p', 'flutter_api'
         ]
-        if (profileMode != null) {
-            args += profileMode
+        if (buildArgs != null) {
+            args += buildArgs
         }
         if (dartEnvironmentVariables['ALLOW_INSECURE_URL'] == 'true') {
             args += ['--features', 'wallet/allow_insecure_url']
