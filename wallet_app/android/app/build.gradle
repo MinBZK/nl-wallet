@@ -207,7 +207,13 @@ tasks.named { it == "signReleaseBundle" }.configureEach {
     dependsOn "checkForReleaseKeys"
 }
 
-clean.doFirst {
-    logger.quiet("Cleaning $jniTargetDir")
+tasks.register('cleanJni', Delete) {
     delete jniTargetDir
+    doFirst() {
+        logger.quiet("Clean $jniTargetDir")
+    }
+}
+
+tasks.named('clean') {
+    dependsOn('cleanJni')
 }

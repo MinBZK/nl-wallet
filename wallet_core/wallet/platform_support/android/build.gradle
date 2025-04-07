@@ -149,10 +149,21 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
     }
 }
 
-clean.doFirst {
-    logger.quiet("Cleaning $jniTargetDir")
-    delete jniTargetDir
-
-    logger.quiet("Cleaning $bindingsTargetDir")
+tasks.register('cleanBindings', Delete) {
     delete bindingsTargetDir
+    doFirst() {
+        logger.quiet("Clean $bindingsTargetDir")
+    }
+}
+
+tasks.register('cleanJni', Delete) {
+    delete jniTargetDir
+    doFirst() {
+        logger.quiet("Clean $jniTargetDir")
+    }
+}
+
+tasks.named('clean') {
+    dependsOn('cleanBindings')
+    dependsOn('cleanJni')
 }
