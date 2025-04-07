@@ -71,6 +71,11 @@ pub struct VerifierFactory<K> {
     behaviour: RequestUriBehaviour,
 }
 
+struct WalletRouterAndState<S, K, H> {
+    wallet_router: Router<Arc<ApplicationState<S, K, H>>>,
+    application_state: Arc<ApplicationState<S, K, H>>,
+}
+
 impl<K> VerifierFactory<K> {
     pub fn new(
         public_url: BaseUrl,
@@ -92,12 +97,7 @@ impl<K> VerifierFactory<K> {
         }
     }
 
-    #[allow(clippy::type_complexity)]
-    fn wallet_router_and_state<S, H>(
-        self,
-        sessions: Arc<S>,
-        result_handler: H,
-    ) -> (Router<Arc<ApplicationState<S, K, H>>>, Arc<ApplicationState<S, K, H>>)
+    fn wallet_router_and_state<S, H>(self, sessions: Arc<S>, result_handler: H) -> WalletRouterAndState<S, K, H>
     where
         S: SessionStore<DisclosureData> + Send + Sync + 'static,
         K: EcdsaKeySend + Sync + 'static,
@@ -135,7 +135,10 @@ impl<K> VerifierFactory<K> {
         }
         .route("/{session_token}/response_uri", post(post_response::<S, K, H>));
 
-        (wallet_router, application_state)
+        WalletRouterAndState {
+            wallet_router,
+            application_state,
+        }
     }
 
     pub fn create_wallet_router<S, H>(self, sessions: Arc<S>, result_handler: H) -> Router
@@ -144,7 +147,10 @@ impl<K> VerifierFactory<K> {
         K: EcdsaKeySend + Sync + 'static,
         H: DisclosureResultHandler + Send + Sync + 'static,
     {
-        let (wallet_router, application_state) = self.wallet_router_and_state(sessions, result_handler);
+        let WalletRouterAndState {
+            wallet_router,
+            application_state,
+        } = self.wallet_router_and_state(sessions, result_handler);
 
         wallet_router.with_state(application_state)
     }
@@ -160,7 +166,10 @@ impl<K> VerifierFactory<K> {
         K: EcdsaKeySend + Sync + 'static,
         H: DisclosureResultHandler + Send + Sync + 'static,
     {
-        let (wallet_router, application_state) = self.wallet_router_and_state(sessions, result_handler);
+        let WalletRouterAndState {
+            wallet_router,
+            application_state,
+        } = self.wallet_router_and_state(sessions, result_handler);
 
         let mut wallet_web = Router::new()
             .route("/{session_token}", get(status::<S, K, H>))
