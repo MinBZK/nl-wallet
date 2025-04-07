@@ -299,12 +299,16 @@ MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_part
 export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 # Base64 encode the Technical Attestation Schemas
-cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${BASE_DIR}/wallet_core/tests_integration"
-ISSUER_METADATA_PID_PATH="com_example_pid_metadata.json"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${BASE_DIR}/wallet_core/tests_integration"
+ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
 export ISSUER_METADATA_PID_PATH
-ISSUER_METADATA_ADDRESS_PATH="com_example_address_metadata.json"
+ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
+export ISSUER_METADATA_PID_NL_PATH
+ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
 export ISSUER_METADATA_ADDRESS_PATH
+ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
+export ISSUER_METADATA_ADDRESS_NL_PATH
 
 # And the mrp's verification_server config
 render_template "${DEVENV}/mrp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"

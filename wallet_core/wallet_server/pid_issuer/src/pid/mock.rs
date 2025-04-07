@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 use chrono::NaiveDate;
+use indexmap::IndexMap;
 use serde::Deserialize;
 
 use openid4vc::attributes::Attribute;
@@ -51,7 +52,6 @@ impl From<PersonAttributes> for IssuableDocument {
         Self::try_new(
             MOCK_PID_DOCTYPE.to_string(),
             vec![
-                (PID_BSN.to_string(), Attribute::Single(AttributeValue::Text(value.bsn))),
                 (
                     PID_FAMILY_NAME.to_string(),
                     Attribute::Single(AttributeValue::Text(value.family_name)),
@@ -68,6 +68,7 @@ impl From<PersonAttributes> for IssuableDocument {
                     PID_AGE_OVER_18.to_string(),
                     Attribute::Single(AttributeValue::Bool(value.age_over_18)),
                 ),
+                (PID_BSN.to_string(), Attribute::Single(AttributeValue::Text(value.bsn))),
             ]
             .into_iter()
             .collect(),
@@ -78,7 +79,6 @@ impl From<PersonAttributes> for IssuableDocument {
 
 #[derive(Default, Deserialize, Clone)]
 pub struct ResidentAttributes {
-    address: Option<String>,
     city: Option<String>,
     country: Option<String>,
     postal_code: Option<String>,
@@ -90,54 +90,53 @@ impl From<ResidentAttributes> for IssuableDocument {
     fn from(value: ResidentAttributes) -> Self {
         Self::try_new(
             MOCK_ADDRESS_DOCTYPE.to_string(),
-            vec![
-                value.address.map(|v| {
-                    (
-                        PID_RESIDENT_ADDRESS.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-                value.city.map(|v| {
-                    (
-                        PID_RESIDENT_CITY.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-                value.country.map(|v| {
-                    (
-                        PID_RESIDENT_COUNTRY.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-                value.postal_code.map(|v| {
-                    (
-                        PID_RESIDENT_POSTAL_CODE.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-                value.street.map(|v| {
-                    (
-                        PID_RESIDENT_STREET.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-                value.house_number.map(|v| {
-                    (
-                        PID_RESIDENT_HOUSE_NUMBER.to_string(),
-                        Attribute::Single(AttributeValue::Text(v)),
-                    )
-                }),
-            ]
-            .into_iter()
-            .flatten()
-            .collect(),
+            IndexMap::from_iter(vec![(
+                PID_ADDRESS_GROUP.to_string(),
+                Attribute::Nested(
+                    vec![
+                        value.street.map(|v| {
+                            (
+                                PID_RESIDENT_STREET.to_string(),
+                                Attribute::Single(AttributeValue::Text(v)),
+                            )
+                        }),
+                        value.house_number.map(|v| {
+                            (
+                                PID_RESIDENT_HOUSE_NUMBER.to_string(),
+                                Attribute::Single(AttributeValue::Text(v)),
+                            )
+                        }),
+                        value.postal_code.map(|v| {
+                            (
+                                PID_RESIDENT_POSTAL_CODE.to_string(),
+                                Attribute::Single(AttributeValue::Text(v)),
+                            )
+                        }),
+                        value.city.map(|v| {
+                            (
+                                PID_RESIDENT_CITY.to_string(),
+                                Attribute::Single(AttributeValue::Text(v)),
+                            )
+                        }),
+                        value.country.map(|v| {
+                            (
+                                PID_RESIDENT_COUNTRY.to_string(),
+                                Attribute::Single(AttributeValue::Text(v)),
+                            )
+                        }),
+                    ]
+                    .into_iter()
+                    .flatten()
+                    .collect(),
+                ),
+            )]),
         )
         .unwrap()
     }
 }
 
-const MOCK_PID_DOCTYPE: &str = "com.example.pid";
-const MOCK_ADDRESS_DOCTYPE: &str = "com.example.address";
+const MOCK_PID_DOCTYPE: &str = "urn:eudi:pid:nl:1";
+const MOCK_ADDRESS_DOCTYPE: &str = "urn:eudi:pid-address:nl:1";
 
 type Attributes = (PersonAttributes, Option<ResidentAttributes>);
 pub struct MockAttributesLookup(HashMap<String, Attributes>);
@@ -161,7 +160,6 @@ impl Default for MockAttributesLookup {
                     postal_code: Some("2511 DP".to_owned()),
                     city: Some("Den Haag".to_owned()),
                     country: Some("Nederland".to_owned()),
-                    ..ResidentAttributes::default()
                 }),
             ),
         );

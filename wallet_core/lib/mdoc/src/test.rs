@@ -377,8 +377,8 @@ pub mod data {
 
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 
-    pub const PID: &str = "com.example.pid";
-    const ADDR: &str = "com.example.address";
+    pub const PID: &str = "urn:eudi:pid:nl:1";
+    const ADDR: &str = "urn:eudi:pid-address:nl:1";
 
     pub fn empty() -> TestDocuments {
         vec![].into()
@@ -480,9 +480,9 @@ pub mod data {
             ADDR.to_owned(),
             format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             IndexMap::from_iter(vec![(
-                ADDR.to_string(),
+                format!("{ADDR}.address"),
                 vec![Entry {
-                    name: "resident_street".to_string(),
+                    name: "street_address".to_string(),
                     value: Value::Text("Turfmarkt".to_string()),
                 }],
             )]),

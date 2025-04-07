@@ -1,0 +1,110 @@
+{
+  "vct": "urn:eudi:pid:1",
+  "name": "PID credential",
+  "description": "Working version of the PID credential",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Personal Data",
+      "description": "The Personal Data credential"
+    }
+  ],
+  "claims": [
+    {
+      "path": ["family_name"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Name",
+          "description": "Family name of the person, including any prefixes"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["given_name"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "First name",
+          "description": "First name of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["birthdate"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Birth date",
+          "description": "Birth date of the person"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_over_18"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Over 18",
+          "description": "Whether the person is over 18"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "PID VCT Schema",
+    "description": "The JSON schema that defines the PID VCT",
+    "type": "object",
+    "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "sub": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      },
+      "given_name": {
+        "type": "string"
+      },
+      "family_name": {
+        "type": "string"
+      },
+      "birthdate": {
+        "type": "string",
+        "format": "date"
+      },
+      "age_over_18": {
+        "type": "boolean"
+      }
+    },
+    "required": ["vct", "iss", "attestation_qualification", "given_name", "family_name", "birthdate"]
+  }
+}

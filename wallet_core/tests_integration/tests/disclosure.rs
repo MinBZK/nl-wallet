@@ -258,10 +258,10 @@ async fn test_disclosure_without_pid() {
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
         items_requests: vec![ItemsRequest {
-            doc_type: "com.example.pid".to_owned(),
+            doc_type: "urn:eudi:pid:nl:1".to_owned(),
             request_info: None,
             name_spaces: IndexMap::from([(
-                "com.example.pid".to_owned(),
+                "urn:eudi:pid:nl:1".to_owned(),
                 IndexMap::from_iter(
                     [("given_name", true), ("family_name", false)]
                         .into_iter()
@@ -323,8 +323,8 @@ async fn test_disclosure_without_pid() {
             missing_attributes,
             ..
         } if missing_attributes == vec![
-            "com.example.pid/com.example.pid/given_name",
-            "com.example.pid/com.example.pid/family_name"
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name",
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name"
         ]
     );
 

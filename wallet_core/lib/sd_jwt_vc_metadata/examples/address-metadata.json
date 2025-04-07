@@ -1,5 +1,5 @@
 {
-  "vct": "com.example.address",
+  "vct": "urn:eudi:pid-address:nl:1",
   "name": "NL Wallet address credential",
   "description": "Working version of the NL Wallet address credential",
   "display": [

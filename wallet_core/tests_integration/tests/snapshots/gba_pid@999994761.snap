@@ -1,11 +1,10 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 194
 description: "BSN: 999994761"
 expression: attributes
 ---
 {
-  "com.example.pid": {
+  "urn:eudi:pid:nl:1": {
     [
       "family_name",
     ]: Basic("Blok"),
@@ -13,7 +12,7 @@ expression: attributes
       "given_name",
     ]: Basic("Jean-Marie"),
     [
-      "birth_date",
+      "birthdate",
     ]: Date("1985-03-17"),
     [
       "age_over_18",
@@ -22,21 +21,26 @@ expression: attributes
       "bsn",
     ]: Basic("999994761"),
   },
-  "com.example.address": {
+  "urn:eudi:pid-address:nl:1": {
     [
-      "resident_street",
+      "address",
+      "street_address",
     ]: Basic("Oostduinlaan"),
     [
-      "resident_house_number",
+      "address",
+      "house_number",
     ]: Basic("50"),
     [
-      "resident_postal_code",
+      "address",
+      "postal_code",
     ]: Basic("2596JP"),
     [
-      "resident_city",
+      "address",
+      "locality",
     ]: Basic("\'s-Gravenhage"),
     [
-      "resident_country",
+      "address",
+      "country",
     ]: Basic("Nederland"),
   },
 }

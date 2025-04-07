@@ -1,99 +1,88 @@
 {
-  "vct": "com.example.address",
+  "vct": "urn:eudi:pid-address:nl:1",
   "name": "NL Wallet address credential",
   "description": "Working version of the NL Wallet address credential",
+  "extends": "urn:eudi:pid-address:1",
+  "extends#integrity": "sha256-17CxrX9FJ68Lsw5nui612i7m3lyZzhK9kK3G76DROks=",
   "display": [
     {
       "lang": "en-US",
       "name": "NL Wallet address",
       "description": "The address credential for the NL Wallet",
-      "summary": "{{resident_city}}"
+      "summary": "{{resident_city}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#445581",
+          "text_color": "#FFFFFF"
+        }
+      }
     },
     {
       "lang": "nl-NL",
       "name": "NL Wallet adres",
       "description": "De adresattestatie voor de NL Wallet",
-      "summary": "{{resident_city}}"
+      "summary": "{{resident_city}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#445581",
+          "text_color": "#FFFFFF"
+        }
+      }
     }
   ],
   "claims": [
     {
-      "path": ["resident_street"],
+      "path": ["address", "street_address"],
       "display": [
         {
           "lang": "nl-NL",
           "label": "Straatnaam",
           "description": "Straatnaam van het adres"
-        },
-        {
-          "lang": "en-US",
-          "label": "Street",
-          "description": "Street of the address"
         }
       ],
       "sd": "always"
     },
     {
-      "path": ["resident_house_number"],
+      "path": ["address", "house_number"],
       "display": [
         {
           "lang": "nl-NL",
           "label": "Huisnummer",
           "description": "Huisnummer van het adres"
-        },
-        {
-          "lang": "en-US",
-          "label": "House number",
-          "description": "House number of the address"
         }
       ],
       "sd": "always"
     },
     {
-      "path": ["resident_postal_code"],
+      "path": ["address", "postal_code"],
       "display": [
         {
           "lang": "nl-NL",
           "label": "Postcode",
           "description": "Postcode van het adres"
-        },
-        {
-          "lang": "en-US",
-          "label": "Postal code",
-          "description": "Postal code of the address"
         }
       ],
       "sd": "always"
     },
     {
-      "path": ["resident_city"],
+      "path": ["address", "locality"],
       "display": [
         {
           "lang": "nl-NL",
           "label": "Stad",
           "description": "Stad van het adres"
-        },
-        {
-          "lang": "en-US",
-          "label": "City",
-          "description": "City of the address"
         }
       ],
       "sd": "always",
       "svg_id": "resident_city"
     },
     {
-      "path": ["resident_country"],
+      "path": ["address", "country"],
       "display": [
         {
           "lang": "nl-NL",
           "label": "Land",
           "description": "Land van het adres"
-        },
-        {
-          "lang": "en-US",
-          "label": "Country",
-          "description": "Country of the address"
         }
       ],
       "sd": "always"
@@ -105,21 +94,6 @@
     "description": "The JSON schema that defines the NL Wallet address VCT",
     "type": "object",
     "properties": {
-      "resident_street": {
-        "type": "string"
-      },
-      "resident_house_number": {
-        "type": "string"
-      },
-      "resident_postal_code": {
-        "type": "string"
-      },
-      "resident_city": {
-        "type": "string"
-      },
-      "resident_country": {
-        "type": "string"
-      },
       "vct": {
         "type": "string"
       },
@@ -129,20 +103,49 @@
       "iss": {
         "type": "string"
       },
-      "iat": {
-        "type": "number"
-      },
       "nbf": {
         "type": "number"
       },
       "exp": {
         "type": "number"
       },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "sub": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
       "attestation_qualification": {
         "type": "string"
+      },
+      "address": {
+        "type": "object",
+        "properties": {
+          "street_address": {
+            "type": "string"
+          },
+          "house_number": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          }
+        },
+        "required": ["street_address", "house_number", "postal_code", "locality", "country"]
       }
     },
-    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"],
-    "additionalProperties": false
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
   }
 }

@@ -1,5 +1,5 @@
 {
-  "vct": "com.example.pid",
+  "vct": "urn:eudi:pid:nl:1",
   "name": "NL Wallet PID credential",
   "description": "Working version of the NL Wallet PID credential",
   "display": [
@@ -18,9 +18,7 @@
   ],
   "claims": [
     {
-      "path": [
-        "family_name"
-      ],
+      "path": ["family_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -37,9 +35,7 @@
       "svg_id": "last_name"
     },
     {
-      "path": [
-        "given_name"
-      ],
+      "path": ["given_name"],
       "display": [
         {
           "lang": "nl-NL",
@@ -56,9 +52,7 @@
       "svg_id": "first_name"
     },
     {
-      "path": [
-        "birth_date"
-      ],
+      "path": ["birth_date"],
       "display": [
         {
           "lang": "nl-NL",
@@ -74,9 +68,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "age_over_18"
-      ],
+      "path": ["age_over_18"],
       "display": [
         {
           "lang": "nl-NL",
@@ -92,9 +84,7 @@
       "sd": "always"
     },
     {
-      "path": [
-        "bsn"
-      ],
+      "path": ["bsn"],
       "display": [
         {
           "lang": "nl-NL",
@@ -154,12 +144,6 @@
         "type": "string"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat",
-      "exp",
-      "attestation_qualification"
-    ]
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
   }
 }

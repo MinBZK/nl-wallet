@@ -1,0 +1,128 @@
+{
+  "vct": "urn:eudi:pid-address:1",
+  "name": "Address credential",
+  "description": "Working version of the address credential",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Address",
+      "description": "The address credential"
+    }
+  ],
+  "claims": [
+    {
+      "path": ["address", "country"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country",
+          "description": "Country of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "locality"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "City",
+          "description": "City of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "postal_code"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Postal code",
+          "description": "Postal code of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "street_address"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Street",
+          "description": "Street of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["address", "house_number"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "House number",
+          "description": "House number of the address"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Address VCT Schema",
+    "description": "The JSON schema that defines the address VCT",
+    "type": "object",
+    "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "sub": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      },
+      "address": {
+        "type": "object",
+        "properties": {
+          "country": {
+            "type": "string"
+          },
+          "locality": {
+            "type": "string"
+          },
+          "postal_code": {
+            "type": "string"
+          },
+          "street_address": {
+            "type": "string"
+          },
+          "house_number": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
+  }
+}
