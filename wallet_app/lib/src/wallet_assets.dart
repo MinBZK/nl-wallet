@@ -60,6 +60,7 @@ class WalletAssets {
   static const svg_biometrics_face = 'assets/non-free/svg/NL_WALLET_biometrics_face.svg';
   static const svg_update_app = 'assets/non-free/svg/NL_WALLET_update_android.svg';
   static const svg_update_app_ios = 'assets/non-free/svg/NL_WALLET_update_ios.svg';
+  static const svg_tour_icon = 'assets/non-free/svg/NL_WALLET_tour_icon.svg';
 
   static const svg_icon_face_id = 'assets/non-free/svg/icon_face_id.svg';
 
