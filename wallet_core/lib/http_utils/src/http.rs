@@ -78,7 +78,6 @@ impl TlsPinningConfig {
     }
 }
 
-
 #[cfg(feature = "client")]
 impl ClientBuilder for TlsPinningConfig {
     fn builder(&self) -> reqwest::ClientBuilder {
