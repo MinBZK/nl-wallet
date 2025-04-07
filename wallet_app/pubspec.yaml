@@ -47,7 +47,7 @@ dependencies:
   rxdart: ^0.28.0
   screen_brightness: ^2.1.2
   sensors_plus: ^6.1.1
-  sentry_flutter: ">=8.9.0 <8.10.0"
+  sentry_flutter: ^8.14.0
   shared_preferences: ^2.5.2
   store_redirect: ^2.0.4
   url_launcher: ^6.3.1
