@@ -79,7 +79,7 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible("Gemeente Amsterdam"))
         disclosureScreen.viewLoginDisclosureDetails()
         disclosureScreen.viewSharedData()
-        assertTrue(disclosureScreen.bsnVisible("9999991772"), "BSN not visible")
+        assertTrue(disclosureScreen.bsnVisible("999991772"), "BSN not visible")
         disclosureScreen.goBack();
         disclosureScreen.readTerms();
         assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
