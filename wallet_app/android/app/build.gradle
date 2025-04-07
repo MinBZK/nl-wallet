@@ -162,10 +162,10 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         Profile: [true, ['--locked', '--release']],
         Release: [true, ['--locked', '--release']]
 ].each {
-    def taskPostfix = it.key
+    def buildMode = it.key
     def (doStrip, buildArgs) = it.value
 
-    tasks.register("cargoBuildNativeLibrary${taskPostfix}", Exec) {
+    tasks.register("cargoBuildNativeLibrary${buildMode}", Exec) {
         workingDir "../../../wallet_core"
 
         // Build the Rust code (wallet_core)
@@ -190,8 +190,8 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
             args += ['--features', 'wallet/allow_insecure_url']
         }
     }
-    tasks.named { it == "merge${taskPostfix}NativeLibs" }.configureEach {
-        dependsOn "cargoBuildNativeLibrary${taskPostfix}"
+    tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
+        dependsOn "cargoBuildNativeLibrary${buildMode}"
     }
 }
 

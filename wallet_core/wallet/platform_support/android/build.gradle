@@ -105,10 +105,10 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
         Profile: [true, ['--locked', '--release']],
         Release: [true, ['--locked', '--release']]
 ].each {
-    def taskPostfix = it.key
+    def buildMode = it.key
     def (doStrip, buildArgs) = it.value
 
-    tasks.register("cargoBuildNativeBindings${taskPostfix}", Exec) {
+    tasks.register("cargoBuildNativeBindings${buildMode}", Exec) {
         workingDir moduleWorkingDir
         fileTree("$workingDir").matching {
             include "**/*.udl"
@@ -124,11 +124,11 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
             ]
         }
     }
-    tasks.named { it == "compile${taskPostfix}Kotlin" }.configureEach {
-        dependsOn "cargoBuildNativeBindings${taskPostfix}"
+    tasks.named { it == "compile${buildMode}Kotlin" }.configureEach {
+        dependsOn "cargoBuildNativeBindings${buildMode}"
     }
 
-    tasks.register("cargoBuildNativeLibrary${taskPostfix}", Exec) {
+    tasks.register("cargoBuildNativeLibrary${buildMode}", Exec) {
         workingDir moduleWorkingDir
         executable = 'cargo'
         args = ['ndk',
@@ -145,8 +145,8 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
             args += buildArgs
         }
     }
-    tasks.named { it == "merge${taskPostfix}NativeLibs" }.configureEach {
-        dependsOn "cargoBuildNativeLibrary${taskPostfix}"
+    tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
+        dependsOn "cargoBuildNativeLibrary${buildMode}"
     }
 }
 
