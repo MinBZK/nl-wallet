@@ -52,7 +52,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
     /// Creates a new [`SdJwtBuilder`] with custom hash function to create digests, and custom salt size.
     pub fn new_with_hasher_and_salt_size<T: Serialize>(object: T, hasher: H, salt_size: usize) -> Result<Self> {
-        let object = serde_json::to_value(object).map_err(|e| Error::Unspecified(e.to_string()))?;
+        let object = serde_json::to_value(object)?;
         let encoder = SdObjectEncoder::with_custom_hasher_and_salt_size(object, hasher, salt_size)?;
         Ok(Self {
             encoder,
@@ -106,7 +106,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         V: Serialize,
     {
         let key = key.into().into_owned();
-        let value = serde_json::to_value(value).map_err(|e| Error::Deserialization(e.to_string()))?;
+        let value = serde_json::to_value(value)?;
         self.encoder
             .object
             .as_object_mut()
@@ -150,7 +150,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         let mut object = encoder.object;
         // Add key binding requirement as `cnf`.
         if let Some(key_bind) = key_bind {
-            let key_bind = serde_json::to_value(key_bind).map_err(|e| Error::Deserialization(e.to_string()))?;
+            let key_bind = serde_json::to_value(key_bind)?;
             object
                 .as_object_mut()
                 .expect("encoder::object is a JSON Object")

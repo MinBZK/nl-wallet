@@ -5,9 +5,9 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 
 /// Alias for a `Result` with the error type [`Error`].
-pub type Result<T> = ::core::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, thiserror::Error, strum::IntoStaticStr)]
+#[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     #[error("invalid input: {0}")]
@@ -43,12 +43,12 @@ pub enum Error {
     #[error("the validation ended with {0} unused disclosure(s)")]
     UnusedDisclosures(usize),
 
-    #[error("Error parsing JWT: {0}")]
+    #[error("error parsing JWT: {0}")]
     JwtParsing(#[from] JwtError),
 
     #[error("error creating JWK from verifying key: {0}")]
     Jwk(#[from] JwkConversionError),
 
-    #[error("Missing required property: {0}")]
+    #[error("missing required property: {0}")]
     MissingRequiredProperty(String),
 }
