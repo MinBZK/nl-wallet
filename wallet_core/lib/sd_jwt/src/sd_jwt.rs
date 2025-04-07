@@ -5,7 +5,6 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::iter::Peekable;
 use std::ops::Deref;
-use std::ops::DerefMut;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -16,6 +15,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Map;
 use serde_json::Value;
+use serde_with::skip_serializing_none;
 
 use crypto::EcdsaKeySend;
 use jwt::EcdsaDecodingKey;
@@ -33,30 +33,15 @@ use crate::key_binding_jwt_claims::KeyBindingJwt;
 use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
 
+#[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
 pub struct SdJwtClaims {
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    #[serde(default)]
     pub _sd: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub _sd_alg: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub cnf: Option<RequiredKeyBinding>,
     #[serde(flatten)]
-    properties: Map<String, Value>,
-}
-
-impl Deref for SdJwtClaims {
-    type Target = Map<String, Value>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.properties
-    }
-}
-
-impl DerefMut for SdJwtClaims {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.properties
-    }
+    pub properties: Map<String, Value>,
 }
 
 /// Representation of an SD-JWT of the format
