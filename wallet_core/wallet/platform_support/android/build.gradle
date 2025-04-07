@@ -108,54 +108,46 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
     def taskPostfix = it.key
     def (doStrip, buildArgs) = it.value
 
-    // This checks if a taskPostfix (Debug, Profile, Release) matches how gradle
-    // was called. In effect, this makes sure that when for example the task
-    // assembleDebug was invoked from the command-line, only tasks matching
-    // Debug are registered (created) and executed, and not all of them.
-    boolean matchedStartParameters = project.gradle.startParameter.taskNames.any { it.contains(taskPostfix) }
-
-    if (matchedStartParameters) {
-        tasks.whenTaskAdded { task ->
-            if (task.name == "pre${taskPostfix}Build") {
-                task.dependsOn "cargoBuildNativeBindings$taskPostfix"
-            } else if (task.name == "connected${taskPostfix}AndroidTest") {
-                task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
-            }
+    tasks.whenTaskAdded { task ->
+        if (task.name == "pre${taskPostfix}Build") {
+            task.dependsOn "cargoBuildNativeBindings$taskPostfix"
+        } else if (task.name == "connected${taskPostfix}AndroidTest") {
+            task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
         }
+    }
 
-        tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
-            workingDir moduleWorkingDir
-            fileTree("$workingDir").matching {
-                include "**/*.udl"
-            }.each {
-                // Use file name as module name
-                String moduleName = it.name.take(it.name.lastIndexOf('.'))
+    tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
+        workingDir moduleWorkingDir
+        fileTree("$workingDir").matching {
+            include "**/*.udl"
+        }.each {
+            // Use file name as module name
+            String moduleName = it.name.take(it.name.lastIndexOf('.'))
 
-                // Generate Kotlin <> Rust bindings
-                executable = 'bash'
-                args = ['generate_native_bindings.sh',
-                        "$moduleName",
-                        'kotlin'
-                ]
-            }
-        }
-
-        tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-            workingDir moduleWorkingDir
-            executable = 'cargo'
-            args = ['ndk',
-                    '-t', 'armeabi-v7a',
-                    '-t', 'arm64-v8a',
-                    '-t', 'x86_64',
-                    '-o', jniTargetDir
+            // Generate Kotlin <> Rust bindings
+            executable = 'bash'
+            args = ['generate_native_bindings.sh',
+                    "$moduleName",
+                    'kotlin'
             ]
-            if (!doStrip) {
-                args += '--no-strip'
-            }
-            args += 'build'
-            if (buildArgs != null) {
-                args += buildArgs
-            }
+        }
+    }
+
+    tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
+        workingDir moduleWorkingDir
+        executable = 'cargo'
+        args = ['ndk',
+                '-t', 'armeabi-v7a',
+                '-t', 'arm64-v8a',
+                '-t', 'x86_64',
+                '-o', jniTargetDir
+        ]
+        if (!doStrip) {
+            args += '--no-strip'
+        }
+        args += 'build'
+        if (buildArgs != null) {
+            args += buildArgs
         }
     }
 }
