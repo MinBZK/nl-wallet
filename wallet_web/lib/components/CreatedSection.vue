@@ -16,10 +16,6 @@ const handleChoice = (sessionType: SessionType) => emit("choice", sessionType)
 </script>
 
 <template>
-  <device-choice
-    v-if="sessionType === 'same_device'"
-    :ul="ul"
-    @choice="handleChoice"
-  ></device-choice>
+  <device-choice v-if="sessionType === 'same_device'" :ul="ul" @choice="handleChoice"></device-choice>
   <qr-code v-if="sessionType === 'cross_device'" :text="ul"></qr-code>
 </template>

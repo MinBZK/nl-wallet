@@ -39,11 +39,7 @@ browsers.forEach((browserName) => {
 
 export default defineConfig({
   testDir: "../tests",
-  reporter: [
-    ["list"],
-    ["junit", { outputFile: "../test-results/results.xml" }],
-    ["allure-playwright"],
-  ],
+  reporter: [["list"], ["junit", { outputFile: "../test-results/results.xml" }], ["allure-playwright"]],
   projects,
   use: {
     baseURL:

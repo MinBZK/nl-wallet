@@ -35,19 +35,12 @@ onMounted(async () => setTimeout(() => main.value && main.value.focus(), 0))
       @choice="handleChoice"
     ></created-section>
     <in-progress-section v-if="modalState.kind === 'in-progress'"></in-progress-section>
-    <confirm-stop-section
-      v-if="modalState.kind === 'confirm-stop'"
-      :helpBaseUrl
-    ></confirm-stop-section>
+    <confirm-stop-section v-if="modalState.kind === 'confirm-stop'" :helpBaseUrl></confirm-stop-section>
     <success-section
       v-if="modalState.kind === 'success'"
       :sessionType="modalState.session.sessionType"
     ></success-section>
-    <error-section
-      v-if="modalState.kind === 'error'"
-      :errorType="modalState.errorType"
-      :helpBaseUrl
-    ></error-section>
+    <error-section v-if="modalState.kind === 'error'" :errorType="modalState.errorType" :helpBaseUrl></error-section>
   </main>
 
   <help-section v-if="modalState.kind === 'created'" :helpBaseUrl></help-section>

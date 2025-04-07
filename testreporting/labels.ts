@@ -40,9 +40,7 @@ export function groupTestResult(group: string, result: RawTestResult) {
     ...result,
     labels: [
       ...result.labels.filter((l) => l.name && !(l.name in suiteNames)),
-      ...suiteKeys
-        .map((key) => ({ name: key, value: suiteNames[key] }))
-        .filter((label) => label.value),
+      ...suiteKeys.map((key) => ({ name: key, value: suiteNames[key] })).filter((label) => label.value),
     ],
   }
 }
