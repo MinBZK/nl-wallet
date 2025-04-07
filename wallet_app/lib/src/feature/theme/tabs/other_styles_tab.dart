@@ -49,6 +49,7 @@ import '../../disclosure/widget/card_attribute_row.dart';
 import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
+import '../../tour/widget/tour_banner.dart';
 import '../theme_screen.dart';
 
 const _kMockPurpose = 'Kaart uitgifte';
@@ -539,6 +540,8 @@ class OtherStylesTab extends StatelessWidget {
             _kSampleInteractionAttribute,
           ],
         ),
+        const ThemeSectionSubHeader(title: 'TourBanner'),
+        TourBanner(),
       ],
     );
   }

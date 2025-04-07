@@ -7,6 +7,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use derive_more::Constructor;
 use futures::try_join;
+use itertools::Itertools;
 use p256::ecdsa::signature::Verifier;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::pkcs8::DecodePublicKey;
@@ -495,8 +496,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     }
                     error => {
                         warn!(
-                            "rejected Android attested key with leaf certificate: '{0}', cause: '{error}'",
-                            BASE64_STANDARD.encode(certificate_chain.first())
+                            "rejected Android attested key because: '{error}', certificate chain: ['{0}']",
+                            certificate_chain.iter().map(|c| BASE64_STANDARD.encode(c)).join("', '")
                         );
                         AndroidKeyAttestationError::Verification(error)
                     }
@@ -1726,7 +1727,7 @@ mod tests {
         .expect_err("registering with an invalid Android attestation should fail");
 
         assert_matches!(error, RegistrationError::AndroidKeyAttestation(_));
-        assert!(logs_contain("rejected Android attested key with leaf certificate"));
+        assert!(logs_contain("rejected Android attested key because"));
     }
 
     #[tokio::test]

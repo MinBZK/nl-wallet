@@ -216,8 +216,9 @@ class WalletCoreMock implements WalletCoreApi {
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream({hint}) {
     return Stream.value(
       FlutterConfiguration(
-        backgroundLockTimeout: Duration(seconds: 20).inSeconds,
+        inactiveWarningTimeout: Duration(minutes: 1).inSeconds,
         inactiveLockTimeout: Duration(minutes: 3).inSeconds,
+        backgroundLockTimeout: Duration(seconds: 20).inSeconds,
         version: BigInt.one,
       ),
     );

@@ -8,12 +8,12 @@ metadata:
   annotations:
     checksum/config: "{{ $configMapChecksum }}"
   labels:
-    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- include "common.labels.component" (list .Chart.Name .) | nindent 4 }}
 spec:
   replicas: {{ .Values.gbaHcConverter.replicaCount }}
   selector:
     matchLabels:
-      {{- include "common.labels.selectorLabels" . | nindent 6 }}
+      {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -24,7 +24,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 8 }}
         {{ with .Values.gbaHcConverter.extraPodlabels }}
         {{ toYaml . | nindent 8 }}
         {{- end }}

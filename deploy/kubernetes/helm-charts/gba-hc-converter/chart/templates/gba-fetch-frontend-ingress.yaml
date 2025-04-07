@@ -21,7 +21,7 @@ metadata:
       more_set_headers "Cross-Origin-Embedder-Policy: require-corp";
       more_set_headers "Cross-Origin-Opener-Policy: same-origin";
   labels:
-    {{- include "common.labels.customname" (list .Values.frontend.name .) | nindent 4 }}
+    {{- include "common.labels.component" (list .Values.frontend.name .) | nindent 4 }}
 spec:
   ingressClassName: {{ .Values.frontend.ingress.className }}
   rules:

@@ -2,6 +2,7 @@
   "version": 0,
   "environment": "dev",
   "lock_timeouts": {
+    "warning_timeout": 240,
     "inactive_timeout": 300,
     "background_timeout": 300
   },

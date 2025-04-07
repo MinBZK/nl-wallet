@@ -7,8 +7,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../data/repository/wallet/wallet_repository.dart';
+import '../../data/service/navigation_service.dart';
 import '../../domain/model/configuration/flutter_app_configuration.dart';
+import '../../domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart';
+import '../../domain/usecase/wallet/lock_wallet_usecase.dart';
 import 'widget/interaction_detector.dart';
 
 class AutoLockObserver extends StatefulWidget {
@@ -28,7 +30,12 @@ class AutoLockObserver extends StatefulWidget {
 class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBindingObserver {
   final PublishSubject<void> _userInteractionStream = PublishSubject();
   final Stopwatch _backgroundStopwatch = Stopwatch();
+  StreamSubscription? _inactiveWarningSubscription;
   StreamSubscription? _inactiveSubscription;
+
+  LockWalletUseCase get _lockWalletUseCase => context.read();
+
+  IsWalletRegisteredAndUnlockedUseCase get _isWalletRegisteredAndUnlockedUseCase => context.read();
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +54,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
 
     WidgetsBinding.instance.addObserver(this);
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-      _lockWallet();
+      _lockWallet(null);
     } else {
       _resetIdleTimeout();
     }
@@ -70,15 +77,26 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   }
 
   void _setupNoInteractionListener() {
+    // Idle warning dialog timeout
+    _inactiveWarningSubscription?.cancel();
+    _inactiveWarningSubscription = _userInteractionStream
+        .debounceTime(widget.configuration.idleWarningTimeout)
+        .asyncMap((_) async => _isWalletRegisteredAndUnlockedUseCase.invoke())
+        .where((showWarning) => showWarning)
+        .listen(_showIdleDialog);
+    // Idle lock timeout
     _inactiveSubscription?.cancel();
-    _inactiveSubscription =
-        _userInteractionStream.debounceTime(widget.configuration.idleLockTimeout).listen((event) => _lockWallet());
+    _inactiveSubscription = _userInteractionStream
+        .debounceTime(widget.configuration.idleLockTimeout)
+        .asyncMap((_) async => _isWalletRegisteredAndUnlockedUseCase.invoke())
+        .where((shouldLock) => shouldLock)
+        .listen(_lockWallet);
   }
 
   @override
   void didUpdateWidget(AutoLockObserver oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.configuration.idleLockTimeout != widget.configuration.idleLockTimeout) {
+    if (oldWidget.configuration != widget.configuration) {
       _setupNoInteractionListener();
     }
   }
@@ -100,17 +118,21 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   /// Locks the app if needed, and reset the stopwatch for future use.
   void _checkAndResetStopwatch() {
     _backgroundStopwatch.stop();
-    if (_backgroundStopwatch.elapsed >= widget.configuration.backgroundLockTimeout) _lockWallet();
+    if (_backgroundStopwatch.elapsed >= widget.configuration.backgroundLockTimeout) _lockWallet(null);
     _backgroundStopwatch.reset();
   }
 
-  void _lockWallet() {
+  // Show the Timeout Warning Dialog (not called directly due to missing theme for the local context)
+  void _showIdleDialog(_) => context.read<NavigationService>().showDialog(WalletDialogType.idleWarning);
+
+  void _lockWallet(_) {
     Fimber.d('Locking wallet!');
-    context.read<WalletRepository>().lockWallet();
+    _lockWalletUseCase.invoke();
   }
 
   @override
   void dispose() {
+    _inactiveWarningSubscription?.cancel();
     _inactiveSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

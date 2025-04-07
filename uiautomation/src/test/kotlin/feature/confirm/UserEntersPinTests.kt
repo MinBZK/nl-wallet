@@ -26,6 +26,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     private lateinit var pinScreen: PinScreen
+    private lateinit var noInternetErrorScreen: NoInternetErrorScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -65,17 +66,13 @@ class UserEntersPinTests : TestBase() {
      * >> This requirement hard, if not impossible to be tested in an e2e setup and should be validated during an audit of the app.
      */
 
-    /**
-     * 5. Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.
-     * >> Manual test: https://SSSS/jira/browse/PVW-1998
-     */
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5. Upon PIN entry, when the app cannot connect to the server it displays an appropriate error. [${JIRA_ID}]")
     fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
-        val noInternetErrorScreen = NoInternetErrorScreen()
         try {
             setUp(testInfo)
             val pin = "122222"
+            noInternetErrorScreen = NoInternetErrorScreen()
             pinScreen.disableInternetConnection()
             pinScreen.enterPin(pin)
             assertAll(
