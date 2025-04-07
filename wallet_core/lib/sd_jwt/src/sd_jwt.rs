@@ -17,11 +17,6 @@ use serde_json::Map;
 use serde_json::Value;
 use serde_with::skip_serializing_none;
 
-use crypto::EcdsaKeySend;
-use jwt::jwk::jwk_to_p256;
-use jwt::EcdsaDecodingKey;
-use jwt::VerifiedJwt;
-
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
 use crate::encoder::ARRAY_DIGEST_KEY;
@@ -33,6 +28,11 @@ use crate::hasher::SHA_ALG_NAME;
 use crate::key_binding_jwt_claims::KeyBindingJwt;
 use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
+use crypto::EcdsaKeySend;
+use jwt::jwk::jwk_to_p256;
+use jwt::EcdsaDecodingKey;
+use jwt::VerifiedJwt;
+use wallet_common::spec::SpecOptional;
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
@@ -49,18 +49,14 @@ pub struct SdJwtClaims {
 /// `<Issuer-signed JWT>~<Disclosure 1>~<Disclosure 2>~...~<Disclosure N>~<optional KB-JWT>`.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwt {
-    /// The Issuer-signed JWT part.
     issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
-    /// The disclosures part.
     disclosures: Vec<Disclosure>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwtPresentation {
     sd_jwt: SdJwt,
-
-    /// The optional key binding JWT.
-    key_binding_jwt: KeyBindingJwt,
+    key_binding_jwt: SpecOptional<KeyBindingJwt>,
 }
 
 impl SdJwtPresentation {
@@ -87,7 +83,7 @@ impl SdJwtPresentation {
 
             Ok(Self {
                 sd_jwt,
-                key_binding_jwt,
+                key_binding_jwt: key_binding_jwt.into(),
             })
         } else {
             Err(Error::MissingJwkKeybinding)
@@ -96,7 +92,7 @@ impl SdJwtPresentation {
 
     pub fn presentation(&self) -> String {
         let disclosures = self.sd_jwt.disclosures.iter().map(ToString::to_string).join("~");
-        let key_bindings = self.key_binding_jwt.to_string();
+        let key_bindings = self.key_binding_jwt.as_ref().to_string();
         [self.sd_jwt.issuer_signed_jwt.jwt().clone().0, disclosures, key_bindings]
             .iter()
             .filter(|segment| !segment.is_empty())
@@ -108,7 +104,7 @@ impl SdJwtPresentation {
     }
 
     pub fn key_binding_jwt(&self) -> &KeyBindingJwt {
-        &self.key_binding_jwt
+        self.key_binding_jwt.as_ref()
     }
 }
 
@@ -318,7 +314,7 @@ impl<'a> SdJwtPresentationBuilder<'a> {
 
         let sd_jwt_presentation = SdJwtPresentation {
             sd_jwt,
-            key_binding_jwt,
+            key_binding_jwt: key_binding_jwt.into(),
         };
 
         Ok((sd_jwt_presentation, removed_disclosures))
