@@ -1,8 +1,6 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::borrow::Cow;
-
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use p256::ecdsa::VerifyingKey;
@@ -95,23 +93,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
     pub fn make_concealable(mut self, path: &str) -> Result<Self> {
         let disclosure = self.encoder.conceal(path)?;
         self.disclosures.push(disclosure);
-
-        Ok(self)
-    }
-
-    /// Adds a new claim to the underlying object.
-    pub fn insert_claim<'a, K, V>(mut self, key: K, value: V) -> Result<Self>
-    where
-        K: Into<Cow<'a, str>>,
-        V: Serialize,
-    {
-        let key = key.into().into_owned();
-        let value = serde_json::to_value(value)?;
-        self.encoder
-            .object
-            .as_object_mut()
-            .expect("encoder::object is a JSON Object")
-            .insert(key, value);
 
         Ok(self)
     }
