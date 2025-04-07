@@ -108,7 +108,7 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
     def taskPostfix = it.key
     def (doStrip, buildArgs) = it.value
 
-    tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
+    tasks.register("cargoBuildNativeBindings${taskPostfix}", Exec) {
         workingDir moduleWorkingDir
         fileTree("$workingDir").matching {
             include "**/*.udl"
@@ -124,8 +124,11 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
             ]
         }
     }
+    tasks.named { it == "compile${taskPostfix}Kotlin" }.configureEach {
+        dependsOn "cargoBuildNativeBindings${taskPostfix}"
+    }
 
-    tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
+    tasks.register("cargoBuildNativeLibrary${taskPostfix}", Exec) {
         workingDir moduleWorkingDir
         executable = 'cargo'
         args = ['ndk',
@@ -142,10 +145,8 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
             args += buildArgs
         }
     }
-
-    tasks.named { it == "pre${taskPostfix}Build" }.configureEach {
-        dependsOn "cargoBuildNativeBindings$taskPostfix"
-        dependsOn "cargoBuildNativeLibrary$taskPostfix"
+    tasks.named { it == "merge${taskPostfix}NativeLibs" }.configureEach {
+        dependsOn "cargoBuildNativeLibrary${taskPostfix}"
     }
 }
 
