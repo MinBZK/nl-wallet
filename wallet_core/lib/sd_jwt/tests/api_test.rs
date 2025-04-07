@@ -172,7 +172,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     // Try to serialize & deserialize `with_kb`.
     let with_kb = {
         let s = disclosed.to_string();
-        SdJwtPresentation::parse_and_verify(&s, &decoding_key)?
+        SdJwtPresentation::parse_and_verify(&s, &decoding_key, "https://example.com", "abcdefghi")?
     };
 
     assert!(with_kb.sd_jwt().disclosures().is_empty());
@@ -273,6 +273,8 @@ async fn test_presentation() -> anyhow::Result<()> {
     SdJwtPresentation::parse_and_verify(
         &presented_sd_jwt.to_string(),
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
+        "https://example.com",
+        "abcdefghi",
     )?;
 
     Ok(())

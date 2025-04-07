@@ -19,6 +19,9 @@ pub const SD_JWT_VC: &str = include_str!("../examples/sd_jwt/sd_jwt_vc.jwt");
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-presentation
 pub const WITH_KB_SD_JWT: &str = include_str!("../examples/sd_jwt/with_kb.jwt");
 
+pub const WITH_KB_SD_JWT_AUD: &str = "https://verifier.example.org";
+pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
+
 pub fn simple_structured_sd_jwt() -> SdJwt {
     SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
 }
@@ -32,7 +35,13 @@ pub fn sd_jwt_vc() -> SdJwt {
 }
 
 pub fn sd_jwt_kb() -> SdJwtPresentation {
-    SdJwtPresentation::parse_and_verify(WITH_KB_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
+    SdJwtPresentation::parse_and_verify(
+        WITH_KB_SD_JWT,
+        &examples_sd_jwt_decoding_key(),
+        WITH_KB_SD_JWT_AUD,
+        WITH_KB_SD_JWT_NONCE,
+    )
+    .unwrap()
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-elliptic-curve-key-used-in-

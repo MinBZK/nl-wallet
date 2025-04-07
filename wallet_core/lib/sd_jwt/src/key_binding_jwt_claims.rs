@@ -37,19 +37,29 @@ impl Display for KeyBindingJwt {
 }
 
 impl KeyBindingJwt {
-    pub fn parse_and_verify(s: &str, pubkey: &EcdsaDecodingKey) -> error::Result<Self> {
+    pub fn parse_and_verify(
+        s: &str,
+        pubkey: &EcdsaDecodingKey,
+        expected_aud: &str,
+        expected_nonce: &str,
+    ) -> error::Result<Self> {
         let jwt: Jwt<KeyBindingJwtClaims> = s.into();
 
-        let (header, _) = jwt.parse_and_verify_with_header(pubkey, &kb_jwt_validation())?;
-
-        let valid_jwt_type = &header.typ.is_some_and(|typ| typ == KB_JWT_HEADER_TYP);
-        if !valid_jwt_type {
+        let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pubkey, &kb_jwt_validation(expected_aud))?;
+        if verified_jwt
+            .header()
+            .typ
+            .as_ref()
+            .is_none_or(|typ| typ != KB_JWT_HEADER_TYP)
+        {
             return Err(Error::Deserialization(format!(
                 "invalid KB-JWT: typ must be \"{KB_JWT_HEADER_TYP}\""
             )));
         }
 
-        let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pubkey, &kb_jwt_validation())?;
+        if verified_jwt.payload().nonce != expected_nonce {
+            return Err(Error::Deserialization(String::from("invalid KB-JWT: unexpected nonce")));
+        }
 
         Ok(Self(verified_jwt))
     }
@@ -65,11 +75,11 @@ impl KeyBindingJwt {
     }
 }
 
-fn kb_jwt_validation() -> Validation {
+fn kb_jwt_validation(expected_aud: &str) -> Validation {
     let mut validation = Validation::new(Algorithm::ES256);
-    validation.validate_exp = false;
-    validation.validate_aud = false;
-    // validator.set_audience(&["https://verifier.example.org"]); // TODO: validate aud?
+    validation.validate_nbf = true;
+    validation.leeway = 0;
+    validation.set_audience(&[expected_aud]);
     validation.set_required_spec_claims(&["aud"]);
     validation
 }

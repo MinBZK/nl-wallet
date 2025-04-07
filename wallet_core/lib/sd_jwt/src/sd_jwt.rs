@@ -63,7 +63,12 @@ impl SdJwtPresentation {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse_and_verify(sd_jwt: &str, issuer_pubkey: &EcdsaDecodingKey) -> Result<Self> {
+    pub fn parse_and_verify(
+        sd_jwt: &str,
+        issuer_pubkey: &EcdsaDecodingKey,
+        expected_aud: &str,
+        expected_nonce: &str,
+    ) -> Result<Self> {
         let (rest, kb_segment) = sd_jwt
             .rsplit_once("~")
             .map(|(head, tail)| {
@@ -77,8 +82,12 @@ impl SdJwtPresentation {
         let sd_jwt = SdJwt::parse_and_verify(rest, issuer_pubkey)?;
 
         if let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() {
-            let key_binding_jwt =
-                KeyBindingJwt::parse_and_verify(kb_segment, &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?))?;
+            let key_binding_jwt = KeyBindingJwt::parse_and_verify(
+                kb_segment,
+                &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
+                expected_aud,
+                expected_nonce,
+            )?;
 
             Ok(Self {
                 sd_jwt,
@@ -483,7 +492,13 @@ mod test {
 
     #[test]
     fn parse_kb() {
-        SdJwtPresentation::parse_and_verify(WITH_KB_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
+        SdJwtPresentation::parse_and_verify(
+            WITH_KB_SD_JWT,
+            &examples_sd_jwt_decoding_key(),
+            WITH_KB_SD_JWT_AUD,
+            WITH_KB_SD_JWT_NONCE,
+        )
+        .unwrap();
     }
 
     #[test]
