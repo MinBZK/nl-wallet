@@ -1,13 +1,13 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/pin/pin_page.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 class MockPinBloc extends MockBloc<PinEvent, PinState> implements PinBloc {}
 
@@ -21,7 +21,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'pin_page/pin_initial');
+      await screenMatchesGolden('pin_page/pin_initial');
     });
 
     testGoldens('PinEntryInProgress - 3', (tester) async {
@@ -32,7 +32,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'pin_page/pin_entry_in_progress');
+      await screenMatchesGolden('pin_page/pin_entry_in_progress');
     });
 
     testGoldens('PinValidateInProgress', (tester) async {
@@ -42,7 +42,7 @@ void main() {
           const PinValidateInProgress(),
         ),
       );
-      await screenMatchesGolden(tester, 'pin_page/pin_validating');
+      await screenMatchesGolden('pin_page/pin_validating');
     });
 
     testGoldens('PinValidateFailure', (tester) async {
@@ -52,7 +52,7 @@ void main() {
           const PinValidateFailure(attemptsLeftInRound: 3, isFinalRound: false),
         ),
       );
-      await screenMatchesGolden(tester, 'pin_page/pin_validate_failure');
+      await screenMatchesGolden('pin_page/pin_validate_failure');
     });
 
     testGoldens('PinValidateFailure - final attempt', (tester) async {
@@ -62,7 +62,7 @@ void main() {
           const PinValidateFailure(attemptsLeftInRound: 1, isFinalRound: true),
         ),
       );
-      await screenMatchesGolden(tester, 'pin_page/pin_validate_final_chance');
+      await screenMatchesGolden('pin_page/pin_validate_final_chance');
     });
 
     testGoldens('PinValidateGenericError', (tester) async {
@@ -73,7 +73,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'pin_page/pin_validate_generic_error');
+      await screenMatchesGolden('pin_page/pin_validate_generic_error');
     });
 
     testGoldens('PinValidateNetworkError', (tester) async {
@@ -87,7 +87,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'pin_page/pin_validate_network_error');
+      await screenMatchesGolden('pin_page/pin_validate_network_error');
     });
   });
 

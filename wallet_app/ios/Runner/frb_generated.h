@@ -57,6 +57,7 @@ typedef struct wire_cst_display_metadata {
   struct wire_cst_list_prim_u_8_strict *lang;
   struct wire_cst_list_prim_u_8_strict *name;
   struct wire_cst_list_prim_u_8_strict *description;
+  struct wire_cst_list_prim_u_8_strict *summary;
   struct wire_cst_rendering_metadata *rendering;
 } wire_cst_display_metadata;
 
@@ -160,6 +161,7 @@ typedef struct wire_cst_attestation_attribute {
   struct wire_cst_list_prim_u_8_strict *key;
   struct wire_cst_list_claim_display_metadata *labels;
   struct wire_cst_attribute_value value;
+  struct wire_cst_list_prim_u_8_strict *svg_id;
 } wire_cst_attestation_attribute;
 
 typedef struct wire_cst_list_attestation_attribute {
@@ -264,6 +266,7 @@ typedef struct wire_cst_accept_disclosure_result {
 } wire_cst_accept_disclosure_result;
 
 typedef struct wire_cst_flutter_configuration {
+  uint16_t inactive_warning_timeout;
   uint16_t inactive_lock_timeout;
   uint16_t background_lock_timeout;
   uint64_t version;

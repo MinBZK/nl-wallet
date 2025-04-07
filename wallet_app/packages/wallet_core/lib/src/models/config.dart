@@ -7,24 +7,31 @@ import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class FlutterConfiguration {
+  final int inactiveWarningTimeout;
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
   final BigInt version;
 
   const FlutterConfiguration({
+    required this.inactiveWarningTimeout,
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
     required this.version,
   });
 
   @override
-  int get hashCode => inactiveLockTimeout.hashCode ^ backgroundLockTimeout.hashCode ^ version.hashCode;
+  int get hashCode =>
+      inactiveWarningTimeout.hashCode ^
+      inactiveLockTimeout.hashCode ^
+      backgroundLockTimeout.hashCode ^
+      version.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is FlutterConfiguration &&
           runtimeType == other.runtimeType &&
+          inactiveWarningTimeout == other.inactiveWarningTimeout &&
           inactiveLockTimeout == other.inactiveLockTimeout &&
           backgroundLockTimeout == other.backgroundLockTimeout &&
           version == other.version;

@@ -73,8 +73,7 @@ const dictionary: Record<Language, Record<Word, string>> = {
     cancelled_title: "Stopped",
     cancelled_body: "Because you have stopped, no data has been shared.",
     network_title: "Sorry, no internet connection",
-    network_body:
-      "Your internet connection seems to be down or too slow. Check your connection and try again.",
+    network_body: "Your internet connection seems to be down or too slow. Check your connection and try again.",
     help_title: "No NL Wallet App yet? Or need help?",
     help_to_website: "To NL Wallet website",
     in_progress_title: "Follow the steps in your NL Wallet app",
@@ -103,8 +102,7 @@ const dictionary: Record<Language, Record<Word, string>> = {
     expired_body:
       "Deze actie is gestopt omdat er teveel tijd voorbij is gegaan. Dit is bedoeld om je gegevens veilig te houden. Probeer het opnieuw.",
     failed_title: "Sorry, er gaat iets mis",
-    failed_body:
-      "Deze actie is niet gelukt. Dit kan verschillende redenen hebben. Probeer het opnieuw.",
+    failed_body: "Deze actie is niet gelukt. Dit kan verschillende redenen hebben. Probeer het opnieuw.",
     cancelled_title: "Gestopt",
     cancelled_body: "Omdat je bent gestopt zijn er geen gegevens gedeeld.",
     network_title: "Sorry, geen internet",

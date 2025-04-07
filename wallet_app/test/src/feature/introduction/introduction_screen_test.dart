@@ -1,74 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/introduction/introduction_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
-import '../../util/test_utils.dart';
+import '../../test_extension/common_finders_extension.dart';
+import '../../test_util/golden_utils.dart';
+import '../../test_util/test_utils.dart';
 
 /// Note: The page indicator placement misbehaves when rendering multiple instances of the [IntroductionScreen]
 /// in the same golden. To verify it's normal placement the [page_1.stepper.light] test is added.
 void main() {
   group('goldens', () {
     testGoldens('Page 1 light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const IntroductionScreen(),
-            name: 'page_1',
-          ),
-        wrapper: walletAppWrapper(),
-      );
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
       await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'page_1.light');
+      await screenMatchesGolden('page_1.light');
     });
 
     testGoldens('Page 2 light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const IntroductionScreen(),
-            name: 'page_2',
-            onCreate: (scenarioWidgetKey) async {
-              await _skipPage(scenarioWidgetKey, tester);
-            },
-          ),
-        wrapper: walletAppWrapper(),
-      );
-      await screenMatchesGolden(tester, 'page_2.light');
+      await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
+      await _skipPage(tester);
+      await screenMatchesGolden('page_2.light');
     });
+
     testGoldens('Page 3 light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const IntroductionScreen(),
-            name: 'page_3',
-            onCreate: (scenarioWidgetKey) async {
-              await _skipPage(scenarioWidgetKey, tester);
-              await _skipPage(scenarioWidgetKey, tester);
-            },
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const IntroductionScreen(),
       );
-      await screenMatchesGolden(tester, 'page_3.light');
+      await _skipPage(tester);
+      await _skipPage(tester);
+      await screenMatchesGolden('page_3.light');
+    });
+
+    testGoldens('Page 3 light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IntroductionScreen(),
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await _skipPage(tester);
+      await _skipPage(tester);
+      await screenMatchesGolden('page_3.light.landscape');
     });
 
     testGoldens('Page 1 dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: const IntroductionScreen(),
-            name: 'page_1',
-          ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const IntroductionScreen(),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'page_1.dark');
+      await screenMatchesGolden('page_1.dark');
     });
 
     testGoldens('Page 1 individual to render portrait and thus show stepper correctly', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const IntroductionScreen());
-      await screenMatchesGolden(tester, 'page_1.stepper.light');
+      await screenMatchesGolden('page_1.stepper.light');
     });
   });
 
@@ -100,7 +84,7 @@ void main() {
       const Key key = Key('introduction');
       await tester.pumpWidgetWithAppWrapper(const IntroductionScreen(key: key));
 
-      await _skipPage(key, tester);
+      await _skipPage(tester);
 
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.introductionPage2Title), findsAtLeast(1));
@@ -111,8 +95,8 @@ void main() {
       const Key key = Key('introduction');
       await tester.pumpWidgetWithAppWrapper(const IntroductionScreen(key: key));
 
-      await _skipPage(key, tester);
-      await _skipPage(key, tester);
+      await _skipPage(tester);
+      await _skipPage(tester);
 
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.introductionPage3Title), findsAtLeast(1));
@@ -121,10 +105,10 @@ void main() {
   });
 }
 
-Future<void> _skipPage(Key scenarioWidgetKey, WidgetTester tester) async {
+Future<void> _skipPage(WidgetTester tester) async {
   final l10n = await TestUtils.englishLocalizations;
   final finder = find.descendant(
-    of: find.byKey(scenarioWidgetKey),
+    of: find.root,
     matching: find.text(l10n.introductionNextPageCta),
   );
   expect(finder, findsOneWidget);

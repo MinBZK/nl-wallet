@@ -121,8 +121,8 @@ export class MockRelyingPartyPage {
   }
 
   async waitForModalLoad() {
-    await expect(
-      this.page.locator(this.nlWalletButtonTag).locator(this.modalMessageHeader),
-    ).not.toContainText(/(Please wait|Even geduld)/)
+    await expect(this.page.locator(this.nlWalletButtonTag).locator(this.modalMessageHeader)).not.toContainText(
+      /(Please wait|Even geduld)/,
+    )
   }
 }

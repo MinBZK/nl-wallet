@@ -5,6 +5,7 @@ import 'package:wallet/src/feature/common/widget/flutter_app_configuration_provi
 
 void main() {
   const defaultMockConfig = FlutterAppConfiguration(
+    idleWarningTimeout: Duration(seconds: 7),
     idleLockTimeout: Duration(seconds: 10),
     backgroundLockTimeout: Duration(seconds: 20),
     version: 0,
@@ -13,6 +14,7 @@ void main() {
   group('hashCode', () {
     test('hashCode matches', () {
       const sameAsDefaultConfig = FlutterAppConfiguration(
+        idleWarningTimeout: Duration(seconds: 7),
         idleLockTimeout: Duration(seconds: 10),
         backgroundLockTimeout: Duration(seconds: 20),
         version: 0,
@@ -22,22 +24,32 @@ void main() {
     });
 
     test('hashCode !matches', () {
-      const otherIdle = FlutterAppConfiguration(
-        idleLockTimeout: Duration(seconds: 1337),
-        backgroundLockTimeout: Duration(seconds: 20),
-        version: 0,
+      final otherWarning = FlutterAppConfiguration(
+        idleWarningTimeout: Duration(hours: 1337),
+        idleLockTimeout: defaultMockConfig.idleLockTimeout,
+        backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
+        version: defaultMockConfig.version,
       );
-      const otherBackground = FlutterAppConfiguration(
-        idleLockTimeout: Duration(seconds: 10),
-        backgroundLockTimeout: Duration(seconds: 1337),
-        version: 0,
+      final otherIdle = FlutterAppConfiguration(
+        idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
+        idleLockTimeout: Duration(hours: 1337),
+        backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
+        version: defaultMockConfig.version,
       );
-      const otherVersion = FlutterAppConfiguration(
-        idleLockTimeout: Duration(seconds: 10),
-        backgroundLockTimeout: Duration(seconds: 20),
-        version: 1,
+      final otherBackground = FlutterAppConfiguration(
+        idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
+        idleLockTimeout: defaultMockConfig.idleLockTimeout,
+        backgroundLockTimeout: Duration(hours: 1337),
+        version: defaultMockConfig.version,
+      );
+      final otherVersion = FlutterAppConfiguration(
+        idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
+        idleLockTimeout: defaultMockConfig.idleLockTimeout,
+        backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
+        version: 1337,
       );
 
+      expect(defaultMockConfig.hashCode == otherWarning.hashCode, isFalse);
       expect(defaultMockConfig.hashCode == otherIdle.hashCode, isFalse);
       expect(defaultMockConfig.hashCode == otherBackground.hashCode, isFalse);
       expect(defaultMockConfig.hashCode == otherVersion.hashCode, isFalse);
@@ -65,6 +77,7 @@ void main() {
 
   testWidgets('verify builder is called when a config is available', (tester) async {
     const expectedConfig = FlutterAppConfiguration(
+      idleWarningTimeout: Duration(seconds: 7),
       idleLockTimeout: Duration(seconds: 8),
       backgroundLockTimeout: Duration(seconds: 5),
       version: 0,

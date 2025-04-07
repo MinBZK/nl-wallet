@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.dashboard.DashboardScreen
@@ -23,7 +24,8 @@ class PersonalizeSuccessTests : TestBase() {
 
     private lateinit var personalizeSuccessScreen: PersonalizeSuccessScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizeSuccess)
 
         personalizeSuccessScreen = PersonalizeSuccessScreen()
@@ -31,8 +33,8 @@ class PersonalizeSuccessTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 When PID was issued successfully, the App displays a confirmation to the User. 2 The confirmation includes a success message. 3 The confirmation includes the issued cards (PID + Address): card, title.[$JIRA_ID]")
-    fun verifyPersonalizeSuccessScreen() {
-        setUp()
+    fun verifyPersonalizeSuccessScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         assertAll(
             { assertTrue(personalizeSuccessScreen.visible(), "personalize loading screen is not visible") },
             { assertTrue(personalizeSuccessScreen.successMessageVisible(), "success text is not visible") },
@@ -42,8 +44,8 @@ class PersonalizeSuccessTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 The App offers an entrance to enter the wallet which brings the User to the Dashboard. [$JIRA_ID]")
-    fun verifyNavigateToDashboardButton() {
-        setUp()
+    fun verifyNavigateToDashboardButton(testInfo: TestInfo) {
+        setUp(testInfo)
         personalizeSuccessScreen.clickNextButton()
 
         val dashboardScreen = DashboardScreen()

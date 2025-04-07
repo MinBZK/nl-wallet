@@ -15,7 +15,7 @@ spec:
       template:
         metadata:
           labels:
-            {{- include "common.labels.customname" (list .Values.gbaEncryptTestData.name .) | nindent 12 }}
+            {{- include "common.labels.component" (list .Values.gbaEncryptTestData.name .) | nindent 12 }}
             {{- with .Values.gbaEncryptTestData.extraPodlabels }}
             {{ toYaml . | nindent 12 }}
             {{- end }}
@@ -42,7 +42,7 @@ spec:
                   name: script-volume
                   subPath: encrypt_all.sh
                 - mountPath: /home/nonroot/unencrypted-gba-v-responses/
-                  name: gba-hc-converter-xml-files
+                  name: xml-files
 
               env:
                 - name: RUST_BACKTRACE
@@ -67,11 +67,11 @@ spec:
             - name: preloaded-gba-v-data-volume
               persistentVolumeClaim:
                 claimName: preloaded-gba-v-data-pvc
-            - name: gba-hc-converter-xml-files
+            - name: xml-files
               configMap:
-                name: nl-wallet-gba-hc-converter-xml-files
+                name: {{ include "common.names.fullname" . }}-xml-files
             - name: script-volume
               configMap:
-                name: cm-nl-wallet-gba-hc-converter-encrypt-script
+                name: {{ include "common.names.fullname" . }}-encrypt-script
                 defaultMode: 0777
 {{- end }}

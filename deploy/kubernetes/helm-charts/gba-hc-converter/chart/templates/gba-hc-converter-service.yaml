@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: {{ include "common.names.fullname" . }}
   labels:
-    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- include "common.labels.component" (list .Chart.Name .) | nindent 4 }}
 spec:
   selector:
-    {{- include "common.labels.selectorLabels" . | nindent 4 }}
+    {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 4 }}
   ports:
     - name: gba-hc-http
       port: 3006

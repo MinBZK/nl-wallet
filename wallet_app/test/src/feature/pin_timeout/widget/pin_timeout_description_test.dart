@@ -3,7 +3,7 @@ import 'package:wallet/l10n/generated/app_localizations.dart';
 import 'package:wallet/src/feature/pin_timeout/widget/pin_timeout_description.dart';
 
 import '../../../../wallet_app_test_widget.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   testWidgets('verify PinTimeoutDescription renders with 2 minutes left when timeleft >2 mins', (tester) async {

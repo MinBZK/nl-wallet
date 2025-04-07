@@ -6,6 +6,7 @@ import navigator.screen.OnboardingNavigatorScreen
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeAuthenticatingWithDigidScreen
@@ -22,7 +23,8 @@ class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
 
     private lateinit var personalizeAuthenticatingWithDigidScreen: PersonalizeAuthenticatingWithDigidScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizeInform)
 
         PersonalizeInformScreen().clickDigidLoginButton(false)
@@ -32,8 +34,8 @@ class PersonalizeAuthenticatingWithDigidScreenTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The App displays a loading screen whilst this process is pending. [$JIRA_ID]")
-    fun verifyPersonalizeAuthenticatingWithDigidScreen() {
-        setUp()
+    fun verifyPersonalizeAuthenticatingWithDigidScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         assertTrue(
             personalizeAuthenticatingWithDigidScreen.visible(),
             "personalize authenticating with digid screen is not visible"

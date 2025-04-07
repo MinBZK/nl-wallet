@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.history.HistoryOverviewScreen
@@ -24,7 +25,8 @@ class MenuTests : TestBase() {
 
     private lateinit var menuScreen: MenuScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
 
         menuScreen = MenuScreen()
@@ -32,8 +34,8 @@ class MenuTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The app menu is accessible from the footer menu. 2 The app menu offers an option to log out. 3 The app menu contains the following items: Help, History, Settings, Feedback, About.[$JIRA_ID]")
-    fun verifyMenuScreen() {
-        setUp()
+    fun verifyMenuScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         assertAll(
             { assertTrue(menuScreen.visible(), "menu screen is not visible") },
             { assertTrue(menuScreen.logoutButtonVisible(), "logout button is not visible") },
@@ -43,8 +45,8 @@ class MenuTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 The settings menu contains the following items: Change pin, Setup biometrics, Change language, Clear data. [$JIRA_ID]")
-    fun verifySettingsItemsVisible() {
-        setUp()
+    fun verifySettingsItemsVisible(testInfo: TestInfo) {
+        setUp(testInfo)
         menuScreen.clickSettingsButton()
 
         val settingsScreen = SettingsScreen()
@@ -53,8 +55,8 @@ class MenuTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.5 All items opened from the menu offer a back button returning the user to the main menu. [$JIRA_ID]")
-    fun verifyBackButtons() {
-        setUp()
+    fun verifyBackButtons(testInfo: TestInfo) {
+        setUp(testInfo)
         // Navigate to help and back
         menuScreen.clickHelpButton()
         menuScreen.clickBottomBackButton()

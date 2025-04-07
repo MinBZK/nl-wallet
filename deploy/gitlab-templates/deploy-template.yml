@@ -7,7 +7,6 @@ variables:
   CRANE_DOCKER_ALT_IMAGE: "${HARBOR_REGISTRY}/docker-hub-proxy/alpine/crane:latest"
 
 .deploy-environment: &deploy-environment
-  resource_group: ${DEPLOY_ENV}
   environment:
     name: ${K8S_CLUSTER}
     action: start
@@ -171,6 +170,7 @@ wallet-provider-${DEPLOY_ENV}:
   rules:
     - when: on_success
   needs:
+    - db-cluster-provider-${DEPLOY_ENV}
     - fetch-variables
   variables:
     CHART_NAME: wallet-provider
@@ -183,6 +183,7 @@ pid-issuer-${DEPLOY_ENV}:
   rules:
     - when: on_success
   needs:
+    - db-cluster-pid-${DEPLOY_ENV}
     - fetch-variables
   variables:
     CHART_NAME: pid-issuer
@@ -195,6 +196,7 @@ mrp-verification-server-${DEPLOY_ENV}:
   rules:
     - when: on_success
   needs:
+    - db-cluster-mrp-${DEPLOY_ENV}
     - fetch-variables
   variables:
     CHART_NAME: mrp-verification-server

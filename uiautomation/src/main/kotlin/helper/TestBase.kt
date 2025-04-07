@@ -3,7 +3,6 @@ package helper
 import com.codeborne.selenide.Selenide
 import data.TestConfigRepository.Companion.testConfig
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.extension.ExtendWith
 import util.TestInfoHandler.Companion.processTestInfo
@@ -12,7 +11,6 @@ import util.TestInfoHandler.Companion.processTestInfo
 @ExtendWith(ServiceHelper::class)
 open class TestBase {
 
-    @BeforeEach
     fun startDriver(testInfo: TestInfo) {
         // Process session name, platform, language and locale
         processTestInfo(testInfo)

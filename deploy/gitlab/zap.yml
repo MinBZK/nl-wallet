@@ -38,7 +38,7 @@
 zap-scan-rp:
   extends: .zap-scan-common-setup
   needs:
-    - job: deploy-mock-relying-party-ont
+    - job: deploy-apps-ont
       artifacts: false
       optional: true
   script:
@@ -58,7 +58,7 @@ zap-scan-config-server:
 zap-scan-wallet-provider:
   extends: .zap-scan-common-setup
   needs:
-    - job: deploy-wallet-provider-ont
+    - job: deploy-apps-ont
       artifacts: false
       optional: true
   script:
@@ -71,7 +71,7 @@ zap-scan-wallet-provider:
 zap-scan-pid-issuer:
   extends: .zap-scan-common-setup
   needs:
-    - job: deploy-pid-issuer-ont
+    - job: deploy-apps-ont
       artifacts: false
       optional: true
   script:
@@ -84,7 +84,7 @@ zap-scan-pid-issuer:
 zap-scan-internal-wallet-server:
   extends: .zap-scan-common-setup
   needs:
-    - job: deploy-mock-relying-party-ont
+    - job: deploy-apps-ont
       artifacts: false
       optional: true
   script:
@@ -103,7 +103,7 @@ zap-scan-internal-wallet-server:
 zap-scan-public-wallet-server:
   extends: .zap-scan-common-setup
   needs:
-    - job: deploy-mock-relying-party-ont
+    - job: deploy-apps-ont
       artifacts: false
       optional: true
   script:

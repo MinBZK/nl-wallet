@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
@@ -7,7 +7,8 @@ import 'package:wallet/src/feature/common/dialog/reset_wallet_dialog.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mocks.mocks.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 void main() {
   testWidgets('ResetWalletDialog shows expected copy', (tester) async {
@@ -64,5 +65,31 @@ void main() {
     await tester.tap(buttonFinder);
 
     verifyNever(usecase.invoke());
+  });
+
+  group('goldens', () {
+    testGoldens(
+      'Reset Wallet Dialog',
+      (tester) async {
+        final Key showDialogButton = Key('showDialogButton');
+        await tester.pumpWidgetWithAppWrapper(
+          Scaffold(
+            body: Builder(
+              builder: (context) {
+                return Center(
+                  child: TextButton(
+                    onPressed: () => ResetWalletDialog.show(context),
+                    child: Text('Show Dialog', key: showDialogButton),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.tap(find.byKey(showDialogButton));
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('reset_dialog');
+      },
+    );
   });
 }

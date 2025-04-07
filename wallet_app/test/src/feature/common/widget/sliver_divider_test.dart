@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/common/widget/sliver_divider.dart';
 
 import '../../../../wallet_app_test_widget.dart';
+import '../../../test_util/golden_utils.dart';
 
 void main() {
   const kGoldenSize = Size(350, 10);
@@ -18,7 +18,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'sliver_divider/light');
+        await screenMatchesGolden('sliver_divider/light');
       },
     );
     testGoldens(
@@ -31,7 +31,7 @@ void main() {
           surfaceSize: kGoldenSize,
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'sliver_divider/dark');
+        await screenMatchesGolden('sliver_divider/dark');
       },
     );
     testGoldens(
@@ -49,7 +49,7 @@ void main() {
           ),
           surfaceSize: kGoldenSize,
         );
-        await screenMatchesGolden(tester, 'sliver_divider/light.indented');
+        await screenMatchesGolden('sliver_divider/light.indented');
       },
     );
   });

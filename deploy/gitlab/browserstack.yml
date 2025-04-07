@@ -22,12 +22,3 @@ upload-browserstack-android-app-ont:
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
-
-upload-browserstack-android-app-demo:
-  extends: [.env-ont-k8s, .upload-browserstack-android-app]
-  rules: !reference [.release-tag, rules]
-  needs:
-    - job: build-android-app-demo-profile
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"

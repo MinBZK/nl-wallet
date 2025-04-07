@@ -88,11 +88,13 @@ import '../domain/usecase/version/impl/get_version_string_usecase_impl.dart';
 import '../domain/usecase/wallet/create_wallet_usecase.dart';
 import '../domain/usecase/wallet/impl/create_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/is_wallet_initialized_with_pid_impl.dart';
+import '../domain/usecase/wallet/impl/is_wallet_registered_and_unlocked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/lock_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/observe_wallet_locked_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/reset_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/impl/setup_mocked_wallet_usecase_impl.dart';
 import '../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
+import '../domain/usecase/wallet/is_wallet_registered_and_unlocked_usecase.dart';
 import '../domain/usecase/wallet/lock_wallet_usecase.dart';
 import '../domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import '../domain/usecase/wallet/reset_wallet_usecase.dart';
@@ -117,6 +119,9 @@ class WalletUseCaseProvider extends StatelessWidget {
         ),
         RepositoryProvider<UnlockWalletWithPinUseCase>(
           create: (context) => UnlockWalletWithPinUseCaseImpl(context.read(), context.read()),
+        ),
+        RepositoryProvider<IsWalletRegisteredAndUnlockedUseCase>(
+          create: (context) => IsWalletRegisteredAndUnlockedUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CreateWalletUseCase>(
           create: (context) => CreateWalletUseCaseImpl(context.read()),

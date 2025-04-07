@@ -2,7 +2,6 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
@@ -11,7 +10,7 @@ import 'package:wallet/src/feature/qr/qr_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.dart';
-import '../../util/device_utils.dart';
+import '../../test_util/golden_utils.dart';
 
 class MockQrScanBloc extends MockBloc<QrEvent, QrState> implements QrBloc {}
 
@@ -32,20 +31,14 @@ void main() {
   });
 
   group('goldens', () {
-    DeviceBuilder deviceBuilder(WidgetTester tester) => DeviceUtils.deviceBuilderWithPrimaryScrollController;
-
     testGoldens('QrScanInitial', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              QrScanInitial(),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const QrScreen().withState<QrBloc, QrState>(
+          MockQrScanBloc(),
+          QrScanInitial(),
+        ),
       );
-      await screenMatchesGolden(tester, 'qr_scan_initial');
+      await screenMatchesGolden('qr_scan_initial');
     });
 
     testGoldens('QrScanFailure', (tester) async {
@@ -56,82 +49,60 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await screenMatchesGolden(tester, 'qr_scan_failure');
+      await screenMatchesGolden('qr_scan_failure');
     });
 
     testGoldens('QrScanNoPermission', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              const QrScanNoPermission(permanentlyDenied: true),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const QrScreen().withState<QrBloc, QrState>(
+          MockQrScanBloc(),
+          const QrScanNoPermission(permanentlyDenied: true),
+        ),
       );
-      await screenMatchesGolden(tester, 'qr_scan_no_permission');
+      await screenMatchesGolden('qr_scan_no_permission');
     });
 
     testGoldens('QrScanScanning', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              QrScanScanning(),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const QrScreen().withState<QrBloc, QrState>(
+          MockQrScanBloc(),
+          QrScanScanning(),
+        ),
       );
-      await screenMatchesGolden(tester, 'qr_scan_scanning');
+      await screenMatchesGolden('qr_scan_scanning');
     });
 
     testGoldens('QrScanSuccess', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              const QrScanSuccess(GenericNavigationRequest('/')),
-            ),
-          ),
-        wrapper: walletAppWrapper(
-          providers: [RepositoryProvider<NavigationService>(create: (c) => MockNavigationService())],
+      await tester.pumpWidgetWithAppWrapper(
+        const QrScreen().withState<QrBloc, QrState>(
+          MockQrScanBloc(),
+          const QrScanSuccess(GenericNavigationRequest('/')),
         ),
+        providers: [RepositoryProvider<NavigationService>(create: (c) => MockNavigationService())],
       );
-      await screenMatchesGolden(tester, 'qr_scan_success');
+      await screenMatchesGolden('qr_scan_success');
     });
 
     testGoldens('QrScanScanning Dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              const QrScanSuccess(GenericNavigationRequest('/')),
-            ),
-          ),
-        wrapper: walletAppWrapper(
-          brightness: Brightness.dark,
-          providers: [RepositoryProvider<NavigationService>(create: (c) => MockNavigationService())],
+      await tester.pumpWidgetWithAppWrapper(
+        const QrScreen().withState<QrBloc, QrState>(
+          MockQrScanBloc(),
+          const QrScanSuccess(GenericNavigationRequest('/')),
         ),
+        brightness: Brightness.dark,
+        providers: [RepositoryProvider<NavigationService>(create: (c) => MockNavigationService())],
       );
-      await screenMatchesGolden(tester, 'qr_scan_success.dark');
+      await screenMatchesGolden('qr_scan_success.dark');
     });
 
     testGoldens('QrScanLoading', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester)
-          ..addScenario(
-            widget: const QrScreen().withState<QrBloc, QrState>(
-              MockQrScanBloc(),
-              const QrScanLoading(),
-            ),
-          ),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const QrScreen().withState<QrBloc, QrState>(
+          MockQrScanBloc(),
+          const QrScanLoading(),
+        ),
       );
-      await screenMatchesGolden(tester, 'qr_scan_loading');
+      await screenMatchesGolden('qr_scan_loading');
     });
   });
 

@@ -109,6 +109,7 @@ void main() {
       when(core.crateApiFullSetConfigurationStream()).thenAnswer(
         (_) => Stream.value(
           FlutterConfiguration(
+            inactiveWarningTimeout: 0,
             inactiveLockTimeout: 0,
             backgroundLockTimeout: 0,
             version: BigInt.zero,

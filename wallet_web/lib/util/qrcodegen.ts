@@ -88,11 +88,7 @@ export namespace qrcodegen {
       boostEcl: boolean = true,
     ): QrCode {
       if (
-        !(
-          QrCode.MIN_VERSION <= minVersion &&
-          minVersion <= maxVersion &&
-          maxVersion <= QrCode.MAX_VERSION
-        ) ||
+        !(QrCode.MIN_VERSION <= minVersion && minVersion <= maxVersion && maxVersion <= QrCode.MAX_VERSION) ||
         mask < -1 ||
         mask > 7
       ) {
@@ -267,9 +263,7 @@ export namespace qrcodegen {
       for (let i = 0; i < numAlign; i++) {
         for (let j = 0; j < numAlign; j++) {
           // Don't draw on the three finder corners
-          if (
-            !((i == 0 && j == 0) || (i == 0 && j == numAlign - 1) || (i == numAlign - 1 && j == 0))
-          ) {
+          if (!((i == 0 && j == 0) || (i == 0 && j == numAlign - 1) || (i == numAlign - 1 && j == 0))) {
             this.drawAlignmentPattern(alignPatPos[i], alignPatPos[j])
           }
         }
@@ -392,10 +386,7 @@ export namespace qrcodegen {
       const blocks: Array<Array<byte>> = []
       const rsDiv: Array<byte> = QrCode.reedSolomonComputeDivisor(blockEccLen)
       for (let i = 0, k = 0; i < numBlocks; i++) {
-        const dat: Array<byte> = data.slice(
-          k,
-          k + shortBlockLen - blockEccLen + (i < numShortBlocks ? 0 : 1),
-        )
+        const dat: Array<byte> = data.slice(k, k + shortBlockLen - blockEccLen + (i < numShortBlocks ? 0 : 1))
         k += dat.length
         const ecc: Array<byte> = QrCode.reedSolomonComputeRemainder(dat, rsDiv)
         if (i < numShortBlocks) {
@@ -523,8 +514,7 @@ export namespace qrcodegen {
             runX = 1
           }
         }
-        result +=
-          this.finderPenaltyTerminateAndCount(runColor, runX, runHistory) * QrCode.PENALTY_N3
+        result += this.finderPenaltyTerminateAndCount(runColor, runX, runHistory) * QrCode.PENALTY_N3
       }
       // Adjacent modules in column having same color, and finder-like patterns
       for (let x = 0; x < this.size; x++) {
@@ -548,8 +538,7 @@ export namespace qrcodegen {
             runY = 1
           }
         }
-        result +=
-          this.finderPenaltyTerminateAndCount(runColor, runY, runHistory) * QrCode.PENALTY_N3
+        result += this.finderPenaltyTerminateAndCount(runColor, runY, runHistory) * QrCode.PENALTY_N3
       }
 
       // 2*2 blocks of modules having same color
@@ -624,8 +613,7 @@ export namespace qrcodegen {
     private static getNumDataCodewords(ver: int, ecl: QrCode.Ecc): int {
       return (
         Math.floor(QrCode.getNumRawDataModules(ver) / 8) -
-        QrCode.ECC_CODEWORDS_PER_BLOCK[ecl.ordinal][ver] *
-          QrCode.NUM_ERROR_CORRECTION_BLOCKS[ecl.ordinal][ver]
+        QrCode.ECC_CODEWORDS_PER_BLOCK[ecl.ordinal][ver] * QrCode.NUM_ERROR_CORRECTION_BLOCKS[ecl.ordinal][ver]
       )
     }
 
@@ -697,11 +685,7 @@ export namespace qrcodegen {
       const n: int = runHistory[1]
       assert(n <= this.size * 3)
       const core: boolean =
-        n > 0 &&
-        runHistory[2] == n &&
-        runHistory[3] == n * 3 &&
-        runHistory[4] == n &&
-        runHistory[5] == n
+        n > 0 && runHistory[2] == n && runHistory[3] == n * 3 && runHistory[4] == n && runHistory[5] == n
       return (
         (core && runHistory[0] >= n * 4 && runHistory[6] >= n ? 1 : 0) +
         (core && runHistory[6] >= n * 4 && runHistory[0] >= n ? 1 : 0)
@@ -750,20 +734,20 @@ export namespace qrcodegen {
       // Version: (note that index 0 is for padding, and is set to an illegal value)
       //0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40    Error correction level
       [
-        -1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28,
-        30, 30, 26, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+        -1, 7, 10, 15, 20, 26, 18, 20, 24, 30, 18, 20, 24, 26, 30, 22, 24, 28, 30, 28, 28, 28, 28, 30, 30, 26, 28, 30,
+        30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
       ], // Low
       [
-        -1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28,
-        28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
+        -1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26, 30, 22, 22, 24, 24, 28, 28, 26, 26, 26, 26, 28, 28, 28, 28, 28, 28,
+        28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28, 28,
       ], // Medium
       [
-        -1, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28, 26, 30, 28, 30,
-        30, 30, 30, 28, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+        -1, 13, 22, 18, 26, 18, 24, 18, 22, 20, 24, 28, 26, 24, 20, 30, 24, 28, 28, 26, 30, 28, 30, 30, 30, 30, 28, 30,
+        30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
       ], // Quartile
       [
-        -1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28, 30, 24,
-        30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
+        -1, 17, 28, 22, 16, 22, 28, 26, 26, 24, 28, 24, 28, 22, 24, 24, 30, 28, 28, 26, 28, 30, 24, 30, 30, 30, 30, 30,
+        30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30,
       ], // High
     ]
 
@@ -771,20 +755,20 @@ export namespace qrcodegen {
       // Version: (note that index 0 is for padding, and is set to an illegal value)
       //0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40    Error correction level
       [
-        -1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10, 12, 12, 12, 13,
-        14, 15, 16, 17, 18, 19, 19, 20, 21, 22, 24, 25,
+        -1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 6, 6, 6, 6, 7, 8, 8, 9, 9, 10, 12, 12, 12, 13, 14, 15, 16, 17, 18,
+        19, 19, 20, 21, 22, 24, 25,
       ], // Low
       [
-        -1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21,
-        23, 25, 26, 28, 29, 31, 33, 35, 37, 38, 40, 43, 45, 47, 49,
+        -1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5, 5, 8, 9, 9, 10, 10, 11, 13, 14, 16, 17, 17, 18, 20, 21, 23, 25, 26, 28, 29,
+        31, 33, 35, 37, 38, 40, 43, 45, 47, 49,
       ], // Medium
       [
-        -1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8, 8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23, 23, 25, 27, 29,
-        34, 34, 35, 38, 40, 43, 45, 48, 51, 53, 56, 59, 62, 65, 68,
+        -1, 1, 1, 2, 2, 4, 4, 6, 6, 8, 8, 8, 10, 12, 16, 12, 17, 16, 18, 21, 20, 23, 23, 25, 27, 29, 34, 34, 35, 38, 40,
+        43, 45, 48, 51, 53, 56, 59, 62, 65, 68,
       ], // Quartile
       [
-        -1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32,
-        35, 37, 40, 42, 45, 48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81,
+        -1, 1, 1, 2, 4, 4, 4, 5, 6, 8, 8, 11, 11, 16, 16, 18, 16, 19, 21, 25, 25, 25, 34, 30, 32, 35, 37, 40, 42, 45,
+        48, 51, 54, 57, 60, 63, 66, 70, 74, 77, 81,
       ], // High
     ]
   }
@@ -998,8 +982,7 @@ export namespace qrcodegen {
 
     // The set of all legal characters in alphanumeric mode,
     // where each character value maps to the index in the string.
-    private static readonly ALPHANUMERIC_CHARSET: string =
-      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
+    private static readonly ALPHANUMERIC_CHARSET: string = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:"
   }
 }
 

@@ -8,7 +8,7 @@ import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.mocks.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/test_utils.dart';
 import 'pin_page_test.dart';
 
 void main() {
@@ -34,41 +34,6 @@ void main() {
       // Verify the title is shown
       final titleFinder = find.text(l10n.pinScreenHeader, findRichText: true);
       expect(titleFinder, findsOneWidget);
-    });
-
-    testWidgets('PinScreen shows the no internet error for PinValidateNetworkError(hasInternet=false) state',
-        (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        PinScreen(
-          onUnlock: () {},
-        ).withState<PinBloc, PinState>(
-          MockPinBloc(),
-          const PinValidateNetworkError(
-            error: NetworkError(hasInternet: false, sourceError: 'test'),
-            hasInternet: false,
-          ),
-        ),
-        providers: [
-          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
-          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
-        ],
-      );
-
-      await tester.pumpAndSettle();
-
-      final l10n = await TestUtils.englishLocalizations;
-
-      // Verify the 'no internet' title is shown
-      final noInternetHeadlineFinder = find.text(l10n.errorScreenNoInternetHeadline);
-      expect(noInternetHeadlineFinder, findsAtLeastNWidgets(1));
-
-      // Verify the 'try again' cta is shown
-      final tryAgainCtaFinder = find.text(l10n.generalRetry);
-      expect(tryAgainCtaFinder, findsOneWidget);
-
-      // Verify the 'show details' cta is shown
-      final showDetailsCtaFinder = find.text(l10n.generalShowDetailsCta);
-      expect(showDetailsCtaFinder, findsOneWidget);
     });
 
     testWidgets('PinScreen shows the server error for PinValidateNetworkError(hasInternet=true) state', (tester) async {

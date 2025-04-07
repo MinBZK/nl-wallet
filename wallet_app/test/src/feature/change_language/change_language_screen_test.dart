@@ -1,12 +1,11 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/feature/change_language/bloc/change_language_bloc.dart';
 import 'package:wallet/src/feature/change_language/change_language_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/device_utils.dart';
+import '../../test_util/golden_utils.dart';
 
 class MockChangeLanguageBloc extends MockBloc<ChangeLanguageEvent, ChangeLanguageState> implements ChangeLanguageBloc {}
 
@@ -18,30 +17,25 @@ void main() {
   ];
 
   group('goldens', () {
-    DeviceBuilder deviceBuilder(WidgetTester tester) {
-      return DeviceUtils.deviceBuilderWithPrimaryScrollController
-        ..addScenario(
-          widget: const ChangeLanguageScreen().withState<ChangeLanguageBloc, ChangeLanguageState>(
-            MockChangeLanguageBloc(),
-            ChangeLanguageSuccess(availableLanguages: mockLanguages, selectedLocale: mockLanguages.first.locale),
-          ),
-        );
-    }
-
     testGoldens('ChangeLanguageScreen light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(),
+      await tester.pumpWidgetWithAppWrapper(
+        const ChangeLanguageScreen().withState<ChangeLanguageBloc, ChangeLanguageState>(
+          MockChangeLanguageBloc(),
+          ChangeLanguageSuccess(availableLanguages: mockLanguages, selectedLocale: mockLanguages.first.locale),
+        ),
       );
-      await screenMatchesGolden(tester, 'light');
+      await screenMatchesGolden('light');
     });
 
     testGoldens('ChangeLanguageScreen dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        deviceBuilder(tester),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+      await tester.pumpWidgetWithAppWrapper(
+        const ChangeLanguageScreen().withState<ChangeLanguageBloc, ChangeLanguageState>(
+          MockChangeLanguageBloc(),
+          ChangeLanguageSuccess(availableLanguages: mockLanguages, selectedLocale: mockLanguages.first.locale),
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'dark');
+      await screenMatchesGolden('dark');
     });
 
     testGoldens('Loading state', (tester) async {
@@ -51,7 +45,7 @@ void main() {
           ChangeLanguageInitial(),
         ),
       );
-      await screenMatchesGolden(tester, 'loading');
+      await screenMatchesGolden('loading');
     });
   });
 

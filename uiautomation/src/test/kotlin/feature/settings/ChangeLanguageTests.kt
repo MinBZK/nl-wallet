@@ -10,6 +10,7 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.menu.MenuScreen
@@ -27,7 +28,8 @@ class ChangeLanguageTests : TestBase() {
 
     private lateinit var changeLanguageScreen: ChangeLanguageScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
 
         MenuScreen().clickSettingsButton()
@@ -38,8 +40,8 @@ class ChangeLanguageTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 App settings menu displays option to change language. 2 Language screen offers two options: English & Dutch. [$JIRA_ID]")
-    fun verifyChangeLanguageScreen() {
-        setUp()
+    fun verifyChangeLanguageScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         assertAll(
             { assertTrue(changeLanguageScreen.visible(), "change language screen is not visible") },
             { assertTrue(changeLanguageScreen.languageButtonsVisible(), "language buttons are not visible") }
@@ -53,8 +55,8 @@ class ChangeLanguageTests : TestBase() {
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("english"))
         @DisplayName("$USE_CASE.3.1 When the User selects Dutch, the app immediately uses Dutch. [$JIRA_ID]")
-        fun verifyDutchLanguageSelect() {
-            setUp()
+        fun verifyDutchLanguageSelect(testInfo: TestInfo) {
+            setUp(testInfo)
             assertTrue(changeLanguageScreen.englishScreenTitleVisible(), "english screen title is not visible")
             changeLanguageScreen.clickDutchButton()
 
@@ -64,8 +66,8 @@ class ChangeLanguageTests : TestBase() {
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @Tags(Tag("dutch"), Tag("smoke"))
         @DisplayName("$USE_CASE.3.2 When the User selects English, the app immediately uses English. [$JIRA_ID]")
-        fun verifyEnglishLanguageSelect() {
-            setUp()
+        fun verifyEnglishLanguageSelect(testInfo: TestInfo) {
+            setUp(testInfo)
             assertTrue(changeLanguageScreen.dutchScreenTitleVisible(), "dutch screen title is not visible")
             changeLanguageScreen.clickEnglishButton()
 

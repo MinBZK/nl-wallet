@@ -20,12 +20,14 @@ use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::credential::MdocCopies;
 use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpIssuanceSession;
+use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt_vc_metadata::TypeMetadataError;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_common::http::TlsPinningConfig;
 use wallet_common::reqwest::default_reqwest_client_builder;
 use wallet_common::update_policy::VersionState;
@@ -292,7 +294,7 @@ where
         let config = self.config_repository.get();
 
         let (pid_issuer, attestation_previews) = IS::start_issuance(
-            pid_issuer_http_client.into(),
+            HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), pid_issuer_http_client),
             config.pid_issuance.pid_issuer_url.clone(),
             token_request,
             &config.mdoc_trust_anchors(),

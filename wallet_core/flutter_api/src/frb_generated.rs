@@ -1084,10 +1084,12 @@ impl SseDecode for crate::models::attestation::AttestationAttribute {
         let mut var_key = <String>::sse_decode(deserializer);
         let mut var_labels = <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_decode(deserializer);
         let mut var_value = <crate::models::attestation::AttributeValue>::sse_decode(deserializer);
+        let mut var_svgId = <Option<String>>::sse_decode(deserializer);
         return crate::models::attestation::AttestationAttribute {
             key: var_key,
             labels: var_labels,
             value: var_value,
+            svg_id: var_svgId,
         };
     }
 }
@@ -1203,11 +1205,13 @@ impl SseDecode for crate::models::attestation::DisplayMetadata {
         let mut var_lang = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         let mut var_description = <Option<String>>::sse_decode(deserializer);
+        let mut var_summary = <Option<String>>::sse_decode(deserializer);
         let mut var_rendering = <Option<crate::models::attestation::RenderingMetadata>>::sse_decode(deserializer);
         return crate::models::attestation::DisplayMetadata {
             lang: var_lang,
             name: var_name,
             description: var_description,
+            summary: var_summary,
             rendering: var_rendering,
         };
     }
@@ -1216,10 +1220,12 @@ impl SseDecode for crate::models::attestation::DisplayMetadata {
 impl SseDecode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_inactiveWarningTimeout = <u16>::sse_decode(deserializer);
         let mut var_inactiveLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_version = <u64>::sse_decode(deserializer);
         return crate::models::config::FlutterConfiguration {
+            inactive_warning_timeout: var_inactiveWarningTimeout,
             inactive_lock_timeout: var_inactiveLockTimeout,
             background_lock_timeout: var_backgroundLockTimeout,
             version: var_version,
@@ -1853,6 +1859,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationAt
             self.key.into_into_dart().into_dart(),
             self.labels.into_into_dart().into_dart(),
             self.value.into_into_dart().into_dart(),
+            self.svg_id.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -1998,6 +2005,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::attestation::DisplayMetada
             self.lang.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
             self.description.into_into_dart().into_dart(),
+            self.summary.into_into_dart().into_dart(),
             self.rendering.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -2015,6 +2023,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::DisplayMetada
 impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfiguration {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.inactive_warning_timeout.into_into_dart().into_dart(),
             self.inactive_lock_timeout.into_into_dart().into_dart(),
             self.background_lock_timeout.into_into_dart().into_dart(),
             self.version.into_into_dart().into_dart(),
@@ -2501,6 +2510,7 @@ impl SseEncode for crate::models::attestation::AttestationAttribute {
         <String>::sse_encode(self.key, serializer);
         <Vec<crate::models::attestation::ClaimDisplayMetadata>>::sse_encode(self.labels, serializer);
         <crate::models::attestation::AttributeValue>::sse_encode(self.value, serializer);
+        <Option<String>>::sse_encode(self.svg_id, serializer);
     }
 }
 
@@ -2620,6 +2630,7 @@ impl SseEncode for crate::models::attestation::DisplayMetadata {
         <String>::sse_encode(self.lang, serializer);
         <String>::sse_encode(self.name, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
+        <Option<String>>::sse_encode(self.summary, serializer);
         <Option<crate::models::attestation::RenderingMetadata>>::sse_encode(self.rendering, serializer);
     }
 }
@@ -2627,6 +2638,7 @@ impl SseEncode for crate::models::attestation::DisplayMetadata {
 impl SseEncode for crate::models::config::FlutterConfiguration {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u16>::sse_encode(self.inactive_warning_timeout, serializer);
         <u16>::sse_encode(self.inactive_lock_timeout, serializer);
         <u16>::sse_encode(self.background_lock_timeout, serializer);
         <u64>::sse_encode(self.version, serializer);
@@ -3243,6 +3255,7 @@ mod io {
                 key: self.key.cst_decode(),
                 labels: self.labels.cst_decode(),
                 value: self.value.cst_decode(),
+                svg_id: self.svg_id.cst_decode(),
             }
         }
     }
@@ -3365,6 +3378,7 @@ mod io {
                 lang: self.lang.cst_decode(),
                 name: self.name.cst_decode(),
                 description: self.description.cst_decode(),
+                summary: self.summary.cst_decode(),
                 rendering: self.rendering.cst_decode(),
             }
         }
@@ -3373,6 +3387,7 @@ mod io {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::config::FlutterConfiguration {
             crate::models::config::FlutterConfiguration {
+                inactive_warning_timeout: self.inactive_warning_timeout.cst_decode(),
                 inactive_lock_timeout: self.inactive_lock_timeout.cst_decode(),
                 background_lock_timeout: self.background_lock_timeout.cst_decode(),
                 version: self.version.cst_decode(),
@@ -3712,6 +3727,7 @@ mod io {
                 key: core::ptr::null_mut(),
                 labels: core::ptr::null_mut(),
                 value: Default::default(),
+                svg_id: core::ptr::null_mut(),
             }
         }
     }
@@ -3766,6 +3782,7 @@ mod io {
                 lang: core::ptr::null_mut(),
                 name: core::ptr::null_mut(),
                 description: core::ptr::null_mut(),
+                summary: core::ptr::null_mut(),
                 rendering: core::ptr::null_mut(),
             }
         }
@@ -3778,6 +3795,7 @@ mod io {
     impl NewWithNullPtr for wire_cst_flutter_configuration {
         fn new_with_null_ptr() -> Self {
             Self {
+                inactive_warning_timeout: Default::default(),
                 inactive_lock_timeout: Default::default(),
                 background_lock_timeout: Default::default(),
                 version: Default::default(),
@@ -4374,6 +4392,7 @@ mod io {
         key: *mut wire_cst_list_prim_u_8_strict,
         labels: *mut wire_cst_list_claim_display_metadata,
         value: wire_cst_attribute_value,
+        svg_id: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4440,11 +4459,13 @@ mod io {
         lang: *mut wire_cst_list_prim_u_8_strict,
         name: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
+        summary: *mut wire_cst_list_prim_u_8_strict,
         rendering: *mut wire_cst_rendering_metadata,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_flutter_configuration {
+        inactive_warning_timeout: u16,
         inactive_lock_timeout: u16,
         background_lock_timeout: u16,
         version: u64,

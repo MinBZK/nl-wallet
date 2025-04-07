@@ -2,22 +2,25 @@ package util
 
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import data.TestConfigRepository.Companion.testConfig
+import helper.BrowserStackHelper
 import helper.LocalizationHelper
+import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
 import io.appium.java_client.ios.IOSDriver
 import io.github.ashwith.flutter.FlutterElement
 import io.github.ashwith.flutter.FlutterFinder
-import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.By
 import org.openqa.selenium.InvalidArgumentException
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.TimeoutException
 import org.openqa.selenium.WebDriverException
 import org.openqa.selenium.WebElement
+import org.openqa.selenium.interactions.PointerInput
 import org.openqa.selenium.remote.RemoteWebDriver
 import org.openqa.selenium.support.ui.ExpectedConditions
 import org.openqa.selenium.support.ui.WebDriverWait
+import java.io.IOException
 import java.time.Duration
 
 open class MobileActions {
@@ -178,6 +181,18 @@ open class MobileActions {
         }
     }
 
+    private fun switchToNativeContext() {
+        val driver = when (val platform = platformName()) {
+            "ANDROID" -> driver as AndroidDriver
+            "IOS" -> driver as IOSDriver
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        if (driver.context != NATIVE_APP_CONTEXT) {
+            driver.context(NATIVE_APP_CONTEXT)
+        }
+    }
+
+
     protected fun getWebModalAnchor(): WebElement {
         // Wait for the modal-anchor element to be displayed
         Thread.sleep(MODAL_ANCHOR_DISPLAY_TIMEOUT)
@@ -226,6 +241,116 @@ open class MobileActions {
 
     fun platformName() = driver.capabilities.platformName.name
 
+    fun disableInternetConnection() {
+        if (testConfig.remote) {
+            val sessionId = driver.sessionId.toString()
+            BrowserStackHelper.setNetwork(BROWSERSTACK_ENDPOINT, browserStackUserName, browserStackAccessKey, sessionId, "no-network" )
+        } else {
+            when (val platform = platformName()) {
+                "ANDROID" -> {
+                    try {
+                        runCommand(listOf("adb", "shell", "svc", "wifi", "disable"))
+                        runCommand(listOf("adb", "shell", "svc", "data", "disable"))
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                        throw RuntimeException("Failed to disable network via ADB", e)
+                    }
+                }
+                "IOS" -> {
+                    throw UnsupportedOperationException("Disabling network not supported on iOS via code. Consider using a manual toggle.")
+                }
+                else -> {
+                    throw IllegalArgumentException("Unsupported platform: $platform")
+                }
+            }
+        }
+    }
+
+    fun enableNetworkConnection() {
+        if (testConfig.remote) {
+            val sessionId = driver.sessionId.toString()
+            BrowserStackHelper.setNetwork(BROWSERSTACK_ENDPOINT, browserStackUserName, browserStackAccessKey, sessionId, "reset" )
+        } else {
+            when (val platform = platformName()) {
+                "ANDROID" -> {
+                    try {
+                        runCommand(listOf("adb", "shell", "svc", "wifi", "enable"))
+                        runCommand(listOf("adb", "shell", "svc", "data", "enable"))
+                    } catch (e: IOException) {
+                        e.printStackTrace()
+                        throw RuntimeException("Failed to enable network via ADB", e)
+                    }
+                }
+                "IOS" -> {
+                    throw UnsupportedOperationException("Re-enabling network not supported on iOS via code.")
+                }
+                else -> {
+                    throw IllegalArgumentException("Unsupported platform: $platform")
+                }
+            }
+        }
+    }
+
+    private fun runCommand(command: List<String>) {
+        val builder = ProcessBuilder(command)
+        val process = builder.start()
+        process.waitFor()
+    }
+
+    fun elementContainingTextVisible(partialText: String): Boolean {
+        switchToNativeContext()
+        val isVisible: Boolean = try {
+            when (platformName()) {
+                "ANDROID" -> {
+                    driver.findElement(
+                        AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
+                    ).isDisplayed
+                }
+                "IOS" -> {
+                    driver.findElement(
+                        By.xpath("//*[contains(@name, '$partialText')]")
+                    ).isDisplayed
+                }
+                else -> {
+                    throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+                }
+            }
+        } catch (e: Exception) {
+            println("Element not found or error occurred: ${e.message}")
+            false
+        } finally {
+            switchToAppContext()
+        }
+        return isVisible
+    }
+
+    fun getTextFromElementContainingText(partialText: String): String {
+        switchToNativeContext()
+        val value: String? = try {
+            val element = when (platformName()) {
+                "ANDROID" -> driver.findElement(
+                    AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
+                )
+                "IOS" -> driver.findElement(
+                    By.xpath("//*[contains(@name, '$partialText')]")
+                )
+                else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+            }
+
+            when (platformName()) {
+                "ANDROID" -> element.getAttribute("contentDescription")
+                "IOS" -> element.getAttribute("name")
+                else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+            }
+        } catch (e: Exception) {
+            println("Failed to get element text: ${e.message}")
+            null
+        } finally {
+            switchToAppContext()
+        }
+        return value ?: throw NoSuchElementException("No element found containing: $partialText")
+    }
+
     companion object {
         private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
@@ -236,5 +361,9 @@ open class MobileActions {
 
         private const val FLUTTER_APP_CONTEXT = "FLUTTER"
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
+        private const val NATIVE_APP_CONTEXT = "NATIVE_APP"
+        private val browserStackUserName = EnvironmentUtil.getVar("BROWSERSTACK_USER")
+        private val browserStackAccessKey = EnvironmentUtil.getVar("BROWSERSTACK_KEY")
+        private const val BROWSERSTACK_ENDPOINT = "https://api.browserstack.com/app-automate/sessions/"
     }
 }

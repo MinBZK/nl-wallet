@@ -6,7 +6,7 @@ import 'package:wallet/src/feature/theme/tabs/text_styles_tab.dart';
 import 'package:wallet/src/feature/theme/theme_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
-import '../../util/test_utils.dart';
+import '../../test_util/test_utils.dart';
 
 void main() {
   setUp(TestUtils.mockSensorsPlugin);

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
+import '../../../../test_util/golden_utils.dart';
+
+const _defaultTestSurfaceSize = Size(328, 208);
 
 void main() {
   group('widgets', () {
@@ -86,29 +88,39 @@ void main() {
       'shared attributes with simple rendering card - light mode',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          surfaceSize: const Size(328, 200),
-          SharedAttributesCard(
-            card: WalletMockData.simpleRenderingCard,
-            attributes: WalletMockData.simpleRenderingCard.attributes + WalletMockData.simpleRenderingCard.attributes,
-            onTap: () {},
+          surfaceSize: _defaultTestSurfaceSize,
+          Container(
+            height: _defaultTestSurfaceSize.height,
+            width: _defaultTestSurfaceSize.width,
+            padding: EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.simpleRenderingCard,
+              attributes: WalletMockData.simpleRenderingCard.attributes + WalletMockData.simpleRenderingCard.attributes,
+              onTap: () {},
+            ),
           ),
         );
-        await screenMatchesGolden(tester, 'shared_attributes/simple');
+        await screenMatchesGolden('shared_attributes/simple');
       },
     );
     testGoldens(
       'shared attributes with mock rendering card - dark mode',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          surfaceSize: const Size(328, 192),
-          SharedAttributesCard(
-            card: WalletMockData.card,
-            attributes: WalletMockData.card.attributes,
-            onTap: () {},
+          surfaceSize: _defaultTestSurfaceSize,
+          Container(
+            height: _defaultTestSurfaceSize.height,
+            width: _defaultTestSurfaceSize.width,
+            padding: EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              onTap: () {},
+            ),
           ),
           brightness: Brightness.dark,
         );
-        await screenMatchesGolden(tester, 'shared_attributes/mock');
+        await screenMatchesGolden('shared_attributes/mock');
       },
     );
   });

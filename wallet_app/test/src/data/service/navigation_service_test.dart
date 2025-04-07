@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/navigation_service.dart';
@@ -12,11 +11,14 @@ void main() {
   late MockPerformPreNavigationActionsUseCase mockPerformPreNavigationActionsUseCase;
   late MockNavigatorKey navigatorKey;
   late MockNavigatorState navigatorState;
+  late MockBuildContext context;
 
   setUp(() {
     provideDummy<NavigationRequest>(const GenericNavigationRequest('/mock_destination'));
     navigatorKey = MockNavigatorKey();
     navigatorState = MockNavigatorState();
+    context = MockBuildContext();
+    when(navigatorState.context).thenAnswer((_) => context);
     when(navigatorKey.currentState).thenReturn(navigatorState);
     // Usecases
     mockCheckNavigationPrerequisitesUseCase = MockCheckNavigationPrerequisitesUseCase();
@@ -163,7 +165,12 @@ void main() {
       expect(() async => service.processQueue(), throwsAssertionError);
     });
   });
-}
 
-// ignore: must_be_immutable
-class MockNavigatorKey extends Mock implements GlobalKey<NavigatorState> {}
+  group('dialog', () {
+    test('Verify no dialog is pushed when context is not mounted', () async {
+      when(context.mounted).thenAnswer((_) => false);
+      await service.showDialog(WalletDialogType.idleWarning);
+      verifyNever(navigatorState.push(any));
+    });
+  });
+}

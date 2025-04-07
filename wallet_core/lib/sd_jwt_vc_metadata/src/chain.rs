@@ -283,6 +283,8 @@ mod example_constructors {
 
     use wallet_common::vec_at_least::VecNonEmpty;
 
+    use crate::examples::ADDRESS_METADATA_BYTES;
+    use crate::examples::DIPLOMA_METADATA_BYTES;
     use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
@@ -346,6 +348,20 @@ mod example_constructors {
             )
         }
 
+        pub fn address_example() -> (Integrity, Self) {
+            (
+                Integrity::from(ADDRESS_METADATA_BYTES),
+                Self::new(vec![ADDRESS_METADATA_BYTES.to_vec()].try_into().unwrap()),
+            )
+        }
+
+        pub fn diploma_example() -> (Integrity, Self) {
+            (
+                Integrity::from(DIPLOMA_METADATA_BYTES),
+                Self::new(vec![DIPLOMA_METADATA_BYTES.to_vec()].try_into().unwrap()),
+            )
+        }
+
         pub fn example_with_extension() -> (Integrity, Self) {
             (
                 Integrity::from(EXAMPLE_EXTENSION_METADATA_BYTES),
@@ -395,6 +411,8 @@ mod test {
         TypeMetadataDocuments::example()
     )]
     #[case("com.example.pid", TypeMetadataDocuments::pid_example())]
+    #[case("com.example.address", TypeMetadataDocuments::address_example())]
+    #[case("com.example.diploma", TypeMetadataDocuments::diploma_example())]
     #[case(
         "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
         TypeMetadataDocuments::example_with_extension()

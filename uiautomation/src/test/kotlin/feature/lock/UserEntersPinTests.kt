@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
@@ -27,7 +28,8 @@ class UserEntersPinTests : TestBase() {
 
     private lateinit var pinScreen: PinScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickLogoutButton()
 
@@ -36,16 +38,16 @@ class UserEntersPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 The User can enter a six digit PIN on an in-app keyboard. [${JIRA_ID}]")
-    fun verifyPinScreenVisible() {
-        setUp()
+    fun verifyPinScreenVisible(testInfo: TestInfo) {
+        setUp(testInfo)
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
         assertTrue(pinScreen.pinKeyboardVisible(), "pin keyboard is not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.2 The PIN is not visible at any time, only the length of the entered PIN. [${JIRA_ID}]")
-    fun verifyHiddenPin() {
-        setUp()
+    fun verifyHiddenPin(testInfo: TestInfo) {
+        setUp(testInfo)
         val pin = "34567"
         pinScreen.enterPin(pin)
 
@@ -73,8 +75,8 @@ class UserEntersPinTests : TestBase() {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
         @DisplayName("$USE_CASE.6.1 (non-final round, initial attempt) if this was the initial PIN entry in the round, the app simply indicates that the PIN was wrong. [${JIRA_ID}]")
-        fun verifyNonFinalRoundInitialAttempt() {
-            setUp()
+        fun verifyNonFinalRoundInitialAttempt(testInfo: TestInfo) {
+            setUp(testInfo)
             pinScreen.enterPin("123456")
 
             assertTrue(pinScreen.pinErrorDialogNonFinalRoundInitialAttemptVisible(), "pin error is not visible")
@@ -98,8 +100,8 @@ class UserEntersPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.9 The app offers an entry to the ‘Forgot PIN’ flow. [${JIRA_ID}]")
-    fun verifyForgotPinEntry() {
-        setUp()
+    fun verifyForgotPinEntry(testInfo: TestInfo) {
+        setUp(testInfo)
         pinScreen.clickForgotPinButton()
 
         val forgotPinScreen = ForgotPinScreen()
@@ -108,8 +110,8 @@ class UserEntersPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.10 Upon valid PIN entry, the last active screen is displayed, or the onboarding if it has not completed, or the dashboard if the app boots. [${JIRA_ID}]")
-    fun verifyLastActiveScreen() {
-        setUp()
+    fun verifyLastActiveScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         pinScreen.enterPin(OnboardingNavigator.PIN)
 
         val dashboardScreen = DashboardScreen()
@@ -118,8 +120,8 @@ class UserEntersPinTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.11 The PIN entry screen offers an entrance to the App Info page. [${JIRA_ID}]")
-    fun verifyAppInfoButton() {
-        setUp()
+    fun verifyAppInfoButton(testInfo: TestInfo) {
+        setUp(testInfo)
         pinScreen.clickAppInfoButton()
 
         val aboutScreen = AboutScreen()

@@ -1,15 +1,14 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/organization/detail/bloc/organization_detail_bloc.dart';
 import 'package:wallet/src/feature/organization/detail/organization_detail_screen.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
-import '../../../util/device_utils.dart';
-import '../../../util/test_utils.dart';
+import '../../../test_util/golden_utils.dart';
+import '../../../test_util/test_utils.dart';
 
 class MockOrganizationDetailBloc extends MockBloc<OrganizationDetailEvent, OrganizationDetailState>
     implements OrganizationDetailBloc {}
@@ -17,39 +16,50 @@ class MockOrganizationDetailBloc extends MockBloc<OrganizationDetailEvent, Organ
 void main() {
   group('goldens', () {
     testGoldens('OrganizationDetailSuccess light', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: OrganizationDetailScreen(onReportIssuePressed: () {})
-                .withState<OrganizationDetailBloc, OrganizationDetailState>(
-              MockOrganizationDetailBloc(),
-              OrganizationDetailSuccess(
-                organization: WalletMockData.organization,
-                sharedDataWithOrganizationBefore: false,
-              ),
-            ),
+      await tester.pumpWidgetWithAppWrapper(
+        OrganizationDetailScreen(onReportIssuePressed: () {})
+            .withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.organization,
+            sharedDataWithOrganizationBefore: false,
           ),
-        wrapper: walletAppWrapper(),
+        ),
       );
-      await screenMatchesGolden(tester, 'success.light');
+
+      await screenMatchesGolden('success.light');
+    });
+
+    testGoldens('OrganizationDetailSuccess light - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        OrganizationDetailScreen(onReportIssuePressed: () {})
+            .withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.organization,
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+        surfaceSize: const Size(375, 812).flipped,
+      );
+
+      await screenMatchesGolden('success.light.landscape');
     });
 
     testGoldens('OrganizationDetailSuccess dark', (tester) async {
-      await tester.pumpDeviceBuilder(
-        DeviceUtils.deviceBuilderWithPrimaryScrollController
-          ..addScenario(
-            widget: OrganizationDetailScreen(onReportIssuePressed: () {})
-                .withState<OrganizationDetailBloc, OrganizationDetailState>(
-              MockOrganizationDetailBloc(),
-              OrganizationDetailSuccess(
-                organization: WalletMockData.organization,
-                sharedDataWithOrganizationBefore: false,
-              ),
-            ),
+      await tester.pumpWidgetWithAppWrapper(
+        OrganizationDetailScreen(onReportIssuePressed: () {})
+            .withState<OrganizationDetailBloc, OrganizationDetailState>(
+          MockOrganizationDetailBloc(),
+          OrganizationDetailSuccess(
+            organization: WalletMockData.organization,
+            sharedDataWithOrganizationBefore: false,
           ),
-        wrapper: walletAppWrapper(brightness: Brightness.dark),
+        ),
+        brightness: Brightness.dark,
       );
-      await screenMatchesGolden(tester, 'success.dark');
+
+      await screenMatchesGolden('success.dark');
     });
 
     testGoldens('OrganizationDetailInitial light', (tester) async {
@@ -59,7 +69,7 @@ void main() {
           OrganizationDetailInitial(),
         ),
       );
-      await screenMatchesGolden(tester, 'loading.light');
+      await screenMatchesGolden('loading.light');
     });
 
     testGoldens('OrganizationDetailFailure light', (tester) async {
@@ -69,7 +79,7 @@ void main() {
           const OrganizationDetailFailure(organizationId: 'id'),
         ),
       );
-      await screenMatchesGolden(tester, 'error.light');
+      await screenMatchesGolden('error.light');
     });
   });
 

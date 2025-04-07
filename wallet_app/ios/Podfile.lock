@@ -82,11 +82,11 @@ PODS:
     - Flutter
   - sensors_plus (0.0.1):
     - Flutter
-  - Sentry/HybridSDK (8.36.0)
-  - sentry_flutter (8.9.0):
+  - Sentry/HybridSDK (8.46.0)
+  - sentry_flutter (8.14.1):
     - Flutter
     - FlutterMacOS
-    - Sentry/HybridSDK (= 8.36.0)
+    - Sentry/HybridSDK (= 8.46.0)
   - shared_preferences_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
@@ -207,8 +207,8 @@ SPEC CHECKSUMS:
   root_jailbreak_sniffer: 5dae1989fb3979d9dcb304924435346488f2c841
   screen_brightness_ios: 28c5fbdb40634de44f86025d84470158ad4df48c
   sensors_plus: 6a11ed0c2e1d0bd0b20b4029d3bad27d96e0c65b
-  Sentry: f8374b5415bc38dfb5645941b3ae31230fbeae57
-  sentry_flutter: 0a211008f52553ba5dd81ceb71f48d78f0f1f6ab
+  Sentry: da60d980b197a46db0b35ea12cb8f39af48d8854
+  sentry_flutter: 942017adbe00f963061cb11ec260414a990b7a42
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   store_redirect: 55fd455802ceab09803b2df6e68f19a58815266a
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Tags
+import org.junit.jupiter.api.TestInfo
 import org.junitpioneer.jupiter.RetryingTest
 import screen.disclosure.DisclosureApproveOrganizationScreen
 import screen.menu.MenuScreen
@@ -34,7 +35,8 @@ class DisclosureTests : TestBase() {
     private lateinit var pinScreen: PinScreen
 
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         overviewWebPage = RelyingPartyOverviewWebPage()
         disclosureScreen = DisclosureApproveOrganizationScreen()
         pinScreen = PinScreen()
@@ -42,8 +44,8 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Opening a bank account")
-    fun verifyDisclosureCreateAccountXyzBank() {
-        setUp()
+    fun verifyDisclosureCreateAccountXyzBank(testInfo: TestInfo) {
+        setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         xyzBankWebPage = RelyingPartyXyzBankWebPage()
@@ -65,8 +67,8 @@ class DisclosureTests : TestBase() {
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Log in to MijnAmsterdam")
     @Tags(Tag("smoke"))
-    fun verifyDisclosureLogin() {
-        setUp()
+    fun verifyDisclosureLogin(testInfo: TestInfo) {
+        setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         amsterdamWebPage = RelyingPartyAmsterdamWebPage()
@@ -76,6 +78,12 @@ class DisclosureTests : TestBase() {
         amsterdamWebPage.switchToAppContext()
         assertTrue(disclosureScreen.organizationNameForLoginFlowVisible("Gemeente Amsterdam"))
         disclosureScreen.viewLoginDisclosureDetails()
+        disclosureScreen.viewSharedData()
+        assertTrue(disclosureScreen.bsnVisible("999991772"), "BSN not visible")
+        disclosureScreen.goBack();
+        disclosureScreen.readTerms();
+        assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
+        disclosureScreen.goBack();
         disclosureScreen.goBack();
         disclosureScreen.login()
         pinScreen.enterPin(OnboardingNavigator.PIN)
@@ -85,8 +93,8 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Sign up, Online Marketplace")
-    fun verifyDisclosureCreateAccountMarketplace() {
-        setUp()
+    fun verifyDisclosureCreateAccountMarketplace(testInfo: TestInfo) {
+        setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         marketPlaceWebPage = RelyingPartyMarketplaceWebPage()
@@ -107,8 +115,8 @@ class DisclosureTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("Sign up, MonkeyBike")
-    fun verifyDisclosureCreateAccountMonkeyBike() {
-        setUp()
+    fun verifyDisclosureCreateAccountMonkeyBike(testInfo: TestInfo) {
+        setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
         monkeyBikeWebPage = RelyingPartyMonkeyBikeWebPage()
@@ -122,5 +130,9 @@ class DisclosureTests : TestBase() {
         disclosureScreen.goBack();
         disclosureScreen.proceed()
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
+        disclosureScreen.stopRequestAfterMissingAttributeFailure()
+        disclosureScreen.closeDisclosureAfterCompletedOrUncompleted()
+        monkeyBikeWebPage.switchToWebViewContext()
+        assertTrue(monkeyBikeWebPage.loginFailedMessageVisible(), "Login failed message not visible")
     }
 }

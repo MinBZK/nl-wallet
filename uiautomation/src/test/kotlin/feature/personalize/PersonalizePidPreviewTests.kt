@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.TestInfo
 import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.personalize.PersonalizeConfirmPinScreen
@@ -24,7 +25,8 @@ class PersonalizePidPreviewTests : TestBase() {
 
     private lateinit var personalizePidPreviewScreen: PersonalizePidPreviewScreen
 
-    fun setUp() {
+    fun setUp(testInfo: TestInfo) {
+        startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
 
         personalizePidPreviewScreen = PersonalizePidPreviewScreen()
@@ -32,8 +34,8 @@ class PersonalizePidPreviewTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.1 When the PID provider offers PID data, the app displays this PID data to the user. 2 The App displays the PID data in a user friendly / human readable format. 3 The App asks the User to check whether the data is correct, and offers two buttons: confirm and reject. [$JIRA_ID]")
-    fun verifyPersonalizePidPreviewScreen() {
-        setUp()
+    fun verifyPersonalizePidPreviewScreen(testInfo: TestInfo) {
+        setUp(testInfo)
         assertAll(
             { assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible") },
             { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(), "human readable pid data is not visible") },
@@ -43,8 +45,8 @@ class PersonalizePidPreviewTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.4 When the User confirms, the User must enter their PIN (UC2.4 Confirm a Protected action). [$JIRA_ID]")
-    fun verifyAcceptPidPreview() {
-        setUp()
+    fun verifyAcceptPidPreview(testInfo: TestInfo) {
+        setUp(testInfo)
         personalizePidPreviewScreen.clickAcceptButton()
 
         val personalizeConfirmPinScreen = PersonalizeConfirmPinScreen()
@@ -63,8 +65,8 @@ class PersonalizePidPreviewTests : TestBase() {
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.7 When the User rejects, the App displays a support screen. [$JIRA_ID]")
-    fun verifyRejectPidPreview() {
-        setUp()
+    fun verifyRejectPidPreview(testInfo: TestInfo) {
+        setUp(testInfo)
         personalizePidPreviewScreen.clickRejectButton()
 
         val personalizePidDataIncorrectScreen = PersonalizePidDataIncorrectScreen()
