@@ -13,7 +13,6 @@ use jwt::VerifiedJwt;
 use crate::disclosure::Disclosure;
 use crate::encoder::SdObjectEncoder;
 use crate::encoder::DEFAULT_SALT_SIZE;
-use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
@@ -29,7 +28,6 @@ pub struct SdJwtBuilder<H> {
     encoder: SdObjectEncoder<H>,
     header: Header,
     disclosures: Vec<Disclosure>,
-    key_bind: Option<RequiredKeyBinding>,
 }
 
 impl SdJwtBuilder<Sha256Hasher> {
@@ -55,7 +53,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
         Ok(Self {
             encoder,
             disclosures: vec![],
-            key_bind: None,
             header: Header {
                 typ: Some(String::from(SD_JWT_HEADER_TYP)),
                 ..Default::default()
@@ -109,41 +106,35 @@ impl<H: Hasher> SdJwtBuilder<H> {
         Ok(self)
     }
 
-    /// Require a proof of possession of a given key from the holder.
-    ///
-    /// This operation adds a JWT confirmation (`cnf`) claim as specified in
-    /// [RFC8300](https://www.rfc-editor.org/rfc/rfc7800.html#section-3).
-    pub fn require_jwk_key_binding(mut self, verifying_key: &VerifyingKey) -> Result<Self> {
-        let jwk = jwk_from_p256(verifying_key)?;
-        self.key_bind = Some(RequiredKeyBinding::Jwk(jwk));
-        Ok(self)
-    }
-
     /// Creates an SD-JWT with the provided data.
-    pub async fn finish(self, alg: Algorithm, signing_key: &impl EcdsaKeySend) -> Result<SdJwt> {
+    pub async fn finish(
+        self,
+        alg: Algorithm,
+        issuer_signing_key: &impl EcdsaKeySend,
+        holder_pubkey: &VerifyingKey,
+    ) -> Result<SdJwt> {
         let SdJwtBuilder {
             mut encoder,
             disclosures,
-            key_bind,
             mut header,
         } = self;
         encoder.add_sd_alg_property();
         let mut object = encoder.object;
+
         // Add key binding requirement as `cnf`.
-        if let Some(key_bind) = key_bind {
-            let key_bind = serde_json::to_value(key_bind)?;
-            object
-                .as_object_mut()
-                .expect("encoder::object is a JSON Object")
-                .insert("cnf".to_string(), key_bind);
-        }
+        object
+            .as_object_mut()
+            .expect("encoder::object is a JSON Object")
+            .insert(
+                "cnf".to_string(),
+                serde_json::to_value(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?))?,
+            );
 
         header.alg = alg;
 
-        let claims = serde_json::from_value::<SdJwtClaims>(object)
-            .map_err(|e| Error::Deserialization(format!("invalid SD-JWT claims: {e}")))?;
+        let claims = serde_json::from_value::<SdJwtClaims>(object)?;
 
-        let verified_jwt = VerifiedJwt::sign(claims, header, signing_key).await?;
+        let verified_jwt = VerifiedJwt::sign(claims, header, issuer_signing_key).await?;
 
         Ok(SdJwt::new(verified_jwt, disclosures))
     }
@@ -151,7 +142,10 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
 #[cfg(test)]
 mod test {
+    use assert_matches::assert_matches;
     use serde_json::json;
+
+    use crate::error::Error;
 
     use super::*;
 
@@ -212,8 +206,6 @@ mod test {
             use super::*;
 
             mod on_top_level {
-                use assert_matches::assert_matches;
-
                 use super::*;
 
                 #[test]
@@ -245,8 +237,6 @@ mod test {
             }
 
             mod as_subproperties {
-                use assert_matches::assert_matches;
-
                 use super::*;
 
                 #[test]

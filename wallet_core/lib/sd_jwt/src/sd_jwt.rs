@@ -18,6 +18,7 @@ use serde_json::Value;
 use serde_with::skip_serializing_none;
 
 use crypto::EcdsaKeySend;
+use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
 
@@ -67,18 +68,23 @@ impl SdJwtPresentation {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse(sd_jwt: &str, sd_jwt_pub_key: &EcdsaDecodingKey, kb_jwt_pub_key: &EcdsaDecodingKey) -> Result<Self> {
+    pub fn parse_and_verify(sd_jwt: &str, issuer_pubkey: &EcdsaDecodingKey) -> Result<Self> {
         let (rest, kb_segment) = sd_jwt.rsplit_once("~").ok_or(Error::Deserialization(
             "SD-JWT format is invalid, no segments found".to_string(),
         ))?;
-        let key_binding_jwt = KeyBindingJwt::parse(kb_segment, kb_jwt_pub_key)?;
+        let sd_jwt = SdJwt::parse_and_verify(&format!("{}~", rest), issuer_pubkey)?;
 
-        let sd_jwt = SdJwt::parse(&format!("{}~", rest), sd_jwt_pub_key)?;
+        if let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() {
+            let key_binding_jwt =
+                KeyBindingJwt::parse_and_verify(kb_segment, &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?))?;
 
-        Ok(Self {
-            sd_jwt,
-            key_binding_jwt,
-        })
+            Ok(Self {
+                sd_jwt,
+                key_binding_jwt,
+            })
+        } else {
+            Err(Error::MissingJwkKeybinding)
+        }
     }
 
     pub fn presentation(&self) -> String {
@@ -146,7 +152,7 @@ impl SdJwt {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse(sd_jwt: &str, pub_key: &EcdsaDecodingKey) -> Result<Self> {
+    pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey) -> Result<Self> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
@@ -157,7 +163,7 @@ impl SdJwt {
             "SD-JWT format is invalid, input doesn't contain a '~'".to_string(),
         ))?;
 
-        let jwt = VerifiedJwt::try_new(sd_jwt_segment.parse()?, pub_key, &sd_jwt_validation())?;
+        let jwt = VerifiedJwt::try_new(sd_jwt_segment.parse()?, pubkey, &sd_jwt_validation())?;
 
         let disclosures = disclosure_segments
             .split("~")
@@ -483,28 +489,23 @@ mod test {
     #[case(COMPLEX_STRUCTURED_SD_JWT)]
     #[case(SD_JWT_VC)]
     fn parse_various(#[case] encoded_sd_jwt: &str) {
-        SdJwt::parse(encoded_sd_jwt, &examples_sd_jwt_decoding_key()).unwrap();
+        SdJwt::parse_and_verify(encoded_sd_jwt, &examples_sd_jwt_decoding_key()).unwrap();
     }
 
     #[test]
     fn parse_kb() {
-        SdJwtPresentation::parse(
-            WITH_KB_SD_JWT,
-            &examples_sd_jwt_decoding_key(),
-            &examples_kb_jwt_decoding_key(),
-        )
-        .unwrap();
+        SdJwtPresentation::parse_and_verify(WITH_KB_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
     }
 
     #[test]
     fn parse() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
+        let sd_jwt = SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
         assert_eq!(sd_jwt.disclosures.len(), 2);
     }
 
     #[test]
     fn round_trip_ser_des() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
+        let sd_jwt = SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
         assert_eq!(&sd_jwt.to_string(), SIMPLE_STRUCTURED_SD_JWT);
     }
 }

@@ -51,4 +51,7 @@ pub enum Error {
 
     #[error("missing required property: {0}")]
     MissingRequiredProperty(String),
+
+    #[error("missing required JWK key binding")]
+    MissingJwkKeybinding,
 }

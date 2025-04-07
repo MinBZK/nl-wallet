@@ -37,10 +37,10 @@ impl Display for KeyBindingJwt {
 }
 
 impl KeyBindingJwt {
-    pub fn parse(s: &str, pub_key: &EcdsaDecodingKey) -> error::Result<Self> {
+    pub fn parse_and_verify(s: &str, pubkey: &EcdsaDecodingKey) -> error::Result<Self> {
         let jwt: Jwt<KeyBindingJwtClaims> = s.into();
 
-        let (header, _) = jwt.parse_and_verify_with_header(pub_key, &kb_jwt_validation())?;
+        let (header, _) = jwt.parse_and_verify_with_header(pubkey, &kb_jwt_validation())?;
 
         let valid_jwt_type = &header.typ.is_some_and(|typ| typ == KB_JWT_HEADER_TYP);
         if !valid_jwt_type {
@@ -49,7 +49,7 @@ impl KeyBindingJwt {
             )));
         }
 
-        let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pub_key, &kb_jwt_validation())?;
+        let verified_jwt = VerifiedJwt::<KeyBindingJwtClaims>::try_new(jwt, pubkey, &kb_jwt_validation())?;
 
         Ok(Self(verified_jwt))
     }
@@ -197,7 +197,7 @@ mod test {
 
     #[tokio::test]
     async fn test_key_binding_jwt_builder() {
-        let sd_jwt = SdJwt::parse(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
+        let sd_jwt = SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
 
         let signing_key = SigningKey::random(&mut OsRng);
         let hasher = Sha256Hasher::new();
