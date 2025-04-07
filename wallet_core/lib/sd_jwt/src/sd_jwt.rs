@@ -4,7 +4,6 @@
 use std::collections::HashSet;
 use std::fmt::Display;
 use std::iter::Peekable;
-use std::ops::Deref;
 
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -216,13 +215,6 @@ pub struct SdJwtPresentationBuilder<'a> {
     removed_disclosures: Vec<Disclosure>,
     object: Value,
     hasher: &'a dyn Hasher,
-}
-
-impl Deref for SdJwtPresentationBuilder<'_> {
-    type Target = SdJwt;
-    fn deref(&self) -> &Self::Target {
-        &self.sd_jwt
-    }
 }
 
 impl<'a> SdJwtPresentationBuilder<'a> {
