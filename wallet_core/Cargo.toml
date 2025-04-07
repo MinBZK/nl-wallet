@@ -179,7 +179,7 @@ syn = "2.0.98"
 tempfile = "3.16.0"
 thiserror = "2.0.11"
 time = "0.3.37"
-tokio = { version = "1.43.0", default-features = false }
+tokio = { version = "1.44.2", default-features = false }
 tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.2", default-features = false }
 tracing = "0.1.41"
