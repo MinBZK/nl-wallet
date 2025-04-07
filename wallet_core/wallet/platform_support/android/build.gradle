@@ -108,14 +108,6 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
     def taskPostfix = it.key
     def (doStrip, buildArgs) = it.value
 
-    tasks.whenTaskAdded { task ->
-        if (task.name == "pre${taskPostfix}Build") {
-            task.dependsOn "cargoBuildNativeBindings$taskPostfix"
-        } else if (task.name == "connected${taskPostfix}AndroidTest") {
-            task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
-        }
-    }
-
     tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
         workingDir moduleWorkingDir
         fileTree("$workingDir").matching {
@@ -149,6 +141,11 @@ def bindingsTargetDir = "${project.projectDir}/../kotlin"
         if (buildArgs != null) {
             args += buildArgs
         }
+    }
+
+    tasks.named { it == "pre${taskPostfix}Build" }.configureEach {
+        dependsOn "cargoBuildNativeBindings$taskPostfix"
+        dependsOn "cargoBuildNativeLibrary$taskPostfix"
     }
 }
 
