@@ -52,6 +52,9 @@ pub enum DisclosureBasedIssuanceError {
     #[error("no Authorization Code found in Credential Offer")]
     #[category(critical)]
     MissingAuthorizationCode,
+    #[error("unexpected scheme: expected 'openid-credential-offer', found '{0}'")]
+    #[category(critical)]
+    UnexpectedScheme(String),
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -73,7 +76,13 @@ where
         pin: String,
     ) -> Result<Vec<Attestation>, DisclosureBasedIssuanceError> {
         let redirect_uri = match self.perform_disclosure(pin, RedirectUriPurpose::Issuance).await {
-            Ok(redirect_uri) => redirect_uri,
+            Ok(Some(redirect_uri)) if redirect_uri.scheme() == "openid-credential-offer" => redirect_uri,
+
+            Ok(Some(redirect_uri)) => Err(DisclosureBasedIssuanceError::UnexpectedScheme(
+                redirect_uri.scheme().to_string(),
+            ))?,
+
+            Ok(None) => Err(DisclosureBasedIssuanceError::MissingRedirectUri)?,
 
             // If the issuer has no attestations to issue, return an empty Vec.
             Err(DisclosureError::VpDisclosureSession(VpClientError::Request(
