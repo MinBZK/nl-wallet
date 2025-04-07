@@ -81,6 +81,8 @@ export 'wallet_mocks.mocks.dart';
 
 /// Mock framework
 @GenerateNiceMocks([MockSpec<NavigatorState>()])
+@GenerateNiceMocks([MockSpec<GlobalKey<NavigatorState>>(as: Symbol('MockNavigatorKey'))])
+@GenerateNiceMocks([MockSpec<BuildContext>()])
 
 /// Mock mappers
 @GenerateNiceMocks([MockSpec<Mapper>()])
@@ -252,6 +254,7 @@ class Mocks {
             version: 1,
             backgroundLockTimeout: Duration(minutes: 1),
             idleLockTimeout: Duration(minutes: 2),
+            idleWarningTimeout: Duration(minutes: 1),
           ),
         ),
       );

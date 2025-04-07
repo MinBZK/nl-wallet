@@ -63,6 +63,8 @@ impl From<&WalletConfiguration> for EntityTag {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct LockTimeoutConfiguration {
+    /// App inactivity warning timeout in seconds
+    pub warning_timeout: u16,
     /// App inactivity lock timeout in seconds
     pub inactive_timeout: u16,
     /// App background lock timeout in seconds
@@ -72,6 +74,7 @@ pub struct LockTimeoutConfiguration {
 impl Default for LockTimeoutConfiguration {
     fn default() -> Self {
         Self {
+            warning_timeout: 4 * 60,
             inactive_timeout: 5 * 60,
             background_timeout: 5 * 60,
         }

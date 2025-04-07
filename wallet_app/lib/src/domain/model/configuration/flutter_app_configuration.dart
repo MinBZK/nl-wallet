@@ -1,14 +1,17 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:wallet_core/core.dart';
 
 @immutable
-class FlutterAppConfiguration {
+class FlutterAppConfiguration extends Equatable {
   final Duration idleLockTimeout;
+  final Duration idleWarningTimeout;
   final Duration backgroundLockTimeout;
   final int version;
 
   const FlutterAppConfiguration({
     required this.idleLockTimeout,
+    required this.idleWarningTimeout,
     required this.backgroundLockTimeout,
     required this.version,
   });
@@ -16,25 +19,12 @@ class FlutterAppConfiguration {
   factory FlutterAppConfiguration.fromFlutterConfig(FlutterConfiguration config) {
     return FlutterAppConfiguration(
       idleLockTimeout: Duration(seconds: config.inactiveLockTimeout),
+      idleWarningTimeout: Duration(seconds: config.inactiveWarningTimeout),
       backgroundLockTimeout: Duration(seconds: config.backgroundLockTimeout),
       version: config.version.toInt(),
     );
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is FlutterAppConfiguration &&
-          runtimeType == other.runtimeType &&
-          idleLockTimeout == other.idleLockTimeout &&
-          backgroundLockTimeout == other.backgroundLockTimeout &&
-          version == other.version;
-
-  @override
-  int get hashCode => idleLockTimeout.hashCode ^ backgroundLockTimeout.hashCode ^ version.hashCode;
-
-  @override
-  String toString() {
-    return 'AppConfiguration{idleTimeout: $idleLockTimeout, backgroundTimeout: $backgroundLockTimeout, version: $version}';
-  }
+  List<Object?> get props => [idleLockTimeout, idleWarningTimeout, backgroundLockTimeout, version];
 }
