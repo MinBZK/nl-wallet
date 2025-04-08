@@ -210,3 +210,159 @@ impl IssuerSettings {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use assert_matches::assert_matches;
+
+    use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use crypto::server_keys::generate::Ca;
+    use mdoc::server_keys::generate::mock::generate_issuer_mock;
+    use mdoc::utils::issuer_auth::IssuerRegistration;
+    use mdoc::AttestationQualification;
+    use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use server_utils::settings::CertificateVerificationError;
+    use server_utils::settings::Server;
+    use server_utils::settings::Settings;
+    use server_utils::settings::Storage;
+    use wallet_common::urls::HttpsUri;
+
+    use super::AttestationTypeConfigSettings;
+    use super::IssuerSettings;
+    use crate::settings::IssuerSettingsError;
+
+    fn mock_settings() -> IssuerSettings {
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA failed");
+        let keypair = generate_issuer_mock(&issuer_ca, Some(IssuerRegistration::new_mock()))
+            .expect("generate issuer cert failed")
+            .into();
+
+        IssuerSettings {
+            attestation_settings: HashMap::from([(
+                "com.example.pid".to_string(),
+                AttestationTypeConfigSettings {
+                    keypair,
+                    valid_days: 365,
+                    copy_count: 10.try_into().unwrap(),
+                    attestation_qualification: AttestationQualification::PubEAA,
+                    certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
+                },
+            )])
+            .into(),
+            metadata: HashMap::from([(
+                "com.example.pid".to_string(),
+                TypeMetadataDocuments::pid_example().1.into_inner().first().clone(),
+            )]),
+            wallet_client_ids: vec![MOCK_WALLET_CLIENT_ID.to_string()],
+            server_settings: Settings {
+                wallet_server: Server {
+                    ip: "127.0.0.1".parse().unwrap(),
+                    port: 42,
+                },
+                public_url: "https://example.com".parse().unwrap(),
+                log_requests: false,
+                structured_logging: false,
+                storage: Storage {
+                    url: "memory://".parse().unwrap(),
+                    expiration_minutes: 10.try_into().unwrap(),
+                    successful_deletion_minutes: 10.try_into().unwrap(),
+                    failed_deletion_minutes: 10.try_into().unwrap(),
+                },
+                issuer_trust_anchors: vec![issuer_ca.as_borrowing_trust_anchor().clone()],
+                hsm: None,
+            },
+        }
+    }
+
+    #[test]
+    fn test_validate() {
+        mock_settings().validate().unwrap();
+    }
+
+    #[test]
+    fn test_no_issuer_trust_anchors() {
+        let mut settings = mock_settings();
+
+        settings.server_settings.issuer_trust_anchors = vec![];
+
+        assert_matches!(
+            settings.validate().expect_err("should fail"),
+            IssuerSettingsError::CertificateVerification(CertificateVerificationError::MissingTrustAnchors)
+        );
+    }
+
+    #[test]
+    fn test_no_issuer_registration() {
+        let mut settings = mock_settings();
+
+        let issuer_ca = Ca::generate_issuer_mock_ca().expect("generate issuer CA");
+        let issuer_cert_no_registration =
+            generate_issuer_mock(&issuer_ca, None).expect("generate issuer cert without issuer registration");
+
+        settings.server_settings.issuer_trust_anchors = vec![issuer_ca.as_borrowing_trust_anchor().clone()];
+        settings.attestation_settings = HashMap::from([(
+            "com.example.no_registration".to_string(),
+            AttestationTypeConfigSettings {
+                keypair: issuer_cert_no_registration.into(),
+                valid_days: 365,
+                copy_count: 4.try_into().unwrap(),
+                attestation_qualification: Default::default(),
+                certificate_san: None,
+            },
+        )])
+        .into();
+
+        let no_registration_metadata = UncheckedTypeMetadata {
+            vct: "com.example.no_registration".to_string(),
+            ..UncheckedTypeMetadata::empty_example()
+        };
+        let pid_metadata = TypeMetadata::pid_example();
+
+        settings.metadata = HashMap::from([
+            (
+                no_registration_metadata.vct.clone(),
+                serde_json::to_vec(&no_registration_metadata).unwrap(),
+            ),
+            (
+                pid_metadata.as_ref().vct.clone(),
+                serde_json::to_vec(&pid_metadata).unwrap(),
+            ),
+        ]);
+
+        assert_matches!(
+            settings.validate().expect_err("should fail"),
+            IssuerSettingsError::CertificateVerification(CertificateVerificationError::IncompleteCertificateType(key))
+                if key == "com.example.no_registration"
+        );
+    }
+
+    #[test]
+    fn test_missing_metadata() {
+        let mut settings = mock_settings();
+
+        settings.metadata.clear();
+
+        let error = settings.validate().expect_err("should fail");
+        assert_matches!(error, IssuerSettingsError::MissingMetadata { .. });
+    }
+
+    #[test]
+    fn test_wrong_san_field() {
+        let mut settings = mock_settings();
+
+        let wrong_san: HttpsUri = "https://wrong.san.example.com".parse().unwrap();
+
+        let (typ, attestation_settings) = settings.attestation_settings.as_ref().iter().next().unwrap();
+        let mut attestation_settings = attestation_settings.clone();
+        attestation_settings.certificate_san = Some(wrong_san.clone());
+        settings.attestation_settings = HashMap::from([(typ.clone(), attestation_settings)]).into();
+
+        let error = settings.validate().expect_err("should fail");
+        assert_matches!(error, IssuerSettingsError::CertificateMissingSan { san, .. } if san == wrong_san);
+    }
+}

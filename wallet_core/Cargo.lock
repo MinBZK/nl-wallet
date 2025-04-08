@@ -3149,6 +3149,7 @@ dependencies = [
 name = "issuer_settings"
 version = "0.3.0-dev"
 dependencies = [
+ "assert_matches",
  "chrono",
  "crypto",
  "derive_more",
