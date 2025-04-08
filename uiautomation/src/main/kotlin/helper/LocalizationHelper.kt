@@ -16,13 +16,13 @@ class LocalizationHelper {
         it[key]?.toString() ?: throw IllegalArgumentException("Key $key does not exist in '$language'")
     } ?: throw IllegalArgumentException("Language '$language' is not configured")
 
-
     enum class Translation(
         val nl: String,
         val en: String,
     ) {
         PID_CARD_TITLE("Persoonsgegevens", "Personal data"),
         ADDRESS_CARD_TITLE("Woonadres", "Residential address"),
+        SECONDS("seconden", "seconds"),
     }
 
     fun translate(translation: Translation): String {
