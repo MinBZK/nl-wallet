@@ -162,62 +162,58 @@ def jniTargetDir = "${project.projectDir}/src/main/jniLibs"
         Profile: [true, ['--locked', '--release']],
         Release: [true, ['--locked', '--release']]
 ].each {
-    def taskPostfix = it.key
-    def (doStrip, profileMode) = it.value
+    def buildMode = it.key
+    def (doStrip, buildArgs) = it.value
 
-    // This checks if a taskPostfix (Debug, Profile, Release) matches how gradle
-    // was called. In effect, this makes sure that when for example the task
-    // assembleDebug was invoked from the command-line, only tasks matching
-    // Debug are registered (created) and executed, and not all of them.
-    boolean matchedStartParameters = project.gradle.startParameter.taskNames.any { it.contains(taskPostfix) }
+    tasks.register("cargoBuildNativeLibrary${buildMode}", Exec) {
+        workingDir "../../../wallet_core"
 
-    if (matchedStartParameters) {
-        tasks.whenTaskAdded { task ->
-            if (task.name == "signReleaseBundle") {
-                task.dependsOn "checkFor${taskPostfix}Keys"
-            }
-            if (task.name == "pre${taskPostfix}Build") {
-                task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
-            }
+        // Build the Rust code (wallet_core)
+        executable = 'cargo'
+        args = ['ndk',
+                '-t', 'armeabi-v7a',
+                '-t', 'arm64-v8a',
+                '-t', 'x86_64',
+                '-o', jniTargetDir
+        ]
+        if (!doStrip) {
+            args += '--no-strip'
         }
-        tasks.register("checkFor${taskPostfix}Keys")
-        tasks.named("checkFor${taskPostfix}Keys") {
-            doFirst() {
-                logger.quiet("Using keystore: $keystorePropertiesFile")
-                if (taskPostfix == "Release" && !keystorePropertiesFile.exists()) {
-                    throw new GradleException("Attempted a ${taskPostfix} build and $keystorePropertiesFile does not exist, Failing build..")
-                }
-            }
+        args += [
+            'build',
+            '-p', 'flutter_api'
+        ]
+        if (buildArgs != null) {
+            args += buildArgs
         }
-        tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-            workingDir "../../../wallet_core"
-
-            // Build the Rust code (wallet_core)
-            executable = 'cargo'
-            args = ['ndk',
-                    '-t', 'armeabi-v7a',
-                    '-t', 'arm64-v8a',
-                    '-t', 'x86_64',
-                    '-o', jniTargetDir
-            ]
-            if (!doStrip) {
-                args += '--no-strip'
-            }
-            args += [
-                'build',
-                '-p', 'flutter_api'
-            ]
-            if (profileMode != null) {
-                args += profileMode
-            }
-            if (dartEnvironmentVariables['ALLOW_INSECURE_URL'] == 'true') {
-                args += ['--features', 'wallet/allow_insecure_url']
-            }
+        if (dartEnvironmentVariables['ALLOW_INSECURE_URL'] == 'true') {
+            args += ['--features', 'wallet/allow_insecure_url']
         }
+    }
+    tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
+        dependsOn "cargoBuildNativeLibrary${buildMode}"
     }
 }
 
-clean.doFirst {
-    logger.quiet("Cleaning $jniTargetDir")
+tasks.register("checkForReleaseKeys") {
+    doFirst() {
+        logger.quiet("Using keystore: $keystorePropertiesFile")
+        if (!keystorePropertiesFile.exists()) {
+            throw new GradleException("Attempted a release build and $keystorePropertiesFile does not exist, Failing build..")
+        }
+    }
+}
+tasks.named { it == "signReleaseBundle" }.configureEach {
+    dependsOn "checkForReleaseKeys"
+}
+
+tasks.register('cleanJni', Delete) {
     delete jniTargetDir
+    doFirst() {
+        logger.quiet("Clean $jniTargetDir")
+    }
+}
+
+tasks.named('clean') {
+    dependsOn('cleanJni')
 }
