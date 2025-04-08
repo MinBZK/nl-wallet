@@ -95,8 +95,6 @@ where
         };
 
         let query = redirect_uri
-            .as_ref()
-            .ok_or(DisclosureBasedIssuanceError::MissingRedirectUri)?
             .query()
             .ok_or(DisclosureBasedIssuanceError::MissingRedirectUriQuery)?;
 
@@ -120,5 +118,162 @@ where
             .await?;
 
         Ok(previews)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use parking_lot::lock_api::Mutex;
+
+    use openid4vc::credential::CredentialOffer;
+    use openid4vc::credential::CredentialOfferContainer;
+    use openid4vc::credential::GrantPreAuthorizedCode;
+    use openid4vc::credential_formats::CredentialFormats;
+    use openid4vc::disclosure_session::VpClientError;
+    use openid4vc::disclosure_session::VpMessageClientError;
+    use openid4vc::mock::MockIssuanceSession;
+    use openid4vc::token::CredentialPreview;
+    use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::DisclosureErrorResponse;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
+    use wallet_common::vec_at_least::VecNonEmpty;
+
+    use crate::disclosure::MdocDisclosureError;
+    use crate::disclosure::MdocDisclosureSessionState;
+    use crate::issuance;
+    use crate::mock::MockMdocDisclosureProposal;
+    use crate::mock::MockMdocDisclosureSession;
+    use crate::wallet::disclosure::RedirectUriPurpose;
+    use crate::wallet::disclosure::WalletDisclosureSession;
+    use crate::wallet::test::WalletDeviceVendor;
+    use crate::wallet::test::WalletWithMocks;
+    use crate::wallet::test::ISSUER_KEY;
+    use crate::wallet::DisclosureBasedIssuanceError;
+    use crate::wallet::DisclosureError;
+
+    const PIN: &str = "051097";
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_based_issuance() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        // Setup wallet disclosure state
+        let credential_offer = serde_urlencoded::to_string(CredentialOfferContainer {
+            credential_offer: CredentialOffer {
+                credential_issuer: "https://issuer.example.com".parse().unwrap(),
+                credential_configuration_ids: vec![],
+                grants: Some(openid4vc::credential::Grants::PreAuthorizedCode {
+                    pre_authorized_code: GrantPreAuthorizedCode {
+                        pre_authorized_code: "123".to_string().into(),
+                        tx_code: None,
+                        authorization_server: None,
+                    },
+                }),
+            },
+        })
+        .unwrap();
+        let credential_offer = ("openid-credential-offer://?".to_string() + &credential_offer)
+            .parse()
+            .unwrap();
+        wallet.disclosure_session = Some(WalletDisclosureSession::new(
+            RedirectUriPurpose::Issuance,
+            MockMdocDisclosureSession {
+                session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+                    disclose_return_url: Some(credential_offer),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        ));
+
+        // Setup wallet issuance state
+        let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
+        let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
+        let unverified_metadata_chains = vec![metadata_documents
+            .clone()
+            .into_unverified_metadata_chain(&unsigned_mdoc.doc_type)
+            .unwrap()];
+        let credential_formats = CredentialFormats::try_new(
+            VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
+                unsigned_mdoc,
+                issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
+                type_metadata: metadata_documents.clone(),
+            }])
+            .unwrap(),
+        )
+        .unwrap();
+        let start_context = MockIssuanceSession::start_context();
+        start_context.expect().return_once(|| {
+            Ok((
+                MockIssuanceSession::new(),
+                vec![(credential_formats, unverified_metadata_chains)],
+            ))
+        });
+
+        // Accept disclosure based issuance
+        let previews = wallet
+            .accept_disclosure_based_issuance(PIN.to_owned())
+            .await
+            .expect("Accepting disclosure based issuance should not have resulted in an error");
+
+        assert!(!previews.is_empty())
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_based_issuance_no_attestations() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
+        wallet.disclosure_session = Some(WalletDisclosureSession::new(
+            RedirectUriPurpose::Issuance,
+            MockMdocDisclosureSession {
+                session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+                    next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::Request(
+                        VpMessageClientError::AuthPostResponse(DisclosureErrorResponse {
+                            error_response: PostAuthResponseError::NoIssuableAttestations.into(),
+                            redirect_uri: None,
+                        }),
+                    )))),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        ));
+
+        let previews = wallet
+            .accept_disclosure_based_issuance(PIN.to_owned())
+            .await
+            .expect("Accepting disclosure based issuance should not have resulted in an error");
+
+        // By offering zero attestations to issue, the issuer says that it has no attestations to offer.
+        assert!(previews.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_accept_disclosure_based_issuance_error_wrong_redirect_uri_purpose() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        let disclosure_session = MockMdocDisclosureSession { ..Default::default() };
+        wallet.disclosure_session = Some(WalletDisclosureSession::new(
+            RedirectUriPurpose::Browser,
+            disclosure_session,
+        ));
+
+        let error = wallet
+            .accept_disclosure_based_issuance(PIN.to_owned())
+            .await
+            .expect_err("Accepting disclosure based issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureBasedIssuanceError::Disclosure(DisclosureError::UnexpectedRedirectUriPurpose {
+                expected: RedirectUriPurpose::Browser,
+                found: RedirectUriPurpose::Issuance,
+            })
+        );
     }
 }

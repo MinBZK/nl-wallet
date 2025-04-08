@@ -1704,6 +1704,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_wallet_accept_disclosure_error_wrong_redirect_uri_purpose() {
+        // Prepare a registered and unlocked wallet with an active disclosure session.
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        let disclosure_session = MockMdocDisclosureSession { ..Default::default() };
+        wallet.disclosure_session = Some(WalletDisclosureSession::new(
+            RedirectUriPurpose::Issuance,
+            disclosure_session,
+        ));
+
+        let error = wallet
+            .accept_disclosure(PIN.to_owned())
+            .await
+            .expect_err("Accepting disclosure should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureError::UnexpectedRedirectUriPurpose {
+                expected: RedirectUriPurpose::Issuance,
+                found: RedirectUriPurpose::Browser,
+            }
+        );
+    }
+
+    #[tokio::test]
     async fn test_mdoc_by_doc_types() {
         // Prepare a wallet in initial state.
         let wallet = WalletWithMocks::new_unregistered(WalletDeviceVendor::Apple);
