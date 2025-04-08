@@ -1,5 +1,5 @@
 use http_utils::urls::BaseUrl;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 pub fn read_file(file_name: &str) -> Vec<u8> {
     std::fs::read(prefix_local_path(file_name.as_ref()).as_ref()).unwrap()

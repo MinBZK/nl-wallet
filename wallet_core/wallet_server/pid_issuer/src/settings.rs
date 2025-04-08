@@ -15,7 +15,7 @@ use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]

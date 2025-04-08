@@ -12,7 +12,7 @@ use tracing::info;
 
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use crate::gba::encryption::decrypt_bytes_from_dir;
 use crate::gba::encryption::HmacSha256;

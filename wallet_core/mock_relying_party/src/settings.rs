@@ -12,7 +12,7 @@ use serde::Serialize;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use mdoc::verifier::ItemsRequests;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {

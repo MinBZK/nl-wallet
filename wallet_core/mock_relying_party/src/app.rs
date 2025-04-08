@@ -44,7 +44,7 @@ use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use crate::askama_axum;
 use crate::client::WalletServerClient;

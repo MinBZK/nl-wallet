@@ -8,7 +8,7 @@ use clio::ClioPath;
 use clio::Input;
 
 use utils::built_info::version_string;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;

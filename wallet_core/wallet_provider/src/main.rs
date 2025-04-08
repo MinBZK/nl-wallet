@@ -43,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         } else {
             use android_attest::play_integrity::client::PlayIntegrityClient;
             use android_attest::play_integrity::client::ServiceAccountAuthenticator;
-            use utils::utils::prefix_local_path;
+            use utils::path::prefix_local_path;
 
             let credentials_file_path = prefix_local_path(&settings.android.credentials_file);
             let play_integrity_client = PlayIntegrityClient::new(

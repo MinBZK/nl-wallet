@@ -36,7 +36,7 @@ use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use utils::generator::TimeGenerator;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 const MIN_KEY_LENGTH_BYTES: usize = 16;
 

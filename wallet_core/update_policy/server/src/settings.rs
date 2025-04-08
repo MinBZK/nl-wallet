@@ -7,7 +7,7 @@ use config::File;
 use serde::Deserialize;
 
 use http_utils::http::TlsServerConfig;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use crate::config::UpdatePolicyConfig;
 

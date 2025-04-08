@@ -15,7 +15,7 @@ use serde_with::serde_as;
 
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::urls::BaseUrl;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use crate::gba;
 use crate::gba::client::FileGbavClient;

@@ -21,7 +21,7 @@ use apple_app_attest::AttestationEnvironment;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::settings::Hsm;
 use http_utils::http::TlsServerConfig;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]

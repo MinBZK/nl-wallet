@@ -11,7 +11,7 @@ use config::File;
 use serde::Deserialize;
 use serde_with::serde_as;
 
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use crate::model::Hsm;
 use crate::service::Pkcs11Hsm;

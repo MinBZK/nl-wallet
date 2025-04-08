@@ -8,7 +8,7 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use crate::gba;
 use crate::gba::data::Categorievoorkomen;

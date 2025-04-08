@@ -279,7 +279,7 @@ mod tests {
 
     use serde_json::json;
 
-    use utils::utils::prefix_local_path;
+    use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
 

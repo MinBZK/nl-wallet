@@ -29,7 +29,7 @@ use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::KeyPair;
 use server_utils::settings::Settings;
 use utils::generator::TimeGenerator;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 #[derive(Clone, Deserialize)]
 pub struct IssuerSettings {

@@ -6,7 +6,7 @@ use clap::Parser;
 use clio::ClioPath;
 
 use utils::built_info::version_string;
-use utils::utils::prefix_local_path;
+use utils::path::prefix_local_path;
 
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::client::HttpGbavClient;
