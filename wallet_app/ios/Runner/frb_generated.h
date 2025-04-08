@@ -266,6 +266,7 @@ typedef struct wire_cst_accept_disclosure_result {
 } wire_cst_accept_disclosure_result;
 
 typedef struct wire_cst_flutter_configuration {
+  uint16_t inactive_warning_timeout;
   uint16_t inactive_lock_timeout;
   uint16_t background_lock_timeout;
   uint64_t version;

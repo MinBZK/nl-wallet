@@ -1,7 +1,8 @@
 package screen.history
 
-import helper.LocalizationHelper.Translation.PID_CARD_TITLE
 import helper.LocalizationHelper.Translation.ADDRESS_CARD_TITLE
+import helper.LocalizationHelper.Translation.AMSTERDAM_DISPLAY_NAME
+import helper.LocalizationHelper.Translation.PID_CARD_TITLE
 import util.MobileActions
 
 class HistoryOverviewScreen : MobileActions() {
@@ -11,6 +12,8 @@ class HistoryOverviewScreen : MobileActions() {
     private val pidCardTitle = find.byText(l10n.translate(PID_CARD_TITLE))
     private val addressCardTitle = find.byText(l10n.translate(ADDRESS_CARD_TITLE))
     private val disclosureLoginSubtitle = find.byText(l10n.getString("cardHistoryLoginSuccess"))
+    private val disclosureLoginOrganization = find.byText(l10n.translate(AMSTERDAM_DISPLAY_NAME))
+    private val historyDetailScreenIssuanceSuccessDescription= find.byText(l10n.getString("historyDetailScreenIssuanceSuccessDescription"))
 
     private val bottomBackButton = find.byText(l10n.getString("generalBottomBackCta"))
 
@@ -26,4 +29,8 @@ class HistoryOverviewScreen : MobileActions() {
     fun loginDisclosureLogEntryVisible() = isElementVisible(disclosureLoginSubtitle, false)
 
     fun clickLoginEntryTitle() = clickElement(disclosureLoginSubtitle)
+
+    fun loginDisclosureOrganizationVisible() = isElementVisible(disclosureLoginOrganization)
+
+    fun issuanceSubtitleVisible() = isElementVisible(historyDetailScreenIssuanceSuccessDescription)
 }

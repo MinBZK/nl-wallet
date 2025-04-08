@@ -96,6 +96,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     }
 
     fun readTerms() {
+        scrollToEnd(ScrollableType.CustomScrollView)
         clickElement(readTermsButton)
     }
 

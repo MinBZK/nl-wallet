@@ -63,9 +63,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     })
     await context.setOffline(true)
     await mockRelyingPartyPage.openWalletLogin()
-    expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
-      "Sorry, no internet connection",
-    )
+    expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe("Sorry, no internet connection")
     expect(await mockRelyingPartyPage.getModalMessageText()).toBe(
       "Your internet connection seems to be down or too slow. Check your connection and try again.",
     )
@@ -94,9 +92,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
       await expect(await mockRelyingPartyPage.getQrCode()).toBeVisible()
       await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
       expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
-      expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
-        "Scan the QR code with your NL Wallet app",
-      )
+      expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe("Scan the QR code with your NL Wallet app")
     }
     /* eslint-enable */
   })
@@ -125,9 +121,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     })
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
-    expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
-      "Sorry, something went wrong",
-    )
+    expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe("Sorry, something went wrong")
     expect(await mockRelyingPartyPage.getModalMessageText()).toBe(
       "This action was unsuccessful. This may have several reasons. Please try again.",
     )
@@ -149,9 +143,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     })
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
-    expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
-      "Follow the steps in your NL Wallet app",
-    )
+    expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe("Follow the steps in your NL Wallet app")
     await expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
     expect(await mockRelyingPartyPage.getWebsiteLink()).toBeDefined()
     await expect(await mockRelyingPartyPage.getCancelButton()).toBeVisible()
@@ -193,9 +185,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
     expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe("Stopped")
-    expect(await mockRelyingPartyPage.getModalMessageText()).toBe(
-      "Because you have stopped, no data has been shared.",
-    )
+    expect(await mockRelyingPartyPage.getModalMessageText()).toBe("Because you have stopped, no data has been shared.")
     await expect(await mockRelyingPartyPage.getHelpLink()).toBeVisible()
     await expect(await mockRelyingPartyPage.getTryAgainButton()).toBeVisible()
     await expect(await mockRelyingPartyPage.getCloseButton()).toBeVisible()
@@ -209,9 +199,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await mockRelyingPartyPage.goToAmsterdamMunicipality()
     await mockRelyingPartyPage.openWalletLogin()
     expect(await mockRelyingPartyPage.getModalMessageHeaderText()).toBe(
-      isMobileDevice
-        ? "Op welk apparaat staat je NL Wallet app?"
-        : "Scan de QR-code met je NL Wallet app",
+      isMobileDevice ? "Op welk apparaat staat je NL Wallet app?" : "Scan de QR-code met je NL Wallet app",
     )
   })
 })

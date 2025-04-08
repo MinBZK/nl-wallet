@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: {{ .Values.frontend.name }}
   labels:
-    {{- include "common.labels.customname" (list .Values.frontend.name .) | nindent 4 }}
+    {{- include "common.labels.component" (list .Values.frontend.name .) | nindent 4 }}
 spec:
   selector:
-    {{- include "common.labels.customSelectorLabels" (list .Values.frontend.name .) | nindent 4 }}
+    {{- include "common.labels.componentSelectorLabels" (list .Values.frontend.name .) | nindent 4 }}
     {{ with .Values.frontend.extraLabels }}
     {{ toYaml . | nindent 6 }}
     {{- end }}

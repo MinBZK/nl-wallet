@@ -796,6 +796,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void cst_api_fill_to_wire_flutter_configuration(FlutterConfiguration apiObj, wire_cst_flutter_configuration wireObj) {
+    wireObj.inactive_warning_timeout = cst_encode_u_16(apiObj.inactiveWarningTimeout);
     wireObj.inactive_lock_timeout = cst_encode_u_16(apiObj.inactiveLockTimeout);
     wireObj.background_lock_timeout = cst_encode_u_16(apiObj.backgroundLockTimeout);
     wireObj.version = cst_encode_u_64(apiObj.version);
@@ -2374,6 +2375,9 @@ final class wire_cst_accept_disclosure_result extends ffi.Struct {
 }
 
 final class wire_cst_flutter_configuration extends ffi.Struct {
+  @ffi.Uint16()
+  external int inactive_warning_timeout;
+
   @ffi.Uint16()
   external int inactive_lock_timeout;
 

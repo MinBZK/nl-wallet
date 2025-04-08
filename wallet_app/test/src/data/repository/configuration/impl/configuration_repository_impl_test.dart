@@ -19,6 +19,7 @@ void main() {
     when(mockCore.observeConfig()).thenAnswer(
       (_) => Stream.value(
         FlutterConfiguration(
+          inactiveWarningTimeout: 3,
           inactiveLockTimeout: 5,
           backgroundLockTimeout: 10,
           version: BigInt.zero,
@@ -30,6 +31,7 @@ void main() {
     expect(
       config,
       const FlutterAppConfiguration(
+        idleWarningTimeout: Duration(seconds: 3),
         idleLockTimeout: Duration(seconds: 5),
         backgroundLockTimeout: Duration(seconds: 10),
         version: 0,

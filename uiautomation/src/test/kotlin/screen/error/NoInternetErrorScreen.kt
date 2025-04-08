@@ -41,4 +41,3 @@ class NoInternetErrorScreen : MobileActions() {
 
     fun seeDetails() = clickElement(seeDetailsButton, false)
 }
-

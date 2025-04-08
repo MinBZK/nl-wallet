@@ -3,12 +3,7 @@ import { basename } from "node:path"
 import { AllureReport, readConfig } from "@allurereport/core"
 import type { ResultFile } from "@allurereport/plugin-api"
 import { PathResultFile } from "@allurereport/reader-api"
-import type {
-  RawTestResult,
-  ReaderContext,
-  ResultsReader,
-  ResultsVisitor,
-} from "@allurereport/reader-api"
+import type { RawTestResult, ReaderContext, ResultsReader, ResultsVisitor } from "@allurereport/reader-api"
 import { allure2, attachments, junitXml } from "@allurereport/reader"
 
 import { groupTestResult } from "./labels.ts"

@@ -25,14 +25,12 @@ helm.sh/chart: {{ include "common.names.chart" . }}
 {{ include "common.labels.standard.release.service" . }}
 {{- end -}}
 
-{{- define "common.labels.customname" -}}
+{{- define "common.labels.component" -}}
 {{- $args := . -}}
-{{- $customName := index $args 0 -}}
+{{- $component := index $args 0 -}}
 {{- $context := index $args 1 -}}
-helm.sh/chart: {{ include "common.names.chart" $context }}
-app.kubernetes.io/name: {{ $customName }}
-{{ include "common.labels.standard.release.name" $context }}
-{{ include "common.labels.standard.release.service" $context }}
+{{ include "common.labels.standard" $context }}
+app.kubernetes.io/component: {{ $component }}
 {{- end -}}
 
 
@@ -47,10 +45,10 @@ Selector labels
 {{/*
 Custom selector labels
 */}}
-{{- define "common.labels.customSelectorLabels" -}}
+{{- define "common.labels.componentSelectorLabels" -}}
 {{- $args := . -}}
-{{- $customName := index $args 0 -}}
+{{- $component := index $args 0 -}}
 {{- $context := index $args 1 -}}
-app.kubernetes.io/name: {{ $customName }}
-{{ include "common.labels.standard.release.name" $context }}
+{{ include "common.labels.selectorLabels" $context }}
+app.kubernetes.io/component: {{ $component }}
 {{- end }}
