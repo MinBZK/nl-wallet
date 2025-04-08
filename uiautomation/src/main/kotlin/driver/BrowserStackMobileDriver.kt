@@ -20,6 +20,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
 
         // Specify device and OS version for testing
         val caps = DesiredCapabilities()
+        caps.setCapability("appium:newCommandTimeout", 120)
         caps.setCapability("appium:automationName", "Flutter")
         caps.setCapability("platformName", testConfig.platformName)
         caps.setCapability("appium:platformVersion", testConfig.platformVersion)

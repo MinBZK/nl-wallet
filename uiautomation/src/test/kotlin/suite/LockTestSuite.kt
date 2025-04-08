@@ -9,6 +9,7 @@ import org.junit.platform.suite.api.SuiteDisplayName
     feature.lock.UserLocksWalletTests::class,
     feature.lock.UserEntersPinTests::class,
     feature.lock.UserForgetsPinTests::class,
+    feature.lock.AppAutoLocksOnTimerTests::class,
 )
 @Suite
 @SuiteDisplayName("Lock Test Suite")

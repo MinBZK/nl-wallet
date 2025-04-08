@@ -350,6 +350,17 @@ open class MobileActions {
         return value ?: throw NoSuchElementException("No element found containing: $partialText")
     }
 
+    fun putAppInBackground(seconds: Int) {
+        val driver = when (val platform = platformName()) {
+            "ANDROID" -> driver as AndroidDriver
+            "IOS" -> driver as IOSDriver
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+        switchToNativeContext()
+        driver.runAppInBackground(Duration.ofSeconds(seconds.toLong()))
+        switchToAppContext()
+    }
+
     companion object {
         private const val SET_FRAME_SYNC_MAX_WAIT_MILLIS = 2000L
         private const val WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS = 8000L
