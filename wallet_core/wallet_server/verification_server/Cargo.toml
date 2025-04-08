@@ -58,10 +58,6 @@ tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trac
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
-indexmap = { workspace = true, optional = true, features = ["serde"] }
-itertools = { workspace = true, optional = true }
-reqwest = { workspace = true, optional = true, features = ["rustls-tls-webpki-roots"] }
-serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
 
 crypto.path = "../../lib/crypto"
