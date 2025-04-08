@@ -192,7 +192,6 @@ open class MobileActions {
         }
     }
 
-
     protected fun getWebModalAnchor(): WebElement {
         // Wait for the modal-anchor element to be displayed
         Thread.sleep(MODAL_ANCHOR_DISPLAY_TIMEOUT)
@@ -362,6 +361,7 @@ open class MobileActions {
         private const val FLUTTER_APP_CONTEXT = "FLUTTER"
         private const val WEB_VIEW_CONTEXT_PREFIX = "WEBVIEW_"
         private const val NATIVE_APP_CONTEXT = "NATIVE_APP"
+
         private val browserStackUserName = EnvironmentUtil.getVar("BROWSERSTACK_USER")
         private val browserStackAccessKey = EnvironmentUtil.getVar("BROWSERSTACK_KEY")
         private const val BROWSERSTACK_ENDPOINT = "https://api.browserstack.com/app-automate/sessions/"
