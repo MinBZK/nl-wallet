@@ -29,7 +29,7 @@ axum-extra = { workspace = true, optional = true, features = ["typed-header"] }
 ring = { workspace = true, optional = true }
 
 crypto = { path = "../crypto" }
-http_utils = { path = "../http_utils", features = ["axum"] }
+http_utils = { path = "../http_utils", features = ["server"] }
 mdoc.path = "../mdoc"
 openid4vc = { path = "../openid4vc", features = ["axum"] }
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"

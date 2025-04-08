@@ -13,12 +13,12 @@ doctest = false
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = []
-# Include implementations of the axum IntoResponse trait.
-axum = ["dep:axum", "dep:axum-server", "dep:tower-http"]
 # Include implementations for http clients
 client = ["dep:reqwest"]
 # Implement the HttpConfig type for insecurely fetching configurations.
 insecure_http_client = []
+# Include implementations of the axum IntoResponse trait.
+server = ["dep:axum", "dep:axum-server", "dep:tower-http"]
 
 [dependencies]
 cfg-if.workspace = true

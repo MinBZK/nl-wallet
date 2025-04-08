@@ -66,7 +66,7 @@ serial_test = { workspace = true, optional = true }
 
 crypto.path = "../../lib/crypto"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
-http_utils = { path = "../../lib/http_utils", features = ["axum"] }
+http_utils = { path = "../../lib/http_utils", features = ["server"] }
 mdoc.path = "../../lib/mdoc"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosure"] }

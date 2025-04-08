@@ -5,7 +5,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 cfg_if! {
-    if #[cfg(feature = "axum")] {
+    if #[cfg(feature = "server")] {
         use std::io;
 
         use axum_server::tls_rustls::RustlsConfig;
@@ -107,7 +107,7 @@ impl ReqwestBuilder for TlsPinningConfig {}
 #[cfg(feature = "client")]
 impl JsonReqwestBuilder for TlsPinningConfig {}
 
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 impl TlsServerConfig {
     pub async fn to_rustls_config(&self) -> Result<RustlsConfig, io::Error> {
         RustlsConfig::from_der(vec![self.cert.to_vec()], self.key.to_vec()).await
