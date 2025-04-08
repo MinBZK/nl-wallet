@@ -43,7 +43,7 @@
                 "$(PROJECT_DIR)/../swift/$(INPUT_FILE_BASE)FFI.h",
             );
             runOncePerArchitecture = 0;
-            script = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nif [ \"$CARGO_XCODE_TARGET_OS\" != \"darwin\" ]; then\n    PATH=\"${PATH/\\/Contents\\/Developer\\/Toolchains\\/XcodeDefault.xctoolchain\\/usr\\/bin}\"\nfi\n\n\"$PROJECT_DIR/../generate_native_bindings.sh\" \"$INPUT_FILE_BASE\" swift\n";
+            script = "PATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${HOME}/.cargo/env\"\n\nif [ \"$CARGO_XCODE_TARGET_OS\" != \"darwin\" ]; then\n    PATH=\"${PATH/\\/Contents\\/Developer\\/Toolchains\\/XcodeDefault.xctoolchain\\/usr\\/bin}\"\nfi\n\n\"$PROJECT_DIR/../generate_native_bindings.sh\" swift \"$INPUT_FILE_BASE\"\n";
         };
 /* End PBXBuildRule section */
 

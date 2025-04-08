@@ -100,32 +100,25 @@ def moduleWorkingDir = "${project.projectDir}/../"
 def bindingsTargetDir = "${project.projectDir}/../kotlin"
 
 // Register a task to build the Rust code and copy the resulting library files
+tasks.register("cargoBuildNativeBindings", Exec) {
+    workingDir moduleWorkingDir
+    executable './generate_native_bindings.sh'
+
+    inputs.files(fileTree("$workingDir/udl").matching { include "*.udl" })
+    outputs.dir("$workingDir/kotlin")
+    args = ['kotlin'] + inputs.files.collect { it.name }
+}
+
 [
-        Debug  : [false, ['--features', 'hardware_integration_test']],
-        Profile: [true, ['--locked', '--release']],
-        Release: [true, ['--locked', '--release']]
+    Debug  : [false, ['--features', 'hardware_integration_test']],
+    Profile: [true, ['--locked', '--release']],
+    Release: [true, ['--locked', '--release']]
 ].each {
     def buildMode = it.key
     def (doStrip, buildArgs) = it.value
 
-    tasks.register("cargoBuildNativeBindings${buildMode}", Exec) {
-        workingDir moduleWorkingDir
-        fileTree("$workingDir").matching {
-            include "**/*.udl"
-        }.each {
-            // Use file name as module name
-            String moduleName = it.name.take(it.name.lastIndexOf('.'))
-
-            // Generate Kotlin <> Rust bindings
-            executable = 'bash'
-            args = ['generate_native_bindings.sh',
-                    "$moduleName",
-                    'kotlin'
-            ]
-        }
-    }
     tasks.named { it == "compile${buildMode}Kotlin" }.configureEach {
-        dependsOn "cargoBuildNativeBindings${buildMode}"
+        dependsOn "cargoBuildNativeBindings"
     }
 
     tasks.register("cargoBuildNativeLibrary${buildMode}", Exec) {
