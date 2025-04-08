@@ -79,7 +79,7 @@ mod tests {
     use parking_lot::RwLock;
     use rand_core::OsRng;
 
-    use http_utils::http::TlsPinningConfig;
+    use http_utils::http::client::TlsPinningConfig;
     use jwt::EcdsaDecodingKey;
     use wallet_configuration::wallet_config::WalletConfiguration;
 

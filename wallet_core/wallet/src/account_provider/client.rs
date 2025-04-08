@@ -6,7 +6,7 @@ use reqwest::Request;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use http_utils::http_error::HttpJsonErrorBody;
 use http_utils::reqwest::parse_content_type;
 use http_utils::reqwest::RequestBuilder;

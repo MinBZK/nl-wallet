@@ -6,7 +6,7 @@ use tokio::sync::RwLock;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::hw_keystore::hardware::HardwareEncryptionKey;
 use platform_support::utils::hardware::HardwareUtilities;

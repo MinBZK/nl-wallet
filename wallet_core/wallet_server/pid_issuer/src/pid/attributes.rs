@@ -1,7 +1,7 @@
 use std::num::NonZero;
 
 use crypto::x509::CertificateError;
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;

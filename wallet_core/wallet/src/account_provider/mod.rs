@@ -4,7 +4,7 @@ use reqwest::StatusCode;
 use url::ParseError;
 
 use error_category::ErrorCategory;
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::Instruction;

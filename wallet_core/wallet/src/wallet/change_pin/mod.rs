@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use tracing::info;
 
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;

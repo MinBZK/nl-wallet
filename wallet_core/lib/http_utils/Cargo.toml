@@ -16,7 +16,7 @@ allow_insecure_url = []
 # Include implementations for http clients
 client = ["dep:reqwest"]
 # Implement the HttpConfig type for insecurely fetching configurations.
-insecure_http_client = []
+insecure_http_client = ["dep:reqwest"]
 # Include implementations of the axum IntoResponse trait.
 server = ["dep:axum", "dep:axum-server", "dep:tower-http"]
 

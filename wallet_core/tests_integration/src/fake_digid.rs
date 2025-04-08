@@ -3,7 +3,7 @@ use reqwest::redirect::Policy;
 use reqwest::Response;
 use url::Url;
 
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use http_utils::reqwest::ClientBuilder;
 
 // Use the mock flow of the DigiD bridge to simulate a DigiD login,

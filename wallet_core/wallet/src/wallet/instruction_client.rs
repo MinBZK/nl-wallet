@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use jwt::EcdsaDecodingKey;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;

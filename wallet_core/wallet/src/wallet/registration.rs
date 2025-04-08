@@ -8,7 +8,7 @@ use tracing::warn;
 use crypto::keys::EcdsaKey;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use http_utils::http::TlsPinningConfig;
+use http_utils::http::client::TlsPinningConfig;
 use jwt::error::JwtError;
 use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;

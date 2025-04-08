@@ -149,7 +149,7 @@ mod tests {
     use parking_lot::RwLock;
     use tokio::sync::Notify;
 
-    use http_utils::http::TlsPinningConfig;
+    use http_utils::http::client::TlsPinningConfig;
     use update_policy_model::update_policy::VersionState;
 
     use crate::repository::Repository;
