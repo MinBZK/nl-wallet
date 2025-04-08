@@ -41,6 +41,7 @@ class LocalMobileDriver : WebDriverProvider {
         options.setLanguage(TestInfoHandler.language)
         options.setLocale(TestInfoHandler.locale)
         options.setAutomationName("Flutter")
+        options.setCapability("appium:newCommandTimeout", 120)
 
         // Initialise the local WebDriver with desired capabilities defined above
         return when (testConfig.platformName) {
