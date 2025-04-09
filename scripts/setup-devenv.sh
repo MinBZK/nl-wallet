@@ -259,14 +259,14 @@ RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
 export RP_CA_CRT
 
 # Generate key and cert for the issuance_server
-generate_mock_relying_party_hsm_key_pair disclosure_based_issuance
+generate_relying_party_hsm_key_pair disclosure_based_issuance issuance_server
 ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE=disclosure_based_issuance_key
 export ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE
-ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE=$(< "${TARGET_DIR}/mock_relying_party/disclosure_based_issuance.crt.der" ${BASE64})
+ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE=$(< "${TARGET_DIR}/issuance_server/disclosure_based_issuance.crt.der" ${BASE64})
 export ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE
 
 # Generate relying party key and cert
-generate_mock_relying_party_hsm_key_pair mijn_amsterdam
+generate_relying_party_hsm_key_pair mijn_amsterdam mock_relying_party
 MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
 export MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM
 MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/mock_relying_party/mijn_amsterdam.crt.der" ${BASE64})
@@ -308,7 +308,7 @@ export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_degree_metadata.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/com_example_degree_metadata.json" "${ISSUANCE_SERVER_DIR}"
 cp "${DEVENV}/com_example_pid_metadata.json" "${DEVENV}/com_example_address_metadata.json" "${DEVENV}/com_example_degree_metadata.json" "${BASE_DIR}/wallet_core/tests_integration"
 ISSUER_METADATA_PID_PATH="com_example_pid_metadata.json"
 export ISSUER_METADATA_PID_PATH
