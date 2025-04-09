@@ -22,6 +22,9 @@ pub enum Error {
     #[error("claim {0} of disclosure already exists")]
     ClaimCollision(String),
 
+    #[error("claim {0} is a reserved claim name and cannot be used")]
+    ReservedClaimNameUsed(String),
+
     #[error("digest {0} appears multiple times")]
     DuplicateDigest(String),
 
