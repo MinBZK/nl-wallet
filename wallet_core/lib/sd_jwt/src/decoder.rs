@@ -1,10 +1,9 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use std::collections::HashMap;
-
 use serde_json::Map;
 use serde_json::Value;
+use std::collections::HashMap;
 
 use crate::disclosure::Disclosure;
 use crate::encoder::ARRAY_DIGEST_KEY;
@@ -48,69 +47,32 @@ impl SdObjectDecoder {
         disclosures: &HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Map<String, Value>, Error> {
-        let mut output: Map<String, Value> = object.clone();
+        let mut output: Map<String, Value> = Map::new();
         for (key, value) in object {
             match value {
-                Value::Array(sd_array) if key == DIGESTS_KEY => {
-                    for digest in sd_array {
-                        let digest_str = digest
-                            .as_str()
-                            .ok_or(Error::DataTypeMismatch(format!("{} is not a string", digest)))?
-                            .to_string();
-
-                        // Reject if any digests were found more than once.
-                        if processed_digests.contains(&digest_str) {
-                            return Err(Error::DuplicateDigest(digest_str));
-                        }
-
-                        // Check if a disclosure of this digest is available
-                        // and insert its claim name and value in the object.
-                        if let Some(disclosure) = disclosures.get(&digest_str) {
-                            let claim_name = disclosure.claim_name.clone().ok_or(Error::DataTypeMismatch(format!(
-                                "disclosure type error: {}",
-                                disclosure
-                            )))?;
-
-                            if output.contains_key(&claim_name) {
-                                return Err(Error::ClaimCollision(claim_name));
-                            }
-                            processed_digests.push(digest_str.clone());
-
-                            let recursively_decoded = match disclosure.claim_value {
-                                Value::Array(ref sub_arr) => {
-                                    Value::Array(self.decode_array(sub_arr, disclosures, processed_digests)?)
-                                }
-                                Value::Object(ref sub_obj) => {
-                                    Value::Object(self.decode_object(sub_obj, disclosures, processed_digests)?)
-                                }
-                                _ => disclosure.claim_value.clone(),
-                            };
-
-                            output.insert(claim_name, recursively_decoded);
-                        }
-                    }
-                    if output
-                        .get(DIGESTS_KEY)
-                        .expect("output has a `DIGEST_KEY` property")
-                        .is_array()
-                    {
-                        output.remove(DIGESTS_KEY);
-                    }
-                }
                 Value::Object(object) => {
                     let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
-                    if !decoded_object.is_empty() {
-                        output.insert(key.to_string(), Value::Object(decoded_object));
+                    output.insert(key.to_string(), Value::Object(decoded_object));
+                }
+                Value::Array(sd_array) if key == DIGESTS_KEY => {
+                    for digest in sd_array {
+                        if let Some((disclosure, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
+                            digest,
+                            disclosures,
+                            processed_digests,
+                            |disclosure| Self::verify_disclosure_for_object(disclosure, &output),
+                        )? {
+                            output.insert(disclosure.claim_name.clone().unwrap(), decoded_value);
+                        }
                     }
                 }
                 Value::Array(array) => {
                     let decoded_array = self.decode_array(array, disclosures, processed_digests)?;
-                    if !decoded_array.is_empty() {
-                        output.insert(key.to_string(), Value::Array(decoded_array));
-                    }
+                    output.insert(key.to_string(), Value::Array(decoded_array));
                 }
-                // Only objects and arrays require decoding.
-                _ => {}
+                _ => {
+                    output.insert(key.to_string(), value.clone());
+                }
             }
         }
         Ok(output)
@@ -131,32 +93,19 @@ impl SdObjectDecoder {
                             return Err(Error::InvalidArrayDisclosureObject);
                         }
 
-                        let digest_in_array = value
-                            .as_str()
-                            .ok_or(Error::DataTypeMismatch(format!("{} is not a string", key)))?
-                            .to_string();
-
-                        // Reject if any digests were found more than once.
-                        if processed_digests.contains(&digest_in_array) {
-                            return Err(Error::DuplicateDigest(digest_in_array));
-                        }
-                        if let Some(disclosure) = disclosures.get(&digest_in_array) {
-                            if disclosure.claim_name.is_some() {
-                                return Err(Error::InvalidDisclosure("array length must be 2".to_string()));
-                            }
-                            processed_digests.push(digest_in_array.clone());
-                            // Recursively decoded the disclosed values.
-                            let recursively_decoded = match disclosure.claim_value {
-                                Value::Array(ref sub_arr) => {
-                                    Value::Array(self.decode_array(sub_arr, disclosures, processed_digests)?)
+                        if let Some((_, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
+                            value,
+                            disclosures,
+                            processed_digests,
+                            |disclosure| {
+                                if disclosure.claim_name.is_some() {
+                                    Err(Error::InvalidDisclosure("array length must be 2".to_string()))
+                                } else {
+                                    Ok(())
                                 }
-                                Value::Object(ref sub_obj) => {
-                                    Value::Object(self.decode_object(sub_obj, disclosures, processed_digests)?)
-                                }
-                                _ => disclosure.claim_value.clone(),
-                            };
-
-                            output.push(recursively_decoded);
+                            },
+                        )? {
+                            output.push(decoded_value);
                         }
                     } else {
                         let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
@@ -175,6 +124,65 @@ impl SdObjectDecoder {
         }
 
         Ok(output)
+    }
+
+    fn disclosure_and_decoded_value_for_array_value<'a>(
+        &self,
+        digest: &Value,
+        disclosures: &'a HashMap<String, Disclosure>,
+        processed_digests: &mut Vec<String>,
+        verify_disclosure: impl Fn(&Disclosure) -> Result<(), Error>,
+    ) -> Result<Option<(&'a Disclosure, Value)>, Error> {
+        let digest_str = digest
+            .as_str()
+            .ok_or(Error::DataTypeMismatch(format!("{} is not a string", digest)))?
+            .to_string();
+
+        // Reject if any digests were found more than once.
+        if processed_digests.contains(&digest_str) {
+            return Err(Error::DuplicateDigest(digest_str));
+        }
+
+        // Check if a disclosure of this digest is available
+        // and return it and the decoded value
+        if let Some(disclosure) = disclosures.get(&digest_str) {
+            verify_disclosure(disclosure)?;
+
+            processed_digests.push(digest_str.clone());
+
+            let recursively_decoded = self.decode_claim_value(disclosure, disclosures, processed_digests)?;
+            return Ok(Some((disclosure, recursively_decoded)));
+        }
+
+        Ok(None)
+    }
+
+    fn verify_disclosure_for_object(disclosure: &Disclosure, output: &Map<String, Value>) -> Result<(), Error> {
+        let claim_name = disclosure.claim_name.clone().ok_or(Error::DataTypeMismatch(format!(
+            "disclosure type error: {}",
+            disclosure
+        )))?;
+
+        if output.contains_key(&claim_name) {
+            return Err(Error::ClaimCollision(claim_name));
+        }
+
+        Ok(())
+    }
+
+    fn decode_claim_value(
+        &self,
+        disclosure: &Disclosure,
+        disclosures: &HashMap<String, Disclosure>,
+        processed_digests: &mut Vec<String>,
+    ) -> Result<Value, Error> {
+        let decoded = match disclosure.claim_value {
+            Value::Array(ref sub_arr) => Value::Array(self.decode_array(sub_arr, disclosures, processed_digests)?),
+            Value::Object(ref sub_obj) => Value::Object(self.decode_object(sub_obj, disclosures, processed_digests)?),
+            _ => disclosure.claim_value.clone(),
+        };
+
+        Ok(decoded)
     }
 }
 
