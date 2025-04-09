@@ -178,6 +178,11 @@ impl SdObjectDecoder {
     }
 }
 
+// TODO: [PVW-4138] Add tests for:
+// - encoding and then decoding an input object results in the same input object, also when the object contains
+//   (recursively) conceiled claims,
+// - it uses a more complicated test object than the one below, to hit more features of the encoding/decoding,
+// - no _sd or ... are left in the decoded object in cases where they are not expected.
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;

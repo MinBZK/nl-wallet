@@ -333,6 +333,7 @@ pub(crate) fn sd_jwt_validation() -> Validation {
     validation
 }
 
+// TODO: [PVW-4138] Reverse logic of concealing to selectively disclosing instead
 fn conceal<'p, 'o, 'd, I>(
     object: &'o Value,
     mut path: Peekable<I>,
@@ -483,6 +484,7 @@ where
     }
 }
 
+// TODO: [PVW-4138] Add tests for conceal functionality (and probably refactor)
 #[cfg(test)]
 mod test {
     use chrono::Duration;

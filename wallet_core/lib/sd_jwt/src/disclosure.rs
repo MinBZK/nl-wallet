@@ -15,6 +15,7 @@ use crate::error::Error;
 /// Both object properties and array elements disclosures are supported.
 ///
 /// See: https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-07.html#name-disclosures
+// TODO: [PVW-4138] Update link and check spec changes
 #[derive(Debug, Clone, Eq)]
 pub struct Disclosure {
     /// The salt value.
