@@ -28,15 +28,18 @@ class NoInternetErrorScreen : MobileActions() {
     }
 
     fun appVersionVisible(): Boolean  {
-        return Regex("""\b\d+\.\d+\.\d+\b""").containsMatchIn(getTextFromElementContainingText(l10n.getString("generalVersionText")))
+        return getTextFromElementContainingText(l10n.getString("generalVersionText"))
+            ?.contains("""\b\d+\.\d+\.\d+\b""".toRegex()) ?: false
     }
 
     fun osVersionVisible(): Boolean  {
-        return Regex(""".*\d+.*""").containsMatchIn(getTextFromElementContainingText(l10n.getString("generalOsVersionText")))
+        return getTextFromElementContainingText(l10n.getString("generalOsVersionText"))
+            ?.contains(""".*\d+.*""".toRegex()) ?: false
     }
 
     fun appConfigVisible(): Boolean  {
-        return Regex(""".*\d+$""").containsMatchIn(getTextFromElementContainingText(l10n.getString("generalConfigVersionText")))
+        return getTextFromElementContainingText(l10n.getString("generalConfigVersionText"))
+            ?.contains(""".*\d+$""".toRegex()) ?: false
     }
 
     fun seeDetails() = clickElement(seeDetailsButton, false)

@@ -296,7 +296,7 @@ open class MobileActions {
         process.waitFor()
     }
 
-    fun getTextFromElementContainingText(partialText: String): String = withNativeContext {
+    fun getTextFromElementContainingText(partialText: String): String? = withNativeContext {
         val element = try {
             findElementByPartialText(partialText)
         } catch (e: Exception) {
@@ -308,10 +308,10 @@ open class MobileActions {
             throw NoSuchElementException("No element found containing: $partialText")
         }
 
-        when (platformName()) {
+        when (val platform = platformName()) {
             "ANDROID" -> element.getAttribute("contentDescription")
             "IOS" -> element.getAttribute("name")
-            else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
@@ -333,14 +333,14 @@ open class MobileActions {
     }
 
     private fun findElementByPartialText(partialText: String): WebElement {
-        return when (platformName()) {
+        return when (val platform = platformName()) {
             "ANDROID" -> driver.findElement(
                 AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
             )
             "IOS" -> driver.findElement(
                 By.xpath("//*[contains(@name, '$partialText')]")
             )
-            else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
