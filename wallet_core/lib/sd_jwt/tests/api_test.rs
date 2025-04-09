@@ -16,8 +16,6 @@ use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::examples;
 use sd_jwt::hasher::Hasher;
 use sd_jwt::hasher::Sha256Hasher;
-use sd_jwt::key_binding_jwt_claims::KeyBindingJwt;
-use sd_jwt::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt::sd_jwt::SdJwtPresentation;
 
@@ -39,13 +37,6 @@ async fn make_sd_jwt(
         .unwrap();
 
     (sd_jwt, decoding_key)
-}
-
-fn make_kb_jwt_builder() -> KeyBindingJwtBuilder {
-    KeyBindingJwt::builder()
-        .nonce("abcdefghi")
-        .aud("https://example.com")
-        .iat(DateTime::from_timestamp_millis(1458304832).unwrap())
 }
 
 #[test]
@@ -110,9 +101,15 @@ async fn concealing_parent_also_removes_all_sub_disclosures() -> anyhow::Result<
     let signing_key = SigningKey::random(&mut OsRng);
 
     let removed_disclosures = sd_jwt
-        .into_presentation(make_kb_jwt_builder(), &hasher)?
+        .into_presentation(
+            &hasher,
+            DateTime::from_timestamp_millis(1458304832).unwrap(),
+            String::from("https://example.com"),
+            String::from("abcdefghi"),
+            Algorithm::ES256,
+        )?
         .conceal("/parent")?
-        .finish(Algorithm::ES256, &signing_key)
+        .finish(&signing_key)
         .await?
         .1;
     assert_eq!(removed_disclosures.len(), 3);
@@ -134,9 +131,15 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
     let signing_key = SigningKey::random(&mut OsRng);
 
     sd_jwt
-        .into_presentation(make_kb_jwt_builder(), &hasher)?
+        .into_presentation(
+            &hasher,
+            DateTime::from_timestamp_millis(1458304832).unwrap(),
+            String::from("https://example.com"),
+            String::from("abcdefghi"),
+            Algorithm::ES256,
+        )?
         .conceal("/parent/property2/0")?
-        .finish(Algorithm::ES256, &signing_key)
+        .finish(&signing_key)
         .await?;
 
     Ok(())
@@ -165,8 +168,14 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(make_kb_jwt_builder(), &hasher)?
-        .finish(Algorithm::ES256, &holder_signing_key)
+        .into_presentation(
+            &hasher,
+            DateTime::from_timestamp_millis(1458304832).unwrap(),
+            String::from("https://example.com"),
+            String::from("abcdefghi"),
+            Algorithm::ES256,
+        )?
+        .finish(&holder_signing_key)
         .await?
         .0;
 
@@ -203,9 +212,15 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
 
     let disclosed = sd_jwt
         .clone()
-        .into_presentation(make_kb_jwt_builder(), &hasher)?
+        .into_presentation(
+            &hasher,
+            DateTime::from_timestamp_millis(1458304832).unwrap(),
+            String::from("https://example.com"),
+            String::from("abcdefghi"),
+            Algorithm::ES256,
+        )?
         .conceal("/parent/property1")?
-        .finish(Algorithm::ES256, &signing_key)
+        .finish(&signing_key)
         .await?
         .0;
 
@@ -270,9 +285,15 @@ async fn test_presentation() -> anyhow::Result<()> {
 
     // The holder can withhold from a verifier any concealable claim by calling `conceal`.
     let (presented_sd_jwt, _) = sd_jwt
-        .into_presentation(make_kb_jwt_builder(), &hasher)?
+        .into_presentation(
+            &hasher,
+            DateTime::from_timestamp_millis(1458304832).unwrap(),
+            String::from("https://example.com"),
+            String::from("abcdefghi"),
+            Algorithm::ES256,
+        )?
         .conceal("/email")?
-        .finish(Algorithm::ES256, &holder_privkey)
+        .finish(&holder_privkey)
         .await?;
 
     println!("{}", &presented_sd_jwt);

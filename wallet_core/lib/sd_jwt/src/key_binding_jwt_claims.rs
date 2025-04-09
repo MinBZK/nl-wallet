@@ -1,6 +1,5 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
-use std::borrow::Cow;
 use std::fmt::Display;
 
 use chrono::serde::ts_seconds;
@@ -72,11 +71,6 @@ impl KeyBindingJwt {
         Ok(Self(verified_jwt))
     }
 
-    /// Returns a [`KeyBindingJwtBuilder`] that allows the creation of a [`KeyBindingJwt`].
-    pub fn builder() -> KeyBindingJwtBuilder {
-        KeyBindingJwtBuilder::default()
-    }
-
     /// Returns a reference to this [`KeyBindingJwt`] claim set.
     pub fn claims(&self) -> &KeyBindingJwtClaims {
         self.0.payload()
@@ -94,70 +88,42 @@ fn kb_jwt_validation(expected_aud: &str) -> Validation {
 
 /// Builder-style struct to ease the creation of an [`KeyBindingJwt`].
 #[derive(Debug, Clone)]
-pub struct KeyBindingJwtBuilder {
+pub(crate) struct KeyBindingJwtBuilder {
     header: Header,
-    iat: Option<DateTime<Utc>>,
-    aud: Option<String>,
-    nonce: Option<String>,
+    iat: DateTime<Utc>,
+    aud: String,
+    nonce: String,
 }
 
-impl Default for KeyBindingJwtBuilder {
-    fn default() -> Self {
+impl KeyBindingJwtBuilder {
+    pub(crate) fn new(iat: DateTime<Utc>, aud: String, nonce: String, alg: Algorithm) -> Self {
         let header = Header {
             typ: Some(String::from(KB_JWT_HEADER_TYP)),
+            alg,
             ..Default::default()
         };
 
         Self {
             header,
-            iat: None,
-            aud: None,
-            nonce: None,
+            iat,
+            aud,
+            nonce,
         }
-    }
-}
-
-impl KeyBindingJwtBuilder {
-    /// Sets the [iat](https://www.rfc-editor.org/rfc/rfc7519.html#section-4.1.6) property.
-    pub fn iat(mut self, iat: DateTime<Utc>) -> Self {
-        self.iat = Some(iat);
-        self
-    }
-
-    /// Sets the [aud](https://www.rfc-editor.org/rfc/rfc7519.html#section-4.1.3) property.
-    pub fn aud<'a, S>(mut self, aud: S) -> Self
-    where
-        S: Into<Cow<'a, str>>,
-    {
-        self.aud = Some(aud.into().into_owned());
-        self
-    }
-
-    /// Sets the `nonce` property.
-    pub fn nonce<'a, S>(mut self, nonce: S) -> Self
-    where
-        S: Into<Cow<'a, str>>,
-    {
-        self.nonce = Some(nonce.into().into_owned());
-        self
     }
 
     /// Builds an [`KeyBindingJwt`] from the data provided to builder.
-    pub async fn finish(
+    pub(crate) async fn finish(
         self,
         sd_jwt: &SdJwt,
         hasher: &dyn Hasher,
-        alg: Algorithm,
         signing_key: &impl EcdsaKeySend,
     ) -> Result<KeyBindingJwt, Error> {
         let sd_hash = hasher.encoded_digest(&sd_jwt.to_string());
 
         let claims = KeyBindingJwtClaims {
-            iat: self.iat.ok_or(Error::MissingRequiredProperty(String::from("iat")))?,
-            aud: self.aud.ok_or(Error::MissingRequiredProperty(String::from("aud")))?,
-            nonce: self
-                .nonce
-                .ok_or(Error::MissingRequiredProperty(String::from("nonce")))?,
+            iat: self.iat,
+            aud: self.aud,
+            nonce: self.nonce,
             sd_hash,
         };
 
@@ -168,10 +134,7 @@ impl KeyBindingJwtBuilder {
             )));
         }
 
-        let mut header = self.header;
-        header.alg = alg;
-
-        let verified_jwt = VerifiedJwt::sign(claims, header, signing_key).await?;
+        let verified_jwt = VerifiedJwt::sign(claims, self.header, signing_key).await?;
 
         Ok(KeyBindingJwt(verified_jwt))
     }
@@ -244,11 +207,8 @@ mod test {
 
         let iat = Utc::now();
 
-        let kb_jwt = KeyBindingJwtBuilder::default()
-            .aud("receiver")
-            .iat(iat)
-            .nonce("abc123")
-            .finish(&sd_jwt, &hasher, Algorithm::ES256, &signing_key)
+        let kb_jwt = KeyBindingJwtBuilder::new(iat, String::from("receiver"), String::from("abc123"), Algorithm::ES256)
+            .finish(&sd_jwt, &hasher, &signing_key)
             .await
             .unwrap();
 
@@ -347,12 +307,14 @@ mod test {
             }
         }
 
-        let result = KeyBindingJwtBuilder::default()
-            .aud("receiver")
-            .iat(Utc::now())
-            .nonce("abc123")
-            .finish(&sd_jwt, &TestHasher, Algorithm::ES256, &signing_key)
-            .await;
+        let result = KeyBindingJwtBuilder::new(
+            Utc::now(),
+            String::from("receiver"),
+            String::from("abc123"),
+            Algorithm::ES256,
+        )
+        .finish(&sd_jwt, &TestHasher, &signing_key)
+        .await;
 
         assert_matches!(result, Err(Error::InvalidHasher(_)));
     }

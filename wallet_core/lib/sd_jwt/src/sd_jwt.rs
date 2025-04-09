@@ -5,7 +5,9 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::iter::Peekable;
 
+use chrono::DateTime;
 use chrono::Duration;
+use chrono::Utc;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
@@ -192,10 +194,17 @@ impl SdJwt {
     ///   specified by SD-JWT's `_sd_alg` claim. "sha-256" is used if the claim is missing.
     pub fn into_presentation(
         self,
-        kb_jwt_builder: KeyBindingJwtBuilder,
         hasher: &dyn Hasher,
+        key_binding_iat: DateTime<Utc>,
+        key_binding_aud: String,
+        key_binding_nonce: String,
+        key_binding_alg: Algorithm,
     ) -> Result<SdJwtPresentationBuilder> {
-        SdJwtPresentationBuilder::new(self, kb_jwt_builder, hasher)
+        SdJwtPresentationBuilder::new(
+            self,
+            KeyBindingJwtBuilder::new(key_binding_iat, key_binding_aud, key_binding_nonce, key_binding_alg),
+            hasher,
+        )
     }
 
     /// Returns the JSON object obtained by replacing all disclosures into their
@@ -231,7 +240,7 @@ pub struct SdJwtPresentationBuilder<'a> {
 }
 
 impl<'a> SdJwtPresentationBuilder<'a> {
-    pub fn new(sd_jwt: SdJwt, kb_jwt_builder: KeyBindingJwtBuilder, hasher: &'a dyn Hasher) -> Result<Self> {
+    pub(crate) fn new(sd_jwt: SdJwt, kb_jwt_builder: KeyBindingJwtBuilder, hasher: &'a dyn Hasher) -> Result<Self> {
         let required_hasher = sd_jwt.claims()._sd_alg.as_deref().unwrap_or(SHA_ALG_NAME);
         if required_hasher != hasher.alg_name() {
             return Err(Error::InvalidHasher(format!(
@@ -294,11 +303,7 @@ impl<'a> SdJwtPresentationBuilder<'a> {
     /// Returns the resulting [`SdJwtPresentation`] together with all removed disclosures.
     /// ## Errors
     /// - Fails with [`Error::MissingKeyBindingJwt`] if this [`SdJwt`] requires a key binding but none was provided.
-    pub async fn finish(
-        self,
-        alg: Algorithm,
-        signing_key: &impl EcdsaKeySend,
-    ) -> Result<(SdJwtPresentation, Vec<Disclosure>)> {
+    pub async fn finish(self, signing_key: &impl EcdsaKeySend) -> Result<(SdJwtPresentation, Vec<Disclosure>)> {
         // Put everything back in its place.
         let SdJwtPresentationBuilder {
             mut sd_jwt,
@@ -309,7 +314,7 @@ impl<'a> SdJwtPresentationBuilder<'a> {
         } = self;
         sd_jwt.disclosures = disclosures.into_values().collect_vec();
 
-        let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, alg, signing_key).await?;
+        let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, signing_key).await?;
 
         let sd_jwt_presentation = SdJwtPresentation {
             sd_jwt,
