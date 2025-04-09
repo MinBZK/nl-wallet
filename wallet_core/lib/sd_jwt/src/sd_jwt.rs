@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use std::fmt::Display;
 use std::iter::Peekable;
 
+use chrono::Duration;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
@@ -15,6 +16,12 @@ use serde::Serialize;
 use serde_json::Map;
 use serde_json::Value;
 use serde_with::skip_serializing_none;
+
+use crypto::EcdsaKeySend;
+use jwt::jwk::jwk_to_p256;
+use jwt::EcdsaDecodingKey;
+use jwt::VerifiedJwt;
+use wallet_common::spec::SpecOptional;
 
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;
@@ -27,11 +34,6 @@ use crate::hasher::SHA_ALG_NAME;
 use crate::key_binding_jwt_claims::KeyBindingJwt;
 use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
 use crate::key_binding_jwt_claims::RequiredKeyBinding;
-use crypto::EcdsaKeySend;
-use jwt::jwk::jwk_to_p256;
-use jwt::EcdsaDecodingKey;
-use jwt::VerifiedJwt;
-use wallet_common::spec::SpecOptional;
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
@@ -66,8 +68,9 @@ impl SdJwtPresentation {
     pub fn parse_and_verify(
         sd_jwt: &str,
         issuer_pubkey: &EcdsaDecodingKey,
-        expected_aud: &str,
-        expected_nonce: &str,
+        kb_expected_aud: &str,
+        kb_expected_nonce: &str,
+        kb_iat_acceptance_window: Duration,
     ) -> Result<Self> {
         let (rest, kb_segment) = sd_jwt
             .rsplit_once("~")
@@ -85,8 +88,9 @@ impl SdJwtPresentation {
             let key_binding_jwt = KeyBindingJwt::parse_and_verify(
                 kb_segment,
                 &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
-                expected_aud,
-                expected_nonce,
+                kb_expected_aud,
+                kb_expected_nonce,
+                kb_iat_acceptance_window,
             )?;
 
             Ok(Self {
@@ -476,6 +480,7 @@ where
 
 #[cfg(test)]
 mod test {
+    use chrono::Duration;
     use rstest::rstest;
 
     use crate::examples::*;
@@ -497,6 +502,7 @@ mod test {
             &examples_sd_jwt_decoding_key(),
             WITH_KB_SD_JWT_AUD,
             WITH_KB_SD_JWT_NONCE,
+            Duration::days(36500),
         )
         .unwrap();
     }

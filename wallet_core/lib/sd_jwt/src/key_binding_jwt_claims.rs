@@ -4,6 +4,7 @@ use std::borrow::Cow;
 use std::fmt::Display;
 
 use chrono::serde::ts_seconds;
+use chrono::Duration;
 use jsonwebtoken::jwk::Jwk;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
@@ -42,6 +43,7 @@ impl KeyBindingJwt {
         pubkey: &EcdsaDecodingKey,
         expected_aud: &str,
         expected_nonce: &str,
+        iat_acceptance_window: Duration,
     ) -> error::Result<Self> {
         let jwt: Jwt<KeyBindingJwtClaims> = s.into();
 
@@ -59,6 +61,12 @@ impl KeyBindingJwt {
 
         if verified_jwt.payload().nonce != expected_nonce {
             return Err(Error::Deserialization(String::from("invalid KB-JWT: unexpected nonce")));
+        }
+
+        if (verified_jwt.payload().iat + iat_acceptance_window) < Utc::now() {
+            return Err(Error::Deserialization(String::from(
+                "invalid KB-JWT: iat not in acceptable window",
+            )));
         }
 
         Ok(Self(verified_jwt))
@@ -191,10 +199,15 @@ pub enum RequiredKeyBinding {
 #[cfg(test)]
 mod test {
     use assert_matches::assert_matches;
+    use chrono::Duration;
     use chrono::Utc;
     use jsonwebtoken::Algorithm;
+    use jsonwebtoken::Header;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+
+    use jwt::EcdsaDecodingKey;
+    use jwt::Jwt;
 
     use crate::error::Error;
     use crate::examples;
@@ -202,8 +215,25 @@ mod test {
     use crate::examples::SIMPLE_STRUCTURED_SD_JWT;
     use crate::hasher::Hasher;
     use crate::hasher::Sha256Hasher;
+    use crate::key_binding_jwt_claims::KeyBindingJwt;
     use crate::key_binding_jwt_claims::KeyBindingJwtBuilder;
+    use crate::key_binding_jwt_claims::KeyBindingJwtClaims;
     use crate::sd_jwt::SdJwt;
+
+    async fn example_kb_jwt(signing_key: &SigningKey, header: Header) -> Jwt<KeyBindingJwtClaims> {
+        Jwt::sign(
+            &KeyBindingJwtClaims {
+                iat: Utc::now() - Duration::days(2),
+                aud: String::from("aud"),
+                nonce: String::from("abc123"),
+                sd_hash: String::from("sd_hash"),
+            },
+            &header,
+            signing_key,
+        )
+        .await
+        .unwrap()
+    }
 
     #[tokio::test]
     async fn test_key_binding_jwt_builder() {
@@ -230,6 +260,74 @@ mod test {
         assert_eq!(sd_hash, kb_jwt.claims().sd_hash);
         assert_eq!(Some(String::from("kb+jwt")), kb_jwt.0.header().typ);
         assert_eq!(Algorithm::ES256, kb_jwt.0.header().alg);
+    }
+
+    #[tokio::test]
+    async fn test_parse_should_validate() {
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let mut header = Header::new(Algorithm::ES256);
+        header.typ = Some(String::from("kb+jwt"));
+
+        KeyBindingJwt::parse_and_verify(
+            &example_kb_jwt(&signing_key, header).await.0,
+            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            "aud",
+            "abc123",
+            Duration::days(3),
+        )
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_parse_should_error_for_wrong_typ() {
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let err = KeyBindingJwt::parse_and_verify(
+            &example_kb_jwt(&signing_key, Header::new(Algorithm::ES256)).await.0,
+            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            "aud",
+            "abc123",
+            Duration::days(3),
+        )
+        .expect_err("should fail validation");
+        assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: typ must be \"kb+jwt\"");
+    }
+
+    #[tokio::test]
+    async fn test_parse_should_error_for_wrong_iat() {
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let mut header = Header::new(Algorithm::ES256);
+        header.typ = Some(String::from("kb+jwt"));
+
+        let err = KeyBindingJwt::parse_and_verify(
+            &example_kb_jwt(&signing_key, header).await.0,
+            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            "aud",
+            "abc123",
+            Duration::days(1),
+        )
+        .expect_err("should fail validation");
+        assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: iat not in acceptable window");
+    }
+
+    #[tokio::test]
+    async fn test_parse_should_error_for_wrong_nonce() {
+        let signing_key = SigningKey::random(&mut OsRng);
+
+        let mut header = Header::new(Algorithm::ES256);
+        header.typ = Some(String::from("kb+jwt"));
+
+        let err = KeyBindingJwt::parse_and_verify(
+            &example_kb_jwt(&signing_key, header).await.0,
+            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            "aud",
+            "def456",
+            Duration::days(3),
+        )
+        .expect_err("should fail validation");
+        assert_matches!(err, Error::Deserialization(msg) if msg == "invalid KB-JWT: unexpected nonce");
     }
 
     #[tokio::test]

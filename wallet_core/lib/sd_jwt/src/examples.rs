@@ -1,3 +1,4 @@
+use chrono::Duration;
 use jsonwebtoken::jwk::Jwk;
 use serde_json::json;
 
@@ -40,6 +41,7 @@ pub fn sd_jwt_kb() -> SdJwtPresentation {
         &examples_sd_jwt_decoding_key(),
         WITH_KB_SD_JWT_AUD,
         WITH_KB_SD_JWT_NONCE,
+        Duration::minutes(2),
     )
     .unwrap()
 }

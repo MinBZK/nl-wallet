@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use chrono::DateTime;
+use chrono::Duration;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -172,7 +173,13 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     // Try to serialize & deserialize `with_kb`.
     let with_kb = {
         let s = disclosed.to_string();
-        SdJwtPresentation::parse_and_verify(&s, &decoding_key, "https://example.com", "abcdefghi")?
+        SdJwtPresentation::parse_and_verify(
+            &s,
+            &decoding_key,
+            "https://example.com",
+            "abcdefghi",
+            Duration::days(36500),
+        )?
     };
 
     assert!(with_kb.sd_jwt().disclosures().is_empty());
@@ -275,6 +282,7 @@ async fn test_presentation() -> anyhow::Result<()> {
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
         "https://example.com",
         "abcdefghi",
+        Duration::days(36500),
     )?;
 
     Ok(())
