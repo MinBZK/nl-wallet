@@ -76,7 +76,10 @@ tasks.withType(Test) {
 
 tasks.named("jacocoToCobertura") {
     inputFile.set(layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/report.xml"))
-    outputFile.set(layout.projectDirectory.file("src/main/java/cobertura.xml"))
+    outputFile.set(layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/cobertura.xml"))
+}
+tasks.named { it == "connectedAndroidTest" }.configureEach {
+    tasks.named("jacocoToCobertura").get().mustRunAfter it
 }
 
 dependencies {
