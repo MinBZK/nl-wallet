@@ -17,7 +17,7 @@ test-android:
       - wallet_core/wallet/platform_support/android/build/outputs/androidTest-results
   script:
     - adb devices # to prevent device unauthorized
-    - emulator @phone -show-kernel -log-detailed -no-window -no-snapshot -no-boot-anim -cores 2 -memory 2048 -audio none -camera-back none -camera-front none < /dev/stdin > emulator.out 2> emulator.err &
+    - emulator @phone -show-kernel -log-detailed -no-window -no-snapshot -no-boot-anim -cores 2 -memory 2048 -audio none -camera-back none -camera-front none < /dev/null > emulator.out 2> emulator.err &
     - EMULATOR_PID="$!"
     - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
     - cd wallet_core/wallet/platform_support/android

@@ -79,7 +79,7 @@ tasks.named("jacocoToCobertura") {
     outputFile.set(layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/cobertura.xml"))
 }
 tasks.named { it == "connectedAndroidTest" }.configureEach {
-    tasks.named("jacocoToCobertura").get().mustRunAfter it
+    finalizedBy("jacocoToCobertura")
 }
 
 dependencies {

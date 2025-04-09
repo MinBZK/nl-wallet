@@ -13,7 +13,7 @@ clean() {
 }
 trap clean EXIT
 
-target=$1
+target="$1"
 source="$(mktemp).zip"
 zip -j $source "${@:2:$#}"
-store $source $target
+store "$source" "$target"
