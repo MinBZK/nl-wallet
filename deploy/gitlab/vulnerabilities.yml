@@ -113,8 +113,10 @@ trivy-scan:
       "nl-wallet-app-builder-ci-rust"
       "nl-wallet-app-builder-ci-flutter"
       "nl-wallet-app-builder-ci-android"
+      "nl-wallet-app-builder-ci-android-emulator"
       "nl-wallet-app-builder-ci-playwright"
       "nl-wallet-app-builder-ci-quality"
+      "nl-wallet-app-builder-ci-ansible"
       )
       OTHER_IMAGES=(
       "nl-rdo-max"
