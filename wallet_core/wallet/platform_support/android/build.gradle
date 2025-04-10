@@ -76,7 +76,10 @@ tasks.withType(Test) {
 
 tasks.named("jacocoToCobertura") {
     inputFile.set(layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/report.xml"))
-    outputFile.set(layout.projectDirectory.file("src/main/java/cobertura.xml"))
+    outputFile.set(layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/cobertura.xml"))
+}
+tasks.named { it == "connectedAndroidTest" }.configureEach {
+    finalizedBy("jacocoToCobertura")
 }
 
 dependencies {
@@ -100,70 +103,64 @@ def moduleWorkingDir = "${project.projectDir}/../"
 def bindingsTargetDir = "${project.projectDir}/../kotlin"
 
 // Register a task to build the Rust code and copy the resulting library files
+tasks.register("cargoBuildNativeBindings", Exec) {
+    workingDir moduleWorkingDir
+    executable './generate_native_bindings.sh'
+
+    inputs.files(fileTree("$workingDir/udl").matching { include "*.udl" })
+    outputs.dir("$workingDir/kotlin")
+    args = ['kotlin'] + inputs.files.collect { it.name }
+}
+
 [
-        Debug  : [false, ['--features', 'hardware_integration_test']],
-        Profile: [true, ['--locked', '--release']],
-        Release: [true, ['--locked', '--release']]
+    Debug  : [false, ['--features', 'hardware_integration_test']],
+    Profile: [true, ['--locked', '--release']],
+    Release: [true, ['--locked', '--release']]
 ].each {
-    def taskPostfix = it.key
+    def buildMode = it.key
     def (doStrip, buildArgs) = it.value
 
-    // This checks if a taskPostfix (Debug, Profile, Release) matches how gradle
-    // was called. In effect, this makes sure that when for example the task
-    // assembleDebug was invoked from the command-line, only tasks matching
-    // Debug are registered (created) and executed, and not all of them.
-    boolean matchedStartParameters = project.gradle.startParameter.taskNames.any { it.contains(taskPostfix) }
+    tasks.named { it == "compile${buildMode}Kotlin" }.configureEach {
+        dependsOn "cargoBuildNativeBindings"
+    }
 
-    if (matchedStartParameters) {
-        tasks.whenTaskAdded { task ->
-            if (task.name == "pre${taskPostfix}Build") {
-                task.dependsOn "cargoBuildNativeBindings$taskPostfix"
-            } else if (task.name == "connected${taskPostfix}AndroidTest") {
-                task.dependsOn "cargoBuildNativeLibrary$taskPostfix"
-            }
+    tasks.register("cargoBuildNativeLibrary${buildMode}", Exec) {
+        workingDir moduleWorkingDir
+        executable = 'cargo'
+        args = ['ndk',
+                '-t', 'armeabi-v7a',
+                '-t', 'arm64-v8a',
+                '-t', 'x86_64',
+                '-o', jniTargetDir
+        ]
+        if (!doStrip) {
+            args += '--no-strip'
         }
-
-        tasks.register("cargoBuildNativeBindings$taskPostfix", Exec) {
-            workingDir moduleWorkingDir
-            fileTree("$workingDir").matching {
-                include "**/*.udl"
-            }.each {
-                // Use file name as module name
-                String moduleName = it.name.take(it.name.lastIndexOf('.'))
-
-                // Generate Kotlin <> Rust bindings
-                executable = 'bash'
-                args = ['generate_native_bindings.sh',
-                        "$moduleName",
-                        'kotlin'
-                ]
-            }
+        args += 'build'
+        if (buildArgs != null) {
+            args += buildArgs
         }
-
-        tasks.register("cargoBuildNativeLibrary$taskPostfix", Exec) {
-            workingDir moduleWorkingDir
-            executable = 'cargo'
-            args = ['ndk',
-                    '-t', 'armeabi-v7a',
-                    '-t', 'arm64-v8a',
-                    '-t', 'x86_64',
-                    '-o', jniTargetDir
-            ]
-            if (!doStrip) {
-                args += '--no-strip'
-            }
-            args += 'build'
-            if (buildArgs != null) {
-                args += buildArgs
-            }
-        }
+    }
+    tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
+        dependsOn "cargoBuildNativeLibrary${buildMode}"
     }
 }
 
-clean.doFirst {
-    logger.quiet("Cleaning $jniTargetDir")
-    delete jniTargetDir
-
-    logger.quiet("Cleaning $bindingsTargetDir")
+tasks.register('cleanBindings', Delete) {
     delete bindingsTargetDir
+    doFirst() {
+        logger.quiet("Clean $bindingsTargetDir")
+    }
+}
+
+tasks.register('cleanJni', Delete) {
+    delete jniTargetDir
+    doFirst() {
+        logger.quiet("Clean $jniTargetDir")
+    }
+}
+
+tasks.named('clean') {
+    dependsOn('cleanBindings')
+    dependsOn('cleanJni')
 }

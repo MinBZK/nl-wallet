@@ -5,7 +5,7 @@ import org.junit.platform.suite.api.Suite
 import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
-    feature.history.HistoryOverviewTests::class,
+    feature.history.HistoryTests::class,
 )
 @Suite
 @SuiteDisplayName("History Test Suite")

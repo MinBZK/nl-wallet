@@ -6,7 +6,7 @@ source "$(cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)/store-funct
 
 check
 
-target=${@:$#}
-for source in ${@:1:$#-1}; do
-    store $source $target
+target="${@:$#}"
+for source in "${@:1:$#-1}"; do
+    store "$source" "$target"
 done
