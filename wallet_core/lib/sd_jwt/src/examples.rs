@@ -10,7 +10,7 @@ use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 
 use crate::disclosure::Disclosure;
-use crate::disclosure::DisclosureType;
+use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
 use crate::hasher::Sha256Hasher;
 use crate::sd_jwt::SdJwt;
@@ -82,7 +82,7 @@ pub fn recursive_disclosures_example() -> (Value, IndexMap<String, Disclosure>) 
     ];
 
     let disclosure_content = IndexMap::from_iter(disclosures.into_iter().map(|disclosure_str| {
-        let disclosure_type: DisclosureType =
+        let disclosure_type: DisclosureContent =
             serde_json::from_slice(&BASE64_URL_SAFE_NO_PAD.decode(disclosure_str).unwrap()).unwrap();
         let disclosure = Disclosure::try_new(disclosure_type).unwrap();
         (Sha256Hasher.encoded_digest(disclosure_str), disclosure)

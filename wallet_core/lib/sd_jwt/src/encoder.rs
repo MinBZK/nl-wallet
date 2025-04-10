@@ -11,7 +11,7 @@ use serde_json::Value;
 use crypto::utils::random_bytes;
 
 use crate::disclosure::Disclosure;
-use crate::disclosure::DisclosureType;
+use crate::disclosure::DisclosureContent;
 use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
@@ -95,7 +95,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                     .ok_or_else(|| Error::InvalidPath(path.to_string()))?;
 
                 // Remove the value from the parent and create a disclosure for it.
-                let disclosure = Disclosure::try_new(DisclosureType::ObjectProperty(
+                let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(
                     salt,
                     element_key.to_owned(),
                     parent
@@ -114,7 +114,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                 let element = element_pointer
                     .get_mut(&mut self.object)
                     .map_err(|_| Error::InvalidPath(path.to_string()))?;
-                let disclosure = Disclosure::try_new(DisclosureType::ArrayElement(salt, element.clone()))?;
+                let disclosure = Disclosure::try_new(DisclosureContent::ArrayElement(salt, element.clone()))?;
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
                 let tripledot = json!({ARRAY_DIGEST_KEY: hash});
                 *element = tripledot;
@@ -207,8 +207,8 @@ impl<H: Hasher> SdObjectEncoder<H> {
         };
         let decoy_value = Self::gen_rand(decoy_value_length);
         let disclosure = Disclosure::try_new(match decoy_claim_name {
-            Some(claim_name) => DisclosureType::ObjectProperty(salt, claim_name, Value::String(decoy_value)),
-            None => DisclosureType::ArrayElement(salt, Value::String(decoy_value)),
+            Some(claim_name) => DisclosureContent::ObjectProperty(salt, claim_name, Value::String(decoy_value)),
+            None => DisclosureContent::ArrayElement(salt, Value::String(decoy_value)),
         })?;
         Ok(hasher.encoded_digest(disclosure.as_str()))
     }

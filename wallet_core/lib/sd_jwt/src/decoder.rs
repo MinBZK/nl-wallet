@@ -6,7 +6,7 @@ use serde_json::Map;
 use serde_json::Value;
 
 use crate::disclosure::Disclosure;
-use crate::disclosure::DisclosureType;
+use crate::disclosure::DisclosureContent;
 use crate::encoder::ARRAY_DIGEST_KEY;
 use crate::encoder::DIGESTS_KEY;
 use crate::encoder::SD_ALG;
@@ -31,10 +31,6 @@ impl SdObjectDecoder {
 
         // Decode the object recursively.
         let mut decoded = self.decode_object(object, disclosures, &mut processed_digests)?;
-
-        dbg!(&decoded);
-        dbg!(&disclosures);
-        dbg!(&processed_digests);
 
         if processed_digests.len() != disclosures.len() {
             return Err(Error::UnusedDisclosures(
@@ -63,7 +59,7 @@ impl SdObjectDecoder {
                 }
                 Value::Array(sd_array) if key == DIGESTS_KEY => {
                     for digest in sd_array {
-                        if let Some((DisclosureType::ObjectProperty(_, claim_name, _), decoded_value)) = self
+                        if let Some((DisclosureContent::ObjectProperty(_, claim_name, _), decoded_value)) = self
                             .disclosure_and_decoded_value_for_array_value(
                                 digest,
                                 disclosures,
@@ -107,8 +103,8 @@ impl SdObjectDecoder {
                                 value,
                                 disclosures,
                                 processed_digests,
-                                |disclosure| match disclosure.r#type {
-                                    DisclosureType::ObjectProperty(_, _, _) => {
+                                |disclosure| match disclosure.content {
+                                    DisclosureContent::ObjectProperty(_, _, _) => {
                                         Err(Error::InvalidDisclosure("array length must be 2".to_string()))
                                     }
                                     _ => Ok(()),
@@ -144,7 +140,7 @@ impl SdObjectDecoder {
         disclosures: &'a IndexMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
         verify_disclosure: impl Fn(&Disclosure) -> Result<(), Error>,
-    ) -> Result<Option<(&'a DisclosureType, Value)>, Error> {
+    ) -> Result<Option<(&'a DisclosureContent, Value)>, Error> {
         let digest_str = digest
             .as_str()
             .ok_or(Error::DataTypeMismatch(format!("{} is not a string", digest)))?
@@ -163,15 +159,15 @@ impl SdObjectDecoder {
             processed_digests.push(digest_str.clone());
 
             let recursively_decoded = self.decode_claim_value(disclosure, disclosures, processed_digests)?;
-            return Ok(Some((&disclosure.r#type, recursively_decoded)));
+            return Ok(Some((&disclosure.content, recursively_decoded)));
         }
 
         Ok(None)
     }
 
     fn verify_disclosure_for_object(disclosure: &Disclosure, output: &Map<String, Value>) -> Result<(), Error> {
-        let claim_name = match &disclosure.r#type {
-            DisclosureType::ObjectProperty(_, claim_name, _) => Ok(claim_name),
+        let claim_name = match &disclosure.content {
+            DisclosureContent::ObjectProperty(_, claim_name, _) => Ok(claim_name),
             _ => Err(Error::DataTypeMismatch(format!(
                 "disclosure type error: {}",
                 disclosure
