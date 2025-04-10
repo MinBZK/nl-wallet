@@ -159,7 +159,11 @@ impl SdJwt {
     /// Serializes the components into the final SD-JWT.
     pub fn presentation(&self) -> String {
         let disclosures = self.disclosures.values().join("~");
-        format!("{}~{}~", self.issuer_signed_jwt.jwt().clone().0, disclosures)
+        if disclosures.is_empty() {
+            format!("{}~", self.issuer_signed_jwt.jwt().clone().0)
+        } else {
+            format!("{}~{}~", self.issuer_signed_jwt.jwt().clone().0, disclosures)
+        }
     }
 
     /// Parses an SD-JWT into its components as [`SdJwt`].
@@ -286,8 +290,9 @@ impl<'a> SdJwtPresentationBuilder<'a> {
 
 pub(crate) fn sd_jwt_validation() -> Validation {
     let mut validation = Validation::new(Algorithm::ES256);
-    validation.validate_exp = false;
     validation.validate_aud = false;
+    validation.validate_nbf = true;
+    validation.leeway = 0;
     validation.required_spec_claims = HashSet::new();
     validation
 }
@@ -295,11 +300,23 @@ pub(crate) fn sd_jwt_validation() -> Validation {
 // TODO: [PVW-4138] Add tests for conceal functionality (and probably refactor)
 #[cfg(test)]
 mod test {
+    use assert_matches::assert_matches;
     use chrono::Duration;
+    use chrono::Utc;
+    use jsonwebtoken::errors::ErrorKind;
+    use jsonwebtoken::Algorithm;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use rstest::rstest;
+    use serde_json::json;
 
+    use jwt::error::JwtError;
+    use jwt::EcdsaDecodingKey;
+
+    use crate::builder::SdJwtBuilder;
     use crate::examples::*;
     use crate::hasher::Sha256Hasher;
+    use crate::sd_jwt::Error;
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtPresentation;
 
@@ -322,6 +339,30 @@ mod test {
             Duration::days(36500),
         )
         .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_parse_should_error_for_expired_jwt() {
+        let signing_key = SigningKey::random(&mut OsRng);
+        let holder_privkey = SigningKey::random(&mut OsRng);
+
+        let sd_jwt = SdJwtBuilder::new(json!({
+            "exp": (Utc::now() - Duration::days(1)).timestamp(),
+        }))
+        .unwrap()
+        .finish(Algorithm::ES256, &signing_key, holder_privkey.verifying_key())
+        .await
+        .unwrap()
+        .to_string();
+
+        let err = SdJwt::parse_and_verify(
+            &sd_jwt,
+            &EcdsaDecodingKey::from(signing_key.verifying_key()),
+            &Sha256Hasher,
+        )
+        .expect_err("should fail");
+
+        assert_matches!(err, Error::JwtParsing(JwtError::Validation(err)) if err.kind() == &ErrorKind::ExpiredSignature);
     }
 
     #[test]
