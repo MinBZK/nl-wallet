@@ -1,3 +1,4 @@
+import net.razvan.JacocoToCoberturaPlugin
 import net.razvan.JacocoToCoberturaTask
 
 plugins {
@@ -82,12 +83,12 @@ tasks.withType<Test>().configureEach {
     }
 }
 
-tasks.named<JacocoToCoberturaTask>("jacocoToCobertura") {
+tasks.named<JacocoToCoberturaTask>(JacocoToCoberturaPlugin.TASK_NAME) {
     inputFile = layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/report.xml")
     outputFile = layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/cobertura.xml")
 }
 tasks.named { it == "connectedAndroidTest" }.configureEach {
-    finalizedBy("jacocoToCobertura")
+    finalizedBy(JacocoToCoberturaPlugin.TASK_NAME)
 }
 
 dependencies {
