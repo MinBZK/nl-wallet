@@ -21,7 +21,7 @@ test-android:
     - EMULATOR_PID="$!"
     - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
     - cd wallet_core/wallet/platform_support/android
-    - ./gradlew --no-daemon connectedAndroidTest
+    - ANDROID_NDK_TARGETS=x86_64 ./gradlew --no-daemon connectedAndroidTest
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml qt/quality-time/junit-results/android.xml
 

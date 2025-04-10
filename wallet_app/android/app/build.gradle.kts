@@ -36,6 +36,9 @@ val dartEnvironmentVariables = if (project.hasProperty("dart-defines")) {
     mapOf()
 }
 
+val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
+    ?: listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+
 class ULIntentFilter(
     val autoVerify: Boolean,
     val host: String,
@@ -122,9 +125,15 @@ android {
             packaging {
                 jniLibs.keepDebugSymbols += "**/*.so"
             }
+            ndk {
+                abiFilters += ndkTargets
+            }
         }
         getByName("profile") {
             signingConfig = signingConfigs.getByName(signingConfigName)
+            ndk {
+                abiFilters += ndkTargets
+            }
         }
         release {
             signingConfig = signingConfigs.getByName("release")
@@ -134,7 +143,7 @@ android {
                 file("proguard-rules.pro")
             )
             ndk {
-                abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+                abiFilters += ndkTargets
             }
         }
     }
@@ -166,11 +175,9 @@ mapOf(
 
         // Build the Rust code (wallet_core)
         executable = "cargo"
-        args("ndk",
-            "-t", "armeabi-v7a",
-            "-t", "arm64-v8a",
-            "-t", "x86_64",
-            "-o", jniTargetDir)
+        args("ndk")
+        args(ndkTargets.flatMap { listOf("-t", it) })
+        args("-o", jniTargetDir)
         if (!options.strip) {
             args("--no-strip")
         }

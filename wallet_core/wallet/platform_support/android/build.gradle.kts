@@ -7,6 +7,9 @@ plugins {
     id("net.razvan.jacoco-to-cobertura")
 }
 
+val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
+    ?: listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+
 android {
     namespace  = "nl.rijksoverheid.edi.wallet.platform_support"
     compileSdk = 34
@@ -32,6 +35,9 @@ android {
             packaging {
                 jniLibs.keepDebugSymbols += "**/*.so"
             }
+            ndk {
+                abiFilters += ndkTargets
+            }
         }
         // Profile is only added if the Flutter plugin is applied
         if (findByName("profile") != null) getByName("profile") {
@@ -41,6 +47,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")
             )
+            ndk {
+                abiFilters += ndkTargets
+            }
         }
         release {
             isMinifyEnabled = false
@@ -49,6 +58,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro")
             )
+            ndk {
+                abiFilters += ndkTargets
+            }
         }
     }
 
@@ -135,11 +147,9 @@ mapOf(
     tasks.register<Exec>("cargoBuildNativeLibrary${buildMode}") {
         workingDir = moduleWorkingDir
         executable = "cargo"
-        args("ndk",
-            "-t", "armeabi-v7a",
-            "-t", "arm64-v8a",
-            "-t", "x86_64",
-            "-o", jniTargetDir)
+        args("ndk")
+        args(ndkTargets.flatMap { listOf("-t", it) })
+        args("-o", jniTargetDir)
         if (!options.strip) {
             args("--no-strip")
         }
