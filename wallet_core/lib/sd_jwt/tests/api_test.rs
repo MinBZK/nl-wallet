@@ -88,36 +88,6 @@ fn complex_sd_jwt() {
 }
 
 #[tokio::test]
-async fn concealing_parent_also_removes_all_sub_disclosures() -> anyhow::Result<()> {
-    let holder_signing_key = SigningKey::random(&mut OsRng);
-    let hasher = Sha256Hasher::new();
-    let (sd_jwt, _) = make_sd_jwt(
-        json!({"parent": {"property1": "value1", "property2": [1, 2, 3]}}),
-        ["/parent/property1", "/parent/property2/0", "/parent"],
-        holder_signing_key.verifying_key(),
-    )
-    .await;
-
-    let signing_key = SigningKey::random(&mut OsRng);
-
-    let removed_disclosures = sd_jwt
-        .into_presentation(
-            &hasher,
-            DateTime::from_timestamp_millis(1458304832).unwrap(),
-            String::from("https://example.com"),
-            String::from("abcdefghi"),
-            Algorithm::ES256,
-        )?
-        .conceal("/parent")?
-        .finish(&signing_key)
-        .await?
-        .1;
-    assert_eq!(removed_disclosures.len(), 3);
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> {
     let holder_signing_key = SigningKey::random(&mut OsRng);
     let hasher = Sha256Hasher::new();
@@ -138,7 +108,6 @@ async fn concealing_property_of_concealable_value_works() -> anyhow::Result<()> 
             String::from("abcdefghi"),
             Algorithm::ES256,
         )?
-        .conceal("/parent/property2/0")?
         .finish(&signing_key)
         .await?;
 
@@ -219,7 +188,6 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
             String::from("abcdefghi"),
             Algorithm::ES256,
         )?
-        .conceal("/parent/property1")?
         .finish(&signing_key)
         .await?
         .0;
@@ -292,7 +260,6 @@ async fn test_presentation() -> anyhow::Result<()> {
             String::from("abcdefghi"),
             Algorithm::ES256,
         )?
-        .conceal("/email")?
         .finish(&holder_privkey)
         .await?;
 

@@ -11,6 +11,7 @@ use serde_json::Value;
 use crypto::utils::random_bytes;
 
 use crate::disclosure::Disclosure;
+use crate::disclosure::DisclosureType;
 use crate::error::Error;
 use crate::error::Result;
 use crate::hasher::Hasher;
@@ -90,13 +91,13 @@ impl<H: Hasher> SdObjectEncoder<H> {
                     .ok_or_else(|| Error::InvalidPath(path.to_string()))?;
 
                 // Remove the value from the parent and create a disclosure for it.
-                let disclosure = Disclosure::new(
+                let disclosure = Disclosure::try_new(DisclosureType::ObjectProperty(
                     salt,
-                    Some(element_key.to_owned()),
+                    element_key.to_owned(),
                     parent
                         .remove(&element_key)
                         .ok_or_else(|| Error::InvalidPath(path.to_string()))?,
-                );
+                ))?;
 
                 // Hash the disclosure.
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
@@ -109,7 +110,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                 let element = element_pointer
                     .get_mut(&mut self.object)
                     .map_err(|_| Error::InvalidPath(path.to_string()))?;
-                let disclosure = Disclosure::new(salt, None, element.clone());
+                let disclosure = Disclosure::try_new(DisclosureType::ArrayElement(salt, element.clone()))?;
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
                 let tripledot = json!({ARRAY_DIGEST_KEY: hash});
                 *element = tripledot;
@@ -154,11 +155,11 @@ impl<H: Hasher> SdObjectEncoder<H> {
             .map_err(|_| Error::InvalidPath(path.to_string()))?;
 
         if let Some(object) = value.as_object_mut() {
-            let hash = Self::random_digest(&self.hasher, self.salt_size, false);
+            let hash = Self::random_digest(&self.hasher, self.salt_size, false)?;
             Self::add_digest_to_object(object, hash)?;
             Ok(())
         } else if let Some(array) = value.as_array_mut() {
-            let hash = Self::random_digest(&self.hasher, self.salt_size, true);
+            let hash = Self::random_digest(&self.hasher, self.salt_size, true)?;
             let tripledot = json!({ARRAY_DIGEST_KEY: hash});
             array.push(tripledot);
             Ok(())
@@ -190,7 +191,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
         Ok(())
     }
 
-    fn random_digest(hasher: &dyn Hasher, salt_len: usize, array_entry: bool) -> String {
+    fn random_digest(hasher: &dyn Hasher, salt_len: usize, array_entry: bool) -> Result<String> {
         let mut rng = rand::thread_rng();
         let salt = Self::gen_rand(salt_len);
         let decoy_value_length = rng.gen_range(20..=100);
@@ -201,8 +202,11 @@ impl<H: Hasher> SdObjectEncoder<H> {
             Some(Self::gen_rand(decoy_claim_name_length))
         };
         let decoy_value = Self::gen_rand(decoy_value_length);
-        let disclosure = Disclosure::new(salt, decoy_claim_name, Value::String(decoy_value));
-        hasher.encoded_digest(disclosure.as_str())
+        let disclosure = Disclosure::try_new(match decoy_claim_name {
+            Some(claim_name) => DisclosureType::ObjectProperty(salt, claim_name, Value::String(decoy_value)),
+            None => DisclosureType::ArrayElement(salt, Value::String(decoy_value)),
+        })?;
+        Ok(hasher.encoded_digest(disclosure.as_str()))
     }
 
     fn gen_rand(len: usize) -> String {

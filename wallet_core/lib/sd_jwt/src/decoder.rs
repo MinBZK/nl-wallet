@@ -6,6 +6,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 
 use crate::disclosure::Disclosure;
+use crate::disclosure::DisclosureType;
 use crate::encoder::ARRAY_DIGEST_KEY;
 use crate::encoder::DIGESTS_KEY;
 use crate::encoder::SD_ALG;
@@ -58,13 +59,15 @@ impl SdObjectDecoder {
                 }
                 Value::Array(sd_array) if key == DIGESTS_KEY => {
                     for digest in sd_array {
-                        if let Some((disclosure, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
-                            digest,
-                            disclosures,
-                            processed_digests,
-                            |disclosure| Self::verify_disclosure_for_object(disclosure, &output),
-                        )? {
-                            output.insert(disclosure.claim_name.clone().unwrap(), decoded_value);
+                        if let Some((DisclosureType::ObjectProperty(_, claim_name, _), decoded_value)) = self
+                            .disclosure_and_decoded_value_for_array_value(
+                                digest,
+                                disclosures,
+                                processed_digests,
+                                |disclosure| Self::verify_disclosure_for_object(disclosure, &output),
+                            )?
+                        {
+                            output.insert(claim_name.clone(), decoded_value);
                         }
                     }
                 }
@@ -99,12 +102,11 @@ impl SdObjectDecoder {
                             value,
                             disclosures,
                             processed_digests,
-                            |disclosure| {
-                                if disclosure.claim_name.is_some() {
+                            |disclosure| match disclosure.r#type {
+                                DisclosureType::ObjectProperty(_, _, _) => {
                                     Err(Error::InvalidDisclosure("array length must be 2".to_string()))
-                                } else {
-                                    Ok(())
                                 }
+                                _ => Ok(()),
                             },
                         )? {
                             output.push(decoded_value);
@@ -134,7 +136,7 @@ impl SdObjectDecoder {
         disclosures: &'a HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
         verify_disclosure: impl Fn(&Disclosure) -> Result<(), Error>,
-    ) -> Result<Option<(&'a Disclosure, Value)>, Error> {
+    ) -> Result<Option<(&'a DisclosureType, Value)>, Error> {
         let digest_str = digest
             .as_str()
             .ok_or(Error::DataTypeMismatch(format!("{} is not a string", digest)))?
@@ -153,24 +155,27 @@ impl SdObjectDecoder {
             processed_digests.push(digest_str.clone());
 
             let recursively_decoded = self.decode_claim_value(disclosure, disclosures, processed_digests)?;
-            return Ok(Some((disclosure, recursively_decoded)));
+            return Ok(Some((&disclosure.r#type, recursively_decoded)));
         }
 
         Ok(None)
     }
 
     fn verify_disclosure_for_object(disclosure: &Disclosure, output: &Map<String, Value>) -> Result<(), Error> {
-        let claim_name = disclosure.claim_name.clone().ok_or(Error::DataTypeMismatch(format!(
-            "disclosure type error: {}",
-            disclosure
-        )))?;
+        let claim_name = match &disclosure.r#type {
+            DisclosureType::ObjectProperty(_, claim_name, _) => Ok(claim_name),
+            _ => Err(Error::DataTypeMismatch(format!(
+                "disclosure type error: {}",
+                disclosure
+            ))),
+        }?;
 
         if RESERVED_CLAIM_NAMES.contains(&claim_name.as_str()) {
-            return Err(Error::ReservedClaimNameUsed(claim_name));
+            return Err(Error::ReservedClaimNameUsed(claim_name.clone()));
         }
 
-        if output.contains_key(&claim_name) {
-            return Err(Error::ClaimCollision(claim_name));
+        if output.contains_key(claim_name) {
+            return Err(Error::ClaimCollision(claim_name.clone()));
         }
 
         Ok(())
@@ -182,10 +187,10 @@ impl SdObjectDecoder {
         disclosures: &HashMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Value, Error> {
-        let decoded = match disclosure.claim_value {
+        let decoded = match disclosure.claim_value() {
             Value::Array(ref sub_arr) => Value::Array(self.decode_array(sub_arr, disclosures, processed_digests)?),
             Value::Object(ref sub_obj) => Value::Object(self.decode_object(sub_obj, disclosures, processed_digests)?),
-            _ => disclosure.claim_value.clone(),
+            _ => disclosure.claim_value().clone(),
         };
 
         Ok(decoded)
