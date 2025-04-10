@@ -154,6 +154,7 @@ ring = "0.17.12"
 rpassword = "7.3.1"
 rsa = { version = "0.9.7", default-features = false }
 rstest = "0.24.0"
+rustls = "0.23.22"
 rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"

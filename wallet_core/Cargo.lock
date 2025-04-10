@@ -6307,6 +6307,7 @@ dependencies = [
  "regex",
  "reqwest",
  "rstest",
+ "rustls",
  "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "sea-orm",
