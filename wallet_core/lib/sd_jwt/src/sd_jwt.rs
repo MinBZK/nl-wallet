@@ -37,7 +37,7 @@ use crate::key_binding_jwt_claims::RequiredKeyBinding;
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
 pub struct SdJwtClaims {
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub _sd: Vec<String>,
     pub _sd_alg: Option<String>,
     pub cnf: Option<RequiredKeyBinding>,
