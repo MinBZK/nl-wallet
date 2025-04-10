@@ -95,39 +95,43 @@ impl SdObjectDecoder {
     ) -> Result<Vec<Value>, Error> {
         let mut output: Vec<Value> = vec![];
         for value in array {
-            if let Some(object) = value.as_object() {
-                for (key, value) in object {
-                    if key == ARRAY_DIGEST_KEY {
-                        if object.keys().len() != 1 {
-                            return Err(Error::InvalidArrayDisclosureObject);
-                        }
+            match value {
+                Value::Object(object) => {
+                    for (key, value) in object {
+                        if key == ARRAY_DIGEST_KEY {
+                            if object.keys().len() != 1 {
+                                return Err(Error::InvalidArrayDisclosureObject);
+                            }
 
-                        if let Some((_, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
-                            value,
-                            disclosures,
-                            processed_digests,
-                            |disclosure| match disclosure.r#type {
-                                DisclosureType::ObjectProperty(_, _, _) => {
-                                    Err(Error::InvalidDisclosure("array length must be 2".to_string()))
-                                }
-                                _ => Ok(()),
-                            },
-                        )? {
-                            output.push(decoded_value);
+                            if let Some((_, decoded_value)) = self.disclosure_and_decoded_value_for_array_value(
+                                value,
+                                disclosures,
+                                processed_digests,
+                                |disclosure| match disclosure.r#type {
+                                    DisclosureType::ObjectProperty(_, _, _) => {
+                                        Err(Error::InvalidDisclosure("array length must be 2".to_string()))
+                                    }
+                                    _ => Ok(()),
+                                },
+                            )? {
+                                output.push(decoded_value);
+                            }
+                        } else {
+                            let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
+                            output.push(Value::Object(decoded_object));
+                            break;
                         }
-                    } else {
-                        let decoded_object = self.decode_object(object, disclosures, processed_digests)?;
-                        output.push(Value::Object(decoded_object));
-                        break;
                     }
                 }
-            } else if let Some(arr) = value.as_array() {
-                // Nested arrays need to be decoded too.
-                let decoded = self.decode_array(arr, disclosures, processed_digests)?;
-                output.push(Value::Array(decoded));
-            } else {
-                // Append the rest of the values.
-                output.push(value.clone());
+                Value::Array(array) => {
+                    // Nested arrays need to be decoded too.
+                    let decoded = self.decode_array(array, disclosures, processed_digests)?;
+                    output.push(Value::Array(decoded));
+                }
+                _ => {
+                    // Append the rest of the values.
+                    output.push(value.clone());
+                }
             }
         }
 
