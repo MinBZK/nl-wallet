@@ -12,7 +12,7 @@ use crate::encoder::DIGESTS_KEY;
 use crate::encoder::SD_ALG;
 use crate::error::Error;
 
-const RESERVED_CLAIM_NAMES: &[&str] = &["sd", "..."];
+const RESERVED_CLAIM_NAMES: &[&str] = &["_sd", "..."];
 
 /// Substitutes digests in an SD-JWT object by their corresponding plain text values provided by disclosures.
 pub struct SdObjectDecoder;
