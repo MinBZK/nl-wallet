@@ -32,6 +32,10 @@ impl SdObjectDecoder {
         // Decode the object recursively.
         let mut decoded = self.decode_object(object, disclosures, &mut processed_digests)?;
 
+        dbg!(&decoded);
+        dbg!(&disclosures);
+        dbg!(&processed_digests);
+
         if processed_digests.len() != disclosures.len() {
             return Err(Error::UnusedDisclosures(
                 disclosures.len().saturating_sub(processed_digests.len()),
@@ -209,6 +213,7 @@ mod test {
 
     use crate::decoder::SdObjectDecoder;
     use crate::encoder::SdObjectEncoder;
+    use crate::examples::recursive_disclosures_example;
 
     #[test]
     fn sd_alg() {
@@ -226,5 +231,44 @@ mod test {
             .decode(encoder.encode().as_object().unwrap(), &IndexMap::new())
             .unwrap();
         assert!(decoded.get("_sd_alg").is_none());
+    }
+
+    #[test]
+    fn test_recursive_disclosure() {
+        let (claims, disclosure_content) = recursive_disclosures_example();
+
+        let decoded = SdObjectDecoder
+            .decode(claims.as_object().unwrap(), &disclosure_content)
+            .unwrap();
+
+        let actual = serde_json::to_value(&decoded).unwrap();
+
+        let expected = json!({
+          "address": {
+            "country": "DE",
+            "locality": "Schulpforta",
+            "region": "Sachsen-Anhalt",
+            "street_address": "Schulstr. 12"
+          },
+          "exp": 1883000000,
+          "iat": 1683000000,
+          "iss": "https://issuer.example.com",
+          "sub": "6c5c0a49-b589-431d-bae7-219122a9ec2c"
+        });
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_recursive_disclosure_empty_object() {
+        let (claims, mut disclosure_content) = recursive_disclosures_example();
+        // Take the last disclosure value, which is `address`
+        let disclosure_only_address = IndexMap::from([disclosure_content.pop().unwrap()]);
+
+        let decoded = SdObjectDecoder
+            .decode(claims.as_object().unwrap(), &disclosure_only_address)
+            .unwrap();
+
+        assert_eq!(decoded.get("address").unwrap().to_string(), "{}");
     }
 }
