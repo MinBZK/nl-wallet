@@ -37,10 +37,10 @@ void main() {
   }
 
   group('map', () {
-    test('attestation with `com.example.pid` attestationType should return `name` attribute string', () {
+    test('attestation with `urn:eudi:pid:nl:1` attestationType should return `name` attribute string', () {
       when(mockAttributeValueMapper.map(_kSampleAttributeName.value)).thenReturn(const StringValue('Willeke'));
 
-      final input = createSampleAttestation('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
+      final input = createSampleAttestation('urn:eudi:pid:nl:1', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleNameSubtitle);
 
       // Check if every supported locale is mapped to a value
@@ -48,10 +48,10 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('attestation with `com.example.pid` docType should return `name` attribute string', () {
+    test('attestation with `urn:eudi:pid:nl:1` docType should return `name` attribute string', () {
       when(mockAttributeValueMapper.map(_kSampleAttributeName.value)).thenReturn(const StringValue('Willeke'));
 
-      final input = createSampleAttestation('com.example.pid', [_kSampleAttributeName, _kSampleAttributeCity]);
+      final input = createSampleAttestation('urn:eudi:pid:nl:1', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleNameSubtitle);
 
       // Check if every supported locale is mapped to a value
@@ -59,17 +59,18 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('`com.example.pid` attestation without `name` attribute should not return any subtitle', () {
-      final input = createSampleAttestation('com.example.pid', [_kSampleAttributeCity]);
+    test('`urn:eudi:pid:nl:1` attestation without `name` attribute should not return any subtitle', () {
+      final input = createSampleAttestation('urn:eudi:pid:nl:1', [_kSampleAttributeCity]);
       expect(mapper.map(input), null);
 
       verifyNever(mockAttributeValueMapper.map(_kSampleAttributeName.value));
     });
 
-    test('attestation with `com.example.address` attestationType should return `city` attribute string', () {
+    test('attestation with `urn:eudi:pid-address:nl:1` attestationType should return `city` attribute string', () {
       when(mockAttributeValueMapper.map(_kSampleAttributeCity.value)).thenReturn(const StringValue('Den Haag'));
 
-      final input = createSampleAttestation('com.example.address', [_kSampleAttributeName, _kSampleAttributeCity]);
+      final input =
+          createSampleAttestation('urn:eudi:pid-address:nl:1', [_kSampleAttributeName, _kSampleAttributeCity]);
       expect(mapper.map(input), _kSampleCitySubtitle);
 
       // Check if every supported locale is mapped to a value
@@ -77,8 +78,8 @@ void main() {
           .called(AppLocalizations.supportedLocales.length);
     });
 
-    test('`com.example.address` attestation without `city` attribute should not return any subtitle', () {
-      final input = createSampleAttestation('com.example.address', [_kSampleAttributeName]);
+    test('`urn:eudi:pid-address:nl:1` attestation without `city` attribute should not return any subtitle', () {
+      final input = createSampleAttestation('urn:eudi:pid-address:nl:1', [_kSampleAttributeName]);
       expect(mapper.map(input), null);
 
       verifyNever(mockAttributeValueMapper.map(_kSampleAttributeName.value));

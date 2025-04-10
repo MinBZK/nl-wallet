@@ -20,7 +20,7 @@ const _kSampleIssuer = CoreMockData.organization;
 
 const _kSampleCard = core.Attestation(
   identity: core.AttestationIdentity.ephemeral(),
-  attestationType: 'com.example.pid',
+  attestationType: 'urn:eudi:pid:nl:1',
   displayMetadata: [CoreMockData.enDisplayMetadata],
   attributes: [_kSampleAttributeName, _kSampleAttributeCity],
   issuer: _kSampleIssuer,
