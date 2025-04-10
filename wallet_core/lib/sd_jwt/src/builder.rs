@@ -121,7 +121,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
             mut header,
         } = self;
         encoder.add_sd_alg_property();
-        let mut object = encoder.object;
+        let mut object = encoder.encode();
 
         // Add key binding requirement as `cnf`.
         object

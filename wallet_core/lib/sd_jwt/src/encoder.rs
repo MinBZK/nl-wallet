@@ -27,10 +27,10 @@ pub(crate) const SD_ALG: &str = "_sd_alg";
 #[derive(Debug, Clone)]
 pub struct SdObjectEncoder<H> {
     /// The object in JSON format.
-    pub(crate) object: Value,
+    object: Value,
     /// Size of random data used to generate the salts for disclosures in bytes.
     /// Constant length for readability considerations.
-    pub(crate) salt_size: usize,
+    salt_size: usize,
     /// The hash function used to create digests.
     pub(crate) hasher: H,
 }
@@ -57,6 +57,10 @@ impl<H: Hasher> SdObjectEncoder<H> {
             salt_size,
             hasher,
         })
+    }
+
+    pub fn encode(self) -> Value {
+        self.object
     }
 
     /// Substitutes a value with the digest of its disclosure.
