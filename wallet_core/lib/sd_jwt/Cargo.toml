@@ -7,6 +7,11 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[[test]]
+name = "api_test"
+path = "tests/api_test.rs"
+required-features = ["example_sd_jwt"]
+
 [features]
 example_sd_jwt = []
 
@@ -34,5 +39,3 @@ assert_matches.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }
-
-sd_jwt = { path = ".", features = ["example_sd_jwt"] }
