@@ -50,7 +50,7 @@ pub struct SdJwtClaims {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwt {
     issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
-    disclosures: Vec<Disclosure>,
+    disclosures: IndexMap<String, Disclosure>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -67,6 +67,7 @@ impl SdJwtPresentation {
     pub fn parse_and_verify(
         sd_jwt: &str,
         issuer_pubkey: &EcdsaDecodingKey,
+        hasher: &dyn Hasher,
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
@@ -81,7 +82,7 @@ impl SdJwtPresentation {
                 "SD-JWT format is invalid, no segments found".to_string(),
             ))?;
 
-        let sd_jwt = SdJwt::parse_and_verify(rest, issuer_pubkey)?;
+        let sd_jwt = SdJwt::parse_and_verify(rest, issuer_pubkey, hasher)?;
 
         if let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() {
             let key_binding_jwt = KeyBindingJwt::parse_and_verify(
@@ -102,7 +103,7 @@ impl SdJwtPresentation {
     }
 
     pub fn presentation(&self) -> String {
-        let disclosures = self.sd_jwt.disclosures.iter().map(ToString::to_string).join("~");
+        let disclosures = self.sd_jwt.disclosures.values().map(ToString::to_string).join("~");
         let key_bindings = self.key_binding_jwt.as_ref().to_string();
         [self.sd_jwt.issuer_signed_jwt.jwt().clone().0, disclosures, key_bindings]
             .iter()
@@ -127,7 +128,7 @@ impl Display for SdJwtPresentation {
 
 impl SdJwt {
     /// Creates a new [`SdJwt`] from its components.
-    pub(crate) fn new(jwt: VerifiedJwt<SdJwtClaims>, disclosures: Vec<Disclosure>) -> Self {
+    pub(crate) fn new(jwt: VerifiedJwt<SdJwtClaims>, disclosures: IndexMap<String, Disclosure>) -> Self {
         Self {
             issuer_signed_jwt: jwt,
             disclosures,
@@ -142,7 +143,7 @@ impl SdJwt {
         self.issuer_signed_jwt.payload()
     }
 
-    pub fn disclosures(&self) -> &[Disclosure] {
+    pub fn disclosures(&self) -> &IndexMap<String, Disclosure> {
         &self.disclosures
     }
 
@@ -152,7 +153,7 @@ impl SdJwt {
 
     /// Serializes the components into the final SD-JWT.
     pub fn presentation(&self) -> String {
-        let disclosures = self.disclosures.iter().join("~");
+        let disclosures = self.disclosures.values().join("~");
         format!("{}~{}~", self.issuer_signed_jwt.jwt().clone().0, disclosures)
     }
 
@@ -160,7 +161,7 @@ impl SdJwt {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey) -> Result<Self> {
+    pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey, hasher: &dyn Hasher) -> Result<Self> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
@@ -176,8 +177,11 @@ impl SdJwt {
         let disclosures = disclosure_segments
             .split("~")
             .filter(|segment| !segment.is_empty())
-            .map(Disclosure::parse)
-            .try_collect()?;
+            .try_fold(IndexMap::new(), |mut acc, segment| {
+                let disclosure = Disclosure::parse(segment)?;
+                acc.insert(hasher.encoded_digest(disclosure.as_str()), disclosure);
+                Ok::<_, Error>(acc)
+            })?;
 
         Ok(Self {
             issuer_signed_jwt: jwt,
@@ -206,17 +210,11 @@ impl SdJwt {
 
     /// Returns the JSON object obtained by replacing all disclosures into their
     /// corresponding JWT concealable claims.
-    pub fn into_disclosed_object(self, hasher: &dyn Hasher) -> Result<Map<String, Value>> {
+    pub fn into_disclosed_object(self) -> Result<Map<String, Value>> {
         let decoder = SdObjectDecoder;
         let object = serde_json::to_value(self.claims())?;
 
-        let disclosure_map = self
-            .disclosures
-            .into_iter()
-            .map(|disclosure| (hasher.encoded_digest(disclosure.as_str()), disclosure))
-            .collect();
-
-        decoder.decode(object.as_object().unwrap(), &disclosure_map)
+        decoder.decode(object.as_object().unwrap(), &self.disclosures)
     }
 }
 
@@ -245,12 +243,7 @@ impl<'a> SdJwtPresentationBuilder<'a> {
             )));
         }
 
-        let disclosures = sd_jwt
-            .disclosures
-            .clone()
-            .into_iter()
-            .map(|disclosure| (hasher.encoded_digest(disclosure.as_str()), disclosure))
-            .collect();
+        let disclosures = sd_jwt.disclosures.clone();
 
         Ok(Self {
             sd_jwt,
@@ -273,7 +266,7 @@ impl<'a> SdJwtPresentationBuilder<'a> {
             kb_jwt_builder,
             ..
         } = self;
-        sd_jwt.disclosures = disclosures.into_values().collect_vec();
+        sd_jwt.disclosures = disclosures;
 
         let key_binding_jwt = kb_jwt_builder.finish(&sd_jwt, self.hasher, signing_key).await?;
 
@@ -301,6 +294,7 @@ mod test {
     use rstest::rstest;
 
     use crate::examples::*;
+    use crate::hasher::Sha256Hasher;
     use crate::sd_jwt::SdJwt;
     use crate::sd_jwt::SdJwtPresentation;
 
@@ -309,7 +303,7 @@ mod test {
     #[case(COMPLEX_STRUCTURED_SD_JWT)]
     #[case(SD_JWT_VC)]
     fn parse_various(#[case] encoded_sd_jwt: &str) {
-        SdJwt::parse_and_verify(encoded_sd_jwt, &examples_sd_jwt_decoding_key()).unwrap();
+        SdJwt::parse_and_verify(encoded_sd_jwt, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
     }
 
     #[test]
@@ -317,6 +311,7 @@ mod test {
         SdJwtPresentation::parse_and_verify(
             WITH_KB_SD_JWT,
             &examples_sd_jwt_decoding_key(),
+            &Sha256Hasher,
             WITH_KB_SD_JWT_AUD,
             WITH_KB_SD_JWT_NONCE,
             Duration::days(36500),
@@ -326,13 +321,15 @@ mod test {
 
     #[test]
     fn parse() {
-        let sd_jwt = SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
+        let sd_jwt =
+            SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
         assert_eq!(sd_jwt.disclosures.len(), 2);
     }
 
     #[test]
     fn round_trip_ser_des() {
-        let sd_jwt = SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap();
+        let sd_jwt =
+            SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
         assert_eq!(&sd_jwt.to_string(), SIMPLE_STRUCTURED_SD_JWT);
     }
 }

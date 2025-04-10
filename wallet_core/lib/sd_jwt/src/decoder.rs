@@ -1,9 +1,9 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use indexmap::IndexMap;
 use serde_json::Map;
 use serde_json::Value;
-use std::collections::HashMap;
 
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureType;
@@ -23,7 +23,7 @@ impl SdObjectDecoder {
     pub fn decode(
         &self,
         object: &Map<String, Value>,
-        disclosures: &HashMap<String, Disclosure>,
+        disclosures: &IndexMap<String, Disclosure>,
     ) -> Result<Map<String, Value>, Error> {
         // `processed_digests` are kept track of in case one digest appears more than once which
         // renders the SD-JWT invalid.
@@ -47,7 +47,7 @@ impl SdObjectDecoder {
     fn decode_object(
         &self,
         object: &Map<String, Value>,
-        disclosures: &HashMap<String, Disclosure>,
+        disclosures: &IndexMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Map<String, Value>, Error> {
         let mut output: Map<String, Value> = Map::new();
@@ -86,7 +86,7 @@ impl SdObjectDecoder {
     fn decode_array(
         &self,
         array: &[Value],
-        disclosures: &HashMap<String, Disclosure>,
+        disclosures: &IndexMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Vec<Value>, Error> {
         let mut output: Vec<Value> = vec![];
@@ -133,7 +133,7 @@ impl SdObjectDecoder {
     fn disclosure_and_decoded_value_for_array_value<'a>(
         &self,
         digest: &Value,
-        disclosures: &'a HashMap<String, Disclosure>,
+        disclosures: &'a IndexMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
         verify_disclosure: impl Fn(&Disclosure) -> Result<(), Error>,
     ) -> Result<Option<(&'a DisclosureType, Value)>, Error> {
@@ -184,7 +184,7 @@ impl SdObjectDecoder {
     fn decode_claim_value(
         &self,
         disclosure: &Disclosure,
-        disclosures: &HashMap<String, Disclosure>,
+        disclosures: &IndexMap<String, Disclosure>,
         processed_digests: &mut Vec<String>,
     ) -> Result<Value, Error> {
         let decoded = match disclosure.claim_value() {
@@ -204,8 +204,7 @@ impl SdObjectDecoder {
 // - no _sd or ... are left in the decoded object in cases where they are not expected.
 #[cfg(test)]
 mod test {
-    use std::collections::HashMap;
-
+    use indexmap::IndexMap;
     use serde_json::json;
 
     use crate::decoder::SdObjectDecoder;
@@ -224,7 +223,7 @@ mod test {
         assert_eq!(encoder.object.get("_sd_alg").unwrap(), "sha-256");
         let decoder = SdObjectDecoder;
         let decoded = decoder
-            .decode(encoder.object.as_object().unwrap(), &HashMap::new())
+            .decode(encoder.object.as_object().unwrap(), &IndexMap::new())
             .unwrap();
         assert!(decoded.get("_sd_alg").is_none());
     }

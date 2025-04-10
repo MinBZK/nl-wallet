@@ -5,6 +5,7 @@ use serde_json::json;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 
+use crate::hasher::Sha256Hasher;
 use crate::sd_jwt::SdJwt;
 use crate::sd_jwt::SdJwtPresentation;
 
@@ -24,21 +25,27 @@ pub const WITH_KB_SD_JWT_AUD: &str = "https://verifier.example.org";
 pub const WITH_KB_SD_JWT_NONCE: &str = "1234567890";
 
 pub fn simple_structured_sd_jwt() -> SdJwt {
-    SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
+    SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
 }
 
 pub fn complex_structured_sd_jwt() -> SdJwt {
-    SdJwt::parse_and_verify(COMPLEX_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key()).unwrap()
+    SdJwt::parse_and_verify(
+        COMPLEX_STRUCTURED_SD_JWT,
+        &examples_sd_jwt_decoding_key(),
+        &Sha256Hasher,
+    )
+    .unwrap()
 }
 
 pub fn sd_jwt_vc() -> SdJwt {
-    SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key()).unwrap()
+    SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap()
 }
 
 pub fn sd_jwt_kb() -> SdJwtPresentation {
     SdJwtPresentation::parse_and_verify(
         WITH_KB_SD_JWT,
         &examples_sd_jwt_decoding_key(),
+        &Sha256Hasher,
         WITH_KB_SD_JWT_AUD,
         WITH_KB_SD_JWT_NONCE,
         Duration::minutes(2),

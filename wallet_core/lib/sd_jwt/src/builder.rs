@@ -1,6 +1,7 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use p256::ecdsa::VerifyingKey;
@@ -27,7 +28,7 @@ const SD_JWT_HEADER_TYP: &str = "dc+sd-jwt";
 pub struct SdJwtBuilder<H> {
     encoder: SdObjectEncoder<H>,
     header: Header,
-    disclosures: Vec<Disclosure>,
+    disclosures: IndexMap<String, Disclosure>,
 }
 
 impl SdJwtBuilder<Sha256Hasher> {
@@ -52,7 +53,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         let encoder = SdObjectEncoder::with_custom_hasher_and_salt_size(object, hasher, salt_size)?;
         Ok(Self {
             encoder,
-            disclosures: vec![],
+            disclosures: IndexMap::new(),
             header: Header {
                 typ: Some(String::from(SD_JWT_HEADER_TYP)),
                 ..Default::default()
@@ -89,7 +90,8 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// * [`Error::DataTypeMismatch`] if existing SD format is invalid.
     pub fn make_concealable(mut self, path: &str) -> Result<Self> {
         let disclosure = self.encoder.conceal(path)?;
-        self.disclosures.push(disclosure);
+        self.disclosures
+            .insert(self.encoder.hasher.encoded_digest(disclosure.as_str()), disclosure);
 
         Ok(self)
     }

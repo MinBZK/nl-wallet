@@ -42,7 +42,7 @@ async fn make_sd_jwt(
 #[test]
 fn simple_sd_jwt() {
     let sd_jwt = examples::simple_structured_sd_jwt();
-    let disclosed = sd_jwt.into_disclosed_object(&Sha256Hasher::new()).unwrap();
+    let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "address": {
         "country": "JP",
@@ -51,34 +51,33 @@ fn simple_sd_jwt() {
       "iss": "https://issuer.example.com",
       "iat": 1683000000,
       "exp": 1883000000
-    }
-    );
+    });
     assert_eq!(expected_object.as_object().unwrap(), &disclosed);
 }
 
 #[test]
 fn complex_sd_jwt() {
     let sd_jwt: SdJwt = examples::complex_structured_sd_jwt();
-    let disclosed = sd_jwt.into_disclosed_object(&Sha256Hasher::new()).unwrap();
+    let disclosed = sd_jwt.into_disclosed_object().unwrap();
     let expected_object = json!({
       "verified_claims": {
-            "verification": {
-                "time": "2012-04-23T18:25Z",
-                "trust_framework": "de_aml",
-                "evidence": [
-                    { "method": "pipp" }
-                ]
+        "verification": {
+            "time": "2012-04-23T18:25Z",
+            "trust_framework": "de_aml",
+            "evidence": [
+                { "method": "pipp" }
+            ]
+        },
+        "claims": {
+            "address": {
+                "locality": "Maxstadt",
+                "postal_code": "12344",
+                "country": "DE",
+                "street_address": "Weidenstraße 22"
             },
-            "claims": {
-                "address": {
-                    "locality": "Maxstadt",
-                    "postal_code": "12344",
-                    "country": "DE",
-                    "street_address": "Weidenstraße 22"
-                },
-                "given_name": "Max",
-                "family_name": "Müller"
-            }
+            "given_name": "Max",
+            "family_name": "Müller"
+        }
       },
       "iss": "https://issuer.example.com",
       "iat": 1683000000,
@@ -130,7 +129,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     // Try to serialize & deserialize `sd_jwt`.
     let sd_jwt = {
         let s = sd_jwt.to_string();
-        SdJwt::parse_and_verify(&s, &decoding_key)?
+        SdJwt::parse_and_verify(&s, &decoding_key, &Sha256Hasher)?
     };
 
     assert!(sd_jwt.disclosures().is_empty());
@@ -154,6 +153,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
         SdJwtPresentation::parse_and_verify(
             &s,
             &decoding_key,
+            &Sha256Hasher,
             "https://example.com",
             "abcdefghi",
             Duration::days(36500),
@@ -268,6 +268,7 @@ async fn test_presentation() -> anyhow::Result<()> {
     SdJwtPresentation::parse_and_verify(
         &presented_sd_jwt.to_string(),
         &EcdsaDecodingKey::from(issuer_privkey.verifying_key()),
+        &Sha256Hasher,
         "https://example.com",
         "abcdefghi",
         Duration::days(36500),
