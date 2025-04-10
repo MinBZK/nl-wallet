@@ -39,8 +39,13 @@ use crate::key_binding_jwt_claims::RequiredKeyBinding;
 pub struct SdJwtClaims {
     #[serde(skip_serializing_if = "Vec::is_empty", default)]
     pub _sd: Vec<String>,
+
     pub _sd_alg: Option<String>,
+
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
     pub cnf: Option<RequiredKeyBinding>,
+
     #[serde(flatten)]
     pub properties: Map<String, Value>,
 }
@@ -84,22 +89,22 @@ impl SdJwtPresentation {
 
         let sd_jwt = SdJwt::parse_and_verify(rest, issuer_pubkey, hasher)?;
 
-        if let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() {
-            let key_binding_jwt = KeyBindingJwt::parse_and_verify(
-                kb_segment,
-                &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
-                kb_expected_aud,
-                kb_expected_nonce,
-                kb_iat_acceptance_window,
-            )?;
+        let Some(RequiredKeyBinding::Jwk(jwk)) = sd_jwt.required_key_bind() else {
+            return Err(Error::MissingJwkKeybinding);
+        };
 
-            Ok(Self {
-                sd_jwt,
-                key_binding_jwt: key_binding_jwt.into(),
-            })
-        } else {
-            Err(Error::MissingJwkKeybinding)
-        }
+        let key_binding_jwt = KeyBindingJwt::parse_and_verify(
+            kb_segment,
+            &EcdsaDecodingKey::from(&jwk_to_p256(jwk)?),
+            kb_expected_aud,
+            kb_expected_nonce,
+            kb_iat_acceptance_window,
+        )?;
+
+        Ok(Self {
+            sd_jwt,
+            key_binding_jwt: key_binding_jwt.into(),
+        })
     }
 
     pub fn presentation(&self) -> String {
