@@ -97,9 +97,9 @@ sonar-ios:
 
 sonar-android:
   extends: .default-sonar
-  #  needs:
-  #    - job: test-android
-  #      artifacts: true
+  needs:
+    - job: test-android
+      artifacts: true
   script:
     - cd wallet_core/wallet/platform_support/android
     - sonar-scanner
@@ -107,8 +107,9 @@ sonar-android:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
-      -Dsonar.exclusions="platform_support/build/**,platform_support/src/androidTest/**"
+      -Dsonar.sources=src/main
+      -Dsonar.tests=src/androidTest
       -Dsonar.findbugs.allowuncompiledcode=true
-#      -Dsonar.junit.reportPaths="platform_support/build/outputs/androidTest-results/*/*.xml"
-#      -Dsonar.coverage.jacoco.xmlReportPaths="platform_support/build/reports/coverage/androidTest/*/*/report.xml"
+      -Dsonar.junit.reportPaths="build/outputs/androidTest-results/connected/debug/"
+      -Dsonar.coverage.jacoco.xmlReportPaths="build/reports/coverage/androidTest/debug/connected/report.xml"
   allow_failure: true

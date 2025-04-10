@@ -20,10 +20,10 @@ store() {
         target="${target}$(basename "$source")"
     fi
 
-    local previous=$(mc stat $target | awk 'BEGIN { FS=": " } /^  X-Amz-Meta-Git-Commit-Sha/ { print $2 }')
+    local previous=$(mc stat "$target" | awk 'BEGIN { FS=": " } /^  X-Amz-Meta-Git-Commit-Sha/ { print $2 }')
     if [[ -z $previous ]] || git merge-base --is-ancestor $previous $GIT_COMMIT_SHA; then
         echo "Storing $source"
-        mc cp --attr "Git-Commit-Sha=$GIT_COMMIT_SHA" $source $target
+        mc cp --attr "Git-Commit-Sha=$GIT_COMMIT_SHA" "$source" "$target"
     else
         echo "Skipping $source"
     fi

@@ -15,10 +15,7 @@ export class ZipResultFile extends BufferResultFile {
 
 const openZip = promisify<string, Options, ZipFile>(open)
 
-export async function loadFromZip(
-  path: string,
-  callback: (resultFile: ZipResultFile) => Promise<void>,
-) {
+export async function loadFromZip(path: string, callback: (resultFile: ZipResultFile) => Promise<void>) {
   const zipFile = await openZip(path, { lazyEntries: true })
   let error = false
 

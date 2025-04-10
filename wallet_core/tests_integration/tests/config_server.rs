@@ -26,6 +26,7 @@ use wallet_configuration::config_server_config::ConfigServerConfiguration;
 #[tokio::test]
 async fn test_wallet_config() {
     let mut served_wallet_config = default_wallet_config();
+    served_wallet_config.lock_timeouts.warning_timeout = 1;
     served_wallet_config.lock_timeouts.inactive_timeout = 1;
     served_wallet_config.lock_timeouts.background_timeout = 1;
     served_wallet_config.version = 2;

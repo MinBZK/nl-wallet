@@ -4,14 +4,14 @@ import '../../../../data/repository/wallet/wallet_repository.dart';
 import '../reset_wallet_usecase.dart';
 
 class ResetWalletUseCaseImpl extends ResetWalletUseCase {
-  final WalletRepository walletRepository;
+  final WalletRepository _walletRepository;
 
-  ResetWalletUseCaseImpl(this.walletRepository);
+  ResetWalletUseCaseImpl(this._walletRepository);
 
   @override
   Future<void> invoke() async {
     try {
-      await walletRepository.resetWallet();
+      await _walletRepository.resetWallet();
     } catch (ex) {
       Fimber.e('Failed to reset wallet', ex: ex);
       throw StateError('Failed to reset wallet');

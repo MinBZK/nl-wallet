@@ -13,7 +13,7 @@ import util.TestInfoHandler
 
 class LocalMobileDriver : WebDriverProvider {
 
-    private val apkPath = "../wallet_app/build/app/outputs/flutter-apk/app-profile.apk"
+    private val apkPath = "../nl.ictu.edi.wallet.latest-0.3.0-profile.apk"
     private val ipaPath = "../nl.ictu.edi.wallet.latest-0.3.0.ipa"
 
     override fun createDriver(capabilities: Capabilities): WebDriver {
@@ -41,6 +41,7 @@ class LocalMobileDriver : WebDriverProvider {
         options.setLanguage(TestInfoHandler.language)
         options.setLocale(TestInfoHandler.locale)
         options.setAutomationName("Flutter")
+        options.setCapability("appium:newCommandTimeout", 120)
 
         // Initialise the local WebDriver with desired capabilities defined above
         return when (testConfig.platformName) {
