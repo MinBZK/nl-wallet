@@ -293,20 +293,6 @@ pub async fn accept_disclosure(pin: String) -> anyhow::Result<AcceptDisclosureRe
 }
 
 #[flutter_api_error]
-pub async fn accept_disclosure_based_issuance(pin: String) -> anyhow::Result<Vec<Attestation>> {
-    let mut wallet = wallet().write().await;
-
-    let attestations = wallet
-        .accept_disclosure_based_issuance(pin)
-        .await?
-        .into_iter()
-        .map(Attestation::from)
-        .collect();
-
-    Ok(attestations)
-}
-
-#[flutter_api_error]
 pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
