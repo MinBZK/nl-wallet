@@ -84,13 +84,15 @@ android {
     }
 
     defaultConfig {
-        applicationId = "nl.ictu.edi.wallet.latest"
+        applicationId = System.getenv("APPLICATION_ID") ?: "nl.ictu.edi.wallet.latest"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-build-configuration.
         minSdk = 24
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        manifestPlaceholders["appName"] = System.getenv("APP_NAME") ?: "NL Wallet"
 
         // Set universal & deep links intent-filter placeholders
         manifestPlaceholders["ulIntentFilterAutoVerify"] = ulIntentFilter.autoVerify

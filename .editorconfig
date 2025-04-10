@@ -22,3 +22,6 @@ indent_size = 2
 
 [{*.xml,*.yml,*.yaml,*.mjs,*.js,*.json,*.json.template,*.ts,*.css,*.html,*.vue,*.askama}]
 indent_size = 2
+
+[*.plist]
+indent_style = tab
