@@ -4,6 +4,7 @@ import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
 import navigator.screen.MenuNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -13,9 +14,11 @@ import org.junit.jupiter.api.TestMethodOrder
 import org.junitpioneer.jupiter.RetryingTest
 import screen.about.AboutScreen
 import screen.dashboard.DashboardScreen
+import screen.error.NoInternetErrorScreen
 import screen.menu.MenuScreen
 import screen.security.ForgotPinScreen
 import screen.security.PinScreen
+import screen.security.TemporarilyBlockedScreen
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${UserEntersPinTests.USE_CASE} User enters pin [${UserEntersPinTests.JIRA_ID}]")
@@ -27,6 +30,7 @@ class UserEntersPinTests : TestBase() {
     }
 
     private lateinit var pinScreen: PinScreen
+    private lateinit var temporarilyBlockedScreen: TemporarilyBlockedScreen
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -59,44 +63,61 @@ class UserEntersPinTests : TestBase() {
      * >> This requirement hard, if not impossible to be tested in an e2e setup and should be validated during an audit of the app.
      */
 
-    /**
-     * 4. Upon PIN entry, when the app cannot connect to the server it displays an appropriate error.
-     * >> Manual test: https://SSSS/jira/browse/PVW-1998
-     */
-
-    /**
-     * 5. The app enforces the following PIN-attempt policy.
-     * >> Manual test: https://SSSS/jira/browse/PVW-2018
-     */
+    @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
+    @DisplayName("$USE_CASE.5. Upon PIN entry, when the app cannot connect to the server it displays an appropriate error. [${JIRA_ID}]")
+    fun verifyNotConnectedErrorMessage(testInfo: TestInfo) {
+        setUp(testInfo)
+        val noInternetErrorScreen = NoInternetErrorScreen()
+        try {
+            val pin = "122222"
+            pinScreen.disableInternetConnection()
+            pinScreen.enterPin(pin)
+            assertAll(
+                { assertTrue(noInternetErrorScreen.headlineVisible(), "Headline is not visible") },
+                { assertTrue(noInternetErrorScreen.descriptionVisible(), "Description is not visible") },
+                { assertTrue(noInternetErrorScreen.tryAgainButtonVisible(), "Try again button is not visible") }
+            )
+            noInternetErrorScreen.seeDetails()
+            assertAll(
+                { assertTrue(noInternetErrorScreen.appVersionLabelVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.osVersionLabelVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.appConfigLabelVisible(), "appConfig is not visible") },
+                { assertTrue(noInternetErrorScreen.appVersionVisible(), "App version is not visible") },
+                { assertTrue(noInternetErrorScreen.osVersionVisible(), "Os version is not visible") },
+                { assertTrue(noInternetErrorScreen.appConfigVisible(), "appConfig is not visible") }
+            )
+        } finally {
+            noInternetErrorScreen.enableNetworkConnection();
+        }
+    }
 
     @Nested
     @DisplayName("$USE_CASE.6 After unsuccessful PIN entry, when the user has retries left:")
     inner class UnsuccessfulPinEntry {
 
         @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-        @DisplayName("$USE_CASE.6.1 (non-final round, initial attempt) if this was the initial PIN entry in the round, the app simply indicates that the PIN was wrong. [${JIRA_ID}]")
-        fun verifyNonFinalRoundInitialAttempt(testInfo: TestInfo) {
+        @DisplayName("$USE_CASE.6.1 (non-final round, initial attempt) if this was the initial PIN entry in the round, the app simply indicates that the PIN was wrong.  6.2/3/4. After unsuccessful PIN entry, when the user has retries left. 7. After PIN validation, when the user has a timeout, the app indicates the number of minutes the user must wait. [${JIRA_ID}]")
+        fun verifyRetriesAndTimeout(testInfo: TestInfo) {
             setUp(testInfo)
             pinScreen.enterPin("123456")
-
             assertTrue(pinScreen.pinErrorDialogNonFinalRoundInitialAttemptVisible(), "pin error is not visible")
+            pinScreen.closePinIncorrectAlertDialog()
+            pinScreen.enterPin("123456")
+            assertTrue(pinScreen.pinErrorDialogNonFinalRoundNonFinalAttemptVisible("2"), "pin error is not visible")
+            pinScreen.closePinIncorrectAlertDialog()
+            pinScreen.enterPin("123456")
+            assertTrue(pinScreen.pinErrorDialogNonFinalRoundFinalAttemptVisible(), "pin error is not visible")
+            pinScreen.closePinIncorrectAlertDialog()
+            pinScreen.enterPin("123456")
+            temporarilyBlockedScreen = TemporarilyBlockedScreen()
+            assertAll(
+                { assertTrue(temporarilyBlockedScreen.deleteWalletButtonVisible(), "Delete wallet button is not visible") },
+                { assertTrue(temporarilyBlockedScreen.forgotPinButtonVisible(), "Forgot pin button is not visible") },
+                { assertTrue(temporarilyBlockedScreen.timeoutDurationLeftVisible("57"), "Timeout duration is not visible") }
+            )
+
         }
-
-        /**
-         * 6.2/3/4. After unsuccessful PIN entry, when the user has retries left.
-         * >> Manual test: https://SSSS/jira/browse/PVW-2019
-         */
     }
-
-    /**
-     * 7. After PIN validation, when the user has a timeout, the app indicates the number of minutes the user must wait.
-     * >> Manual test: https://SSSS/jira/browse/PVW-2020
-     */
-
-    /**
-     * 8. After PIN validation, when the app is blocked.
-     * >> Manual test: https://SSSS/jira/browse/PVW-2021
-     */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.9 The app offers an entry to the ‘Forgot PIN’ flow. [${JIRA_ID}]")

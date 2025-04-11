@@ -192,6 +192,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::panic;
+
     use rstest::rstest;
 
     use super::VecAtLeastN;
@@ -246,5 +248,15 @@ mod tests {
         let vec = VecAtLeastTwoUnique::try_from(input);
 
         assert_eq!(vec.is_ok(), expected_is_ok);
+    }
+
+    #[test]
+    fn test_vec_non_empty_index() {
+        let vec = VecNonEmpty::try_from(vec![1, 2, 3]).unwrap();
+        assert_eq!(vec[0], 1);
+        assert_eq!(vec[1], 2);
+        assert_eq!(vec[2], 3);
+        let out_of_bounds = panic::catch_unwind(|| assert_eq!(vec[3], 3));
+        assert!(out_of_bounds.is_err());
     }
 }

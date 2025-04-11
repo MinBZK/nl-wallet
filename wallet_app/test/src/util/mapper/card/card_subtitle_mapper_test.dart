@@ -12,8 +12,8 @@ import '../../../mocks/wallet_mocks.dart';
 const _kSampleAttributeName = CoreMockData.attestationAttributeName;
 const _kSampleAttributeCity = CoreMockData.attestationAttributeCity;
 
-const _kSampleNameSubtitle = {'en': 'Willeke', 'nl': 'Willeke'};
-const _kSampleCitySubtitle = {'en': 'Den Haag', 'nl': 'Den Haag'};
+final _kSampleNameSubtitle = {Locale('en'): 'Willeke', Locale('nl'): 'Willeke'};
+final _kSampleCitySubtitle = {Locale('en'): 'Den Haag', Locale('nl'): 'Den Haag'};
 const _kSampleIssuer = CoreMockData.organization;
 
 void main() {

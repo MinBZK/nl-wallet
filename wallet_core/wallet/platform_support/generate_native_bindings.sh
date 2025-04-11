@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 
-if [ $# -lt 2 ]; then
-    echo "No module and native language provided"
+set -euo pipefail
+
+if [[ $# -lt 2 ]]; then
+    >&2 echo "ERROR: No native language and module provided"
+    >&2 echo "Usage: $(basename ${BASH_SOURCE[0]}) NATIVE_LANGUAGE MODULE ..."
     exit 1
 fi
 
-MODULE_NAME=$1
-NATIVE_LANGUAGE=$2
 CONFIG_FILE="uniffi.toml"
-
 SCRIPT_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
 
-cargo run --manifest-path "$SCRIPT_DIR/../../uniffi-bindgen/Cargo.toml" generate "$SCRIPT_DIR/udl/$MODULE_NAME.udl" --language "$NATIVE_LANGUAGE" --out-dir "$SCRIPT_DIR/$NATIVE_LANGUAGE" --config "$SCRIPT_DIR/$CONFIG_FILE" --no-format
+NATIVE_LANGUAGE=$1
+for MODULE in ${@:2:$#}; do
+    MODULE=${MODULE%.udl}
+    cargo run --manifest-path "$SCRIPT_DIR/../../uniffi-bindgen/Cargo.toml" generate "$SCRIPT_DIR/udl/$MODULE.udl" \
+              --language "$NATIVE_LANGUAGE" --out-dir "$SCRIPT_DIR/$NATIVE_LANGUAGE" --config "$SCRIPT_DIR/$CONFIG_FILE" --no-format
+done

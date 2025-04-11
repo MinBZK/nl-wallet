@@ -18,6 +18,7 @@ class PinScreen : MobileActions() {
     private val confirmPinErrorFatalCta = find.byText(l10n.getString("pinConfirmationErrorDialogFatalCta"))
     private val skipBiometricsCta = find.byText(l10n.getString("setupBiometricsPageSkipCta"))
     private val closeAlertDialogButton = find.byText(l10n.getString("generalOkCta"))
+    private val closeIncorrectPinAlertDialogButton = find.byText(l10n.getString("pinErrorDialogCloseCta"))
 
     private val pinValidationErrorTooFewUniqueDigits =
         find.byText(l10n.getString("pinValidationErrorDialogTooFewUniqueDigitsError"))
@@ -33,6 +34,8 @@ class PinScreen : MobileActions() {
 
     private val pinErrorDialogNonFinalRoundInitialAttempt =
         find.byText(l10n.getString("pinErrorDialogNonFinalRoundInitialAttempt"))
+    private val pinErrorDialogNonFinalRoundFinalAttempt =
+        find.byText(l10n.getString("pinErrorDialogNonFinalRoundFinalAttempt"))
 
     fun pinScreenVisible() = isElementVisible(pinScreen)
 
@@ -86,4 +89,14 @@ class PinScreen : MobileActions() {
     }
 
     fun closeAlertDialog() = clickElement(closeAlertDialogButton)
+
+    fun closePinIncorrectAlertDialog() = clickElement(closeIncorrectPinAlertDialogButton)
+
+    fun pinErrorDialogNonFinalRoundNonFinalAttemptVisible(retriesLeft: String): Boolean {
+        val selector = l10n.getString("pinErrorDialogNonFinalRoundNonFinalAttempt").replace("{count}", retriesLeft)
+        val element = find.byText(selector)
+        return isElementVisible(element);
+    }
+
+    fun pinErrorDialogNonFinalRoundFinalAttemptVisible() = isElementVisible(pinErrorDialogNonFinalRoundFinalAttempt)
 }

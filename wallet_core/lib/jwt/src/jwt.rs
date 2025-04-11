@@ -49,6 +49,7 @@ use crate::error::JwtX5cError;
 /// explicitly as a field in the (de)serialized type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Jwt<T>(pub String, PhantomData<T>);
+
 impl<T, S: Into<String>> From<S> for Jwt<T> {
     fn from(val: S) -> Self {
         Jwt(val.into(), PhantomData)
@@ -64,6 +65,7 @@ impl<T> FromStr for Jwt<T> {
 }
 
 /// A verified JWS, along with its header and payload.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifiedJwt<T> {
     header: Header,
     payload: T,
@@ -83,9 +85,11 @@ where
     pub fn header(&self) -> &Header {
         &self.header
     }
+
     pub fn payload(&self) -> &T {
         &self.payload
     }
+
     pub fn jwt(&self) -> &Jwt<T> {
         &self.jwt
     }
@@ -245,6 +249,16 @@ where
     }
 }
 
+impl<T> VerifiedJwt<T>
+where
+    T: Serialize + DeserializeOwned,
+{
+    pub async fn sign(payload: T, header: Header, privkey: &impl EcdsaKey) -> Result<VerifiedJwt<T>> {
+        let jwt = Jwt::sign(&payload, &header, privkey).await?;
+        Ok(VerifiedJwt { header, payload, jwt })
+    }
+}
+
 impl<T> Jwt<T>
 where
     T: Serialize,
@@ -265,7 +279,7 @@ where
 
     /// Bulk-sign the keys and JWT payloads into JWTs.
     pub async fn sign_bulk<K: CredentialEcdsaKey>(
-        keys_and_messages: Vec<(K, (T, jsonwebtoken::Header))>,
+        keys_and_messages: Vec<(K, (T, Header))>,
         key_factory: &impl KeyFactory<Key = K>,
     ) -> Result<Vec<(K, Jwt<T>)>, JwtError> {
         let (keys, to_sign): (Vec<_>, Vec<_>) = keys_and_messages.into_iter().unzip();
@@ -321,7 +335,7 @@ where
         let jwt = Jwt::sign(
             payload,
             &Header {
-                alg: jsonwebtoken::Algorithm::ES256,
+                alg: Algorithm::ES256,
                 x5c: Some(certs),
                 ..Default::default()
             },
@@ -770,7 +784,7 @@ mod tests {
         let jwt = Jwt::sign(
             &payload,
             &Header {
-                alg: jsonwebtoken::Algorithm::ES256,
+                alg: Algorithm::ES256,
                 x5c: Some(certs),
                 ..Default::default()
             },
