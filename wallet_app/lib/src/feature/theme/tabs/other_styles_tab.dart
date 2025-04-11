@@ -11,6 +11,7 @@ import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
 import '../../../theme/dark_wallet_theme.dart';
 import '../../../theme/light_wallet_theme.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../card/data/widget/data_privacy_banner.dart';
@@ -531,9 +532,14 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'PinField'),
         const PinFieldDemo(),
         const ThemeSectionSubHeader(title: 'BulletList'),
-        const BulletList(
+        BulletList(
           items: ['Item 1', 'Item 2', 'Item 3'],
-          icon: Icons.ac_unit_outlined,
+          icon: Icon(
+            Icons.check,
+            color: context.colorScheme.primary,
+            size: 18,
+          ),
+          rowPadding: const EdgeInsets.symmetric(vertical: 4),
         ),
         const ThemeSectionSubHeader(title: 'NumberedList'),
         const NumberedList(

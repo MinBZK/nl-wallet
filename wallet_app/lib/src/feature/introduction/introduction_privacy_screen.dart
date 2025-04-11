@@ -50,6 +50,12 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                       children: [
                         BulletList(
                           items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
+                          icon: Icon(
+                            Icons.check,
+                            color: context.colorScheme.primary,
+                            size: 18,
+                          ),
+                          rowPadding: EdgeInsets.symmetric(vertical: 4),
                         ),
                       ],
                     ),
