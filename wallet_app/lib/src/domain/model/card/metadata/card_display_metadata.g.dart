@@ -10,6 +10,7 @@ CardDisplayMetadata _$CardDisplayMetadataFromJson(Map<String, dynamic> json) => 
       language: const LocaleConverter().fromJson(json['language'] as String),
       name: json['name'] as String,
       description: json['description'] as String?,
+      rawSummary: json['rawSummary'] as String?,
       rendering: _$JsonConverterFromJson<Map<String, dynamic>, CardRendering>(
           json['rendering'], const CardRenderingConverter().fromJson),
     );
@@ -18,6 +19,7 @@ Map<String, dynamic> _$CardDisplayMetadataToJson(CardDisplayMetadata instance) =
       'language': const LocaleConverter().toJson(instance.language),
       'name': instance.name,
       'description': instance.description,
+      'rawSummary': instance.rawSummary,
       'rendering': _$JsonConverterToJson<Map<String, dynamic>, CardRendering>(
           instance.rendering, const CardRenderingConverter().toJson),
     };

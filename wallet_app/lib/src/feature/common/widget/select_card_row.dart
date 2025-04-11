@@ -44,7 +44,7 @@ class SelectCardRow extends StatelessWidget {
                     children: [
                       Text(card.title.l10nValue(context), style: context.textTheme.titleMedium),
                       Text(
-                        card.description.l10nValue(context),
+                        card.summary.l10nValue(context),
                         style: context.textTheme.bodyLarge,
                       ),
                     ],

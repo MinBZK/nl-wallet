@@ -14,14 +14,21 @@ class CardDisplayMetadata extends Equatable {
   final Locale language;
   final String name;
   final String? description;
+  final String? rawSummary;
   final CardRendering? rendering;
 
-  const CardDisplayMetadata({required this.language, required this.name, this.description, this.rendering});
+  const CardDisplayMetadata({
+    required this.language,
+    required this.name,
+    this.description,
+    this.rawSummary,
+    this.rendering,
+  });
 
   factory CardDisplayMetadata.fromJson(Map<String, dynamic> json) => _$CardDisplayMetadataFromJson(json);
 
   Map<String, dynamic> toJson() => _$CardDisplayMetadataToJson(this);
 
   @override
-  List<Object?> get props => [language, name, description, rendering];
+  List<Object?> get props => [language, name, description, rawSummary, rendering];
 }

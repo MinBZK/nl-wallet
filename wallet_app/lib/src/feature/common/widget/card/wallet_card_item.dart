@@ -3,12 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../../../../../environment.dart';
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/card/card_front.dart';
 import '../../../../domain/model/card/metadata/card_rendering.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../theme/base_wallet_theme.dart';
-import '../../../../theme/dark_wallet_theme.dart';
-import '../../../../theme/light_wallet_theme.dart';
 import '../../../../theme/wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/locale_extension.dart';
@@ -24,13 +21,14 @@ import 'bottom_clip_shadow.dart';
 import 'card_logo.dart';
 import 'card_network_logo.dart';
 import 'mock_card_background.dart';
+import 'mock_card_holograph.dart';
 import 'show_details_cta.dart';
 
 // Fallback colors used when the issuer does not supply (both) a text and background color.
 // The reason we fall back to these colors even if only one of them is missing is to guarantee
 // sufficient contrast between the text- and background color.
-Color _kFallbackBgColor = const Color(0xFFEEEFF7);
-Color _kFallbackTextColor = const Color(0xFF152A62);
+const Color _kFallbackBgColor = Color(0xFFEEEFF7);
+const Color _kFallbackTextColor = Color(0xFF152A62);
 
 // Default card size constraints, configured so the card can expand vertically.
 const _kCardSizeConstraints = BoxConstraints(maxWidth: 328, minHeight: 192);
@@ -49,6 +47,9 @@ class WalletCardItem extends StatefulWidget {
 
   // The background, rendered behind the card's content
   final Widget? background;
+
+  // The holograph, rendered on the right side between the background and content
+  final Widget? holograph;
 
   // The textColor, used for the title, description and cta
   final Color? textColor;
@@ -73,6 +74,7 @@ class WalletCardItem extends StatefulWidget {
     this.subtitle,
     this.logo,
     this.background,
+    this.holograph,
     this.textColor,
     this.onPressed,
     this.showText = true,
@@ -92,13 +94,13 @@ class WalletCardItem extends StatefulWidget {
   }) {
     return WalletCardItem(
       title: card.title.l10nValue(context),
-      // subtitle is to be replaced: PVW-4125
-      subtitle: card.description.l10nValue(context),
+      subtitle: card.summary.l10nValue(context),
       background: card.getL10nBackground(context),
       logo: card.getL10nLogo(context),
       textColor: card.getL10nTextColor(context),
       onPressed: onPressed,
       ctaAnimation: ctaAnimation,
+      holograph: MockCardHolograph(docType: card.docType),
       scaleText: scaleText,
       showText: showText,
       key: key,
@@ -224,14 +226,10 @@ class _WalletCardItemState extends State<WalletCardItem> {
                 child: MergeSemantics(
                   child: Stack(
                     children: [
-                      Positioned.fill(
-                        child: _buildBackground(),
-                      ),
+                      Positioned.fill(child: _buildBackground()),
                       _buildContent(context),
                       _buildPositionedShowDetailsCta(context),
-                      Positioned.fill(
-                        child: _buildRippleAndFocus(context),
-                      ),
+                      Positioned.fill(child: _buildRippleAndFocus(context)),
                     ],
                   ),
                 ),
@@ -244,9 +242,12 @@ class _WalletCardItemState extends State<WalletCardItem> {
   }
 
   Widget _buildBackground() {
+    const fallBackBackground = DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
     return Stack(
+      fit: StackFit.expand,
       children: [
-        Positioned.fill(child: widget.background ?? const SizedBox.shrink()),
+        widget.background ?? fallBackBackground,
+        if (widget.holograph != null) Positioned(bottom: 24, right: 24, child: widget.holograph!),
         // Draw a subtle shadow overlay (3d effect) at the bottom.
         BottomClipShadow(radius: _kCardBorderRadius.bottomLeft.x),
       ],
@@ -338,59 +339,62 @@ class _WalletCardItemState extends State<WalletCardItem> {
 /// based on that when it's available & a mock build.
 extension WalletCardRenderExtension on WalletCard {
   CardRendering? getL10nRendering(BuildContext context) {
-    return metadata.firstWhereOrNull((metadata) {
-      return metadata.language.matchesCurrentLanguage(context) && metadata.rendering != null;
-    })?.rendering;
-  }
-
-  Widget getL10nBackground(BuildContext context) {
-    if (front != null) {
-      assert(Environment.mockRepositories || Environment.isTest, 'Front should only be used in mock or test builds');
-      return FittedBox(fit: BoxFit.cover, child: MockCardBackground(front: front!));
-    }
-    final rendering = getL10nRendering(context);
-    switch (rendering) {
-      case null:
-        return DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
-      case SimpleCardRendering():
-        final bgColor = rendering.bgColor.takeIf((_) => rendering.bgColor != null) ?? _kFallbackBgColor;
-        return DecoratedBox(decoration: BoxDecoration(color: bgColor));
-    }
-  }
-
-  Widget? getL10nLogo(BuildContext context) {
-    if (front?.logoImage != null) {
-      assert(Environment.mockRepositories || Environment.isTest, 'Front should only be used in mock or test builds');
-      return CardLogo(logo: front!.logoImage!);
-    }
-
-    final rendering = getL10nRendering(context);
-    switch (rendering) {
-      case null:
-        return null;
-      case SimpleCardRendering():
-        if (rendering.logoUri == null) return null;
-        return CardNetworkLogo(uri: rendering.logoUri!, altText: rendering.logoAltText);
-    }
+    // Find an exact locale match
+    final matchingLocale = metadata.firstWhereOrNull(
+      (metadata) {
+        return metadata.language.matchesCurrentLocale(context) && metadata.rendering != null;
+      },
+    )?.rendering;
+    if (matchingLocale != null) return matchingLocale;
+    // Fall back on a language match
+    final matchingLanguage = metadata.firstWhereOrNull(
+      (metadata) {
+        return metadata.language.matchesCurrentLanguage(context) && metadata.rendering != null;
+      },
+    )?.rendering;
+    if (matchingLanguage != null) return matchingLanguage;
+    // Fall back on the first specified rendering
+    return metadata.firstOrNull?.rendering;
   }
 
   Color getL10nTextColor(BuildContext context) {
-    if (front != null) {
-      assert(Environment.mockRepositories || Environment.isTest, 'Front should only be used in mock or test builds');
-      switch (front!.theme) {
-        case CardFrontTheme.light:
-          return LightWalletTheme.textColor;
-        case CardFrontTheme.dark:
-          return DarkWalletTheme.textColor;
-      }
-    }
-
     final rendering = getL10nRendering(context);
     switch (rendering) {
       case null:
         return _kFallbackTextColor;
       case SimpleCardRendering():
-        return rendering.textColor.takeIf((_) => rendering.bgColor != null) ?? _kFallbackTextColor;
+        return rendering.textColor
+                .takeIf((_) => rendering.bgColor != null /* guarantee contrast */ || Environment.isMockOrTest) ??
+            _kFallbackTextColor;
+    }
+  }
+
+  Widget getL10nBackground(BuildContext context) {
+    if (Environment.mockRepositories) return MockCardBackground(docType: docType);
+    final rendering = getL10nRendering(context);
+    switch (rendering) {
+      case null:
+        return DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
+      case SimpleCardRendering():
+        final bgColor = rendering.bgColor
+                .takeIf((_) => rendering.textColor != null /* guarantee contrast */ || Environment.isMockOrTest) ??
+            _kFallbackBgColor;
+        return DecoratedBox(decoration: BoxDecoration(color: bgColor));
+    }
+  }
+
+  Widget? getL10nLogo(BuildContext context) {
+    final rendering = getL10nRendering(context);
+    if (rendering == null) return null;
+
+    switch (rendering) {
+      case SimpleCardRendering():
+        final logoUri = rendering.logoUri;
+        if (logoUri == null) return null;
+        if (Environment.isMockOrTest && logoUri.startsWith('assets/')) {
+          return CardLogo(logo: logoUri, altText: rendering.logoAltText);
+        }
+        return CardNetworkLogo(uri: logoUri, altText: rendering.logoAltText);
     }
   }
 }

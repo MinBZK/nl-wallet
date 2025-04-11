@@ -2,13 +2,16 @@ import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 import 'app_image_data.dart';
-import 'attribute/converter/localized_string_converter.dart';
+import 'attribute/converter/localized_text_converter.dart';
 import 'converter/app_image_data_converter.dart';
 import 'localized_text.dart';
 
 part 'organization.g.dart';
 
-@JsonSerializable(converters: [LocalizedStringConverter(), AppImageDataConverter()], explicitToJson: true)
+@JsonSerializable(
+  converters: [AppImageDataConverter(), LocalizedTextConverter()],
+  explicitToJson: true,
+)
 class Organization extends Equatable {
   final String id;
   final LocalizedText legalName;

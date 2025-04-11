@@ -5,9 +5,11 @@ const kLogoHeight = 40.0;
 
 class CardLogo extends StatelessWidget {
   final String logo;
+  final String? altText;
 
   const CardLogo({
     required this.logo,
+    this.altText,
     super.key,
   });
 
@@ -15,7 +17,11 @@ class CardLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(kLogoBorderRadius),
-      child: Image.asset(logo, height: kLogoHeight),
+      child: Image.asset(
+        logo,
+        height: kLogoHeight,
+        semanticLabel: altText,
+      ),
     );
   }
 }

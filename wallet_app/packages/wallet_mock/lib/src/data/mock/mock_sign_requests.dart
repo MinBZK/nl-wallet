@@ -24,9 +24,9 @@ final kRentalRequest = SignRequest(
     url: 'path/to/sample.pdf',
   ),
   requestedAttributes: [
-    RequestedAttribute(key: 'mock.firstNames', label: 'Voornamen'),
-    RequestedAttribute(key: 'mock.lastName', label: 'Achternaam'),
-    RequestedAttribute(key: 'mock.birthDate', label: 'Geboortedatum'),
+    RequestedAttribute(key: 'mock_firstNames', label: 'Voornamen'),
+    RequestedAttribute(key: 'mock_lastName', label: 'Achternaam'),
+    RequestedAttribute(key: 'mock_birthDate', label: 'Geboortedatum'),
   ],
   policy: RequestPolicy(
     dataDeletionPossible: false,

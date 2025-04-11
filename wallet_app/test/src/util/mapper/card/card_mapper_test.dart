@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/card_config.dart';
-import 'package:wallet/src/domain/model/card/card_front.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/organization.dart';
@@ -28,7 +27,6 @@ const _kSampleCard = core.Attestation(
 );
 
 void main() {
-  late Mapper<core.Attestation, CardFront> mockCardFrontMapper;
   late Mapper<CardAttributeWithDocType, DataAttribute> mockCardAttributeMapper;
   late Mapper<String, CardConfig> mockCardConfigMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
@@ -39,14 +37,12 @@ void main() {
   setUp(() {
     provideDummy<CardConfig>(const CardConfig());
 
-    mockCardFrontMapper = MockMapper();
     mockCardAttributeMapper = MockMapper();
     mockCardConfigMapper = MockMapper();
     mockOrganizationMapper = MockMapper();
     mockDisplayMetadataMapper = MockMapper();
 
     mapper = CardMapper(
-      mockCardFrontMapper,
       mockCardConfigMapper,
       mockCardAttributeMapper,
       mockOrganizationMapper,
@@ -79,12 +75,6 @@ void main() {
           _kSampleCard.attributes.map((e) => CardAttributeWithDocType(_kSampleCard.attestationType, e)),
         ),
       ).called(1);
-    });
-
-    test('card with `pid_id` docType should call `mockCardFrontMapper` once', () {
-      mapper.map(_kSampleCard);
-
-      verify(mockCardFrontMapper.map(_kSampleCard)).called(1);
     });
   });
 }

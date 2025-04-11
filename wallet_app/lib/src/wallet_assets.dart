@@ -2,6 +2,8 @@
 import 'package:flutter_svg/flutter_svg.dart';
 
 class WalletAssets {
+  WalletAssets._();
+
   static Future<void> preloadPidSvgs() async {
     final svgs = [
       svg_rijks_card_holo,
