@@ -42,7 +42,7 @@ mockall::mock! {
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
 
-        pub fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError>;
+        pub fn issuers(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError>;
     }
 }
 
@@ -79,7 +79,7 @@ impl IssuanceSession for MockIssuanceSession {
     }
 
     fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError> {
-        self.issuer_registrations()
+        self.issuers()
     }
 }
 

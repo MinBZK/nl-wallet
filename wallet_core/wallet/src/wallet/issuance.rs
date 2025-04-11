@@ -537,6 +537,14 @@ mod tests {
 
     fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
         let mut client = MockIssuanceSession::new();
+        let issuer_certificate = mdoc.issuer_certificate().unwrap();
+        client.expect_issuers().return_once(move || {
+            Ok(match IssuerRegistration::from_certificate(&issuer_certificate) {
+                Ok(Some(registration)) => vec![registration],
+                _ => vec![],
+            })
+        });
+
         client.expect_accept().return_once(|| {
             Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
                 .try_into()
@@ -683,6 +691,7 @@ mod tests {
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
             client.expect_reject().return_once(|| Ok(()));
+            client.expect_issuers().return_once(|| Ok(vec![]));
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -883,6 +892,9 @@ mod tests {
             client
                 .expect_reject()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
+
+            client.expect_issuers().return_once(|| Ok(vec![]));
+
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -893,7 +905,13 @@ mod tests {
             .await
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
-        assert_matches!(error, PidIssuanceError::IssuanceSession { .. });
+        assert_matches!(
+            error,
+            PidIssuanceError::IssuerServer {
+                error: IssuanceSessionError::MissingNonce,
+                ..
+            }
+        );
     }
 
     const PIN: &str = "051097";
@@ -1052,6 +1070,9 @@ mod tests {
             client
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
+
+            client.expect_issuers().return_once(|| Ok(vec![]));
+
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -1131,6 +1152,9 @@ mod tests {
             client
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
+
+            client.expect_issuers().return_once(|| Ok(vec![]));
+
             client
         };
         wallet.issuance_session = Some(PidIssuanceSession::Openid4vci(pid_issuer));
@@ -1141,7 +1165,13 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, PidIssuanceError::IssuanceSession { .. });
+        assert_matches!(
+            error,
+            PidIssuanceError::IssuerServer {
+                error: IssuanceSessionError::MissingNonce,
+                ..
+            }
+        );
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
