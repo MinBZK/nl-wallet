@@ -23,9 +23,10 @@ representation:
         order of claims can be fully overridden by an extending document.
     -   The `display` property of a claim is merged according to the same rules
         as the `display` property of the metadata document itself, see above.
-    -   The `sd` property can only ever be changed by the extending document by
-        becoming more restrictive, i.e. a values of `always` can be changed to
-        either `never` or `always`. Any other change constitutes an error.
+    -   The `sd` property can only ever be changed if the extended value is
+        `allowed` (which is the default). Once this has been changed to `always`
+        or `never`, this constitutes an end state for that property and it can
+        no longer be changed.
     -   The `svg_id` of the extending document takes presence. This means that,
         if an extended document has `svg_id` set, but the extending document
         does not, normalization will effectively remove it.
