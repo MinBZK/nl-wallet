@@ -22,7 +22,7 @@ class CardSubtitleMapper extends Mapper<core.Attestation, LocalizedText?> {
           (_, locale) {
             final attributeValue = _attributeValueMapper.map(nameAttribute.value);
             final formattedValue = AttributeValueFormatter.formatWithLocale(locale, attributeValue);
-            return MapEntry(locale.languageCode, formattedValue);
+            return MapEntry(locale, formattedValue);
           },
         );
       case core.kAddressDocType:
@@ -33,7 +33,7 @@ class CardSubtitleMapper extends Mapper<core.Attestation, LocalizedText?> {
           (_, locale) {
             final attributeValue = _attributeValueMapper.map(cityAttribute.value);
             final formattedValue = AttributeValueFormatter.formatWithLocale(locale, attributeValue);
-            return MapEntry(locale.languageCode, formattedValue);
+            return MapEntry(locale, formattedValue);
           },
         );
       default:

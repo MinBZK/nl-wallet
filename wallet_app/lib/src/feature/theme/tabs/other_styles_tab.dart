@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/card/card_front.dart';
+import '../../../domain/model/card/metadata/card_display_metadata.dart';
+import '../../../domain/model/card/metadata/card_rendering.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../theme/dark_wallet_theme.dart';
+import '../../../theme/light_wallet_theme.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../card/data/widget/data_privacy_banner.dart';
@@ -54,25 +57,31 @@ import '../theme_screen.dart';
 
 const _kMockPurpose = 'Kaart uitgifte';
 const _kMockUrl = 'https://www.example.org';
-const _kMockOtherKey = 'mock.other';
+const _kMockOtherKey = 'mock_other';
 
-final _kSampleCardFront = CardFront(
-  title: 'Sample Card'.untranslated,
-  backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
-  theme: CardFrontTheme.dark,
-  info: 'Info'.untranslated,
-  logoImage: WalletAssets.illustration_digid_failure,
-  subtitle: 'Subtitle'.untranslated,
-);
+final _kSampleCardMetaData = [
+  CardDisplayMetadata(
+    language: Locale('en'),
+    name: 'Sample Card',
+    rawSummary: 'Subtitle',
+    rendering: SimpleCardRendering(
+      logoUri: WalletAssets.illustration_digid_failure,
+      textColor: DarkWalletTheme.textColor,
+    ),
+  ),
+];
 
-final _kAltSampleCardFront = CardFront(
-  title: 'Alt Sample Card'.untranslated,
-  backgroundImage: WalletAssets.svg_rijks_card_bg_light,
-  theme: CardFrontTheme.light,
-  info: 'Alt Info'.untranslated,
-  logoImage: WalletAssets.logo_card_rijksoverheid,
-  subtitle: 'Alt Subtitle'.untranslated,
-);
+final _kAltSampleCardMetaData = [
+  CardDisplayMetadata(
+    language: Locale('en'),
+    name: 'Alt Sample Card',
+    rawSummary: 'Alt Subtitle',
+    rendering: SimpleCardRendering(
+      logoUri: WalletAssets.logo_card_rijksoverheid,
+      textColor: LightWalletTheme.textColor,
+    ),
+  ),
+];
 
 final _kSampleAttributes = [
   DataAttribute(
@@ -92,7 +101,7 @@ final _kSampleAttributes = [
 final _kSampleCard = WalletCard(
   id: 'id',
   docType: 'docType',
-  front: _kSampleCardFront,
+  metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
 );
@@ -100,7 +109,7 @@ final _kSampleCard = WalletCard(
 final _kAltSampleCard = WalletCard(
   id: 'alt_id',
   docType: 'alt_docType',
-  front: _kAltSampleCardFront,
+  metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
 );
@@ -408,7 +417,7 @@ class OtherStylesTab extends StatelessWidget {
               WalletCard(
                 id: 'id',
                 docType: 'docType',
-                front: _kSampleCardFront,
+                metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
               ),
@@ -435,7 +444,7 @@ class OtherStylesTab extends StatelessWidget {
               WalletCard(
                 id: 'id',
                 docType: 'docType',
-                front: _kSampleCardFront,
+                metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
               ),
@@ -496,7 +505,7 @@ class OtherStylesTab extends StatelessWidget {
           card: WalletCard(
             id: 'row_id',
             docType: 'docType',
-            front: _kSampleCardFront,
+            metadata: _kSampleCardMetaData,
             attributes: const [],
             issuer: _kSampleOrganization,
           ),

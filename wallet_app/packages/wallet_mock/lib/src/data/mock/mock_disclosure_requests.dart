@@ -16,10 +16,10 @@ const _kCreateMonkeyBikeAccount = 'CREATE_MB_ACCOUNT';
 const _kPharmacy = 'PHARMACY';
 const _kAmsterdamLoginId = 'AMSTERDAM_LOGIN';
 
-const _kMockBirthDateKey = 'mock.birthDate';
-const _kMockStreetNameKey = 'mock.streetName';
-const _kMockPostalCodeKey = 'mock.postalCode';
-const _kMockHouseNumberKey = 'mock.houseNumber';
+const _kMockBirthDateKey = 'mock_birthDate';
+const _kMockStreetNameKey = 'mock_streetName';
+const _kMockPostalCodeKey = 'mock_postalCode';
+const _kMockHouseNumberKey = 'mock_houseNumber';
 const _kMockUrl = 'https://www.example.org';
 
 final List<DisclosureRequest> kDisclosureRequests = [
@@ -106,33 +106,33 @@ final List<DisclosureRequest> kDisclosureRequests = [
 final _kFirstAndLastNameRequest = [
   RequestedAttribute(
     label: 'Voornamen',
-    key: 'mock.firstNames',
+    key: 'mock_firstNames',
   ),
   RequestedAttribute(
     label: 'Achternaam',
-    key: 'mock.lastName',
+    key: 'mock_lastName',
   ),
 ];
 
 final _kCitizenshipNumberRequest = [
   RequestedAttribute(
     label: 'Burger­service­nummer',
-    key: 'mock.citizenshipNumber',
+    key: 'mock_citizenshipNumber',
   ),
 ];
 
 final _kJobApplicationRequestedAttributes = [
   RequestedAttribute(
     label: 'Opleidingsnaam',
-    key: 'mock.education',
+    key: 'mock_education',
   ),
   RequestedAttribute(
     label: 'Onderwijsinstelling',
-    key: 'mock.university',
+    key: 'mock_university',
   ),
   RequestedAttribute(
     label: 'Niveau',
-    key: 'mock.educationLevel',
+    key: 'mock_educationLevel',
   ),
 ];
 
@@ -159,11 +159,11 @@ final _kMarketplaceLoginRequestedAttributes = [
 final _kBarRequestedAttributes = [
   RequestedAttribute(
     label: 'Pasfoto',
-    key: 'mock.profilePhoto',
+    key: 'mock_profilePhoto',
   ),
   RequestedAttribute(
     label: 'Ouder dan 18',
-    key: 'mock.olderThan18',
+    key: 'mock_olderThan18',
   ),
 ];
 
@@ -175,19 +175,19 @@ final _kCarRentalRequestedAttributes = [
   ),
   RequestedAttribute(
     label: 'Rijbewijscategorieën',
-    key: 'mock.drivingLicenseCategories',
+    key: 'mock_drivingLicenseCategories',
   ),
 ];
 
 final _kFirstAidRequestedAttributes = [
   RequestedAttribute(
     label: 'Pasfoto',
-    key: 'mock.profilePhoto',
+    key: 'mock_profilePhoto',
   ),
   ..._kFirstAndLastNameRequest,
   RequestedAttribute(
     label: 'Geslacht',
-    key: 'mock.gender',
+    key: 'mock_gender',
   ),
   RequestedAttribute(
     label: 'Geboortedatum',
@@ -195,19 +195,19 @@ final _kFirstAidRequestedAttributes = [
   ),
   RequestedAttribute(
     label: 'Klantnummer',
-    key: 'mock.healthIssuerClientId',
+    key: 'mock_healthIssuerClientId',
   ),
   RequestedAttribute(
     label: 'Kaartnummer',
-    key: 'mock.documentNr',
+    key: 'mock_documentNr',
   ),
   RequestedAttribute(
     label: 'UZOVI',
-    key: 'mock.healthIssuerId',
+    key: 'mock_healthIssuerId',
   ),
   RequestedAttribute(
     label: 'Verloopdatum',
-    key: 'mock.healthInsuranceExpiryDate',
+    key: 'mock_healthInsuranceExpiryDate',
   ),
 ];
 
@@ -226,7 +226,7 @@ final _kPharmacyRequestedAttributes = [
 final _kParkingPermitRequestedAttributes = [
   RequestedAttribute(
     label: 'Achternaam',
-    key: 'mock.lastName',
+    key: 'mock_lastName',
   ),
   RequestedAttribute(
     label: 'Postcode',
@@ -287,7 +287,7 @@ final _kCreateMbAccountRequestedAttributes = [
   ),
   RequestedAttribute(
     label: 'Woonplaats',
-    key: 'mock.city',
+    key: 'mock_city',
   ),
 ];
 

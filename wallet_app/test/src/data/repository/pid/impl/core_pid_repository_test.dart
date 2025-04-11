@@ -7,9 +7,7 @@ import 'package:wallet/src/util/mapper/card/attribute/card_attribute_value_mappe
 import 'package:wallet/src/util/mapper/card/attribute/claim_display_metadata_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/localized_labels_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_config_mapper.dart';
-import 'package:wallet/src/util/mapper/card/card_front_mapper.dart';
 import 'package:wallet/src/util/mapper/card/card_mapper.dart';
-import 'package:wallet/src/util/mapper/card/card_subtitle_mapper.dart';
 import 'package:wallet/src/util/mapper/card/metadata_mapper.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
@@ -27,7 +25,6 @@ void main() {
   setUp(() {
     core = Mocks.create();
     cardMapper = CardMapper(
-      CardFrontMapper(CardSubtitleMapper(CardAttributeValueMapper())),
       CardConfigMapper(),
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
