@@ -161,7 +161,7 @@ pub async fn setup_wallet_and_env(
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
     issuer_settings: PidIssuerSettings,
-    (issuance_server_settings, attributes_fetcher): (IssuanceServerSettings, Vec<IssuableDocument>),
+    (issuance_server_settings, issuable_documents): (IssuanceServerSettings, Vec<IssuableDocument>),
 ) -> (WalletWithMocks, WalletUrls, BaseUrl) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
@@ -207,7 +207,7 @@ pub async fn setup_wallet_and_env(
 
     let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
     let pid_issuer_port = start_pid_issuer_server(issuer_settings, Some(hsm.clone()), MockAttributeService).await;
-    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), attributes_fetcher).await;
+    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), issuable_documents).await;
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();

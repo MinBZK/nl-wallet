@@ -100,6 +100,7 @@ pub enum AttributesFetcherError {
     AttestationsDeserializing(#[from] serde_json::Error),
 }
 
+/// Represents types that can take disclosed attributes and respond with attestations to be issued.
 #[trait_variant::make(Send)]
 pub trait AttributesFetcher {
     async fn attributes(
@@ -140,6 +141,8 @@ impl AttributesFetcher for HttpAttributesFetcher {
     }
 }
 
+/// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
+/// by implementing [`DisclosureResultHandler`].
 pub struct IssuanceResultHandler<IS, A> {
     pub attributes_fetcher: A,
     pub issuance_sessions: Arc<IS>,
@@ -170,6 +173,8 @@ where
             .await
             .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
 
+        // Return a specific error code if there are no attestations to be issued so the wallet
+        // can distinguish this case from other (error) cases.
         let to_issue: VecNonEmpty<_> = to_issue
             .try_into()
             .map_err(|_| DisclosureResultHandlerError::WalletError(PostAuthResponseError::NoIssuableAttestations))?;
@@ -179,6 +184,7 @@ where
             .map(|attestation| attestation.attestation_type().to_string())
             .collect();
 
+        // Start a new issuance session.
         let token = SessionToken::new_random();
         let session = SessionState::new(
             token.clone(),
@@ -186,7 +192,6 @@ where
                 issuable_documents: Some(to_issue),
             }),
         );
-
         self.issuance_sessions
             .write(session, true)
             .await
@@ -196,11 +201,7 @@ where
             credential_issuer: self.credential_issuer.clone(),
             credential_configuration_ids,
             grants: Some(Grants::PreAuthorizedCode {
-                pre_authorized_code: GrantPreAuthorizedCode {
-                    pre_authorized_code: token.as_ref().clone().into(),
-                    tx_code: None,
-                    authorization_server: None,
-                },
+                pre_authorized_code: GrantPreAuthorizedCode::new(token.as_ref().clone().into()),
             }),
         };
 
@@ -210,7 +211,6 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-
     use indexmap::IndexMap;
 
     use mdoc::verifier::DocumentDisclosedAttributes;
@@ -285,7 +285,8 @@ mod tests {
             _usecase_id: &str,
             disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
         ) -> Result<Vec<IssuableDocument>, AttributesFetcherError> {
-            // Insert the received attribute type into the issuable document so the caller can see we did our job
+            // Insert the received attribute type into the issuable document to demonstrate that the
+            // issued attributes can depend on the disclosed attributes.
             let (attestation_type, _) = disclosed.first().unwrap();
 
             Ok(vec![IssuableDocument::try_new(
@@ -331,7 +332,7 @@ mod tests {
             .unwrap()
             .data
         else {
-            panic!("session in unexpected state")
+            panic!("session absent or in unexpected state")
         };
 
         // The session should contain an issuable attestation with our earlier disclosed attestation type.

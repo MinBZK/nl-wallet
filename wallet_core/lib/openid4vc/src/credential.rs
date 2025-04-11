@@ -247,6 +247,16 @@ pub struct GrantPreAuthorizedCode {
     pub authorization_server: Option<BaseUrl>,
 }
 
+impl GrantPreAuthorizedCode {
+    pub fn new(pre_authorized_code: AuthorizationCode) -> Self {
+        Self {
+            pre_authorized_code,
+            tx_code: None,
+            authorization_server: None,
+        }
+    }
+}
+
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PreAuthTransactionCode {

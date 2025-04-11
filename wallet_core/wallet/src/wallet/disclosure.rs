@@ -61,7 +61,7 @@ pub struct DisclosureProposal {
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
     pub disclosure_type: DisclosureType,
-    pub disclosure_result: RedirectUriPurpose,
+    pub purpose: RedirectUriPurpose,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -243,7 +243,7 @@ where
 
         let config = &self.config_repository.get().disclosure;
 
-        let (disclosure_result, base_url) = RedirectUriPurpose::from_uri(uri)?;
+        let (purpose, base_url) = RedirectUriPurpose::from_uri(uri)?;
         let disclosure_uri = MDS::parse_url(uri, &base_url).map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the parsed disclosure URI.
@@ -276,7 +276,7 @@ where
                 // Store the session so that it will only be terminated on user interaction.
                 // This prevents gleaning of missing attributes by a verifier.
                 self.disclosure_session
-                    .replace(WalletDisclosureSession::new(disclosure_result, session));
+                    .replace(WalletDisclosureSession::new(purpose, session));
 
                 return Err(DisclosureError::AttributesNotAvailable {
                     reader_registration,
@@ -319,12 +319,12 @@ where
             shared_data_with_relying_party_before,
             session_type: session.session_type(),
             disclosure_type,
-            disclosure_result,
+            purpose,
         };
 
         // Retain the session as `Wallet` state.
         self.disclosure_session
-            .replace(WalletDisclosureSession::new(disclosure_result, session));
+            .replace(WalletDisclosureSession::new(purpose, session));
 
         Ok(proposal)
     }

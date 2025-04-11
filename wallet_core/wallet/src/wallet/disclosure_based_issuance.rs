@@ -166,11 +166,7 @@ mod tests {
                 credential_issuer: "https://issuer.example.com".parse().unwrap(),
                 credential_configuration_ids: vec![],
                 grants: Some(openid4vc::credential::Grants::PreAuthorizedCode {
-                    pre_authorized_code: GrantPreAuthorizedCode {
-                        pre_authorized_code: "123".to_string().into(),
-                        tx_code: None,
-                        authorization_server: None,
-                    },
+                    pre_authorized_code: GrantPreAuthorizedCode::new("123".to_string().into()),
                 }),
             },
         })

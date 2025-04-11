@@ -81,8 +81,8 @@ pub enum IssuanceError {
     DigidSessionStart(#[source] DigidSessionError),
     #[error("could not finish DigiD session: {0}")]
     DigidSessionFinish(#[source] DigidSessionError),
-    #[error("could not retrieve PID from issuer: {0}")]
-    PidIssuer(#[from] IssuanceSessionError),
+    #[error("could not retrieve attestations from issuer: {0}")]
+    IssuanceSession(#[from] IssuanceSessionError),
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -442,7 +442,7 @@ where
                             RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
                         }
                     }
-                    _ => IssuanceError::PidIssuer(error),
+                    _ => IssuanceError::IssuanceSession(error),
                 }
             });
 
@@ -867,7 +867,7 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, IssuanceError::PidIssuer(_));
+        assert_matches!(error, IssuanceError::IssuanceSession(_));
     }
 
     #[tokio::test]
@@ -891,7 +891,7 @@ mod tests {
             .await
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::PidIssuer(_));
+        assert_matches!(error, IssuanceError::IssuanceSession(_));
     }
 
     const PIN: &str = "051097";
@@ -1139,7 +1139,7 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::PidIssuer(_));
+        assert_matches!(error, IssuanceError::IssuanceSession(_));
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());

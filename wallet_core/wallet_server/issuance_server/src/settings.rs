@@ -4,6 +4,7 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
@@ -15,7 +16,6 @@ use issuer_settings::settings::IssuerSettingsError;
 use mdoc::utils::x509::CertificateType;
 use mdoc::verifier::ItemsRequests;
 use openid4vc::server_state::SessionStoreTimeouts;
-use rustls_pki_types::TrustAnchor;
 use server_utils::settings::verify_key_pairs;
 use server_utils::settings::KeyPair;
 use server_utils::settings::ServerSettings;
@@ -47,6 +47,9 @@ pub struct AttestationSettings {
     #[serde(flatten)]
     pub key_pair: KeyPair,
     pub to_disclose: ItemsRequests,
+
+    /// Url to which the disclosed attributes get sent and which has to respond with the attestations to be issued
+    /// (or an empty JSON array if none).
     pub attestation_url: BaseUrl,
 }
 

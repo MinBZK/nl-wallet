@@ -206,8 +206,8 @@ impl FlutterApiErrorFields for IssuanceError {
             IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
-            IssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(_))
-            | IssuanceError::PidIssuer(IssuanceSessionError::CredentialRequest(_))
+            IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(_))
+            | IssuanceError::IssuanceSession(IssuanceSessionError::CredentialRequest(_))
             | IssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(_)))
             | IssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingAccessToken(_)))
             | IssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_)))

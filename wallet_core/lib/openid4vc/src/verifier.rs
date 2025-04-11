@@ -517,6 +517,9 @@ pub enum DisclosureResultHandlerError {
     WalletError(PostAuthResponseError),
 }
 
+/// Types may implement this to receive disclosed attributes after a successful disclosure session.
+/// The return value is URL-serialized and appended to the query of the redirect URI, if present,
+/// that gets sent to the wallet.
 #[trait_variant::make(Send)]
 pub trait DisclosureResultHandler {
     async fn disclosure_result(
@@ -526,6 +529,7 @@ pub trait DisclosureResultHandler {
     ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError>;
 }
 
+/// The trivial disclosure result handler that does nothing and always returns Ok.
 #[derive(Debug)]
 pub struct NoOpDisclosureResultHandler;
 
@@ -717,15 +721,16 @@ where
                     .as_ref()
                     .get(usecase_id)
                     .ok_or(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()))?;
+                let items_requests = usecase
+                    .items_requests
+                    .as_ref()
+                    .ok_or(GetAuthRequestError::NoAttributesToRequest(usecase_id.to_string()))?
+                    .clone();
                 Session {
                     state: SessionState::new(
                         SessionToken::new_random(),
                         Created {
-                            items_requests: usecase
-                                .items_requests
-                                .as_ref()
-                                .ok_or(GetAuthRequestError::NoAttributesToRequest(usecase_id.to_string()))?
-                                .clone(),
+                            items_requests,
                             usecase_id: usecase.id.clone(),
                             client_id: usecase.client_id.clone(),
                             redirect_uri_template: usecase.return_url_template.clone(),
