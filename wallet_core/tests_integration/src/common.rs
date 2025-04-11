@@ -649,7 +649,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
         .await
         .expect("Could not create pid issuance auth url");
     let _unsigned_mdocs = wallet
-        .issuance_get_previews(redirect_url)
+        .continue_pid_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
     wallet

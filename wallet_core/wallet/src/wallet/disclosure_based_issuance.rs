@@ -72,7 +72,7 @@ where
 {
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn accept_disclosure_based_issuance(
+    pub async fn continue_disclosure_based_issuance(
         &mut self,
         pin: String,
     ) -> Result<Vec<Attestation>, DisclosureBasedIssuanceError> {
@@ -215,7 +215,7 @@ mod tests {
 
         // Accept disclosure based issuance
         let previews = wallet
-            .accept_disclosure_based_issuance(PIN.to_owned())
+            .continue_disclosure_based_issuance(PIN.to_owned())
             .await
             .expect("Accepting disclosure based issuance should not have resulted in an error");
 
@@ -245,7 +245,7 @@ mod tests {
         ));
 
         let previews = wallet
-            .accept_disclosure_based_issuance(PIN.to_owned())
+            .continue_disclosure_based_issuance(PIN.to_owned())
             .await
             .expect("Accepting disclosure based issuance should not have resulted in an error");
 
@@ -265,7 +265,7 @@ mod tests {
         ));
 
         let error = wallet
-            .accept_disclosure_based_issuance(PIN.to_owned())
+            .continue_disclosure_based_issuance(PIN.to_owned())
             .await
             .expect_err("Accepting disclosure based issuance should have resulted in an error");
 

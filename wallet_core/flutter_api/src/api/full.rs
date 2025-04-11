@@ -235,7 +235,7 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Attestatio
 
     let mut wallet = wallet().write().await;
 
-    let wallet_attestations = wallet.issuance_get_previews(url).await?;
+    let wallet_attestations = wallet.continue_pid_issuance(url).await?;
     let attestations = wallet_attestations.into_iter().map(Attestation::from).collect();
 
     Ok(attestations)

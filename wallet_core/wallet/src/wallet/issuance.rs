@@ -265,7 +265,7 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn issuance_get_previews(&mut self, redirect_uri: Url) -> Result<Vec<Attestation>, IssuanceError> {
+    pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Attestation>, IssuanceError> {
         info!("Received redirect URI, processing URI and retrieving access token");
 
         info!("Checking if blocked");
@@ -772,7 +772,7 @@ mod tests {
 
         // Continuing PID issuance should result in one preview `Document`.
         let attestations = wallet
-            .issuance_get_previews(Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect("Could not continue PID issuance");
 
@@ -789,7 +789,7 @@ mod tests {
 
         // Continuing PID issuance on a locked wallet should result in an error.
         let error = wallet
-            .issuance_get_previews(Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -803,7 +803,7 @@ mod tests {
 
         // Continuing PID issuance on an unregistered wallet should result in an error.
         let error = wallet
-            .issuance_get_previews(Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -817,7 +817,7 @@ mod tests {
 
         // Continuing PID issuance on a wallet with no active `DigidSession` should result in an error.
         let error = wallet
-            .issuance_get_previews(Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
@@ -863,7 +863,7 @@ mod tests {
 
         // Continuing PID issuance on a wallet should forward this error.
         let error = wallet
-            .issuance_get_previews(Url::parse(REDIRECT_URI).unwrap())
+            .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 

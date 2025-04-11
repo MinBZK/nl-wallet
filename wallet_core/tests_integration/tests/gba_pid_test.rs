@@ -153,7 +153,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
 
     let redirect_url = fake_digid_auth(&authorization_url, &pid_issuance_config.digid_http_config, bsn).await;
 
-    let attestations_result = wallet.issuance_get_previews(redirect_url).await;
+    let attestations_result = wallet.continue_pid_issuance(redirect_url).await;
     let attestations = match attestations_result {
         Ok(mdocs) => mdocs,
         Err(IssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(ErrorResponse {
