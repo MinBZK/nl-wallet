@@ -131,7 +131,7 @@ impl NormalizedTypeMetadata {
         self.vcts.len()
     }
 
-    pub fn leaf_vct(&self) -> &str {
+    pub fn vct(&self) -> &str {
         self.vcts.first()
     }
 
@@ -143,7 +143,7 @@ impl NormalizedTypeMetadata {
         &self.claims
     }
 
-    pub fn into_leaf_components(self) -> (String, Vec<DisplayMetadata>, Vec<ClaimMetadata>, JsonSchema) {
+    pub fn into_presentation_components(self) -> (String, Vec<DisplayMetadata>, Vec<ClaimMetadata>, JsonSchema) {
         (
             self.vcts.into_first(),
             self.display,

@@ -30,7 +30,7 @@ impl Attestation {
         issuer: Organization,
         mut nested_attributes: IndexMap<String, Attribute>,
     ) -> Result<Self, AttestationError> {
-        let (attestation_type, display_metadata, claims, schema) = metadata.into_leaf_components();
+        let (attestation_type, display_metadata, claims, schema) = metadata.into_presentation_components();
 
         // Extract the JSON Schema properties from the metadata, which has the same structure as the attributes
         // (otherwise, they wouldn't validate later on when converted to a `CredentialPayload`). The JSON Schema is used

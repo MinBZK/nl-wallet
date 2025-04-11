@@ -112,7 +112,7 @@ impl Attribute {
                 .filter_map(|path| path.try_key_path())
                 .collect::<VecDeque<_>>();
 
-            Self::traverse_attributes_by_claim(type_metadata.leaf_vct(), key_path, &mut attributes, &mut result)?;
+            Self::traverse_attributes_by_claim(type_metadata.vct(), key_path, &mut attributes, &mut result)?;
         }
 
         if !attributes.is_empty() {

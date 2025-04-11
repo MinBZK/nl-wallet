@@ -401,7 +401,7 @@ mod test {
             .into_normalized(vct)
             .expect("parsing metadata document chain should succeed");
 
-        assert_eq!(normalized.leaf_vct(), vct);
+        assert_eq!(normalized.vct(), vct);
         assert_eq!(normalized.vct_count(), source_documents.as_ref().len());
         assert_eq!(
             sorted.as_ref().iter().collect::<HashSet<_>>(),
