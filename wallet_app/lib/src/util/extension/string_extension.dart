@@ -14,7 +14,7 @@ extension StringExtension on String {
   /// Adds space to end of string (if not empty)
   String get addSpaceSuffix => isNotEmpty ? '$this ' : '';
 
-  LocalizedText get untranslated => {'': this};
+  LocalizedText get untranslated => {Locale('en'): this};
 
   AttributedString toAttributedString(BuildContext context) => AttributedString(
         this,

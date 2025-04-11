@@ -31,8 +31,8 @@ extension WalletUseCaseStreamExtension<T> on Stream<T> {
   /// Helper method for Stream exposing usecases. This method makes sure any errors exposed by
   /// the source stream are converted into [ApplicationError]s.
   Stream<T> handleAppError(String errorMessage) => handleError(
-        (error) async {
-          Fimber.e(errorMessage, ex: error);
+        (error, stack) async {
+          Fimber.e(errorMessage, ex: error, stacktrace: stack);
           if (error is CoreError) throw (await error.asApplicationError());
           throw GenericError(error.toString(), sourceError: error);
         },

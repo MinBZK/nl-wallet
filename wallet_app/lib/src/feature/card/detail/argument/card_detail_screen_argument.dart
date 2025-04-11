@@ -1,13 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '../../../../domain/model/attribute/converter/localized_string_converter.dart';
+import '../../../../domain/model/attribute/converter/localized_text_converter.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/localized_text.dart';
 
 part 'card_detail_screen_argument.g.dart';
 
-@JsonSerializable(converters: [LocalizedStringConverter()], explicitToJson: true)
+@JsonSerializable(converters: [LocalizedTextConverter()], explicitToJson: true)
 class CardDetailScreenArgument extends Equatable {
   final WalletCard? card;
   final String cardId;

@@ -1,0 +1,41 @@
+[package]
+name = "sd_jwt"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[[test]]
+name = "api_test"
+path = "tests/api_test.rs"
+required-features = ["example_sd_jwt"]
+
+[features]
+example_sd_jwt = []
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+chrono.workspace = true
+indexmap.workspace = true
+itertools.workspace = true
+jsonwebtoken.workspace = true
+json-pointer.workspace = true
+p256 = { workspace = true, features = ["default", "pem"] }
+rand.workspace = true
+serde = { workspace = true, features = ["serde_derive"] }
+serde_json.workspace = true
+serde_with = { workspace = true, features = ["base64", "chrono"] }
+thiserror.workspace = true
+
+jwt.path = "../jwt"
+crypto.path = "../crypto"
+utils.path = "../utils"
+
+[dev-dependencies]
+assert_matches.workspace = true
+rand_core.workspace = true
+rstest.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }

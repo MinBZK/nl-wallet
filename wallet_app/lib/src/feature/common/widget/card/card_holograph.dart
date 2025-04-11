@@ -5,6 +5,7 @@ import 'gyro_gradient_overlay.dart';
 
 final Color _kWhite0 = Colors.white.withValues(alpha: 0);
 final Color _kWhite5 = Colors.white.withValues(alpha: 0.05);
+const _kHolographSize = 132.0;
 
 class CardHolograph extends StatelessWidget {
   /// Reference to the asset that should be rendered as the holograph
@@ -23,31 +24,37 @@ class CardHolograph extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
-      child: Stack(
-        alignment: Alignment.centerRight,
-        children: [
-          GyroGradientOverlay(
-            gradient: _generateHoloGradient(),
-            child: SvgOrImage(
-              asset: holograph,
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.center,
+      child: SizedBox(
+        width: _kHolographSize,
+        height: _kHolographSize,
+        child: Stack(
+          fit: StackFit.loose,
+          alignment: Alignment.centerRight,
+          children: [
+            GyroGradientOverlay(
+              gradient: _generateHoloGradient(),
+              child: SvgOrImage(
+                asset: holograph,
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+              ),
             ),
-          ),
-          GyroGradientOverlay(
-            gradient: _generateOutlineGradient(),
-            child: Container(
-              width: 132,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white,
-                  width: 1,
+            GyroGradientOverlay(
+              gradient: _generateOutlineGradient(),
+              child: Container(
+                width: _kHolographSize,
+                height: _kHolographSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

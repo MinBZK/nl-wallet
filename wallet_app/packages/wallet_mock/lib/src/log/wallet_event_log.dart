@@ -110,6 +110,6 @@ class WalletEventLog {
 
 extension on List<Attestation> {
   bool get onlyContainsBsn {
-    return length == 1 && first.attributes.length == 1 && first.attributes.first.key == 'mock.citizenshipNumber';
+    return length == 1 && first.attributes.length == 1 && first.attributes.first.key == 'mock_citizenshipNumber';
   }
 }

@@ -15,13 +15,11 @@ derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"]
 http.workspace = true
 http-serde.workspace = true
 itertools.workspace = true
-jsonwebtoken.workspace = true
 jsonschema.workspace = true
 nutype.workspace = true
 regex.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
-serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 ssri.workspace = true
 thiserror.workspace = true
@@ -32,4 +30,3 @@ utils.path = "../utils"
 [dev-dependencies]
 assert_matches.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }

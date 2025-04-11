@@ -16,6 +16,7 @@ members = [
     "lib/openid4vc",
     "lib/openid4vc_server",
     "lib/poa",
+    "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
     "lib/utils",
     "mock_relying_party",
@@ -121,7 +122,8 @@ int-enum = "1.1.2"
 itertools = "0.14.0"
 jni = "0.21.1"
 josekit = "0.10.1"
-jsonschema = { version = "0.28.3", default-features = false }
+json-pointer = "0.3.4"
+jsonschema = { version = "0.29.0", default-features = false }
 jsonwebtoken = { version = "9.3.0", default-features = false }
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }

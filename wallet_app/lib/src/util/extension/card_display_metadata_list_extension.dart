@@ -4,9 +4,7 @@ import 'object_extension.dart';
 
 extension CardDisplayMetadataExtension on List<CardDisplayMetadata> {
   LocalizedText? get name {
-    return asMap()
-        .map((index, entry) => MapEntry(entry.language.languageCode, entry.name))
-        .takeIf((it) => it.isNotEmpty);
+    return asMap().map((index, entry) => MapEntry(entry.language, entry.name)).takeIf((it) => it.isNotEmpty);
   }
 
   LocalizedText? get description {
@@ -14,7 +12,16 @@ extension CardDisplayMetadataExtension on List<CardDisplayMetadata> {
     return dataWithDescription
         .toList()
         .asMap()
-        .map((index, entry) => MapEntry(entry.language.languageCode, entry.description!))
+        .map((index, entry) => MapEntry(entry.language, entry.description!))
+        .takeIf((it) => it.isNotEmpty);
+  }
+
+  LocalizedText? get rawSummary {
+    final dataWithSummary = where((entry) => entry.rawSummary != null);
+    return dataWithSummary
+        .toList()
+        .asMap()
+        .map((index, entry) => MapEntry(entry.language, entry.rawSummary!))
         .takeIf((it) => it.isNotEmpty);
   }
 }

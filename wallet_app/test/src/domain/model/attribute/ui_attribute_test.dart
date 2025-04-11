@@ -4,54 +4,54 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 
 void main() {
   test('UiAttribute key should throw', () {
-    const attribute = UiAttribute(
+    final attribute = UiAttribute(
       value: StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {'nl': 'test'},
+      label: {Locale('nl'): 'test'},
     );
 
     expect(() => attribute.key, throwsA(isA<UnsupportedError>()));
   });
 
   test('UiAttribute equals works as expected', () {
-    const attribute = UiAttribute(
+    final attribute = UiAttribute(
       value: StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {'nl': 'test'},
+      label: {Locale('nl'): 'test'},
     );
 
-    const identicalAttribute = UiAttribute(
+    final identicalAttribute = UiAttribute(
       value: StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {'nl': 'test'},
+      label: {Locale('nl'): 'test'},
     );
 
     expect(attribute == identicalAttribute, isTrue);
   });
 
   test('UiAttribute !equals works as expected', () {
-    const attribute = UiAttribute(
+    final attribute = UiAttribute(
       value: StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {'nl': 'test'},
+      label: {Locale('nl'): 'test'},
     );
 
-    const otherValue = UiAttribute(
+    final otherValue = UiAttribute(
       value: StringValue('value!'),
       icon: Icons.connected_tv_sharp,
-      label: {'nl': 'test'},
+      label: {Locale('nl'): 'test'},
     );
 
-    const otherIcon = UiAttribute(
+    final otherIcon = UiAttribute(
       value: StringValue('value'),
       icon: Icons.factory,
-      label: {'nl': 'test'},
+      label: {Locale('nl'): 'test'},
     );
 
-    const otherLabel = UiAttribute(
+    final otherLabel = UiAttribute(
       value: StringValue('value'),
       icon: Icons.factory,
-      label: {'en': 'test'},
+      label: {Locale('en'): 'test'},
     );
 
     expect(attribute == otherValue, isFalse);
