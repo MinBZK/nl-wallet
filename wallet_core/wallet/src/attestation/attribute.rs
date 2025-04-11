@@ -48,7 +48,7 @@ impl Attestation {
                             key: path,
                             metadata: claim.display,
                             value,
-                            svg_id: claim.svg_id,
+                            svg_id: claim.svg_id.map(String::from),
                         })
                     })
                     .transpose()

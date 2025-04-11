@@ -16,7 +16,7 @@ http.workspace = true
 http-serde.workspace = true
 itertools.workspace = true
 jsonschema.workspace = true
-nutype.workspace = true
+nutype = { workspace = true, features = ["regex"] }
 regex.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true

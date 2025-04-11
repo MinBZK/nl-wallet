@@ -4,6 +4,8 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Write;
+use std::ops::Deref;
+use std::sync::LazyLock;
 
 use http::Uri;
 use itertools::Itertools;
@@ -11,6 +13,7 @@ use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
 use nutype::nutype;
+use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
@@ -21,6 +24,11 @@ use ssri::Integrity;
 
 use wallet_common::spec::SpecOptional;
 use wallet_common::vec_at_least::VecNonEmpty;
+
+// The requirements for the svg_id according to the specification are:
+// "It MUST consist of only alphanumeric characters and underscores and MUST NOT start with a digit."
+static SVG_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z_][0-9A-Za-z_]*$").unwrap());
+static TEMPLATE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{\{([A-Za-z_][0-9A-Za-z_]*)\}\}").unwrap());
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
@@ -157,32 +165,32 @@ impl UncheckedTypeMetadata {
         let svg_ids = self
             .claims
             .iter()
-            .filter_map(|claim| claim.svg_id.as_ref())
+            .filter_map(|claim| claim.svg_id.as_deref())
             .collect_vec();
-        match svg_ids.iter().duplicates().collect_vec() {
-            dups if !dups.is_empty() => Err(TypeMetadataError::DuplicateSvgIds(
-                dups.into_iter().copied().cloned().collect_vec(),
-            )),
-            _ => Ok(()),
-        }?;
 
-        // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject the
-        // SVG template.
-        let re = regex::Regex::new(r"\{\{(\w+)\}\}").unwrap();
-        match self
+        let duplicate_svg_ids = svg_ids.iter().duplicates().map(ToString::to_string).collect_vec();
+        if !duplicate_svg_ids.is_empty() {
+            return Err(TypeMetadataError::DuplicateSvgIds(duplicate_svg_ids));
+        }
+
+        // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject the SVG template.
+        let svg_ids = HashSet::<&str>::from_iter(svg_ids);
+        let missing_svg_ids = self
             .display
             .iter()
-            .filter_map(|display| display.summary.as_ref())
-            .flat_map(|summary| re.captures_iter(summary).flat_map(|s| s.extract::<1>().1))
+            .filter_map(|display| display.summary.as_deref())
+            .flat_map(|summary| {
+                TEMPLATE_REGEX
+                    .captures_iter(summary)
+                    .flat_map(|captures| captures.extract::<1>().1)
+            })
             .unique()
-            .filter(|id| !svg_ids.contains(&&id.to_string()))
-            .collect_vec()
-        {
-            missing_ids if !missing_ids.is_empty() => Err(TypeMetadataError::MissingSvgIds(
-                missing_ids.iter().map(|s| s.to_string()).collect_vec(),
-            )),
-            _ => Ok(()),
-        }?;
+            .filter(|id| !svg_ids.contains(id))
+            .map(ToString::to_string)
+            .collect_vec();
+        if !missing_svg_ids.is_empty() {
+            return Err(TypeMetadataError::MissingSvgIds(missing_svg_ids));
+        }
 
         Ok(())
     }
@@ -407,7 +415,7 @@ pub struct ClaimMetadata {
     pub sd: ClaimSelectiveDisclosureMetadata,
 
     /// A string defining the ID of the claim for reference in the SVG template.
-    pub svg_id: Option<String>,
+    pub svg_id: Option<SvgId>,
 }
 
 impl ClaimMetadata {
@@ -498,6 +506,20 @@ pub struct ClaimDisplayMetadata {
     pub lang: String,
     pub label: String,
     pub description: Option<String>,
+}
+
+#[nutype(
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Into, Serialize, Deserialize),
+    validate(regex = SVG_ID_REGEX),
+)]
+pub struct SvgId(String);
+
+impl Deref for SvgId {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
 }
 
 #[cfg(any(test, feature = "example_constructors"))]
@@ -694,6 +716,8 @@ mod test {
     use serde_json::json;
     use wallet_common::vec_at_least::VecNonEmpty;
 
+    use crate::examples::EXAMPLE_METADATA_BYTES;
+
     use super::ClaimPath;
     use super::MetadataExtends;
     use super::SchemaOption;
@@ -708,6 +732,35 @@ mod test {
             "https://sd_jwt_vc_metadata.example.com/example_credential",
             metadata.as_ref().vct
         );
+    }
+
+    #[rstest]
+    #[case("foo_bar", true)]
+    #[case("foo_bar123", true)]
+    #[case("a1", true)]
+    #[case("x", true)]
+    #[case("_", true)]
+    #[case("0", false)]
+    #[case("1identifier", false)]
+    #[case(" identifier", false)]
+    #[case("identifier ", false)]
+    #[case("foo bar", false)]
+    #[case("日本語", false)]
+    #[case("🇳🇱", false)]
+    fn test_deserialize_svg_id_error(#[case] svg_id: &str, #[case] should_succeed: bool) {
+        let json = String::from_utf8(EXAMPLE_METADATA_BYTES.to_vec())
+            .unwrap()
+            .replace("\"identifier\"", &format!("\"{svg_id}\""));
+
+        let result = serde_json::from_str::<TypeMetadata>(&json);
+
+        if should_succeed {
+            let _ = result.expect("SD-JWT type metadata with correct svg_id should deserialize");
+        } else {
+            let error = result.expect_err("SD-JWT type metadata with incorrect svg_id should fail to deserialize");
+
+            assert!(error.to_string().contains("SvgId"));
+        }
     }
 
     #[test]
@@ -1022,7 +1075,10 @@ mod test {
         { "path": vec!["address", "city"], "svg_id": "address_street" },
         { "path": vec!["address", "number"], "svg_id": "address" },
     ]), Err(TypeMetadataError::DuplicateSvgIds(vec!["address_street".to_owned(), "address".to_owned()])))]
-    fn test_claim_svg_ids(#[case] claims: serde_json::Value, #[case] expected: Result<(), TypeMetadataError>) {
+    fn test_validate_svg_ids_duplicates(
+        #[case] claims: serde_json::Value,
+        #[case] expected: Result<(), TypeMetadataError>,
+    ) {
         let mut metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "claims": [],
@@ -1063,7 +1119,7 @@ mod test {
         "address_number".to_owned(),
         "address_country".to_owned()
     ])))]
-    fn should_detect_missing_svg_ids(#[case] summary: &str, #[case] expected: Result<(), TypeMetadataError>) {
+    fn test_validate_svg_ids_missing(#[case] summary: &str, #[case] expected: Result<(), TypeMetadataError>) {
         let metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "display": [{
