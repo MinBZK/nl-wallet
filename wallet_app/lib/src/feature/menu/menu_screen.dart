@@ -109,7 +109,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
       MenuRow(
         label: context.l10n.menuScreenTourCta,
         icon: Icons.play_arrow,
-        onTap: () => PlaceholderScreen.showGeneric(context),
+        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.tourRoute),
       ),
       MenuRow(
         label: context.l10n.menuScreenHelpCta,

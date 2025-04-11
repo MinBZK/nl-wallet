@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 
-import '../../../util/extension/build_context_extension.dart';
 import 'icon_row.dart';
 
 class BulletList extends StatelessWidget {
   final List<String> items;
-  final IconData? icon;
+  final Widget icon;
+  final CrossAxisAlignment? rowCrossAxisAlignment;
+  final EdgeInsets? rowPadding;
 
-  const BulletList({required this.items, this.icon, super.key});
+  const BulletList({
+    required this.items,
+    required this.icon,
+    this.rowCrossAxisAlignment,
+    this.rowPadding,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,15 +26,12 @@ class BulletList extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: items.map((point) {
           return IconRow(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            crossAxisAlignment: rowCrossAxisAlignment,
+            padding: rowPadding ?? EdgeInsets.zero,
             icon: SizedBox(
               height: 24,
               width: 24,
-              child: Icon(
-                icon ?? Icons.check,
-                color: context.colorScheme.primary,
-                size: 18,
-              ),
+              child: icon,
             ),
             text: Text(point),
           );
