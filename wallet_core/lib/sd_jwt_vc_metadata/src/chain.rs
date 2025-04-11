@@ -216,6 +216,8 @@ pub struct SortedTypeMetadataDocuments(VecNonEmpty<Vec<u8>>);
 
 impl SortedTypeMetadataDocuments {
     /// Verify the resource integrity of the leaf document.
+    // TODO (PVW-3816): Remove this method once `HttpIssuanceSession` can properly take
+    //                  ownership of this type and use the `into_verified()` method below.
     pub fn verify(&self, integrity: Integrity) -> Result<(), TypeMetadataChainError> {
         let Self(documents) = self;
 
