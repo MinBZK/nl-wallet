@@ -12,7 +12,7 @@ use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use reqwest::Certificate;
-use rustls::crypto::aws_lc_rs;
+use rustls::crypto::ring;
 use rustls::crypto::CryptoProvider;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
@@ -79,7 +79,7 @@ use crate::utils::remove_path;
 #[ctor]
 fn init() {
     init_logging();
-    CryptoProvider::install_default(aws_lc_rs::default_provider()).unwrap();
+    CryptoProvider::install_default(ring::default_provider()).unwrap();
 }
 
 pub fn local_wp_base_url(port: u16) -> BaseUrl {

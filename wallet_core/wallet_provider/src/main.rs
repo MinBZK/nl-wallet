@@ -1,6 +1,8 @@
 use std::error::Error;
 
 use cfg_if::cfg_if;
+use rustls::crypto::ring;
+use rustls::crypto::CryptoProvider;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -12,6 +14,8 @@ use wallet_provider::settings::Settings;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    CryptoProvider::install_default(ring::default_provider()).unwrap();
+
     let builder = tracing_subscriber::fmt().with_env_filter(
         EnvFilter::builder()
             .with_default_directive(LevelFilter::INFO.into())

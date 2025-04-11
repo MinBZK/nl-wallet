@@ -7392,6 +7392,7 @@ dependencies = [
  "http_utils",
  "p256",
  "rand_core",
+ "rustls",
  "serde",
  "serde_with",
  "serial_test",

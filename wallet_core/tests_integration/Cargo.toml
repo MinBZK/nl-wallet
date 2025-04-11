@@ -197,7 +197,7 @@ p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
-rustls = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true, feaures = ["ring"] }
 rustls-pki-types = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
