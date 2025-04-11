@@ -174,6 +174,7 @@ pub struct CredentialOffer {
     pub grants: Option<Grants>,
 }
 
+/// OpenID4VCI protocol message containing the credential offer.
 /// The Credential Offer is passed as a single URI-encoded parameter containing a JSON-encoded value.
 /// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer>
 #[serde_as]
