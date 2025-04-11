@@ -13,6 +13,7 @@ use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use mdoc::server_keys::generate::mock::generate_reader_mock;
+use openid4vc::verifier::SessionIdentifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -969,7 +970,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         let jws = self
             .verifier
             .process_get_request(
-                &session_token.into(),
+                &SessionIdentifier::Token(session_token.clone()),
                 &"https://example.com/verifier_base_url".parse().unwrap(),
                 url.as_ref().query(),
                 wallet_nonce,

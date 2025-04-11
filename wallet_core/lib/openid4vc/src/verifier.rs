@@ -544,12 +544,6 @@ pub enum SessionIdentifier {
     UseCaseId(String),
 }
 
-impl From<SessionToken> for SessionIdentifier {
-    fn from(value: SessionToken) -> Self {
-        Self::Token(value)
-    }
-}
-
 #[derive(Debug)]
 pub struct Verifier<S, K, H> {
     use_cases: UseCases<K>,
@@ -1510,7 +1504,7 @@ mod tests {
         // Getting the Authorization Request should succeed
         verifier
             .process_get_request(
-                &session_token.clone().into(),
+                &SessionIdentifier::Token(session_token.clone()),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
@@ -1553,7 +1547,7 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &session_token.into(),
+                &SessionIdentifier::Token(session_token.clone()),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
@@ -1598,7 +1592,7 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &session_token.into(),
+                &SessionIdentifier::Token(session_token.clone()),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
