@@ -278,8 +278,8 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::http::test::HttpConfig;
     use http_utils::reqwest::default_reqwest_client_builder;
+    use http_utils::tls::test::HttpConfig;
     use http_utils::urls::BaseUrl;
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;

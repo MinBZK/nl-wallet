@@ -18,7 +18,7 @@ use http::HeaderValue;
 use tracing::debug;
 use tracing::info;
 
-use http_utils::http::TlsServerConfig;
+use http_utils::tls::TlsServerConfig;
 use utils::built_info::version_string;
 use utils::generator::TimeGenerator;
 

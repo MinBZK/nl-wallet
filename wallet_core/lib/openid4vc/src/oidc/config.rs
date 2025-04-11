@@ -130,8 +130,8 @@ pub mod tests {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::http::test::HttpConfig;
     use http_utils::reqwest::JsonClientBuilder;
+    use http_utils::tls::test::HttpConfig;
     use http_utils::urls::BaseUrl;
 
     use super::Config;

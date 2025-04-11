@@ -316,7 +316,7 @@ mod tests {
     use rstest::rstest;
     use url::Url;
 
-    use http_utils::http::test::HttpConfig;
+    use http_utils::tls::test::HttpConfig;
     use http_utils::urls::BaseUrl;
 
     use crate::oidc::tests::start_discovery_server;

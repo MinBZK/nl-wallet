@@ -11,7 +11,7 @@ use regex::Regex;
 use reqwest::header::HeaderValue;
 use tokio::fs;
 
-use http_utils::http::client::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::error::JwtError;
 use tests_integration::common::*;
 use wallet::errors::ConfigurationError;

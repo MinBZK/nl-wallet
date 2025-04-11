@@ -13,7 +13,7 @@ use http::StatusCode;
 use http::Uri;
 use http::Version;
 
-use http_utils::http_error::APPLICATION_PROBLEM_JSON;
+use http_utils::error::APPLICATION_PROBLEM_JSON;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 
 const MAX_BODY_SIZE: usize = 8 * 1024 * 1024; // 8 MiB

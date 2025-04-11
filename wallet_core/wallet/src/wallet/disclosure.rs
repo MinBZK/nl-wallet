@@ -13,7 +13,7 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use http_utils::http::client::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;

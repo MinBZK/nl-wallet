@@ -14,8 +14,8 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
-use http_utils::http::client::TlsPinningConfig;
 use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
@@ -491,7 +491,7 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
-    use http_utils::http::client::TlsPinningConfig;
+    use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;

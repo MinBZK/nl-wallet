@@ -5,8 +5,8 @@ use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
-use http_utils::http::client::TlsPinningConfig;
-use http_utils::http_error::HttpJsonErrorBody;
+use http_utils::error::HttpJsonErrorBody;
+use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;

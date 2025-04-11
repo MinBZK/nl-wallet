@@ -8,8 +8,8 @@ use semver::Version;
 use serde::de::DeserializeOwned;
 use tracing::info;
 
-use http_utils::http::client::TlsPinningConfig;
-use http_utils::http::client::TlsPinningConfigHash;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfigHash;
 use update_policy_model::update_policy::UpdatePolicyResponse;
 use update_policy_model::update_policy::VersionState;
 

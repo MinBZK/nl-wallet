@@ -135,7 +135,7 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::http::test::HttpConfig;
+    use http_utils::tls::test::HttpConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;

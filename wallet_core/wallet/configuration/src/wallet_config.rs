@@ -12,7 +12,7 @@ use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use http_utils::http::client::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 
 use crate::digid::DigidApp2AppConfiguration;

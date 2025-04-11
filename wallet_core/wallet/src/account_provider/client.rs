@@ -6,10 +6,10 @@ use reqwest::Request;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use http_utils::http::client::TlsPinningConfig;
-use http_utils::http_error::HttpJsonErrorBody;
+use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::parse_content_type;
 use http_utils::reqwest::RequestBuilder;
+use http_utils::tls::pinning::TlsPinningConfig;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_account::messages::instructions::Instruction;
@@ -179,8 +179,8 @@ mod tests {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::http::test::HttpConfig;
     use http_utils::reqwest::JsonReqwestBuilder;
+    use http_utils::tls::test::HttpConfig;
     use http_utils::urls::BaseUrl;
 
     use super::*;

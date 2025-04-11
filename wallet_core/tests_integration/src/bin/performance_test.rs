@@ -5,7 +5,7 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use http_utils::http::client::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;

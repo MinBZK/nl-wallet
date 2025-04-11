@@ -24,7 +24,7 @@ use tracing::info;
 use tracing::warn;
 
 use crypto::keys::EcdsaKeySend;
-use http_utils::http_error::HttpJsonError;
+use http_utils::error::HttpJsonError;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;

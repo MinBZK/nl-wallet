@@ -2,7 +2,7 @@ use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
-use http_utils::http_error::HttpJsonErrorBody;
+use http_utils::error::HttpJsonErrorBody;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;

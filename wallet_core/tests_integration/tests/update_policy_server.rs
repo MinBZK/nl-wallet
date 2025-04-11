@@ -3,7 +3,7 @@ use std::env;
 use assert_matches::assert_matches;
 use serde_json::json;
 
-use http_utils::http::client::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfig;
 use tests_integration::common::*;
 use tests_integration::utils::read_file;
 use update_policy_server::config::UpdatePolicyConfig;

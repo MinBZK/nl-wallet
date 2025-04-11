@@ -31,7 +31,7 @@ use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use hsm::service::Pkcs11Hsm;
-use http_utils::http_error::HttpJsonErrorBody;
+use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::examples::Example;

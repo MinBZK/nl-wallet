@@ -4,8 +4,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use http_utils::http_error::HttpJsonError;
-use http_utils::http_error::HttpJsonErrorType;
+use http_utils::error::HttpJsonError;
+use http_utils::error::HttpJsonErrorType;
 use http_utils::urls::BaseUrl;
 
 use crate::issuer::CredentialRequestError;

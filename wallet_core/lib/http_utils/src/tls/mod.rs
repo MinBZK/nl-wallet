@@ -1,5 +1,5 @@
 #[cfg(feature = "client")]
-pub mod client;
+pub mod pinning;
 #[cfg(feature = "server")]
 pub mod server;
 #[cfg(feature = "insecure_http_client")]

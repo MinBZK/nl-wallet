@@ -7,8 +7,8 @@ use derive_more::FromStr;
 use http::StatusCode;
 
 use hsm::service::HsmError;
-use http_utils::http_error::HttpJsonError;
-use http_utils::http_error::HttpJsonErrorType;
+use http_utils::error::HttpJsonError;
+use http_utils::error::HttpJsonErrorType;
 use wallet_account::messages::errors::AccountError;
 use wallet_account::messages::errors::AccountErrorType;
 use wallet_provider_service::account_server::ChallengeError;

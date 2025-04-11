@@ -6,7 +6,7 @@ mod mock;
 use background_repository::BackgroundUpdateableUpdatePolicyRepository;
 
 use error_category::ErrorCategory;
-use http_utils::http::client::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfig;
 
 use crate::repository::FileStorageError;
 use crate::repository::HttpClientError;
