@@ -12,6 +12,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::PostAuthResponseErrorCode;
 use platform_support::attested_key::AttestedKeyHolder;
+use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_common::http::TlsPinningConfig;
 use wallet_common::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
@@ -109,7 +110,7 @@ where
                     .ok_or(DisclosureBasedIssuanceError::MissingAuthorizationCode)?,
             },
             code_verifier: None,
-            client_id: None,
+            client_id: Some(NL_WALLET_CLIENT_ID.to_string()),
             redirect_uri: None,
         };
 
