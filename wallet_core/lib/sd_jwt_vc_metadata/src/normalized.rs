@@ -199,7 +199,7 @@ impl ClaimMetadata {
                     // The display entries for the claim are merged according to the logic described below.
                     let display = extend_display_properties(extended_claim.display, extending_claim.display);
 
-                    // The selective disclosure option is updated, if the extended option was not already restricive.
+                    // The selective disclosure option is updated, but only if the extended value is `allowed`.
                     let sd = ClaimSelectiveDisclosureMetadata::extend(extended_claim.sd, extending_claim.sd).ok_or(
                         NormalizedTypeMetadataError::InconsistentSelectiveDisclosure(
                             extending_vct.to_string(),
@@ -243,8 +243,8 @@ impl ClaimMetadata {
 }
 
 impl ClaimSelectiveDisclosureMetadata {
-    /// Attempt to overwrite one [`ClaimSelectiveDisclosureMetadata`] with another and return the result if possible, or
-    /// `None` if the original value was already restrictive and the new one changes it.
+    /// Attempt to overwrite one [`ClaimSelectiveDisclosureMetadata`] with another and return the result if possible,
+    /// which will return `None` if the value is changed and the extended value is not `allowed`.
     fn extend(extended_sd: Self, extending_sd: Self) -> Option<Self> {
         match (extended_sd, extending_sd) {
             (extended_sd, extending_sd) if extended_sd == extending_sd => Some(extending_sd),
