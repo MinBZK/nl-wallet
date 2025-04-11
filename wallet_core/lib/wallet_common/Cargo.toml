@@ -24,7 +24,15 @@ mock_time = ["dep:parking_lot"]
 [dependencies]
 cfg-if.workspace = true
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
-derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "from", "into", "index"] }
+derive_more = { workspace = true, features = [
+    "as_ref",
+    "constructor",
+    "debug",
+    "from",
+    "into",
+    "into_iterator",
+    "index",
+] }
 http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
