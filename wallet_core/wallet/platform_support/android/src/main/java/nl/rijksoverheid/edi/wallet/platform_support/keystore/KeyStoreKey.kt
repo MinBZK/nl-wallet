@@ -8,7 +8,6 @@ import android.security.keystore.KeyInfo
 import android.security.keystore.KeyProperties
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
-import nl.rijksoverheid.edi.wallet.platform_support.utilities.DeviceUtils.isRunningOnEmulator
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.cert.Certificate
@@ -19,10 +18,10 @@ abstract class KeyStoreKey(val keyAlias: String) {
 
     init {
         keyStore.load(null)
-        val keyExists = keyStore.getKey(keyAlias, null) != null
-        if (!keyExists) {
-            throw IllegalArgumentException("No key found for $keyAlias, make sure it's created first before wrapping it in  ${this.javaClass.simpleName}")
+        requireNotNull(keyStore.getKey(keyAlias, null)) {
+            "No key found for $keyAlias, make sure it's created first before wrapping it in  ${this.javaClass.simpleName}"
         }
+        checkKeyValidity()
     }
 
     abstract val keyInfo: KeyInfo
@@ -56,22 +55,16 @@ abstract class KeyStoreKey(val keyAlias: String) {
     @Throws(KeyStoreException::class)
     fun getCertificateChain(): Array<out Certificate>? = keyStore.getCertificateChain(keyAlias)
 
-    val isConsideredValid: Boolean
-        @Throws(uniffi.platform_support.KeyStoreException.KeyException::class)
-        get() {
-            val allowSoftwareBackedKeys = isRunningOnEmulator && BuildConfig.DEBUG
-            return when {
-                isHardwareBacked -> true
-                allowSoftwareBackedKeys -> true
-                !isHardwareBacked && !allowSoftwareBackedKeys -> {
-                    throw KeyStoreKeyError.MissingHardwareError(securityLevelCompat).keyException
-                }
-                else -> false
-            }
+    @Throws(KeyStoreException::class)
+    private fun checkKeyValidity() {
+        if (isHardwareBacked || BuildConfig.DEBUG) {
+            return
         }
+        throw KeyStoreKeyError.MissingHardwareError(securityLevelCompat).keyException
+    }
 
     @VisibleForTesting
-    fun delete() = keyStore.deleteEntry(keyAlias)
+    internal fun delete() = keyStore.deleteEntry(keyAlias)
 }
 
 /**
