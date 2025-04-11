@@ -108,8 +108,8 @@ sonar-android:
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=src/main
-      -Dsonar.tests=src/androidTest
+      -Dsonar.tests=src/test,src/androidTest
       -Dsonar.findbugs.allowuncompiledcode=true
-      -Dsonar.junit.reportPaths="build/outputs/androidTest-results/connected/debug/"
-      -Dsonar.coverage.jacoco.xmlReportPaths="build/reports/coverage/androidTest/debug/connected/report.xml"
+      -Dsonar.junit.reportPaths=build/test-results/testDebugUnitTest,build/outputs/androidTest-results/connected/debug
+      -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/coverage/**/report.xml
   allow_failure: true

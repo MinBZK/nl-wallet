@@ -95,11 +95,33 @@ tasks.withType<Test>().configureEach {
     }
 }
 
+tasks.named { it == "testDebugUnitTest" }.configureEach {
+    finalizedBy("jacocoReport")
+}
+tasks.register<JacocoReport>("jacocoReport") {
+    // Explicit setup seems to work best, but might be broken on AGP upgrades
+    classDirectories.setFrom(layout.buildDirectory.file("tmp/kotlin-classes/debug/nl/rijksoverheid/edi/wallet"))
+    executionData.from(layout.buildDirectory.file("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
+    reports {
+        csv.required = false
+        html.required = false
+        xml.required = true
+        xml.outputLocation = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
+    }
+    finalizedBy("coberturaReport")
+}
+tasks.register<JacocoToCoberturaTask>("coberturaReport").configure {
+    // Connect via jacocoReport does not work: https://github.com/gradle/gradle/issues/6619
+    inputFile = layout.buildDirectory.file("reports/coverage/unit/debug/report.xml")
+    outputFile = file("${inputFile.get()}/../cobertura.xml")
+    splitByPackage = false
+}
+
 tasks.named<JacocoToCoberturaTask>(JacocoToCoberturaPlugin.TASK_NAME) {
     inputFile = layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/report.xml")
-    outputFile = layout.buildDirectory.file("reports/coverage/androidTest/debug/connected/cobertura.xml")
+    outputFile = file("${inputFile.get()}/../cobertura.xml")
 }
-tasks.named { it == "connectedAndroidTest" }.configureEach {
+tasks.named { it == "createDebugAndroidTestCoverageReport" }.configureEach {
     finalizedBy(JacocoToCoberturaPlugin.TASK_NAME)
 }
 
@@ -111,8 +133,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1") // Kotlin coroutines, core library
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3") // Kotlin coroutines for play-services
 
-    // Test dependencies
+    // Unit test dependencies
     testImplementation("junit:junit:4.13.2")
+    testImplementation("io.kotest:kotest-assertions-core:5.9.1")
+    testImplementation("io.mockk:mockk:1.14.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
+
+    // Android test dependencies
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")

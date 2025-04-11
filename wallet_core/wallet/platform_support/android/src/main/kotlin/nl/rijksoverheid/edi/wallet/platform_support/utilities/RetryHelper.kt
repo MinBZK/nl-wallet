@@ -16,21 +16,22 @@ suspend fun <T> retryable(
     block: suspend () -> T): T
 {
     var currentDelay = initialDelay
-    repeat(times) { index ->
-
+    var attempt = 0
+    while (true) {
+        Log.d(taskName, taskDescription)
+        attempt++
         try {
-            Log.d(taskName, taskDescription)
             return block()
         } catch (e: Exception) {
-            if (index + 1 == times) {
-                Log.e(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message?.replace("\n", " ")}\"), giving up..")
+            if (attempt == times) {
+                Log.e(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\"), giving up..")
                 throw e
+
             }
-            Log.w(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message?.replace("\n", " ")}\", remaining times: ${times - index}, current delay: ${currentDelay}), retrying..")
+            Log.w(taskName, "caught ${e.javaClass.name} (description: ${taskDescription}, exception message: \"${e.message}\", remaining times: ${times - attempt}, current delay: ${currentDelay}), retrying..")
         }
 
         delay(currentDelay)
         currentDelay = currentDelay.times(factor).coerceAtMost(maxDelay)
     }
-    throw IllegalStateException("Should not happen")
 }

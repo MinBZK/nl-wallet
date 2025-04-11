@@ -8,12 +8,13 @@ test-android:
     when: always
     reports:
       coverage_report:
-        path: wallet_core/wallet/platform_support/android/build/reports/coverage/androidTest/debug/connected/cobertura.xml
+        path: wallet_core/wallet/platform_support/android/build/reports/coverage/**/cobertura.xml
         coverage_format: cobertura
-      junit: wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml
+      junit: wallet_core/wallet/platform_support/android/build/**/*-results/**/TEST*.xml
     paths:
       - emulator.*
       - wallet_core/wallet/platform_support/android/build/reports
+      - wallet_core/wallet/platform_support/android/build/test-results
       - wallet_core/wallet/platform_support/android/build/outputs/androidTest-results
   script:
     - adb devices # to prevent device unauthorized
@@ -21,9 +22,11 @@ test-android:
     - EMULATOR_PID="$!"
     - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
     - cd wallet_core/wallet/platform_support/android
-    - ANDROID_NDK_TARGETS=x86_64 ./gradlew --no-daemon connectedAndroidTest
-  after_script:
-    - deploy/bin/store-artifact.sh wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml qt/quality-time/junit-results/android.xml
+    - ANDROID_NDK_TARGETS=x86_64 ./gradlew --no-daemon testDebugUnitTest connectedAndroidTest
+  after_script: >
+    deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/android.zip
+    wallet_core/wallet/platform_support/android/build/test-results/testDebugUnitTest/TEST*.xml
+    wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml
 
 ### Android building
 .build-android-app:
