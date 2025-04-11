@@ -235,7 +235,6 @@ impl FlutterApiErrorFields for PidIssuanceError {
             | PidIssuanceError::MissingIssuerRegistration
             | PidIssuanceError::AttestationPreview(_)
             | PidIssuanceError::Attestation { .. }
-            | PidIssuanceError::IssuanceSession(_)
             | PidIssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuance,
             PidIssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
