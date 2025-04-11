@@ -244,13 +244,18 @@ where
             return Err(IssuanceError::Locked);
         }
 
-        if self.digid_session.take().is_some() {
-            // In the DigiD stage of PID issuance we don't have to do anything; just return.
-            return Ok(());
+        info!("Checking if there is an active issuance session");
+
+        if self.digid_session.is_none() && self.issuance_session.is_none() {
+            return Err(IssuanceError::SessionState);
         }
 
-        info!("Checking if there is an active issuance session");
-        let issuance_session = self.issuance_session.take().ok_or(IssuanceError::SessionState)?;
+        // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state.
+        self.digid_session.take();
+
+        let Some(issuance_session) = self.issuance_session.take() else {
+            return Ok(());
+        };
 
         info!("Rejecting issuance");
         issuance_session.protocol_state.reject_issuance().await?;
