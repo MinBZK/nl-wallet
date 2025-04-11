@@ -8,6 +8,7 @@ use jsonschema::ValidationError;
 
 use wallet_common::vec_at_least::VecNonEmpty;
 
+use crate::chain::SortedTypeMetadata;
 use crate::metadata::ClaimDisplayMetadata;
 use crate::metadata::ClaimMetadata;
 use crate::metadata::ClaimPath;
@@ -15,7 +16,6 @@ use crate::metadata::ClaimSelectiveDisclosureMetadata;
 use crate::metadata::DisplayMetadata;
 use crate::metadata::JsonSchema;
 use crate::metadata::SchemaOption;
-use crate::metadata::TypeMetadata;
 use crate::metadata::UncheckedTypeMetadata;
 
 #[derive(Debug, thiserror::Error)]
@@ -51,23 +51,23 @@ pub struct NormalizedTypeMetadata {
 }
 
 impl NormalizedTypeMetadata {
-    /// Attempt to combine all of the SD-JWT VC type metadata in a chain into a single [`NormalizedTypeMetadata`], which
-    /// can then be used to both validate a received attestation and convert it to a display representation.
-    pub(crate) fn try_from_metadata_chain(
-        chain: VecNonEmpty<TypeMetadata>,
-    ) -> Result<Self, NormalizedTypeMetadataError> {
-        let mut chain = chain.into_inner();
-        let chain_length = chain.len();
+    /// Attempt to combine all of the SD-JWT VC type metadata in a chain that is sorted from leaf to root into a single
+    /// [`NormalizedTypeMetadata`], which can then be used to both validate a received attestation and convert it to a
+    /// display representation.
+    pub fn try_from_sorted_metadata(sorted_metadata: SortedTypeMetadata) -> Result<Self, NormalizedTypeMetadataError> {
+        let chain = sorted_metadata.into_inner();
+        let chain_length = chain.len().get();
 
         // Extract the root metadata document, which is at the end of the chain. This is guaranteed to succeed because
         // of the use of `VecNonEmpty`.
+        let (chain, root) = chain.into_inner_last();
         let UncheckedTypeMetadata {
             vct: root_vct,
             display: root_display,
             claims: root_claims,
             schema: root_schema,
             ..
-        } = chain.pop().unwrap().into_inner();
+        } = root.into_inner();
 
         // Extract some properties of each of the metadata documents into individual vectors, two of which cover the
         // entire chain while the other two skip the root document.
@@ -349,6 +349,7 @@ mod tests {
 
     use wallet_common::vec_at_least::VecNonEmpty;
 
+    use crate::chain::SortedTypeMetadata;
     use crate::metadata::ClaimMetadata;
     use crate::metadata::ClaimPath;
     use crate::metadata::ClaimSelectiveDisclosureMetadata;
@@ -361,24 +362,15 @@ mod tests {
     use super::NormalizedTypeMetadataError;
     use super::TypeMetadataValidationError;
 
-    fn type_metadata_with_extensions() -> VecNonEmpty<TypeMetadata> {
-        vec![
-            TypeMetadata::example_v3(),
-            TypeMetadata::example_v2(),
-            TypeMetadata::example(),
-        ]
-        .try_into()
-        .unwrap()
-    }
-
     fn all_claim_paths(claims: &[ClaimMetadata]) -> Vec<&[ClaimPath]> {
         claims.iter().map(|claim| claim.path.as_ref()).collect()
     }
 
     #[test]
     fn test_normalized_type_metadata_try_from_metadata_chain() {
-        let normalized = NormalizedTypeMetadata::try_from_metadata_chain(type_metadata_with_extensions())
-            .expect("normalizing SD-JWT VC type metadata chain should succeed");
+        let normalized =
+            NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata::example_with_extensions())
+                .expect("normalizing SD-JWT VC type metadata chain should succeed");
 
         let metadata = UncheckedTypeMetadata::example();
         let metadata_v2 = UncheckedTypeMetadata::example_v2();
@@ -452,8 +444,9 @@ mod tests {
 
     #[test]
     fn test_normalized_type_metadata_validate() {
-        let normalized = NormalizedTypeMetadata::try_from_metadata_chain(type_metadata_with_extensions())
-            .expect("normalizing SD-JWT VC type metadata chain should succeed");
+        let normalized =
+            NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata::example_with_extensions())
+                .expect("normalizing SD-JWT VC type metadata chain should succeed");
 
         normalized
             .validate(&json!({
@@ -469,8 +462,9 @@ mod tests {
 
     #[test]
     fn test_normalized_type_metadata_validate_error() {
-        let normalized = NormalizedTypeMetadata::try_from_metadata_chain(type_metadata_with_extensions())
-            .expect("normalizing SD-JWT VC type metadata chain should succeed");
+        let normalized =
+            NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata::example_with_extensions())
+                .expect("normalizing SD-JWT VC type metadata chain should succeed");
 
         let error = normalized
             .validate(&json!({}))
@@ -612,14 +606,14 @@ mod tests {
             vct: "metadata_3".to_string(),
             ..metadata1.clone()
         };
-        let chain = vec![metadata1, metadata2, metadata3]
-            .into_iter()
-            .map(|metadata| TypeMetadata::try_new(metadata).unwrap())
-            .collect_vec()
-            .try_into()
-            .unwrap();
+        let chain = SortedTypeMetadata::new_mock(
+            vec![metadata1, metadata2, metadata3]
+                .into_iter()
+                .map(|metadata| TypeMetadata::try_new(metadata).unwrap())
+                .collect(),
+        );
 
-        let error = NormalizedTypeMetadata::try_from_metadata_chain(chain)
+        let error = NormalizedTypeMetadata::try_from_sorted_metadata(chain)
             .expect_err("normalizing SD-JWT VC type metadata chain should not succeed");
 
         assert_matches!(error, NormalizedTypeMetadataError::NoEmbeddedSchema(vct) if vct == "metadata_2");

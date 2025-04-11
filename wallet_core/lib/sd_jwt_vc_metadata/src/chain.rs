@@ -59,6 +59,18 @@ fn check_resource_integrity(json: &[u8], integrity: Integrity) -> Result<(), Typ
     Ok(())
 }
 
+/// Represents a chain of decoded SD-JWT Type Metadata documents that is sorted from leaf to root.
+#[derive(Debug, Clone, AsRef)]
+pub struct SortedTypeMetadata(VecNonEmpty<TypeMetadata>);
+
+impl SortedTypeMetadata {
+    pub fn into_inner(self) -> VecNonEmpty<TypeMetadata> {
+        let SortedTypeMetadata(chain) = self;
+
+        chain
+    }
+}
+
 /// Represents a JSON-encoded chain of SD-JWT VC Type Metadata documents, which themselves serialize to a JSON
 /// array representation of URL-safe base64 strings, as described for the `vctm` array in the specifications:
 /// https://www.ietf.org/archive/id/draft-ietf-oauth-sd-jwt-vc-08.html#section-6.3.5
@@ -178,9 +190,9 @@ impl TypeMetadataDocuments {
             .try_into()
             .unwrap();
 
-        // Normalize the chain of type metadata by combining the individual entries into one type and move the
-        // documents and index to a `ProcessedTypeMetadataDocuments` type.
-        let normalized = NormalizedTypeMetadata::try_from_metadata_chain(metadata_chain)?;
+        // Normalize the chain of type metadata by combining the individual entries into
+        // one type and move the documents to a `SortedTypeMetadataDocuments` type.
+        let normalized = NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata(metadata_chain))?;
 
         let sorted_documents = documents
             .into_iter()
@@ -256,6 +268,7 @@ mod example_constructors {
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
 
+    use super::SortedTypeMetadata;
     use super::TypeMetadataDocuments;
 
     impl TypeMetadataDocuments {
@@ -342,6 +355,20 @@ mod example_constructors {
             )
         }
     }
+
+    impl SortedTypeMetadata {
+        pub fn example_with_extensions() -> Self {
+            let chain = vec![
+                TypeMetadata::example_v3(),
+                TypeMetadata::example_v2(),
+                TypeMetadata::example(),
+            ]
+            .try_into()
+            .unwrap();
+
+            Self(chain)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -364,8 +391,15 @@ mod test {
     use crate::metadata::TypeMetadata;
     use crate::metadata::UncheckedTypeMetadata;
 
+    use super::SortedTypeMetadata;
     use super::TypeMetadataChainError;
     use super::TypeMetadataDocuments;
+
+    impl SortedTypeMetadata {
+        pub fn new_mock(chain: Vec<TypeMetadata>) -> Self {
+            Self(chain.try_into().unwrap())
+        }
+    }
 
     fn reversed_example_with_extension() -> (Integrity, TypeMetadataDocuments) {
         let (integrity, source_documents) = TypeMetadataDocuments::example_with_extensions();

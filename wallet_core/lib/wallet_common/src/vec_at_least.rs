@@ -78,6 +78,12 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
         self.0.pop().unwrap()
     }
 
+    pub fn into_inner_last(mut self) -> (Vec<T>, T) {
+        let last = self.0.pop().unwrap();
+
+        (self.0, last)
+    }
+
     pub fn as_slice(&self) -> &[T] {
         &self.0
     }
