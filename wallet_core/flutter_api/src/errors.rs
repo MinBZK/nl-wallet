@@ -272,7 +272,7 @@ impl FlutterApiErrorFields for PidIssuanceError {
     }
 }
 
-// #[skip_serializing_none]
+#[skip_serializing_none]
 #[derive(Clone, Serialize)]
 struct DisclosureErrorData<'a> {
     session_type: Option<SessionType>,
