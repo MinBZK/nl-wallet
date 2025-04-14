@@ -79,10 +79,10 @@ class ChangePinNetworkError extends ChangePinState implements NetworkErrorState 
   final ApplicationError error;
 
   @override
-  final int? statusCode;
+  final bool hasInternet;
 
   @override
-  final bool hasInternet;
+  final int? statusCode;
 
   const ChangePinNetworkError({required this.error, required this.hasInternet, this.statusCode});
 

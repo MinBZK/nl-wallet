@@ -156,11 +156,27 @@ class ErrorScreen extends StatelessWidget {
     show(
       context,
       secured: secured,
-      errorScreen: ErrorScreen.network(context, style: style),
+      errorScreen: ErrorScreen.network(
+        context,
+        style: style,
+        networkError: networkError,
+      ),
     );
   }
 
   factory ErrorScreen.network(
+    BuildContext context, {
+    ErrorCtaStyle style = ErrorCtaStyle.retry,
+    NetworkErrorState? networkError,
+  }) {
+    if (networkError?.hasInternet == false) {
+      return ErrorScreen.noInternet(context, style: style);
+    } else {
+      return ErrorScreen.serverOutage(context, style: style);
+    }
+  }
+
+  factory ErrorScreen.serverOutage(
     BuildContext context, {
     ErrorCtaStyle style = ErrorCtaStyle.retry,
   }) {
@@ -173,18 +189,6 @@ class ErrorScreen extends StatelessWidget {
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(context, style),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
       actions: style == ErrorCtaStyle.close ? const [CloseIconButton()] : [],
-    );
-  }
-
-  static void showNoInternet(
-    BuildContext context, {
-    ErrorCtaStyle style = ErrorCtaStyle.retry,
-    bool secured = true,
-  }) {
-    show(
-      context,
-      secured: secured,
-      errorScreen: ErrorScreen.noInternet(context, style: style),
     );
   }
 

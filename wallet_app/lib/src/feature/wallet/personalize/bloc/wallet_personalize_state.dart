@@ -140,10 +140,10 @@ class WalletPersonalizeNetworkError extends WalletPersonalizeState implements Ne
   final ApplicationError error;
 
   @override
-  final int? statusCode;
+  final bool hasInternet;
 
   @override
-  final bool hasInternet;
+  final int? statusCode;
 
   const WalletPersonalizeNetworkError({required this.error, required this.hasInternet, this.statusCode});
 
