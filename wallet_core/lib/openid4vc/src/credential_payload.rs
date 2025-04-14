@@ -98,6 +98,8 @@ pub struct CredentialPayload {
 
     pub attestation_qualification: AttestationQualification,
 
+    /// Contains the attestation's public key, of which the corresponding private key is used by the wallet during
+    /// disclosure to sign the RP's nonce into a PoP
     #[serde(rename = "cnf")]
     pub confirmation_key: Option<RequiredKeyBinding>,
 
