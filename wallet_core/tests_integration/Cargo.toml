@@ -96,7 +96,7 @@ test_common = [
     "dep:wallet_provider_service",
 ]
 # Include the fake_digid submodule
-fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_configuration"]
+fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "pid_issuer?/db_test",
