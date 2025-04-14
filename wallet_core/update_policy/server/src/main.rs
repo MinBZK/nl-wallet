@@ -1,4 +1,6 @@
 use anyhow::Result;
+use rustls::crypto::ring;
+use rustls::crypto::CryptoProvider;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
@@ -23,6 +25,8 @@ async fn main() -> Result<()> {
     } else {
         builder.init();
     }
+
+    CryptoProvider::install_default(ring::default_provider()).unwrap();
 
     server::serve(settings).await
 }

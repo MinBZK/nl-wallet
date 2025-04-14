@@ -16,12 +16,13 @@ doctest = false
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["http1", "json", "tokio", "tower-log", "tracing"] }
-axum-server = { workspace = true, features = ["tls-rustls"] }
+axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 chrono.workspace = true
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
 postcard = { workspace = true, features = ["use-std"] }
+rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum.workspace = true
