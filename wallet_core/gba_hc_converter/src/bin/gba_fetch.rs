@@ -5,8 +5,8 @@ use anyhow::Result;
 use clap::Parser;
 use clio::ClioPath;
 
-use wallet_common::built_info::version_string;
-use wallet_common::utils;
+use utils::built_info::version_string;
+use utils::path::prefix_local_path;
 
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::client::HttpGbavClient;
@@ -28,7 +28,7 @@ struct Cli {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let base_path = utils::prefix_local_path(cli.output.path());
+    let base_path = prefix_local_path(cli.output.path());
     let settings = Settings::new()?;
 
     let (gbav_settings, preloaded_settings) = match settings.run_mode {

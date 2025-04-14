@@ -24,7 +24,7 @@ use serde_with::SerializeDisplay;
 use ssri::Integrity;
 
 use crypto::utils::random_bytes;
-use wallet_common::urls::HttpsUri;
+use http_utils::urls::HttpsUri;
 
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedAttributes;

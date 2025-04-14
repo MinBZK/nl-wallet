@@ -115,7 +115,7 @@ where
     }
 }
 
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 mod axum {
     use std::fmt::Display;
     use std::str::FromStr;
@@ -255,7 +255,7 @@ mod tests {
         assert_eq!(parsed_error_body.r#type, "some_type");
     }
 
-    #[cfg(feature = "axum")]
+    #[cfg(feature = "server")]
     mod axum {
         use axum::body;
         use axum::response::IntoResponse;

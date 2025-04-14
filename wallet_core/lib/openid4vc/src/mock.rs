@@ -5,10 +5,10 @@ use rustls_pki_types::TrustAnchor;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
+use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
+use jwt::wte::WteClaims;
 use poa::factory::PoaFactory;
-use wallet_common::urls::BaseUrl;
-use wallet_common::wte::WteClaims;
 
 use crate::issuance_session::CredentialPreviewsWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;

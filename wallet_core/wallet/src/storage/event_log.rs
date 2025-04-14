@@ -13,7 +13,7 @@ use mdoc::holder::Mdoc;
 use mdoc::holder::ProposedAttributes;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::reader_auth::ReaderRegistration;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
 use crate::attestation::AttestationIdentity;

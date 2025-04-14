@@ -17,9 +17,9 @@ use syn::ItemFn;
 /// To convert one [`anyhow::Result`] to another [`anyhow::Result`] this macro takes
 /// the following steps:
 ///
-/// 1. Wrap the function to which is is applied in a closure that is called immediately. This function may or may not
-///    be `async`. The effect of this is that any use of the `?` operator to convert and return error values is
-///    contained and performed within the closure.
+/// 1. Wrap the function to which is is applied in a closure that is called immediately. This function may or may not be
+///    `async`. The effect of this is that any use of the `?` operator to convert and return error values is contained
+///    and performed within the closure.
 /// 2. Any [`anyhow::Error`] resulting from the closure is converted to a [`crate::errors::FlutterApiError`], using its
 ///    [`TryFrom`] trait implementation. If this conversion fails, the [`anyhow::Error`] is simply propagated.
 /// 3. The [`crate::errors::FlutterApiError`] is logged using [`tracing`], by using the [`Display`] and [`Debug`] traits

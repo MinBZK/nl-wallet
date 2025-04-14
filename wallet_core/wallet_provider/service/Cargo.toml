@@ -83,7 +83,7 @@ wallet_account = { path = "../wallet_account", features = ["server"] }
 wallet_provider_database_settings = { path = "../database_settings", optional = true }
 wallet_provider_persistence = { path = "../persistence", features = ["mock"], optional = true }
 wallet_provider_domain.path = "../domain"
-wallet_common.path = "../../lib/wallet_common"
+utils.path = "../../lib/utils"
 
 platform_support = { path = "../../wallet/platform_support", optional = true, features = ["mock_attested_key_apple"] }
 

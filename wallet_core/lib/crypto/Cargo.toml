@@ -38,7 +38,8 @@ x509-parser = { workspace = true, features = ["verify", "validate"] }
 yoke = { workspace = true, features = ["derive"] }
 
 error_category.path = "../error_category"
-wallet_common.path = "../wallet_common"
+http_utils.path = "../http_utils"
+utils.path = "../utils"
 
 anyhow = { workspace = true, optional = true }
 futures = { workspace = true, optional = true, features = ["std", "async-await"] }

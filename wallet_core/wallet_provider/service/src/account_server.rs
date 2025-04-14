@@ -47,7 +47,6 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::VerifiedAttestation;
-use crypto::utils;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
@@ -58,6 +57,7 @@ use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use jwt::JwtSubject;
 use poa::PoaError;
+use utils::generator::Generator;
 use wallet_account::messages::errors::IncorrectPinData;
 use wallet_account::messages::errors::PinTimeoutData;
 use wallet_account::messages::instructions::ChangePinRollback;
@@ -73,7 +73,6 @@ use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 use wallet_account::signed::ChallengeResponsePayload;
 use wallet_account::signed::SequenceNumberComparison;
-use wallet_common::generator::Generator;
 use wallet_provider_domain::model::hsm::WalletUserHsm;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluation;
 use wallet_provider_domain::model::pin_policy::PinPolicyEvaluator;
@@ -368,8 +367,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
     ) -> Result<Vec<u8>, ChallengeError> {
         let challenge = Jwt::sign_with_sub(
             &RegistrationChallengeClaims {
-                wallet_id: utils::random_string(32),
-                random: utils::random_bytes(32),
+                wallet_id: crypto::utils::random_string(32),
+                random: crypto::utils::random_bytes(32),
                 exp: jsonwebtoken::get_current_timestamp() + 60,
             },
             certificate_signing_key,
@@ -412,7 +411,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
 
         let attestation_timestamp = Utc::now();
-        let challenge_hash = utils::sha256(challenge);
+        let challenge_hash = crypto::utils::sha256(challenge);
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let pin_pubkey = unverified.payload.pin_pubkey.into_inner();
 
@@ -667,7 +666,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Challenge request valid, persisting generated challenge and incremented sequence number");
         let challenge = InstructionChallenge {
-            bytes: utils::random_bytes(32),
+            bytes: crypto::utils::random_bytes(32),
             expiration_date_time: time_generator.generate() + self.instruction_challenge_timeout,
         };
 
@@ -1172,8 +1171,10 @@ pub mod mock {
         certificate_signing_pubkey: &VerifyingKey,
         crl: RevocationStatusList,
     ) -> MockAccountServer {
-        let integrity_client =
-            MockPlayIntegrityClient::new("com.example.app".to_string(), HashSet::from([utils::random_bytes(16)]));
+        let integrity_client = MockPlayIntegrityClient::new(
+            "com.example.app".to_string(),
+            HashSet::from([crypto::utils::random_bytes(16)]),
+        );
 
         AccountServer::new(
             "mock_account_server".into(),
@@ -1321,13 +1322,13 @@ mod tests {
     use apple_app_attest::AssertionValidationError;
     use apple_app_attest::MockAttestationCa;
     use crypto::keys::EcdsaKey;
-    use crypto::utils;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
     use hsm::model::mock::MockPkcs11Client;
     use hsm::service::HsmError;
     use jwt::EcdsaDecodingKey;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
+    use utils::generator::Generator;
     use wallet_account::messages::errors::IncorrectPinData;
     use wallet_account::messages::instructions::ChangePinCommit;
     use wallet_account::messages::instructions::ChangePinRollback;
@@ -1337,7 +1338,6 @@ mod tests {
     use wallet_account::messages::instructions::InstructionResult;
     use wallet_account::messages::registration::WalletCertificate;
     use wallet_account::signed::ChallengeResponse;
-    use wallet_common::generator::Generator;
     use wallet_provider_domain::generator::mock::MockGenerators;
     use wallet_provider_domain::model::wallet_user::InstructionChallenge;
     use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
@@ -1386,7 +1386,7 @@ mod tests {
             .await
             .expect("Could not get registration challenge");
 
-        let challenge_hash = utils::sha256(&challenge);
+        let challenge_hash = crypto::utils::sha256(&challenge);
         let (registration_message, hw_privkey) = match attestation_ca {
             AttestationCa::Apple(apple_mock_ca) => {
                 let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(
@@ -1902,7 +1902,7 @@ mod tests {
             .await
             .unwrap();
 
-        user_state.repositories.challenge = Some(utils::random_bytes(32));
+        user_state.repositories.challenge = Some(crypto::utils::random_bytes(32));
 
         let tx = user_state.repositories.begin_transaction().await.unwrap();
         let wallet_user = user_state
@@ -2190,7 +2190,7 @@ mod tests {
                 .unwrap();
 
         let pop_pin_pubkey = new_pin_privkey
-            .try_sign(utils::random_bytes(32).as_slice())
+            .try_sign(crypto::utils::random_bytes(32).as_slice())
             .await
             .unwrap();
 

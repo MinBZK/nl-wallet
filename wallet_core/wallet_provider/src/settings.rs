@@ -20,8 +20,8 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::settings::Hsm;
-use wallet_common::http::TlsServerConfig;
-use wallet_common::utils;
+use http_utils::tls::TlsServerConfig;
+use utils::path::prefix_local_path;
 use wallet_provider_database_settings::Database;
 
 #[serde_as]
@@ -128,7 +128,7 @@ impl Settings {
             .set_default("android.allow_sideloading", false)?
             .set_default("android.credentials_file", "google-cloud-service-account.json")?
             .set_default("android.play_store_certificate_hashes", Vec::<String>::new())?
-            .add_source(File::from(utils::prefix_local_path("wallet_provider.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path("wallet_provider.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("wallet_provider")
                     .separator("__")

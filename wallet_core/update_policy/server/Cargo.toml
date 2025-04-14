@@ -22,6 +22,7 @@ config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
 postcard = { workspace = true, features = ["use-std"] }
+rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum.workspace = true
@@ -29,11 +30,13 @@ tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "env-filter", "fmt", "json"] }
 
-wallet_common.path = "../lib/wallet_common"
+http_utils.path = "../../lib/http_utils"
+update_policy_model.path = "../model"
+utils.path = "../../lib/utils"
 
 [dev-dependencies]
 indexmap.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
 
-wallet_common = { path = "../lib/wallet_common", features = ["mock_time"] }
+utils = { path = "../../lib/utils", features = ["mock_time"] }

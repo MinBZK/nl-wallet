@@ -2,7 +2,7 @@ use anyhow::Result;
 use tokio::net::TcpListener;
 use tracing::info;
 
-use wallet_common::built_info::version_string;
+use utils::built_info::version_string;
 
 use crate::app::create_router;
 use crate::settings::Settings;

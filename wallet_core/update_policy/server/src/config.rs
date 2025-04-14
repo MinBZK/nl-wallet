@@ -8,10 +8,10 @@ use serde::Serialize;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 
-use wallet_common::generator::Generator;
-use wallet_common::update_policy::UpdatePolicyResponse;
-use wallet_common::update_policy::VersionReq;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::UpdatePolicyResponse;
+use update_policy_model::update_policy::VersionReq;
+use update_policy_model::update_policy::VersionState;
+use utils::generator::Generator;
 
 const WARN_THRESHOLD: Duration = Duration::from_secs(7 * 24 * 60 * 60);
 
@@ -165,7 +165,7 @@ mod test {
             )
     ))]
     fn test_update_policy(#[case] v: serde_json::Value, #[case] expected: UpdatePolicyResponse) {
-        use wallet_common::generator::mock::MockTimeGenerator;
+        use utils::generator::mock::MockTimeGenerator;
 
         let update_policy = serde_json::from_value::<UpdatePolicyConfig>(v).unwrap();
         assert_eq!(update_policy.into_response(&MockTimeGenerator::epoch()), expected);

@@ -1,9 +1,8 @@
 [package]
-name = "wallet_common"
+name = "http_utils"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-build = "build.rs"
 
 [lints]
 workspace = true
@@ -14,42 +13,32 @@ doctest = false
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = []
-# Include implementations of the axum IntoResponse trait.
-axum = ["dep:axum", "dep:axum-server", "dep:tower-http"]
+# Include implementations for http clients
+client = ["dep:reqwest"]
 # Implement the HttpConfig type for insecurely fetching configurations.
-insecure_http_client = []
-# Include MockTimeGenerator
-mock_time = ["dep:parking_lot"]
+insecure_http_client = ["client"]
+# Include implementations of the axum IntoResponse trait.
+server = ["dep:axum", "dep:axum-server", "dep:tower-http"]
 
 [dependencies]
 cfg-if.workspace = true
-chrono = { workspace = true, features = ["std", "clock", "serde"] }
-derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "from", "into"] }
+derive_more = { workspace = true, features = ["as_ref","debug"] }
 http.workspace = true
-indexmap = { workspace = true, features = ["serde"] }
-itertools.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }
-reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
-semver = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serde_with = { workspace = true, features = ["base64"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["rt", "parking_lot"] }
 trait-variant.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 axum = { workspace = true, optional = true, features = ["json"] }
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
-parking_lot = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true, features = ["rustls-tls-no-provider"] }
 tower-http = { workspace = true, optional = true, features = ["cors"] }
 
-[build-dependencies]
-built = { workspace = true, features = ["chrono", "git2"] }
-
 [dev-dependencies]
-parking_lot.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["macros"] }
+tokio = { workspace = true, features = ["macros", "rt"] }

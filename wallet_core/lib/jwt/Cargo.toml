@@ -25,7 +25,7 @@ x509-parser.workspace = true
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -36,4 +36,4 @@ tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 mdoc = { path = "../mdoc", features = ["generate", "mock"] }
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"

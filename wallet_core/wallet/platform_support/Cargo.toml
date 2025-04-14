@@ -83,7 +83,7 @@ uuid = { workspace = true, optional = true, features = ["v4"] }
 
 crypto = { path = "../../lib/crypto" }
 error_category.path = "../../lib/error_category"
-wallet_common = { path = "../../lib/wallet_common" }
+utils = { path = "../../lib/utils" }
 
 rand_core = { workspace = true, optional = true }
 

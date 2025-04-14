@@ -89,7 +89,7 @@ pub enum CorsOrigin {
     Origins(Vec<Origin>),
 }
 
-#[cfg(feature = "axum")]
+#[cfg(feature = "server")]
 mod axum {
     use tower_http::cors::AllowOrigin;
 

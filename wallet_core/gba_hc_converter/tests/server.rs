@@ -15,8 +15,8 @@ use gba_hc_converter::haal_centraal::Element;
 use gba_hc_converter::haal_centraal::PersonQuery;
 use gba_hc_converter::haal_centraal::PersonsResponse;
 use gba_hc_converter::server;
+use http_utils::reqwest::default_reqwest_client_builder;
 use tests_integration::common::wait_for_server;
-use wallet_common::reqwest::default_reqwest_client_builder;
 
 use crate::common::read_file;
 

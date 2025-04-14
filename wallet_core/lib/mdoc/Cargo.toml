@@ -62,8 +62,9 @@ rstest = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"
+http_utils.path = "../http_utils"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -77,4 +78,4 @@ tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../wallet_common", features = ["mock_time"] }
+utils = { path = "../utils", features = ["mock_time"] }

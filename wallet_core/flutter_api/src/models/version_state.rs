@@ -1,4 +1,4 @@
-use wallet::wallet_common::VersionState;
+use wallet::utils::VersionState;
 
 pub enum FlutterVersionState {
     Ok,

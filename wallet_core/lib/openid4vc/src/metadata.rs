@@ -6,9 +6,9 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
 
+use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use serde_with::skip_serializing_none;
-use wallet_common::urls::BaseUrl;
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.

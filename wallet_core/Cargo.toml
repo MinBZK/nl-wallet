@@ -10,6 +10,7 @@ members = [
     "lib/error_category",
     "lib/error_category/error_category_derive",
     "lib/hsm",
+    "lib/http_utils",
     "lib/jwt",
     "lib/mdoc",
     "lib/openid4vc",
@@ -17,10 +18,11 @@ members = [
     "lib/poa",
     "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
-    "lib/wallet_common",
+    "lib/utils",
     "mock_relying_party",
     "tests_integration",
-    "update_policy_server",
+    "update_policy/model",
+    "update_policy/server",
     "wallet",
     "wallet/configuration",
     "wallet/entity",
@@ -154,6 +156,7 @@ ring = "0.17.12"
 rpassword = "7.3.1"
 rsa = { version = "0.9.7", default-features = false }
 rstest = "0.24.0"
+rustls = { version = "0.23.22", default-features = false }
 rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"

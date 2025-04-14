@@ -15,6 +15,7 @@ use url::Url;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
+use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::Jwt;
 use mdoc::server_keys::generate::mock::generate_issuer_mock;
@@ -58,8 +59,7 @@ use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-use wallet_common::urls::BaseUrl;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 

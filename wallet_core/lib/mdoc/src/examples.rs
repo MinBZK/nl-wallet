@@ -13,7 +13,7 @@ use serde::Serialize;
 use crypto::server_keys::generate::Ca;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use wallet_common::generator::Generator;
+use utils::generator::Generator;
 
 use crate::server_keys::generate::mock::generate_issuer_mock;
 use crate::utils::issuer_auth::IssuerRegistration;

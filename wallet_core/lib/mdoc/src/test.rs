@@ -7,9 +7,9 @@ use crypto::server_keys::generate::Ca;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use wallet_common::urls::HttpsUri;
 
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
@@ -172,7 +172,7 @@ impl TestDocument {
         KF: crypto::factory::KeyFactory,
     {
         use crypto::keys::WithIdentifier;
-        use wallet_common::generator::TimeGenerator;
+        use utils::generator::TimeGenerator;
 
         use crate::holder::Mdoc;
 
