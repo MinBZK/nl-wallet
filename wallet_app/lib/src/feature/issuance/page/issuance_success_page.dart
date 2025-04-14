@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/stacked_wallet_cards.dart';
 import '../../common/widget/status_icon.dart';
 import '../../common/widget/text/body_text.dart';

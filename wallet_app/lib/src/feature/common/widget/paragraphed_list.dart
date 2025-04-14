@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import 'spacer/paragraph_spacer.dart';
 import 'text/body_text.dart';
 
 /// Renders the provided [paragraphs] as [BodyText] with a 8dp separator
@@ -20,7 +21,7 @@ class ParagraphedList extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (c, i) => BodyText(paragraphs[i]),
-      separatorBuilder: (BuildContext context, int index) => const SizedBox(height: 8),
+      separatorBuilder: (BuildContext context, int index) => ParagraphSpacer(),
       itemCount: paragraphs.length,
     );
   }

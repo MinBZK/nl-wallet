@@ -16,33 +16,111 @@ class BaseWalletTheme {
 
   static const headlineExtraSmallTextStyle = TextStyle(
     fontSize: 18,
-    fontWeight: FontWeight.bold,
-    height: 26 / 18,
-    letterSpacing: 0.15,
+    fontVariations: [fontVariationBold],
+    height: 24 / 18,
+    letterSpacing: 0,
     fontFamily: fontFamily,
   );
 
+  static const fontVariationRegular = FontVariation('wght', 400);
+  static const fontVariationBold = FontVariation('wght', 700);
+
   static final baseTextTheme = const TextTheme(
     // DISPLAY
-    displayLarge: TextStyle(fontSize: 56, fontWeight: FontWeight.normal, height: 84 / 56, letterSpacing: 0.25),
-    displayMedium: TextStyle(fontSize: 44, fontWeight: FontWeight.normal, height: 66 / 44, letterSpacing: 0),
-    displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.normal, height: 54 / 36, letterSpacing: 0),
+    displayLarge: TextStyle(
+      fontSize: 56,
+      height: 78 / 56,
+      letterSpacing: 0,
+      fontVariations: [fontVariationRegular],
+    ),
+    displayMedium: TextStyle(
+      fontSize: 44,
+      height: 62 / 44,
+      letterSpacing: 0,
+      fontVariations: [fontVariationRegular],
+    ),
+    displaySmall: TextStyle(
+      fontSize: 36,
+      height: 50 / 36,
+      letterSpacing: 0,
+      fontVariations: [fontVariationRegular],
+    ),
     // HEADLINE
-    headlineLarge: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, height: 44 / 30, letterSpacing: 0),
-    headlineMedium: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, height: 36 / 24, letterSpacing: 0.15),
-    headlineSmall: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, height: 30 / 20, letterSpacing: 0.15),
+    headlineLarge: TextStyle(
+      fontSize: 30,
+      height: 42 / 30,
+      letterSpacing: 0,
+      fontVariations: [fontVariationBold],
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 24,
+      height: 34 / 24,
+      letterSpacing: 0,
+      fontVariations: [fontVariationBold],
+    ),
+    headlineSmall: TextStyle(
+      fontSize: 20,
+      height: 28 / 20,
+      letterSpacing: 0,
+      fontVariations: [fontVariationBold],
+    ),
     // TITLE
-    titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, height: 26 / 18, letterSpacing: 0.15),
-    titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 24 / 16, letterSpacing: 0.15),
-    titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, height: 20 / 14, letterSpacing: 0.15),
+    titleLarge: TextStyle(
+      fontSize: 18,
+      height: 24 / 18,
+      letterSpacing: 0,
+      fontVariations: [fontVariationBold],
+    ),
+    titleMedium: TextStyle(
+      fontSize: 16,
+      height: 22 / 16,
+      letterSpacing: 0,
+      fontVariations: [fontVariationBold],
+    ),
+    titleSmall: TextStyle(
+      fontSize: 14,
+      height: 20 / 14,
+      letterSpacing: 0,
+      fontVariations: [fontVariationBold],
+    ),
     // LABEL
-    labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, height: 20 / 16, letterSpacing: 1),
-    labelMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, height: 20 / 14, letterSpacing: 1),
-    labelSmall: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, height: 18 / 12, letterSpacing: 1),
+    labelLarge: TextStyle(
+      fontSize: 18,
+      height: 24 / 18,
+      letterSpacing: 0.5,
+      fontVariations: [fontVariationBold],
+    ),
+    labelMedium: TextStyle(
+      fontSize: 16,
+      height: 22 / 16,
+      letterSpacing: 0.5,
+      fontVariations: [fontVariationBold],
+    ),
+    labelSmall: TextStyle(
+      fontSize: 14,
+      height: 20 / 14,
+      letterSpacing: 0.5,
+      fontVariations: [fontVariationBold],
+    ),
     // BODY
-    bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.normal, height: 24 / 16, letterSpacing: 0.5),
-    bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.normal, height: 20 / 14, letterSpacing: 0.25),
-    bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.normal, height: 18 / 12, letterSpacing: 0.15),
+    bodyLarge: TextStyle(
+      fontSize: 16,
+      height: 22 / 16,
+      letterSpacing: 0,
+      fontVariations: [fontVariationRegular],
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      height: 20 / 14,
+      letterSpacing: 0,
+      fontVariations: [fontVariationRegular],
+    ),
+    bodySmall: TextStyle(
+      fontSize: 12,
+      height: 16 / 12,
+      letterSpacing: 0,
+      fontVariations: [fontVariationRegular],
+    ),
   ).apply(fontFamily: fontFamily);
 
   //endregion Font & TextStyles
@@ -138,7 +216,7 @@ class BaseWalletTheme {
   static final baseAppBarTheme = AppBarTheme(
     centerTitle: false,
     elevation: 0,
-    titleTextStyle: baseTextTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold),
+    titleTextStyle: baseTextTheme.headlineMedium,
     scrolledUnderElevation: 12,
     shape: LinearBorder.none, /* hides the app bar divider */
   );

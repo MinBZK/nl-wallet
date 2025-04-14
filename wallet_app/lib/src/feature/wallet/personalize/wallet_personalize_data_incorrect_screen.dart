@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../navigation/secured_page_route.dart';
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/numbered_list.dart';
-import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
@@ -60,7 +61,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
           const SizedBox(height: 24),
           TitleText(
             context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveTitle,
-            style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: context.textTheme.bodyLarge?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
           ),
           NumberedList(
             items: context.l10n.walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints.split('\n'),
@@ -68,7 +69,7 @@ class WalletPersonalizeDataIncorrectScreen extends StatelessWidget {
           const SizedBox(height: 24),
           TitleText(
             context.l10n.walletPersonalizeDataIncorrectScreenNotYourDataTitle,
-            style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: context.textTheme.bodyLarge?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
           ),
           BodyText(
             context.l10n.walletPersonalizeDataIncorrectScreenNotYourDataDescription,

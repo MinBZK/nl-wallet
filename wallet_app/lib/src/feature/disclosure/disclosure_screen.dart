@@ -467,7 +467,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildCancelledSessionPage(BuildContext context, DisclosureCancelledSessionError state) {
     return ErrorPage.cancelledSession(
       context,
-      organizationName: state.relyingParty.displayName.l10nValue(context),
+      organizationName: state.relyingParty?.displayName.l10nValue(context) ?? context.l10n.organizationFallbackName,
       onPrimaryActionPressed: () {
         Navigator.pop(context);
         state.returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));

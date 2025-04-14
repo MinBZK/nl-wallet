@@ -1,6 +1,7 @@
 // coverage:ignore-file
 import 'package:flutter/material.dart';
 
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/text/title_text.dart';
 
@@ -21,7 +22,7 @@ class DigidSignInWithHeader extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             context.l10n.mockDigidScreenHeaderSubtitle,
-            style: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
           ),
         ],
       ),

@@ -19,8 +19,8 @@ import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/paragraphed_sliver_list.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../error/error_screen.dart';
 import 'bloc/biometric_settings_bloc.dart';
 
