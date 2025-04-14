@@ -6,6 +6,7 @@ import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
     feature.disclosure.DisclosureTests::class,
+    feature.disclosure.UniversalLinkTests::class,
 )
 @Suite
 @SuiteDisplayName("Disclosure Test Suite")
