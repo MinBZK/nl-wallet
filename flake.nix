@@ -59,7 +59,9 @@
             envsubst
             softhsm
             gnutls
+            xxd
             nodejs
+            nodePackages.prettier
           ];
 
           env = {

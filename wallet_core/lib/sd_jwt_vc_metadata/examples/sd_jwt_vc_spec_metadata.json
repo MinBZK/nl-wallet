@@ -325,11 +325,7 @@
         "type": "object"
       }
     },
-    "required": [
-      "vct",
-      "iss",
-      "iat"
-    ],
+    "required": ["vct", "iss", "iat"],
     "additionalProperties": false
   }
 }
