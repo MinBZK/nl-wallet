@@ -162,7 +162,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             verifyDeviceUnlocked()
             verifyKeyDoesNotExist(keyAlias)
             SigningKey.createKey(context, keyAlias, challenge)
-            return SigningKey(keyAlias).takeIf { it.isConsideredValid }!!
+            return SigningKey(keyAlias)
         } catch (e: Exception) {
             throw when (e) {
                 is IllegalStateException -> throw AttestedKeyException.Other("precondition failed: ${e.message}")

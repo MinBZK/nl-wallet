@@ -16,7 +16,7 @@ class EncryptionKeyBridge(context: Context) : KeyBridge(context), RustEncryption
         try {
             verifyDeviceUnlocked()
             if (!keyExists(keyAlias)) EncryptionKey.createKey(context, keyAlias)
-            return EncryptionKey(keyAlias).takeIf { it.isConsideredValid }!!
+            return EncryptionKey(keyAlias)
         } catch (ex: Exception) {
             if (ex is KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException
