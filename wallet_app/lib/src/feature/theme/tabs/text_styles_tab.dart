@@ -6,6 +6,9 @@ import '../../../data/service/navigation_service.dart';
 import '../../../domain/model/navigation/navigation_request.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/button/secondary_button.dart';
+import '../../common/widget/spacer/paragraph_spacer.dart';
+import '../../common/widget/text/body_text.dart';
+import '../../common/widget/text/title_text.dart';
 import '../theme_screen.dart';
 
 class TextStylesTab extends StatelessWidget {
@@ -16,18 +19,30 @@ class TextStylesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
       children: [
+        // Display
         Text('DisplayLarge', style: context.textTheme.displayLarge),
         Text('DisplayMedium', style: context.textTheme.displayMedium),
         Text('DisplaySmall', style: context.textTheme.displaySmall),
+        // Headline
+        Text('HeadlineLarge', style: context.textTheme.headlineLarge),
         Text('HeadlineMedium', style: context.textTheme.headlineMedium),
+        Text('HeadlineSmall', style: context.textTheme.headlineSmall),
+        // Title
+        Text('TitleLarge', style: context.textTheme.titleLarge),
         Text('TitleMedium', style: context.textTheme.titleMedium),
         Text('TitleSmall', style: context.textTheme.titleSmall),
+        // Body
         Text('BodyLarge', style: context.textTheme.bodyLarge),
         Text('BodyMedium', style: context.textTheme.bodyMedium),
-        Text('LabelLarge', style: context.textTheme.labelLarge),
         Text('BodySmall', style: context.textTheme.bodySmall),
+        // Label
+        Text('LabelLarge', style: context.textTheme.labelLarge),
+        Text('LabelMedium', style: context.textTheme.labelMedium),
         Text('LabelSmall', style: context.textTheme.labelSmall),
-        const SizedBox(height: 24),
+        const Divider(height: 24),
+        TitleText('Title Text'),
+        ParagraphSpacer(),
+        BodyText('Body Text'),
         _buildScenarios(context),
       ],
     );

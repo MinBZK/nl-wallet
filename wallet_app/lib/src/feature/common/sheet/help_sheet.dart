@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../screen/placeholder_screen.dart';
@@ -61,31 +62,35 @@ class HelpSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppVersionText(
-          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
         ),
         const SizedBox(height: 4),
         OsVersionText(
-          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
         ),
         const SizedBox(height: 4),
         ConfigVersionText(
-          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
         ),
         const SizedBox(height: 4),
         errorCode == null
             ? const SizedBox.shrink()
             : Text(
                 context.l10n.helpSheetErrorCode(errorCode!),
-                style: context.textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.bold, color: context.colorScheme.error),
+                style: context.textTheme.bodyMedium?.copyWith(
+                  fontVariations: [BaseWalletTheme.fontVariationBold],
+                  color: context.colorScheme.error,
+                ),
               ),
         if (supportCode != null) const SizedBox(height: 4),
         supportCode == null
             ? const SizedBox.shrink()
             : Text(
                 context.l10n.helpSheetSupportCode(supportCode!),
-                style: context.textTheme.bodyMedium
-                    ?.copyWith(fontWeight: FontWeight.bold, color: context.colorScheme.error),
+                style: context.textTheme.bodyMedium?.copyWith(
+                  fontVariations: [BaseWalletTheme.fontVariationBold],
+                  color: context.colorScheme.error,
+                ),
               ),
       ],
     );

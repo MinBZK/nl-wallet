@@ -312,7 +312,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         emit(
           DisclosureCancelledSessionError(
             error: error,
-            relyingParty: relyingParty!,
+            relyingParty: relyingParty,
             returnUrl: error.returnUrl,
           ),
         );

@@ -15,9 +15,9 @@ import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/secondary_button.dart';
-import '../common/widget/sliver_divider.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_divider.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/menu_bloc.dart';
@@ -109,7 +109,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
       MenuRow(
         label: context.l10n.menuScreenTourCta,
         icon: Icons.play_arrow,
-        onTap: () => PlaceholderScreen.showGeneric(context),
+        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.tourRoute),
       ),
       MenuRow(
         label: context.l10n.menuScreenHelpCta,

@@ -94,9 +94,6 @@ flutter:
     - family: RijksoverheidSansWebText
       fonts:
         - asset: assets/non-free/fonts/rijksoverheid-sans-web-text-regular.ttf
-          weight: 400
-        - asset: assets/non-free/fonts/rijksoverheid-sans-web-text-bold.ttf
-          weight: 700
     - family: WalletIcons
       fonts:
         - asset: assets/non-free/fonts/WalletIcons.ttf

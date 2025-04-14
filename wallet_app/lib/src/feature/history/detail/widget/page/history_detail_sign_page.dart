@@ -4,9 +4,9 @@ import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
-import '../../../../common/widget/sliver_divider.dart';
-import '../../../../common/widget/sliver_sized_box.dart';
 import '../../../../common/widget/sliver_wallet_app_bar.dart';
+import '../../../../common/widget/spacer/sliver_divider.dart';
+import '../../../../common/widget/spacer/sliver_sized_box.dart';
 import '../history_detail_common_builders.dart';
 import '../history_detail_timestamp.dart';
 

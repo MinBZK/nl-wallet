@@ -145,7 +145,7 @@ class OrganizationDetailScreen extends StatelessWidget {
 
   Widget _buildHeaderSection(BuildContext context, Organization organization) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         ExcludeSemantics(
           child: OrganizationLogo(image: organization.logo, size: 64, fixedRadius: 12),

@@ -1,7 +1,7 @@
 // coverage:ignore-file
 import 'package:flutter/material.dart';
 
-import '../../common/widget/sliver_sized_box.dart';
+import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../widget/digid_confirm_buttons.dart';
 import '../widget/digid_sign_in_with_header.dart';
 import '../widget/digid_sign_in_with_organization.dart';

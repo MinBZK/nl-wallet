@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wallet/src/feature/common/widget/sliver_divider.dart';
+import 'package:wallet/src/feature/common/widget/spacer/sliver_divider.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';
