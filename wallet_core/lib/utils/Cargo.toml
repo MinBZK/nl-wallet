@@ -17,7 +17,7 @@ mock_time = ["dep:parking_lot"]
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
-derive_more = { workspace = true, features = ["as_ref", "from"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "index", "into_iterator"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64"] }

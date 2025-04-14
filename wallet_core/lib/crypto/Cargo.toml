@@ -17,12 +17,12 @@ mock = []
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 mock_secure_keys = []
 # Include MockRemoteEcdsaKey type and MockRemoteKeyFactory implementation of KeyFactory for testing
-mock_remote_key = ["dep:futures", "dep:parking_lot", "dep:rand_core"]
+mock_remote_key = ["dep:futures", "dep:parking_lot", "dep:rand_core", "derive_more/constructor"]
 
 [dependencies]
 aes-gcm = { workspace = true, features = ["std"] }
 chrono = { workspace = true, features = ["std", "clock"] }
-derive_more = { workspace = true, features = ["as_ref", "debug", "from", "into"] }
+derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into"] }
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["std", "ecdsa", "pem"] }
 rustls-pki-types.workspace = true
@@ -52,6 +52,7 @@ time = { workspace = true, optional = true }
 
 [dev-dependencies]
 assert_matches.workspace = true
+derive_more = { workspace = true, features = ["debug", "as_ref", "from", "into", "constructor"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 parking_lot.workspace = true
 rand_core.workspace = true

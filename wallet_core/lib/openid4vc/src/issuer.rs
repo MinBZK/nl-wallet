@@ -44,7 +44,7 @@ use mdoc::AttestationQualification;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::vec_at_least::VecNonEmpty;
@@ -187,6 +187,8 @@ pub struct Created {
     pub credential_previews: Option<Vec<CredentialFormats<CredentialPreview>>>,
 }
 
+// TODO (PVW-4110): Do not store the entire preview in the database, but just the attributes that are to be issued.
+//                  Now this also includes the metadata chain and issuer certificate, which should not be necessary.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     pub access_token: AccessToken,
@@ -292,7 +294,7 @@ pub struct AttestationTypeConfig<K> {
     pub attestation_qualification: AttestationQualification,
     pub metadata_documents: TypeMetadataDocuments,
     first_metadata_integrity: Integrity,
-    metadata: TypeMetadata,
+    metadata: NormalizedTypeMetadata,
 }
 
 impl<K> AttestationTypeConfig<K> {
@@ -308,8 +310,7 @@ impl<K> AttestationTypeConfig<K> {
     ) -> Result<Self, TypeMetadataChainError> {
         // Calculate and cache the integrity hash for the first metadata document in the chain.
         let first_metadata_integrity = Integrity::from(metadata_documents.as_ref().first().as_slice());
-        let unverified_metadata_chain = metadata_documents.into_unverified_metadata_chain(attestation_type)?;
-        let (metadata, metadata_documents) = unverified_metadata_chain.into_metadata_and_source();
+        let (metadata, sorted_documents) = metadata_documents.into_normalized(attestation_type)?;
 
         let config = Self {
             key_pair,
@@ -317,7 +318,7 @@ impl<K> AttestationTypeConfig<K> {
             copy_count,
             issuer_uri,
             attestation_qualification,
-            metadata_documents,
+            metadata_documents: sorted_documents.into(),
             first_metadata_integrity,
             metadata,
         };

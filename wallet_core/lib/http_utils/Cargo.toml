@@ -22,7 +22,7 @@ server = ["dep:axum", "dep:axum-server", "dep:tower-http"]
 
 [dependencies]
 cfg-if.workspace = true
-derive_more = { workspace = true, features = ["as_ref","debug"] }
+derive_more = { workspace = true, features = ["as_ref", "debug"] }
 http.workspace = true
 mime.workspace = true
 nutype = { workspace = true, features = ["serde"] }

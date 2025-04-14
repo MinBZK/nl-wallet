@@ -1,8 +1,8 @@
 use std::hash::Hash;
 use std::num::NonZeroUsize;
-use std::ops::Index;
-use std::slice::SliceIndex;
 
+use derive_more::Index;
+use derive_more::IntoIterator;
 use itertools::Itertools;
 use serde::de;
 use serde::Deserialize;
@@ -28,10 +28,10 @@ pub type VecNonEmpty<T> = VecAtLeastN<T, 1, false>;
 pub type VecAtLeastTwo<T> = VecAtLeastN<T, 2, false>;
 pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 
-/// Newtype for a [`Vec<T>`] that contains at least `N` values, with optional uniquness validation.
+/// Newtype for a [`Vec<T>`] that contains at least `N` values, with optional uniqueness validation.
 /// For convenience, a number of common use cases have been defined as type aliases. Note that a
 /// type with an `N` value of 0 is not valid and will cause a runtime panic when constructed.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Index, IntoIterator, Serialize, Deserialize)]
 pub struct VecAtLeastN<T, const N: usize, const UNIQUE: bool>(Vec<T>);
 
 impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
@@ -76,6 +76,12 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
     pub fn into_last(mut self) -> T {
         // Guaranteed to succeed, as N is at least 1.
         self.0.pop().unwrap()
+    }
+
+    pub fn into_inner_last(mut self) -> (Vec<T>, T) {
+        let last = self.0.pop().unwrap();
+
+        (self.0, last)
     }
 
     pub fn as_slice(&self) -> &[T] {
@@ -130,24 +136,6 @@ impl<T, const N: usize, const UNIQUE: bool> AsRef<[T]> for VecAtLeastN<T, N, UNI
 impl<T, const N: usize, const UNIQUE: bool> From<VecAtLeastN<T, N, UNIQUE>> for Vec<T> {
     fn from(value: VecAtLeastN<T, N, UNIQUE>) -> Self {
         value.into_inner()
-    }
-}
-
-impl<T, const N: usize, const UNIQUE: bool> IntoIterator for VecAtLeastN<T, N, UNIQUE> {
-    type Item = T;
-    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<T, const N: usize, const UNIQUE: bool, I: SliceIndex<[T]>> Index<I> for VecAtLeastN<T, N, UNIQUE> {
-    type Output = I::Output;
-
-    #[inline]
-    fn index(&self, index: I) -> &Self::Output {
-        Index::index(&self.0, index)
     }
 }
 

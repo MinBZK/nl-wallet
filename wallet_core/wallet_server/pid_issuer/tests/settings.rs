@@ -8,7 +8,6 @@ use issuer_settings::settings::AttestationTypeConfigSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use pid_issuer::settings::PidIssuerSettings;
-use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use server_utils::settings::CertificateVerificationError;
 use server_utils::settings::ServerSettings;
@@ -57,17 +56,16 @@ fn test_settings_no_issuer_registration() {
         vct: "com.example.no_registration".to_string(),
         ..UncheckedTypeMetadata::empty_example()
     };
-    let pid_metadata = TypeMetadata::pid_example();
+    let no_registration_metadata_json = serde_json::to_vec(&no_registration_metadata).unwrap();
+    let pid_metadata = UncheckedTypeMetadata::pid_example();
+    let pid_metadata_json = serde_json::to_vec(&pid_metadata).unwrap();
 
     settings.issuer_settings.metadata = HashMap::from([
         (
             no_registration_metadata.vct.clone(),
-            serde_json::to_vec(&no_registration_metadata).unwrap(),
+            (no_registration_metadata, no_registration_metadata_json),
         ),
-        (
-            pid_metadata.as_ref().vct.clone(),
-            serde_json::to_vec(&pid_metadata).unwrap(),
-        ),
+        (pid_metadata.vct.clone(), (pid_metadata, pid_metadata_json)),
     ]);
 
     assert_matches!(
@@ -75,16 +73,6 @@ fn test_settings_no_issuer_registration() {
         IssuerSettingsError::CertificateVerification(CertificateVerificationError::IncompleteCertificateType(key))
             if key == "com.example.no_registration"
     );
-}
-
-#[test]
-fn test_settings_missing_metadata() {
-    let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("default settings");
-
-    settings.issuer_settings.metadata.clear();
-
-    let error = settings.validate().expect_err("should fail");
-    assert_matches!(error, IssuerSettingsError::MissingMetadata { .. });
 }
 
 #[test]

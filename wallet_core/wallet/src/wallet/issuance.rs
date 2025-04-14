@@ -304,13 +304,11 @@ where
         info!("PID received successfully from issuer, returning preview documents");
         let attestations = attestation_previews
             .into_iter()
-            .flat_map(|(formats, unverified_metadata_chains)| formats.into_iter().zip(unverified_metadata_chains))
-            .map(|(preview, unverified_metadata_chain)| {
+            .flat_map(|(formats, metadata)| formats.into_iter().zip(metadata))
+            .map(|(preview, metadata)| {
                 let issuer_registration = preview.issuer_registration()?;
                 match preview {
                     CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
-                        let (metadata, _) = unverified_metadata_chain.into_metadata_and_source();
-
                         let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
                             metadata,
@@ -727,10 +725,10 @@ mod tests {
 
         let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
         let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-        let unverified_metadata_chains = vec![metadata_documents
+        let (normalized_metadata, _) = metadata_documents
             .clone()
-            .into_unverified_metadata_chain(&unsigned_mdoc.doc_type)
-            .unwrap()];
+            .into_normalized(&unsigned_mdoc.doc_type)
+            .unwrap();
         let credential_formats = CredentialFormats::try_new(
             VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
@@ -745,7 +743,7 @@ mod tests {
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
-                vec![(credential_formats, unverified_metadata_chains)],
+                vec![(credential_formats, vec![normalized_metadata])],
             ))
         });
 

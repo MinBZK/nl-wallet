@@ -576,7 +576,8 @@ mod tests {
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
@@ -619,7 +620,9 @@ mod tests {
         IndexMap::from([(
             "com.example.pid".to_string(),
             ProposedDocumentAttributes {
-                type_metadata: TypeMetadata::example_with_claim_names("com.example.pid", &metadata_props),
+                type_metadata: NormalizedTypeMetadata::from_single_example(
+                    UncheckedTypeMetadata::example_with_claim_names("com.example.pid", &metadata_props),
+                ),
                 attributes: IndexMap::from([(
                     "com.example.pid".to_string(),
                     attrs

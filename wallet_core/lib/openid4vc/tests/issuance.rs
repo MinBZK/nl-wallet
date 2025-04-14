@@ -53,6 +53,7 @@ use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
 use poa::Poa;
 use poa::PoaPayload;
+use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
@@ -515,7 +516,11 @@ fn mock_type_metadata(vct: &str) -> TypeMetadata {
             .iter()
             .map(|(key, _)| ClaimMetadata {
                 path: vec![ClaimPath::SelectByKey(key.to_string())].try_into().unwrap(),
-                display: vec![],
+                display: vec![ClaimDisplayMetadata {
+                    lang: "en".to_string(),
+                    label: key.to_string(),
+                    description: None,
+                }],
                 sd: ClaimSelectiveDisclosureMetadata::Allowed,
                 svg_id: None,
             })
