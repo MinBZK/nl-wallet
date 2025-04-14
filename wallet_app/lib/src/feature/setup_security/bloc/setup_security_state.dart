@@ -144,10 +144,10 @@ class SetupSecurityNetworkError extends SetupSecurityState implements NetworkErr
   final ApplicationError error;
 
   @override
-  final int? statusCode;
+  final bool hasInternet;
 
   @override
-  final bool hasInternet;
+  final int? statusCode;
 
   const SetupSecurityNetworkError({required this.error, required this.hasInternet, this.statusCode});
 
