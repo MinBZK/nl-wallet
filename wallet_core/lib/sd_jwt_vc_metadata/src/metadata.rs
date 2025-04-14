@@ -545,6 +545,7 @@ mod example_constructors {
     use super::ClaimMetadata;
     use super::ClaimPath;
     use super::ClaimSelectiveDisclosureMetadata;
+    use super::DisplayMetadata;
     use super::JsonSchema;
     use super::JsonSchemaProperties;
     use super::JsonSchemaProperty;
@@ -556,12 +557,20 @@ mod example_constructors {
 
     impl UncheckedTypeMetadata {
         pub fn empty_example() -> Self {
+            let name = random_string(8);
+
             Self {
                 vct: random_string(16),
-                name: Some(random_string(8)),
+                name: Some(name.clone()),
                 description: None,
                 extends: None,
-                display: vec![],
+                display: vec![DisplayMetadata {
+                    lang: "en".to_string(),
+                    name,
+                    description: None,
+                    summary: None,
+                    rendering: None,
+                }],
                 claims: vec![],
                 schema: SchemaOption::Embedded {
                     schema: Box::new(JsonSchema::try_new(json!({"properties": {}})).unwrap()),

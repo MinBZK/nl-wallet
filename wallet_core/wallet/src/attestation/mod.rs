@@ -15,6 +15,7 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
+use wallet_common::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
@@ -39,7 +40,7 @@ pub enum AttestationError {
 pub struct Attestation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
-    pub display_metadata: Vec<DisplayMetadata>,
+    pub display_metadata: VecNonEmpty<DisplayMetadata>,
     pub issuer: Organization,
     pub attributes: Vec<AttestationAttribute>,
 }

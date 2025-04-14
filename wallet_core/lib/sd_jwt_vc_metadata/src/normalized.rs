@@ -34,8 +34,14 @@ pub enum NormalizedTypeMetadataError {
     )]
     ExtensionMissingClaims(String, Vec<VecNonEmpty<ClaimPath>>),
 
+    #[error("No display metadata present in any of the chain documents")]
+    NoDisplayMetadata,
+
     #[error("JSON schema is not embedded for vct \"{0}\"")]
     NoEmbeddedSchema(String),
+
+    #[error("No claim display metadata present for claim at path: {}", ClaimMetadata::path_to_string(.0.as_ref()))]
+    NoClaimDisplayMetadata(VecNonEmpty<ClaimPath>),
 
     #[error("found missing `svg_id`s: {}", .0.join(", "))]
     MissingSvgIds(Vec<String>),
@@ -48,7 +54,7 @@ pub struct TypeMetadataValidationError(String, #[source] ValidationError<'static
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NormalizedTypeMetadata {
     vcts: VecNonEmpty<String>,
-    display: Vec<DisplayMetadata>,
+    display: VecNonEmpty<DisplayMetadata>,
     claims: Vec<ClaimMetadata>,
     schemas: VecNonEmpty<JsonSchema>,
 }
@@ -98,6 +104,8 @@ impl NormalizedTypeMetadata {
             .rev()
             .fold(root_display, extend_display_properties);
 
+        let display = VecNonEmpty::try_from(display).map_err(|_| NormalizedTypeMetadataError::NoDisplayMetadata)?;
+
         // Merge the claims of all of the documents, going from the root to the leaf.
         let claims = claims_extensions.into_iter().enumerate().rev().try_fold(
             root_claims,
@@ -105,6 +113,12 @@ impl NormalizedTypeMetadata {
                 ClaimMetadata::extend_claims(normalized_claims, &vcts[index], extending_claims)
             },
         )?;
+
+        for claim in &claims {
+            if claim.display.is_empty() {
+                return Err(NormalizedTypeMetadataError::NoClaimDisplayMetadata(claim.path.clone()));
+            }
+        }
 
         // Check if all of the JSON schemas are embedded and extract them.
         let schemas = schemas
@@ -121,7 +135,7 @@ impl NormalizedTypeMetadata {
         // Check if the `svg_id`s are still consistent after normalizing. Note that we do not have to check for
         // duplicate `svg_id`s here, as this is already checked for each metadata document individually and, because all
         // of the claims of an extended document need to be repeated, this then also holds for the normalized claims.
-        let missing_svg_ids = crate::metadata::find_missing_svg_ids(&display, &claims);
+        let missing_svg_ids = crate::metadata::find_missing_svg_ids(display.as_ref(), &claims);
         if !missing_svg_ids.is_empty() {
             return Err(NormalizedTypeMetadataError::MissingSvgIds(missing_svg_ids));
         }
@@ -147,14 +161,16 @@ impl NormalizedTypeMetadata {
     }
 
     pub fn display(&self) -> &[DisplayMetadata] {
-        &self.display
+        self.display.as_ref()
     }
 
     pub fn claims(&self) -> &[ClaimMetadata] {
         &self.claims
     }
 
-    pub fn into_presentation_components(self) -> (String, Vec<DisplayMetadata>, Vec<ClaimMetadata>, JsonSchema) {
+    pub fn into_presentation_components(
+        self,
+    ) -> (String, VecNonEmpty<DisplayMetadata>, Vec<ClaimMetadata>, JsonSchema) {
         (
             self.vcts.into_first(),
             self.display,
@@ -334,7 +350,7 @@ mod example_constructors {
 
             Self {
                 vcts: vec![metadata.vct].try_into().unwrap(),
-                display: metadata.display,
+                display: metadata.display.try_into().unwrap(),
                 claims: metadata.claims,
                 schemas: vec![schema].try_into().unwrap(),
             }
@@ -401,7 +417,7 @@ mod tests {
         );
 
         // The metadata display values should be merged, with existing values being updated and new values appended.
-        assert_eq!(normalized.display.len(), 2);
+        assert_eq!(normalized.display.len().get(), 2);
         assert_ne!(normalized.display[0], metadata.display[0]);
         assert_eq!(normalized.display[0], metadata_v2.display[1]);
         assert_eq!(normalized.display[1], metadata_v2.display[0]);
@@ -627,6 +643,36 @@ mod tests {
 
         NormalizedTypeMetadata::try_from_sorted_metadata(chain)
             .expect_err("normalizing SD-JWT VC type metadata chain should not succeed")
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_error_no_display_metadata() {
+        let metadata = UncheckedTypeMetadata {
+            display: vec![],
+            ..create_basic_unchecked_metadata()
+        };
+
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata]);
+
+        assert_matches!(error, NormalizedTypeMetadataError::NoDisplayMetadata);
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_error_no_claim_display_metadata() {
+        let metadata = UncheckedTypeMetadata {
+            claims: vec![ClaimMetadata {
+                path: vec![ClaimPath::SelectByKey("path".to_string())].try_into().unwrap(),
+                display: vec![],
+                sd: ClaimSelectiveDisclosureMetadata::Allowed,
+                svg_id: None,
+            }],
+            ..create_basic_unchecked_metadata()
+        };
+
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata]);
+
+        let expected_path = VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("path".to_string())]).unwrap();
+        assert_matches!(error, NormalizedTypeMetadataError::NoClaimDisplayMetadata(path) if path == expected_path);
     }
 
     #[test]

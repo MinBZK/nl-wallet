@@ -188,18 +188,25 @@ mod test {
     fn test_traverse_groups() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [{
                 "path": ["birthdate"],
+                "display": [{"lang": "en", "label": "birthdate"}],
             }, {
                 "path": ["place_of_birth", "locality"],
+                "display": [{"lang": "en", "label": "birth city"}],
             }, {
                 "path": ["place_of_birth", "country", "name"],
+                "display": [{"lang": "en", "label": "birth country"}],
             }, {
                 "path": ["place_of_birth", "country", "area_code"],
+                "display": [{"lang": "en", "label": "birth area code"}],
             }, {
                 "path": ["a", "b", "c", "d", "e"],
+                "display": [{"lang": "en", "label": "a b c d e"}],
             }, {
                 "path": ["a", "b", "c1"],
+                "display": [{"lang": "en", "label": "a b c1"}],
             }],
             "schema": { "properties": {} }
         });
@@ -280,8 +287,12 @@ mod test {
     fn test_traverse_groups_for_dot_in_attribute_name() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [
-                { "path": ["nest.ed", "birth.date"] }
+                {
+                    "path": ["nest.ed", "birth.date"],
+                    "display": [{"lang": "en", "label": "nested birthday"}],
+                }
             ],
             "schema": { "properties": {} }
         });
@@ -308,9 +319,16 @@ mod test {
     fn test_traverse_groups_with_extra_entry_not_in_claim() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [
-                { "path": ["a", "a1"] },
-                { "path": ["a", "a2"] }
+                {
+                    "path": ["a", "a1"],
+                    "display": [{"lang": "en", "label": "a a1"}],
+                },
+                {
+                    "path": ["a", "a2"],
+                    "display": [{"lang": "en", "label": "a a1"}],
+                }
             ],
             "schema": { "properties": {} }
         });
@@ -346,10 +364,20 @@ mod test {
     fn test_traverse_groups_claim_ordering() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [
-                { "path": ["b", "b1"] },
-                { "path": ["b", "b3"] },
-                { "path": ["b", "b2"] }
+                {
+                    "path": ["b", "b1"],
+                    "display": [{"lang": "en", "label": "b b1"}],
+                },
+                {
+                    "path": ["b", "b3"],
+                    "display": [{"lang": "en", "label": "b b3"}],
+                },
+                {
+                    "path": ["b", "b2"],
+                    "display": [{"lang": "en", "label": "b b2"}],
+                }
             ],
             "schema": { "properties": {} }
         });
