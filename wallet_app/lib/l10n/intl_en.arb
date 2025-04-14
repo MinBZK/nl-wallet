@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-04-07T15:45:22+02:00",
+    "@@last_modified": "2025-04-10T16:26:21+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -25,6 +25,7 @@
     "appBlockedScreenDescriptioniOSVariant": "You can no longer use this version of the app. Go to the App Store to update the app.",
     "appBlockedScreenTitle": "A new app version is needed",
     "appTitle": "NL Wallet",
+    "applicationErrorDetailsTitle": "Technical details",
     "biometricSettingsScreenDescription": "This will open your NL Wallet faster. You'll use your {supportedBiometrics} instead of your PIN.\nEnable {supportedBiometrics} and confirm with your PIN.",
     "@biometricSettingsScreenDescription": {
         "placeholders": {
@@ -321,6 +322,10 @@
     },
     "disclosureMissingAttributesPageReportIssueCta": "Report an issue?",
     "disclosureMissingAttributesPageTitle": "You're missing data",
+    "disclosureRelyingPartyErrorCloseCta": "Close",
+    "disclosureRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
+    "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
+    "disclosureRelyingPartyErrorTitle": "Sorry, something went wrong",
     "disclosureReportSubmittedPageCloseCta": "Close",
     "disclosureReportSubmittedPageSubtitle": "Your report has been sent anonymously. \n\nNever share any data with organizations you do not trust.",
     "disclosureReportSubmittedPageTitle": "Thanks for your feedback",
@@ -691,6 +696,10 @@
         }
     },
     "issuanceProofIdentityPageTitle": "Proof who you are",
+    "issuanceRelyingPartyErrorCloseCta": "Close",
+    "issuanceRelyingPartyErrorDescription": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the issuer's website where you started and try again. If it still doesn’t work, contact the issuer.",
+    "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
+    "issuanceRelyingPartyErrorTitle": "Sorry, something went wrong",
     "issuanceScreenRefreshTitle": "Refresh data",
     "issuanceScreenTitle": "Retrieve data",
     "issuanceSelectCardsPageAddCta": "Add",
@@ -821,6 +830,7 @@
     "organizationDetailScreenSomeInteractions": "You have shared before with {name}",
     "organizationDetailScreenTitle": "About {name}",
     "organizationDetailScreenWebsiteInfo": "Website",
+    "organizationFallbackName": "The organization",
     "pageIndicatorSemanticsLabel": "Step {current} out of {total}",
     "pidAddressCardTitle": "Residential address",
     "pidIdCardTitle": "Personal data",

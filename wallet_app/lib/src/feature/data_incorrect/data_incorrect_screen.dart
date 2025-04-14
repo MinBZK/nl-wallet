@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'widget/data_incorrect_option_row.dart';
 

@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-04-07T15:45:22+02:00",
+    "@@last_modified": "2025-04-10T16:26:21+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -21,6 +21,7 @@
     "appBlockedScreenDescriptioniOSVariant": "Je kunt deze versie van de app niet langer gebruiken. Ga naar de App Store op de app bij te werken.",
     "appBlockedScreenTitle": "Een nieuwe app versie is vereist",
     "appTitle": "NL Wallet",
+    "applicationErrorDetailsTitle": "Technische details",
     "biometricSettingsScreenDescription": "Hiermee open je de NL Wallet sneller. Je gebruikt jouw {supportedBiometrics} in plaats van jouw pincode.\nZet {supportedBiometrics} aan en bevestig met jouw pincode.",
     "@biometricSettingsScreenDescription": {
         "placeholders": {
@@ -317,6 +318,10 @@
     },
     "disclosureMissingAttributesPageReportIssueCta": "Wil je een probleem melden?",
     "disclosureMissingAttributesPageTitle": "Je mist gegevens",
+    "disclosureRelyingPartyErrorCloseCta": "Sluiten",
+    "disclosureRelyingPartyErrorDescription": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
+    "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
+    "disclosureRelyingPartyErrorTitle": "Sorry, er gaat iets mis",
     "disclosureReportSubmittedPageCloseCta": "Sluiten",
     "disclosureReportSubmittedPageSubtitle": "Je melding is anoniem verstuurd.\n\nDeel nooit je gegevens met een organisatie die je niet vertrouwt.",
     "disclosureReportSubmittedPageTitle": "Bedankt voor je feedback",
@@ -687,6 +692,10 @@
         }
     },
     "issuanceProofIdentityPageTitle": "Bewijs wie je bent",
+    "issuanceRelyingPartyErrorCloseCta": "Sluiten",
+    "issuanceRelyingPartyErrorDescription": "De kaarten kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van de uitgever waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de uitgever.",
+    "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "De kaarten kunnen niet worden toegevoegd. Dit kan meerdere redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
+    "issuanceRelyingPartyErrorTitle": "Sorry, er gaat iets mis",
     "issuanceScreenRefreshTitle": "Opnieuw ophalen",
     "issuanceScreenTitle": "Gegevens ophalen",
     "issuanceSelectCardsPageAddCta": "Toevoegen",
@@ -817,6 +826,7 @@
     "organizationDetailScreenSomeInteractions": "Je hebt eerder gedeeld met {name}",
     "organizationDetailScreenTitle": "Over {name}",
     "organizationDetailScreenWebsiteInfo": "Website",
+    "organizationFallbackName": "De organisatie",
     "pageIndicatorSemanticsLabel": "Stap {current} van {total}",
     "pidAddressCardTitle": "Woonadres",
     "pidIdCardTitle": "Persoons­gegevens",

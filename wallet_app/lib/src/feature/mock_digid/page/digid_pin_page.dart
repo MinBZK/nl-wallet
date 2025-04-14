@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
@@ -143,7 +144,7 @@ class DigidPinPage extends StatelessWidget {
           context.l10n.mockDigidScreenForgotPinCta,
           style: context.textTheme.bodyMedium?.copyWith(
             color: context.colorScheme.primary,
-            fontWeight: FontWeight.bold,
+            fontVariations: [BaseWalletTheme.fontVariationBold],
             decoration: TextDecoration.underline,
           ),
         ),

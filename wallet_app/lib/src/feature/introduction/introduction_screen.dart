@@ -23,7 +23,7 @@ import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
 import '../common/widget/fade_in_at_offset.dart';
-import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';

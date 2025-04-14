@@ -5,7 +5,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../widget/attribute/data_attribute_row.dart';
 import '../widget/button/list_button.dart';
 import '../widget/card/wallet_card_item.dart';
-import '../widget/sliver_sized_box.dart';
+import '../widget/spacer/sliver_sized_box.dart';
 import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';

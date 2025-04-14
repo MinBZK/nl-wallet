@@ -8,6 +8,7 @@ import 'package:intl/locale.dart' as intl;
 
 import '../../../environment.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../theme/base_wallet_theme.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/object_extension.dart';
 import '../../util/extension/string_extension.dart';
@@ -15,9 +16,9 @@ import '../../wallet_constants.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/centered_loading_indicator.dart';
-import '../common/widget/sliver_divider.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_divider.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/change_language_bloc.dart';
 
@@ -140,7 +141,10 @@ class ChangeLanguageScreen extends StatelessWidget {
   TextStyle _getRowTextStyle(BuildContext context, bool isSelected) {
     final baseStyle = context.textTheme.bodyLarge ?? const TextStyle();
     if (!isSelected) return baseStyle;
-    return baseStyle.copyWith(color: context.colorScheme.primary, fontWeight: FontWeight.bold);
+    return baseStyle.copyWith(
+      color: context.colorScheme.primary,
+      fontVariations: [BaseWalletTheme.fontVariationBold],
+    );
   }
 
   Widget _buildContentSliver(BuildContext context) {
