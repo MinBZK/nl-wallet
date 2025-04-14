@@ -57,7 +57,7 @@ pub enum CredentialPayloadError {
     #[category(pd)]
     Attribute(#[from] AttributeError),
 
-    #[error("unable to convert from SD-JWT: {0}")]
+    #[error("error converting from SD-JWT: {0}")]
     #[category(pd)]
     SdJwt(#[from] sd_jwt::error::Error),
 
