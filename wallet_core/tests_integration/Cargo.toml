@@ -63,6 +63,7 @@ test_common = [
     "logging",
     "dep:android_attest",
     "dep:apple_app_attest",
+    "dep:axum",
     "dep:chrono",
     "dep:configuration_server",
     "dep:ctor",
@@ -177,6 +178,7 @@ gba_pid_test = [
 
 [dependencies]
 assert_matches = { workspace = true, optional = true }
+axum = { workspace = true, optional = true, features = ["http1", "json", "tokio"] }
 ctor = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }

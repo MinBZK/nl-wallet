@@ -32,6 +32,7 @@ use crypto::utils;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
 use issuance_server::disclosure::mock::MockAttributesFetcher;
+use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
@@ -161,7 +162,7 @@ pub async fn setup_wallet_and_env(
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
     issuer_settings: PidIssuerSettings,
-    (issuance_server_settings, issuable_documents): (IssuanceServerSettings, Vec<IssuableDocument>),
+    (issuance_server_settings, attributes_fetcher): (IssuanceServerSettings, impl AttributesFetcher + Sync + 'static),
 ) -> (WalletWithMocks, WalletUrls, BaseUrl) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
@@ -207,7 +208,7 @@ pub async fn setup_wallet_and_env(
 
     let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
     let pid_issuer_port = start_pid_issuer_server(issuer_settings, Some(hsm.clone()), MockAttributeService).await;
-    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), issuable_documents).await;
+    let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), attributes_fetcher).await;
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -383,14 +384,14 @@ pub fn pid_issuer_settings() -> PidIssuerSettings {
     settings
 }
 
-pub fn issuance_server_settings() -> (IssuanceServerSettings, Vec<IssuableDocument>) {
+pub fn issuance_server_settings() -> (IssuanceServerSettings, impl AttributesFetcher) {
     let mut settings =
         IssuanceServerSettings::new("issuance_server.toml", "issuance_server").expect("Could not read settings");
 
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec![mock_issuable_document()])
+    (settings, MockAttributesFetcher(vec![mock_issuable_document()]))
 }
 
 pub fn verification_server_settings() -> VerifierSettings {
@@ -448,7 +449,7 @@ pub fn mock_issuable_document() -> IssuableDocument {
 pub async fn start_issuance_server(
     mut settings: IssuanceServerSettings,
     hsm: Option<Pkcs11Hsm>,
-    issuable_documents: Vec<IssuableDocument>,
+    attributes_fetcher: impl AttributesFetcher + Sync + 'static,
 ) -> BaseUrl {
     let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
@@ -463,8 +464,6 @@ pub async fn start_issuance_server(
 
     let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
     let disclosure_settings = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
-
-    let attributes_fetcher = MockAttributesFetcher(issuable_documents);
 
     tokio::spawn(async move {
         if let Err(error) = issuance_server::server::serve_with_listener(
