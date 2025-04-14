@@ -15,7 +15,6 @@ use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::utils;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::UnsignedMdoc;
@@ -26,9 +25,9 @@ use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use platform_support::attested_key::AttestedKey;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use utils::generator::TimeGenerator;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::messages::registration::WalletCertificateClaims;
-use wallet_common::generator::TimeGenerator;
 
 use crate::account_provider::MockAccountProviderClient;
 use crate::config::default_config_server_config;
@@ -133,7 +132,7 @@ pub fn create_example_pid_mdoc_unauthenticated() -> Mdoc {
 
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc`, the `TypeMetadata` and issuer key.
 pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: TypeMetadata, issuer_key: &IssuerKey) -> Mdoc {
-    let private_key_id = utils::random_string(16);
+    let private_key_id = crypto::utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key().try_into().unwrap();
     let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
@@ -252,12 +251,12 @@ impl WalletWithMocks {
 
     /// Generates valid certificate claims for the `Wallet`.
     pub fn valid_certificate_claims(wallet_id: Option<String>, hw_pubkey: VerifyingKey) -> WalletCertificateClaims {
-        let wallet_id = wallet_id.unwrap_or_else(|| utils::random_string(32));
+        let wallet_id = wallet_id.unwrap_or_else(|| crypto::utils::random_string(32));
 
         WalletCertificateClaims {
             wallet_id,
             hw_pubkey: DerVerifyingKey::from(hw_pubkey),
-            pin_pubkey_hash: utils::random_bytes(32),
+            pin_pubkey_hash: crypto::utils::random_bytes(32),
             version: 0,
             iss: "wallet_unit_test".to_string(),
             iat: jsonwebtoken::get_current_timestamp(),

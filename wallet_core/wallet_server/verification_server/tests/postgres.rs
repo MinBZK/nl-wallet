@@ -9,7 +9,6 @@ use serde::Serialize;
 use serial_test::parallel;
 use serial_test::serial;
 
-use crypto::utils;
 use openid4vc::server_state::test;
 use openid4vc::server_state::test::RandomData;
 use openid4vc::server_state::Expirable;
@@ -21,8 +20,8 @@ use server_utils::settings::ServerSettings;
 use server_utils::settings::Storage;
 use server_utils::store::postgres;
 use server_utils::store::postgres::PostgresSessionStore;
+use utils::generator::mock::MockTimeGenerator;
 use verification_server::settings::VerifierSettings;
-use wallet_common::generator::mock::MockTimeGenerator;
 
 /// A mock data type that adheres to all the trait bounds necessary for testing.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,7 +44,7 @@ impl MockSessionData {
         Self {
             progress,
             is_expired: false,
-            data: utils::random_bytes(32),
+            data: crypto::utils::random_bytes(32),
         }
     }
 }

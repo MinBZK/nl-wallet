@@ -15,7 +15,7 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {

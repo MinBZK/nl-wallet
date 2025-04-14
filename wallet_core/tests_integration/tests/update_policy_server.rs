@@ -3,6 +3,7 @@ use std::env;
 use assert_matches::assert_matches;
 use serde_json::json;
 
+use http_utils::tls::pinning::TlsPinningConfig;
 use tests_integration::common::*;
 use tests_integration::utils::read_file;
 use update_policy_server::config::UpdatePolicyConfig;
@@ -10,7 +11,6 @@ use wallet::wallet_deps::HttpUpdatePolicyRepository;
 use wallet::wallet_deps::Repository;
 use wallet::wallet_deps::RepositoryUpdateState;
 use wallet::wallet_deps::UpdateableRepository;
-use wallet_common::http::TlsPinningConfig;
 use wallet_configuration::wallet_config::UpdatePolicyServerConfiguration;
 
 #[tokio::test]

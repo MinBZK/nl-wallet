@@ -6,7 +6,7 @@ use itertools::Either;
 use itertools::Itertools;
 use jsonschema::ValidationError;
 
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::chain::SortedTypeMetadata;
 use crate::metadata::ClaimDisplayMetadata;
@@ -374,7 +374,7 @@ mod tests {
     use serde_json::json;
     use ssri::Integrity;
 
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::chain::SortedTypeMetadata;
     use crate::metadata::ClaimDisplayMetadata;

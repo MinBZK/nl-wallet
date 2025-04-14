@@ -4,7 +4,7 @@ use tracing::instrument;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::VersionState;
 
 use crate::errors::StorageError;
 use crate::repository::Repository;

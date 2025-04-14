@@ -6,8 +6,8 @@ use config::Environment;
 use config::File;
 use serde::Deserialize;
 
-use wallet_common::http::TlsServerConfig;
-use wallet_common::utils;
+use http_utils::tls::TlsServerConfig;
+use utils::path::prefix_local_path;
 
 use crate::config::UpdatePolicyConfig;
 
@@ -28,9 +28,7 @@ impl Settings {
             .set_default("ip", "0.0.0.0")?
             .set_default("port", 3009)?
             .set_default("structured_logging", false)?
-            .add_source(
-                File::from(utils::prefix_local_path("update_policy_server.toml".as_ref()).as_ref()).required(false),
-            )
+            .add_source(File::from(prefix_local_path("update_policy_server.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("update_policy_server")
                     .separator("__")

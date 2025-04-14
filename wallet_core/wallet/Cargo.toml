@@ -69,14 +69,16 @@ mockall = { workspace = true, optional = true }
 crypto.path = "../lib/crypto"
 entity.path = "entity"
 error_category = { path = "../lib/error_category", features = ["sentry"] }
+http_utils.path = "../lib/http_utils"
 jwt.path = "../lib/jwt"
 mdoc.path = "../lib/mdoc"
 openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
 poa.path = "../lib/poa"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
+update_policy_model.path = "../update_policy/model"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
-wallet_common.path = "../lib/wallet_common"
+utils.path = "../lib/utils"
 wallet_configuration.path = "configuration"
 wallet_migrations.path = "migrations"
 
@@ -96,17 +98,17 @@ wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
 crypto = { path = "../lib/crypto", features = ["mock_secure_keys", "mock_remote_key"] }
+http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 mdoc = { path = "../lib/mdoc", features = ["generate", "mock_example_constructors", "test"] }
 openid4vc = { path = "../lib/openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
-wallet_common = { path = "../lib/wallet_common", features = ["insecure_http_client"] }
 
 [build-dependencies]
 serde.workspace = true
 serde_json.workspace = true
 
-wallet_common.path = "../lib/wallet_common"
+utils.path = "../lib/utils"
 wallet_configuration.path = "configuration"

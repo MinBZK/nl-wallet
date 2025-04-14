@@ -12,7 +12,7 @@ use mime::Mime;
 use reqwest::Client;
 use reqwest::Response;
 
-use crate::http_error::APPLICATION_PROBLEM_JSON;
+use crate::error::APPLICATION_PROBLEM_JSON;
 
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 const CLIENT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);

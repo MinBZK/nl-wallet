@@ -49,10 +49,9 @@ derive_more = { workspace = true, features = ["as_ref", "display", "from", "into
 futures.workspace = true
 http.workspace = true
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std", "pem"] }
-rand_core = { workspace = true, optional = true }
+rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "hex", "chrono"] }
-serial_test = { workspace = true, optional = true }
 spki = { workspace = true, features = ["std"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot", "net"] }
@@ -70,12 +69,16 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 
+rand_core = { workspace = true, optional = true }
+serial_test = { workspace = true, optional = true }
+
 android_attest.path = "../lib/android_attest"
 apple_app_attest.path = "../lib/apple_app_attest"
 crypto = { path = "../lib/crypto" }
 hsm = { path = "../lib/hsm", features = ["settings"] }
+http_utils = { path = "../lib/http_utils", features = ["server", "client"] }
 wallet_account = { path = "wallet_account", features = ["server"] }
-wallet_common = { path = "../lib/wallet_common", features = ["axum"] }
+utils = { path = "../lib/utils" }
 wallet_provider_database_settings.path = "database_settings"
 wallet_provider_domain.path = "domain"
 wallet_provider_persistence.path = "persistence"

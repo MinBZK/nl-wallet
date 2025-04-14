@@ -32,7 +32,7 @@ use tracing::level_filters::LevelFilter;
 use tracing::warn;
 use tracing_subscriber::EnvFilter;
 
-use wallet_common::built_info::version_string;
+use utils::built_info::version_string;
 
 use gba_hc_converter::fetch::askama_axum;
 use gba_hc_converter::gba::client::GbavClient;

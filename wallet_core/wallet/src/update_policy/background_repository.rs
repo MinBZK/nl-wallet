@@ -4,7 +4,7 @@ use parking_lot::Mutex;
 use tokio::task::JoinHandle;
 use tracing::error;
 
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::VersionState;
 
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::ObservableRepository;
@@ -149,8 +149,8 @@ mod tests {
     use parking_lot::RwLock;
     use tokio::sync::Notify;
 
-    use wallet_common::http::TlsPinningConfig;
-    use wallet_common::update_policy::VersionState;
+    use http_utils::tls::pinning::TlsPinningConfig;
+    use update_policy_model::update_policy::VersionState;
 
     use crate::repository::Repository;
     use crate::repository::RepositoryUpdateState;

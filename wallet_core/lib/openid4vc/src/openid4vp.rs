@@ -26,6 +26,7 @@ use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
+use http_utils::urls::BaseUrl;
 use jwt::error::JwtX5cError;
 use jwt::Jwt;
 use mdoc::errors::Error as MdocError;
@@ -37,9 +38,8 @@ use mdoc::SessionTranscript;
 use poa::Poa;
 use poa::PoaVerificationError;
 use serde_with::SerializeDisplay;
-use wallet_common::generator::Generator;
-use wallet_common::generator::TimeGenerator;
-use wallet_common::urls::BaseUrl;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::ResponseMode;
@@ -858,10 +858,10 @@ mod tests {
     use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
-    use wallet_common::generator::mock::MockTimeGenerator;
-    use wallet_common::generator::Generator;
-    use wallet_common::generator::TimeGenerator;
-    use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+    use utils::generator::mock::MockTimeGenerator;
+    use utils::generator::Generator;
+    use utils::generator::TimeGenerator;
+    use utils::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::openid4vp::AuthResponseError;

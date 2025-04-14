@@ -11,7 +11,7 @@ use config::File;
 use serde::Deserialize;
 use serde_with::serde_as;
 
-use wallet_common::utils;
+use utils::path::prefix_local_path;
 
 use crate::model::Hsm;
 use crate::service::Pkcs11Hsm;
@@ -85,7 +85,7 @@ impl AsyncDrop for TestCase<Pkcs11Hsm> {
 impl TestSettings {
     fn new(config_file: &Path) -> Result<Self, ConfigError> {
         Config::builder()
-            .add_source(File::from(utils::prefix_local_path(config_file).as_ref()).required(true))
+            .add_source(File::from(prefix_local_path(config_file).as_ref()).required(true))
             .build()?
             .try_deserialize()
     }

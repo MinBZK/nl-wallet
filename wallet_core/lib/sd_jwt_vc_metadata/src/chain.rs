@@ -15,7 +15,7 @@ use ssri::Algorithm;
 use ssri::Integrity;
 use ssri::IntegrityChecker;
 
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::metadata::TypeMetadata;
 use crate::normalized::NormalizedTypeMetadata;
@@ -259,7 +259,7 @@ impl From<VerifiedTypeMetadataDocuments> for TypeMetadataDocuments {
 mod example_constructors {
     use ssri::Integrity;
 
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::ADDRESS_METADATA_BYTES;
     use crate::examples::DIPLOMA_METADATA_BYTES;

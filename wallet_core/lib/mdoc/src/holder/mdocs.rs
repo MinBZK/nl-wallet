@@ -13,9 +13,9 @@ use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
+use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use wallet_common::generator::Generator;
-use wallet_common::urls::HttpsUri;
+use utils::generator::Generator;
 
 use crate::errors::Error;
 use crate::identifiers::AttributeIdentifier;

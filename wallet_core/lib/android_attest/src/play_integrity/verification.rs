@@ -113,8 +113,8 @@ impl VerifiedIntegrityVerdict {
 
         // Verification of the certificate hashes will only succeed if one of these conditions is met:
         // 1. Sideloading is allowed.
-        // 2. The integrity verdict contains at least one hash AND all of the
-        //    hashes in the verdict are present in the set of required hashes.
+        // 2. The integrity verdict contains at least one hash AND all of the hashes in the verdict are present in the
+        //    set of required hashes.
         if !matches!(allowed_installation_method, InstallationMethod::SideloadOrPlayStore)
             && !integrity_verdict
                 .app_integrity

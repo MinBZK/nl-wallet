@@ -18,9 +18,8 @@ pub use josekit::JoseError;
 use reqwest::header;
 use url::Url;
 
-use crypto::utils;
 use error_category::ErrorCategory;
-use wallet_common::reqwest::JsonReqwestBuilder;
+use http_utils::reqwest::JsonReqwestBuilder;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
@@ -147,8 +146,8 @@ where
 
 impl<P: PkcePair> HttpOidcClient<P> {
     pub fn new(config: Config, jwks: JWKSet<Empty>, client_id: String, redirect_uri: Url) -> Self {
-        let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
-        let nonce = BASE64_URL_SAFE_NO_PAD.encode(utils::random_bytes(16));
+        let csrf_token = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
+        let nonce = BASE64_URL_SAFE_NO_PAD.encode(crypto::utils::random_bytes(16));
         let pkce_pair = P::generate();
 
         HttpOidcClient {
@@ -317,8 +316,8 @@ mod tests {
     use rstest::rstest;
     use url::Url;
 
-    use wallet_common::http::test::HttpConfig;
-    use wallet_common::urls::BaseUrl;
+    use http_utils::tls::test::HttpConfig;
+    use http_utils::urls::BaseUrl;
 
     use crate::oidc::tests::start_discovery_server;
     use crate::pkce::MockPkcePair;

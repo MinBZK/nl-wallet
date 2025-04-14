@@ -22,7 +22,7 @@ use crypto::EcdsaKeySend;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
-use wallet_common::spec::SpecOptional;
+use utils::spec::SpecOptional;
 
 use crate::decoder::SdObjectDecoder;
 use crate::disclosure::Disclosure;

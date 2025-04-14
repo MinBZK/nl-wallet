@@ -66,7 +66,7 @@ crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 wallet_provider_database_settings.path = "../database_settings"
 wallet_provider_domain.path = "../domain"
-wallet_common.path = "../../lib/wallet_common"
+utils.path = "../../lib/utils"
 
 [dev-dependencies]
 assert_matches.workspace = true

@@ -19,9 +19,11 @@ axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 config = { workspace = true, features = ["toml"] }
 etag.workspace = true
 http.workspace = true
+rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
 
-wallet_common = { path = "../lib/wallet_common", features = ["axum"] }
+http_utils = { path = "../lib/http_utils", features = ["server"] }
+utils.path = "../lib/utils"

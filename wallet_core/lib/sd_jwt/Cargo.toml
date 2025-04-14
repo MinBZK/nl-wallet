@@ -32,7 +32,7 @@ thiserror.workspace = true
 
 jwt.path = "../jwt"
 crypto.path = "../crypto"
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true

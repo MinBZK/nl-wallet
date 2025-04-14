@@ -1,6 +1,7 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use http_utils::reqwest::JsonReqwestBuilder;
 use openid4vc::oidc;
 use openid4vc::oidc::alg::rsaes::RsaesJweAlgorithm;
 use openid4vc::oidc::alg::rsaes::RsaesJweDecrypter;
@@ -12,7 +13,6 @@ use openid4vc::oidc::OidcError;
 use openid4vc::oidc::SignatureAlgorithm;
 use openid4vc::oidc::JWT;
 use openid4vc::token::TokenRequest;
-use wallet_common::reqwest::JsonReqwestBuilder;
 
 #[derive(Serialize, Deserialize)]
 struct UserInfo {

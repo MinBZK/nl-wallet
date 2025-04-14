@@ -8,6 +8,7 @@ use serde_with::skip_serializing_none;
 use serde_with::TimestampSeconds;
 
 use error_category::ErrorCategory;
+use http_utils::urls::HttpsUri;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
@@ -15,7 +16,6 @@ use mdoc::AttestationQualification;
 use mdoc::NameSpace;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
-use wallet_common::urls::HttpsUri;
 
 use crate::attributes::Attribute;
 use crate::attributes::AttributeError;

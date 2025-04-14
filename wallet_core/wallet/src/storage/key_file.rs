@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use tokio::fs;
 
 use crypto::keys::SecureEncryptionKey;
-use crypto::utils;
 use error_category::ErrorCategory;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -27,7 +26,10 @@ pub async fn get_or_create_key_file(
     let path = path_for_key_file(storage_path, alias);
 
     // Decrypt file at path, create key and write to file if needed.
-    get_or_create_encrypted_file_contents(path.as_path(), encryption_key, || utils::random_bytes(byte_length)).await
+    get_or_create_encrypted_file_contents(path.as_path(), encryption_key, || {
+        crypto::utils::random_bytes(byte_length)
+    })
+    .await
 }
 
 pub async fn delete_key_file(storage_path: &Path, alias: &str) -> Result<(), KeyFileError> {

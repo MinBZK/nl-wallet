@@ -18,7 +18,7 @@ test = ["dep:assert_matches", "dep:rstest", "dep:regex", "generate", "mock", "sd
 mock = ["crypto/mock"]
 # Include example based constructors to several types for testing
 mock_example_constructors = [
-    "test", # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
+    "test",                   # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
     "examples",
     "mock",
     "crypto/examples",
@@ -31,7 +31,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
-derive_more = { workspace = true, features = ["as_ref", "debug", "display"] }
+derive_more = { workspace = true, features = ["debug", "as_ref", "display"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
@@ -62,8 +62,9 @@ rstest = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"
+http_utils.path = "../http_utils"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -77,4 +78,4 @@ tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../wallet_common", features = ["mock_time"] }
+utils = { path = "../utils", features = ["mock_time"] }

@@ -13,7 +13,7 @@ use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use super::Attestation;
 use super::AttestationAttribute;

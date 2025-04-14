@@ -22,8 +22,8 @@ use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use ssri::Integrity;
 
-use wallet_common::spec::SpecOptional;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::spec::SpecOptional;
+use utils::vec_at_least::VecNonEmpty;
 
 // The requirements for the svg_id according to the specification are:
 // "It MUST consist of only alphanumeric characters and underscores and MUST NOT start with a digit."
@@ -728,7 +728,7 @@ mod test {
     use jsonschema::ValidationError;
     use rstest::rstest;
     use serde_json::json;
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
 
