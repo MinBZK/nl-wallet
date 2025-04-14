@@ -51,10 +51,10 @@ pub enum TypeMetadataError {
     )]
     DuplicateClaimDisplayLanguages(VecNonEmpty<ClaimPath>, Vec<String>),
 
-    #[error("detected duplicate `svg_id`s: {0:?}")]
+    #[error("detected duplicate `svg_id`s: {}", .0.join(", "))]
     DuplicateSvgIds(Vec<String>),
 
-    #[error("found missing `svg_id`s: {0:?}")]
+    #[error("found missing `svg_id`s: {}", .0.join(", "))]
     MissingSvgIds(Vec<String>),
 }
 
@@ -100,6 +100,26 @@ pub struct UncheckedTypeMetadata {
     /// A JSON Schema document describing the structure of the Verifiable Credential
     #[serde(flatten)]
     pub schema: SchemaOption,
+}
+
+pub(crate) fn find_missing_svg_ids(display: &[DisplayMetadata], claims: &[ClaimMetadata]) -> Vec<String> {
+    let svg_ids = claims
+        .iter()
+        .filter_map(|claim| claim.svg_id.as_deref())
+        .collect::<HashSet<_>>();
+
+    display
+        .iter()
+        .filter_map(|display| display.summary.as_deref())
+        .flat_map(|summary| {
+            TEMPLATE_REGEX
+                .captures_iter(summary)
+                .flat_map(|captures| captures.extract::<1>().1)
+        })
+        .unique()
+        .filter(|id| !svg_ids.contains(id))
+        .map(ToString::to_string)
+        .collect()
 }
 
 #[nutype(
@@ -154,7 +174,14 @@ impl UncheckedTypeMetadata {
         }
 
         for claim in &self.claims {
-            claim.detect_duplicate_languages()?;
+            let duplicates = claim.find_duplicate_languages();
+
+            if !duplicates.is_empty() {
+                return Err(TypeMetadataError::DuplicateClaimDisplayLanguages(
+                    claim.path.clone(),
+                    duplicates,
+                ));
+            }
         }
 
         Ok(())
@@ -162,32 +189,20 @@ impl UncheckedTypeMetadata {
 
     fn validate_svg_ids(&self) -> Result<(), TypeMetadataError> {
         // `svg_id` MUST be unique within the type metadata.
-        let svg_ids = self
+        let duplicate_svg_ids = self
             .claims
             .iter()
             .filter_map(|claim| claim.svg_id.as_deref())
+            .duplicates()
+            .map(ToString::to_string)
             .collect_vec();
 
-        let duplicate_svg_ids = svg_ids.iter().duplicates().map(ToString::to_string).collect_vec();
         if !duplicate_svg_ids.is_empty() {
             return Err(TypeMetadataError::DuplicateSvgIds(duplicate_svg_ids));
         }
 
         // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject the SVG template.
-        let svg_ids = HashSet::<&str>::from_iter(svg_ids);
-        let missing_svg_ids = self
-            .display
-            .iter()
-            .filter_map(|display| display.summary.as_deref())
-            .flat_map(|summary| {
-                TEMPLATE_REGEX
-                    .captures_iter(summary)
-                    .flat_map(|captures| captures.extract::<1>().1)
-            })
-            .unique()
-            .filter(|id| !svg_ids.contains(id))
-            .map(ToString::to_string)
-            .collect_vec();
+        let missing_svg_ids = find_missing_svg_ids(&self.display, &self.claims);
         if !missing_svg_ids.is_empty() {
             return Err(TypeMetadataError::MissingSvgIds(missing_svg_ids));
         }
@@ -426,22 +441,12 @@ impl ClaimMetadata {
         })
     }
 
-    fn detect_duplicate_languages(&self) -> Result<(), TypeMetadataError> {
-        let duplicates = self
-            .display
+    fn find_duplicate_languages(&self) -> Vec<String> {
+        self.display
             .iter()
             .duplicates_by(|display| &display.lang)
             .map(|display| display.lang.clone())
-            .collect_vec();
-
-        if !duplicates.is_empty() {
-            return Err(TypeMetadataError::DuplicateClaimDisplayLanguages(
-                self.path.clone(),
-                duplicates,
-            ));
-        }
-
-        Ok(())
+            .collect()
     }
 }
 

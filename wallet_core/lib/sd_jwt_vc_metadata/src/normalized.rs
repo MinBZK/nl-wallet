@@ -36,6 +36,9 @@ pub enum NormalizedTypeMetadataError {
 
     #[error("JSON schema is not embedded for vct \"{0}\"")]
     NoEmbeddedSchema(String),
+
+    #[error("found missing `svg_id`s: {}", .0.join(", "))]
+    MissingSvgIds(Vec<String>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -114,6 +117,14 @@ impl NormalizedTypeMetadata {
             .collect::<Result<Vec<_>, _>>()?
             .try_into()
             .unwrap();
+
+        // Check if the `svg_id`s are still consistent after normalizing. Note that we do not have to check for
+        // duplicate `svg_id`s here, as this is already checked for each metadata document individually and, because all
+        // of the claims of an extended document need to be repeated, this then also holds for the normalized claims.
+        let missing_svg_ids = crate::metadata::find_missing_svg_ids(&display, &claims);
+        if !missing_svg_ids.is_empty() {
+            return Err(NormalizedTypeMetadataError::MissingSvgIds(missing_svg_ids));
+        }
 
         let vcts = vcts.try_into().unwrap();
 
@@ -350,11 +361,14 @@ mod tests {
     use wallet_common::vec_at_least::VecNonEmpty;
 
     use crate::chain::SortedTypeMetadata;
+    use crate::metadata::ClaimDisplayMetadata;
     use crate::metadata::ClaimMetadata;
     use crate::metadata::ClaimPath;
     use crate::metadata::ClaimSelectiveDisclosureMetadata;
+    use crate::metadata::DisplayMetadata;
     use crate::metadata::JsonSchema;
     use crate::metadata::SchemaOption;
+    use crate::metadata::SvgId;
     use crate::metadata::TypeMetadata;
     use crate::metadata::UncheckedTypeMetadata;
 
@@ -581,18 +595,45 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_normalized_type_metadata_error_no_embedded_schema() {
-        let metadata1 = UncheckedTypeMetadata {
-            vct: "metadata_1".to_string(),
+    fn create_basic_unchecked_metadata() -> UncheckedTypeMetadata {
+        UncheckedTypeMetadata {
+            vct: "metadata".to_string(),
             name: None,
             description: None,
             extends: None,
-            display: vec![],
+            display: vec![DisplayMetadata {
+                lang: "en".to_string(),
+                name: "attestation".to_string(),
+                description: None,
+                summary: None,
+                rendering: None,
+            }],
             claims: vec![],
             schema: SchemaOption::Embedded {
                 schema: Box::new(JsonSchema::example_with_claim_names(&[])),
             },
+        }
+    }
+
+    fn normalized_type_metadata_error_from_unchecked_chain(
+        chain: Vec<UncheckedTypeMetadata>,
+    ) -> NormalizedTypeMetadataError {
+        let chain = SortedTypeMetadata::new_mock(
+            chain
+                .into_iter()
+                .map(|metadata| TypeMetadata::try_new(metadata).unwrap())
+                .collect(),
+        );
+
+        NormalizedTypeMetadata::try_from_sorted_metadata(chain)
+            .expect_err("normalizing SD-JWT VC type metadata chain should not succeed")
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_error_no_embedded_schema() {
+        let metadata1 = UncheckedTypeMetadata {
+            vct: "metadata_1".to_string(),
+            ..create_basic_unchecked_metadata()
         };
         let metadata2 = UncheckedTypeMetadata {
             vct: "metadata_2".to_string(),
@@ -600,22 +641,59 @@ mod tests {
                 schema_uri: "https://example.com/schema.json".parse().unwrap(),
                 schema_uri_integrity: Integrity::from("").into(),
             },
-            ..metadata1.clone()
+            ..create_basic_unchecked_metadata()
         };
         let metadata3 = UncheckedTypeMetadata {
             vct: "metadata_3".to_string(),
-            ..metadata1.clone()
+            ..create_basic_unchecked_metadata()
         };
-        let chain = SortedTypeMetadata::new_mock(
-            vec![metadata1, metadata2, metadata3]
-                .into_iter()
-                .map(|metadata| TypeMetadata::try_new(metadata).unwrap())
-                .collect(),
-        );
 
-        let error = NormalizedTypeMetadata::try_from_sorted_metadata(chain)
-            .expect_err("normalizing SD-JWT VC type metadata chain should not succeed");
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata3, metadata2, metadata1]);
 
         assert_matches!(error, NormalizedTypeMetadataError::NoEmbeddedSchema(vct) if vct == "metadata_2");
+    }
+
+    #[test]
+    fn test_normalized_type_metadata_error_missing_svg_ids() {
+        // Create a metadata chain where the extension overwrites the `svg_id`,
+        // but does not update the summary template accordingly.
+        let claim = ClaimMetadata {
+            path: vec![ClaimPath::SelectByKey("path".to_string())].try_into().unwrap(),
+            display: vec![ClaimDisplayMetadata {
+                lang: "en".to_string(),
+                label: "claim".to_string(),
+                description: None,
+            }],
+            sd: ClaimSelectiveDisclosureMetadata::Allowed,
+            svg_id: None,
+        };
+        let metadata1 = UncheckedTypeMetadata {
+            vct: "metadata_1".to_string(),
+            display: vec![DisplayMetadata {
+                lang: "en".to_string(),
+                name: "attestation".to_string(),
+                description: None,
+                summary: Some("{{identifier}}".to_string()),
+                rendering: None,
+            }],
+            claims: vec![ClaimMetadata {
+                svg_id: Some(SvgId::try_new("identifier").unwrap()),
+                ..claim.clone()
+            }],
+            ..create_basic_unchecked_metadata()
+        };
+        let metadata2 = UncheckedTypeMetadata {
+            vct: "metadata_2".to_string(),
+            display: vec![],
+            claims: vec![ClaimMetadata {
+                svg_id: Some(SvgId::try_new("identifier2").unwrap()),
+                ..claim.clone()
+            }],
+            ..create_basic_unchecked_metadata()
+        };
+
+        let error = normalized_type_metadata_error_from_unchecked_chain(vec![metadata2, metadata1]);
+
+        assert_matches!(error, NormalizedTypeMetadataError::MissingSvgIds(svg_ids) if svg_ids == vec!["identifier"]);
     }
 }
