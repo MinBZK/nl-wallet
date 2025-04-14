@@ -4,7 +4,6 @@ use chrono::Duration;
 use indexmap::IndexMap;
 use jsonwebtoken::jwk::Jwk;
 use serde_json::json;
-use serde_json::Value;
 
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
@@ -63,7 +62,7 @@ impl SdJwt {
 }
 
 // Taken from https://www.ietf.org/archive/id/draft-ietf-oauth-selective-disclosure-jwt-17.html#name-example-sd-jwt-with-recursi
-pub fn recursive_disclosures_example() -> (Value, IndexMap<String, Disclosure>) {
+pub fn recursive_disclosures_example() -> (serde_json::Value, IndexMap<String, Disclosure>) {
     let claims = json!({
       "_sd": [
         "HvrKX6fPV0v9K_yCVFBiLFHsMaxcD_114Em6VT8x1lg"
@@ -105,7 +104,7 @@ pub fn examples_sd_jwt_decoding_key() -> EcdsaDecodingKey {
     decoding_key_from_jwk(jwk)
 }
 
-fn decoding_key_from_jwk(jwk: Value) -> EcdsaDecodingKey {
+fn decoding_key_from_jwk(jwk: serde_json::Value) -> EcdsaDecodingKey {
     let jwk: Jwk = serde_json::from_value(jwk).unwrap();
     let verifying_key = jwk_to_p256(&jwk).unwrap();
     EcdsaDecodingKey::from(&verifying_key)
