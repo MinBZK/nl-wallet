@@ -7,7 +7,7 @@
   "display": [
     {
       "lang": "en-US",
-      "name": "Wallet address (NL)",
+      "name": "Address (NL)",
       "description": "The Dutch address credential",
       "summary": "{{resident_city}}",
       "rendering": {
@@ -19,7 +19,7 @@
     },
     {
       "lang": "nl-NL",
-      "name": "NL Wallet adres",
+      "name": "Adres (NL)",
       "description": "De Nederlandse adresattestatie",
       "summary": "{{resident_city}}",
       "rendering": {
