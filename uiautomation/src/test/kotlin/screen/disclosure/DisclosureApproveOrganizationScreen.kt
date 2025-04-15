@@ -16,9 +16,14 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val goBackButton = find.byText(l10n.getString("generalBottomBackCta"))
     private val closeDialogButton = find.byValueKey("close_icon_button")
     private val stopRequestButton = find.byText(l10n.getString("disclosureMissingAttributesPageCloseCta"))
-    private val viewSharedDataButton = find.byText(l10n.getString("sharedAttributesCardCta"))
     private val readTermsButton = find.byText(l10n.getString("loginDetailScreenAgreementCta"))
     private val termsSubtitle = find.byText(l10n.getString("policyScreenSubtitle"))
+    private val organizationApprovePageDenyCta = find.byText(l10n.getString("organizationApprovePageDenyCta"))
+    private val disclosureStopSheetReportIssueCta = find.byText(l10n.getString("disclosureStopSheetReportIssueCta"))
+    private val reportOptionUnknownOrganization = find.byText(l10n.getString("reportOptionUnknownOrganization"))
+    private val disclosureConfirmDataAttributesSubtitleTerms = find.byText(l10n.getString("disclosureConfirmDataAttributesSubtitleTerms"))
+    private val disclosureConfirmDataAttributesCheckConditionsCta = find.byText(l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta"))
+    private val reportOptionUntrusted = find.byText(l10n.getString("reportOptionUntrusted"))
 
 
     fun login() = clickElement(loginButton)
@@ -87,8 +92,9 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         clickElement(closeButton)
     }
 
-    fun viewSharedData() {
-        clickElement(viewSharedDataButton)
+    fun viewSharedData(count: String, cardTitle: String) {
+        val title = l10n.getString("sharedAttributesCardTitle").replace("{count}", count).replace("{cardTitle}", cardTitle)
+        clickElementContainingText(title)
     }
 
     fun bsnVisible(bsn: String): Boolean {
@@ -102,6 +108,46 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     fun termsVisible(): Boolean {
         return isElementVisible(termsSubtitle)
+    }
+
+    fun viewOrganization(organization: String) {
+        clickElement(find.byText(organization))
+    }
+
+    fun cancel() = clickElement(organizationApprovePageDenyCta)
+
+    fun reportProblem() = clickElement(disclosureStopSheetReportIssueCta)
+
+    fun reportOptionUnknownOrganizationVisible() = isElementVisible(reportOptionUnknownOrganization)
+
+    fun reportOptionUntrustedVisible() = isElementVisible(reportOptionUntrusted)
+
+    fun organizationInPresentationRequestHeaderVisible(organization: String): Boolean {
+        val selector = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organization)
+        val element = find.byText(selector)
+        return isElementVisible(element);
+    }
+
+    fun labelVisible(label: String): Boolean {
+        return isElementVisible(find.byText(label))
+    }
+
+    fun dataNotVisible(data: String): Boolean {
+        return !isElementVisible(find.byText(data))
+    }
+
+    fun sharingReasonVisible(reason: String): Boolean {
+        return isElementVisible(find.byText(reason))
+    }
+
+    fun conditionsHeaderVisible(): Boolean {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        return isElementVisible(disclosureConfirmDataAttributesSubtitleTerms)
+    }
+
+    fun conditionsButtonVisible(): Boolean  {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        return isElementVisible(disclosureConfirmDataAttributesCheckConditionsCta)
     }
 }
 

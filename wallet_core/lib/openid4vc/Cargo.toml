@@ -86,6 +86,7 @@ http_utils = { path = "../http_utils", features = ["client"] }
 jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 poa.path = "../poa"
+sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 utils.path = "../utils"
 
@@ -104,5 +105,6 @@ http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
 poa = { path = "../poa", features = ["mock"] }
+sd_jwt = { path = "../sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

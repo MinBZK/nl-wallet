@@ -29,6 +29,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
         caps.setCapability("appium:locale", TestInfoHandler.locale)
         caps.setCapability("appium:retryBackoffTime", APPIUM_RETRY_BACKOFF_TIME_MILLIS)
         caps.setCapability("appium:disableSuppressAccessibilityService", APPIUM_DISABLE_SUPPRESS_ACCESSIBILITY_SERVICE)
+        caps.setCapability("appium:autoGrantPermissions", true)
 
         // Set other BrowserStack capabilities
         val browserstackOptions = HashMap<String, Any>()

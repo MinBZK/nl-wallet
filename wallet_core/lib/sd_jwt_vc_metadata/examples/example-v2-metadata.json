@@ -3,7 +3,7 @@
   "name": "NL Wallet PID credential v2",
   "description": "Working version of the NL Wallet PID credential v2",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-EJtMlB/CNZGBMBAvaqr4A3aokUlWdKluHtaB1ognBZY=",
+  "extends#integrity": "sha256-yA2gxIVcDQu6seRtRlNSDl7X9DTdA7lTGPsAZ/i7UHk=",
   "display": [
     {
       "lang": "nl-NL",
@@ -168,6 +168,9 @@
       },
       "iss": {
         "type": "string"
+      },
+      "cnf": {
+        "type": "object"
       },
       "iat": {
         "type": "number"

@@ -123,6 +123,21 @@ void main() {
         await screenMatchesGolden('success.warn.10minutes.light.scaled_2x');
       });
 
+      testGoldens('DashboardLoadSuccess light - Cards', (tester) async {
+        await _pumpSuccessWithVersionState(
+          tester,
+          state: VersionStateOk(),
+          textScaleSize: 2,
+        );
+        final scrollableFinder = find.byType(Scrollable);
+        await tester.scrollUntilVisible(
+          find.text(WalletMockData.altCard.title.testValue),
+          500,
+          scrollable: scrollableFinder,
+        );
+        await screenMatchesGolden('success.ok.cards.light.scaled_2x');
+      });
+
       testGoldens('DashboardLoadSuccess dark - VersionStateWarn (10 minutes)', (tester) async {
         await _pumpSuccessWithVersionState(
           tester,

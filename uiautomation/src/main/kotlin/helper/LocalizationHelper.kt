@@ -29,6 +29,7 @@ class LocalizationHelper {
         BIRTH_DATE_LABEL("Geboortedatum", "Birth date"),
         BSN_LABEL("BSN", "BSN"),
         OVER_18_LABEL("18+", "Over 18"),
+        CREATE_ACCOUNT_SHARING_REASON("Account aanmaken", "Create Account"),
 
     }
 

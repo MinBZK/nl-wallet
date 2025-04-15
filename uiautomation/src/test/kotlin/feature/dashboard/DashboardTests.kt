@@ -3,6 +3,7 @@ package feature.dashboard
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
+import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.MethodOrderer
@@ -33,17 +34,20 @@ class DashboardTests : TestBase() {
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
-    @DisplayName("$USE_CASE.1 The card overview page displays all cards currently available in the app. [${JIRA_ID}]")
+    @DisplayName("$USE_CASE.1 The card overview page displays all cards currently available in the app. 2. Each card is recognizable as a physical card (fixed ratio, unless the font size is too big, then the card ratio constraint is relaxed) and includes the following: a title, subtitle, background image, logo, CTA button.[${JIRA_ID}]")
     @Tags(Tag("smoke"))
     fun verifyIssuedCardsVisible(testInfo: TestInfo) {
         setUp(testInfo)
-        assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible")
+        assertAll(
+            { assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible") },
+            { assertTrue(dashboardScreen.cardTitlesVisible(), "card title are not visible") },
+            { assertTrue(dashboardScreen.cardButtonsVisible(), "card buttons are not visible") },
+// TODO: enable asserts when available in pid
+//            { assertTrue(dashboardScreen.cardLogosVisible(), "card logos are not visible") },
+//            { assertTrue(dashboardScreen.cardSubtitlesVisible(), "card subtitle are not visible") },
+//            { assertTrue(dashboardScreen.cardBackgroundImagesVisible(), "card background images are not visible") },
+        )
     }
-
-    /**
-     * 2. Each card is recognizable as a physical card (fixed ratio, unless the font size is too big, then the card ratio constraint is relaxed) and includes the following: a title, subtitle, background image, logo, CTA button.
-     * >> Manual test: https://SSSS/jira/browse/PVW-1976
-     */
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
     @DisplayName("$USE_CASE.3 The card information (and images) is displayed in the active language. [${JIRA_ID}]")

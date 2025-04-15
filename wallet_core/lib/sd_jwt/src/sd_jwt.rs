@@ -373,6 +373,13 @@ mod test {
     }
 
     #[test]
+    fn parse_vc() {
+        let sd_jwt = SdJwt::parse_and_verify(SD_JWT_VC, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
+        assert_eq!(sd_jwt.disclosures.len(), 21);
+        assert!(sd_jwt.required_key_bind().is_some());
+    }
+
+    #[test]
     fn round_trip_ser_des() {
         let sd_jwt =
             SdJwt::parse_and_verify(SIMPLE_STRUCTURED_SD_JWT, &examples_sd_jwt_decoding_key(), &Sha256Hasher).unwrap();
