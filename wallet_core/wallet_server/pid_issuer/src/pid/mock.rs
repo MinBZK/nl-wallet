@@ -1,183 +1,95 @@
-/// Mock implementations of the two traits abstracting other components
-use std::collections::HashMap;
+use std::convert::Infallible;
 
-use chrono::NaiveDate;
+use derive_more::Constructor;
 use indexmap::IndexMap;
-use serde::Deserialize;
 
+use http_utils::urls::BaseUrl;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuable_document::IssuableDocuments;
+use openid4vc::issuer::AttributeService;
+use openid4vc::oidc;
+use openid4vc::token::TokenRequest;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::pid::constants::*;
 
-// ISO/IEC 5218
-#[allow(dead_code)]
-#[derive(Deserialize, Clone)]
-enum Gender {
-    Unknown,
-    Male,
-    Female,
-    NotApplicable,
-}
+#[derive(Debug, Constructor)]
+pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 
-impl From<Gender> for AttributeValue {
-    fn from(value: Gender) -> Self {
-        use Gender::Female;
-        use Gender::Male;
-        use Gender::NotApplicable;
-        use Gender::Unknown;
-        let value = match value {
-            Unknown => 0,
-            Male => 1,
-            Female => 2,
-            NotApplicable => 9,
-        };
-        AttributeValue::Integer(value.into())
-    }
-}
-
-#[derive(Default, Deserialize, Clone)]
-pub struct PersonAttributes {
-    bsn: String,
-    family_name: String,
-    given_name: String,
-    birth_date: NaiveDate,
-    age_over_18: bool,
-}
-
-impl From<PersonAttributes> for IssuableDocument {
-    fn from(value: PersonAttributes) -> Self {
-        Self::try_new(
+impl Default for MockAttributeService {
+    fn default() -> Self {
+        let pid = IssuableDocument::try_new(
             MOCK_PID_DOCTYPE.to_string(),
-            vec![
+            IndexMap::from_iter(vec![
                 (
                     PID_FAMILY_NAME.to_string(),
-                    Attribute::Single(AttributeValue::Text(value.family_name)),
+                    Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
                 ),
                 (
                     PID_GIVEN_NAME.to_string(),
-                    Attribute::Single(AttributeValue::Text(value.given_name)),
+                    Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
                 ),
                 (
                     PID_BIRTH_DATE.to_string(),
-                    Attribute::Single(AttributeValue::Text(value.birth_date.format("%Y-%m-%d").to_string())),
+                    Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
                 ),
                 (
                     PID_AGE_OVER_18.to_string(),
-                    Attribute::Single(AttributeValue::Bool(value.age_over_18)),
+                    Attribute::Single(AttributeValue::Bool(true)),
                 ),
-                (PID_BSN.to_string(), Attribute::Single(AttributeValue::Text(value.bsn))),
-            ]
-            .into_iter()
-            .collect(),
+                (
+                    PID_BSN.to_string(),
+                    Attribute::Single(AttributeValue::Text("999991772".to_string())),
+                ),
+            ]),
         )
-        .unwrap()
-    }
-}
+        .unwrap();
 
-#[derive(Default, Deserialize, Clone)]
-pub struct ResidentAttributes {
-    city: Option<String>,
-    country: Option<String>,
-    postal_code: Option<String>,
-    street: Option<String>,
-    house_number: Option<String>,
-}
-
-impl From<ResidentAttributes> for IssuableDocument {
-    fn from(value: ResidentAttributes) -> Self {
-        Self::try_new(
+        let address = IssuableDocument::try_new(
             MOCK_ADDRESS_DOCTYPE.to_string(),
             IndexMap::from_iter(vec![(
                 PID_ADDRESS_GROUP.to_string(),
-                Attribute::Nested(
-                    vec![
-                        value.street.map(|v| {
-                            (
-                                PID_RESIDENT_STREET.to_string(),
-                                Attribute::Single(AttributeValue::Text(v)),
-                            )
-                        }),
-                        value.house_number.map(|v| {
-                            (
-                                PID_RESIDENT_HOUSE_NUMBER.to_string(),
-                                Attribute::Single(AttributeValue::Text(v)),
-                            )
-                        }),
-                        value.postal_code.map(|v| {
-                            (
-                                PID_RESIDENT_POSTAL_CODE.to_string(),
-                                Attribute::Single(AttributeValue::Text(v)),
-                            )
-                        }),
-                        value.city.map(|v| {
-                            (
-                                PID_RESIDENT_CITY.to_string(),
-                                Attribute::Single(AttributeValue::Text(v)),
-                            )
-                        }),
-                        value.country.map(|v| {
-                            (
-                                PID_RESIDENT_COUNTRY.to_string(),
-                                Attribute::Single(AttributeValue::Text(v)),
-                            )
-                        }),
-                    ]
-                    .into_iter()
-                    .flatten()
-                    .collect(),
-                ),
+                Attribute::Nested(IndexMap::from_iter(vec![
+                    (
+                        PID_RESIDENT_STREET.to_string(),
+                        Attribute::Single(AttributeValue::Text("Turfmarkt".to_string())),
+                    ),
+                    (
+                        PID_RESIDENT_HOUSE_NUMBER.to_string(),
+                        Attribute::Single(AttributeValue::Text("147".to_string())),
+                    ),
+                    (
+                        PID_RESIDENT_POSTAL_CODE.to_string(),
+                        Attribute::Single(AttributeValue::Text("2511 DP".to_string())),
+                    ),
+                    (
+                        PID_RESIDENT_CITY.to_string(),
+                        Attribute::Single(AttributeValue::Text("Den Haag".to_string())),
+                    ),
+                    (
+                        PID_RESIDENT_COUNTRY.to_string(),
+                        Attribute::Single(AttributeValue::Text("Nederland".to_string())),
+                    ),
+                ])),
             )]),
         )
-        .unwrap()
+        .unwrap();
+
+        Self::new(vec![pid, address].try_into().unwrap())
     }
 }
 
-const MOCK_PID_DOCTYPE: &str = "urn:eudi:pid:nl:1";
-const MOCK_ADDRESS_DOCTYPE: &str = "urn:eudi:pid-address:nl:1";
+impl AttributeService for MockAttributeService {
+    type Error = Infallible;
 
-type Attributes = (PersonAttributes, Option<ResidentAttributes>);
-pub struct MockAttributesLookup(HashMap<String, Attributes>);
+    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        let Self(documents) = self;
 
-impl Default for MockAttributesLookup {
-    fn default() -> Self {
-        let mut map = HashMap::new();
-        map.insert(
-            "999991772".to_owned(),
-            (
-                PersonAttributes {
-                    bsn: "999991772".to_owned(),
-                    given_name: "Willeke Liselotte".to_owned(),
-                    family_name: "De Bruijn".to_owned(),
-                    birth_date: NaiveDate::parse_from_str("1997-05-10", "%Y-%m-%d").unwrap(),
-                    age_over_18: true,
-                },
-                Some(ResidentAttributes {
-                    street: Some("Turfmarkt".to_owned()),
-                    house_number: Some("147".to_owned()),
-                    postal_code: Some("2511 DP".to_owned()),
-                    city: Some("Den Haag".to_owned()),
-                    country: Some("Nederland".to_owned()),
-                }),
-            ),
-        );
-        Self(map)
+        Ok(documents.clone())
     }
-}
 
-impl MockAttributesLookup {
-    pub fn attributes(&self, bsn: &str) -> Option<IssuableDocuments> {
-        let (person, residence) = self.0.get(bsn)?;
-
-        let attrs = vec![Some(person.to_owned().into()), residence.to_owned().map(|r| r.into())]
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>()
-            .try_into()
-            .unwrap();
-
-        Some(attrs)
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+        Ok(oidc::Config::new_mock(issuer_url))
     }
 }
