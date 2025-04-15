@@ -135,7 +135,8 @@ platform :android do
 
     Dir.chdir("../wallet_app") do
       sh(*flutter, "pub", "get")
-      sh(*flutter, "build", file_format_command,
+      sh({ "APPLICATION_ID" => application_id, "APP_NAME" => app_name },
+        *flutter, "build", file_format_command,
             "--build-number", build.to_s,
             "--build-name", version.to_s,
             "--#{build_mode}",
@@ -145,7 +146,6 @@ platform :android do
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
-            { "APPLICATION_ID" => application_id, "APP_NAME" => app_name },
       )
 
       upload_sentry_symbols
@@ -348,7 +348,8 @@ platform :ios do
     # Set the app name and have Flutter build it
     Dir.chdir("../wallet_app") do
       sh(*flutter, "pub", "get")
-      sh(*flutter, "build", "ipa",
+      sh({ "APP_NAME" => app_name },
+        *flutter, "build", "ipa",
             "--build-number", build.to_s,
             "--build-name", version.to_s,
             "--#{build_mode}",
@@ -360,7 +361,6 @@ platform :ios do
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
             "--dart-define=SENTRY_RELEASE=#{sentry_release}",
-            { "APP_NAME" => app_name },
       )
 
       upload_sentry_symbols
