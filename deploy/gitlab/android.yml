@@ -21,7 +21,7 @@ test-android:
     - EMULATOR_PID="$!"
     - adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
     - cd wallet_core/wallet/platform_support/android
-    - ./gradlew --no-daemon connectedAndroidTest jacocoToCobertura
+    - ANDROID_NDK_TARGETS=x86_64 ./gradlew --no-daemon connectedAndroidTest
   after_script:
     - deploy/bin/store-artifact.sh wallet_core/wallet/platform_support/android/build/outputs/androidTest-results/connected/debug/TEST*.xml qt/quality-time/junit-results/android.xml
 
@@ -61,7 +61,7 @@ test-android:
     - bundle install
     - |
       bundle exec fastlane android build \
-        package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        application_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         app_name:"${APP_NAME}" \
         file_format:"${APP_FILE_FORMAT}" \
         build_mode:"${APP_BUILD_MODE}" \
@@ -218,7 +218,7 @@ build-android-app-production:
     - bundle install
     - |
       bundle exec fastlane android ci_deploy \
-        package_name:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        application_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
         version:"${CI_COMMIT_TAG#v}"
 
 deploy-android-app-ont:

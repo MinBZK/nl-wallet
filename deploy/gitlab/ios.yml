@@ -207,7 +207,7 @@ build-ios-app-production:
     - bundle install
     - |
       bundle exec fastlane ios ci_deploy \
-        app_identifier:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}"
+        bundle_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}"
 
 deploy-ios-app-ont:
   extends: .deploy-ios-app

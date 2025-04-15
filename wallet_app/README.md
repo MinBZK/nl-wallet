@@ -40,6 +40,8 @@ After setting up your environment, launch an Android emulator or the iOS simulat
 
 Note that when using FVM, all Flutter commands below should be prefixed with `fvm`.
 
+You can use the `ANDROID_NDK_TARGETS` environment variable to limit the targets needed for your emulator.
+
 ### Building
 
 The easiest way to build the app locally is to use [fastlane](https://docs.fastlane.tools/).
