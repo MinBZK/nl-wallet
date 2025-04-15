@@ -1,5 +1,135 @@
 # Disclosure based issuance
 
+Disclosure based issuance allows an attestation issuer to issue attestations to a wallet based on the contents of attributes disclosed by that same wallet.
+The wallet first presents a disclosure screen to the user, which upon user consent is followed immediately by an issuance screen presenting the new attestations.
+In between the two screens, the issuer receives the disclosed attributes, and can use those to determine the contents of the attestation(s) to be issued.
+
+The issuer side of this functionality is implemented by the `issuance_server` binary under `wallet_core/wallet_server`.
+
+Technically, disclosure based issuance is achieved as follows:
+
+1. At the end of the disclosure session, the `issuance_server` sends the disclosed attributes to a preconfigured HTTP endpoint, at which the issuer must run an HTTP server that must respond with the attestations to be issued. This server is called the *attestation server*.
+2. The `issuance_server` starts an OpenID4VCI session in the [Pre-Authorized Code Flow](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-pre-authorized-code-flow), puts the  Pre-Authorized Code into an [OpenID4VCI Credential Offer](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer), and URL-encodes that into the `redirect_uri` that gets sent to the wallet.
+3. Using the Credential Offer with the Pre-Authorized Code within it, the wallet performs an OpenID4VCI session with the `issuance_server`.
+
+## API
+
+### Attestation server
+
+The attestation server exchanges disclosed attributes for attestations to be issued. It is contacted by the `issuance_server` during a disclosure based issuance session to do this. Note that this server does not need to be reachable by the wallet, and it probably should not be directly connected to the internet.
+
+The attestation server receives an HTTP `POST` by the `issuance_server` containing a JSON structure of the same form as the `/disclosed_attributes` endpoint of the `issuance_server` returns, as documented in the [Relying Party documentation](../relying-party.md#retrieve-disclosure-results). More specifically, this is a JSON-serialized `IndexMap<String, DocumentDisclosedAttributes>`. For example:
+
+```http
+POST / HTTP/1.1
+Content-Type: application/json
+Accept: */*
+Host: localhost:51560
+Content-Length: 267
+
+{
+  "com.example.pid": {
+    "attributes": {
+      "com.example.pid": {
+        "bsn": "999991772"
+      }
+    },
+    "issuerUri": "https://cert.issuer.example.com/",
+    "ca": "ca.pid.example.com",
+    "validityInfo": {
+      "signed": "2025-04-15T07:02:26Z",
+      "validFrom": "2025-04-15T07:02:26Z",
+      "validUntil": "2026-04-15T07:02:26Z"
+    }
+  }
+}
+```
+
+The `attestation_server` must respond with a JSON-serialized `Vec<IssuableDocument>`. For example:
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+[
+  {
+    "attestation_type": "com.example.degree",
+    "attributes": {
+      "university": "Example university",
+      "education": "Example education",
+      "graduation_date": "1970-01-01",
+      "grade": "A",
+      "cum_laude": true
+    }
+  }
+]
+```
+
+The JSON array may be empty (i.e. `[]`) to indicate that no attestations to be issued were found. In that case, the wallet will present a screen to the user explaining that there were no attestations found that can be issued.
+
+### `issuance_server` configuration
+
+For each attestation server, a configuration block like the following must be put in the configuration file of the `issuance_server`.
+
+```toml
+[disclosure_settings.my_issuer]
+# URL to the attestation server
+attestation_url = "https://attestation_server.example.com"
+
+# Either "hsm" or "software"
+private_key_type = "hsm"
+
+# In case of "hsm": label for the private key in the HSM
+# In case of "software": a DER-serialized private key
+private_key = "my_issuer_key" 
+
+# RP certificate
+certificate = "MIJ..."
+
+# Attributes that have to be disclosed for `my_issuer`
+[[disclosure_settings.my_issuer.to_disclose]]
+docType = "com.example.pid"
+nameSpaces = { "com.example.pid" = { bsn = true } }
+
+# A block like this has to be present for each attestation type that gets issued
+[attestation_settings."com.example.degree"]
+valid_days = 365
+copy_count = 4
+private_key_type = "software" # or "hsm", see above
+private_key = "MIG..."        # DER-encoded private key, in case of "software"
+certificate = "MIJ..."        # Issuer certificate
+
+# Files containing SD-JWT Type Metadata documents for each attestations that will be issued
+metadata = ["com_example_degree_metadata.json"]
+```
+
+Here, `my_issuer` is an example of a freely choosable identifier that has to be present in the QR/UL that starts the session.
+
+For the rest of the configuration parameters of the `issuance_server`, see the [`issuance_server` example configuration file](../../wallet_core/wallet_server/issuance_server/issuance_server.example.toml) and the [Relying Party documentation](../relying-party.md#retrieve-disclosure-results).
+
+### QR/UL
+
+The wallet starts disclosure based issuance if it encounters a UL (or a QR with a UL within it) of a specific format. To create this UL, proceed as follows.
+
+1. If your `issuance_server` is reachable on the internet by the wallet at `https://issuer.example.com`, create a URL of the following form:
+    ```
+    https://issuer.example.com/disclosure/my_issuer/request_uri?session_type=same_device
+    ```
+    In which `my_issuer` has to be the identifier mentioned above.
+2. URL-encode the above URL.
+3. Create the UL as follows (newlines only for readability purposes):
+    ```
+    https://app.example.com/deeplink/disclosure_based_issuance
+      ?request_uri_method=post
+      &client_id=disclosure_based_issuance.example.com
+      &request_uri=https%3A%2F%2Fissuer.example.com...
+    ```
+    In which the `client_id` has to be the SAN DNS name from the RP `certificate`, and the `request_uri` is the URL-encoded URL from the previous step.
+
+Next, place this UL on your website (within in a QR code in case of cross device flows).
+
+## Sequence diagram
+
 This diagram shows how we compose OpenID4VP with OpenID4VCI in the pre-authorized code flow to issue attestations based on the contents of other attestations.
 
 The flow starts with the user scanning a QR code or tapping a UL that contains the URL to the disclosure based issuer. When the wallet contacts the issuer using this URL, it starts a disclosure session requesting some preconfigured set of attributes that will allow it to determine the attributes that it wants to issue. For example, suppose the issuer wishes to issue academic degrees based on the user's BSN, then it would preconfigure an Authorization Request that requests the BSN from the PID.
