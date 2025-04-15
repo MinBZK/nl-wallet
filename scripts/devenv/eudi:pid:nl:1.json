@@ -1,14 +1,14 @@
 {
   "vct": "urn:eudi:pid:nl:1",
-  "name": "NL Wallet PID credential",
-  "description": "Working version of the NL Wallet PID credential",
+  "name": "NL PID credential",
+  "description": "Working version of the Dutch PID credential",
   "extends": "urn:eudi:pid:1",
-  "extends#integrity": "sha256-zUbYlToqxDaV4Wgc9A9Ixevwx4/5iWg8lg9Qy1Ap6do=",
+  "extends#integrity": "sha256-iUUWE2MFwlPlYk9EWcCJuPC2ER60IY5rcbcKEa2cVW4=",
   "display": [
     {
       "lang": "en-US",
-      "name": "NL Wallet personal data",
-      "description": "The Personal Data credential for the NL Wallet",
+      "name": "Personal data (NL)",
+      "description": "The Dutch personal data credential",
       "summary": "{{given_name}}",
       "rendering": {
         "simple": {
@@ -19,8 +19,8 @@
     },
     {
       "lang": "nl-NL",
-      "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet",
+      "name": "Persoonsgegevens (NL)",
+      "description": "De Nederlandse persoonsgegevensattestatie",
       "summary": "{{given_name}}",
       "rendering": {
         "simple": {
@@ -95,8 +95,8 @@
   ],
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet PID VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet PID VCT",
+    "title": "NL PID VCT Schema",
+    "description": "The JSON schema that defines the NL PID VCT",
     "type": "object",
     "properties": {
       "vct": {

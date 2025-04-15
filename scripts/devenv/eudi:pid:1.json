@@ -5,8 +5,8 @@
   "display": [
     {
       "lang": "en-US",
-      "name": "Personal Data",
-      "description": "The Personal Data credential"
+      "name": "Personal data",
+      "description": "The personal data credential"
     }
   ],
   "claims": [

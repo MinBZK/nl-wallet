@@ -1,14 +1,14 @@
 {
   "vct": "urn:eudi:pid-address:nl:1",
-  "name": "NL Wallet address credential",
-  "description": "Working version of the NL Wallet address credential",
+  "name": "NL address credential",
+  "description": "Working version of the Dutch address credential",
   "extends": "urn:eudi:pid-address:1",
   "extends#integrity": "sha256-17CxrX9FJ68Lsw5nui612i7m3lyZzhK9kK3G76DROks=",
   "display": [
     {
       "lang": "en-US",
-      "name": "NL Wallet address",
-      "description": "The address credential for the NL Wallet",
+      "name": "Wallet address (NL)",
+      "description": "The Dutch address credential",
       "summary": "{{resident_city}}",
       "rendering": {
         "simple": {
@@ -20,7 +20,7 @@
     {
       "lang": "nl-NL",
       "name": "NL Wallet adres",
-      "description": "De adresattestatie voor de NL Wallet",
+      "description": "De Nederlandse adresattestatie",
       "summary": "{{resident_city}}",
       "rendering": {
         "simple": {
@@ -90,8 +90,8 @@
   ],
   "schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "NL Wallet address VCT Schema",
-    "description": "The JSON schema that defines the NL Wallet address VCT",
+    "title": "NL address VCT Schema",
+    "description": "The JSON schema that defines the NL address VCT",
     "type": "object",
     "properties": {
       "vct": {
