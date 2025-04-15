@@ -23,7 +23,7 @@ import '../common/widget/button/scan_qr_button.dart';
 import '../common/widget/card/wallet_card_item.dart';
 import '../common/widget/centered_loading_indicator.dart';
 import '../common/widget/fade_in_at_offset.dart';
-import '../common/widget/sliver_sized_box.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text_with_link.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';

@@ -4,6 +4,8 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Write;
+use std::ops::Deref;
+use std::sync::LazyLock;
 
 use http::Uri;
 use itertools::Itertools;
@@ -11,6 +13,7 @@ use jsonschema::Draft;
 use jsonschema::ValidationError;
 use jsonschema::Validator;
 use nutype::nutype;
+use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
@@ -19,8 +22,13 @@ use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use ssri::Integrity;
 
-use wallet_common::spec::SpecOptional;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::spec::SpecOptional;
+use utils::vec_at_least::VecNonEmpty;
+
+// The requirements for the svg_id according to the specification are:
+// "It MUST consist of only alphanumeric characters and underscores and MUST NOT start with a digit."
+static SVG_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z_][0-9A-Za-z_]*$").unwrap());
+static TEMPLATE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{\{([A-Za-z_][0-9A-Za-z_]*)\}\}").unwrap());
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
@@ -30,16 +38,23 @@ pub enum TypeMetadataError {
     #[error("could not deserialize JSON schema: {0}")]
     JsonSchema(#[from] serde_json::Error),
 
-    #[error("schema option {0:?} is not supported")]
-    UnsupportedSchemaOption(SchemaOption),
-
     #[error("detected claim path collision: {0}")]
     ClaimPathCollision(String),
 
-    #[error("detected duplicate `svg_id`s: {0:?}")]
+    #[error("detected duplicate display metadata language(s): {}", .0.join(", "))]
+    DuplicateDisplayLanguages(Vec<String>),
+
+    #[error(
+        "detected duplicate claim display metadata language(s) at path {}: {}",
+        ClaimMetadata::path_to_string(.0.as_ref()),
+        .1.join(", ")
+    )]
+    DuplicateClaimDisplayLanguages(VecNonEmpty<ClaimPath>, Vec<String>),
+
+    #[error("detected duplicate `svg_id`s: {}", .0.join(", "))]
     DuplicateSvgIds(Vec<String>),
 
-    #[error("found missing `svg_id`s: {0:?}")]
+    #[error("found missing `svg_id`s: {}", .0.join(", "))]
     MissingSvgIds(Vec<String>),
 }
 
@@ -87,8 +102,28 @@ pub struct UncheckedTypeMetadata {
     pub schema: SchemaOption,
 }
 
+pub(crate) fn find_missing_svg_ids(display: &[DisplayMetadata], claims: &[ClaimMetadata]) -> Vec<String> {
+    let svg_ids = claims
+        .iter()
+        .filter_map(|claim| claim.svg_id.as_deref())
+        .collect::<HashSet<_>>();
+
+    display
+        .iter()
+        .filter_map(|display| display.summary.as_deref())
+        .flat_map(|summary| {
+            TEMPLATE_REGEX
+                .captures_iter(summary)
+                .flat_map(|captures| captures.extract::<1>().1)
+        })
+        .unique()
+        .filter(|id| !svg_ids.contains(id))
+        .map(ToString::to_string)
+        .collect()
+}
+
 #[nutype(
-    derive(Debug, Clone, AsRef, PartialEq, Eq, Serialize, Deserialize),
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Into, Serialize, Deserialize),
     validate(with = UncheckedTypeMetadata::check_metadata_consistency, error = TypeMetadataError),
 )]
 pub struct TypeMetadata(UncheckedTypeMetadata);
@@ -96,6 +131,7 @@ pub struct TypeMetadata(UncheckedTypeMetadata);
 impl UncheckedTypeMetadata {
     pub fn check_metadata_consistency(unchecked_metadata: &UncheckedTypeMetadata) -> Result<(), TypeMetadataError> {
         unchecked_metadata.detect_path_collisions()?;
+        unchecked_metadata.detect_duplicate_languages()?;
         unchecked_metadata.validate_svg_ids()?;
 
         Ok(())
@@ -125,53 +161,53 @@ impl UncheckedTypeMetadata {
         Ok(())
     }
 
-    fn validate_svg_ids(&self) -> Result<(), TypeMetadataError> {
-        // `svg_id` MUST be unique within the type metadata.
-        let svg_ids = self
-            .claims
-            .iter()
-            .filter_map(|claim| claim.svg_id.as_ref())
-            .collect_vec();
-        match svg_ids.iter().duplicates().collect_vec() {
-            dups if !dups.is_empty() => Err(TypeMetadataError::DuplicateSvgIds(
-                dups.into_iter().copied().cloned().collect_vec(),
-            )),
-            _ => Ok(()),
-        }?;
-
-        // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject the
-        // SVG template.
-        let re = regex::Regex::new(r"\{\{(\w+)\}\}").unwrap();
-        match self
+    fn detect_duplicate_languages(&self) -> Result<(), TypeMetadataError> {
+        let duplicates = self
             .display
             .iter()
-            .filter_map(|display| display.summary.as_ref())
-            .flat_map(|summary| re.captures_iter(summary).flat_map(|s| s.extract::<1>().1))
-            .unique()
-            .filter(|id| !svg_ids.contains(&&id.to_string()))
-            .collect_vec()
-        {
-            missing_ids if !missing_ids.is_empty() => Err(TypeMetadataError::MissingSvgIds(
-                missing_ids.iter().map(|s| s.to_string()).collect_vec(),
-            )),
-            _ => Ok(()),
-        }?;
+            .duplicates_by(|display| display.lang.as_str())
+            .map(|display| display.lang.clone())
+            .collect_vec();
+
+        if !duplicates.is_empty() {
+            return Err(TypeMetadataError::DuplicateDisplayLanguages(duplicates));
+        }
+
+        for claim in &self.claims {
+            let duplicates = claim.find_duplicate_languages();
+
+            if !duplicates.is_empty() {
+                return Err(TypeMetadataError::DuplicateClaimDisplayLanguages(
+                    claim.path.clone(),
+                    duplicates,
+                ));
+            }
+        }
 
         Ok(())
     }
-}
 
-impl TypeMetadata {
-    pub fn validate(&self, json_claims: &serde_json::Value) -> Result<(), TypeMetadataError> {
-        if let SchemaOption::Embedded { schema } = &self.as_ref().schema {
-            schema
-                .validator
-                .validate(json_claims)
-                .map_err(ValidationError::to_owned)?;
-            Ok(())
-        } else {
-            Err(TypeMetadataError::UnsupportedSchemaOption(self.as_ref().schema.clone()))
+    fn validate_svg_ids(&self) -> Result<(), TypeMetadataError> {
+        // `svg_id` MUST be unique within the type metadata.
+        let duplicate_svg_ids = self
+            .claims
+            .iter()
+            .filter_map(|claim| claim.svg_id.as_deref())
+            .duplicates()
+            .map(ToString::to_string)
+            .collect_vec();
+
+        if !duplicate_svg_ids.is_empty() {
+            return Err(TypeMetadataError::DuplicateSvgIds(duplicate_svg_ids));
         }
+
+        // If the svg_id is not present in the claim metadata, the consuming application SHOULD reject the SVG template.
+        let missing_svg_ids = find_missing_svg_ids(&self.display, &self.claims);
+        if !missing_svg_ids.is_empty() {
+            return Err(TypeMetadataError::MissingSvgIds(missing_svg_ids));
+        }
+
+        Ok(())
     }
 }
 
@@ -247,6 +283,12 @@ impl JsonSchema {
 
     pub fn into_properties(self) -> JsonSchemaProperties {
         self.properties
+    }
+
+    pub(crate) fn validate(&self, attestation_json: &serde_json::Value) -> Result<(), ValidationError<'static>> {
+        self.validator
+            .validate(attestation_json)
+            .map_err(ValidationError::to_owned)
     }
 }
 
@@ -388,10 +430,33 @@ pub struct ClaimMetadata {
     pub sd: ClaimSelectiveDisclosureMetadata,
 
     /// A string defining the ID of the claim for reference in the SVG template.
-    pub svg_id: Option<String>,
+    pub svg_id: Option<SvgId>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+impl ClaimMetadata {
+    pub(crate) fn path_to_string(path: &[ClaimPath]) -> String {
+        path.iter().fold(String::new(), |mut output, path| {
+            let _ = write!(output, "[{path}]");
+            output
+        })
+    }
+
+    fn find_duplicate_languages(&self) -> Vec<String> {
+        self.display
+            .iter()
+            .duplicates_by(|display| &display.lang)
+            .map(|display| display.lang.clone())
+            .collect()
+    }
+}
+
+impl Display for ClaimMetadata {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", Self::path_to_string(self.path.as_ref()))
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ClaimPath {
     SelectByKey(String),
@@ -425,21 +490,8 @@ impl Display for ClaimPath {
     }
 }
 
-impl Display for ClaimMetadata {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.path.iter().fold(String::new(), |mut output, p| {
-                let _ = write!(output, "[{p}]");
-                output
-            })
-        )
-    }
-}
-
 /// An indication whether the claim is selectively disclosable.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ClaimSelectiveDisclosureMetadata {
     /// The Issuer MUST make the claim selectively disclosable.
@@ -461,6 +513,20 @@ pub struct ClaimDisplayMetadata {
     pub description: Option<String>,
 }
 
+#[nutype(
+    derive(Debug, Clone, AsRef, PartialEq, Eq, Into, Serialize, Deserialize),
+    validate(regex = SVG_ID_REGEX),
+)]
+pub struct SvgId(String);
+
+impl Deref for SvgId {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
 #[cfg(any(test, feature = "example_constructors"))]
 mod example_constructors {
     use std::collections::HashMap;
@@ -471,8 +537,9 @@ mod example_constructors {
 
     use crate::examples::ADDRESS_METADATA_BYTES;
     use crate::examples::CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES;
-    use crate::examples::EXAMPLE_EXTENSION_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::EXAMPLE_V2_METADATA_BYTES;
+    use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
     use crate::examples::SD_JWT_VC_SPEC_METADATA_BYTES;
 
@@ -480,6 +547,7 @@ mod example_constructors {
     use super::ClaimMetadata;
     use super::ClaimPath;
     use super::ClaimSelectiveDisclosureMetadata;
+    use super::DisplayMetadata;
     use super::JsonSchema;
     use super::JsonSchemaProperties;
     use super::JsonSchemaProperty;
@@ -491,31 +559,32 @@ mod example_constructors {
 
     impl UncheckedTypeMetadata {
         pub fn empty_example() -> Self {
+            let name = random_string(8);
+
             Self {
                 vct: random_string(16),
-                name: Some(random_string(8)),
+                name: Some(name.clone()),
                 description: None,
                 extends: None,
-                display: vec![],
+                display: vec![DisplayMetadata {
+                    lang: "en".to_string(),
+                    name,
+                    description: None,
+                    summary: None,
+                    rendering: None,
+                }],
                 claims: vec![],
                 schema: SchemaOption::Embedded {
                     schema: Box::new(JsonSchema::try_new(json!({"properties": {}})).unwrap()),
                 },
             }
         }
-    }
-
-    impl TypeMetadata {
-        pub fn empty_example() -> Self {
-            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example()).unwrap()
-        }
 
         pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
-            TypeMetadata::try_new(UncheckedTypeMetadata {
+            Self {
                 vct: String::from(attestation_type),
                 ..UncheckedTypeMetadata::empty_example()
-            })
-            .unwrap()
+            }
         }
 
         pub fn example_with_claim_name(
@@ -531,7 +600,7 @@ mod example_constructors {
             attestation_type: &str,
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
-            TypeMetadata::try_new(UncheckedTypeMetadata {
+            Self {
                 vct: String::from(attestation_type),
                 claims: names
                     .iter()
@@ -550,16 +619,19 @@ mod example_constructors {
                     schema: Box::new(JsonSchema::example_with_claim_names(names)),
                 },
                 ..UncheckedTypeMetadata::empty_example()
-            })
-            .unwrap()
+            }
         }
 
         pub fn example() -> Self {
             serde_json::from_slice(EXAMPLE_METADATA_BYTES).unwrap()
         }
 
-        pub fn example_extension() -> Self {
-            serde_json::from_slice(EXAMPLE_EXTENSION_METADATA_BYTES).unwrap()
+        pub fn example_v2() -> Self {
+            serde_json::from_slice(EXAMPLE_V2_METADATA_BYTES).unwrap()
+        }
+
+        pub fn example_v3() -> Self {
+            serde_json::from_slice(EXAMPLE_V3_METADATA_BYTES).unwrap()
         }
 
         pub fn pid_example() -> Self {
@@ -579,8 +651,57 @@ mod example_constructors {
         }
     }
 
+    impl TypeMetadata {
+        pub fn empty_example() -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example()).unwrap()
+        }
+
+        pub fn empty_example_with_attestation_type(attestation_type: &str) -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::empty_example_with_attestation_type(
+                attestation_type,
+            ))
+            .unwrap()
+        }
+
+        pub fn example_with_claim_name(
+            attestation_type: &str,
+            name: &str,
+            r#type: JsonSchemaPropertyType,
+            format: Option<JsonSchemaPropertyFormat>,
+        ) -> Self {
+            Self::example_with_claim_names(attestation_type, &[(name, r#type, format)])
+        }
+
+        pub fn example_with_claim_names(
+            attestation_type: &str,
+            names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
+        ) -> Self {
+            TypeMetadata::try_new(UncheckedTypeMetadata::example_with_claim_names(attestation_type, names)).unwrap()
+        }
+
+        pub fn example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example()).unwrap()
+        }
+
+        pub fn example_v2() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v2()).unwrap()
+        }
+
+        pub fn example_v3() -> Self {
+            Self::try_new(UncheckedTypeMetadata::example_v3()).unwrap()
+        }
+
+        pub fn pid_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::pid_example()).unwrap()
+        }
+
+        pub fn address_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::address_example()).unwrap()
+        }
+    }
+
     impl JsonSchema {
-        fn example_with_claim_names(
+        pub fn example_with_claim_names(
             names: &[(&str, JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>)],
         ) -> Self {
             let properties = JsonSchemaProperties {
@@ -617,6 +738,9 @@ mod test {
     use jsonschema::ValidationError;
     use rstest::rstest;
     use serde_json::json;
+    use utils::vec_at_least::VecNonEmpty;
+
+    use crate::examples::EXAMPLE_METADATA_BYTES;
 
     use super::ClaimPath;
     use super::MetadataExtends;
@@ -632,6 +756,35 @@ mod test {
             "https://sd_jwt_vc_metadata.example.com/example_credential",
             metadata.as_ref().vct
         );
+    }
+
+    #[rstest]
+    #[case("foo_bar", true)]
+    #[case("foo_bar123", true)]
+    #[case("a1", true)]
+    #[case("x", true)]
+    #[case("_", true)]
+    #[case("0", false)]
+    #[case("1identifier", false)]
+    #[case(" identifier", false)]
+    #[case("identifier ", false)]
+    #[case("foo bar", false)]
+    #[case("日本語", false)]
+    #[case("🇳🇱", false)]
+    fn test_deserialize_svg_id_error(#[case] svg_id: &str, #[case] should_succeed: bool) {
+        let json = String::from_utf8(EXAMPLE_METADATA_BYTES.to_vec())
+            .unwrap()
+            .replace("\"identifier\"", &format!("\"{svg_id}\""));
+
+        let result = serde_json::from_str::<TypeMetadata>(&json);
+
+        if should_succeed {
+            let _ = result.expect("SD-JWT type metadata with correct svg_id should deserialize");
+        } else {
+            let error = result.expect_err("SD-JWT type metadata with incorrect svg_id should fail to deserialize");
+
+            assert!(error.to_string().contains("SvgId"));
+        }
     }
 
     #[test]
@@ -695,7 +848,12 @@ mod test {
             metadata.as_ref().claims[3].path.clone().into_inner()
         );
 
-        metadata.validate(&claims).unwrap();
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        json_schema.validate(&claims).expect("JSON schema should validate");
     }
 
     #[test]
@@ -712,14 +870,21 @@ mod test {
           }
         });
 
-        assert!(metadata.validate(&claims).is_err());
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        let _error = json_schema
+            .validate(&claims)
+            .expect_err("JSON schema should fail validation");
     }
 
     #[rstest]
     #[case("2004-12-25")]
     #[case("2024-02-29")]
     fn test_schema_validation_date_format_happy(#[case] date_str: &str) {
-        let metadata = TypeMetadata::example();
+        let metadata = TypeMetadata::example_v3();
 
         let claims = json!({
             "vct": "https://credentials.example.com/identity_credential",
@@ -728,7 +893,13 @@ mod test {
             "attestation_qualification": "EAA",
             "birth_date": date_str,
         });
-        metadata.validate(&claims).unwrap();
+
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        json_schema.validate(&claims).expect("JSON schema should validate");
     }
 
     #[rstest]
@@ -736,7 +907,7 @@ mod test {
     #[case("2025-02-29")]
     #[case("01-01-2000")]
     fn test_schema_validation_date_format_error(#[case] date_str: &str) {
-        let metadata = TypeMetadata::example();
+        let metadata = TypeMetadata::example_v3();
 
         let claims = json!({
             "vct": "https://credentials.example.com/identity_credential",
@@ -746,14 +917,23 @@ mod test {
             "birth_date": date_str,
         });
 
+        let json_schema = match &metadata.as_ref().schema {
+            SchemaOption::Embedded { schema } => schema.as_ref(),
+            _ => unreachable!(),
+        };
+
+        let error = json_schema
+            .validate(&claims)
+            .expect_err("JSON schema should fail validation");
+
         assert_matches!(
-            metadata.validate(&claims),
-            Err(TypeMetadataError::JsonSchemaValidation(ValidationError {
+            error,
+            ValidationError {
                 instance,
                 kind: ValidationErrorKind::Format { format },
                 instance_path,
                 ..
-            })) if instance.to_string() == format!("\"{}\"", date_str)
+            } if instance.to_string() == format!("\"{}\"", date_str)
                     && format == "date" && instance_path.to_string() == "/birth_date"
         );
     }
@@ -799,6 +979,87 @@ mod test {
         assert!(result.to_string().contains("detected claim path collision"));
     }
 
+    fn duplicate_display_language_metadata_json() -> serde_json::Value {
+        json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "display": [
+                { "lang": "en", "name": "Name" },
+                { "lang": "en", "name": "Other name" }
+            ],
+            "claims": [],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        })
+    }
+
+    #[test]
+    fn test_error_duplicate_display_languages() {
+        let error = serde_json::from_value::<UncheckedTypeMetadata>(duplicate_display_language_metadata_json())
+            .unwrap()
+            .detect_duplicate_languages()
+            .expect_err("duplicate display metadata languages should result in an error");
+
+        assert_matches!(error, TypeMetadataError::DuplicateDisplayLanguages(duplicates) if duplicates == vec!["en"]);
+    }
+
+    #[test]
+    fn test_deserialize_type_metadata_error_duplicate_display_languages() {
+        let error = serde_json::from_value::<TypeMetadata>(duplicate_display_language_metadata_json())
+            .expect_err("deserializing duplicate display metadata languages should result in an error");
+
+        assert!(error
+            .to_string()
+            .contains("detected duplicate display metadata language(s)"));
+    }
+
+    fn duplicate_claim_display_language_metadata_json() -> serde_json::Value {
+        json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [
+                {
+                    "path": ["address.street"],
+                    "display": [
+                        { "lang": "en", "label": "Street" },
+                        { "lang": "en", "label": "Street name" }
+                    ],
+                },
+            ],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        })
+    }
+
+    #[test]
+    fn test_error_duplicate_claim_display_languages() {
+        let error = serde_json::from_value::<UncheckedTypeMetadata>(duplicate_claim_display_language_metadata_json())
+            .unwrap()
+            .detect_duplicate_languages()
+            .expect_err("duplicate claim display metadata languages should result in an error");
+
+        let expected_path = VecNonEmpty::try_from(vec![ClaimPath::SelectByKey("address.street".to_string())]).unwrap();
+        assert_matches!(
+            error,
+            TypeMetadataError::DuplicateClaimDisplayLanguages(path, duplicates)
+                if path == expected_path && duplicates == vec!["en"]
+        );
+    }
+
+    #[test]
+    fn test_deserialize_type_metadata_error_duplicate_claim_display_languages() {
+        let error = serde_json::from_value::<TypeMetadata>(duplicate_claim_display_language_metadata_json())
+            .expect_err("deserializing duplicate claim display metadata languages should result in an error");
+
+        assert!(error
+            .to_string()
+            .contains("detected duplicate claim display metadata language(s)"));
+    }
+
     #[rstest]
     #[case(json!([
         { "path": vec!["address"] },
@@ -838,7 +1099,10 @@ mod test {
         { "path": vec!["address", "city"], "svg_id": "address_street" },
         { "path": vec!["address", "number"], "svg_id": "address" },
     ]), Err(TypeMetadataError::DuplicateSvgIds(vec!["address_street".to_owned(), "address".to_owned()])))]
-    fn test_claim_svg_ids(#[case] claims: serde_json::Value, #[case] expected: Result<(), TypeMetadataError>) {
+    fn test_validate_svg_ids_duplicates(
+        #[case] claims: serde_json::Value,
+        #[case] expected: Result<(), TypeMetadataError>,
+    ) {
         let mut metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "claims": [],
@@ -879,7 +1143,7 @@ mod test {
         "address_number".to_owned(),
         "address_country".to_owned()
     ])))]
-    fn should_detect_missing_svg_ids(#[case] summary: &str, #[case] expected: Result<(), TypeMetadataError>) {
+    fn test_validate_svg_ids_missing(#[case] summary: &str, #[case] expected: Result<(), TypeMetadataError>) {
         let metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
             "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
             "display": [{

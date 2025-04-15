@@ -5,13 +5,13 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
 
+use http_utils::urls::HttpsUri;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedAttributesError;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::AttestationQualification;
 use mdoc::Tdate;
-use wallet_common::urls::HttpsUri;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::Attribute;
 

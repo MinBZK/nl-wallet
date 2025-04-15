@@ -7,8 +7,8 @@ use clap::Parser;
 use clio::ClioPath;
 use clio::Input;
 
-use wallet_common::built_info::version_string;
-use wallet_common::utils;
+use utils::built_info::version_string;
+use utils::path::prefix_local_path;
 
 use gba_hc_converter::gba::encryption::encrypt_bytes_to_dir;
 use gba_hc_converter::gba::encryption::HmacSha256;
@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
     let mut bytes: Vec<u8> = vec![];
     cli.input.read_to_end(&mut bytes)?;
 
-    let base_path = utils::prefix_local_path(cli.output.path());
+    let base_path = prefix_local_path(cli.output.path());
 
     let settings = Settings::new()?;
 

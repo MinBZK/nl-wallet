@@ -15,6 +15,7 @@ use url::Url;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
+use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::Jwt;
 use mdoc::server_keys::generate::mock::generate_issuer_mock;
@@ -52,14 +53,14 @@ use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
 use poa::Poa;
 use poa::PoaPayload;
+use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::ClaimMetadata;
 use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
-use wallet_common::urls::BaseUrl;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 type MockIssuer = Issuer<MockAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
 
@@ -515,7 +516,11 @@ fn mock_type_metadata(vct: &str) -> TypeMetadata {
             .iter()
             .map(|(key, _)| ClaimMetadata {
                 path: vec![ClaimPath::SelectByKey(key.to_string())].try_into().unwrap(),
-                display: vec![],
+                display: vec![ClaimDisplayMetadata {
+                    lang: "en".to_string(),
+                    label: key.to_string(),
+                    description: None,
+                }],
                 sd: ClaimSelectiveDisclosureMetadata::Allowed,
                 svg_id: None,
             })

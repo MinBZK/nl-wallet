@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import 'focus_builder.dart';
 
@@ -22,7 +23,7 @@ class UrlSpan extends WidgetSpan {
               final urlTextStyle = (textStyle ?? context.textTheme.bodyLarge)?.copyWith(
                 color: context.colorScheme.primary,
                 decoration: TextDecoration.underline,
-                fontWeight: hasFocus ? FontWeight.bold : null,
+                fontVariations: hasFocus ? [BaseWalletTheme.fontVariationBold] : null,
               );
               // Border that is drawn around the url when it has focus.
               final focusedBorderDecoration = BoxDecoration(

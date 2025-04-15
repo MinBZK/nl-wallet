@@ -10,6 +10,7 @@ use serde_with::skip_serializing_none;
 use serde_with::TimestampSeconds;
 
 use error_category::ErrorCategory;
+use http_utils::urls::HttpsUri;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
 use mdoc::holder::Mdoc;
@@ -20,9 +21,8 @@ use mdoc::AttestationQualification;
 use mdoc::NameSpace;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
-use sd_jwt_vc_metadata::TypeMetadata;
-use sd_jwt_vc_metadata::TypeMetadataError;
-use wallet_common::urls::HttpsUri;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataValidationError;
 
 use crate::attributes::Attribute;
 use crate::attributes::AttributeError;
@@ -39,7 +39,7 @@ pub enum CredentialPayloadError {
 
     #[error("metadata validation error: {0}")]
     #[category(pd)]
-    Metadata(#[from] TypeMetadataError),
+    MetadataValidation(#[from] TypeMetadataValidationError),
 
     #[error("unable to convert mdoc TDate to DateTime<Utc>")]
     #[category(critical)]
@@ -107,8 +107,15 @@ pub struct CredentialPayload {
     pub attributes: IndexMap<String, Attribute>,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct CredentialPayloadTimestamps {
+    issued_at: DateTime<Utc>,
+    expires: DateTime<Utc>,
+    not_before: DateTime<Utc>,
+}
+
 impl CredentialPayload {
-    pub fn from_sd_jwt(sd_jwt: SdJwt, metadata: &TypeMetadata) -> Result<Self, CredentialPayloadError> {
+    pub fn from_sd_jwt(sd_jwt: SdJwt, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
         let json = sd_jwt.into_disclosed_object()?;
         let payload: CredentialPayload =
             serde_json::from_value(serde_json::Value::Object(json)).map_err(sd_jwt::error::Error::Serialization)?;
@@ -120,29 +127,35 @@ impl CredentialPayload {
 
     pub fn from_unsigned_mdoc(
         unsigned_mdoc: UnsignedMdoc,
-        metadata: &TypeMetadata,
+        metadata: &NormalizedTypeMetadata,
     ) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
+            unsigned_mdoc.doc_type,
             metadata,
             None,
             unsigned_mdoc.attributes.into(),
             unsigned_mdoc.issuer_uri,
-            Some(Utc::now()),
-            Some((&unsigned_mdoc.valid_until).try_into()?),
-            Some((&unsigned_mdoc.valid_from).try_into()?),
+            CredentialPayloadTimestamps {
+                issued_at: Utc::now(),
+                expires: (&unsigned_mdoc.valid_until).try_into()?,
+                not_before: (&unsigned_mdoc.valid_from).try_into()?,
+            },
             unsigned_mdoc.attestation_qualification,
         )
     }
 
-    pub fn from_mdoc(mdoc: Mdoc, metadata: &TypeMetadata) -> Result<Self, CredentialPayloadError> {
+    pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_attributes(
+            mdoc.mso.doc_type,
             metadata,
             Some(&(&mdoc.mso.device_key_info.device_key).try_into()?),
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
-            Some((&mdoc.mso.validity_info.signed).try_into()?),
-            Some((&mdoc.mso.validity_info.valid_until).try_into()?),
-            Some((&mdoc.mso.validity_info.valid_from).try_into()?),
+            CredentialPayloadTimestamps {
+                issued_at: (&mdoc.mso.validity_info.signed).try_into()?,
+                expires: (&mdoc.mso.validity_info.valid_until).try_into()?,
+                not_before: (&mdoc.mso.validity_info.valid_from).try_into()?,
+            },
             mdoc.mso
                 .attestation_qualification
                 .ok_or(CredentialPayloadError::MissingAttestationQualification)?,
@@ -151,13 +164,12 @@ impl CredentialPayload {
 
     #[allow(clippy::too_many_arguments)]
     fn from_mdoc_attributes(
-        metadata: &TypeMetadata,
+        attestation_type: String,
+        metadata: &NormalizedTypeMetadata,
         holder_pub_key: Option<&VerifyingKey>,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
-        issued_at: Option<DateTime<Utc>>,
-        expires: Option<DateTime<Utc>>,
-        not_before: Option<DateTime<Utc>>,
+        timestamps: CredentialPayloadTimestamps,
         attestation_qualification: AttestationQualification,
     ) -> Result<Self, CredentialPayloadError> {
         let confirmation_key = holder_pub_key
@@ -167,11 +179,11 @@ impl CredentialPayload {
         let attributes = Attribute::from_mdoc_attributes(metadata, mdoc_attributes)?;
 
         let payload = Self {
-            attestation_type: metadata.as_ref().vct.clone(),
+            attestation_type,
             issuer,
-            issued_at,
-            expires,
-            not_before,
+            issued_at: Some(timestamps.issued_at),
+            expires: Some(timestamps.expires),
+            not_before: Some(timestamps.not_before),
             attestation_qualification,
             confirmation_key,
             attributes,
@@ -182,7 +194,7 @@ impl CredentialPayload {
         Ok(payload)
     }
 
-    fn validate(&self, metadata: &TypeMetadata) -> Result<(), CredentialPayloadError> {
+    fn validate(&self, metadata: &NormalizedTypeMetadata) -> Result<(), CredentialPayloadError> {
         metadata.validate(&serde_json::to_value(self)?)?;
         Ok(())
     }
@@ -204,7 +216,8 @@ mod test {
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::builder::SdJwtBuilder;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -293,7 +306,7 @@ mod test {
 
         let payload = serde_json::from_value::<CredentialPayload>(expected_json).unwrap();
 
-        let metadata = TypeMetadata::example();
+        let metadata = NormalizedTypeMetadata::example();
 
         payload.validate(&metadata).unwrap();
     }
@@ -333,7 +346,8 @@ mod test {
             .finish(Algorithm::ES256, &issuer_key, holder_key.verifying_key())
             .await?;
 
-        let metadata = TypeMetadata::credential_payload_sd_jwt_metadata();
+        let metadata =
+            NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::credential_payload_sd_jwt_metadata());
         let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone(), &metadata).unwrap();
 
         assert_eq!(

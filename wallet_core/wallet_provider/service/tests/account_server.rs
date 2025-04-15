@@ -4,7 +4,6 @@ use rand::rngs::OsRng;
 use rstest::rstest;
 
 use android_attest::attestation_extension::key_description::KeyDescription;
-use crypto::utils;
 use hsm::model::mock::MockPkcs11Client;
 use hsm::service::HsmError;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -63,7 +62,7 @@ async fn do_registration(
         .await
         .expect("Could not get registration challenge");
 
-    let challenge_hash = utils::sha256(&challenge);
+    let challenge_hash = crypto::utils::sha256(&challenge);
     let (registration_message, hw_privkey) = match attestation_ca {
         AttestationCa::Apple(apple_mock_ca) => {
             let (attested_key, attestation_data) = MockAppleAttestedKey::new_with_attestation(

@@ -14,6 +14,7 @@ use url::Url;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
+use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::examples::EXAMPLE_ATTRIBUTES;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
@@ -22,7 +23,6 @@ use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::iso::device_retrieval::ItemsRequest;
 use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::verifier::ItemsRequests;
-use wallet_common::urls::BaseUrl;
 
 use crate::disclosure_session::DisclosureSession;
 use crate::disclosure_session::DisclosureUriSource;

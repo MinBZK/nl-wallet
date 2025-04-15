@@ -4,7 +4,7 @@ use indexmap::IndexSet;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use crate::errors::Result;
 use crate::identifiers::AttributeIdentifier;
@@ -23,7 +23,7 @@ pub type ProposedAttributes = IndexMap<DocType, ProposedDocumentAttributes>;
 pub struct ProposedDocumentAttributes {
     pub issuer: BorrowingCertificate,
     pub attributes: IndexMap<NameSpace, Vec<Entry>>,
-    pub type_metadata: TypeMetadata,
+    pub type_metadata: NormalizedTypeMetadata,
 }
 
 /// This type is derived from an [`Mdoc`] and will be used to construct a [`Document`] for disclosure.
@@ -35,7 +35,7 @@ pub struct ProposedDocument<I> {
     pub issuer_signed: IssuerSigned,
     pub device_signed_challenge: Vec<u8>,
     pub issuer_certificate: BorrowingCertificate,
-    pub type_metadata: TypeMetadata,
+    pub type_metadata: NormalizedTypeMetadata,
 }
 
 impl<I> ProposedDocument<I> {
@@ -205,7 +205,7 @@ impl<I> ProposedDocument<I> {
 #[cfg(any(test, feature = "mock_example_constructors"))]
 mod examples {
     use crypto::mock_remote::MockRemoteEcdsaKey;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::holder::Mdoc;
 
@@ -228,7 +228,7 @@ mod examples {
                 device_signed_challenge: b"signing_challenge".to_vec(),
                 issuer_certificate,
                 // NOTE: This metadata does not match the attributes.
-                type_metadata: TypeMetadata::empty_example(),
+                type_metadata: NormalizedTypeMetadata::empty_example(),
             }
         }
     }

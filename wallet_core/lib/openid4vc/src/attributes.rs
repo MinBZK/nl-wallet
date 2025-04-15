@@ -8,7 +8,7 @@ use serde::Serialize;
 use mdoc::unsigned::Entry;
 use mdoc::DataElementValue;
 use mdoc::NameSpace;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -100,13 +100,13 @@ impl Attribute {
     /// Note in particular that attributes in a namespace whose names equals the attestation_type in the metadata
     /// are mapped to the root level of the output.
     pub fn from_mdoc_attributes(
-        type_metadata: &TypeMetadata,
+        type_metadata: &NormalizedTypeMetadata,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<IndexMap<String, Self>, AttributeError> {
         let mut result = IndexMap::new();
 
         // The claims list determines the final order of the converted attributes.
-        for claim in &type_metadata.as_ref().claims {
+        for claim in type_metadata.claims() {
             // First, confirm that the path is made up of key entries by converting to a `Vec<&str>`.
             let key_path = claim
                 .path
@@ -114,7 +114,7 @@ impl Attribute {
                 .filter_map(|path| path.try_key_path())
                 .collect::<VecDeque<_>>();
 
-            Self::traverse_attributes_by_claim(&type_metadata.as_ref().vct, key_path, &mut attributes, &mut result)?;
+            Self::traverse_attributes_by_claim(type_metadata.vct(), key_path, &mut attributes, &mut result)?;
         }
 
         if !attributes.is_empty() {
@@ -181,7 +181,7 @@ mod test {
 
     use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
@@ -190,22 +190,29 @@ mod test {
     fn test_traverse_groups() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [{
                 "path": ["birthdate"],
+                "display": [{"lang": "en", "label": "birthdate"}],
             }, {
                 "path": ["place_of_birth", "locality"],
+                "display": [{"lang": "en", "label": "birth city"}],
             }, {
                 "path": ["place_of_birth", "country", "name"],
+                "display": [{"lang": "en", "label": "birth country"}],
             }, {
                 "path": ["place_of_birth", "country", "area_code"],
+                "display": [{"lang": "en", "label": "birth area code"}],
             }, {
                 "path": ["a", "b", "c", "d", "e"],
+                "display": [{"lang": "en", "label": "a b c d e"}],
             }, {
                 "path": ["a", "b", "c1"],
+                "display": [{"lang": "en", "label": "a b c1"}],
             }],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([
             (
@@ -282,12 +289,16 @@ mod test {
     fn test_traverse_groups_for_dot_in_attribute_name() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [
-                { "path": ["nest.ed", "birth.date"] }
+                {
+                    "path": ["nest.ed", "birth.date"],
+                    "display": [{"lang": "en", "label": "nested birthday"}],
+                }
             ],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([(
             String::from("com.example.pid.nest.ed"),
@@ -310,13 +321,20 @@ mod test {
     fn test_traverse_groups_with_extra_entry_not_in_claim() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [
-                { "path": ["a", "a1"] },
-                { "path": ["a", "a2"] }
+                {
+                    "path": ["a", "a1"],
+                    "display": [{"lang": "en", "label": "a a1"}],
+                },
+                {
+                    "path": ["a", "a2"],
+                    "display": [{"lang": "en", "label": "a a1"}],
+                }
             ],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([(
             String::from("com.example.pid.a"),
@@ -348,14 +366,24 @@ mod test {
     fn test_traverse_groups_claim_ordering() {
         let metadata_json = json!({
             "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
             "claims": [
-                { "path": ["b", "b1"] },
-                { "path": ["b", "b3"] },
-                { "path": ["b", "b2"] }
+                {
+                    "path": ["b", "b1"],
+                    "display": [{"lang": "en", "label": "b b1"}],
+                },
+                {
+                    "path": ["b", "b3"],
+                    "display": [{"lang": "en", "label": "b b3"}],
+                },
+                {
+                    "path": ["b", "b2"],
+                    "display": [{"lang": "en", "label": "b b2"}],
+                }
             ],
             "schema": { "properties": {} }
         });
-        let type_metadata: TypeMetadata = serde_json::from_value(metadata_json).unwrap();
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
 
         let mdoc_attributes = IndexMap::from([(
             String::from("com.example.pid.b"),

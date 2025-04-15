@@ -13,6 +13,8 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
@@ -21,9 +23,7 @@ use mdoc::utils::reader_auth::ReaderRegistration;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::update_policy::VersionState;
-use wallet_common::urls;
+use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -576,7 +576,8 @@ mod tests {
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
@@ -619,7 +620,9 @@ mod tests {
         IndexMap::from([(
             "com.example.pid".to_string(),
             ProposedDocumentAttributes {
-                type_metadata: TypeMetadata::example_with_claim_names("com.example.pid", &metadata_props),
+                type_metadata: NormalizedTypeMetadata::from_single_example(
+                    UncheckedTypeMetadata::example_with_claim_names("com.example.pid", &metadata_props),
+                ),
                 attributes: IndexMap::from([(
                     "com.example.pid".to_string(),
                     attrs

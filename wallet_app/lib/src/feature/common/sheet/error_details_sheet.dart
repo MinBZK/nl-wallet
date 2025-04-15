@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/text/title_text.dart';
@@ -44,17 +45,17 @@ class ErrorDetailsSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         StringVersionText(
-          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
           alignHorizontal: false,
         ),
         const SizedBox(height: 4),
         OsVersionText(
-          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
           alignHorizontal: false,
         ),
         const SizedBox(height: 4),
         ConfigVersionText(
-          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+          prefixTextStyle: context.textTheme.bodyMedium?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
           alignHorizontal: false,
         ),
       ],

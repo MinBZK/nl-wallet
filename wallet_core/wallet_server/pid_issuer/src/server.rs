@@ -15,7 +15,7 @@ use openid4vc::server_state::WteTracker;
 use openid4vc_server::issuer::create_issuance_router;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
-use wallet_common::built_info::version_string;
+use utils::built_info::version_string;
 
 pub async fn serve<A, IS, W>(
     attr_service: A,

@@ -16,7 +16,7 @@ class SigningKeyBridge(context: Context) : KeyBridge(context), RustSigningBridge
         try {
             verifyDeviceUnlocked()
             if (!keyExists(keyAlias)) SigningKey.createKey(context, keyAlias)
-            return SigningKey(keyAlias).takeIf { it.isConsideredValid }!!
+            return SigningKey(keyAlias)
         } catch (ex: Exception) {
             if (ex is KeyStoreException) throw ex
             throw KeyStoreKeyError.CreateKeyError(ex).keyException

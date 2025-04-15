@@ -16,7 +16,7 @@ use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
-use wallet_common::built_info::version_string;
+use utils::built_info::version_string;
 
 use crate::settings::VerifierSettings;
 

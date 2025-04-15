@@ -6,7 +6,7 @@ use pid_issuer::wte_tracker::PostgresWteTracker;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Storage;
 use server_utils::store::postgres;
-use wallet_common::generator::mock::MockTimeGenerator;
+use utils::generator::mock::MockTimeGenerator;
 
 fn storage_settings() -> Storage {
     PidIssuerSettings::new("pid_issuer.toml", "pid_issuer")

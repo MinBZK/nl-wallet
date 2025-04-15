@@ -121,7 +121,7 @@ mod tests {
     use rand_core::OsRng;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::TimeGenerator;
 
     use crate::holder::Mdoc;
     use crate::server_keys::generate::mock::generate_issuer_mock;

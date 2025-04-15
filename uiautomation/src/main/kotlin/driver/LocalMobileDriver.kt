@@ -46,6 +46,7 @@ class LocalMobileDriver : WebDriverProvider {
         // Initialise the local WebDriver with desired capabilities defined above
         return when (testConfig.platformName) {
             "android" -> {
+                options.setCapability("appium:autoGrantPermissions", true)
                 AndroidDriver(AppiumServiceProvider.service?.url, options)
             }
             "ios" -> {

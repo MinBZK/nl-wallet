@@ -14,6 +14,9 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::issuer_auth::IssuerRegistration;
@@ -27,12 +30,9 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt_vc_metadata::TypeMetadataError;
+use update_policy_model::update_policy::VersionState;
+use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::update_policy::VersionState;
-use wallet_common::urls;
-use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -304,13 +304,11 @@ where
         info!("PID received successfully from issuer, returning preview documents");
         let attestations = attestation_previews
             .into_iter()
-            .flat_map(|(formats, unverified_metadata_chains)| formats.into_iter().zip(unverified_metadata_chains))
-            .map(|(preview, unverified_metadata_chain)| {
+            .flat_map(|(formats, metadata)| formats.into_iter().zip(metadata))
+            .map(|(preview, metadata)| {
                 let issuer_registration = preview.issuer_registration()?;
                 match preview {
                     CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
-                        let (metadata, _) = unverified_metadata_chain.into_metadata_and_source();
-
                         let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
                             metadata,
@@ -491,6 +489,7 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
@@ -499,8 +498,7 @@ mod tests {
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use wallet_common::http::TlsPinningConfig;
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::issuance;
     use crate::issuance::MockDigidSession;
@@ -727,10 +725,10 @@ mod tests {
 
         let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
         let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-        let unverified_metadata_chains = vec![metadata_documents
+        let (normalized_metadata, _) = metadata_documents
             .clone()
-            .into_unverified_metadata_chain(&unsigned_mdoc.doc_type)
-            .unwrap()];
+            .into_normalized(&unsigned_mdoc.doc_type)
+            .unwrap();
         let credential_formats = CredentialFormats::try_new(
             VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
@@ -745,7 +743,7 @@ mod tests {
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
-                vec![(credential_formats, unverified_metadata_chains)],
+                vec![(credential_formats, vec![normalized_metadata])],
             ))
         });
 

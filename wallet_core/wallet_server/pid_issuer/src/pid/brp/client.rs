@@ -3,10 +3,10 @@ use reqwest::Response;
 use serde::Serialize;
 use url::ParseError;
 
-use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::reqwest::is_problem_json_response;
-use wallet_common::urls::BaseUrl;
+use http_utils::error::HttpJsonErrorBody;
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::reqwest::is_problem_json_response;
+use http_utils::urls::BaseUrl;
 
 use crate::pid::brp::data::*;
 

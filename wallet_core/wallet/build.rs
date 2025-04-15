@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use serde::de::DeserializeOwned;
 
-use wallet_common::utils;
+use utils::path::prefix_local_path;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_configuration::EnvironmentSpecific;
@@ -80,7 +80,7 @@ fn android_x86_64_workaround() {
 }
 
 fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, fallback: &str) {
-    let file_path = utils::prefix_local_path(file.as_ref());
+    let file_path = prefix_local_path(file.as_ref());
     // If the config file doesn't exist, copy the fallback to the config file and use that
     if !file_path.exists() {
         #[cfg(windows)]
