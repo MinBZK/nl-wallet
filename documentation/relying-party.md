@@ -801,7 +801,7 @@ premises or within cloud environment(s) of the relying party (i.e., you).
 Let's walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
 [VV/OV SAD][4], our detailed illustration of a [disclosure session
-flow](diagrams/session_flow.md), and our [component interaction flow for
+flow](diagrams/session.md), and our [component interaction flow for
 disclosures](diagrams/disclosure.md)).
 
 Note the possible session states:
