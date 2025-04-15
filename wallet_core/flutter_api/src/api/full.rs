@@ -6,7 +6,7 @@ use url::Url;
 
 use flutter_api_macros::flutter_api_error;
 use wallet::errors::WalletInitError;
-use wallet::wallet_common::version_string;
+use wallet::utils::version_string;
 use wallet::DisclosureUriSource;
 use wallet::UnlockMethod;
 use wallet::Wallet;

@@ -49,7 +49,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           ScanQrButton(onPressed: () {}),
-          surfaceSize: const Size(240, 320),
+          surfaceSize: const Size(240, 424),
           textScaleSize: 4,
         );
         await screenMatchesGolden('scan_qr_button/light.4x_scaled');

@@ -4,9 +4,9 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use wallet_common::http_error::HttpJsonError;
-use wallet_common::http_error::HttpJsonErrorType;
-use wallet_common::urls::BaseUrl;
+use http_utils::error::HttpJsonError;
+use http_utils::error::HttpJsonErrorType;
+use http_utils::urls::BaseUrl;
 
 use crate::issuer::CredentialRequestError;
 use crate::issuer::IssuanceError;

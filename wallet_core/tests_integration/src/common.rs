@@ -13,6 +13,8 @@ use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use reqwest::Certificate;
+use rustls::crypto::ring;
+use rustls::crypto::CryptoProvider;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -28,9 +30,12 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::utils;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
+use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::reqwest::ReqwestTrustAnchor;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::mock::MockAttributesFetcher;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
@@ -51,6 +56,7 @@ use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
+use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
@@ -64,11 +70,6 @@ use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::reqwest::trusted_reqwest_client_builder;
-use wallet_common::reqwest::ReqwestTrustAnchor;
-use wallet_common::urls::BaseUrl;
-use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AppleEnvironment;
@@ -84,6 +85,7 @@ use crate::utils::remove_path;
 #[ctor]
 fn init() {
     init_logging();
+    CryptoProvider::install_default(ring::default_provider()).unwrap();
 }
 
 pub fn local_wp_base_url(port: u16) -> BaseUrl {
@@ -682,7 +684,7 @@ pub fn setup_digid_context() -> Box<dyn Any> {
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
                 grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: utils::random_string(32).into(),
+                    pre_authorized_code: crypto::utils::random_string(32).into(),
                 },
                 code_verifier: Some("my_code_verifier".to_string()),
                 client_id: Some("my_client_id".to_string()),

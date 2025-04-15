@@ -6,7 +6,7 @@ import '../../../feature/common/widget/attribute/ui_attribute_row.dart';
 import '../localized_text.dart';
 import 'attribute_value.dart';
 import 'converter/attribute_value_converter.dart';
-import 'converter/localized_string_converter.dart';
+import 'converter/localized_text_converter.dart';
 
 export '../../../util/extension/localized_text_extension.dart';
 export '../localized_text.dart';
@@ -37,7 +37,7 @@ sealed class Attribute extends Equatable {
 
 /// A [DataAttribute] represents an attribute that is available in the user's wallet.
 /// As such it will always contain a valid [AttributeValue].
-@JsonSerializable(converters: [AttributeValueConverter(), LocalizedStringConverter()])
+@JsonSerializable(converters: [AttributeValueConverter(), LocalizedTextConverter()])
 class DataAttribute extends Attribute {
   @override
   AttributeValue get value => super.value!;
@@ -56,7 +56,7 @@ class DataAttribute extends Attribute {
     required String label,
     required AttributeValue super.value,
     required this.sourceCardDocType,
-  }) : super(label: {'': label});
+  }) : super(label: {Locale('en'): label});
 
   factory DataAttribute.fromJson(Map<String, dynamic> json) => _$DataAttributeFromJson(json);
 
@@ -87,7 +87,7 @@ class UiAttribute extends Attribute {
     required this.icon,
     super.key = '',
     required String label,
-  }) : super(label: {'': label});
+  }) : super(label: {Locale('en'): label});
 
   @override
   String get key => throw UnsupportedError('UiAttributes should only be used to render data to the screen');
@@ -101,7 +101,7 @@ class UiAttribute extends Attribute {
 class MissingAttribute extends Attribute {
   const MissingAttribute({super.key = '', required super.label});
 
-  MissingAttribute.untranslated({required super.key, required String label}) : super(label: {'': label});
+  MissingAttribute.untranslated({required super.key, required String label}) : super(label: {Locale('en'): label});
 
   @override
   List<Object?> get props => [key, label];

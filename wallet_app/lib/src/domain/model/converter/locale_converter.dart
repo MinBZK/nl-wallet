@@ -8,9 +8,7 @@ class LocaleConverter extends JsonConverter<Locale, String> {
   const LocaleConverter();
 
   @override
-  Locale fromJson(String json) {
-    return LocaleExtension.tryParseLocale(json) ?? Locale(json);
-  }
+  Locale fromJson(String json) => LocaleExtension.parseLocale(json);
 
   @override
   String toJson(Locale object) => object.toLanguageTag();

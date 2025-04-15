@@ -6,12 +6,12 @@ use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
 
+use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use sd_jwt_vc_metadata::DisplayMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
-use sd_jwt_vc_metadata::TypeMetadata;
 use serde_with::skip_serializing_none;
-use wallet_common::urls::BaseUrl;
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
@@ -368,7 +368,7 @@ impl From<DisplayMetadata> for CredentialDisplay {
         };
 
         CredentialDisplay {
-            name: value.name.clone(),
+            name: value.name,
             locale: Some(value.lang),
             logo: logo.map(|logo| Logo {
                 uri: logo.uri,
@@ -382,20 +382,19 @@ impl From<DisplayMetadata> for CredentialDisplay {
     }
 }
 
-impl From<TypeMetadata> for CredentialMetadata {
-    fn from(metadata: TypeMetadata) -> Self {
+impl From<&NormalizedTypeMetadata> for CredentialMetadata {
+    fn from(metadata: &NormalizedTypeMetadata) -> Self {
         CredentialMetadata {
             format: CredentialFormat::MsoMdoc {
-                doctype: metadata.as_ref().vct.clone(),
+                doctype: metadata.vct().to_string(),
                 claims: HashMap::new(),
                 order: None,
             },
             display: Some(
                 metadata
-                    .into_inner()
-                    .display
-                    .into_iter()
-                    .map(|display| display.into())
+                    .display()
+                    .iter()
+                    .map(|display| display.clone().into())
                     .collect(),
             ),
             scope: None,

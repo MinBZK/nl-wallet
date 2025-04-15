@@ -11,25 +11,23 @@ workspace = true
 example_constructors = []
 
 [dependencies]
-derive_more = { workspace = true, features = ["as_ref", "from", "into_iterator"] }
+derive_more = { workspace = true, features = ["as_ref"] }
 http.workspace = true
 http-serde.workspace = true
 itertools.workspace = true
-jsonwebtoken.workspace = true
 jsonschema.workspace = true
-nutype.workspace = true
+nutype = { workspace = true, features = ["regex"] }
 regex.workspace = true
 serde = { workspace = true, features = ["serde_derive"] }
 serde_json.workspace = true
-serde_urlencoded.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 ssri.workspace = true
 thiserror.workspace = true
 
 crypto.path = "../crypto"
-wallet_common.path = "../wallet_common"
+http_utils.path = "../http_utils"
+utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
 rstest.workspace = true
-tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }

@@ -34,7 +34,7 @@ class WalletCoreMock implements WalletCoreApi {
         _wallet.containsAttributes(request.requestedAttributes.map((requestedAttribute) => requestedAttribute.key));
     if (containsAllRequestedAttributes) {
       final isLoginRequest =
-          request.requestedAttributes.length == 1 && request.requestedAttributes.first.key == 'mock.citizenshipNumber';
+          request.requestedAttributes.length == 1 && request.requestedAttributes.first.key == 'mock_citizenshipNumber';
       return _ongoingDisclosure = StartDisclosureResult.request(
         relyingParty: request.relyingParty,
         policy: request.policy,

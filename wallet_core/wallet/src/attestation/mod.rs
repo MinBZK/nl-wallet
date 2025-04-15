@@ -15,7 +15,7 @@ use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
-use sd_jwt_vc_metadata::SchemaOption;
+use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
@@ -34,17 +34,13 @@ pub enum AttestationError {
     #[error("error converting from mdoc attribute: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
-
-    #[error("type metadata schema not supported: {0:?}")]
-    #[category(pd)]
-    UnsupportedMetadataSchema(SchemaOption),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Attestation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
-    pub display_metadata: Vec<DisplayMetadata>,
+    pub display_metadata: VecNonEmpty<DisplayMetadata>,
     pub issuer: Organization,
     pub attributes: Vec<AttestationAttribute>,
 }

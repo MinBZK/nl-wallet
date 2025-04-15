@@ -2,6 +2,8 @@ use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
+use http_utils::error::HttpJsonErrorBody;
+use http_utils::urls::BaseUrl;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use openid4vc::return_url::ReturnUrlTemplate;
@@ -9,8 +11,6 @@ use openid4vc::server_state::SessionToken;
 use openid4vc_server::verifier::DisclosedAttributesParams;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
-use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_common::urls::BaseUrl;
 
 pub struct WalletServerClient {
     client: Client,

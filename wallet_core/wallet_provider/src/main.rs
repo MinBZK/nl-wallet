@@ -1,17 +1,21 @@
 use std::error::Error;
 
 use cfg_if::cfg_if;
+use rustls::crypto::ring;
+use rustls::crypto::CryptoProvider;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
 
 use android_attest::android_crl::GoogleRevocationListClient;
 use hsm::service::Pkcs11Hsm;
-use wallet_common::reqwest::default_reqwest_client_builder;
+use http_utils::reqwest::default_reqwest_client_builder;
 use wallet_provider::server;
 use wallet_provider::settings::Settings;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    CryptoProvider::install_default(ring::default_provider()).unwrap();
+
     let builder = tracing_subscriber::fmt().with_env_filter(
         EnvFilter::builder()
             .with_default_directive(LevelFilter::INFO.into())
@@ -43,9 +47,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         } else {
             use android_attest::play_integrity::client::PlayIntegrityClient;
             use android_attest::play_integrity::client::ServiceAccountAuthenticator;
-            use wallet_common::utils;
+            use utils::path::prefix_local_path;
 
-            let credentials_file_path = utils::prefix_local_path(&settings.android.credentials_file);
+            let credentials_file_path = prefix_local_path(&settings.android.credentials_file);
             let play_integrity_client = PlayIntegrityClient::new(
                 reqwest_client,
                 ServiceAccountAuthenticator::new(credentials_file_path.as_ref()).await?,

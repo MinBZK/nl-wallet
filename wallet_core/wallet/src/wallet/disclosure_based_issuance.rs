@@ -4,6 +4,7 @@ use tracing::instrument;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
@@ -12,9 +13,8 @@ use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::PostAuthResponseErrorCode;
 use platform_support::attested_key::AttestedKeyHolder;
+use update_policy_model::update_policy::VersionState;
 use wallet_account::NL_WALLET_CLIENT_ID;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
@@ -138,7 +138,7 @@ mod tests {
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::DisclosureErrorResponse;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use wallet_common::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::disclosure::MdocDisclosureError;
     use crate::disclosure::MdocDisclosureSessionState;
@@ -188,10 +188,13 @@ mod tests {
         // Setup wallet issuance state
         let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
         let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-        let unverified_metadata_chains = vec![metadata_documents
-            .clone()
-            .into_unverified_metadata_chain(&unsigned_mdoc.doc_type)
-            .unwrap()];
+        let normalized_type_metadata = vec![
+            metadata_documents
+                .clone()
+                .into_normalized(&unsigned_mdoc.doc_type)
+                .unwrap()
+                .0,
+        ];
         let credential_formats = CredentialFormats::try_new(
             VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
                 unsigned_mdoc,
@@ -205,7 +208,7 @@ mod tests {
         start_context.expect().return_once(|| {
             Ok((
                 MockIssuanceSession::new(),
-                vec![(credential_formats, unverified_metadata_chains)],
+                vec![(credential_formats, normalized_type_metadata)],
             ))
         });
 

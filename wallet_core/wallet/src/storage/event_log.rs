@@ -13,7 +13,7 @@ use mdoc::holder::Mdoc;
 use mdoc::holder::ProposedAttributes;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::reader_auth::ReaderRegistration;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
 use crate::attestation::AttestationIdentity;
@@ -223,7 +223,9 @@ mod test {
     use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::DataElementValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::issuance;
 
@@ -248,7 +250,7 @@ mod test {
             ProposedDocumentAttributes {
                 attributes: unsigned_mdoc.attributes.into_inner(),
                 issuer: ISSUER_CERTIFICATE.clone(),
-                type_metadata,
+                type_metadata: NormalizedTypeMetadata::from_single_example(type_metadata.into_inner()),
             },
         )]);
 
@@ -270,12 +272,13 @@ mod test {
                 attestation_types.len(),
             ))
             .map(|(attestation_type, issuer_org)| {
-                let metadata = TypeMetadata::example_with_claim_name(
-                    attestation_type,
-                    "bsn",
-                    JsonSchemaPropertyType::String,
-                    None,
-                );
+                let metadata =
+                    NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
+                        attestation_type,
+                        "bsn",
+                        JsonSchemaPropertyType::String,
+                        None,
+                    ));
                 let attributes = IndexMap::from([(
                     attestation_type.to_string(),
                     vec![Entry {

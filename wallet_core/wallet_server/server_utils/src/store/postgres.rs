@@ -28,8 +28,8 @@ use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreError;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
-use wallet_common::generator::Generator;
-use wallet_common::generator::TimeGenerator;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 
 use crate::entity::session_state;
 

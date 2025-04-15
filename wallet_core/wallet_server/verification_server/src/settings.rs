@@ -19,6 +19,9 @@ use serde_with::serde_as;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
+use http_utils::urls::BaseUrl;
+use http_utils::urls::CorsOrigin;
+use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use mdoc::utils::x509::CertificateType;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::SessionTypeReturnUrl;
@@ -32,11 +35,8 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
-use wallet_common::generator::TimeGenerator;
-use wallet_common::urls::BaseUrl;
-use wallet_common::urls::CorsOrigin;
-use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use wallet_common::utils;
+use utils::generator::TimeGenerator;
+use utils::path::prefix_local_path;
 
 const MIN_KEY_LENGTH_BYTES: usize = 16;
 
@@ -152,7 +152,7 @@ impl ServerSettings for VerifierSettings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = utils::prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(config_file.as_ref());
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")

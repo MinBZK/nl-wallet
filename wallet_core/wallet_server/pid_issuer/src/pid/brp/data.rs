@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::pid::constants::*;
 
@@ -279,12 +279,12 @@ mod tests {
 
     use serde_json::json;
 
-    use wallet_common::utils;
+    use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
 
     fn read_json(name: &str) -> String {
-        fs::read_to_string(utils::prefix_local_path(
+        fs::read_to_string(prefix_local_path(
             format!("resources/test/haal-centraal-examples/{}.json", name).as_ref(),
         ))
         .unwrap()

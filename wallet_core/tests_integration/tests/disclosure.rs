@@ -5,6 +5,8 @@ use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
+use http_utils::error::HttpJsonErrorBody;
+use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
@@ -23,8 +25,6 @@ use tests_integration::common::*;
 use wallet::errors::DisclosureError;
 use wallet::mock::MockDigidSession;
 use wallet::DisclosureUriSource;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::http_error::HttpJsonErrorBody;
 
 async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> StatusResponse {
     let response = client.get(status_url).send().await.unwrap();

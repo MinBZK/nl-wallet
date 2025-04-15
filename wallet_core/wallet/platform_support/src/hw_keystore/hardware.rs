@@ -13,7 +13,7 @@ use crypto::keys::EncryptionKey;
 use crypto::keys::SecureEcdsaKey;
 use crypto::keys::SecureEncryptionKey;
 use crypto::keys::WithIdentifier;
-use wallet_common::spawn;
+use utils::spawn;
 
 use crate::bridge::hw_keystore::get_encryption_key_bridge;
 use crate::bridge::hw_keystore::get_signing_key_bridge;

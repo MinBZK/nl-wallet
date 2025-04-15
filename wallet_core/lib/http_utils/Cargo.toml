@@ -1,0 +1,44 @@
+[package]
+name = "http_utils"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false
+
+[features]
+# Allow the disclosure return URL and its prefix to use http://
+allow_insecure_url = []
+# Include implementations for http clients
+client = ["dep:reqwest"]
+# Implement the HttpConfig type for insecurely fetching configurations.
+insecure_http_client = ["client"]
+# Include implementations of the axum IntoResponse trait.
+server = ["dep:axum", "dep:axum-server", "dep:tower-http"]
+
+[dependencies]
+cfg-if.workspace = true
+derive_more = { workspace = true, features = ["as_ref", "debug"] }
+http.workspace = true
+mime.workspace = true
+nutype = { workspace = true, features = ["serde"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+serde_with = { workspace = true, features = ["base64"] }
+strum = { workspace = true, features = ["derive"] }
+thiserror.workspace = true
+trait-variant.workspace = true
+url = { workspace = true, features = ["serde"] }
+
+axum = { workspace = true, optional = true, features = ["json"] }
+axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
+reqwest = { workspace = true, optional = true, features = ["rustls-tls-no-provider"] }
+tower-http = { workspace = true, optional = true, features = ["cors"] }
+
+[dev-dependencies]
+rstest.workspace = true
+tokio = { workspace = true, features = ["macros", "rt"] }

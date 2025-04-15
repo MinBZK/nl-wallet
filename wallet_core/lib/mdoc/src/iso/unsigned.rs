@@ -5,7 +5,7 @@ use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 
-use wallet_common::urls::HttpsUri;
+use http_utils::urls::HttpsUri;
 
 use crate::utils::serialization::TaggedBytes;
 use crate::Attributes;

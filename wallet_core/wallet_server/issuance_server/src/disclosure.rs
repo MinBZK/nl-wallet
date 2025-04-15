@@ -4,6 +4,8 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use serde::Serialize;
 
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
@@ -22,9 +24,7 @@ use openid4vc::token::TokenRequest;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::PostAuthResponseError;
-use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::urls::BaseUrl;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 pub struct DisclosureBasedAttributeService<IS> {
     issuance_sessions: Arc<IS>,

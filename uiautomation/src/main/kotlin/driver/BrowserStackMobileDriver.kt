@@ -20,6 +20,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
 
         // Specify device and OS version for testing
         val caps = DesiredCapabilities()
+        caps.setCapability("appium:newCommandTimeout", 120)
         caps.setCapability("appium:automationName", "Flutter")
         caps.setCapability("platformName", testConfig.platformName)
         caps.setCapability("appium:platformVersion", testConfig.platformVersion)
@@ -28,6 +29,7 @@ class BrowserStackMobileDriver : WebDriverProvider {
         caps.setCapability("appium:locale", TestInfoHandler.locale)
         caps.setCapability("appium:retryBackoffTime", APPIUM_RETRY_BACKOFF_TIME_MILLIS)
         caps.setCapability("appium:disableSuppressAccessibilityService", APPIUM_DISABLE_SUPPRESS_ACCESSIBILITY_SERVICE)
+        caps.setCapability("appium:autoGrantPermissions", true)
 
         // Set other BrowserStack capabilities
         val browserstackOptions = HashMap<String, Any>()

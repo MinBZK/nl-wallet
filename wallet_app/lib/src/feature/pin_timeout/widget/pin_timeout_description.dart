@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 
 class PinTimeoutDescription extends StatefulWidget {
@@ -50,7 +51,7 @@ class _PinTimeoutDescriptionState extends State<PinTimeoutDescription> with Sing
         children: [
           TextSpan(
             text: timeLeft,
-            style: context.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
+            style: context.textTheme.bodyLarge?.copyWith(fontVariations: [BaseWalletTheme.fontVariationBold]),
           ),
           TextSpan(text: regularTextParts.last),
         ],

@@ -8,8 +8,8 @@ import '../common/dialog/reset_wallet_dialog.dart';
 import '../common/page/page_illustration.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/wallet_scrollbar.dart';
 

@@ -7,6 +7,8 @@ use axum::Router;
 use serial_test::serial;
 use url::Url;
 
+use http_utils::urls::disclosure_based_issuance_base_uri;
+use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuance_server::disclosure::mock::MockAttributesFetcher;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
@@ -18,12 +20,10 @@ use openid4vc::verifier::VerifierUrlParameters;
 use tests_integration::common::*;
 use wallet::openid4vc::AttributeValue;
 use wallet::openid4vc::SessionType;
+use wallet::utils::BaseUrl;
 use wallet::Attestation;
 use wallet::AttestationAttributeValue;
 use wallet::DisclosureUriSource;
-use wallet_common::urls::disclosure_based_issuance_base_uri;
-use wallet_common::urls::BaseUrl;
-use wallet_common::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 
 #[tokio::test]
 #[serial(hsm)]

@@ -8,12 +8,6 @@
       "name": "NL Wallet Personal Data",
       "description": "The Personal Data credential for the NL Wallet",
       "summary": "Example PID credential"
-    },
-    {
-      "lang": "nl-NL",
-      "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet",
-      "summary": "Example PID credential"
     }
   ],
   "claims": [
@@ -26,7 +20,7 @@
           "description": "Birth date of the person"
         }
       ],
-      "sd": "always"
+      "svg_id": "identifier"
     },
     {
       "path": ["place_of_birth", "locality"],
@@ -36,7 +30,7 @@
           "label": "Locality"
         }
       ],
-      "sd": "always"
+      "sd": "allowed"
     },
     {
       "path": ["place_of_birth", "country", "name"],
@@ -46,7 +40,7 @@
           "label": "Country"
         }
       ],
-      "sd": "always"
+      "sd": "allowed"
     },
     {
       "path": ["place_of_birth", "country", "area_code"],
@@ -56,7 +50,7 @@
           "label": "Country area code"
         }
       ],
-      "sd": "always"
+      "sd": "allowed"
     },
     {
       "path": ["financial", "has_debt"],
@@ -66,7 +60,7 @@
           "label": "Has debt"
         }
       ],
-      "sd": "always"
+      "sd": "allowed"
     },
     {
       "path": ["financial", "has_job"],
@@ -76,7 +70,7 @@
           "label": "Has job"
         }
       ],
-      "sd": "always"
+      "sd": "allowed"
     },
     {
       "path": ["financial", "debt_amount"],
@@ -86,7 +80,7 @@
           "label": "Debt amount"
         }
       ],
-      "sd": "always"
+      "sd": "allowed"
     }
   ],
   "schema": {
@@ -96,8 +90,7 @@
     "type": "object",
     "properties": {
       "birth_date": {
-        "type": "string",
-        "format": "date"
+        "type": "string"
       },
       "place_of_birth": {
         "type": "object",
@@ -149,6 +142,9 @@
       },
       "nbf": {
         "type": "number"
+      },
+      "cnf": {
+        "type": "object"
       },
       "attestation_qualification": {
         "type": "string"

@@ -6,8 +6,8 @@ use url::Url;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::urls;
 use platform_support::attested_key::AttestedKeyHolder;
-use wallet_common::urls;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::config::UNIVERSAL_LINK_BASE_URL;

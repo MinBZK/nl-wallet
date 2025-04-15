@@ -32,7 +32,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
-use wallet_common::generator::Generator;
+use utils::generator::Generator;
 
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
@@ -492,7 +492,7 @@ mod tests {
 
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateUsage;
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::TimeGenerator;
 
     use crate::utils::cose;
     use crate::utils::cose::CoseError;

@@ -317,7 +317,6 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use crypto::utils;
     use jwt::Jwt;
     use wallet_account::messages::registration::WalletCertificateClaims;
 
@@ -338,15 +337,15 @@ mod test {
         let certificate_public_key = *certificate_signing_key.verifying_key();
         let hw_pubkey = *hw_privkey.verifying_key();
 
-        let attested_key_identifier = utils::random_string(16);
-        let pin_salt = utils::random_bytes(32);
-        let wallet_id = utils::random_string(32);
+        let attested_key_identifier = crypto::utils::random_string(16);
+        let pin_salt = crypto::utils::random_bytes(32);
+        let wallet_id = crypto::utils::random_string(32);
 
         let certificate_claims = WalletCertificateClaims {
             wallet_id: wallet_id.clone(),
             hw_pubkey: hw_pubkey.into(),
             // The hash does not need to be value for testing.
-            pin_pubkey_hash: utils::random_bytes(32),
+            pin_pubkey_hash: crypto::utils::random_bytes(32),
             version: 0,
             iss: "pin_change_unit_test".to_string(),
             iat: jsonwebtoken::get_current_timestamp(),

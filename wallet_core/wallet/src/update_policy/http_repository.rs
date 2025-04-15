@@ -8,10 +8,10 @@ use semver::Version;
 use serde::de::DeserializeOwned;
 use tracing::info;
 
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::http::TlsPinningConfigHash;
-use wallet_common::update_policy::UpdatePolicyResponse;
-use wallet_common::update_policy::VersionState;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::tls::pinning::TlsPinningConfigHash;
+use update_policy_model::update_policy::UpdatePolicyResponse;
+use update_policy_model::update_policy::VersionState;
 
 use crate::repository::HttpClient;
 use crate::repository::HttpResponse;

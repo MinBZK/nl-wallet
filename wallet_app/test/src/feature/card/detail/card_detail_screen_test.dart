@@ -160,11 +160,11 @@ void main() {
           WalletCardDetail(
             card: WalletCard(
               docType: 'com.example.docType',
-              front: WalletMockData.cardFront,
               issuer: WalletMockData.organization,
               attributes: const [],
               id: 'id',
               config: const CardConfig(updatable: true),
+              metadata: WalletMockData.simpleRenderingCard.metadata,
             ),
             mostRecentIssuance: WalletMockData.issuanceEvent,
             mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
@@ -189,7 +189,6 @@ void main() {
           WalletCardDetail(
             card: WalletCard(
               docType: 'com.example.docType',
-              front: WalletMockData.cardFront,
               issuer: WalletMockData.organization,
               attributes: const [],
               id: 'id',

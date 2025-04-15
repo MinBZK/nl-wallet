@@ -10,7 +10,7 @@ use error_category::ErrorCategory;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::VersionState;
 
 use crate::repository::Repository;
 use crate::storage::Storage;

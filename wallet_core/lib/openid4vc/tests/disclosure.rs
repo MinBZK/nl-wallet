@@ -29,6 +29,7 @@ use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::mock_remote::MockRemoteKeyFactoryError;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
+use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::examples::example_items_requests;
 use mdoc::examples::IsoCertTimeGenerator;
@@ -81,9 +82,8 @@ use openid4vc::VpAuthorizationErrorCode;
 use poa::factory::PoaFactory;
 use poa::Poa;
 use poa::PoaError;
-use wallet_common::generator::TimeGenerator;
-use wallet_common::urls::BaseUrl;
-use wallet_common::vec_at_least::VecAtLeastTwoUnique;
+use utils::generator::TimeGenerator;
+use utils::vec_at_least::VecAtLeastTwoUnique;
 
 #[tokio::test]
 async fn disclosure_direct() {

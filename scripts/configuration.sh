@@ -10,7 +10,7 @@ VERIFICATION_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/verification_server"
 WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 MOCK_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/mock_relying_party"
 CS_DIR="${WALLET_CORE_DIR}/configuration_server"
-UPS_DIR="${WALLET_CORE_DIR}/update_policy_server"
+UPS_DIR="${WALLET_CORE_DIR}/update_policy/server"
 GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
 DEVENV="${SCRIPTS_DIR}/devenv"

@@ -6,7 +6,7 @@ use uuid::Uuid;
 use apple_app_attest::AssertionCounter;
 use crypto::utils::random_string;
 use hsm::model::encrypted::Encrypted;
-use wallet_common::generator::Generator;
+use utils::generator::Generator;
 use wallet_provider_domain::model::wallet_user::WalletUserAttestation;
 use wallet_provider_domain::model::wallet_user::WalletUserQueryResult;
 use wallet_provider_domain::repository::Committable;

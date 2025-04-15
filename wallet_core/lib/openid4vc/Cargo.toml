@@ -21,7 +21,7 @@ required-features = ["integration"]
 # Include implementations of the axum IntoResponse trait.
 axum = ["dep:axum"]
 # Allow the disclosure return URL and its prefix to use http://
-allow_insecure_url = ["wallet_common/allow_insecure_url"]
+allow_insecure_url = ["http_utils/allow_insecure_url"]
 # Include mock implementations for testing
 mock = ["dep:mockall", "poa/mock"]
 # Include miscellaneous test utilities
@@ -82,11 +82,13 @@ parking_lot = { workspace = true, optional = true }
 
 crypto.path = "../crypto"
 error_category.path = "../error_category"
+http_utils = { path = "../http_utils", features = ["client"] }
 jwt.path = "../jwt"
 mdoc.path = "../mdoc"
 poa.path = "../poa"
+sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
-wallet_common.path = "../wallet_common"
+utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
@@ -99,8 +101,10 @@ tracing-test.workspace = true
 wiremock.workspace = true
 
 crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
+http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
 mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
 poa = { path = "../poa", features = ["mock"] }
+sd_jwt = { path = "../sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../wallet_common", features = ["mock_time", "insecure_http_client"] }
+utils = { path = "../utils", features = ["mock_time"] }

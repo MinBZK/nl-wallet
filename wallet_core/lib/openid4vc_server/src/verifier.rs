@@ -24,6 +24,10 @@ use tracing::info;
 use tracing::warn;
 
 use crypto::keys::EcdsaKeySend;
+use http_utils::error::HttpJsonError;
+use http_utils::urls;
+use http_utils::urls::BaseUrl;
+use http_utils::urls::CorsOrigin;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
@@ -44,11 +48,7 @@ use openid4vc::DisclosureErrorResponse;
 use openid4vc::GetRequestErrorCode;
 use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
-use wallet_common::generator::TimeGenerator;
-use wallet_common::http_error::HttpJsonError;
-use wallet_common::urls;
-use wallet_common::urls::BaseUrl;
-use wallet_common::urls::CorsOrigin;
+use utils::generator::TimeGenerator;
 
 struct ApplicationState<S, K, H> {
     verifier: Verifier<S, K, H>,

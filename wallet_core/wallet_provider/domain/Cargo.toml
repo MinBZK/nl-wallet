@@ -28,5 +28,5 @@ rand = { workspace = true, optional = true }
 
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
-wallet_common.path = "../../lib/wallet_common"
+utils.path = "../../lib/utils"
 hsm.path = "../../lib/hsm"

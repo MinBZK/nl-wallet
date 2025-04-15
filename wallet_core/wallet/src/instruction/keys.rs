@@ -21,11 +21,11 @@ use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use poa::factory::PoaFactory;
 use poa::Poa;
+use utils::vec_at_least::VecAtLeastTwoUnique;
 use wallet_account::messages::instructions::ConstructPoa;
 use wallet_account::messages::instructions::GenerateKey;
 use wallet_account::messages::instructions::GenerateKeyResult;
 use wallet_account::messages::instructions::Sign;
-use wallet_common::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::account_provider::AccountProviderClient;
 use crate::storage::Storage;
