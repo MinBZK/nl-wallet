@@ -205,7 +205,7 @@ platform :android do
     application_id = options[:application_id]
     commit_sha = options[:commit_sha]
 
-    upload_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid_#{app_id}_#{commit_sha}")
+    upload_to_browserstack(file: file, user: user, key: key, custom_id: "NLWalletAndroid_#{application_id}_#{commit_sha}")
   end
 end
 
