@@ -3928,6 +3928,7 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "sd_jwt_vc_metadata",
  "serde",
  "serde_bytes",

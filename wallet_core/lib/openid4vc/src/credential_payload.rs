@@ -2,6 +2,8 @@ use chrono::DateTime;
 use chrono::ParseError;
 use chrono::Utc;
 use indexmap::IndexMap;
+use p256::ecdsa::VerifyingKey;
+use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
@@ -9,11 +11,16 @@ use serde_with::TimestampSeconds;
 
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
+use jwt::error::JwkConversionError;
+use jwt::jwk::jwk_from_p256;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
+use mdoc::utils::crypto::CryptoError;
 use mdoc::AttestationQualification;
 use mdoc::NameSpace;
+use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
+use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
 
@@ -49,6 +56,18 @@ pub enum CredentialPayloadError {
     #[error("attribute error: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
+
+    #[error("error converting from SD-JWT: {0}")]
+    #[category(pd)]
+    SdJwt(#[from] sd_jwt::error::Error),
+
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    #[category(pd)]
+    JwkConversion(#[from] JwkConversionError),
+
+    #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
+    #[category(pd)]
+    CoseKeyConversion(#[from] CryptoError),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
@@ -57,8 +76,7 @@ pub enum CredentialPayloadError {
 /// Converting both an (unsigned) mdoc and SD-JWT document to this struct should yield the same result.
 #[serde_as]
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize)]
-#[cfg_attr(test, derive(serde::Deserialize))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPayload {
     #[serde(rename = "vct")]
     pub attestation_type: String,
@@ -80,6 +98,11 @@ pub struct CredentialPayload {
 
     pub attestation_qualification: AttestationQualification,
 
+    /// Contains the attestation's public key, of which the corresponding private key is used by the wallet during
+    /// disclosure to sign the RP's nonce into a PoP
+    #[serde(rename = "cnf")]
+    pub confirmation_key: Option<RequiredKeyBinding>,
+
     #[serde(flatten)]
     pub attributes: IndexMap<String, Attribute>,
 }
@@ -92,6 +115,16 @@ struct CredentialPayloadTimestamps {
 }
 
 impl CredentialPayload {
+    pub fn from_sd_jwt(sd_jwt: SdJwt, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
+        let json = sd_jwt.into_disclosed_object()?;
+        let payload: CredentialPayload =
+            serde_json::from_value(serde_json::Value::Object(json)).map_err(sd_jwt::error::Error::Serialization)?;
+
+        payload.validate(metadata)?;
+
+        Ok(payload)
+    }
+
     pub fn from_unsigned_mdoc(
         unsigned_mdoc: UnsignedMdoc,
         metadata: &NormalizedTypeMetadata,
@@ -99,6 +132,7 @@ impl CredentialPayload {
         Self::from_mdoc_attributes(
             unsigned_mdoc.doc_type,
             metadata,
+            None,
             unsigned_mdoc.attributes.into(),
             unsigned_mdoc.issuer_uri,
             CredentialPayloadTimestamps {
@@ -114,6 +148,7 @@ impl CredentialPayload {
         Self::from_mdoc_attributes(
             mdoc.mso.doc_type,
             metadata,
+            Some(&(&mdoc.mso.device_key_info.device_key).try_into()?),
             mdoc.issuer_signed.into_entries_by_namespace(),
             mdoc.mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
             CredentialPayloadTimestamps {
@@ -127,14 +162,20 @@ impl CredentialPayload {
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn from_mdoc_attributes(
         attestation_type: String,
         metadata: &NormalizedTypeMetadata,
+        holder_pub_key: Option<&VerifyingKey>,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
         issuer: HttpsUri,
         timestamps: CredentialPayloadTimestamps,
         attestation_qualification: AttestationQualification,
     ) -> Result<Self, CredentialPayloadError> {
+        let confirmation_key = holder_pub_key
+            .map(|verifying_key| jwk_from_p256(verifying_key).map(RequiredKeyBinding::Jwk))
+            .transpose()?;
+
         let attributes = Attribute::from_mdoc_attributes(metadata, mdoc_attributes)?;
 
         let payload = Self {
@@ -144,6 +185,7 @@ impl CredentialPayload {
             expires: Some(timestamps.expires),
             not_before: Some(timestamps.not_before),
             attestation_qualification,
+            confirmation_key,
             attributes,
         };
 
@@ -160,13 +202,22 @@ impl CredentialPayload {
 
 #[cfg(test)]
 mod test {
+    use std::error::Error;
+
     use chrono::TimeZone;
     use chrono::Utc;
     use indexmap::IndexMap;
+    use jsonwebtoken::Algorithm;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
+    use jwt::jwk::jwk_from_p256;
+    use sd_jwt::builder::SdJwtBuilder;
+    use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
@@ -174,6 +225,8 @@ mod test {
 
     #[test]
     fn test_serialize_deserialize_and_validate() {
+        let confirmation_key = jwk_from_p256(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
+
         let payload = CredentialPayload {
             attestation_type: String::from("com.example.pid"),
             issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
@@ -181,6 +234,7 @@ mod test {
             expires: None,
             not_before: None,
             attestation_qualification: "QEAA".parse().unwrap(),
+            confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()).into(),
             attributes: IndexMap::from([
                 (
                     String::from("birth_date"),
@@ -227,6 +281,9 @@ mod test {
             "iss": "https://com.example.org/pid/issuer",
             "iat": 61,
             "attestation_qualification": "QEAA",
+            "cnf": {
+                "jwk": confirmation_key
+            },
             "birth_date": "1963-08-12",
             "place_of_birth": {
                 "locality": "The Hague",
@@ -252,5 +309,52 @@ mod test {
         let metadata = NormalizedTypeMetadata::example();
 
         payload.validate(&metadata).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_from_sd_jwt() -> Result<(), Box<dyn Error>> {
+        let holder_key = SigningKey::random(&mut OsRng);
+        let confirmation_key = jwk_from_p256(holder_key.verifying_key())?;
+
+        let issuer_key = SigningKey::random(&mut OsRng);
+
+        let claims = json!({
+            "vct": "com.example.pid",
+            "iss": "https://com.example.org/pid/issuer",
+            "iat": 61,
+            "attestation_qualification": "QEAA",
+            "cnf": {
+                "jwk": confirmation_key
+            },
+            "birth_date": "1963-08-12",
+            "place_of_birth": {
+                "locality": "The Hague",
+                "country": {
+                    "name": "The Netherlands",
+                    "area_code": 33
+                }
+            }
+        });
+
+        let sd_jwt = SdJwtBuilder::new(claims)?
+            .make_concealable("/birth_date")?
+            .make_concealable("/place_of_birth/locality")?
+            .make_concealable("/place_of_birth/country/name")?
+            .make_concealable("/place_of_birth/country/area_code")?
+            .add_decoys("/place_of_birth", 1)?
+            .add_decoys("", 2)?
+            .finish(Algorithm::ES256, &issuer_key, holder_key.verifying_key())
+            .await?;
+
+        let metadata =
+            NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::credential_payload_sd_jwt_metadata());
+        let payload = CredentialPayload::from_sd_jwt(sd_jwt.clone(), &metadata).unwrap();
+
+        assert_eq!(
+            payload.attestation_type,
+            sd_jwt.claims().properties.get("vct").and_then(|c| c.as_str()).unwrap()
+        );
+
+        Ok(())
     }
 }

@@ -903,7 +903,7 @@ impl CredentialResponse {
 }
 
 impl IssuanceState {
-    async fn auth_headers(&self, url: Url, method: reqwest::Method) -> Result<(String, String), IssuanceSessionError> {
+    async fn auth_headers(&self, url: Url, method: Method) -> Result<(String, String), IssuanceSessionError> {
         let dpop_header = Dpop::new(
             &self.dpop_private_key,
             url,

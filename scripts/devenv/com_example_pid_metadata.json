@@ -139,6 +139,9 @@
       "exp": {
         "type": "number"
       },
+      "cnf": {
+        "type": "object"
+      },
       "attestation_qualification": {
         "type": "string"
       }

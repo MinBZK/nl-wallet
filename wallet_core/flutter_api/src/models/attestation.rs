@@ -154,6 +154,7 @@ impl From<wallet::openid4vc::AttributeValue> for AttributeValue {
             wallet::openid4vc::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
             wallet::openid4vc::AttributeValue::Integer(value) => AttributeValue::Number { value },
             wallet::openid4vc::AttributeValue::Text(value) => AttributeValue::String { value },
+            wallet::openid4vc::AttributeValue::Array(_) => todo!("implement in PVW-4001"),
         }
     }
 }
