@@ -4213,6 +4213,7 @@ dependencies = [
  "chrono",
  "config",
  "crypto",
+ "derive_more",
  "futures",
  "hsm",
  "http_utils",

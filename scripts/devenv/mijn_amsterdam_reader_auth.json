@@ -45,8 +45,8 @@
   },
   "requestOriginBaseUrl": "https://www.amsterdam.nl",
   "attributes": {
-    "com.example.pid": {
-      "com.example.pid": {
+    "urn:eudi:pid:nl:1": {
+      "urn:eudi:pid:nl:1": {
         "bsn": {}
       }
     }

@@ -1,11 +1,10 @@
 ---
 source: tests_integration/tests/gba_pid_test.rs
-assertion_line: 194
 description: "BSN: 999991000"
 expression: attributes
 ---
 {
-  "com.example.pid": {
+  "urn:eudi:pid:nl:1": {
     [
       "family_name",
     ]: Basic("voor in \'t Coetzee"),
@@ -13,7 +12,7 @@ expression: attributes
       "given_name",
     ]: Basic("Liselotte-Anne Daniëlle Celèste Elise 26 Avril Stéphane Maroni jr. Isiah dé Maria de las Mercedes Rosalía J\'adore Grace a Dieu Rhiannon San-che-he-ray Lou\'Lou Elona L\'vovna d\'Alessandra Ariëlle"),
     [
-      "birth_date",
+      "birthdate",
     ]: Date("1990-07-07"),
     [
       "age_over_18",
@@ -22,21 +21,26 @@ expression: attributes
       "bsn",
     ]: Basic("999991000"),
   },
-  "com.example.address": {
+  "urn:eudi:pid-address:nl:1": {
     [
-      "resident_street",
+      "address",
+      "street_address",
     ]: Basic("Arlandaweg"),
     [
-      "resident_house_number",
+      "address",
+      "house_number",
     ]: Basic("14"),
     [
-      "resident_postal_code",
+      "address",
+      "postal_code",
     ]: Basic("1043EW"),
     [
-      "resident_city",
+      "address",
+      "locality",
     ]: Basic("Amsterdam"),
     [
-      "resident_country",
+      "address",
+      "country",
     ]: Basic("Nederland"),
   },
 }

@@ -41,6 +41,7 @@ mod test {
     use crate::attestation::AttestationError;
     use crate::issuance::mock::create_bsn_only_unsigned_mdoc;
     use crate::issuance::mock::create_example_unsigned_mdoc;
+    use crate::issuance::PID_DOCTYPE;
     use crate::Attestation;
     use crate::AttestationIdentity;
 
@@ -145,7 +146,7 @@ mod test {
             error,
             AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims))
                 if claims == IndexMap::from([
-                    (String::from("com.example.pid"),
+                    (String::from(PID_DOCTYPE),
                     vec![Entry {
                         name: String::from("birth_date"),
                         value: ciborium::value::Value::Text("1997-05-10".to_string())
