@@ -45,16 +45,16 @@ spec:
               subPath: pid_issuer.toml
             - name: pid-issuer-metadata
               mountPath: /eudi:pid:1.json
-              subPath: eudi:pid:1.json
+              subPath: eudi_pid_1.json
             - name: pid-issuer-metadata
               mountPath: /eudi:pid:nl:1.json
-              subPath: eudi:pid:nl:1.json
+              subPath: eudi_pid_nl_1.json
             - name: pid-issuer-metadata
               mountPath: /eudi:pid-address:1.json
-              subPath: eudi:pid-address:1.json
+              subPath: eudi_pid-address_1.json
             - name: pid-issuer-metadata
               mountPath: /eudi:pid-address:nl:1.json
-              subPath: eudi:pid-address:nl:1.json
+              subPath: eudi_pid-address_nl_1.json
           env:
             - name: PID_ISSUER__WALLET_SERVER__PORT
               value: "3007"
