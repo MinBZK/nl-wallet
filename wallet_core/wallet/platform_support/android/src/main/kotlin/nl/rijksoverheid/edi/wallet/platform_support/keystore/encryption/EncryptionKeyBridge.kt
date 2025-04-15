@@ -19,7 +19,7 @@ class EncryptionKeyBridge(context: Context) : KeyBridge(context), RustEncryption
             return EncryptionKey(keyAlias)
         } catch (ex: Exception) {
             if (ex is KeyStoreException) throw ex
-            throw KeyStoreKeyError.CreateKeyError(ex).keyException
+            throw KeyStoreKeyError.createKeyError(ex)
         }
     }
 

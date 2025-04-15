@@ -19,7 +19,7 @@ class SigningKeyBridge(context: Context) : KeyBridge(context), RustSigningBridge
             return SigningKey(keyAlias)
         } catch (ex: Exception) {
             if (ex is KeyStoreException) throw ex
-            throw KeyStoreKeyError.CreateKeyError(ex).keyException
+            throw KeyStoreKeyError.createKeyError(ex)
         }
     }
 

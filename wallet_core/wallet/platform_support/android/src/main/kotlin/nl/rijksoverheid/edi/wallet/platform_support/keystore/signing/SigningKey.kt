@@ -32,7 +32,6 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
         @Throws(
             NoSuchProviderException::class,
             NoSuchAlgorithmException::class,
-            IllegalStateException::class
         )
         fun createKey(context: Context, keyAlias: String, challenge: List<UByte>? = null) {
             val spec = KeyGenParameterSpec.Builder(keyAlias, KeyProperties.PURPOSE_SIGN)
@@ -60,7 +59,7 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
         try {
             return keyStore.getCertificate(keyAlias).publicKey.encoded.toUByteList()
         } catch (ex: Exception) {
-            throw KeyStoreKeyError.DeriveKeyError(ex).keyException
+            throw KeyStoreKeyError.deriveKeyError(ex)
         }
     }
 
@@ -77,9 +76,9 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             when (ex) {
                 is UnrecoverableKeyException,
                 is NoSuchAlgorithmException,
-                is KeyStoreException -> throw KeyStoreKeyError.FetchKeyError(ex).keyException
+                is KeyStoreException -> throw KeyStoreKeyError.fetchKeyError(ex)
             }
-            throw KeyStoreKeyError.SignKeyError(ex).keyException
+            throw KeyStoreKeyError.signKeyError(ex)
         }
     }
 

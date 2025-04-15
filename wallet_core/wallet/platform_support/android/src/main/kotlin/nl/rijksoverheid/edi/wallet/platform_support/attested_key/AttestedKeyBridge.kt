@@ -80,7 +80,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
      * to re-invoke this method with the same [identifier], which will fail. This behavior however is implemented specifically for
      * Apple app/key attestation.
      */
-    @OptIn(ExperimentalUnsignedTypes::class, ExperimentalEncodingApi::class)
+    @OptIn(ExperimentalEncodingApi::class)
     @Throws(AttestedKeyException::class)
     override suspend fun attest(identifier: String, challenge: List<UByte>, googleCloudProjectNumber: ULong): AttestationData = withContext(Dispatchers.IO) {
         // Initialize integrity token provider.
@@ -109,11 +109,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
             } catch (ex: Exception) {
                 Log.w("attest", "failed to delete key with id '$identifier'", ex)
             }
-            when (e) {
-                is AttestedKeyException -> throw e
-                is java.security.KeyStoreException -> throw AttestedKeyException.Other("failed to get certificate chain: ${e.message}")
-                else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
-            }
+            e.wrapAndThrow("failed to attest key")
         }
     }
 
@@ -122,11 +118,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         try {
             getKey(identifier.keyAlias()).sign(payload)
         } catch (e: Exception) {
-            when (e) {
-                is AttestedKeyException -> throw e
-                is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to sign the payload: ${e.message}")
-                else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
-            }
+            e.wrapAndThrow("failed to sign the payload")
         }
     }
 
@@ -134,11 +126,7 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         try {
             getKey(identifier.keyAlias()).publicKey()
         } catch (e: Exception) {
-            when (e) {
-                is AttestedKeyException -> throw e
-                is KeyStoreException.KeyException -> throw AttestedKeyException.Other("failed to obtain public key: ${e.message}")
-                else -> throw AttestedKeyException.Other("unexpected failure: ${e.message}")
-            }
+            e.wrapAndThrow("failed to obtain public key")
         }
     }
 
@@ -150,10 +138,17 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
     override suspend fun delete(identifier: String) = withContext(Dispatchers.IO) {
         try {
             keyStore.deleteEntry(identifier.keyAlias())
-        } catch (e: java.security.KeyStoreException) {
-            throw AttestedKeyException.Other("failed to delete keystore entry: ${e.message}")
+        } catch (e: Exception) {
+            e.wrapAndThrow("failed to delete key")
         }
     }
+
+    private fun Exception.wrapAndThrow(keyExceptionReason: String): Nothing =
+        when (this) {
+            is AttestedKeyException -> throw this
+            is KeyStoreException.KeyException -> throw AttestedKeyException.Other("$keyExceptionReason: $message")
+            else -> throw AttestedKeyException.Other("unexpected failure: $message")
+        }
 
     @Throws(AttestedKeyException::class)
     private fun createKey(identifier: String, challenge: List<UByte>): SigningKey {
@@ -166,7 +161,6 @@ class AttestedKeyBridge(context: Context) : KeyBridge(context), RustAttestedKeyB
         } catch (e: Exception) {
             throw when (e) {
                 is IllegalStateException -> throw AttestedKeyException.Other("precondition failed: ${e.message}")
-                is NullPointerException -> throw AttestedKeyException.Other("generated key is invalid")
                 else -> AttestedKeyException.Other("failed to create key: ${e.message}")
             }
         }
