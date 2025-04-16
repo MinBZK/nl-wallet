@@ -223,22 +223,11 @@ class AttestedKeyBridgeInstrumentedTest {
 }
 
 
-private inline fun <reified T> assertFails(
-    expectedMessage: String? = null,
+private inline fun <reified T: Exception> assertFails(
+    expectedMessage: String,
     crossinline block: suspend () -> Unit
-) {
-    runBlocking {
-        try {
-            block()
-            fail("Expected exception, but got none")
-        } catch (e: Exception) {
-            when (e) {
-                is T -> expectedMessage?.let {
-                    assertEquals(it, e.message)
-                }
-
-                else -> fail("Expected exception ${T::class.qualifiedName}, but got ${e::class.qualifiedName}")
-            }
-        }
-    }
+) = assertThrows(T::class.java) {
+    runTest { block() }
+}.also {
+    assertEquals("Exception message is not equal", expectedMessage, it.message)
 }
