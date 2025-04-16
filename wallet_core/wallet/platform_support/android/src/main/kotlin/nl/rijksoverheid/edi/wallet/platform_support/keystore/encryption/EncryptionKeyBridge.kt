@@ -2,7 +2,7 @@ package nl.rijksoverheid.edi.wallet.platform_support.keystore.encryption
 
 import android.content.Context
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyExceptionBuilder
 import uniffi.platform_support.KeyStoreException
 import uniffi.platform_support.EncryptionKeyBridge as RustEncryptionBridge
 
@@ -19,7 +19,7 @@ class EncryptionKeyBridge(context: Context) : KeyBridge(context), RustEncryption
             return EncryptionKey(keyAlias)
         } catch (ex: Exception) {
             if (ex is KeyStoreException) throw ex
-            throw KeyStoreKeyError.createKeyError(ex)
+            throw KeyExceptionBuilder.createKeyError(ex)
         }
     }
 

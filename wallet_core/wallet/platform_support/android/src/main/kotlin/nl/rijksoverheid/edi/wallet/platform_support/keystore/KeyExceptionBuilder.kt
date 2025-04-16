@@ -6,7 +6,7 @@ import uniffi.platform_support.KeyStoreException.KeyException
  * Wrapper for the errors that can occur when manipulating keys in
  * the keystore. Counterpart to iOS's [SecureEnclaveKeyError.swift].
  */
-object KeyStoreKeyError {
+object KeyExceptionBuilder {
     fun deriveKeyError(ex: Exception) = ex.toKeyException("Could not derive public key")
     fun signKeyError(ex: Exception) = ex.toKeyException("Could not sign with private key")
     fun createKeyError(ex: Exception) = ex.toKeyException("Could not create private key")

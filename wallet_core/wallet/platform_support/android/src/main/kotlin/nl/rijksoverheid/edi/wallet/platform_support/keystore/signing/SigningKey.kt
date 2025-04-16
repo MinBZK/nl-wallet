@@ -8,7 +8,7 @@ import android.security.keystore.KeyProperties
 import androidx.annotation.VisibleForTesting
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KEYSTORE_PROVIDER
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKey
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyExceptionBuilder
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.setStrongBoxBackedCompat
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.toByteArray
 import nl.rijksoverheid.edi.wallet.platform_support.utilities.toUByteList
@@ -59,7 +59,7 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
         try {
             return keyStore.getCertificate(keyAlias).publicKey.encoded.toUByteList()
         } catch (ex: Exception) {
-            throw KeyStoreKeyError.deriveKeyError(ex)
+            throw KeyExceptionBuilder.deriveKeyError(ex)
         }
     }
 
@@ -76,9 +76,9 @@ class SigningKey(keyAlias: String) : KeyStoreKey(keyAlias) {
             when (ex) {
                 is UnrecoverableKeyException,
                 is NoSuchAlgorithmException,
-                is KeyStoreException -> throw KeyStoreKeyError.fetchKeyError(ex)
+                is KeyStoreException -> throw KeyExceptionBuilder.fetchKeyError(ex)
             }
-            throw KeyStoreKeyError.signKeyError(ex)
+            throw KeyExceptionBuilder.signKeyError(ex)
         }
     }
 

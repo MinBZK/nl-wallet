@@ -58,7 +58,7 @@ abstract class KeyStoreKey(val keyAlias: String) {
         try {
             return keyStore.getCertificateChain(keyAlias)
         } catch (e: KeyStoreException) {
-            throw KeyStoreKeyError.certificateChainError(e)
+            throw KeyExceptionBuilder.certificateChainError(e)
         }
     }
 
@@ -67,7 +67,7 @@ abstract class KeyStoreKey(val keyAlias: String) {
         if (isHardwareBacked || BuildConfig.DEBUG) {
             return
         }
-        throw KeyStoreKeyError.missingHardwareError(securityLevelCompat)
+        throw KeyExceptionBuilder.missingHardwareError(securityLevelCompat)
     }
 
     @VisibleForTesting
