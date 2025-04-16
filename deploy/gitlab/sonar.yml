@@ -72,10 +72,8 @@ sonar-wallet-web:
       -Dsonar.projectKey=nl-wallet-web
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=lib/
-      -Dsonar.exclusions=lib/__tests__/**/*,lib/util/qrcodegen.ts
-      -Dsonar.tests=lib/
-      -Dsonar.test.inclusions=lib/__tests__/**/*
-      -Dsonar.coverage.exclusions=lib/__tests__
+      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/util/qrcodegen.ts
+      -Dsonar.tests=lib/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
 
