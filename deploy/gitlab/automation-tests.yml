@@ -251,58 +251,99 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
   allow_failure: true
   when: manual
   script: |
-      TEST_SETS=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json" | 
+      TEST_SETS=$(curl -u "$BROWSERSTACK_USER:$BROWSERSTACK_KEY" -X GET "https://api-cloud.browserstack.com/app-automate/devices.json" |
                   jq -r '.[] | select(.os == "android" and .realMobile == true) | "\(.device)|\(.os_version)"')
-    
+
       echo "Retrieved real Android devices: $TEST_SETS"
-      
+
       if [[ -z $TEST_SETS ]]; then
         echo "No real Android devices found in BrowserStack!"
         exit 1
       fi
-    
+
       cd "$CI_PROJECT_DIR"
-    
+
       cat <<EOT > test-all-android-devices.yml
       include:
         - ".gitlab-ci.yml"
+      stages:
+        - test
+        - merge-results
+
+      merge-device-data:
+        stage: merge-results
+        rules:
+          - when: manual
+        script:
+          - |
+            mkdir -p merged-data
+            output_file="merged-data/merged-device-data.json"
+            echo "[" > "\$output_file"
+            first=true
+            find . -type f -path "uiautomation/device-data/*.json" -print0 | while IFS= read -r -d '' file; do
+              if [ "\$first" = true ]; then
+                first=false
+              else
+                echo "," >> "\$output_file"
+              fi
+              cat "\$file" >> "\$output_file"
+            done
+            echo "]" >> "\$output_file"
+        artifacts:
+          when: always
+          paths:
+            - merged-data/merged-device-data.json
 
       .run-automation-test-ont:
+        stage: test
         rules:
-         - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+         - if: \$CI_PIPELINE_SOURCE == "parent_pipeline"
         extends: .run-automation-tests-common-setup
         script:
-          - echo "start time: \$(date)"
-          - ./gradlew --no-daemon --info --stacktrace runOnAll
-            -Dtest.config.app.identifier="\$APP_ID"
-            -Dtest.config.device.name="\$DEVICE_NAME"
-            -Dtest.config.platform.name="\$PLATFORM_NAME"
-            -Dtest.config.platform.version="\$PLATFORM_VERSION"
-            -Dtest.config.remote=true
-            -Dfile.encoding=UTF-8
+          - |
+            ./gradlew --no-daemon --info --stacktrace runOnAll \\
+              -Dtest.config.app.identifier="\$APP_ID" \\
+              -Dtest.config.device.name="\$DEVICE_NAME" \\
+              -Dtest.config.platform.name="\$PLATFORM_NAME" \\
+              -Dtest.config.platform.version="\$PLATFORM_VERSION" \\
+              -Dtest.config.remote=true \\
+              -Dfile.encoding=UTF-8
         after_script:
-          - echo "DEVICE_NAME: \$DEVICE_NAME" 
-          - echo "PLATFORM_VERSION: \$PLATFORM_VERSION" 
-          - echo "end time: \$(date)" 
+          - |
+            echo "start time: \$CI_JOB_STARTED_AT"
+            export END_DATE=\$(date)
+            echo "end time: \$END_DATE"
+            echo "DEVICE_NAME: \$DEVICE_NAME"
+            echo "PLATFORM_VERSION: \$PLATFORM_VERSION"
+            mkdir -p "\$CI_PROJECT_DIR/uiautomation/device-data"
+            echo "{\\"status\\": \\"\$CI_JOB_STATUS\\", \\"device_name\\": \\"\$DEVICE_NAME\\", \\"platform_version\\": \\"\$PLATFORM_VERSION\\", \\"start_date\\": \\"\$CI_JOB_STARTED_AT\\", \\"end_date\\": \\"\$END_DATE\\"}" > "\$CI_PROJECT_DIR/uiautomation/device-data/\${DEVICE_NAME}_\${PLATFORM_VERSION}.json"
         variables:
           APP_ID: "${APP_IDENTIFIER}_${CI_COMMIT_SHA}"
           PLATFORM_NAME: "Android"
         allow_failure: true
+        artifacts:
+          name: uiautomation
+          when: always
+          paths:
+            - uiautomation/build/test-results/**/*.xml
+            - uiautomation/build/allure-results
+            - uiautomation/build/reports
+            - uiautomation/device-data
       EOT
-    
+
       while IFS="|" read -r DEVICE_NAME PLATFORM_VERSION; do
         JOB_NAME=$(echo "$DEVICE_NAME" | tr ' ' '_')
-      
+
         cat <<EOT >> test-all-android-devices.yml
-      
-      run-automation-test-ont-$JOB_NAME:
+
+      run-$JOB_NAME$PLATFORM_VERSION:
         extends: .run-automation-test-ont
         variables:
           DEVICE_NAME: "$DEVICE_NAME"
           PLATFORM_VERSION: "$PLATFORM_VERSION"
       EOT
       done <<< "$TEST_SETS"
-      
+
       echo "Generated test-all-android-devices.yml:"
       cat test-all-android-devices.yml
   artifacts:
@@ -313,7 +354,7 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
 
 run-pipeline-for-running-test-on-all-browserstack-androids:
   rules:
-    - !reference [.default-branch, rules]
+    - !reference [ .default-branch, rules ]
   needs:
     - job: create-pipeline-for-running-test-on-all-browserstack-androids
       artifacts: true
