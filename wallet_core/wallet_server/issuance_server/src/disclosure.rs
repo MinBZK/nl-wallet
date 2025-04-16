@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use indexmap::IndexMap;
-use serde::Serialize;
 
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
@@ -166,7 +165,7 @@ where
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError> {
+    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         let to_issue = self
             .attributes_fetcher
             .attributes(usecase_id, disclosed)
@@ -197,15 +196,25 @@ where
             .await
             .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
 
-        let credential_offer = CredentialOffer {
-            credential_issuer: self.credential_issuer.clone(),
-            credential_configuration_ids,
-            grants: Some(Grants::PreAuthorizedCode {
-                pre_authorized_code: GrantPreAuthorizedCode::new(token.as_ref().clone().into()),
-            }),
+        let credential_offer = CredentialOfferContainer {
+            credential_offer: CredentialOffer {
+                credential_issuer: self.credential_issuer.clone(),
+                credential_configuration_ids,
+                grants: Some(Grants::PreAuthorizedCode {
+                    pre_authorized_code: GrantPreAuthorizedCode::new(token.as_ref().clone().into()),
+                }),
+            },
         };
 
-        Ok(CredentialOfferContainer { credential_offer })
+        // If `serde_urlencoded` would have something like `serde_json::Value` or `ciborium::Value`,
+        // then this would be a lot less awkward.
+        let query_params = serde_urlencoded::from_str(
+            &serde_urlencoded::to_string(credential_offer)
+                .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?,
+        )
+        .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
+
+        Ok(query_params)
     }
 }
 
@@ -243,7 +252,7 @@ mod tests {
     use mdoc::ValidityInfo;
     use openid4vc::attributes::Attribute;
     use openid4vc::attributes::AttributeValue;
-    use openid4vc::credential::CredentialOfferContainer;
+    use openid4vc::credential::CredentialOffer;
     use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::server_state::MemorySessionStore;
@@ -315,12 +324,11 @@ mod tests {
         let mock_disclosed_type = "attestation_type";
         let mock_disclosed_attrs = mock_disclosed_attrs(mock_disclosed_type.to_string());
 
-        // IssuanceResultsHandler always returns a CredentialOfferContainer.
-        let credential_offer: &dyn std::any::Any = &result_handler
+        let query_params = &result_handler
             .disclosure_result("usecase_id", &mock_disclosed_attrs)
             .await
             .unwrap();
-        let CredentialOfferContainer { credential_offer } = credential_offer.downcast_ref().unwrap();
+        let credential_offer: CredentialOffer = serde_json::from_str(&query_params["credential_offer"]).unwrap();
 
         let code = credential_offer.grants.as_ref().unwrap().authorization_code().unwrap();
 

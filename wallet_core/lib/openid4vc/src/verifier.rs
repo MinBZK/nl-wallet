@@ -1,6 +1,5 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::sync::Arc;
@@ -526,7 +525,7 @@ pub trait DisclosureResultHandler {
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError>;
+    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 
 /// The trivial disclosure result handler that does nothing and always returns Ok.
@@ -538,8 +537,8 @@ impl DisclosureResultHandler for NoOpDisclosureResultHandler {
         &self,
         _: &str,
         _: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError> {
-        Ok(HashMap::<String, String>::new())
+    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
+        Ok(HashMap::new())
     }
 }
 
@@ -1184,8 +1183,7 @@ impl Session<WaitingForResponse> {
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
-                // The empty map will always URL-serialize without error.
-                let response = self.ok_response(HashMap::<String, String>::new()).unwrap();
+                let response = self.ok_response(&HashMap::new());
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
@@ -1230,10 +1228,7 @@ impl Session<WaitingForResponse> {
         };
 
         let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
-        let response = match self.ok_response(query_params) {
-            Ok(response) => response,
-            Err(err) => return self.handle_err(err),
-        };
+        let response = self.ok_response(&query_params);
         let next = self.transition_finish(disclosed, redirect_uri_nonce);
 
         (Ok(response), next)
@@ -1251,35 +1246,19 @@ impl Session<WaitingForResponse> {
         (Err(WithRedirectUri::new(err, redirect_uri)), next)
     }
 
-    fn ok_response<T: Serialize + Clone>(&self, url_params: T) -> Result<VpResponse, PostAuthResponseError> {
-        let response = VpResponse {
-            redirect_uri: self
-                .state()
-                .redirect_uri
-                .as_ref()
-                .map(|u| {
-                    let mut uri = u.uri.clone().into_inner();
+    fn ok_response(&self, url_params: &HashMap<String, String>) -> VpResponse {
+        VpResponse {
+            redirect_uri: self.state().redirect_uri.as_ref().map(|u| {
+                let mut uri = u.uri.clone().into_inner();
+                url_params.iter().fold(uri.query_pairs_mut(), |mut acc, (name, value)| {
+                    acc.append_pair(name, value);
+                    acc
+                });
 
-                    #[derive(Serialize)]
-                    struct UrlParams<'a, T: Serialize + Clone> {
-                        #[serde(flatten)]
-                        redirect_uri_params: HashMap<Cow<'a, str>, Cow<'a, str>>,
-                        #[serde(flatten)]
-                        disclosure_handler_uri_params: T,
-                    }
-
-                    uri.set_query(Some(&serde_urlencoded::to_string(UrlParams {
-                        redirect_uri_params: uri.query_pairs().collect(),
-                        disclosure_handler_uri_params: url_params,
-                    })?));
-
-                    // This is safe as this URI was obtained from a BaseUrl
-                    Ok::<_, PostAuthResponseError>(uri.try_into().unwrap())
-                })
-                .transpose()?,
-        };
-
-        Ok(response)
+                // This is safe as this URI was obtained from a BaseUrl
+                uri.try_into().unwrap()
+            }),
+        }
     }
 
     fn transition_finish(self, disclosed_attributes: DisclosedAttributes, nonce: Option<String>) -> Session<Done> {

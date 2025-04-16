@@ -21,7 +21,6 @@ use ring::hmac;
 use ring::rand;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
-use serde::Serialize;
 
 use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -391,7 +390,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
         &self,
         _usecase_id: &str,
         _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<impl Serialize + Clone + 'static, DisclosureResultHandlerError> {
+    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         Ok(self
             .key
             .as_ref()
