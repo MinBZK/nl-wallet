@@ -7,9 +7,6 @@ metadata:
 spec:
   selector:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}
-    {{- if .Values.extraPodlabels }}
-    {{ toYaml .Values.extraPodlabels | nindent 4 }}
-    {{- end }}
   ports:
     - name: mock-relying-party-http
       port: 3004

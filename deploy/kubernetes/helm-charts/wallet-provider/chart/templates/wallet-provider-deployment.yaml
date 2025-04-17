@@ -26,7 +26,7 @@ spec:
       labels:
         {{- include "common.labels.standard" . | nindent 8 }}
         {{- if .Values.extraPodlabels }}
-        {{ toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- toYaml .Values.extraPodlabels | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
@@ -36,14 +36,14 @@ spec:
       serviceAccountName: {{ .Values.serviceAccountName }}
       {{- with .Values.securityContext }}
       securityContext:
-      {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           {{- with .Values.resources }}
           resources:
-          {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
             - name: wp-port

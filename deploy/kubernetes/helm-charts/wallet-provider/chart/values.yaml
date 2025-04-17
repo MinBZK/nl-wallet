@@ -163,3 +163,10 @@ ios:
 ## @param appIdentifier Application identifier
 ##
 appIdentifier: null
+
+## @section Migration parameters
+## Parameters for the migration configuration
+## @param migration.labels Additional labels for the migration job
+##
+migration:
+  labels: {}
