@@ -23,6 +23,15 @@ use rasn::AsnType;
 use rasn::Decode;
 use rasn::Decoder;
 
+cfg_if::cfg_if! {
+    if #[cfg(feature = "serialize_key_attestation")] {
+        use serde::Serialize;
+        use serde::ser::SerializeSeq;
+        use serde_repr::Serialize_repr;
+        use serde_with::DisplayFromStr;
+    }
+}
+
 use super::key_description;
 use super::key_description::KeyDescription;
 use super::key_description::RootOfTrust;
@@ -65,6 +74,7 @@ macro_rules! integer_int_enum_conversion_with_set {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize_repr))]
 #[repr(i32)]
 pub enum AttestationVersion {
     V1 = 1,
@@ -84,6 +94,7 @@ integer_int_enum_conversion!(
 );
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize_repr))]
 #[repr(i32)]
 pub enum KeyMintVersion {
     V2 = 2,
@@ -98,6 +109,7 @@ pub enum KeyMintVersion {
 integer_int_enum_conversion!(KeyMintVersion, i32, KeyMintVersionError, InvalidKeyMintVersion);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[repr(u32)]
 pub enum KeyPurpose {
     Encrypt = 0,
@@ -113,6 +125,7 @@ pub enum KeyPurpose {
 integer_int_enum_conversion_with_set!(KeyPurpose, u32, KeyPurposeError, InvalidKeyPurpose);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[repr(u32)]
 pub enum Algorithm {
     Rsa = 1,
@@ -125,6 +138,7 @@ pub enum Algorithm {
 integer_int_enum_conversion!(Algorithm, u32, AlgorithmError, InvalidAlgorithm);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[repr(u32)]
 pub enum Digest {
     None = 0,
@@ -140,6 +154,7 @@ integer_int_enum_conversion_with_set!(Digest, u32, DigestError, InvalidDigest);
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[repr(u32)]
 pub enum Padding {
     None = 1,
@@ -153,6 +168,7 @@ pub enum Padding {
 integer_int_enum_conversion_with_set!(Padding, u32, PaddingError, InvalidPadding);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[repr(u32)]
 pub enum EcCurve {
     P224 = 0,
@@ -165,6 +181,7 @@ pub enum EcCurve {
 integer_int_enum_conversion!(EcCurve, u32, EcCurveError, InvalidEcCurve);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct HardwareAuthenticatorType(u32);
 
 impl TryFrom<Integer> for HardwareAuthenticatorType {
@@ -186,6 +203,7 @@ bitflags! {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, IntEnum)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[repr(u32)]
 pub enum KeyOrigin {
     Generated = 0,
@@ -198,6 +216,7 @@ pub enum KeyOrigin {
 integer_int_enum_conversion!(KeyOrigin, u32, KeyOriginError, InvalidKeyOrigin);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct OsVersion {
     pub major: u8,
     pub minor: u8,
@@ -276,6 +295,7 @@ pub enum PatchLevelError {
 /// - Sometimes DD is set to `00`, which is not a valid date
 /// - Sometimes the whole `PatchLevel` was set to `0`
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Constructor)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct PatchLevel {
     year: u16,
     month: u8,
@@ -320,23 +340,44 @@ impl TryFrom<Integer> for PatchLevel {
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct AttestationApplicationId {
+    #[cfg_attr(feature = "serialize_key_attestation", serde(serialize_with = "serialize_set_of"))]
     pub package_infos: SetOf<AttestationPackageInfo>,
+    #[cfg_attr(feature = "serialize_key_attestation", serde(serialize_with = "serialize_set_of"))]
     pub signature_digests: SetOf<OctetString>,
+}
+
+#[cfg(feature = "serialize_key_attestation")]
+fn serialize_set_of<S, T>(package_infos: &SetOf<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+    T: serde::Serialize,
+    T: Eq + Hash,
+{
+    let mut seq = serializer.serialize_seq(Some(package_infos.len()))?;
+    for element in package_infos.to_vec() {
+        seq.serialize_element(element)?;
+    }
+    seq.end()
 }
 
 // AttestationPackageInfo ::= SEQUENCE {
 //     package_name  OCTET_STRING,
 //     version  INTEGER,
 // }
+#[cfg_attr(feature = "serialize_key_attestation", cfg_eval::cfg_eval, serde_with::serde_as)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AsnType, Decode)]
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct AttestationPackageInfo {
     pub package_name: OctetString,
+    #[cfg_attr(feature = "serialize_key_attestation", serde_as(as = "DisplayFromStr"))]
     pub version: Integer,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct KeyAttestation {
     pub attestation_version: AttestationVersion,
     pub attestation_security_level: SecurityLevel,
@@ -433,6 +474,7 @@ impl TryFrom<KeyDescription> for KeyAttestation {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct AuthorizationList {
     pub purpose: Option<HashSet<KeyPurpose>>,
     pub algorithm: Option<Algorithm>,
@@ -999,5 +1041,15 @@ mod test {
         };
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    #[cfg(all(feature = "mock", feature = "serialize_key_attestation"))]
+    fn test_key_attestation_is_serializable() {
+        let input = KeyDescription::new_valid_mock(vec![b'a', b'b', b'c']);
+        let key_attestation = KeyAttestation::try_from(input).expect("test case is valid");
+        let result = serde_json::to_string(&key_attestation);
+        // verify that key_attestation serialized successfully
+        assert!(result.is_ok());
     }
 }
