@@ -91,7 +91,8 @@ sonar-ios:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
-      -Dsonar.exclusions="*Tests*/**"
+      -Dsonar.sources=PlatformSupport
+      -Dsonar.tests="Integration Tests,Integration Tests Host App"
       -Dsonar.c.file.suffixes=-
       -Dsonar.cpp.file.suffixes=-
       -Dsonar.objc.file.suffixes=-
