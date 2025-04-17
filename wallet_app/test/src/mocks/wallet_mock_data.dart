@@ -92,6 +92,7 @@ abstract class WalletMockData {
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(
     key: 'text_key',
+    svgId: 'text_svgId',
     label: 'Label',
     value: const StringValue('Value'),
     sourceCardDocType: 'com.example.docType',

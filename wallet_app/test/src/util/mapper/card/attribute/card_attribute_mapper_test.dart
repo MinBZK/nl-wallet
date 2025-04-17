@@ -11,6 +11,7 @@ const _kSampleCardAttributeLabels = [core.ClaimDisplayMetadata(lang: '-', label:
 const _kSampleCardValue = core.AttributeValue_String(value: '-');
 const _kSampleCardAttribute = core.AttestationAttribute(
   key: 'card.key',
+  svgId: 'card.svgId',
   labels: _kSampleCardAttributeLabels,
   value: _kSampleCardValue,
 );
@@ -35,6 +36,7 @@ void main() {
 
       final expected = DataAttribute(
         key: 'card.key',
+        svgId: 'card.svgId',
         label: {Locale('nl'): 'Test'},
         value: StringValue('John Doe'),
         sourceCardDocType: 'docType',

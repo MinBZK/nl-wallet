@@ -45,19 +45,21 @@ void main() {
     });
 
     test('card with placeholders in summary should result in summary with placeholders replaced', () {
-      const summary = 'First: {{first}}, Second: {{second}}';
+      const summary = 'First: {{first_id}}, Second: {{second_id}}';
       final input = WalletCard(
         docType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [
           DataAttribute.untranslated(
             key: 'first',
+            svgId: 'first_id',
             label: 'First name',
             value: const StringValue('John'),
             sourceCardDocType: 'com.example.docType',
           ),
           DataAttribute.untranslated(
             key: 'second',
+            svgId: 'second_id',
             label: 'Last name',
             value: const StringValue('Doe'),
             sourceCardDocType: 'com.example.docType',
@@ -78,6 +80,7 @@ void main() {
         attributes: [
           DataAttribute(
             key: 'over18',
+            svgId: 'over18',
             label: {Locale('en'): 'Over 18', Locale('nl'): 'Ouder dan 18'},
             value: const BooleanValue(true),
             sourceCardDocType: 'com.example.docType',
@@ -120,6 +123,33 @@ void main() {
       expect(mapper.map(input).testValue, 'Middle name: ');
     });
 
+    test('svg id should NOT rely on attribute.key for replacement', () {
+      const key = 'mock_key';
+      final input = WalletCard(
+        id: 'id',
+        docType: 'com.example.docType',
+        issuer: WalletMockData.organization,
+        attributes: [
+          DataAttribute(
+            key: key,
+            label: {Locale('en'): 'mock'},
+            value: const StringValue('mock_value'),
+            sourceCardDocType: 'com.example.docType',
+          ),
+        ],
+        metadata: const [
+          CardDisplayMetadata(
+            language: Locale('en'),
+            name: 'name',
+            rawSummary: '{{$key}}',
+          ),
+        ],
+      );
+
+      // Mapper should not replace key with "mock_value" since no svgId is set
+      expect(mapper.map(input)[Locale('en')], '');
+    });
+
     test('Dates are formatted based on localization', () {
       final input = WalletCard(
         docType: 'com.example.docType',
@@ -127,6 +157,7 @@ void main() {
         attributes: [
           DataAttribute(
             key: 'dob',
+            svgId: 'dob',
             label: ''.untranslated,
             value: DateValue(DateTime(2024, 10, 5)),
             sourceCardDocType: 'com.example.docType',

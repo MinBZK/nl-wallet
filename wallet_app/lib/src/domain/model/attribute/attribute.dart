@@ -43,12 +43,14 @@ class DataAttribute extends Attribute {
   AttributeValue get value => super.value!;
 
   final String sourceCardDocType;
+  final String? svgId;
 
   const DataAttribute({
     required super.key,
     required super.label,
     required AttributeValue super.value,
     required this.sourceCardDocType,
+    this.svgId,
   });
 
   DataAttribute.untranslated({
@@ -56,6 +58,7 @@ class DataAttribute extends Attribute {
     required String label,
     required AttributeValue super.value,
     required this.sourceCardDocType,
+    this.svgId,
   }) : super(label: {Locale('en'): label});
 
   factory DataAttribute.fromJson(Map<String, dynamic> json) => _$DataAttributeFromJson(json);
@@ -63,7 +66,7 @@ class DataAttribute extends Attribute {
   Map<String, dynamic> toJson() => _$DataAttributeToJson(this);
 
   @override
-  List<Object?> get props => [key, label, value, sourceCardDocType];
+  List<Object?> get props => [key, label, value, sourceCardDocType, svgId];
 }
 
 /// The sole purpose of a [UiAttribute] is to be rendered to the screen, it should not be used for any (business) logic.
