@@ -89,12 +89,14 @@ final _kAltSampleCardMetaData = [
 final _kSampleAttributes = [
   DataAttribute(
     key: 'key1',
+    svgId: 'key1',
     label: 'Sample #1'.untranslated,
     value: const StringValue('1'),
     sourceCardDocType: 'sourceCardDocType',
   ),
   DataAttribute(
     key: 'key2',
+    svgId: 'key2',
     label: 'Sample #2'.untranslated,
     value: const StringValue('2'),
     sourceCardDocType: 'sourceCardDocType',

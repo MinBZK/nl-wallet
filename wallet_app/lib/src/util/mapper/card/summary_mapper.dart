@@ -21,7 +21,7 @@ class CardSummaryMapper extends Mapper<WalletCard, LocalizedText> {
           final svgId = match.group(1);
           if (svgId == null) return '';
           // Find the corresponding DataAttribute
-          final attribute = input.attributes.firstWhereOrNull((attribute) => attribute.key == svgId);
+          final attribute = input.attributes.firstWhereOrNull((attribute) => attribute.svgId == svgId);
           if (attribute == null) return '';
           // Return the localized value
           return AttributeValueFormatter.formatWithLocale(locale, attribute.value);
