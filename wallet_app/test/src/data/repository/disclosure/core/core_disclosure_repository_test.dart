@@ -1,9 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/disclosure/core/core_disclosure_repository.dart';
+import 'package:wallet/src/data/repository/disclosure/disclosure_repository.dart' as ui;
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart' as ui;
+import 'package:wallet/src/domain/model/disclosure/disclosure_type.dart' as ui;
+import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
@@ -11,6 +15,8 @@ void main() {
   late MockTypedWalletCore mockTypedWalletCore;
 
   setUp(() {
+    provideDummy<Policy>(WalletMockData.policy);
+    provideDummy<ui.DisclosureType>(ui.DisclosureType.login);
     provideDummy<AcceptDisclosureResult>(AcceptDisclosureResult_Ok());
     provideDummy<ui.DisclosureSessionType>(ui.DisclosureSessionType.crossDevice);
     provideDummy<StartDisclosureResult>(
@@ -54,5 +60,26 @@ void main() {
   test('Call to startDisclosure is forwarded to wallet core with correct argument', () async {
     await repository.startDisclosure('uri', isQrCode: true);
     verify(mockTypedWalletCore.startDisclosure('uri', isQrCode: true)).called(1);
+  });
+
+  test('StartDisclosureResultRequest is mapped successfully to StartDisclosureReadyToDisclose', () async {
+    when(mockTypedWalletCore.startDisclosure(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
+      return StartDisclosureResult.request(
+        relyingParty: Organization(legalName: [], displayName: [], description: [], category: []),
+        requestOriginBaseUrl: '',
+        sharedDataWithRelyingPartyBefore: false,
+        sessionType: DisclosureSessionType.CrossDevice,
+        requestPurpose: [],
+        policy: RequestPolicy(
+          dataSharedWithThirdParties: false,
+          dataDeletionPossible: true,
+          policyUrl: 'https://example.org',
+        ),
+        requestedAttestations: [],
+        requestType: DisclosureType.Login,
+      );
+    });
+    final result = await repository.startDisclosure('uri', isQrCode: true);
+    expect(result, isA<ui.StartDisclosureReadyToDisclose>());
   });
 }

@@ -4,6 +4,7 @@ import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/impl/check_is_valid_pin_usecase_impl.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../../mocks/wallet_mocks.mocks.dart';
 
@@ -69,6 +70,37 @@ void main() {
         (error) => error.error,
         'validation error is tooFewUniqueDigits',
         PinValidationError.tooFewUniqueDigits,
+      ),
+    );
+  });
+
+  test('Should return an application error if a CoreError is internally thrown', () async {
+    final sourceError = CoreGenericError('test');
+    const sequentialPin = '123456';
+    when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw sourceError);
+    final result = await useCase.invoke(sequentialPin);
+    expect(result.hasError, isTrue);
+    expect(
+      result.error,
+      isA<GenericError>().having(
+        (error) => error.sourceError,
+        'sourceError matches',
+        sourceError,
+      ),
+    );
+  });
+
+  test('Should return an PinValidationError.other error on unhandled errors', () async {
+    const sequentialPin = '123456';
+    when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw Exception('some unexpected error'));
+    final result = await useCase.invoke(sequentialPin);
+    expect(result.hasError, isTrue);
+    expect(
+      result.error,
+      isA<ValidatePinError>().having(
+        (error) => error.error,
+        'validation error is other',
+        PinValidationError.other,
       ),
     );
   });
