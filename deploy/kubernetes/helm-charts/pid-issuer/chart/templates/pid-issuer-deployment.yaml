@@ -8,7 +8,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "common.labels.selectorLabels" . | nindent 6 }}
+      {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,7 +19,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 8 }}
         {{- if .Values.extraPodlabels }}
         {{- toYaml .Values.extraPodlabels | nindent 8 }}
         {{- end }}

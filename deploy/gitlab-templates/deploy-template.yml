@@ -322,4 +322,34 @@ run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
   needs:
     - gba-hc-converter-${DEPLOY_ENV}
   script:
-    - kubectl create job --from=cronjob/cronjob-encrypt-gba-v-testdata job-gba-encrypt-test-data-$(date +%s)
+    - kubectl create job --from=cronjob/encrypt-gba-v-testdata gba-encrypt-test-data-$(date +%s)
+
+run-mrp-verification-server-reset-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: manual
+  <<: *deploy-environment
+  needs:
+    - mrp-verification-server-${DEPLOY_ENV}
+  script:
+    - kubectl create job --from=cronjob/mrp-verification-server-reset mrp-verification-db-reset-$(date +%s)
+
+run-pid-issuer-reset-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: manual
+  <<: *deploy-environment
+  needs:
+    - pid-issuer-${DEPLOY_ENV}
+  script:
+    - kubectl create job --from=cronjob/pid-issuer-reset pid-issuer-db-reset-$(date +%s)
+
+run-wallet-provider-reset-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: manual
+  <<: *deploy-environment
+  needs:
+    - wallet-provider-${DEPLOY_ENV}
+  script:
+    - kubectl create job --from=cronjob/wallet-provider-reset wallet-provider-db-reset-$(date +%s)

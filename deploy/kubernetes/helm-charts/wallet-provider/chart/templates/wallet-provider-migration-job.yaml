@@ -14,10 +14,11 @@ spec:
   backoffLimit: 1
   template:
     metadata:
-      {{- with .Values.migration.labels }}
       labels:
+        {{- include "common.labels.component" (list "migration" .) | nindent 8 }}
+        {{- with .Values.migration.labels }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -26,7 +27,7 @@ spec:
       containers:
         - name: {{ $name }}-migrations
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
-          args: [ "fresh" ]
+          args: ["up"]
           env:
             - name: WALLET_PROVIDER__DATABASE__HOST
               value: db-cluster-rw
