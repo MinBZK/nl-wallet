@@ -64,7 +64,7 @@ pub enum TypeMetadataError {
 /// Note that within the context of the wallet app we place additional constraints on the contents of this document,
 /// most of which stem from practical concerns. These constraints consist of the following:
 ///
-/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
+/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptional` type.
 /// * Attributes contained in arrays are not (yet) supported.
 /// * Optional attributes are not yet supported.
 /// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
