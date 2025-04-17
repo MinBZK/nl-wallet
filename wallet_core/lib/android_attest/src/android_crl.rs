@@ -15,6 +15,7 @@ use reqwest::Url;
 use reqwest_middleware::ClientBuilder;
 use reqwest_middleware::ClientWithMiddleware;
 use serde::Deserialize;
+use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::FromInto;
@@ -73,7 +74,7 @@ impl From<RevocationStatusEntries> for HashMap<BigUint, RevocationStatusEntry> {
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RevocationStatusEntry {
     pub status: AndroidCrlStatus,
     #[serde(default)]
@@ -84,14 +85,14 @@ pub struct RevocationStatusEntry {
     pub comment: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AndroidCrlStatus {
     Revoked,
     Suspended,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AndroidCrlReason {
     Unspecified,
