@@ -47,10 +47,12 @@ import 'package:wallet/src/domain/model/update/update_notification.dart' as _i35
 import 'package:wallet/src/domain/model/update/version_state.dart' as _i31;
 import 'package:wallet/src/domain/model/wallet_card_detail.dart' as _i70;
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart' as _i44;
+import 'package:wallet/src/domain/usecase/biometrics/biometric_authentication_result.dart' as _i96;
 import 'package:wallet/src/domain/usecase/biometrics/biometrics.dart' as _i89;
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart' as _i88;
 import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart' as _i91;
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart' as _i92;
+import 'package:wallet/src/domain/usecase/biometrics/request_biometrics_usecase.dart' as _i95;
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart' as _i90;
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart' as _i71;
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart' as _i65;
@@ -3829,6 +3831,49 @@ class MockGetVersionStringUseCase extends _i1.Mock implements _i94.GetVersionStr
           ),
         ),
       ) as _i8.Future<_i43.Result<String>>);
+
+  @override
+  _i8.Future<_i43.Result<T>> tryCatch<T>(
+    _i8.Future<T> Function()? future,
+    String? errorDescription,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(#tryCatch, [future, errorDescription]),
+        returnValue: _i8.Future<_i43.Result<T>>.value(
+          _i12.dummyValue<_i43.Result<T>>(
+            this,
+            Invocation.method(#tryCatch, [future, errorDescription]),
+          ),
+        ),
+        returnValueForMissingStub: _i8.Future<_i43.Result<T>>.value(
+          _i12.dummyValue<_i43.Result<T>>(
+            this,
+            Invocation.method(#tryCatch, [future, errorDescription]),
+          ),
+        ),
+      ) as _i8.Future<_i43.Result<T>>);
+}
+
+/// A class which mocks [RequestBiometricsUseCase].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockRequestBiometricsUseCase extends _i1.Mock implements _i95.RequestBiometricsUseCase {
+  @override
+  _i8.Future<_i43.Result<_i96.BiometricAuthenticationResult>> invoke() => (super.noSuchMethod(
+        Invocation.method(#invoke, []),
+        returnValue: _i8.Future<_i43.Result<_i96.BiometricAuthenticationResult>>.value(
+          _i12.dummyValue<_i43.Result<_i96.BiometricAuthenticationResult>>(
+            this,
+            Invocation.method(#invoke, []),
+          ),
+        ),
+        returnValueForMissingStub: _i8.Future<_i43.Result<_i96.BiometricAuthenticationResult>>.value(
+          _i12.dummyValue<_i43.Result<_i96.BiometricAuthenticationResult>>(
+            this,
+            Invocation.method(#invoke, []),
+          ),
+        ),
+      ) as _i8.Future<_i43.Result<_i96.BiometricAuthenticationResult>>);
 
   @override
   _i8.Future<_i43.Result<T>> tryCatch<T>(

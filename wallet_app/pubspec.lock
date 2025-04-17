@@ -1108,6 +1108,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  semantic_announcement_tester:
+    dependency: "direct dev"
+    description:
+      name: semantic_announcement_tester
+      sha256: "811e26b850853d3203d0b8e18bf02885d2d530a66f928e256c0245cc3788933d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.6"
   sensors_plus:
     dependency: "direct main"
     description:

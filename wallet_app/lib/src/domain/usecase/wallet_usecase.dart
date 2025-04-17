@@ -5,7 +5,7 @@ import '../../wallet_core/error/core_error.dart';
 import '../model/result/application_error.dart';
 import '../model/result/result.dart';
 
-class WalletUseCase {
+abstract class WalletUseCase {
   /// Usecase helper method that implements default error handling.
   ///
   /// This method catches any thrown exceptions and makes sure they
@@ -30,11 +30,20 @@ class WalletUseCase {
 extension WalletUseCaseStreamExtension<T> on Stream<T> {
   /// Helper method for Stream exposing usecases. This method makes sure any errors exposed by
   /// the source stream are converted into [ApplicationError]s.
-  Stream<T> handleAppError(String errorMessage) => handleError(
-        (error, stack) async {
-          Fimber.e(errorMessage, ex: error, stacktrace: stack);
-          if (error is CoreError) throw (await error.asApplicationError());
-          throw GenericError(error.toString(), sourceError: error);
-        },
-      );
+  Stream<T> handleAppError(String errorMessage) async* {
+    try {
+      await for (final value in this) {
+        yield value;
+      }
+    } on ApplicationError catch (ex) {
+      Fimber.e(errorMessage, ex: ex);
+      rethrow;
+    } on CoreError catch (ex) {
+      Fimber.e(errorMessage, ex: ex);
+      throw await ex.asApplicationError();
+    } catch (ex) {
+      Fimber.e(errorMessage, ex: ex);
+      throw GenericError(ex.toString(), sourceError: ex);
+    }
+  }
 }

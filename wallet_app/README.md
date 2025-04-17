@@ -326,7 +326,6 @@ This can be used as a starting point when writing widget tests:
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:golden_toolkit/golden_toolkit.dart';
 
 void main() {
   group('goldens', () {
