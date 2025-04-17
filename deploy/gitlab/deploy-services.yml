@@ -58,7 +58,7 @@ create-deployment-ont:
     FILE_NAME: deploy-ont.yml
 
 deploy-apps-ont:
-  extends: .default-or-release-or-merge-request
+  extends: .default-or-release-or-merge-request-manual
   needs:
     - create-deployment-ont
     - !reference [.deployment-needs, needs]
