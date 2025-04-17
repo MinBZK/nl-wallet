@@ -11,6 +11,7 @@ import nl.rijksoverheid.edi.wallet.platform_support.BuildConfig
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.cert.Certificate
+import uniffi.platform_support.KeyStoreException.KeyException
 
 abstract class KeyStoreKey(val keyAlias: String) {
 
@@ -52,15 +53,21 @@ abstract class KeyStoreKey(val keyAlias: String) {
     /**
      * Returns the certificate chain of this key.
      */
-    @Throws(KeyStoreException::class)
-    fun getCertificateChain(): Array<out Certificate>? = keyStore.getCertificateChain(keyAlias)
+    @Throws(KeyException::class)
+    fun getCertificateChain(): Array<out Certificate>? {
+        try {
+            return keyStore.getCertificateChain(keyAlias)
+        } catch (e: KeyStoreException) {
+            throw KeyExceptionBuilder.certificateChainError(e)
+        }
+    }
 
-    @Throws(KeyStoreException::class)
+    @Throws(KeyException::class)
     private fun checkKeyValidity() {
         if (isHardwareBacked || BuildConfig.DEBUG) {
             return
         }
-        throw KeyStoreKeyError.MissingHardwareError(securityLevelCompat).keyException
+        throw KeyExceptionBuilder.missingHardwareError(securityLevelCompat)
     }
 
     @VisibleForTesting

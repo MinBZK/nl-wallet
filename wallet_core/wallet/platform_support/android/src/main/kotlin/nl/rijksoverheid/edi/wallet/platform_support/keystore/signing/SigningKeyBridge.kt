@@ -2,7 +2,7 @@ package nl.rijksoverheid.edi.wallet.platform_support.keystore.signing
 
 import android.content.Context
 import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyBridge
-import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyStoreKeyError
+import nl.rijksoverheid.edi.wallet.platform_support.keystore.KeyExceptionBuilder
 import uniffi.platform_support.KeyStoreException
 import uniffi.platform_support.SigningKeyBridge as RustSigningBridge
 
@@ -19,7 +19,7 @@ class SigningKeyBridge(context: Context) : KeyBridge(context), RustSigningBridge
             return SigningKey(keyAlias)
         } catch (ex: Exception) {
             if (ex is KeyStoreException) throw ex
-            throw KeyStoreKeyError.CreateKeyError(ex).keyException
+            throw KeyExceptionBuilder.createKeyError(ex)
         }
     }
 
