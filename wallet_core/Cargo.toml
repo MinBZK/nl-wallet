@@ -89,6 +89,7 @@ biscuit = "0.7.0"
 bitflags = "2.8.0"
 built = "0.7.5"
 cfg-if = "1.0.0"
+cfg_eval = "0.1.2"
 chrono = { version = "0.4.39", default-features = false }
 ciborium = "0.2.2"
 clap = "4.5.28"
