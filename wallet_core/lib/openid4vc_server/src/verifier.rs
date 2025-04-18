@@ -56,6 +56,7 @@ struct ApplicationState<S, K, H> {
     universal_link_base_url: BaseUrl,
 }
 
+#[derive(Clone, Copy)]
 pub enum RequestUriBehaviour {
     BySessionToken,
     ByUsecaseId,
