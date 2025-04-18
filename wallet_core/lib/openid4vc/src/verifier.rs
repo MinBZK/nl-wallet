@@ -743,7 +743,7 @@ where
             // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
             // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
             // session. This means that the QR code/UL stays on the website so that the user can try again.
-            Self::verify_ephemeral_id(ephemeral_id_secret, &session_token, &url_params)?;
+            Self::verify_ephemeral_id(ephemeral_id_secret, session_token, &url_params)?;
         }
 
         let (result, redirect_uri, next) = match session
