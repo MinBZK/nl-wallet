@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::convert::Infallible;
 
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -199,22 +198,18 @@ impl IssuedCredentialCopies {
     }
 }
 
-impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
-    type Error = Infallible;
-
-    fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
+impl<'a> From<&'a IssuedCredentialCopies> for &'a MdocCopies {
+    fn from(value: &'a IssuedCredentialCopies) -> Self {
         match &value {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs,
         }
     }
 }
 
-impl TryFrom<IssuedCredentialCopies> for MdocCopies {
-    type Error = Infallible;
-
-    fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
+impl From<IssuedCredentialCopies> for MdocCopies {
+    fn from(value: IssuedCredentialCopies) -> Self {
         match value {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs,
         }
     }
 }

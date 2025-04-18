@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::mem;
 use std::sync::Arc;
 
@@ -452,11 +451,7 @@ where
         ) {
             self.reset_to_initial_state().await;
         }
-        let issued_mdocs = issuance_result?
-            .into_iter()
-            .map(|mdoc| mdoc.try_into())
-            .collect::<Result<Vec<_>, Infallible>>()
-            .unwrap(); // this is Infallible
+        let issued_mdocs = issuance_result?.into_iter().map(|mdoc| mdoc.into()).collect::<Vec<_>>();
 
         info!("Isuance succeeded; removing issuance session state");
         self.issuance_session.take();
