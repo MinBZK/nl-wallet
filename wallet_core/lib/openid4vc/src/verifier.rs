@@ -139,7 +139,7 @@ pub enum GetAuthRequestError {
     QueryParametersMissing,
     #[error("failed to deserialize query parameters: {0}")]
     QueryParametersDeserialization(#[from] serde_urlencoded::de::Error),
-    #[error("no attributes configured to be disclosed configured in usecase {0}")]
+    #[error("no attributes configured to be disclosed in usecase {0}")]
     NoAttributesToRequest(String),
 }
 
