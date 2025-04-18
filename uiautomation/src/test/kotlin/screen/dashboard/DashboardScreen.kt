@@ -10,8 +10,8 @@ class DashboardScreen : MobileActions() {
 
     private val menuButton = find.byText(l10n.getString("dashboardScreenTitle"))
 
-    private val pidIdCard = find.byValueKey("com.example.pid")
-    private val pidAddressCard = find.byValueKey("com.example.address")
+    private val pidIdCard = find.byValueKey("urn:eudi:pid:nl:1")
+    private val pidAddressCard = find.byValueKey("urn:eudi:pid-address:nl:1")
 
     private val pidIdTitleText = find.byText(l10n.translate(PID_CARD_TITLE))
     private val pidAddressTitleText = find.byText(l10n.translate(ADDRESS_CARD_TITLE))
