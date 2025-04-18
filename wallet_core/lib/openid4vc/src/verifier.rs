@@ -702,7 +702,7 @@ where
     pub async fn process_get_request(
         &self,
         session_identifier: &SessionIdentifier,
-        response_uri: &BaseUrl,
+        response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
@@ -731,7 +731,7 @@ where
         };
 
         let session_token = session.state.token.clone();
-        let response_uri = response_uri.join_base_url(&format!("/{session_token}/response_uri"));
+        let response_uri = response_uri_base.join_base_url(&format!("/{session_token}/response_uri"));
 
         info!("Session({session_token}): get request");
 
