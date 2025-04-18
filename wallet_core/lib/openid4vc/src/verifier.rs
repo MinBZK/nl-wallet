@@ -471,7 +471,6 @@ pub struct UseCases<K>(HashMap<String, UseCase<K>>);
 
 #[derive(Debug)]
 pub struct UseCase<K> {
-    pub id: String,
     pub key_pair: KeyPair<K>,
     pub client_id: String,
     pub session_type_return_url: SessionTypeReturnUrl,
@@ -481,7 +480,6 @@ pub struct UseCase<K> {
 
 impl<K> UseCase<K> {
     pub fn try_new(
-        id: String,
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
         items_requests: Option<ItemsRequests>,
@@ -494,7 +492,6 @@ impl<K> UseCase<K> {
                 .ok_or(UseCaseCertificateError::MissingSAN)?,
         );
         let use_case = Self {
-            id,
             key_pair,
             client_id,
             session_type_return_url,
@@ -727,7 +724,7 @@ where
                         SessionToken::new_random(),
                         Created {
                             items_requests,
-                            usecase_id: usecase.id.clone(),
+                            usecase_id: usecase_id.clone(),
                             client_id: usecase.client_id.clone(),
                             redirect_uri_template: usecase.return_url_template.clone(),
                         },
@@ -1364,7 +1361,6 @@ mod tests {
             (
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 UseCase {
-                    id: DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                     key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
@@ -1375,7 +1371,6 @@ mod tests {
             (
                 DISCLOSURE_USECASE.to_string(),
                 UseCase {
-                    id: DISCLOSURE_USECASE.to_string(),
                     key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".to_string(),
@@ -1386,7 +1381,6 @@ mod tests {
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                 UseCase {
-                    id: DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
                     key_pair: generate_reader_mock(&ca, reader_registration).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Both,
                     client_id: "client_id".to_string(),
@@ -1746,7 +1740,6 @@ mod tests {
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
             UseCase {
-                id: DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
                 key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                 session_type_return_url: SessionTypeReturnUrl::Neither,
                 client_id: "client_id".to_string(),

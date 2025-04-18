@@ -834,7 +834,6 @@ fn setup_verifier(
         (
             NO_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
-                NO_RETURN_URL_USE_CASE.to_string(),
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::Neither,
                 None,
@@ -845,7 +844,6 @@ fn setup_verifier(
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
-                DEFAULT_RETURN_URL_USE_CASE.to_string(),
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
                 None,
@@ -856,7 +854,6 @@ fn setup_verifier(
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
             UseCase::try_new(
-                ALL_RETURN_URL_USE_CASE.to_string(),
                 generate_reader_mock(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
                 None,

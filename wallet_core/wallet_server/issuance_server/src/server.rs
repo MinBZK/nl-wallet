@@ -78,9 +78,8 @@ where
 
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| async {
         Ok::<_, anyhow::Error>((
-            id.clone(),
+            id,
             UseCase::try_new(
-                id,
                 s.key_pair.parse(hsm.clone()).await?,
                 SessionTypeReturnUrl::Both,
                 Some(s.to_disclose),

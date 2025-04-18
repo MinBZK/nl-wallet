@@ -87,9 +87,9 @@ pub struct UseCaseSettings {
 
 impl UseCasesSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCases<PrivateKeyVariant>, anyhow::Error> {
-        let iter = self.into_iter().map(|(id, use_case)| async {
-            Ok::<_, anyhow::Error>((id.clone(), use_case.parse(id, hsm.clone()).await?))
-        });
+        let iter = self
+            .into_iter()
+            .map(|(id, use_case)| async { Ok::<_, anyhow::Error>((id, use_case.parse(hsm.clone()).await?)) });
 
         let use_cases = try_join_all(iter)
             .await?
@@ -101,9 +101,8 @@ impl UseCasesSettings {
 }
 
 impl UseCaseSettings {
-    pub async fn parse(self, id: String, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
         let use_case = UseCase::try_new(
-            id,
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
             None,
