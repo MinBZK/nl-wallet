@@ -652,13 +652,10 @@ where
     }
 
     fn verify_ephemeral_id(
-        &self,
+        ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
         url_params: &VerifierUrlParameters,
     ) -> Result<(), GetAuthRequestError> {
-        let Some(ephemeral_id_secret) = &self.ephemeral_id_secret else {
-            return Ok(());
-        };
         let ephemeral_id_params = url_params
             .ephemeral_id_params
             .as_ref()
@@ -748,10 +745,12 @@ where
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
 
-        // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
-        // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
-        // session. This means that the QR code/UL stays on the website so that the user can try again.
-        self.verify_ephemeral_id(&session_token, &url_params)?;
+        if let Some(ephemeral_id_secret) = &self.ephemeral_id_secret {
+            // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
+            // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
+            // session. This means that the QR code/UL stays on the website so that the user can try again.
+            Self::verify_ephemeral_id(ephemeral_id_secret, &session_token, &url_params)?;
+        }
 
         let (result, redirect_uri, next) = match session
             .process_get_request(
