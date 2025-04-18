@@ -714,22 +714,19 @@ where
                     .as_ref()
                     .get(usecase_id)
                     .ok_or(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()))?;
+
                 let items_requests = usecase
                     .items_requests
                     .as_ref()
                     .ok_or(GetAuthRequestError::NoAttributesToRequest(usecase_id.to_string()))?
                     .clone();
-                Session {
-                    state: SessionState::new(
-                        SessionToken::new_random(),
-                        Created {
-                            items_requests,
-                            usecase_id: usecase_id.clone(),
-                            client_id: usecase.client_id.clone(),
-                            redirect_uri_template: usecase.return_url_template.clone(),
-                        },
-                    ),
-                }
+
+                Session::<Created>::new(
+                    items_requests,
+                    usecase_id.clone(),
+                    usecase.client_id.clone(),
+                    usecase.return_url_template.clone(),
+                )
             }
         };
 
