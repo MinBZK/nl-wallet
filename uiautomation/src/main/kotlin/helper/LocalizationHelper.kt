@@ -20,8 +20,8 @@ class LocalizationHelper {
         val nl: String,
         val en: String,
     ) {
-        PID_CARD_TITLE("Persoonsgegevens", "Personal data"),
-        ADDRESS_CARD_TITLE("Woonadres", "Residential address"),
+        PID_CARD_TITLE("Persoonsgegevens (NL)", "Personal data (NL)"),
+        ADDRESS_CARD_TITLE("Adres (NL)", "Address (NL)"),
         SECONDS("seconden", "seconds"),
         AMSTERDAM_DISPLAY_NAME("Gemeente Amsterdam", "City of Amsterdam"),
         NAME_LABEL("Achternaam", "Name"),
