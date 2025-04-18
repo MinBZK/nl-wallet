@@ -35,7 +35,7 @@ pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 pub struct VecAtLeastN<T, const N: usize, const UNIQUE: bool>(Vec<T>);
 
 impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
-    pub fn new(inner: Vec<T>) -> Result<Self, VecAtLeastNError> {
+    fn new(inner: Vec<T>) -> Result<Self, VecAtLeastNError> {
         // Unfortunately this cannot be a compile time check on N, so
         // it is checked at runtime in the type's only constructor.
         assert!(N > 0, "minimum length N must be a positive integer");
