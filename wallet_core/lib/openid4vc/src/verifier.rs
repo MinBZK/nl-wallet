@@ -730,7 +730,7 @@ where
             }
         };
 
-        let session_token = session.state.token.clone();
+        let session_token = &session.state.token;
         let response_uri = response_uri_base.join_base_url(&format!("/{session_token}/response_uri"));
 
         info!("Session({session_token}): get request");
@@ -747,13 +747,7 @@ where
         }
 
         let (result, redirect_uri, next) = match session
-            .process_get_request(
-                &session_token,
-                response_uri,
-                url_params.session_type,
-                wallet_nonce,
-                &self.use_cases,
-            )
+            .process_get_request(response_uri, url_params.session_type, wallet_nonce, &self.use_cases)
             .await
         {
             Ok((jws, next)) => (
@@ -1013,7 +1007,6 @@ impl Session<Created> {
     /// returning a response to answer the device with and the next session state.
     async fn process_get_request<K>(
         self,
-        session_token: &SessionToken,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
@@ -1028,7 +1021,7 @@ impl Session<Created> {
         info!("Session({}): process get request", self.state.token);
 
         let (response, next) = match self
-            .process_get_request_inner(session_token, response_uri, session_type, wallet_nonce, use_cases)
+            .process_get_request_inner(&self.state.token, response_uri, session_type, wallet_nonce, use_cases)
             .await
         {
             Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
