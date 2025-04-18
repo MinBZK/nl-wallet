@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use std::sync::LazyLock;
 
 use derive_more::Constructor;
@@ -666,6 +667,7 @@ where
     pub async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
         K: CredentialEcdsaKey,
+        K: Eq + Hash,
         KF: KeyFactory<Key = K>,
         KF: PoaFactory<Key = K>,
     {
@@ -681,13 +683,13 @@ where
             .await
             .map_err(|err| DisclosureError::before_sharing(VpClientError::DeviceResponse(err)))?;
 
-        let poa = match VecAtLeastTwoUnique::new(keys) {
+        let poa = match VecAtLeastTwoUnique::try_from(keys) {
             Ok(keys) => {
                 info!("create Proof of Association");
 
                 // Poa::new() needs a vec of references. We can unwrap because we only get here if the conversion was
                 // successful.
-                let keys = VecAtLeastTwoUnique::new(keys.as_slice().iter().collect_vec()).unwrap();
+                let keys = VecAtLeastTwoUnique::try_from(keys.as_slice().iter().collect_vec()).unwrap();
                 let poa = key_factory
                     .poa(
                         keys,
@@ -736,6 +738,7 @@ impl From<VpMessageClientError> for DisclosureError<VpClientError> {
 #[cfg(test)]
 mod tests {
     use std::convert::identity;
+    use std::hash::Hash;
     use std::iter;
     use std::sync::Arc;
 
@@ -1627,6 +1630,7 @@ mod tests {
     where
         F: Fn() -> Option<VpMessageClientError>,
         K: CredentialEcdsaKey,
+        K: Eq + Hash,
         KF: KeyFactory<Key = K>,
         KF: PoaFactory<Key = K>,
     {
