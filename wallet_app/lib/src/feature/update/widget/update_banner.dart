@@ -182,7 +182,7 @@ class _UpdateBannerState extends State<UpdateBanner> with SingleTickerProviderSt
       children: [
         BodyText(
           title,
-          style: context.textTheme.labelLarge?.copyWith(
+          style: context.textTheme.titleMedium?.copyWith(
             decoration: _statesController.value.isFocused ? TextDecoration.underline : null,
           ),
         ),

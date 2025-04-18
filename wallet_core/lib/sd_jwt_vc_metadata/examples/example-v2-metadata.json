@@ -1,24 +1,35 @@
 {
   "vct": "https://sd_jwt_vc_metadata.example.com/example_credential_v2",
-  "name": "NL Wallet extended PID credential",
-  "description": "Working version of the NL Wallet extended PID credential",
+  "name": "NL Wallet PID credential v2",
+  "description": "Working version of the NL Wallet PID credential v2",
   "extends": "https://sd_jwt_vc_metadata.example.com/example_credential",
-  "extends#integrity": "sha256-+SCSaJbTVwa0LQIyG8YbaOx3hTYeEDxZlPos+HQZMyI=",
+  "extends#integrity": "sha256-yA2gxIVcDQu6seRtRlNSDl7X9DTdA7lTGPsAZ/i7UHk=",
   "display": [
-    {
-      "lang": "en-US",
-      "name": "NL Wallet Personal Data",
-      "description": "The Personal Data credential for the NL Wallet, part 2",
-      "summary": "Extended example PID credential of {{nickname}}"
-    },
     {
       "lang": "nl-NL",
       "name": "NL Wallet persoonsgegevens",
-      "description": "De persoonsgegevensattestatie voor de NL Wallet, deel 2",
+      "description": "De persoonsgegevensattestatie voor de NL Wallet",
       "summary": "Uitgebreid voorbeeld persoonsgegevensattestatie van {{nickname}}"
+    },
+    {
+      "lang": "en-US",
+      "name": "NL Wallet personal data",
+      "description": "The personal data credential for the NL Wallet",
+      "summary": "Extended example PID credential of {{nickname}}"
     }
   ],
   "claims": [
+    {
+      "path": ["nickname"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Cool nickname"
+        }
+      ],
+      "sd": "always",
+      "svg_id": "nickname"
+    },
     {
       "path": ["birth_date"],
       "display": [
@@ -31,6 +42,36 @@
       "sd": "always"
     },
     {
+      "path": ["place_of_birth", "locality"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Locality"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["place_of_birth", "country", "name"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country"
+        }
+      ],
+      "sd": "allowed"
+    },
+    {
+      "path": ["place_of_birth", "country", "area_code"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "Country area code"
+        }
+      ],
+      "sd": "never"
+    },
+    {
       "path": ["place_of_birth", "country", "is_eu_member"],
       "display": [
         {
@@ -38,14 +79,14 @@
           "label": "Country is a member of the EU"
         }
       ],
-      "sd": "always"
+      "sd": "never"
     },
     {
-      "path": ["financial", "has_job"],
+      "path": ["financial", "has_debt"],
       "display": [
         {
           "lang": "en-US",
-          "label": "Is gainfully employed"
+          "label": "Has debt"
         }
       ],
       "sd": "always"
@@ -61,15 +102,14 @@
       "sd": "always"
     },
     {
-      "path": ["nickname"],
+      "path": ["financial", "has_job"],
       "display": [
         {
           "lang": "en-US",
-          "label": "Cool nickname"
+          "label": "Is gainfully employed"
         }
       ],
-      "sd": "always",
-      "svg_id": "nickname"
+      "sd": "always"
     }
   ],
   "schema": {
@@ -79,8 +119,7 @@
     "type": "object",
     "properties": {
       "birth_date": {
-        "type": "string",
-        "format": "date"
+        "type": "string"
       },
       "place_of_birth": {
         "type": "object",
@@ -130,6 +169,9 @@
       "iss": {
         "type": "string"
       },
+      "cnf": {
+        "type": "object"
+      },
       "iat": {
         "type": "number"
       },
@@ -140,6 +182,6 @@
         "type": "number"
       }
     },
-    "required": ["vct", "iss", "iat"]
+    "required": ["vct", "iss", "iat", "attestation_qualification"]
   }
 }

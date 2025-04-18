@@ -13,7 +13,7 @@ import '../request_biometrics_usecase.dart';
 
 const _kDefaultErrorMessage = 'Failed to authenticate with biometrics';
 
-class RequestBiometricsUsecaseImpl extends RequestBiometricsUsecase {
+class RequestBiometricsUsecaseImpl extends RequestBiometricsUseCase {
   final LocalAuthentication _localAuthentication;
   final ActiveLocaleProvider _localeProvider;
   final TargetPlatform _targetPlatform;

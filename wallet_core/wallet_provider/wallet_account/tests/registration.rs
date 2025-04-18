@@ -15,7 +15,6 @@ use apple_app_attest::AssertionCounter;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
 use apple_app_attest::VerifiedAttestation;
-use crypto::utils;
 use platform_support::attested_key::mock::MockAppleAttestedKey;
 
 use wallet_account::messages::registration::Registration;
@@ -80,7 +79,7 @@ fn test_google_registration() {
     let attested_ca_chain = MockCaChain::generate(1);
     let (attested_certificate_chain, attested_private_key) =
         attested_ca_chain.generate_attested_leaf_certificate(&KeyDescription::new_valid_mock(challenge.to_vec()));
-    let integrity_token = utils::random_string(32);
+    let integrity_token = crypto::utils::random_string(32);
     let pin_signing_key = SigningKey::random(&mut OsRng);
 
     // The Wallet generates a registration message.

@@ -54,7 +54,7 @@ mod test {
 
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
-    use wallet_common::generator::TimeGenerator;
+    use utils::generator::TimeGenerator;
 
     use crate::utils::issuer_auth::IssuerRegistration;
     use crate::utils::reader_auth::ReaderRegistration;

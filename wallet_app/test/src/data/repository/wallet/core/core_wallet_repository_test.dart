@@ -168,4 +168,50 @@ void main() {
       expect(result, isFalse);
     });
   });
+
+  test('call to unlockWalletWithBiometrics is passed through to the core', () async {
+    when(core.isRegistered()).thenAnswer((_) async => true);
+    await repo.unlockWalletWithBiometrics();
+    verify(core.unlockWithBiometrics()).called(1);
+  });
+
+  test('call to unlockWalletWithBiometrics throws when not registered', () async {
+    await expectLater(() async => repo.unlockWalletWithBiometrics(), throwsA(isA<StateError>()));
+  });
+
+  test('call to checkPin is passed through to the core', () async {
+    when(core.isRegistered()).thenAnswer((_) async => true);
+    await repo.checkPin('123123');
+    verify(core.checkPin('123123')).called(1);
+  });
+
+  test('call to checkPin throws when not registered', () async {
+    await expectLater(() async => repo.checkPin('143245'), throwsA(isA<StateError>()));
+  });
+
+  test('call to changePin is passed through to the core', () async {
+    when(core.isRegistered()).thenAnswer((_) async => true);
+    await repo.changePin('123123', '321321');
+    verify(core.changePin('123123', '321321')).called(1);
+  });
+
+  test('call to changePin throws when not registered', () async {
+    await expectLater(() async => repo.changePin('143242', '324942'), throwsA(isA<StateError>()));
+  });
+
+  test('call to continueChangePin is passed through to the core', () async {
+    when(core.isRegistered()).thenAnswer((_) async => true);
+    await repo.continueChangePin('321321');
+    verify(core.continueChangePin('321321')).called(1);
+  });
+
+  test('call to continueChangePin throws when not registered', () async {
+    await expectLater(() async => repo.continueChangePin('324942'), throwsA(isA<StateError>()));
+  });
+
+  test('when observeCards returns an empty stream it will return false and not get stuck', () async {
+    when(core.isRegistered()).thenAnswer((_) async => true);
+    when(core.observeCards()).thenAnswer((_) => PublishSubject());
+    await expectLater(await repo.containsPid(), isFalse);
+  });
 }

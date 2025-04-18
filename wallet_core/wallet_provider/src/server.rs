@@ -5,7 +5,7 @@ use std::net::TcpListener;
 use tracing::info;
 
 use hsm::service::Pkcs11Hsm;
-use wallet_common::built_info::version_string;
+use utils::built_info::version_string;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
 

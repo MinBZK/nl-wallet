@@ -2,7 +2,7 @@ use std::error::Error;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use wallet_common::reqwest::RequestBuilder;
+use http_utils::reqwest::RequestBuilder;
 
 use super::Filename;
 use super::HttpClient;

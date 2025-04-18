@@ -7,15 +7,15 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 
 use crypto::p256_der::DerVerifyingKey;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::urls::BaseUrl;
-use wallet_common::utils;
+use utils::path::prefix_local_path;
 
 #[serde_as]
 #[derive(Clone, Deserialize)]
@@ -66,7 +66,7 @@ impl ServerSettings for PidIssuerSettings {
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,
         // otherwise look in the current working directory.
-        let config_source = utils::prefix_local_path(config_file.as_ref());
+        let config_source = prefix_local_path(config_file.as_ref());
 
         let environment_parser = Environment::with_prefix(env_prefix)
             .separator("__")

@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
+use http_utils::reqwest::default_reqwest_client_builder;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use mdoc::identifiers::AttributeIdentifier;
@@ -16,7 +17,6 @@ use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use poa::factory::PoaFactory;
-use wallet_common::reqwest::default_reqwest_client_builder;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 

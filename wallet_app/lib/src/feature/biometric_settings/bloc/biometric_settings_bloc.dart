@@ -17,7 +17,7 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
   final GetAvailableBiometricsUseCase getAvailableBiometricsUseCase;
   final SetBiometricsUseCase setBiometricsUseCase;
   final IsBiometricLoginEnabledUseCase isBiometricLoginEnabledUseCase;
-  final RequestBiometricsUsecase requestBiometricsUsecaseImpl;
+  final RequestBiometricsUseCase requestBiometricsUsecase;
 
   Biometrics? _supportedBiometrics;
 
@@ -29,7 +29,7 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
     this.getAvailableBiometricsUseCase,
     this.setBiometricsUseCase,
     this.isBiometricLoginEnabledUseCase,
-    this.requestBiometricsUsecaseImpl,
+    this.requestBiometricsUsecase,
   ) : super(BiometricSettingsInitial()) {
     on<BiometricLoadTriggered>(_onRefresh);
     on<BiometricUnlockToggled>(_onBiometricUnlockSettingToggled);
@@ -77,7 +77,7 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
     emit(const BiometricSettingsLoaded(biometricLoginEnabled: true));
 
     // Perform biometric authentication
-    final result = await requestBiometricsUsecaseImpl.invoke();
+    final result = await requestBiometricsUsecase.invoke();
     await result.process(
       onSuccess: (authResult) {
         switch (authResult) {

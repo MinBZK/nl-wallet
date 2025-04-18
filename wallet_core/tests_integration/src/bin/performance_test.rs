@@ -5,6 +5,7 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
+use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
@@ -30,7 +31,6 @@ use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::DisclosureUriSource;
 use wallet::Wallet;
-use wallet_common::http::TlsPinningConfig;
 
 #[ctor]
 fn init() {
@@ -112,10 +112,10 @@ async fn main() {
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
         items_requests: vec![ItemsRequest {
-            doc_type: "com.example.pid".to_owned(),
+            doc_type: "urn:eudi:pid:nl:1".to_owned(),
             request_info: None,
             name_spaces: IndexMap::from([(
-                "com.example.pid".to_owned(),
+                "urn:eudi:pid:nl:1".to_owned(),
                 IndexMap::from_iter(
                     [("given_name", true), ("family_name", false)]
                         .iter()

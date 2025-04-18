@@ -1,5 +1,5 @@
 use derive_more::Constructor;
-use wallet_common::update_policy::VersionState;
+use update_policy_model::update_policy::VersionState;
 
 use crate::repository::BackgroundUpdateableRepository;
 use crate::repository::ObservableRepository;

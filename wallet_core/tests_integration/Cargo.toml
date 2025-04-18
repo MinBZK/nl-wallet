@@ -61,12 +61,14 @@ test_common = [
     "crypto",
     "hsm",
     "logging",
+    "rustls",
     "dep:android_attest",
     "dep:apple_app_attest",
     "dep:chrono",
     "dep:configuration_server",
     "dep:ctor",
     "dep:gba_hc_converter",
+    "dep:http_utils",
     "dep:indexmap",
     "dep:jsonwebtoken",
     "dep:mdoc",
@@ -87,14 +89,14 @@ test_common = [
     "dep:uuid",
     "dep:verification_server",
     "dep:wallet",
-    "dep:wallet_common",
+    "dep:utils",
     "dep:wallet_configuration",
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
 ]
 # Include the fake_digid submodule
-fake_digid = ["dep:reqwest", "dep:url", "dep:wallet_common", "dep:wallet_configuration"]
+fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "pid_issuer?/db_test",
@@ -143,7 +145,7 @@ performance_test = [
     "dep:serde_urlencoded",
     "dep:tempfile",
     "dep:wallet",
-    "dep:wallet_common",
+    "dep:utils",
     "dep:server_utils",
     "dep:verification_server",
     "dep:dotenvy",
@@ -169,7 +171,7 @@ gba_pid_test = [
     "dep:serde_urlencoded",
     "dep:tokio",
     "dep:wallet",
-    "dep:wallet_common",
+    "dep:utils",
     "platform_support/mock_attested_key_apple_ca",
     "wallet/snapshot_test",
 ]
@@ -195,6 +197,7 @@ p256 = { workspace = true, optional = true, features = ["pkcs8"] }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
+rustls = { workspace = true, optional = true, features = ["ring"] }
 rustls-pki-types = { workspace = true, optional = true }
 serde_urlencoded = { workspace = true, optional = true }
 serial_test = { workspace = true, optional = true }
@@ -217,6 +220,7 @@ configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
+http_utils = { path = "../lib/http_utils", optional = true }
 jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }
@@ -225,10 +229,10 @@ pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features =
 platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
-update_policy_server = { path = "../update_policy_server", optional = true }
+update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }
 wallet = { path = "../wallet", optional = true, features = ["mock", "wallet_deps", "test"] }
-wallet_common = { path = "../lib/wallet_common", optional = true }
+utils = { path = "../lib/utils", optional = true }
 wallet_configuration = { path = "../wallet/configuration", optional = true }
 wallet_provider = { path = "../wallet_provider", optional = true }
 wallet_provider_persistence = { path = "../wallet_provider/persistence", optional = true }
@@ -242,8 +246,10 @@ dotenvy = { workspace = true, optional = true }
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
+android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", features = ["integration_test"] }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }
+sd_jwt = { path = "../lib/sd_jwt", features = ["examples"] }
 server_utils = { path = "../wallet_server/server_utils", features = ["integration_test"] }
 verification_server = { path = "../wallet_server/verification_server", features = ["integration_test"] }

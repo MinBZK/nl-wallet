@@ -2,11 +2,11 @@ use p256::ecdsa::VerifyingKey;
 
 use crypto::utils::random_string;
 use jwt::credential::JwtCredential;
+use jwt::wte::WteClaims;
 use platform_support::attested_key::AppleAttestedKey;
 use platform_support::attested_key::GoogleAttestedKey;
 use wallet_account::messages::instructions::IssueWte;
 use wallet_account::messages::instructions::IssueWteResult;
-use wallet_common::wte::WteClaims;
 
 use crate::account_provider::AccountProviderClient;
 use crate::instruction::InstructionClient;
@@ -65,9 +65,9 @@ pub(crate) mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::utils::random_string;
     use jwt::credential::JwtCredential;
+    use jwt::wte::WteClaims;
     use platform_support::attested_key::AppleAttestedKey;
     use platform_support::attested_key::GoogleAttestedKey;
-    use wallet_common::wte::WteClaims;
 
     use crate::account_provider::AccountProviderClient;
     use crate::instruction::InstructionClient;

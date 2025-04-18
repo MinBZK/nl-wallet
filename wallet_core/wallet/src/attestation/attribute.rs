@@ -12,9 +12,8 @@ use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
-use sd_jwt_vc_metadata::SchemaOption;
-use sd_jwt_vc_metadata::TypeMetadata;
-use wallet_common::vec_at_least::VecNonEmpty;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use utils::vec_at_least::VecNonEmpty;
 
 use super::Attestation;
 use super::AttestationAttribute;
@@ -27,25 +26,20 @@ impl Attestation {
     // This method has different behaviour depending on the `selection_mode` parameter.
     pub(super) fn create_from_attributes(
         identity: AttestationIdentity,
-        metadata: TypeMetadata,
+        metadata: NormalizedTypeMetadata,
         issuer: Organization,
         mut nested_attributes: IndexMap<String, Attribute>,
     ) -> Result<Self, AttestationError> {
-        let metadata = metadata.into_inner();
+        let (attestation_type, display_metadata, claims, schema) = metadata.into_presentation_components();
 
-        // Retrieve the JSON Schema from the metadata, which has the same structure as the attributes (otherwise,
-        // they wouldn't validate later on when converted to a `CredentialPayload`). The JSON Schema is used to provide
-        // extra metadata for converting attributes values.
-        let schema_properties = if let SchemaOption::Embedded { schema } = metadata.schema {
-            Ok(schema.into_properties().properties)
-        } else {
-            Err(AttestationError::UnsupportedMetadataSchema(metadata.schema))
-        }?;
+        // Extract the JSON Schema properties from the metadata, which has the same structure as the attributes
+        // (otherwise, they wouldn't validate later on when converted to a `CredentialPayload`). The JSON Schema is used
+        // to provide extra metadata for converting attributes values.
+        let schema_properties = schema.into_properties().properties;
 
         // For every claim in the metadata, traverse the nested attributes to find it,
         // then convert it to a `AttestationAttribute` value.
-        let attributes = metadata
-            .claims
+        let attributes = claims
             .into_iter()
             .filter_map(|claim| {
                 take_attribute_value_at_key_path(&mut nested_attributes, claim.path, &schema_properties)
@@ -54,7 +48,7 @@ impl Attestation {
                             key: path,
                             metadata: claim.display,
                             value,
-                            svg_id: claim.svg_id,
+                            svg_id: claim.svg_id.map(String::from),
                         })
                     })
                     .transpose()
@@ -73,8 +67,8 @@ impl Attestation {
         // Finally, construct the `Attestation` type.
         let attestation = Attestation {
             identity,
-            display_metadata: metadata.display,
-            attestation_type: metadata.vct,
+            display_metadata,
+            attestation_type,
             issuer,
             attributes,
         };

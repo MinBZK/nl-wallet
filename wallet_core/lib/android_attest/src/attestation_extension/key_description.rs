@@ -14,6 +14,8 @@ use rasn::Decode;
 use rasn::Decoder;
 #[cfg(feature = "encode")]
 use rasn::Encoder;
+#[cfg(feature = "serialize_key_attestation")]
+use serde::Serialize;
 
 // KeyDescription ::= SEQUENCE {
 //     attestationVersion  INTEGER,
@@ -45,6 +47,7 @@ pub struct KeyDescription {
 // }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode)]
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[rasn(enumerated)]
 pub enum SecurityLevel {
     Software,
@@ -188,6 +191,7 @@ pub struct AuthorizationList {
 // }
 #[derive(Debug, Clone, PartialEq, Eq, AsnType, Decode)]
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 pub struct RootOfTrust {
     pub verified_boot_key: OctetString,
     pub device_locked: bool,
@@ -203,6 +207,7 @@ pub struct RootOfTrust {
 // }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, AsnType, Decode)]
 #[cfg_attr(feature = "encode", derive(rasn::Encode))]
+#[cfg_attr(feature = "serialize_key_attestation", derive(Serialize))]
 #[rasn(enumerated)]
 pub enum VerifiedBootState {
     Verified,
@@ -211,7 +216,7 @@ pub enum VerifiedBootState {
     Failed,
 }
 
-#[cfg(feature = "encode")]
+#[cfg(feature = "mock")]
 mod mock {
     use super::*;
 

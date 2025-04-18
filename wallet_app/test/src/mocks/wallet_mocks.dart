@@ -20,6 +20,7 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_supported_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/request_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/set_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_card_usecase.dart';
 import 'package:wallet/src/domain/usecase/card/get_wallet_cards_usecase.dart';
@@ -154,6 +155,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<IsBiometricLoginEnabledUseCase>()])
 @GenerateNiceMocks([MockSpec<ObserveVersionStateUsecase>()])
 @GenerateNiceMocks([MockSpec<GetVersionStringUseCase>()])
+@GenerateNiceMocks([MockSpec<RequestBiometricsUseCase>()])
 
 /// Core
 @GenerateNiceMocks([MockSpec<WalletCoreApi>()])

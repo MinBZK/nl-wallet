@@ -1,7 +1,7 @@
 use http::StatusCode;
 
-use wallet_common::http_error::HttpJsonError;
-use wallet_common::http_error::HttpJsonErrorType;
+use http_utils::error::HttpJsonError;
+use http_utils::error::HttpJsonErrorType;
 
 use crate::gba;
 use crate::haal_centraal;

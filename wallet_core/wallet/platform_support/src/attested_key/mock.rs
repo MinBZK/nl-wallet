@@ -54,7 +54,7 @@ impl AsRef<Arc<SigningKey>> for SharedSigningKey {
     }
 }
 
-#[cfg_attr(feature = "persistent_mock_attested_key", serde_with::serde_as)]
+#[cfg_attr(feature = "persistent_mock_attested_key", cfg_eval::cfg_eval, serde_with::serde_as)]
 #[derive(Debug)]
 #[cfg_attr(
     feature = "persistent_mock_attested_key",
@@ -64,12 +64,10 @@ impl AsRef<Arc<SigningKey>> for SharedSigningKey {
 enum AttestedKeyState {
     Generated,
     Attested {
-        // Ugly workaround for `#[cfg_attr(feature = "persistent_mock_attested_key", serde_as(...))]` not working here.
-        #[cfg(not(feature = "persistent_mock_attested_key"))]
-        signing_key: SharedSigningKey,
-
-        #[cfg(feature = "persistent_mock_attested_key")]
-        #[serde_as(as = "serde_with::base64::Base64")]
+        #[cfg_attr(
+            feature = "persistent_mock_attested_key",
+            serde_as(as = "serde_with::base64::Base64")
+        )]
         signing_key: SharedSigningKey,
 
         // This is set to `None` for Google attested keys.

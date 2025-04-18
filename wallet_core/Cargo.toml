@@ -10,16 +10,19 @@ members = [
     "lib/error_category",
     "lib/error_category/error_category_derive",
     "lib/hsm",
+    "lib/http_utils",
     "lib/jwt",
     "lib/mdoc",
     "lib/openid4vc",
     "lib/openid4vc_server",
     "lib/poa",
+    "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
-    "lib/wallet_common",
+    "lib/utils",
     "mock_relying_party",
     "tests_integration",
-    "update_policy_server",
+    "update_policy/model",
+    "update_policy/server",
     "wallet",
     "wallet/configuration",
     "wallet/entity",
@@ -85,7 +88,9 @@ base64 = "0.22.1"
 biscuit = "0.7.0"
 bitflags = "2.8.0"
 built = "0.7.5"
+bytes = "1.10.1"
 cfg-if = "1.0.0"
+cfg_eval = "0.1.2"
 chrono = { version = "0.4.39", default-features = false }
 ciborium = "0.2.2"
 clap = "4.5.28"
@@ -119,7 +124,8 @@ int-enum = "1.1.2"
 itertools = "0.14.0"
 jni = "0.21.1"
 josekit = "0.10.1"
-jsonschema = { version = "0.28.3", default-features = false }
+json-pointer = "0.3.4"
+jsonschema = { version = "0.29.0", default-features = false }
 jsonwebtoken = { version = "9.3.0", default-features = false }
 # held back by sea-orm / sqlx
 libsqlite3-sys = { version = "0.30.1", default-features = false }
@@ -152,6 +158,7 @@ ring = "0.17.12"
 rpassword = "7.3.1"
 rsa = { version = "0.9.7", default-features = false }
 rstest = "0.24.0"
+rustls = { version = "0.23.22", default-features = false }
 rustls-pki-types = "1.11.0"
 rustls-webpki = "0.102.8"
 sanitize-filename = "0.6.0"

@@ -30,8 +30,10 @@ use url::Url;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
-use crypto::utils;
 use hsm::service::Pkcs11Hsm;
+use http_utils::error::HttpJsonErrorBody;
+use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::urls::BaseUrl;
 use mdoc::examples::Example;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_ATTR_VALUE;
@@ -73,14 +75,11 @@ use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
+use utils::generator::mock::MockTimeGenerator;
+use utils::generator::TimeGenerator;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
-use wallet_common::generator::mock::MockTimeGenerator;
-use wallet_common::generator::TimeGenerator;
-use wallet_common::http_error::HttpJsonErrorBody;
-use wallet_common::reqwest::default_reqwest_client_builder;
-use wallet_common::urls::BaseUrl;
 
 const USECASE_NAME: &str = "usecase";
 
@@ -183,7 +182,7 @@ async fn wallet_server_settings_and_listener(
 
     let settings = VerifierSettings {
         usecases,
-        ephemeral_id_secret: utils::random_bytes(64).try_into().unwrap(),
+        ephemeral_id_secret: crypto::utils::random_bytes(64).try_into().unwrap(),
 
         allow_origins: None,
         reader_trust_anchors,
@@ -831,8 +830,8 @@ mod db_test {
     use server_utils::settings::ServerSettings;
     use server_utils::store::postgres;
     use server_utils::store::postgres::PostgresSessionStore;
+    use utils::generator::mock::MockTimeGenerator;
     use verification_server::settings::VerifierSettings;
-    use wallet_common::generator::mock::MockTimeGenerator;
 
     use super::test_disclosure_expired;
 
@@ -985,7 +984,7 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
     );
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
-    let mdoc_private_key_id = utils::random_string(16);
+    let mdoc_private_key_id = crypto::utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
     let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
     let issuer_signed = IssuerSigned::sign(

@@ -4,7 +4,7 @@ use mdoc::unsigned::Entry;
 use mdoc::utils::auth::Organization;
 use mdoc::NameSpace;
 use openid4vc::attributes::Attribute;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use super::Attestation;
 use super::AttestationError;
@@ -13,7 +13,7 @@ use super::AttestationIdentity;
 impl Attestation {
     pub(crate) fn create_for_issuance(
         identity: AttestationIdentity,
-        metadata: TypeMetadata,
+        metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
@@ -33,14 +33,15 @@ mod test {
     use mdoc::utils::auth::Organization;
     use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
-    use sd_jwt_vc_metadata::TypeMetadata;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
-    use crate::attestation::attribute::test::claim_metadata;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::issuance::mock::create_bsn_only_unsigned_mdoc;
     use crate::issuance::mock::create_example_unsigned_mdoc;
+    use crate::issuance::PID_DOCTYPE;
     use crate::Attestation;
     use crate::AttestationIdentity;
 
@@ -50,7 +51,7 @@ mod test {
 
         let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
-            metadata,
+            NormalizedTypeMetadata::from_single_example(metadata.into_inner()),
             Organization::new_mock(),
             unsigned_mdoc.attributes.into_inner(),
         )
@@ -87,14 +88,15 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
-        let (unsigned_mdoc, metadata) = create_bsn_only_unsigned_mdoc();
+        let (unsigned_mdoc, _) = create_bsn_only_unsigned_mdoc();
 
-        let metadata = TypeMetadata::try_new(UncheckedTypeMetadata {
-            vct: unsigned_mdoc.doc_type,
-            claims: vec![claim_metadata(&["not_found"]), claim_metadata(&["bsn"])],
-            ..metadata.into_inner()
-        })
-        .unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
+            &unsigned_mdoc.doc_type,
+            &[
+                ("not_found", JsonSchemaPropertyType::String, None),
+                ("bsn", JsonSchemaPropertyType::String, None),
+            ],
+        ));
 
         let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
@@ -121,18 +123,16 @@ mod test {
 
     #[test]
     fn test_attribute_not_processed() {
-        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+        let (unsigned_mdoc, _) = create_example_unsigned_mdoc();
 
-        let metadata = TypeMetadata::try_new(UncheckedTypeMetadata {
-            vct: unsigned_mdoc.doc_type,
-            claims: vec![
-                claim_metadata(&["family_name"]),
-                claim_metadata(&["given_name"]),
-                claim_metadata(&["birth_date"]),
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
+            &unsigned_mdoc.doc_type,
+            &[
+                ("family_name", JsonSchemaPropertyType::String, None),
+                ("given_name", JsonSchemaPropertyType::String, None),
+                ("age_over_18", JsonSchemaPropertyType::Boolean, None),
             ],
-            ..metadata.into_inner()
-        })
-        .unwrap();
+        ));
 
         let error = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
@@ -146,10 +146,10 @@ mod test {
             error,
             AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims))
                 if claims == IndexMap::from([
-                    (String::from("com.example.pid"),
+                    (String::from(PID_DOCTYPE),
                     vec![Entry {
-                        name: String::from("age_over_18"),
-                        value: ciborium::value::Value::Bool(true)
+                        name: String::from("birth_date"),
+                        value: ciborium::value::Value::Text("1997-05-10".to_string())
                     }]
                 )]
             )

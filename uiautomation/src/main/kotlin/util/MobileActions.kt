@@ -296,58 +296,61 @@ open class MobileActions {
         process.waitFor()
     }
 
-    fun elementContainingTextVisible(partialText: String): Boolean {
-        switchToNativeContext()
-        val isVisible: Boolean = try {
-            when (platformName()) {
-                "ANDROID" -> {
-                    driver.findElement(
-                        AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
-                    ).isDisplayed
-                }
-                "IOS" -> {
-                    driver.findElement(
-                        By.xpath("//*[contains(@name, '$partialText')]")
-                    ).isDisplayed
-                }
-                else -> {
-                    throw IllegalArgumentException("Unsupported platform: ${platformName()}")
-                }
-            }
-        } catch (e: Exception) {
-            println("Element not found or error occurred: ${e.message}")
-            false
-        } finally {
-            switchToAppContext()
-        }
-        return isVisible
-    }
-
-    fun getTextFromElementContainingText(partialText: String): String {
-        switchToNativeContext()
-        val value: String? = try {
-            val element = when (platformName()) {
-                "ANDROID" -> driver.findElement(
-                    AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
-                )
-                "IOS" -> driver.findElement(
-                    By.xpath("//*[contains(@name, '$partialText')]")
-                )
-                else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
-            }
-
-            when (platformName()) {
-                "ANDROID" -> element.getAttribute("contentDescription")
-                "IOS" -> element.getAttribute("name")
-                else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
-            }
+    fun getTextFromElementContainingText(partialText: String): String? = withNativeContext {
+        val element = try {
+            findElementByPartialText(partialText)
         } catch (e: Exception) {
             println("Failed to get element text: ${e.message}")
             null
+        }
+
+        if (element == null) {
+            throw NoSuchElementException("No element found containing: $partialText")
+        }
+
+        when (val platform = platformName()) {
+            "ANDROID" -> element.getAttribute("contentDescription")
+            "IOS" -> element.getAttribute("name")
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
+    fun clickElementContainingText(partialText: String) = withNativeContext {
+        try {
+            findElementByPartialText(partialText).click()
+        } catch (e: Exception) {
+            println("Failed to get element: ${e.message}")
+        }
+    }
+
+    fun elementContainingTextVisible(partialText: String): Boolean = withNativeContext {
+        try {
+            findElementByPartialText(partialText).isDisplayed
+        } catch (e: Exception) {
+            println("Element not found or error occurred: ${e.message}")
+            false
+        }
+    }
+
+    private fun findElementByPartialText(partialText: String): WebElement {
+        return when (val platform = platformName()) {
+            "ANDROID" -> driver.findElement(
+                AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
+            )
+            "IOS" -> driver.findElement(
+                By.xpath("//*[contains(@name, '$partialText')]")
+            )
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
+        }
+    }
+
+    private fun <T> withNativeContext(block: () -> T): T {
+        switchToNativeContext()
+        return try {
+            block()
         } finally {
             switchToAppContext()
         }
-        return value ?: throw NoSuchElementException("No element found containing: $partialText")
     }
 
     fun putAppInBackground(seconds: Int) {
@@ -359,6 +362,14 @@ open class MobileActions {
         switchToNativeContext()
         driver.runAppInBackground(Duration.ofSeconds(seconds.toLong()))
         switchToAppContext()
+    }
+
+    fun openUniversalLink(expiredUniversalLinkFromCameraApp: String) {
+        val driver = driver as AppiumDriver
+        switchToNativeContext()
+        driver.get(expiredUniversalLinkFromCameraApp)
+        switchToAppContext()
+        Thread.sleep(SET_FRAME_SYNC_MAX_WAIT_MILLIS)
     }
 
     companion object {

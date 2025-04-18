@@ -13,8 +13,8 @@ import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class IntroductionPrivacyScreen extends StatelessWidget {
@@ -50,6 +50,12 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                       children: [
                         BulletList(
                           items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
+                          icon: Icon(
+                            Icons.check,
+                            color: context.colorScheme.primary,
+                            size: 18,
+                          ),
+                          rowPadding: EdgeInsets.symmetric(vertical: 4),
                         ),
                       ],
                     ),

@@ -44,21 +44,20 @@
   },
   "requestOriginBaseUrl": "https://www.monkeybike.nl",
   "attributes": {
-    "com.example.pid": {
-      "com.example.pid": {
+    "urn:eudi:pid:nl:1": {
+      "urn:eudi:pid:nl:1": {
         "given_name": {},
         "family_name": {},
-        "birth_date": {},
+        "birthdate": {},
         "gender": {}
       }
     },
-    "com.example.address": {
-      "com.example.address": {
-        "resident_street": {},
-        "resident_house_number": {},
-        "resident_postal_code": {},
-        "resident_city": {},
-        "resident_state": {}
+    "urn:eudi:pid-address:nl:1": {
+      "urn:eudi:pid-address:nl:1.address": {
+        "street_address": {},
+        "house_number": {},
+        "postal_code": {},
+        "locality": {}
       }
     }
   }

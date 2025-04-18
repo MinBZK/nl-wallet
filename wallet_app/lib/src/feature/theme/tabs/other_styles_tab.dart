@@ -2,12 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/card/card_front.dart';
+import '../../../domain/model/card/metadata/card_display_metadata.dart';
+import '../../../domain/model/card/metadata/card_rendering.dart';
 import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/result/application_error.dart';
+import '../../../theme/dark_wallet_theme.dart';
+import '../../../theme/light_wallet_theme.dart';
+import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../card/data/widget/data_privacy_banner.dart';
@@ -50,39 +55,48 @@ import '../../disclosure/widget/disclosure_stop_sheet.dart';
 import '../../error/error_screen.dart';
 import '../../history/detail/widget/wallet_event_status_header.dart';
 import '../../tour/widget/tour_banner.dart';
+import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import '../theme_screen.dart';
 
 const _kMockPurpose = 'Kaart uitgifte';
 const _kMockUrl = 'https://www.example.org';
-const _kMockOtherKey = 'mock.other';
+const _kMockOtherKey = 'mock_other';
 
-final _kSampleCardFront = CardFront(
-  title: 'Sample Card'.untranslated,
-  backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
-  theme: CardFrontTheme.dark,
-  info: 'Info'.untranslated,
-  logoImage: WalletAssets.illustration_digid_failure,
-  subtitle: 'Subtitle'.untranslated,
-);
+final _kSampleCardMetaData = [
+  CardDisplayMetadata(
+    language: Locale('en'),
+    name: 'Sample Card',
+    rawSummary: 'Subtitle',
+    rendering: SimpleCardRendering(
+      logoUri: WalletAssets.illustration_digid_failure,
+      textColor: DarkWalletTheme.textColor,
+    ),
+  ),
+];
 
-final _kAltSampleCardFront = CardFront(
-  title: 'Alt Sample Card'.untranslated,
-  backgroundImage: WalletAssets.svg_rijks_card_bg_light,
-  theme: CardFrontTheme.light,
-  info: 'Alt Info'.untranslated,
-  logoImage: WalletAssets.logo_card_rijksoverheid,
-  subtitle: 'Alt Subtitle'.untranslated,
-);
+final _kAltSampleCardMetaData = [
+  CardDisplayMetadata(
+    language: Locale('en'),
+    name: 'Alt Sample Card',
+    rawSummary: 'Alt Subtitle',
+    rendering: SimpleCardRendering(
+      logoUri: WalletAssets.logo_card_rijksoverheid,
+      textColor: LightWalletTheme.textColor,
+    ),
+  ),
+];
 
 final _kSampleAttributes = [
   DataAttribute(
     key: 'key1',
+    svgId: 'key1',
     label: 'Sample #1'.untranslated,
     value: const StringValue('1'),
     sourceCardDocType: 'sourceCardDocType',
   ),
   DataAttribute(
     key: 'key2',
+    svgId: 'key2',
     label: 'Sample #2'.untranslated,
     value: const StringValue('2'),
     sourceCardDocType: 'sourceCardDocType',
@@ -92,7 +106,7 @@ final _kSampleAttributes = [
 final _kSampleCard = WalletCard(
   id: 'id',
   docType: 'docType',
-  front: _kSampleCardFront,
+  metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
 );
@@ -100,7 +114,7 @@ final _kSampleCard = WalletCard(
 final _kAltSampleCard = WalletCard(
   id: 'alt_id',
   docType: 'alt_docType',
-  front: _kAltSampleCardFront,
+  metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
 );
@@ -253,12 +267,19 @@ class OtherStylesTab extends StatelessWidget {
         ),
         const ThemeSectionSubHeader(title: 'Network Error Screen'),
         TextButton(
-          onPressed: () => ErrorScreen.showNetwork(context),
+          onPressed: () {
+            // Simulate a network error from the personalize flow
+            final networkError = WalletPersonalizeNetworkError(
+              hasInternet: false,
+              error: NetworkError(hasInternet: false, sourceError: 'sourceError'),
+            );
+            ErrorScreen.showNetwork(context, networkError: networkError);
+          },
           child: const Text('Network Error Screen'),
         ),
         const ThemeSectionSubHeader(title: 'No Internet Error Screen'),
         TextButton(
-          onPressed: () => ErrorScreen.showNoInternet(context),
+          onPressed: () => ErrorScreen.showNetwork(context),
           child: const Text('No Internet Error Screen'),
         ),
         const ThemeSectionSubHeader(title: 'Device Incompatible Screen'),
@@ -408,7 +429,7 @@ class OtherStylesTab extends StatelessWidget {
               WalletCard(
                 id: 'id',
                 docType: 'docType',
-                front: _kSampleCardFront,
+                metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
               ),
@@ -435,7 +456,7 @@ class OtherStylesTab extends StatelessWidget {
               WalletCard(
                 id: 'id',
                 docType: 'docType',
-                front: _kSampleCardFront,
+                metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
               ),
@@ -496,7 +517,7 @@ class OtherStylesTab extends StatelessWidget {
           card: WalletCard(
             id: 'row_id',
             docType: 'docType',
-            front: _kSampleCardFront,
+            metadata: _kSampleCardMetaData,
             attributes: const [],
             issuer: _kSampleOrganization,
           ),
@@ -522,9 +543,14 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'PinField'),
         const PinFieldDemo(),
         const ThemeSectionSubHeader(title: 'BulletList'),
-        const BulletList(
+        BulletList(
           items: ['Item 1', 'Item 2', 'Item 3'],
-          icon: Icons.ac_unit_outlined,
+          icon: Icon(
+            Icons.check,
+            color: context.colorScheme.primary,
+            size: 18,
+          ),
+          rowPadding: const EdgeInsets.symmetric(vertical: 4),
         ),
         const ThemeSectionSubHeader(title: 'NumberedList'),
         const NumberedList(

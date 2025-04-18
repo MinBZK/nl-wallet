@@ -1,0 +1,157 @@
+{
+  "vct": "com.example.address",
+  "name": "NL Wallet address credential",
+  "description": "Working version of the NL Wallet address credential",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "NL Wallet address",
+      "description": "The address credential for the NL Wallet"
+    },
+    {
+      "lang": "nl-NL",
+      "name": "NL Wallet adres",
+      "description": "De adresattestatie voor de NL Wallet"
+    }
+  ],
+  "claims": [
+    {
+      "path": [
+        "resident_street"
+      ],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Straatnaam",
+          "description": "Straatnaam van het adres"
+        },
+        {
+          "lang": "en-US",
+          "label": "Street",
+          "description": "Street of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "resident_house_number"
+      ],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Huisnummer",
+          "description": "Huisnummer van het adres"
+        },
+        {
+          "lang": "en-US",
+          "label": "House number",
+          "description": "House number of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "resident_postal_code"
+      ],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Postcode",
+          "description": "Postcode van het adres"
+        },
+        {
+          "lang": "en-US",
+          "label": "Postal code",
+          "description": "Postal code of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "resident_city"
+      ],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Stad",
+          "description": "Stad van het adres"
+        },
+        {
+          "lang": "en-US",
+          "label": "City",
+          "description": "City of the address"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": [
+        "resident_country"
+      ],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Land",
+          "description": "Land van het adres"
+        },
+        {
+          "lang": "en-US",
+          "label": "Country",
+          "description": "Country of the address"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "NL Wallet address VCT Schema",
+    "description": "The JSON schema that defines the NL Wallet address VCT",
+    "type": "object",
+    "properties": {
+      "resident_street": {
+        "type": "string"
+      },
+      "resident_house_number": {
+        "type": "string"
+      },
+      "resident_postal_code": {
+        "type": "string"
+      },
+      "resident_city": {
+        "type": "string"
+      },
+      "resident_country": {
+        "type": "string"
+      },
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      }
+    },
+    "required": [
+      "vct",
+      "iss",
+      "iat",
+      "exp"
+    ],
+    "additionalProperties": false
+  }
+}

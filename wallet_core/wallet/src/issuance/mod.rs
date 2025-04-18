@@ -12,10 +12,10 @@ use openid4vc::token::TokenRequest;
 pub use app2app::App2AppErrorMessage;
 pub use app2app::HttpDigidSession;
 
-use wallet_common::reqwest::JsonReqwestBuilder;
+use http_utils::reqwest::JsonReqwestBuilder;
 use wallet_configuration::wallet_config::DigidConfiguration;
 
-pub const PID_DOCTYPE: &str = "com.example.pid";
+pub const PID_DOCTYPE: &str = "urn:eudi:pid:nl:1";
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]

@@ -116,7 +116,9 @@ version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "bitflags 2.8.0",
+ "bytes",
  "cfg-if",
+ "cfg_eval",
  "chrono",
  "const-decoder",
  "der",
@@ -142,6 +144,7 @@ dependencies = [
  "rustls-webpki",
  "serde",
  "serde_json",
+ "serde_repr",
  "serde_with",
  "spki",
  "strum 0.26.3",
@@ -948,9 +951,12 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.10.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f61dac84819c6588b558454b194026eb1f09c293b9036ae9b159e74e73ab6cf9"
+checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "camino"
@@ -995,6 +1001,17 @@ name = "cfg_aliases"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
+
+[[package]]
+name = "cfg_eval"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45565fc9416b9896014f5732ac776f810ee53a66730c17e4020c3ec064a8f88f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "chrono"
@@ -1184,11 +1201,13 @@ dependencies = [
  "config",
  "etag",
  "http",
+ "http_utils",
+ "rustls",
  "serde",
  "tokio",
  "tracing",
  "tracing-subscriber",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -1353,6 +1372,7 @@ dependencies = [
  "futures",
  "hex",
  "hex-literal",
+ "http_utils",
  "indexmap 2.7.1",
  "p256",
  "parking_lot",
@@ -1368,7 +1388,7 @@ dependencies = [
  "thiserror 2.0.11",
  "time",
  "trait-variant",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
  "yoke",
 ]
@@ -2261,6 +2281,7 @@ dependencies = [
  "hex",
  "hmac",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "nutype",
  "pem",
@@ -2283,7 +2304,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "trait-variant",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -2650,7 +2671,7 @@ dependencies = [
  "sha2",
  "thiserror 2.0.11",
  "tokio",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -2746,6 +2767,30 @@ checksum = "0f056c8559e3757392c8d091e796416e4649d8e49e88b8d76df6c002f05027fd"
 dependencies = [
  "http",
  "serde",
+]
+
+[[package]]
+name = "http_utils"
+version = "0.3.0-dev"
+dependencies = [
+ "axum",
+ "axum-server",
+ "cfg-if",
+ "derive_more",
+ "http",
+ "mime",
+ "nutype",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+ "tokio",
+ "tower-http",
+ "trait-variant",
+ "url",
 ]
 
 [[package]]
@@ -3112,6 +3157,7 @@ dependencies = [
  "derive_more",
  "futures",
  "hsm",
+ "http_utils",
  "indexmap 2.7.1",
  "mdoc",
  "openid4vc",
@@ -3122,7 +3168,7 @@ dependencies = [
  "server_utils",
  "thiserror 2.0.11",
  "tracing",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -3217,10 +3263,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "jsonschema"
-version = "0.28.3"
+name = "json-pointer"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b8f66fe41fa46a5c83ed1c717b7e0b4635988f427083108c8cf0a882cc13441"
+checksum = "5fe841b94e719a482213cee19dd04927cf412f26d8dc84c5a446c081e49c2997"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
+name = "jsonschema"
+version = "0.29.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "161c33c3ec738cfea3288c5c53dfcdb32fd4fc2954de86ea06f71b5a1a40bfcd"
 dependencies = [
  "ahash",
  "base64 0.22.1",
@@ -3277,7 +3332,7 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.11",
  "tokio",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
 ]
 
@@ -3352,7 +3407,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.6",
 ]
 
 [[package]]
@@ -3473,6 +3528,7 @@ dependencies = [
  "futures",
  "hex",
  "hex-literal",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "nutype",
@@ -3497,7 +3553,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
 ]
 
@@ -3585,6 +3641,7 @@ dependencies = [
  "crypto",
  "futures",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "mdoc",
  "nutype",
@@ -3603,7 +3660,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -3869,6 +3926,7 @@ dependencies = [
  "futures",
  "hex",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "josekit",
@@ -3887,6 +3945,7 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "sd_jwt_vc_metadata",
  "serde",
  "serde_bytes",
@@ -3903,7 +3962,7 @@ dependencies = [
  "tracing-test",
  "trait-variant",
  "url",
- "wallet_common",
+ "utils",
  "wiremock",
 ]
 
@@ -3915,6 +3974,7 @@ dependencies = [
  "axum-extra",
  "crypto",
  "http",
+ "http_utils",
  "mdoc",
  "openid4vc",
  "ring",
@@ -3923,7 +3983,7 @@ dependencies = [
  "serde",
  "tower-http",
  "tracing",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -4170,8 +4230,10 @@ dependencies = [
  "chrono",
  "config",
  "crypto",
+ "derive_more",
  "futures",
  "hsm",
+ "http_utils",
  "indexmap 2.7.1",
  "issuer_settings",
  "jwt",
@@ -4191,7 +4253,7 @@ dependencies = [
  "tokio",
  "tracing",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -4270,6 +4332,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "cfg-if",
+ "cfg_eval",
  "crypto",
  "derive_more",
  "error_category",
@@ -4286,8 +4349,8 @@ dependencies = [
  "thiserror 2.0.11",
  "tokio",
  "uniffi",
+ "utils",
  "uuid",
- "wallet_common",
 ]
 
 [[package]]
@@ -4306,7 +4369,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.11",
  "tokio",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -4676,13 +4739,14 @@ dependencies = [
 
 [[package]]
 name = "referencing"
-version = "0.28.3"
+version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0dcb5ab28989ad7c91eb1b9531a37a1a137cc69a0499aee4117cae4a107c464"
+checksum = "40a64b3a635fad9000648b4d8a59c8710c523ab61a23d392a7d91d47683f5adc"
 dependencies = [
  "ahash",
  "fluent-uri",
  "once_cell",
+ "parking_lot",
  "percent-encoding",
  "serde_json",
 ]
@@ -5140,6 +5204,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "sd_jwt"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "assert_matches",
+ "base64 0.22.1",
+ "chrono",
+ "crypto",
+ "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "json-pointer",
+ "jsonwebtoken",
+ "jwt",
+ "p256",
+ "rand",
+ "rand_core",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.11",
+ "tokio",
+ "utils",
+]
+
+[[package]]
 name = "sd_jwt_vc_metadata"
 version = "0.3.0-dev"
 dependencies = [
@@ -5150,18 +5240,15 @@ dependencies = [
  "http-serde",
  "itertools 0.14.0",
  "jsonschema",
- "jsonwebtoken",
  "nutype",
  "regex",
  "rstest",
  "serde",
  "serde_json",
- "serde_urlencoded",
  "serde_with",
  "ssri",
  "thiserror 2.0.11",
- "tokio",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -5683,6 +5770,7 @@ dependencies = [
  "crypto",
  "hsm",
  "http",
+ "http_utils",
  "mdoc",
  "openid4vc",
  "p256",
@@ -5699,7 +5787,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -6256,6 +6344,7 @@ dependencies = [
  "dotenvy",
  "gba_hc_converter",
  "hsm",
+ "http_utils",
  "indexmap 2.7.1",
  "insta",
  "jsonwebtoken",
@@ -6270,7 +6359,9 @@ dependencies = [
  "regex",
  "reqwest",
  "rstest",
+ "rustls",
  "rustls-pki-types",
+ "sd_jwt",
  "sd_jwt_vc_metadata",
  "sea-orm",
  "semver",
@@ -6284,10 +6375,10 @@ dependencies = [
  "tracing-subscriber",
  "update_policy_server",
  "url",
+ "utils",
  "uuid",
  "verification_server",
  "wallet",
- "wallet_common",
  "wallet_configuration",
  "wallet_provider",
  "wallet_provider_persistence",
@@ -6956,6 +7047,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
+name = "update_policy_model"
+version = "0.3.0-dev"
+dependencies = [
+ "indexmap 2.7.1",
+ "rstest",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "strum 0.26.3",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "update_policy_server"
 version = "0.3.0-dev"
 dependencies = [
@@ -6966,9 +7071,11 @@ dependencies = [
  "config",
  "etag",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "postcard",
  "rstest",
+ "rustls",
  "serde",
  "serde_json",
  "serde_with",
@@ -6976,7 +7083,8 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "wallet_common",
+ "update_policy_model",
+ "utils",
 ]
 
 [[package]]
@@ -7031,6 +7139,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
+name = "utils"
+version = "0.3.0-dev"
+dependencies = [
+ "built",
+ "chrono",
+ "derive_more",
+ "itertools 0.14.0",
+ "parking_lot",
+ "rstest",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.11",
+ "tokio",
+]
+
+[[package]]
 name = "uuid"
 version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7077,6 +7201,7 @@ dependencies = [
  "futures",
  "hsm",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "mdoc",
@@ -7099,7 +7224,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "url",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -7150,6 +7275,7 @@ dependencies = [
  "error_category",
  "futures",
  "http",
+ "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
@@ -7186,10 +7312,11 @@ dependencies = [
  "tokio",
  "tracing",
  "trait-variant",
+ "update_policy_model",
  "url",
+ "utils",
  "uuid",
  "wallet_account",
- "wallet_common",
  "wallet_configuration",
  "wallet_migrations",
  "wiremock",
@@ -7218,7 +7345,7 @@ dependencies = [
  "serde_with",
  "strum 0.26.3",
  "thiserror 2.0.11",
- "wallet_common",
+ "utils",
 ]
 
 [[package]]
@@ -7239,38 +7366,8 @@ dependencies = [
  "predicates",
  "serde_json",
  "time",
- "wallet_common",
+ "utils",
  "x509-parser 0.17.0",
-]
-
-[[package]]
-name = "wallet_common"
-version = "0.3.0-dev"
-dependencies = [
- "axum",
- "axum-server",
- "built",
- "cfg-if",
- "chrono",
- "derive_more",
- "http",
- "indexmap 2.7.1",
- "itertools 0.14.0",
- "mime",
- "nutype",
- "parking_lot",
- "reqwest",
- "rstest",
- "semver",
- "serde",
- "serde_json",
- "serde_with",
- "strum 0.26.3",
- "thiserror 2.0.11",
- "tokio",
- "tower-http",
- "trait-variant",
- "url",
 ]
 
 [[package]]
@@ -7280,11 +7377,11 @@ dependencies = [
  "crypto",
  "derive_more",
  "etag",
+ "http_utils",
  "rustls-pki-types",
  "serde",
  "serde_with",
  "url",
- "wallet_common",
 ]
 
 [[package]]
@@ -7312,8 +7409,10 @@ dependencies = [
  "futures",
  "hsm",
  "http",
+ "http_utils",
  "p256",
  "rand_core",
+ "rustls",
  "serde",
  "serde_with",
  "serial_test",
@@ -7323,9 +7422,9 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "utils",
  "uuid",
  "wallet_account",
- "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",
@@ -7356,8 +7455,8 @@ dependencies = [
  "rand",
  "serde",
  "thiserror 2.0.11",
+ "utils",
  "uuid",
- "wallet_common",
 ]
 
 [[package]]
@@ -7389,8 +7488,8 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "utils",
  "uuid",
- "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
 ]
@@ -7433,9 +7532,9 @@ dependencies = [
  "tracing-subscriber",
  "tracing-test",
  "trait-variant",
+ "utils",
  "uuid",
  "wallet_account",
- "wallet_common",
  "wallet_provider_database_settings",
  "wallet_provider_domain",
  "wallet_provider_persistence",

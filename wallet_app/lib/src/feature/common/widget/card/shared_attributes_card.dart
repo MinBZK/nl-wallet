@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
-import '../../../../domain/model/card/card_front.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../theme/base_wallet_theme.dart';
 import '../../../../util/extension/build_context_extension.dart';
 import '../../../../util/extension/string_extension.dart';
 import '../../decoration/shadow_decoration.dart';
 import '../default_text_and_focus_style.dart';
-import 'card_holograph.dart';
 import 'wallet_card_item.dart';
 
 const _kCornerRadius = Radius.circular(12);
-const _kHolographSize = 134.0;
 const _kHeaderStripHeight = 40.0;
 
 /// A Card like component that lists all the titles of the provided [attributes].
@@ -148,30 +145,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
         topLeft: _kCornerRadius,
         topRight: _kCornerRadius,
       ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: widget.card.getL10nBackground(context),
-          ),
-          _buildPositionedHolograph(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPositionedHolograph() {
-    final front = widget.card.front;
-    if (front == null || front.holoImage == null) return const SizedBox.shrink();
-    final holoBrightness = front.theme == CardFrontTheme.light ? Brightness.light : Brightness.dark;
-    return Positioned(
-      right: 32,
-      top: _kHolographSize / -3 /* Shift the holo so the center part is shown */,
-      height: _kHolographSize,
-      width: _kHolographSize,
-      child: CardHolograph(
-        holograph: front.holoImage!,
-        brightness: holoBrightness,
-      ),
+      child: widget.card.getL10nBackground(context),
     );
   }
 

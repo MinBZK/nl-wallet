@@ -716,14 +716,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.11"
-  logger:
-    dependency: transitive
-    description:
-      name: logger
-      sha256: be4b23575aac7ebf01f225a241eb7f6b5641eeaf43c6a8613510fc2f8cf187d1
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.5.0"
   logging:
     dependency: transitive
     description:
@@ -1052,14 +1044,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
-  rename:
-    dependency: "direct dev"
-    description:
-      name: rename
-      sha256: "6ef5daf4b11130e71d93630cfb70725e5a35b19039739cfcd2b272c834ba25fe"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.2"
   root_jailbreak_sniffer:
     dependency: "direct main"
     description:
@@ -1124,6 +1108,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
+  semantic_announcement_tester:
+    dependency: "direct dev"
+    description:
+      name: semantic_announcement_tester
+      sha256: "811e26b850853d3203d0b8e18bf02885d2d530a66f928e256c0245cc3788933d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.6"
   sensors_plus:
     dependency: "direct main"
     description:

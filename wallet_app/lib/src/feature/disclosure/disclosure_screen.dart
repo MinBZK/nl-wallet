@@ -335,16 +335,7 @@ class DisclosureScreen extends StatelessWidget {
           ReportingOption.overAskingOrganization,
           ReportingOption.suspiciousOrganization,
         ];
-      case DisclosureInitial():
-      case DisclosureLoadInProgress():
-      case DisclosureExternalScannerError():
-      case DisclosureGenericError():
-      case DisclosureSessionExpired():
-      case DisclosureNetworkError():
-      case DisclosureSuccess():
-      case DisclosureStopped():
-      case DisclosureCancelledSessionError():
-      case DisclosureLeftFeedback():
+      default:
         Fimber.d('No ReportingOptions provided for $state');
         return <ReportingOption>[];
     }
@@ -467,7 +458,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildCancelledSessionPage(BuildContext context, DisclosureCancelledSessionError state) {
     return ErrorPage.cancelledSession(
       context,
-      organizationName: state.relyingParty.displayName.l10nValue(context),
+      organizationName: state.relyingParty?.displayName.l10nValue(context) ?? context.l10n.organizationFallbackName,
       onPrimaryActionPressed: () {
         Navigator.pop(context);
         state.returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));

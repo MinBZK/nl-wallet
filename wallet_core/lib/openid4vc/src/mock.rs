@@ -5,13 +5,13 @@ use rustls_pki_types::TrustAnchor;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
+use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
+use jwt::wte::WteClaims;
 use mdoc::utils::issuer_auth::IssuerRegistration;
 use poa::factory::PoaFactory;
-use wallet_common::urls::BaseUrl;
-use wallet_common::wte::WteClaims;
 
-use crate::issuance_session::CredentialPreviewsWithMetadata;
+use crate::issuance_session::CredentialPreviewsNormalizedMetadata;
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
@@ -32,7 +32,7 @@ pub use poa::factory::mock::MOCK_WALLET_CLIENT_ID;
 
 mockall::mock! {
     pub IssuanceSession {
-        pub fn start() -> Result<(Self, CredentialPreviewsWithMetadata), IssuanceSessionError>
+        pub fn start() -> Result<(Self, CredentialPreviewsNormalizedMetadata), IssuanceSessionError>
         where
             Self: Sized;
 
@@ -52,7 +52,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: BaseUrl,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
-    ) -> Result<(Self, CredentialPreviewsWithMetadata), IssuanceSessionError>
+    ) -> Result<(Self, CredentialPreviewsNormalizedMetadata), IssuanceSessionError>
     where
         Self: Sized,
     {

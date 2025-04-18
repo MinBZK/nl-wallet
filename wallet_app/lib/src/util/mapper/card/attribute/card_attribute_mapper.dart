@@ -14,6 +14,7 @@ class CardAttributeMapper extends Mapper<CardAttributeWithDocType, DataAttribute
   DataAttribute map(CardAttributeWithDocType input) {
     return DataAttribute(
       key: input.attribute.key,
+      svgId: input.attribute.svgId,
       label: _localizedLabelsMapper.map(input.attribute.labels),
       value: _attributeValueMapper.map(input.attribute.value),
       sourceCardDocType: input.docType,

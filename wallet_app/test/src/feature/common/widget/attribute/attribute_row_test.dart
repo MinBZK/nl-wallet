@@ -57,7 +57,7 @@ void main() {
             AttributeRow(
               attribute: MissingAttribute.untranslated(
                 label: 'Text',
-                key: 'mock.other',
+                key: 'mock_other',
               ),
             ),
             surfaceSize: kGoldenSize,
@@ -75,7 +75,7 @@ void main() {
                 label: 'Label',
                 value: const StringValue('Value'),
                 sourceCardDocType: '',
-                key: 'mock.other',
+                key: 'mock_other',
               ),
             ),
             surfaceSize: kGoldenSize,

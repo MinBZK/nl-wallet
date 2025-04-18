@@ -12,6 +12,8 @@ use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
 use reqwest::Certificate;
+use rustls::crypto::ring;
+use rustls::crypto::CryptoProvider;
 use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
@@ -27,17 +29,18 @@ use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use configuration_server::settings::Settings as CsSettings;
 use crypto::trust_anchor::BorrowingTrustAnchor;
-use crypto::utils;
 use gba_hc_converter::settings::Settings as GbaSettings;
 use hsm::service::Pkcs11Hsm;
+use http_utils::reqwest::trusted_reqwest_client_builder;
+use http_utils::reqwest::ReqwestTrustAnchor;
+use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
-use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
-use pid_issuer::pid::mock::MockAttributesLookup;
+use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::settings::PidIssuerSettings;
 use pid_issuer::wte_tracker::WteTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
@@ -58,11 +61,6 @@ use wallet::wallet_deps::UpdatePolicyRepository;
 use wallet::wallet_deps::UpdateableRepository;
 use wallet::wallet_deps::WpWteIssuanceClient;
 use wallet::Wallet;
-use wallet_common::http::TlsPinningConfig;
-use wallet_common::reqwest::trusted_reqwest_client_builder;
-use wallet_common::reqwest::ReqwestTrustAnchor;
-use wallet_common::urls::BaseUrl;
-use wallet_common::vec_at_least::VecNonEmpty;
 use wallet_configuration::config_server_config::ConfigServerConfiguration;
 use wallet_configuration::wallet_config::WalletConfiguration;
 use wallet_provider::settings::AppleEnvironment;
@@ -78,6 +76,7 @@ use crate::utils::remove_path;
 #[ctor]
 fn init() {
     init_logging();
+    CryptoProvider::install_default(ring::default_provider()).unwrap();
 }
 
 pub fn local_wp_base_url(port: u16) -> BaseUrl {
@@ -197,7 +196,7 @@ pub async fn setup_wallet_and_env(
     let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
 
     let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
-    let issuer_port = start_issuer_server(issuer_settings, Some(hsm), MockAttributeService).await;
+    let issuer_port = start_issuer_server(issuer_settings, Some(hsm), MockAttributeService::default()).await;
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -571,20 +570,6 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
     wallet
 }
 
-pub struct MockAttributeService;
-
-impl AttributeService for MockAttributeService {
-    type Error = std::convert::Infallible;
-
-    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        Ok(MockAttributesLookup::default().attributes("999991772").unwrap())
-    }
-
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new_mock(issuer_url))
-    }
-}
-
 // The type of MockDigidSession::Context is too complex, but keeping ownership is important.
 #[must_use = "ownership of MockDigidSession::Context must be retained for the duration of the test"]
 pub fn setup_digid_context() -> Box<dyn Any> {
@@ -595,7 +580,7 @@ pub fn setup_digid_context() -> Box<dyn Any> {
         session.expect_into_token_request().return_once(|_url| {
             Ok(TokenRequest {
                 grant_type: openid4vc::token::TokenRequestGrantType::PreAuthorizedCode {
-                    pre_authorized_code: utils::random_string(32).into(),
+                    pre_authorized_code: crypto::utils::random_string(32).into(),
                 },
                 code_verifier: Some("my_code_verifier".to_string()),
                 client_id: Some("my_client_id".to_string()),

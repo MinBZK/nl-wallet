@@ -3,7 +3,7 @@ use nutype::nutype;
 use rustls_pki_types::TrustAnchor;
 
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::token::CredentialPreview;
 use crate::token::CredentialPreviewError;

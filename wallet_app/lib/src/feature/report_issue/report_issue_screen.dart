@@ -6,8 +6,8 @@ import '../../util/formatter/report_option_title_formatter.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/info_row.dart';
-import '../common/widget/sliver_sized_box.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
+import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/wallet_scrollbar.dart';
 
 class ReportIssueScreen extends StatelessWidget {

@@ -8,7 +8,7 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
-use wallet_common::utils;
+use utils::path::prefix_local_path;
 
 use crate::gba;
 use crate::gba::data::Categorievoorkomen;
@@ -101,7 +101,7 @@ fn read_csv(name: &str) -> Result<HashMap<String, String>, csv::Error> {
 }
 
 fn csv_path(name: &str) -> PathBuf {
-    utils::prefix_local_path(format!("resources/stamdata/{}.csv", name).as_ref()).into_owned()
+    prefix_local_path(format!("resources/stamdata/{}.csv", name).as_ref()).into_owned()
 }
 
 #[nutype(

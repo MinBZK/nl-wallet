@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
-import 'package:wallet/src/domain/model/card/card_front.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_rendering.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
@@ -10,28 +9,43 @@ import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/policy/policy.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
+import 'package:wallet/src/theme/dark_wallet_theme.dart';
+import 'package:wallet/src/theme/light_wallet_theme.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 abstract class WalletMockData {
+  static Locale testLocale = Locale('en');
+
   static WalletCard card = WalletCard(
     docType: 'com.example.docType',
-    front: cardFront,
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
     id: 'id',
+    metadata: [
+      CardDisplayMetadata(
+        language: testLocale,
+        name: 'Sample Card #1',
+        rawSummary: 'Subtitle',
+        rendering: SimpleCardRendering(
+          logoUri: WalletAssets.logo_card_rijksoverheid,
+          textColor: DarkWalletTheme.textColor,
+          bgColor: Color(0xFF35426E),
+        ),
+      ),
+    ],
   );
 
   static WalletCard simpleRenderingCard = WalletCard(
     docType: 'com.example.docType',
-    front: null,
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
-    metadata: const [
+    metadata: [
       CardDisplayMetadata(
-        language: Locale('en'),
+        language: testLocale,
         name: 'Simple Rendering',
         description: 'Sample card with simple rendering metadata',
+        rawSummary: 'Sample summary (no placeholders)',
         rendering: SimpleCardRendering(textColor: Colors.white, bgColor: Colors.deepPurple),
       ),
     ],
@@ -39,29 +53,22 @@ abstract class WalletMockData {
   );
 
   static WalletCard altCard = WalletCard(
-    front: altCardFront,
     issuer: WalletMockData.organization,
     docType: 'com.example.alt.docType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     id: 'id2',
-  );
-
-  static const CardFront cardFront = CardFront(
-    title: {'': 'Sample Card #1'},
-    backgroundImage: WalletAssets.svg_rijks_card_bg_dark,
-    theme: CardFrontTheme.dark,
-    info: {'': 'Info'},
-    logoImage: WalletAssets.logo_card_rijksoverheid,
-    subtitle: {'': 'Subtitle'},
-  );
-
-  static const CardFront altCardFront = CardFront(
-    title: {'': 'Sample Card #2'},
-    backgroundImage: WalletAssets.svg_rijks_card_bg_light,
-    theme: CardFrontTheme.light,
-    info: {'': 'Alt info'},
-    logoImage: WalletAssets.logo_card_rijksoverheid,
-    subtitle: {'': 'Alt Subtitle'},
+    metadata: [
+      CardDisplayMetadata(
+        language: testLocale,
+        name: 'Sample Card #2',
+        rawSummary: 'Alt Subtitle',
+        rendering: SimpleCardRendering(
+          textColor: LightWalletTheme.textColor,
+          logoUri: WalletAssets.logo_card_rijksoverheid,
+          bgColor: Color(0xFFCCEFF0),
+        ),
+      ),
+    ],
   );
 
   static final WalletCardDetail cardDetail = WalletCardDetail(
@@ -85,6 +92,7 @@ abstract class WalletMockData {
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(
     key: 'text_key',
+    svgId: 'text_svgId',
     label: 'Label',
     value: const StringValue('Value'),
     sourceCardDocType: 'com.example.docType',

@@ -27,13 +27,13 @@ required-features = ["integration_test"]
 [features]
 default = ["postgres"]
 # Allow the disclosure return URL and its prefix to use http://
-allow_insecure_url = ["openid4vc/allow_insecure_url", "wallet_common/allow_insecure_url"]
+allow_insecure_url = ["openid4vc/allow_insecure_url", "http_utils/allow_insecure_url"]
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres", "dep:sea-orm"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["postgres", "allow_insecure_url", "openid4vc/test", "tokio/sync"]
 # Enable mock PID issuance
-mock = []
+mock = ["dep:derive_more", "openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/integration_test"]
 
@@ -54,6 +54,7 @@ tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"]
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
+derive_more = { workspace = true, optional = true, features = ["constructor"] }
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -65,11 +66,12 @@ sea-orm = { workspace = true, optional = true, features = [
 crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
+http_utils = { path = "../../lib/http_utils", features = ["server"] }
 jwt.path = "../../lib/jwt"
 mdoc.path = "../../lib/mdoc"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
-wallet_common = { path = "../../lib/wallet_common", features = ["axum"] }
+utils = { path = "../../lib/utils" }
 server_utils.path = "../server_utils"
 
 [dev-dependencies]
@@ -80,4 +82,4 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
 mdoc = { path = "../../lib/mdoc", features = ["generate", "mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
-wallet_common = { path = "../../lib/wallet_common", features = ["mock_time"] }
+utils = { path = "../../lib/utils", features = ["mock_time"] }

@@ -11,6 +11,7 @@ const _kSampleCardAttributeLabels = [core.ClaimDisplayMetadata(lang: '-', label:
 const _kSampleCardValue = core.AttributeValue_String(value: '-');
 const _kSampleCardAttribute = core.AttestationAttribute(
   key: 'card.key',
+  svgId: 'card.svgId',
   labels: _kSampleCardAttributeLabels,
   value: _kSampleCardValue,
 );
@@ -30,12 +31,13 @@ void main() {
 
   group('map', () {
     test('should return `DataAttribute`', () {
-      when(mockLabelMapper.map(_kSampleCardAttributeLabels)).thenReturn({'nl': 'Test'});
+      when(mockLabelMapper.map(_kSampleCardAttributeLabels)).thenReturn({Locale('nl'): 'Test'});
       when(mockValueMapper.map(_kSampleCardValue)).thenReturn(const StringValue('John Doe'));
 
-      const expected = DataAttribute(
+      final expected = DataAttribute(
         key: 'card.key',
-        label: {'nl': 'Test'},
+        svgId: 'card.svgId',
+        label: {Locale('nl'): 'Test'},
         value: StringValue('John Doe'),
         sourceCardDocType: 'docType',
       );

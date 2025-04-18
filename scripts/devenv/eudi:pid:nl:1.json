@@ -1,0 +1,151 @@
+{
+  "vct": "urn:eudi:pid:nl:1",
+  "name": "NL PID credential",
+  "description": "Working version of the Dutch PID credential",
+  "extends": "urn:eudi:pid:1",
+  "extends#integrity": "sha256-iUUWE2MFwlPlYk9EWcCJuPC2ER60IY5rcbcKEa2cVW4=",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Personal data (NL)",
+      "description": "The Dutch personal data credential",
+      "summary": "{{given_name}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#C7E8EE",
+          "text_color": "#152A62"
+        }
+      }
+    },
+    {
+      "lang": "nl-NL",
+      "name": "Persoonsgegevens (NL)",
+      "description": "De Nederlandse persoonsgegevensattestatie",
+      "summary": "{{given_name}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#C7E8EE",
+          "text_color": "#152A62"
+        }
+      }
+    }
+  ],
+  "claims": [
+    {
+      "path": ["family_name"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Achternaam",
+          "description": "Achternaam van de persoon, inclusief voorvoegsels"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["given_name"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Voornaam",
+          "description": "Voornaam van de persoon"
+        }
+      ],
+      "sd": "always",
+      "svg_id": "given_name"
+    },
+    {
+      "path": ["birthdate"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Geboortedatum",
+          "description": "Geboortedatum van de persoon"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["age_over_18"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "18+",
+          "description": "Of de persoon 18+ is"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["bsn"],
+      "display": [
+        {
+          "lang": "en-US",
+          "label": "BSN",
+          "description": "BSN of the person"
+        },
+        {
+          "lang": "nl-NL",
+          "label": "BSN",
+          "description": "BSN van de persoon"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "NL PID VCT Schema",
+    "description": "The JSON schema that defines the NL PID VCT",
+    "type": "object",
+    "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "sub": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      },
+      "given_name": {
+        "type": "string"
+      },
+      "family_name": {
+        "type": "string"
+      },
+      "birthdate": {
+        "type": "string",
+        "format": "date"
+      },
+      "age_over_18": {
+        "type": "boolean"
+      },
+      "bsn": {
+        "type": "string"
+      }
+    },
+    "required": ["vct", "iss", "attestation_qualification", "given_name", "family_name", "birthdate", "bsn"]
+  }
+}

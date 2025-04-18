@@ -16,7 +16,7 @@ use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 
 use crypto::utils::sha256;
-use wallet_common::urls::BaseUrl;
+use http_utils::urls::BaseUrl;
 
 use crate::iso::disclosure::*;
 use crate::utils::cose::CoseKey;

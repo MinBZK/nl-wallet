@@ -22,6 +22,7 @@ use serde::Serialize;
 use tracing::warn;
 
 use crypto::keys::EcdsaKeySend;
+use http_utils::urls::BaseUrl;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -45,7 +46,6 @@ use openid4vc::CredentialErrorCode;
 use openid4vc::ErrorResponse;
 use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
-use wallet_common::urls::BaseUrl;
 
 struct ApplicationState<A, K, S, W> {
     issuer: Issuer<A, K, S, W>,

@@ -4,8 +4,8 @@ import '../../../navigation/wallet_routes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../common/widget/sliver_sized_box.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
+import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 class WalletPersonalizeSetupFailedScreen extends StatelessWidget {

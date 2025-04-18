@@ -4,7 +4,7 @@ use serde::Deserialize;
 
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
-use wallet_common::vec_at_least::VecNonEmpty;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::pid::constants::*;
 
@@ -22,6 +22,7 @@ pub struct BrpPerson {
     #[serde(rename = "burgerservicenummer")]
     bsn: String,
 
+    #[allow(dead_code)]
     #[serde(rename = "geslacht")]
     gender: Option<BrpGender>,
 
@@ -49,8 +50,6 @@ impl BrpPerson {
         let given_names = self.name.given_names.clone();
         let is_over_18 = self.is_over_18();
         let family_name = self.name.into_name_with_prefix();
-        let birth_country = self.birth.country;
-        let birth_place = self.birth.place;
         let street = self.residence.address.street().map(String::from);
         let house_number = self.residence.address.locator_designator();
 
@@ -59,7 +58,6 @@ impl BrpPerson {
                 String::from(MOCK_PID_DOCTYPE),
                 IndexMap::from_iter(
                     vec![
-                        Some((String::from(PID_BSN), Attribute::Single(AttributeValue::Text(self.bsn)))),
                         Some((
                             String::from(PID_FAMILY_NAME),
                             Attribute::Single(AttributeValue::Text(family_name)),
@@ -76,23 +74,11 @@ impl BrpPerson {
                                 self.birth.date.date.format("%Y-%m-%d").to_string(),
                             )),
                         )),
-                        birth_country.map(|country| {
-                            (
-                                String::from(PID_BIRTH_COUNTRY),
-                                Attribute::Single(AttributeValue::Text(country.description)),
-                            )
-                        }),
-                        birth_place.map(|place| {
-                            (
-                                String::from(PID_BIRTH_CITY),
-                                Attribute::Single(AttributeValue::Text(place.description)),
-                            )
-                        }),
                         Some((
                             String::from(PID_AGE_OVER_18),
                             Attribute::Single(AttributeValue::Bool(is_over_18)),
                         )),
-                        self.gender.map(|gender| (String::from(PID_GENDER), gender.code.into())),
+                        Some((String::from(PID_BSN), Attribute::Single(AttributeValue::Text(self.bsn)))),
                     ]
                     .into_iter()
                     .flatten()
@@ -101,35 +87,38 @@ impl BrpPerson {
             ),
             (
                 String::from(MOCK_ADDRESS_DOCTYPE),
-                IndexMap::from_iter(
-                    vec![
-                        Some((
-                            String::from(PID_RESIDENT_COUNTRY),
-                            Attribute::Single(AttributeValue::Text(self.residence.address.country.description)),
-                        )),
-                        street.map(|street| {
-                            (
-                                String::from(PID_RESIDENT_STREET),
-                                Attribute::Single(AttributeValue::Text(street)),
-                            )
-                        }),
-                        Some((
-                            String::from(PID_RESIDENT_POSTAL_CODE),
-                            Attribute::Single(AttributeValue::Text(self.residence.address.postal_code)),
-                        )),
-                        Some((
-                            String::from(PID_RESIDENT_HOUSE_NUMBER),
-                            Attribute::Single(AttributeValue::Text(house_number)),
-                        )),
-                        Some((
-                            String::from(PID_RESIDENT_CITY),
-                            Attribute::Single(AttributeValue::Text(self.residence.address.city)),
-                        )),
-                    ]
-                    .into_iter()
-                    .flatten()
-                    .collect::<Vec<(String, Attribute)>>(),
-                ),
+                IndexMap::from_iter(vec![(
+                    String::from(PID_ADDRESS_GROUP),
+                    Attribute::Nested(IndexMap::from_iter(
+                        vec![
+                            street.map(|street| {
+                                (
+                                    String::from(PID_RESIDENT_STREET),
+                                    Attribute::Single(AttributeValue::Text(street)),
+                                )
+                            }),
+                            Some((
+                                String::from(PID_RESIDENT_HOUSE_NUMBER),
+                                Attribute::Single(AttributeValue::Text(house_number)),
+                            )),
+                            Some((
+                                String::from(PID_RESIDENT_POSTAL_CODE),
+                                Attribute::Single(AttributeValue::Text(self.residence.address.postal_code)),
+                            )),
+                            Some((
+                                String::from(PID_RESIDENT_CITY),
+                                Attribute::Single(AttributeValue::Text(self.residence.address.city)),
+                            )),
+                            Some((
+                                String::from(PID_RESIDENT_COUNTRY),
+                                Attribute::Single(AttributeValue::Text(self.residence.address.country.description)),
+                            )),
+                        ]
+                        .into_iter()
+                        .flatten()
+                        .collect::<Vec<(String, Attribute)>>(),
+                    )),
+                )]),
             ),
         ]
         .try_into()
@@ -137,8 +126,10 @@ impl BrpPerson {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize)]
 pub struct BrpGender {
+    #[allow(dead_code)]
     code: BrpGenderCode,
 }
 
@@ -188,9 +179,11 @@ pub struct BrpBirth {
     #[serde(rename = "datum")]
     date: BrpDate,
 
+    #[allow(dead_code)]
     #[serde(rename = "land")]
     country: Option<BrpDescription>,
 
+    #[allow(dead_code)]
     #[serde(rename = "plaats")]
     place: Option<BrpDescription>,
 }
@@ -279,12 +272,14 @@ mod tests {
 
     use serde_json::json;
 
-    use wallet_common::utils;
+    use utils::path::prefix_local_path;
 
     use crate::pid::brp::data::BrpPersons;
+    use crate::pid::constants::MOCK_ADDRESS_DOCTYPE;
+    use crate::pid::constants::MOCK_PID_DOCTYPE;
 
     fn read_json(name: &str) -> String {
-        fs::read_to_string(utils::prefix_local_path(
+        fs::read_to_string(prefix_local_path(
             format!("resources/test/haal-centraal-examples/{}.json", name).as_ref(),
         ))
         .unwrap()
@@ -340,14 +335,13 @@ mod tests {
 
         assert_eq!(
             json!([
-                "com.example.pid",
+                MOCK_PID_DOCTYPE,
                 {
-                    "bsn": "999991772",
                     "family_name": "Jansen",
                     "given_name": "Frouke",
-                    "birth_date": "2000-03-24",
+                    "birthdate": "2000-03-24",
                     "age_over_18": true,
-                    "gender": 2,
+                    "bsn": "999991772",
                 },
             ]),
             serde_json::to_value(pid_card).unwrap()
@@ -355,13 +349,15 @@ mod tests {
 
         assert_eq!(
             json!([
-                "com.example.address",
+                MOCK_ADDRESS_DOCTYPE,
                 {
-                    "resident_country": "Nederland",
-                    "resident_street": "Van Wijngaerdenstraat",
-                    "resident_postal_code": "2596TW",
-                    "resident_house_number": "1",
-                    "resident_city": "Toetsoog",
+                    "address": {
+                        "street_address": "Van Wijngaerdenstraat",
+                        "house_number": "1",
+                        "postal_code": "2596TW",
+                        "locality": "Toetsoog",
+                        "country": "Nederland",
+                    },
                 },
             ]),
             serde_json::to_value(address_card).unwrap()

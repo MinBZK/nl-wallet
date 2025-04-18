@@ -4,7 +4,9 @@ issuer_trust_anchors = ["${PID_CA_CRT}"]
 wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
 metadata = [
     "${ISSUER_METADATA_PID_PATH}",
-    "${ISSUER_METADATA_ADDRESS_PATH}"
+    "${ISSUER_METADATA_PID_NL_PATH}",
+    "${ISSUER_METADATA_ADDRESS_PATH}",
+    "${ISSUER_METADATA_ADDRESS_NL_PATH}"
 ]
 
 [storage]
@@ -27,7 +29,7 @@ user_pin = "${HSM_USER_PIN}"
 max_sessions = 3
 max_session_lifetime_in_sec = 900
 
-[attestation_settings."com.example.pid"]
+[attestation_settings."urn:eudi:pid:nl:1"]
 valid_days = 365
 copy_count = 4
 attestation_qualification = "QEAA"
@@ -35,7 +37,7 @@ private_key_type = "hsm"
 private_key = "${PID_ISSUER_KEY}"
 certificate = "${PID_ISSUER_CRT}"
 
-[attestation_settings."com.example.address"]
+[attestation_settings."urn:eudi:pid-address:nl:1"]
 valid_days = 365
 copy_count = 4
 private_key_type = "hsm"

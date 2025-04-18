@@ -427,7 +427,6 @@ mod tests {
 
     use apple_app_attest::AppIdentifier;
     use apple_app_attest::AssertionCounter;
-    use crypto::utils;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
 
     use crate::error::DecodeError;
@@ -448,7 +447,7 @@ mod tests {
         fn default() -> Self {
             Self {
                 string: "Some payload.".to_string(),
-                challenge: utils::random_bytes(32),
+                challenge: crypto::utils::random_bytes(32),
             }
         }
     }

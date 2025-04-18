@@ -15,7 +15,7 @@ use http::StatusCode;
 use tracing::debug;
 use tracing::info;
 
-use wallet_common::built_info::version_string;
+use utils::built_info::version_string;
 
 use super::settings::Settings;
 
