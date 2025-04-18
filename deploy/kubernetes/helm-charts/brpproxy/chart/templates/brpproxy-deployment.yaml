@@ -14,19 +14,19 @@ spec:
       labels:
         {{- include "common.labels.standard" . | nindent 8 }}
         {{- with .Values.extraPodlabels }}
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-      {{ toYaml . | nindent 10 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ include "common.names.fullname" . }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           {{- with .Values.resources }}
           resources:
-            {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
             - name: ASPNETCORE_ENVIRONMENT
@@ -34,7 +34,7 @@ spec:
             - name: ASPNETCORE_URLS
               value: "http://+:5000"
             {{- with .Values.env }}
-              {{- toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           ports:
             - name: http-brpproxy

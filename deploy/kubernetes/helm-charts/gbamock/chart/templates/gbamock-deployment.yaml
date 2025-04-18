@@ -16,19 +16,19 @@ spec:
       labels:
         {{- include "common.labels.standard" . | nindent 8 }}
         {{- if .Values.extraPodlabels }}
-        {{ toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- toYaml .Values.extraPodlabels | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ .Values.nameOverride | default .Chart.Name }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           {{- with .Values.resources }}
           resources:
-            {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
             - name: testdata

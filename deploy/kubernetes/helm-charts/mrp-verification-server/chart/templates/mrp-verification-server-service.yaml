@@ -4,13 +4,9 @@ metadata:
   name: {{ include "common.names.fullname" . }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
-    service: mrp-verification-server
 spec:
   selector:
-    {{- include "common.labels.selectorLabels" . | nindent 4 }}
-    {{- if .Values.extraPodlabels }}
-    {{ toYaml .Values.extraPodlabels | nindent 4 }}
-    {{- end }}
+    {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 4 }}
   ports:
     - name: mrp-ws-http
       port: 3001
