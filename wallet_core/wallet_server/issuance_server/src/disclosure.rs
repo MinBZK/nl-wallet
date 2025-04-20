@@ -11,83 +11,16 @@ use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::Created;
 use openid4vc::issuer::IssuanceData;
-use openid4vc::oidc;
 use openid4vc::server_state::SessionState;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreError;
 use openid4vc::server_state::SessionToken;
-use openid4vc::token::TokenRequest;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::PostAuthResponseError;
 use utils::vec_at_least::VecNonEmpty;
-
-pub struct DisclosureBasedAttributeService<IS> {
-    issuance_sessions: Arc<IS>,
-}
-
-impl<IS> DisclosureBasedAttributeService<IS> {
-    pub fn new(issuance_sessions: Arc<IS>) -> Self {
-        Self { issuance_sessions }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum AttributeServiceError {
-    #[error("failed to get issuance session: {0}")]
-    GetIssuanceSession(#[from] SessionStoreError),
-    #[error("issuance session not found: {0}")]
-    MissingIssuanceSession(SessionToken),
-    #[error("issuance session in unexpected state")]
-    IsuanceSessionUnexpectedState,
-    #[error("no attributes to be issued")]
-    NoIssuableDocuments,
-}
-
-impl<IS> AttributeService for DisclosureBasedAttributeService<IS>
-where
-    IS: SessionStore<IssuanceData> + Send + Sync + 'static,
-{
-    type Error = AttributeServiceError;
-
-    async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        let session_token = token_request.code().clone().into();
-        let issuance_data = self
-            .issuance_sessions
-            .get(&session_token)
-            .await?
-            .ok_or_else(|| AttributeServiceError::MissingIssuanceSession(session_token.clone()))?
-            .data;
-
-        let IssuanceData::Created(created) = issuance_data else {
-            return Err(AttributeServiceError::IsuanceSessionUnexpectedState);
-        };
-
-        let issuable_documents = created
-            .issuable_documents
-            .ok_or_else(|| AttributeServiceError::NoIssuableDocuments)?;
-
-        Ok(issuable_documents)
-    }
-
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
-        // because they are mandatory in an OIDC Provider Metadata document (see
-        // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
-        // However, OpenID4VCI says that this should return not an OIDC Provider Metadata document but an OAuth
-        // Authorization Metadata document instead, see <https://www.rfc-editor.org/rfc/rfc8414.html>, which to
-        // a large extent has the same fields but `authorize` and `jwks` are optional there.
-        Ok(oidc::Config::new(
-            issuer_url.clone(),
-            issuer_url.join("authorize"),
-            issuer_url.join("token"),
-            issuer_url.join("jwks"),
-        ))
-    }
-}
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttributesFetcherError {

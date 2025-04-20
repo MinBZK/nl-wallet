@@ -10,6 +10,7 @@ use tracing::info;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::TrivialAttributeService;
 use openid4vc::issuer::WteConfig;
 use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::server_state::SessionStore;
@@ -25,7 +26,6 @@ use server_utils::server::decorate_router;
 use utils::built_info::version_string;
 
 use crate::disclosure::AttributesFetcher;
-use crate::disclosure::DisclosureBasedAttributeService;
 use crate::disclosure::IssuanceResultHandler;
 use crate::settings::IssuanceServerSettings;
 
@@ -92,13 +92,11 @@ where
     .collect::<HashMap<String, UseCase<PrivateKeyVariant>>>()
     .into();
 
-    let attr_service = DisclosureBasedAttributeService::new(Arc::clone(&issuance_sessions));
-
     let issuance_router = create_issuance_router(
         &issuer_settings.server_settings.public_url,
         attestation_config,
-        Arc::clone(&issuance_sessions),
-        attr_service,
+        issuance_sessions,
+        TrivialAttributeService,
         issuer_settings.wallet_client_ids.clone(),
         Option::<WteConfig<MemoryWteTracker>>::None, // The compiler forces us to explicitly specify a type here
     );

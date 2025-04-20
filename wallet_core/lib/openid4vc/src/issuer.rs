@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::ops::Add;
 use std::sync::Arc;
@@ -264,15 +265,6 @@ pub struct Session<S: IssuanceState> {
 
 /// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
 /// the token request. See for example the [`BrpPidAttributeService`].
-///
-/// A future implementation of this trait is expected to enable generic issuance of attributes as follows:
-/// - The owner of the issuance server determines the attributes to be issued and sends those to the issuance server.
-/// - The issuance server creates a new `SessionState<Created>` instance, puts that in its session store, and returns an
-///   authorization code that is to be forwarded to the wallet.
-/// - The wallet contacts the issuance server with the authorization code.
-/// - The issuance server looks up the `SessionState<Created>` from its session store and feeds that to the future
-///   implementation of this trait.
-/// - That implementation of this trait returns the attributes to be issued out of the `SessionState<Created>`.
 #[trait_variant::make(Send)]
 pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
@@ -280,6 +272,32 @@ pub trait AttributeService {
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
+}
+
+pub struct TrivialAttributeService;
+
+impl AttributeService for TrivialAttributeService {
+    type Error = Infallible;
+
+    async fn attributes(&self, _: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        unimplemented!()
+    }
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+        // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
+        // because they are mandatory in an OIDC Provider Metadata document (see
+        // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
+        // However, OpenID4VCI says that this should return not an OIDC Provider Metadata document but an OAuth
+        // Authorization Metadata document instead, see <https://www.rfc-editor.org/rfc/rfc8414.html>, which to
+        // a large extent has the same fields but `authorize` and `jwks` are optional there.
+
+        Ok(oidc::Config::new(
+            issuer_url.clone(),
+            issuer_url.join("authorize"),
+            issuer_url.join("token"),
+            issuer_url.join("jwks"),
+        ))
+    }
 }
 
 /// Static attestation data shared across all instances of an attestation type. The issuer augments this with an
@@ -677,14 +695,17 @@ impl Session<Created> {
 
         let code = token_request.code().clone();
 
-        let issuables = attr_service
-            .attributes(token_request)
-            .await
-            .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
+        let issuables = match &self.session_data().issuable_documents {
+            Some(docs) => docs,
+            None => &attr_service
+                .attributes(token_request)
+                .await
+                .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?,
+        };
 
         let previews = issuables
-            .into_inner()
-            .into_iter()
+            .as_ref()
+            .iter()
             .map(|document| {
                 let attestation_data = attestation_settings
                     .as_ref()
