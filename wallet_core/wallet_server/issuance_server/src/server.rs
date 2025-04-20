@@ -10,6 +10,7 @@ use tracing::info;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
 use openid4vc::issuer::IssuanceData;
+use openid4vc::issuer::Issuer;
 use openid4vc::issuer::TrivialAttributeService;
 use openid4vc::issuer::WteConfig;
 use openid4vc::server_state::MemoryWteTracker;
@@ -70,12 +71,6 @@ where
     let type_metadata = issuer_settings.metadata;
     let attestation_config = issuer_settings.attestation_settings.parse(&hsm, &type_metadata).await?;
 
-    let result_handler = IssuanceResultHandler {
-        issuance_sessions: Arc::clone(&issuance_sessions),
-        credential_issuer: issuer_settings.server_settings.public_url.join_base_url("issuance/"),
-        attributes_fetcher,
-    };
-
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| async {
         Ok::<_, anyhow::Error>((
             id,
@@ -92,14 +87,22 @@ where
     .collect::<HashMap<String, UseCase<PrivateKeyVariant>>>()
     .into();
 
-    let issuance_router = create_issuance_router(
-        &issuer_settings.server_settings.public_url,
-        attestation_config,
+    let issuer = Arc::new(Issuer::new(
         issuance_sessions,
         TrivialAttributeService,
+        attestation_config,
+        &issuer_settings.server_settings.public_url,
         issuer_settings.wallet_client_ids.clone(),
         Option::<WteConfig<MemoryWteTracker>>::None, // The compiler forces us to explicitly specify a type here
-    );
+    ));
+
+    let issuance_router = create_issuance_router(Arc::clone(&issuer));
+
+    let result_handler = IssuanceResultHandler {
+        issuer,
+        credential_issuer: issuer_settings.server_settings.public_url.join_base_url("issuance/"),
+        attributes_fetcher,
+    };
 
     let disclosure_router = VerifierFactory::new(
         issuer_settings.server_settings.public_url.join_base_url("disclosure"),

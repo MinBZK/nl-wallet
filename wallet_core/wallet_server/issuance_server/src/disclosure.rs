@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use indexmap::IndexMap;
 
+use crypto::EcdsaKeySend;
+
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
@@ -11,12 +13,12 @@ use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
 use openid4vc::issuable_document::IssuableDocument;
-use openid4vc::issuer::Created;
+use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
-use openid4vc::server_state::SessionState;
+use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreError;
-use openid4vc::server_state::SessionToken;
+use openid4vc::server_state::WteTracker;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::PostAuthResponseError;
@@ -75,9 +77,9 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
 /// Receives disclosed attributes, exchanges those for attestations to be issued, and creates a new issuance session
 /// by implementing [`DisclosureResultHandler`].
-pub struct IssuanceResultHandler<IS, A> {
-    pub attributes_fetcher: A,
-    pub issuance_sessions: Arc<IS>,
+pub struct IssuanceResultHandler<AF, AS, K, S, W> {
+    pub attributes_fetcher: AF,
+    pub issuer: Arc<Issuer<AS, K, S, W>>,
     pub credential_issuer: BaseUrl,
 }
 
@@ -89,10 +91,13 @@ pub enum IssuanceResultHandlerError {
     WriteIssuanceSession(#[from] SessionStoreError),
 }
 
-impl<IS, A> DisclosureResultHandler for IssuanceResultHandler<IS, A>
+impl<AF, AS, K, S, W> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, W>
 where
-    IS: SessionStore<IssuanceData> + Send + Sync + 'static,
-    A: AttributesFetcher + Sync + 'static,
+    AF: AttributesFetcher + Sync + 'static,
+    AS: AttributeService + Sync + 'static,
+    K: EcdsaKeySend + Sync + 'static,
+    S: SessionStore<IssuanceData> + Sync + 'static,
+    W: WteTracker + Sync + 'static,
 {
     async fn disclosure_result(
         &self,
@@ -117,15 +122,9 @@ where
             .collect();
 
         // Start a new issuance session.
-        let token = SessionToken::new_random();
-        let session = SessionState::new(
-            token.clone(),
-            IssuanceData::Created(Created {
-                issuable_documents: Some(to_issue),
-            }),
-        );
-        self.issuance_sessions
-            .write(session, true)
+        let token = self
+            .issuer
+            .new_session(to_issue)
             .await
             .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
 
@@ -176,9 +175,11 @@ pub mod mock {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::Arc;
 
     use indexmap::IndexMap;
+    use p256::ecdsa::SigningKey;
 
     use mdoc::verifier::DocumentDisclosedAttributes;
     use mdoc::Tdate;
@@ -187,8 +188,13 @@ mod tests {
     use openid4vc::attributes::AttributeValue;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::issuable_document::IssuableDocument;
+    use openid4vc::issuer::AttestationTypeConfig;
     use openid4vc::issuer::IssuanceData;
+    use openid4vc::issuer::Issuer;
+    use openid4vc::issuer::TrivialAttributeService;
+    use openid4vc::issuer::WteConfig;
     use openid4vc::server_state::MemorySessionStore;
+    use openid4vc::server_state::MemoryWteTracker;
     use openid4vc::server_state::SessionStore;
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
@@ -242,14 +248,26 @@ mod tests {
         }
     }
 
+    type MockIssuer = Issuer<TrivialAttributeService, SigningKey, MemorySessionStore<IssuanceData>, MemoryWteTracker>;
+
+    fn mock_issuer(sessions: Arc<MemorySessionStore<IssuanceData>>) -> MockIssuer {
+        Issuer::new(
+            sessions,
+            TrivialAttributeService,
+            HashMap::<std::string::String, AttestationTypeConfig<SigningKey>>::new().into(),
+            &"https://example.com".parse().unwrap(),
+            vec![],
+            None::<WteConfig<MemoryWteTracker>>,
+        )
+    }
+
     #[tokio::test]
     async fn it_works() {
-        let issuance_sessions: Arc<MemorySessionStore<IssuanceData>> =
-            Arc::new(MemorySessionStore::new(SessionStoreTimeouts::default()));
+        let sessions = Arc::new(MemorySessionStore::new(SessionStoreTimeouts::default()));
 
         let result_handler = IssuanceResultHandler {
             attributes_fetcher: TestAttributesFetcher,
-            issuance_sessions: Arc::clone(&issuance_sessions),
+            issuer: Arc::new(mock_issuer(Arc::clone(&sessions))),
             credential_issuer: "https://example.com".parse().unwrap(),
         };
 
@@ -266,7 +284,7 @@ mod tests {
         let code = credential_offer.grants.as_ref().unwrap().authorization_code().unwrap();
 
         // The session handler should have inserted a new issuance session in the session store.
-        let IssuanceData::Created(session) = issuance_sessions
+        let IssuanceData::Created(session) = sessions
             .get(&SessionToken::from(code.as_ref().to_string()))
             .await
             .unwrap()
@@ -283,12 +301,11 @@ mod tests {
 
     #[tokio::test]
     async fn no_attestations_error() {
-        let issuance_sessions: Arc<MemorySessionStore<IssuanceData>> =
-            Arc::new(MemorySessionStore::new(SessionStoreTimeouts::default()));
-
         let result_handler = IssuanceResultHandler {
             attributes_fetcher: MockAttributesFetcher(vec![]),
-            issuance_sessions: Arc::clone(&issuance_sessions),
+            issuer: Arc::new(mock_issuer(Arc::new(MemorySessionStore::new(
+                SessionStoreTimeouts::default(),
+            )))),
             credential_issuer: "https://example.com".parse().unwrap(),
         };
 

@@ -64,6 +64,7 @@ use crate::credential_payload::CredentialPayloadError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuable_document::IssuableDocument;
+use crate::issuable_document::IssuableDocuments;
 use crate::metadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerMetadata;
@@ -75,6 +76,7 @@ use crate::server_state::SessionDataType;
 use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
+use crate::server_state::SessionToken;
 use crate::server_state::WteTracker;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::token::AccessToken;
@@ -471,6 +473,21 @@ where
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
+    pub async fn new_session(&self, to_issue: IssuableDocuments) -> Result<SessionToken, SessionStoreError> {
+        let token = SessionToken::new_random();
+
+        let session = SessionState::new(
+            token.clone(),
+            IssuanceData::Created(Created {
+                issuable_documents: Some(to_issue),
+            }),
+        );
+
+        self.sessions.write(session, true).await?;
+
+        Ok(token)
+    }
+
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,

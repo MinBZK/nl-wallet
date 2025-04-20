@@ -22,7 +22,6 @@ use serde::Serialize;
 use tracing::warn;
 
 use crypto::keys::EcdsaKeySend;
-use http_utils::urls::BaseUrl;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
@@ -30,11 +29,9 @@ use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::Dpop;
 use openid4vc::dpop::DPOP_HEADER_NAME;
 use openid4vc::dpop::DPOP_NONCE_HEADER_NAME;
-use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
-use openid4vc::issuer::WteConfig;
 use openid4vc::metadata::IssuerMetadata;
 use openid4vc::oidc;
 use openid4vc::server_state::SessionStore;
@@ -48,33 +45,27 @@ use openid4vc::ErrorStatusCode;
 use openid4vc::TokenErrorCode;
 
 struct ApplicationState<A, K, S, W> {
-    issuer: Issuer<A, K, S, W>,
+    issuer: Arc<Issuer<A, K, S, W>>,
 }
 
-pub fn create_issuance_router<A, K, S, W>(
-    public_url: &BaseUrl,
-    attestation_config: AttestationTypesConfig<K>,
-    sessions: Arc<S>,
-    attr_service: A,
-    wallet_client_ids: Vec<String>,
-    wte_settings: Option<WteConfig<W>>,
-) -> Router
+// Implement `Clone` manually, because `#[derive(Clone)]` unnecessarily adds `Clone` bounds on A, K, S and W,
+// which we don't want.
+impl<A, K, S, W> Clone for ApplicationState<A, K, S, W> {
+    fn clone(&self) -> Self {
+        Self {
+            issuer: self.issuer.clone(),
+        }
+    }
+}
+
+pub fn create_issuance_router<A, K, S, W>(issuer: Arc<Issuer<A, K, S, W>>) -> Router
 where
     A: AttributeService + Send + Sync + 'static,
     K: EcdsaKeySend + Sync + 'static,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     W: WteTracker + Send + Sync + 'static,
 {
-    let application_state = Arc::new(ApplicationState {
-        issuer: Issuer::new(
-            sessions,
-            attr_service,
-            attestation_config,
-            public_url,
-            wallet_client_ids,
-            wte_settings,
-        ),
-    });
+    let application_state = ApplicationState { issuer };
 
     Router::new()
         .route("/.well-known/openid-credential-issuer", get(metadata))
@@ -90,7 +81,7 @@ where
 // Although there is no standard here mandating what our error response looks like, we use `ErrorResponse`
 // for consistency with the other endpoints.
 async fn oauth_metadata<A, K, S, W>(
-    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
+    State(state): State<ApplicationState<A, K, S, W>>,
 ) -> Result<Json<oidc::Config>, ErrorResponse<MetadataError>>
 where
     A: AttributeService,
@@ -111,12 +102,12 @@ where
     Ok(Json(metadata))
 }
 
-async fn metadata<A, K, S, W>(State(state): State<Arc<ApplicationState<A, K, S, W>>>) -> Json<IssuerMetadata> {
+async fn metadata<A, K, S, W>(State(state): State<ApplicationState<A, K, S, W>>) -> Json<IssuerMetadata> {
     Json(state.issuer.metadata.clone())
 }
 
 async fn token<A, K, S, W>(
-    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
+    State(state): State<ApplicationState<A, K, S, W>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<TokenRequest>,
 ) -> Result<(HeaderMap, Json<TokenResponseWithPreviews>), ErrorResponse<TokenErrorCode>>
@@ -142,7 +133,7 @@ where
 }
 
 async fn credential<A, K, S, W>(
-    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
+    State(state): State<ApplicationState<A, K, S, W>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_request): Json<CredentialRequest>,
@@ -164,7 +155,7 @@ where
 }
 
 async fn batch_credential<A, K, S, W>(
-    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
+    State(state): State<ApplicationState<A, K, S, W>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Json(credential_requests): Json<CredentialRequests>,
@@ -186,7 +177,7 @@ where
 }
 
 async fn reject_issuance<A, K, S, W>(
-    State(state): State<Arc<ApplicationState<A, K, S, W>>>,
+    State(state): State<ApplicationState<A, K, S, W>>,
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     uri: Uri,
