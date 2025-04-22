@@ -205,8 +205,6 @@ open class MobileActions {
         return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
     }
 
-    protected fun navigateBack() = driver.navigate().back()
-
     private fun <T> performAction(frameSync: Boolean = true, action: () -> T): T {
         if (!frameSync) driver.executeScript("flutter:setFrameSync", false, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
         return try {

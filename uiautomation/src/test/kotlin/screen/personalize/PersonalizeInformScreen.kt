@@ -11,8 +11,6 @@ class PersonalizeInformScreen : MobileActions() {
 
     fun visible() = isElementVisible(screen)
 
-    fun digidLoginButtonVisible() = isElementVisible(digidLoginButton)
-
     fun clickDigidLoginButton(switchToWebViewContext: Boolean = true) {
         clickElement(digidLoginButton)
         if (switchToWebViewContext) switchToWebViewContext()
