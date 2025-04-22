@@ -18,6 +18,7 @@ class DashboardScreen : MobileActions() {
     private val pidIdSubtitleText = find.byText("")
     private val pidAddressSubtitleText = find.byText("")
     private val showDetailsText = find.byText(l10n.getString("showDetailsCta"))
+    private val scanQRButton = find.byText(l10n.getString("menuScreenScanQrCta"))
 
     fun visible() = isElementVisible(screen, false)
 
@@ -54,4 +55,6 @@ class DashboardScreen : MobileActions() {
     }
 
     fun cardSubtitlesVisible() = isElementVisible(pidIdSubtitleText, false) && isElementVisible(pidAddressSubtitleText, false)
+
+    fun openQRScanner() = clickElement(scanQRButton)
 }
