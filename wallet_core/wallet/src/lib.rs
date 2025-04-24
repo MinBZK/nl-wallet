@@ -58,6 +58,7 @@ pub mod sd_jwt_vc_metadata {
     pub use sd_jwt_vc_metadata::DisplayMetadata;
     pub use sd_jwt_vc_metadata::LogoMetadata;
     pub use sd_jwt_vc_metadata::RenderingMetadata;
+    pub use sd_jwt_vc_metadata::UriMetadata;
 }
 
 pub mod utils {

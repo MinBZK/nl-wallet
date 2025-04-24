@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'attestation.dart';
+import 'image.dart';
 import 'instruction.dart';
 import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -33,24 +34,6 @@ enum DisclosureType {
   Login,
   Regular,
   ;
-}
-
-@freezed
-sealed class Image with _$Image {
-  const Image._();
-
-  const factory Image.svg({
-    required String xml,
-  }) = Image_Svg;
-  const factory Image.png({
-    required Uint8List data,
-  }) = Image_Png;
-  const factory Image.jpeg({
-    required Uint8List data,
-  }) = Image_Jpeg;
-  const factory Image.asset({
-    required String path,
-  }) = Image_Asset;
 }
 
 class MissingAttribute {

@@ -415,7 +415,7 @@ class $RenderingMetadataCopyWith<$Res> {
 class RenderingMetadata_Simple extends RenderingMetadata {
   const RenderingMetadata_Simple({this.logo, this.backgroundColor, this.textColor}) : super._();
 
-  final LogoMetadata? logo;
+  final ImageWithMetadata? logo;
   final String? backgroundColor;
   final String? textColor;
 
@@ -451,7 +451,7 @@ abstract mixin class $RenderingMetadata_SimpleCopyWith<$Res> implements $Renderi
           RenderingMetadata_Simple value, $Res Function(RenderingMetadata_Simple) _then) =
       _$RenderingMetadata_SimpleCopyWithImpl;
   @useResult
-  $Res call({LogoMetadata? logo, String? backgroundColor, String? textColor});
+  $Res call({ImageWithMetadata? logo, String? backgroundColor, String? textColor});
 }
 
 /// @nodoc
@@ -473,7 +473,7 @@ class _$RenderingMetadata_SimpleCopyWithImpl<$Res> implements $RenderingMetadata
       logo: freezed == logo
           ? _self.logo
           : logo // ignore: cast_nullable_to_non_nullable
-              as LogoMetadata?,
+              as ImageWithMetadata?,
       backgroundColor: freezed == backgroundColor
           ? _self.backgroundColor
           : backgroundColor // ignore: cast_nullable_to_non_nullable

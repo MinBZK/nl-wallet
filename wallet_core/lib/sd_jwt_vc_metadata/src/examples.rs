@@ -7,3 +7,7 @@ pub const SD_JWT_VC_SPEC_METADATA_BYTES: &[u8] = include_bytes!("../examples/spe
 pub const DIPLOMA_METADATA_BYTES: &[u8] = include_bytes!("../examples/diploma-metadata.json");
 pub const CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES: &[u8] =
     include_bytes!("../examples/credential_payload_sd_jwt_metadata.json");
+pub const SIMPLE_EMBEDDED_BYTES: &[u8] = include_bytes!("../examples/simple-embedded-metadata.json");
+pub const SIMPLE_REMOTE_BYTES: &[u8] = include_bytes!("../examples/simple-remote-metadata.json");
+#[cfg(test)]
+pub const RED_DOT_BYTES: &[u8] = include_bytes!("../examples/red-dot.png");

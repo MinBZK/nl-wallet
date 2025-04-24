@@ -6,18 +6,10 @@ use wallet::openid4vc::SessionType;
 use wallet::DisclosureProposal;
 
 use super::attestation::Attestation;
+use super::image::Image;
 use super::instruction::WalletInstructionError;
 use super::localize::LocalizedString;
 
-#[derive(Clone)]
-pub enum Image {
-    Svg { xml: String },
-    Png { data: Vec<u8> },
-    Jpeg { data: Vec<u8> },
-    Asset { path: String },
-}
-
-#[derive(Clone)]
 pub struct Organization {
     pub legal_name: Vec<LocalizedString>,
     pub display_name: Vec<LocalizedString>,

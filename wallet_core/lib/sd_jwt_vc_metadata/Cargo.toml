@@ -18,13 +18,14 @@ itertools.workspace = true
 jsonschema.workspace = true
 nutype = { workspace = true, features = ["regex"] }
 regex.workspace = true
-serde = { workspace = true, features = ["serde_derive"] }
+serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64"] }
 ssri.workspace = true
 thiserror.workspace = true
 
 crypto.path = "../crypto"
+http_utils.path = "../http_utils"
 utils.path = "../utils"
 
 [dev-dependencies]
