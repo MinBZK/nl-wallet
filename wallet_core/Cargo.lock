@@ -2027,7 +2027,6 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
- "utils",
  "wallet",
 ]
 

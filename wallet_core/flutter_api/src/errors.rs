@@ -2,12 +2,11 @@ use std::error::Error;
 use std::fmt::Display;
 
 use anyhow::Chain;
+use itertools::Itertools;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use utils::single_unique::NotUnique;
-use utils::single_unique::SingleUniqueExt;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
 use wallet::errors::openid4vc::IssuanceSessionError;
 use wallet::errors::openid4vc::OidcError;
@@ -256,11 +255,12 @@ impl FlutterApiErrorFields for PidIssuanceError {
             PidIssuanceError::IssuerServer { organizations, .. } => match organizations
                 .iter()
                 .map(|organization| organization.display_name.clone())
-                .single_unique()
+                .dedup()
+                .at_most_one()
             {
                 Ok(Some(organization)) => Some(organization),
                 Ok(None) => None,
-                Err(NotUnique) => {
+                Err(_) => {
                     tracing::warn!("multiple issuer organizations detected in issuance session, returning first");
                     organizations.first().map(|o| o.display_name.clone())
                 }
