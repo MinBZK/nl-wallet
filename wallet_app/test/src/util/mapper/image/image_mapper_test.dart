@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/util/mapper/image/image_mapper.dart';
@@ -11,20 +13,22 @@ void main() {
   });
 
   test('validate svg mapper', () {
-    const input = Image.svg(xml: 'xml');
-    const expectedOutput = SvgImage('xml');
+    const input = Image.svg(xml: '<svg></svg>');
+    const expectedOutput = SvgImage('<svg></svg>');
     expect(mapper.map(input), expectedOutput);
   });
 
   test('validate png mapper', () {
-    const input = Image.png(base64: 'png');
-    const expectedOutput = Base64Image('png');
+    final data = Uint8List.fromList([0x89, 0x50, 0x4E, 0x47]);
+    final input = Image.png(data: data);
+    final expectedOutput = AppMemoryImage(data);
     expect(mapper.map(input), expectedOutput);
   });
 
-  test('validate jpg mapper', () {
-    const input = Image.jpg(base64: 'jpg');
-    const expectedOutput = Base64Image('jpg');
+  test('validate jpeg mapper', () {
+    final data = Uint8List.fromList([0xFF, 0xD8, 0xFF]);
+    final input = Image.jpeg(data: data);
+    final expectedOutput = AppMemoryImage(data);
     expect(mapper.map(input), expectedOutput);
   });
 

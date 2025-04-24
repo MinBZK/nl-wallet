@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:json_annotation/json_annotation.dart';
 
 import '../app_image_data.dart';
@@ -13,7 +15,7 @@ class AppImageDataConverter extends JsonConverter<AppImageData, Map<String, dyna
     final String type = json[_kTypeKey];
     return switch (type) {
       'asset' => AppAssetImage(json[_kDataKey]),
-      'base64' => Base64Image(json[_kDataKey]),
+      'base64' => AppMemoryImage(Base64Decoder().convert(json[_kDataKey])),
       'svg' => SvgImage(json[_kDataKey]),
       String() => throw UnsupportedError('could not deserialize to image'),
     };
@@ -21,14 +23,19 @@ class AppImageDataConverter extends JsonConverter<AppImageData, Map<String, dyna
 
   @override
   Map<String, dynamic> toJson(AppImageData object) {
-    final type = switch (object) {
-      AppAssetImage() => 'asset',
-      Base64Image() => 'base64',
-      SvgImage() => 'svg',
-    };
-    return {
-      _kTypeKey: type,
-      _kDataKey: object.data,
+    return switch (object) {
+      AppAssetImage() => {
+          _kTypeKey: 'asset',
+          _kDataKey: object.name,
+        },
+      AppMemoryImage() => {
+          _kTypeKey: 'base64',
+          _kDataKey: Base64Encoder().convert(object.data),
+        },
+      SvgImage() => {
+          _kTypeKey: 'svg',
+          _kDataKey: object.data,
+        },
     };
   }
 }

@@ -12,8 +12,8 @@ use super::localize::LocalizedString;
 #[derive(Clone)]
 pub enum Image {
     Svg { xml: String },
-    Png { base64: String },
-    Jpg { base64: String },
+    Png { data: Vec<u8> },
+    Jpeg { data: Vec<u8> },
     Asset { path: String },
 }
 
@@ -105,14 +105,10 @@ impl From<RPLocalizedStrings> for Vec<LocalizedString> {
 
 impl From<wallet::mdoc::Image> for Image {
     fn from(value: wallet::mdoc::Image) -> Self {
-        match value.mime_type {
-            wallet::mdoc::ImageType::Svg => Image::Svg { xml: value.image_data },
-            wallet::mdoc::ImageType::Png => Image::Png {
-                base64: value.image_data,
-            },
-            wallet::mdoc::ImageType::Jpeg => Image::Jpg {
-                base64: value.image_data,
-            },
+        match value {
+            wallet::mdoc::Image::Svg(xml) => Image::Svg { xml },
+            wallet::mdoc::Image::Png(data) => Image::Png { data },
+            wallet::mdoc::Image::Jpeg(data) => Image::Jpeg { data },
         }
     }
 }

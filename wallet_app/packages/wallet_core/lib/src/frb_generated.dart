@@ -1259,11 +1259,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         );
       case 1:
         return Image_Png(
-          base64: dco_decode_String(raw[1]),
+          data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 2:
-        return Image_Jpg(
-          base64: dco_decode_String(raw[1]),
+        return Image_Jpeg(
+          data: dco_decode_list_prim_u_8_strict(raw[1]),
         );
       case 3:
         return Image_Asset(
@@ -1852,11 +1852,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_xml = sse_decode_String(deserializer);
         return Image_Svg(xml: var_xml);
       case 1:
-        var var_base64 = sse_decode_String(deserializer);
-        return Image_Png(base64: var_base64);
+        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
+        return Image_Png(data: var_data);
       case 2:
-        var var_base64 = sse_decode_String(deserializer);
-        return Image_Jpg(base64: var_base64);
+        var var_data = sse_decode_list_prim_u_8_strict(deserializer);
+        return Image_Jpeg(data: var_data);
       case 3:
         var var_path = sse_decode_String(deserializer);
         return Image_Asset(path: var_path);
@@ -2597,12 +2597,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case Image_Svg(xml: final xml):
         sse_encode_i_32(0, serializer);
         sse_encode_String(xml, serializer);
-      case Image_Png(base64: final base64):
+      case Image_Png(data: final data):
         sse_encode_i_32(1, serializer);
-        sse_encode_String(base64, serializer);
-      case Image_Jpg(base64: final base64):
+        sse_encode_list_prim_u_8_strict(data, serializer);
+      case Image_Jpeg(data: final data):
         sse_encode_i_32(2, serializer);
-        sse_encode_String(base64, serializer);
+        sse_encode_list_prim_u_8_strict(data, serializer);
       case Image_Asset(path: final path):
         sse_encode_i_32(3, serializer);
         sse_encode_String(path, serializer);

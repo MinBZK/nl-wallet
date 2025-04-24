@@ -1299,12 +1299,12 @@ impl SseDecode for crate::models::disclosure::Image {
                 return crate::models::disclosure::Image::Svg { xml: var_xml };
             }
             1 => {
-                let mut var_base64 = <String>::sse_decode(deserializer);
-                return crate::models::disclosure::Image::Png { base64: var_base64 };
+                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::disclosure::Image::Png { data: var_data };
             }
             2 => {
-                let mut var_base64 = <String>::sse_decode(deserializer);
-                return crate::models::disclosure::Image::Jpg { base64: var_base64 };
+                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::disclosure::Image::Jpeg { data: var_data };
             }
             3 => {
                 let mut var_path = <String>::sse_decode(deserializer);
@@ -2089,11 +2089,11 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::Image {
             crate::models::disclosure::Image::Svg { xml } => {
                 [0.into_dart(), xml.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::disclosure::Image::Png { base64 } => {
-                [1.into_dart(), base64.into_into_dart().into_dart()].into_dart()
+            crate::models::disclosure::Image::Png { data } => {
+                [1.into_dart(), data.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::disclosure::Image::Jpg { base64 } => {
-                [2.into_dart(), base64.into_into_dart().into_dart()].into_dart()
+            crate::models::disclosure::Image::Jpeg { data } => {
+                [2.into_dart(), data.into_into_dart().into_dart()].into_dart()
             }
             crate::models::disclosure::Image::Asset { path } => {
                 [3.into_dart(), path.into_into_dart().into_dart()].into_dart()
@@ -2710,13 +2710,13 @@ impl SseEncode for crate::models::disclosure::Image {
                 <i32>::sse_encode(0, serializer);
                 <String>::sse_encode(xml, serializer);
             }
-            crate::models::disclosure::Image::Png { base64 } => {
+            crate::models::disclosure::Image::Png { data } => {
                 <i32>::sse_encode(1, serializer);
-                <String>::sse_encode(base64, serializer);
+                <Vec<u8>>::sse_encode(data, serializer);
             }
-            crate::models::disclosure::Image::Jpg { base64 } => {
+            crate::models::disclosure::Image::Jpeg { data } => {
                 <i32>::sse_encode(2, serializer);
-                <String>::sse_encode(base64, serializer);
+                <Vec<u8>>::sse_encode(data, serializer);
             }
             crate::models::disclosure::Image::Asset { path } => {
                 <i32>::sse_encode(3, serializer);
@@ -3425,13 +3425,13 @@ mod io {
                 1 => {
                     let ans = unsafe { self.kind.Png };
                     crate::models::disclosure::Image::Png {
-                        base64: ans.base64.cst_decode(),
+                        data: ans.data.cst_decode(),
                     }
                 }
                 2 => {
-                    let ans = unsafe { self.kind.Jpg };
-                    crate::models::disclosure::Image::Jpg {
-                        base64: ans.base64.cst_decode(),
+                    let ans = unsafe { self.kind.Jpeg };
+                    crate::models::disclosure::Image::Jpeg {
+                        data: ans.data.cst_decode(),
                     }
                 }
                 3 => {
@@ -4498,7 +4498,7 @@ mod io {
     pub union ImageKind {
         Svg: wire_cst_Image_Svg,
         Png: wire_cst_Image_Png,
-        Jpg: wire_cst_Image_Jpg,
+        Jpeg: wire_cst_Image_Jpeg,
         Asset: wire_cst_Image_Asset,
         nil__: (),
     }
@@ -4510,12 +4510,12 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_Image_Png {
-        base64: *mut wire_cst_list_prim_u_8_strict,
+        data: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_Image_Jpg {
-        base64: *mut wire_cst_list_prim_u_8_strict,
+    pub struct wire_cst_Image_Jpeg {
+        data: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
