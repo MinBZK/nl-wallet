@@ -136,6 +136,10 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         return !isElementVisible(find.byText(data))
     }
 
+    fun dataVisible(data: String): Boolean {
+        return isElementVisible(find.byText(data))
+    }
+
     fun sharingReasonVisible(reason: String): Boolean {
         return isElementVisible(find.byText(reason))
     }

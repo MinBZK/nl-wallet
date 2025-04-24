@@ -1,11 +1,15 @@
 package feature.disclosure
 
+import helper.CardMetadataHelper
+import helper.GbaDataHelper
+import helper.GbaDataHelper.Field.FIRST_NAME
+import helper.GbaDataHelper.Field.NAME
 import helper.LocalizationHelper
-import helper.LocalizationHelper.Translation.CREATE_ACCOUNT_SHARING_REASON
-import helper.LocalizationHelper.Translation.FIRST_NAME_LABEL
-import helper.LocalizationHelper.Translation.NAME_LABEL
-import helper.LocalizationHelper.Translation.PID_CARD_TITLE
-import helper.LocalizationHelper.Translation.AMSTERDAM_DISPLAY_NAME
+import helper.OrganizationAuthMetadataHelper
+import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
+import helper.OrganizationAuthMetadataHelper.Organization.MARKETPLACE
+import helper.OrganizationAuthMetadataHelper.Organization.MONKEYBIKE
+import helper.OrganizationAuthMetadataHelper.Organization.XYZ
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
@@ -42,6 +46,9 @@ class DisclosureTests : TestBase() {
     private lateinit var monkeyBikeWebPage: RelyingPartyMonkeyBikeWebPage
     private lateinit var pinScreen: PinScreen
     private lateinit var l10n: LocalizationHelper
+    private lateinit var cardMetadata: CardMetadataHelper
+    private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
+    private lateinit var gbaData: GbaDataHelper
 
 
     fun setUp(testInfo: TestInfo) {
@@ -50,6 +57,9 @@ class DisclosureTests : TestBase() {
         disclosureScreen = DisclosureApproveOrganizationScreen()
         pinScreen = PinScreen()
         l10n = LocalizationHelper()
+        cardMetadata = CardMetadataHelper()
+        organizationAuthMetadata = OrganizationAuthMetadataHelper()
+        gbaData = GbaDataHelper()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -63,9 +73,9 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         xyzBankWebPage.openSameDeviceWalletFlow(platform)
         xyzBankWebPage.switchToAppContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible("XYZ Bank"))
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
         disclosureScreen.viewDisclosureDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible("De toegankelijke bank voor betalen, sparen en beleggen."))
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", XYZ)))
         disclosureScreen.goBack();
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
@@ -90,12 +100,12 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         amsterdamWebPage.openSameDeviceWalletFlow(platform)
         amsterdamWebPage.switchToAppContext()
-        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(l10n.translate(AMSTERDAM_DISPLAY_NAME)))
+        assertTrue(disclosureScreen.organizationNameForLoginFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)))
         disclosureScreen.viewLoginDisclosureDetails()
-        disclosureScreen.viewOrganization(l10n.translate(AMSTERDAM_DISPLAY_NAME));
+        disclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM))
         val organizationDetailScreen = OrganizationDetailScreen()
         organizationDetailScreen.clickBackButton()
-        disclosureScreen.viewSharedData("1",l10n.translate(PID_CARD_TITLE))
+        disclosureScreen.viewSharedData("1", cardMetadata.getPidDisplayName())
         assertTrue(disclosureScreen.bsnVisible("999991772"), "BSN not visible")
         disclosureScreen.goBack()
         disclosureScreen.goBack()
@@ -125,23 +135,23 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         marketPlaceWebPage.openSameDeviceWalletFlow(platform)
         marketPlaceWebPage.switchToAppContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible("Marktplek"))
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)))
         disclosureScreen.viewDisclosureDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible("Verkoop eenvoudig jouw tweedehands spullen online op Marktplek."))
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", MARKETPLACE)))
         disclosureScreen.goBack();
         disclosureScreen.proceed()
         assertAll(
-            { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible("Marktplek"), "Header is not visible") },
-            { assertTrue(disclosureScreen.labelVisible(l10n.translate(NAME_LABEL)), "Label is not visible") },
-            { assertTrue(disclosureScreen.labelVisible(l10n.translate(FIRST_NAME_LABEL)), "Label is not visible") },
-            { assertTrue(disclosureScreen.dataNotVisible("Jansen"), "data is visible") },
-            { assertTrue(disclosureScreen.dataNotVisible("Frouke"), "data is visible") },
-            { assertTrue(disclosureScreen.sharingReasonVisible(l10n.translate(CREATE_ACCOUNT_SHARING_REASON)), "reason is not visible") },
+            { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)), "Header is not visible") },
+            { assertTrue(disclosureScreen.labelVisible(cardMetadata.getPidClaimLabel("family_name")), "Label is not visible") },
+            { assertTrue(disclosureScreen.labelVisible(cardMetadata.getPidClaimLabel("given_name")), "Label is not visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, "999991772")), "data is visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, "999991772")), "data is visible") },
+            { assertTrue(disclosureScreen.sharingReasonVisible(organizationAuthMetadata.getAttributeValueForOrganization("purposeStatement", MARKETPLACE)), "reason is not visible") },
             { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
         )
-        disclosureScreen.viewSharedData("3",l10n.translate(PID_CARD_TITLE))
-        assertTrue(disclosureScreen.bsnVisible("Jansen"), "Name not visible")
+        disclosureScreen.viewSharedData("3", cardMetadata.getPidDisplayName())
+        assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, "999991772")), "Name not visible")
         disclosureScreen.goBack()
         disclosureScreen.readTerms()
         assertTrue(disclosureScreen.termsVisible(), "Terms not visible")
@@ -167,9 +177,9 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         monkeyBikeWebPage.openSameDeviceWalletFlow(platform)
         monkeyBikeWebPage.switchToAppContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible("MonkeyBike"))
+        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MONKEYBIKE)))
         disclosureScreen.viewDisclosureDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible("Jouw boodschappen binnen 10 minuten thuisbezorgd."))
+        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", MONKEYBIKE)))
         disclosureScreen.goBack();
         disclosureScreen.proceed()
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
