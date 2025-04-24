@@ -81,9 +81,11 @@ pub enum DisclosureError {
     SessionState,
     #[error("could not parse disclosure URI: {0}")]
     DisclosureUri(#[source] DisclosureUriError),
+    #[error("error in OpenID4VP disclosure session: {0}")]
+    VpClient(#[source] VpClientError),
     #[error("error in OpenID4VP disclosure session: {error}")]
-    VpDisclosureSession {
-        organization: Option<Box<Organization>>,
+    VpVerifierServer {
+        organization: Box<Organization>,
         #[defer]
         #[source]
         error: VpClientError,
@@ -120,38 +122,37 @@ pub enum DisclosureError {
 impl DisclosureError {
     pub fn return_url(&self) -> Option<&Url> {
         match self {
-            Self::VpDisclosureSession {
+            Self::VpVerifierServer {
                 error: VpClientError::Request(error),
                 ..
-            } => error.redirect_uri().map(AsRef::as_ref),
+            }
+            | Self::VpClient(VpClientError::Request(error)) => error.redirect_uri().map(AsRef::as_ref),
             _ => None,
         }
     }
 }
 
+fn is_verifier_server_error(error: &VpClientError) -> bool {
+    matches!(
+        error,
+        VpClientError::AuthRequestValidation(_)
+            | VpClientError::MissingReaderRegistration
+            | VpClientError::RequestedAttributesValidation(_)
+            | VpClientError::RpCertificate(_)
+            | VpClientError::IncorrectClientId { .. }
+            | VpClientError::MissingSessionType
+            | VpClientError::MalformedSessionType(_)
+    )
+}
+
 impl DisclosureError {
-    fn new(error: MdocDisclosureError, organization_name: Organization) -> Self {
-        // Note that the `.unwrap()` and `panic!()` statements below are safe,
-        // as checking is performed within the guard statements.
-        match error {
-            // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
-            MdocDisclosureError::Vp(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(error))))
-                if matches!(
-                    error.downcast_ref::<RemoteEcdsaKeyError>(),
-                    Some(RemoteEcdsaKeyError::Instruction(_))
-                ) =>
-            {
-                if let RemoteEcdsaKeyError::Instruction(error) = *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                    DisclosureError::Instruction(error)
-                } else {
-                    panic!()
-                }
-            }
-            // Any other error should result in its generic top-level error variant.
-            MdocDisclosureError::Vp(error) => DisclosureError::VpDisclosureSession {
+    fn with_organization(error: MdocDisclosureError, organization: Organization) -> Self {
+        match Self::from(error) {
+            Self::VpClient(error) if is_verifier_server_error(&error) => Self::VpVerifierServer {
+                organization: Box::new(organization),
                 error,
-                organization: Some(Box::new(organization_name)),
             },
+            error => error,
         }
     }
 }
@@ -175,10 +176,7 @@ impl From<MdocDisclosureError> for DisclosureError {
                 }
             }
             // Any other error should result in its generic top-level error variant.
-            MdocDisclosureError::Vp(error) => DisclosureError::VpDisclosureSession {
-                error,
-                organization: None,
-            },
+            MdocDisclosureError::Vp(error) => DisclosureError::VpClient(error),
         }
     }
 }
@@ -475,7 +473,7 @@ where
             Ok(return_url) => return_url,
             Err(error) => {
                 let organization_name = session.reader_registration().organization.clone();
-                let disclosure_error = DisclosureError::new(error.error, organization_name);
+                let disclosure_error = DisclosureError::with_organization(error.error, organization_name);
 
                 // IncorrectPin is a functional error and does not need to be recorded.
                 if !matches!(
@@ -810,13 +808,7 @@ mod tests {
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
-        assert_matches!(
-            error,
-            DisclosureError::VpDisclosureSession {
-                error: VpClientError::MissingSessionType,
-                ..
-            }
-        );
+        assert_matches!(error, DisclosureError::VpClient(VpClientError::MissingSessionType));
         assert!(wallet.disclosure_session.is_none());
     }
 
@@ -846,7 +838,7 @@ mod tests {
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::VpDisclosureSession { .. });
+        assert_matches!(error, DisclosureError::VpClient(_));
         assert_eq!(error.return_url(), Some(&return_url));
         assert!(wallet.disclosure_session.is_none());
     }
@@ -1359,10 +1351,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::VpDisclosureSession {
-                error: VpClientError::Request(VpMessageClientError::AuthPostResponse(_)),
-                ..
-            }
+            DisclosureError::VpClient(VpClientError::Request(VpMessageClientError::AuthPostResponse(_)))
         );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
@@ -1424,10 +1413,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::VpDisclosureSession {
-                error: VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(_))),
-                ..
-            }
+            DisclosureError::VpClient(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(_))))
         );
         assert!(wallet.disclosure_session.is_some());
         assert!(!wallet.is_locked());
@@ -1605,7 +1591,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureError::VpDisclosureSession {
+            DisclosureError::VpVerifierServer {
                 error: VpClientError::MissingReaderRegistration,
                 ..
             }

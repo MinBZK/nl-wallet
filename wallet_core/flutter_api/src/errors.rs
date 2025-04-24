@@ -2,11 +2,12 @@ use std::error::Error;
 use std::fmt::Display;
 
 use anyhow::Chain;
-use itertools::Itertools;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use utils::single_unique::NotUnique;
+use utils::single_unique::SingleUniqueExt;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
 use wallet::errors::openid4vc::IssuanceSessionError;
 use wallet::errors::openid4vc::OidcError;
@@ -205,7 +206,7 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
 #[derive(Debug, Clone, Serialize)]
 struct IssuanceErrorData {
     redirect_error: Option<AuthorizationErrorCode>,
-    organization_names: Option<Vec<LocalizedStrings>>,
+    organization_name: Option<LocalizedStrings>,
 }
 
 impl FlutterApiErrorFields for PidIssuanceError {
@@ -249,21 +250,27 @@ impl FlutterApiErrorFields for PidIssuanceError {
                 None
             };
 
-        let organization_names = match self {
-            PidIssuanceError::Attestation { organization, .. } => Some(vec![organization.display_name.clone()]),
-            PidIssuanceError::IssuerServer { organizations, .. } => Some(
-                (*organizations)
-                    .iter()
-                    .map(|organization| organization.display_name.clone())
-                    .collect_vec(),
-            ),
+        let organization_name = match self {
+            PidIssuanceError::Attestation { organization, .. } => Some(organization.display_name.clone()),
+            PidIssuanceError::IssuerServer { organizations, .. } => match organizations
+                .iter()
+                .map(|organization| organization.display_name.clone())
+                .single_unique()
+            {
+                Ok(Some(organization)) => Some(organization),
+                Ok(None) => None,
+                Err(NotUnique) => {
+                    tracing::warn!("multiple issuer organizations detected in issuance session, returning first");
+                    organizations.first().map(|o| o.display_name.clone())
+                }
+            },
             _ => None,
         };
 
-        if redirect_error.is_some() || organization_names.is_some() {
+        if redirect_error.is_some() || organization_name.is_some() {
             serde_json::to_value(IssuanceErrorData {
                 redirect_error,
-                organization_names,
+                organization_name,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -288,49 +295,16 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            DisclosureError::VpDisclosureSession {
-                error: VpClientError::DisclosureUriSourceMismatch(_, _),
-                ..
-            } => FlutterApiErrorType::DisclosureSourceMismatch,
-            DisclosureError::VpDisclosureSession {
-                error: VpClientError::Request(error),
-                ..
-            } => match error.error_type() {
+            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
+                FlutterApiErrorType::DisclosureSourceMismatch
+            }
+            DisclosureError::VpClient(VpClientError::Request(error)) => match error.error_type() {
                 VpMessageClientErrorType::Expired { .. } => FlutterApiErrorType::ExpiredSession,
                 VpMessageClientErrorType::Cancelled => FlutterApiErrorType::CancelledSession,
                 _ => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
             },
-            DisclosureError::VpDisclosureSession {
-                error: VpClientError::AuthRequestValidation(_),
-                ..
-            }
-            | DisclosureError::VpDisclosureSession {
-                error: VpClientError::MissingReaderRegistration,
-                ..
-            }
-            | DisclosureError::VpDisclosureSession {
-                error: VpClientError::RequestedAttributesValidation(_),
-                ..
-            }
-            | DisclosureError::VpDisclosureSession {
-                error: VpClientError::RpCertificate(_),
-                ..
-            }
-            | DisclosureError::VpDisclosureSession {
-                error: VpClientError::IncorrectClientId { .. },
-                ..
-            }
-            | DisclosureError::VpDisclosureSession {
-                error: VpClientError::MissingSessionType,
-                ..
-            }
-            | DisclosureError::VpDisclosureSession {
-                error: VpClientError::MalformedSessionType(_),
-                ..
-            } => FlutterApiErrorType::Disclosure,
-            DisclosureError::VpDisclosureSession { error, .. } => {
-                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
-            }
+            DisclosureError::VpClient(error) => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
+            DisclosureError::VpVerifierServer { .. } => FlutterApiErrorType::Disclosure,
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
             _ => FlutterApiErrorType::Generic,
@@ -339,14 +313,14 @@ impl FlutterApiErrorFields for DisclosureError {
 
     fn data(&self) -> serde_json::Value {
         let session_type = match self {
-            DisclosureError::VpDisclosureSession {
+            DisclosureError::VpVerifierServer {
                 error: VpClientError::DisclosureUriSourceMismatch(session_type, _),
                 ..
             } => Some(*session_type),
             _ => None,
         };
         let can_retry = match self {
-            DisclosureError::VpDisclosureSession {
+            DisclosureError::VpVerifierServer {
                 error: VpClientError::Request(error),
                 ..
             } => match error.error_type() {
@@ -356,37 +330,9 @@ impl FlutterApiErrorFields for DisclosureError {
             _ => None,
         };
         let return_url = self.return_url();
+        //
         let organization_name = match self {
-            DisclosureError::VpDisclosureSession {
-                organization,
-                error: VpClientError::AuthRequestValidation(_),
-            }
-            | DisclosureError::VpDisclosureSession {
-                organization,
-                error: VpClientError::MissingReaderRegistration,
-            }
-            | DisclosureError::VpDisclosureSession {
-                organization,
-                error: VpClientError::RequestedAttributesValidation(_),
-            }
-            | DisclosureError::VpDisclosureSession {
-                organization,
-                error: VpClientError::RpCertificate(_),
-            }
-            | DisclosureError::VpDisclosureSession {
-                organization,
-                error: VpClientError::IncorrectClientId { .. },
-            }
-            | DisclosureError::VpDisclosureSession {
-                organization,
-                error: VpClientError::MissingSessionType,
-            }
-            | DisclosureError::VpDisclosureSession {
-                organization,
-                error: VpClientError::MalformedSessionType(_),
-            } => organization
-                .as_ref()
-                .map(|organization| organization.display_name.clone()),
+            DisclosureError::VpVerifierServer { organization, .. } => Some(organization.display_name.clone()),
             _ => None,
         };
 

@@ -29,6 +29,7 @@ url.workspace = true
 
 error_category.path = "../lib/error_category"
 flutter_api_macros.path = "flutter_api_macros"
+utils.path = "../lib/utils"
 wallet.path = "../wallet"
 
 [dev-dependencies]
