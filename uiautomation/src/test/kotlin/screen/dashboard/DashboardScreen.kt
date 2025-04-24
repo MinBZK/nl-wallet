@@ -1,7 +1,5 @@
 package screen.dashboard
 
-import helper.LocalizationHelper.Translation.ADDRESS_CARD_TITLE
-import helper.LocalizationHelper.Translation.PID_CARD_TITLE
 import util.MobileActions
 
 class DashboardScreen : MobileActions() {
@@ -10,11 +8,11 @@ class DashboardScreen : MobileActions() {
 
     private val menuButton = find.byText(l10n.getString("dashboardScreenTitle"))
 
-    private val pidIdCard = find.byValueKey("urn:eudi:pid:nl:1")
-    private val pidAddressCard = find.byValueKey("urn:eudi:pid-address:nl:1")
+    private val pidIdCard = find.byValueKey(cardMetadata.getPidVCT())
+    private val pidAddressCard = find.byValueKey(cardMetadata.getAddressACT())
 
-    private val pidIdTitleText = find.byText(l10n.translate(PID_CARD_TITLE))
-    private val pidAddressTitleText = find.byText(l10n.translate(ADDRESS_CARD_TITLE))
+    private val pidIdTitleText = find.byText(cardMetadata.getPidDisplayName())
+    private val pidAddressTitleText = find.byText(cardMetadata.getAddressDisplayName())
     private val pidIdSubtitleText = find.byText("")
     private val pidAddressSubtitleText = find.byText("")
     private val showDetailsText = find.byText(l10n.getString("showDetailsCta"))
