@@ -345,9 +345,9 @@ impl FlutterApiErrorFields for DisclosureError {
         };
         let return_url = self.return_url();
         let organization_name = match self {
-            DisclosureError::VpVerifierServer { organization, .. } => {
-                organization.clone().map(|organization| organization.display_name)
-            }
+            DisclosureError::VpVerifierServer { organization, .. } => organization
+                .as_ref()
+                .map(|organization| organization.display_name.clone()),
             _ => None,
         };
 

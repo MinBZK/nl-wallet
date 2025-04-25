@@ -87,7 +87,7 @@ pub enum DisclosureError {
     VpClient(#[source] VpClientError),
     #[error("error in OpenID4VP disclosure session: {error}")]
     VpVerifierServer {
-        organization: Box<Option<Organization>>,
+        organization: Option<Box<Organization>>,
         #[defer]
         #[source]
         error: VpVerifierError,
@@ -138,7 +138,7 @@ impl DisclosureError {
     fn with_organization(error: MdocDisclosureError, organization: Organization) -> Self {
         match error {
             MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => Self::VpVerifierServer {
-                organization: Box::new(organization.into()),
+                organization: Some(Box::new(organization)),
                 error,
             },
             error => error.into(),
@@ -168,7 +168,7 @@ impl From<MdocDisclosureError> for DisclosureError {
             // Any other error should result in its generic top-level error variant.
             MdocDisclosureError::Vp(VpSessionError::Client(error)) => DisclosureError::VpClient(error),
             MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => DisclosureError::VpVerifierServer {
-                organization: Box::new(None),
+                organization: None,
                 error,
             },
         }
