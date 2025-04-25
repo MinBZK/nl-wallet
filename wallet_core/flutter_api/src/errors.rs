@@ -13,6 +13,7 @@ use wallet::errors::openid4vc::OidcError;
 use wallet::errors::openid4vc::VpClientError;
 use wallet::errors::openid4vc::VpMessageClientError;
 use wallet::errors::openid4vc::VpMessageClientErrorType;
+use wallet::errors::openid4vc::VpVerifierError;
 use wallet::errors::reqwest;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
@@ -304,16 +305,14 @@ impl FlutterApiErrorFields for DisclosureError {
             DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _))
-            | DisclosureError::VpVerifierServer {
-                error: VpClientError::DisclosureUriSourceMismatch(_, _),
-                ..
-            } => FlutterApiErrorType::DisclosureSourceMismatch,
+            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
+                FlutterApiErrorType::DisclosureSourceMismatch
+            }
             DisclosureError::VpClient(VpClientError::Request(error)) => {
                 type_for_vp_message_client(error).unwrap_or(FlutterApiErrorType::Generic)
             }
             DisclosureError::VpVerifierServer {
-                error: VpClientError::Request(error),
+                error: VpVerifierError::Request(error),
                 ..
             } => type_for_vp_message_client(error).unwrap_or(FlutterApiErrorType::Verifier),
             DisclosureError::VpClient(error) => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
@@ -328,17 +327,15 @@ impl FlutterApiErrorFields for DisclosureError {
 
     fn data(&self) -> serde_json::Value {
         let session_type = match self {
-            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _))
-            | DisclosureError::VpVerifierServer {
-                error: VpClientError::DisclosureUriSourceMismatch(session_type, _),
-                ..
-            } => Some(*session_type),
+            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
+                Some(*session_type)
+            }
             _ => None,
         };
         let can_retry = match self {
             DisclosureError::VpClient(VpClientError::Request(error))
             | DisclosureError::VpVerifierServer {
-                error: VpClientError::Request(error),
+                error: VpVerifierError::Request(error),
                 ..
             } => match error.error_type() {
                 VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
@@ -348,7 +345,9 @@ impl FlutterApiErrorFields for DisclosureError {
         };
         let return_url = self.return_url();
         let organization_name = match self {
-            DisclosureError::VpVerifierServer { organization, .. } => Some(organization.display_name.clone()),
+            DisclosureError::VpVerifierServer { organization, .. } => {
+                organization.clone().map(|organization| organization.display_name)
+            }
             _ => None,
         };
 

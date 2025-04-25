@@ -4,6 +4,8 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use mdoc::utils::auth::Organization;
+use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::disclosure_session::VpVerifierError;
 use tracing::error;
 use tracing::info;
 use tracing::instrument;
@@ -85,10 +87,10 @@ pub enum DisclosureError {
     VpClient(#[source] VpClientError),
     #[error("error in OpenID4VP disclosure session: {error}")]
     VpVerifierServer {
-        organization: Box<Organization>,
+        organization: Box<Option<Organization>>,
         #[defer]
         #[source]
-        error: VpClientError,
+        error: VpVerifierError,
     },
     #[error("could not fetch if attributes were shared before: {0}")]
     HistoryRetrieval(#[source] StorageError),
@@ -123,7 +125,7 @@ impl DisclosureError {
     pub fn return_url(&self) -> Option<&Url> {
         match self {
             Self::VpVerifierServer {
-                error: VpClientError::Request(error),
+                error: VpVerifierError::Request(error),
                 ..
             }
             | Self::VpClient(VpClientError::Request(error)) => error.redirect_uri().map(AsRef::as_ref),
@@ -132,27 +134,14 @@ impl DisclosureError {
     }
 }
 
-fn is_verifier_server_error(error: &VpClientError) -> bool {
-    matches!(
-        error,
-        VpClientError::AuthRequestValidation(_)
-            | VpClientError::MissingReaderRegistration
-            | VpClientError::RequestedAttributesValidation(_)
-            | VpClientError::RpCertificate(_)
-            | VpClientError::IncorrectClientId { .. }
-            | VpClientError::MissingSessionType
-            | VpClientError::MalformedSessionType(_)
-    )
-}
-
 impl DisclosureError {
     fn with_organization(error: MdocDisclosureError, organization: Organization) -> Self {
-        match Self::from(error) {
-            Self::VpClient(error) if is_verifier_server_error(&error) => Self::VpVerifierServer {
-                organization: Box::new(organization),
+        match error {
+            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => Self::VpVerifierServer {
+                organization: Box::new(organization.into()),
                 error,
             },
-            error => error,
+            error => error.into(),
         }
     }
 }
@@ -163,11 +152,12 @@ impl From<MdocDisclosureError> for DisclosureError {
         // as checking is performed within the guard statements.
         match error {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
-            MdocDisclosureError::Vp(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(error))))
-                if matches!(
-                    error.downcast_ref::<RemoteEcdsaKeyError>(),
-                    Some(RemoteEcdsaKeyError::Instruction(_))
-                ) =>
+            MdocDisclosureError::Vp(VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(
+                CoseError::Signing(error),
+            )))) if matches!(
+                error.downcast_ref::<RemoteEcdsaKeyError>(),
+                Some(RemoteEcdsaKeyError::Instruction(_))
+            ) =>
             {
                 if let RemoteEcdsaKeyError::Instruction(error) = *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
                     DisclosureError::Instruction(error)
@@ -176,7 +166,11 @@ impl From<MdocDisclosureError> for DisclosureError {
                 }
             }
             // Any other error should result in its generic top-level error variant.
-            MdocDisclosureError::Vp(error) => DisclosureError::VpClient(error),
+            MdocDisclosureError::Vp(VpSessionError::Client(error)) => DisclosureError::VpClient(error),
+            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => DisclosureError::VpVerifierServer {
+                organization: Box::new(None),
+                error,
+            },
         }
     }
 }
@@ -472,8 +466,8 @@ where
         let return_url = match result {
             Ok(return_url) => return_url,
             Err(error) => {
-                let organization_name = session.reader_registration().organization.clone();
-                let disclosure_error = DisclosureError::with_organization(error.error, organization_name);
+                let organization = session.reader_registration().organization.clone();
+                let disclosure_error = DisclosureError::with_organization(error.error, organization);
 
                 // IncorrectPin is a functional error and does not need to be recorded.
                 if !matches!(
@@ -800,7 +794,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(VpClientError::MissingSessionType.into());
+        MockMdocDisclosureSession::next_start_error(VpVerifierError::MissingSessionType.into());
 
         // Starting disclosure which returns an error should forward that error.
         let error = wallet
@@ -808,7 +802,13 @@ mod tests {
             .await
             .expect_err("Starting disclosure should have resulted in an error");
 
-        assert_matches!(error, DisclosureError::VpClient(VpClientError::MissingSessionType));
+        assert_matches!(
+            error,
+            DisclosureError::VpVerifierServer {
+                error: VpVerifierError::MissingSessionType,
+                ..
+            }
+        );
         assert!(wallet.disclosure_session.is_none());
     }
 
@@ -1333,8 +1333,8 @@ mod tests {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
-                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::Request(
-                    VpMessageClientError::AuthPostResponse(response),
+                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpSessionError::Client(
+                    VpClientError::Request(VpMessageClientError::AuthPostResponse(response)),
                 )))),
                 ..Default::default()
             }),
@@ -1391,16 +1391,12 @@ mod tests {
 
         // Set up the disclosure session to return a different error.
         match wallet.disclosure_session.as_ref().unwrap().session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => {
-                proposal
-                    .next_error
-                    .lock()
-                    .replace(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
-                        mdoc::Error::Cose(CoseError::Signing(
-                            RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
-                        )),
-                    )))
-            }
+            MdocDisclosureSessionState::Proposal(ref proposal) => proposal.next_error.lock().replace(
+                VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                    RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
+                )))
+                .into(),
+            ),
             _ => unreachable!(),
         };
 
@@ -1466,10 +1462,10 @@ mod tests {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
-                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::DeviceResponse(
-                    mdoc::Error::Cose(CoseError::Signing(
+                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpSessionError::Client(
+                    VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(instruction_error).into(),
-                    )),
+                    ))),
                 )))),
                 ..Default::default()
             }),
@@ -1571,7 +1567,7 @@ mod tests {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
-                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::MissingReaderRegistration))),
+                next_error: Mutex::new(Some(VpVerifierError::MissingReaderRegistration.into())),
                 attributes_shared: true,
                 ..Default::default()
             }),
@@ -1592,7 +1588,7 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::VpVerifierServer {
-                error: VpClientError::MissingReaderRegistration,
+                error: VpVerifierError::MissingReaderRegistration,
                 ..
             }
         );

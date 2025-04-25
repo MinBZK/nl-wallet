@@ -12,6 +12,7 @@ use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use mdoc::server_keys::generate::mock::generate_reader_mock;
+use openid4vc::disclosure_session::VpSessionError;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -609,7 +610,7 @@ async fn test_client_and_server_cancel_after_created() {
 
     assert_matches!(
         error,
-        VpClientError::Request(VpMessageClientError::AuthGetResponse(error))
+        VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthGetResponse(error)))
             if error.error_response.error == GetRequestErrorCode::CancelledSession
     );
 }
@@ -827,7 +828,7 @@ async fn start_disclosure_session<KF, K>(
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,
     key_factory: &KF,
-) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpClientError>
+) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpSessionError>
 where
     KF: KeyFactory<Key = K>,
 {

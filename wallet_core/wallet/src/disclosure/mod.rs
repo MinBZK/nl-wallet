@@ -1,5 +1,6 @@
 mod uri;
 
+use openid4vc::disclosure_session::VpVerifierError;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 use uuid::Uuid;
@@ -15,6 +16,7 @@ use mdoc::utils::reader_auth::ReaderRegistration;
 use openid4vc::disclosure_session::DisclosureError;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
+use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::verifier::SessionType;
 use poa::factory::PoaFactory;
 
@@ -39,7 +41,19 @@ pub enum MdocDisclosureSessionState<M, P> {
 #[derive(thiserror::Error, Debug)]
 pub enum MdocDisclosureError {
     #[error("error in OpenID4VP disclosure session: {0}")]
-    Vp(#[from] VpClientError),
+    Vp(#[from] VpSessionError),
+}
+
+impl From<VpClientError> for MdocDisclosureError {
+    fn from(source: VpClientError) -> Self {
+        Self::Vp(VpSessionError::Client(source))
+    }
+}
+
+impl From<VpVerifierError> for MdocDisclosureError {
+    fn from(source: VpVerifierError) -> Self {
+        Self::Vp(VpSessionError::Verifier(source))
+    }
 }
 
 pub trait MdocDisclosureSession<D> {
@@ -173,7 +187,7 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
         let redirect_uri = self
             .disclose(key_factory)
             .await
-            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
+            .map_err(|err| DisclosureError::new(err.data_shared, VpSessionError::from(err.error).into()))?;
         Ok(redirect_uri.map(|u| u.into_inner()))
     }
 }
