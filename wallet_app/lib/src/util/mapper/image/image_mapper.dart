@@ -10,8 +10,8 @@ class ImageMapper extends Mapper<Image, AppImageData> {
   AppImageData map(Image input) {
     return switch (input) {
       Image_Svg(:final xml) => SvgImage(xml),
-      Image_Png(:final base64) => Base64Image(base64),
-      Image_Jpg(:final base64) => Base64Image(base64),
+      Image_Png(:final data) => AppMemoryImage(data),
+      Image_Jpeg(:final data) => AppMemoryImage(data),
       Image_Asset(:final path) => AppAssetImage(path),
     };
   }

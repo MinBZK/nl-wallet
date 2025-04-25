@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -20,13 +18,14 @@ class AppImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (asset) {
+    final object = asset;
+    switch (object) {
       case SvgImage():
-        return SvgPicture.string(asset.data, fit: fit, alignment: alignment);
+        return SvgPicture.string(object.data, fit: fit, alignment: alignment);
       case AppAssetImage():
-        return Image(image: AssetImage(asset.data), fit: fit, alignment: alignment);
-      case Base64Image():
-        return Image.memory(const Base64Decoder().convert(asset.data), fit: fit, alignment: alignment);
+        return Image(image: AssetImage(object.name), fit: fit, alignment: alignment);
+      case AppMemoryImage():
+        return Image.memory(object.data, fit: fit, alignment: alignment);
     }
   }
 }

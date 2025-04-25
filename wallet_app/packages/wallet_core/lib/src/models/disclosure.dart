@@ -43,11 +43,11 @@ sealed class Image with _$Image {
     required String xml,
   }) = Image_Svg;
   const factory Image.png({
-    required String base64,
+    required Uint8List data,
   }) = Image_Png;
-  const factory Image.jpg({
-    required String base64,
-  }) = Image_Jpg;
+  const factory Image.jpeg({
+    required Uint8List data,
+  }) = Image_Jpeg;
   const factory Image.asset({
     required String path,
   }) = Image_Asset;

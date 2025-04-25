@@ -837,15 +837,15 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is Image_Png) {
-      var pre_base64 = cst_encode_String(apiObj.base64);
+      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
       wireObj.tag = 1;
-      wireObj.kind.Png.base64 = pre_base64;
+      wireObj.kind.Png.data = pre_data;
       return;
     }
-    if (apiObj is Image_Jpg) {
-      var pre_base64 = cst_encode_String(apiObj.base64);
+    if (apiObj is Image_Jpeg) {
+      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
       wireObj.tag = 2;
-      wireObj.kind.Jpg.base64 = pre_base64;
+      wireObj.kind.Jpeg.data = pre_data;
       return;
     }
     if (apiObj is Image_Asset) {
@@ -2122,11 +2122,11 @@ final class wire_cst_Image_Svg extends ffi.Struct {
 }
 
 final class wire_cst_Image_Png extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> base64;
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
 }
 
-final class wire_cst_Image_Jpg extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> base64;
+final class wire_cst_Image_Jpeg extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
 }
 
 final class wire_cst_Image_Asset extends ffi.Struct {
@@ -2138,7 +2138,7 @@ final class ImageKind extends ffi.Union {
 
   external wire_cst_Image_Png Png;
 
-  external wire_cst_Image_Jpg Jpg;
+  external wire_cst_Image_Jpeg Jpeg;
 
   external wire_cst_Image_Asset Asset;
 }

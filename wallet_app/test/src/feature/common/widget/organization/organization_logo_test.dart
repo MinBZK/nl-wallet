@@ -37,7 +37,7 @@ void main() {
 
       // Validate that the widget exists
       expect(WalletMockData.organization.logo, isA<AppAssetImage>(), reason: 'We rely on an AssetImage for this test');
-      final widgetFinder = find.image(AssetImage((WalletMockData.organization.logo as AppAssetImage).data));
+      final widgetFinder = find.image(AssetImage((WalletMockData.organization.logo as AppAssetImage).name));
       expect(widgetFinder, findsOneWidget);
     });
   });

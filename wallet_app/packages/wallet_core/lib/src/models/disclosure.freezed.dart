@@ -253,9 +253,9 @@ class _$Image_SvgCopyWithImpl<$Res> implements $Image_SvgCopyWith<$Res> {
 /// @nodoc
 
 class Image_Png extends Image {
-  const Image_Png({required this.base64}) : super._();
+  const Image_Png({required this.data}) : super._();
 
-  final String base64;
+  final Uint8List data;
 
   /// Create a copy of Image
   /// with the given fields replaced by the non-null parameter values.
@@ -268,15 +268,15 @@ class Image_Png extends Image {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
             other is Image_Png &&
-            (identical(other.base64, base64) || other.base64 == base64));
+            const DeepCollectionEquality().equals(other.data, data));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, base64);
+  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(data));
 
   @override
   String toString() {
-    return 'Image.png(base64: $base64)';
+    return 'Image.png(data: $data)';
   }
 }
 
@@ -284,7 +284,7 @@ class Image_Png extends Image {
 abstract mixin class $Image_PngCopyWith<$Res> implements $ImageCopyWith<$Res> {
   factory $Image_PngCopyWith(Image_Png value, $Res Function(Image_Png) _then) = _$Image_PngCopyWithImpl;
   @useResult
-  $Res call({String base64});
+  $Res call({Uint8List data});
 }
 
 /// @nodoc
@@ -298,72 +298,72 @@ class _$Image_PngCopyWithImpl<$Res> implements $Image_PngCopyWith<$Res> {
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   $Res call({
-    Object? base64 = null,
+    Object? data = null,
   }) {
     return _then(Image_Png(
-      base64: null == base64
-          ? _self.base64
-          : base64 // ignore: cast_nullable_to_non_nullable
-              as String,
+      data: null == data
+          ? _self.data
+          : data // ignore: cast_nullable_to_non_nullable
+              as Uint8List,
     ));
   }
 }
 
 /// @nodoc
 
-class Image_Jpg extends Image {
-  const Image_Jpg({required this.base64}) : super._();
+class Image_Jpeg extends Image {
+  const Image_Jpeg({required this.data}) : super._();
 
-  final String base64;
+  final Uint8List data;
 
   /// Create a copy of Image
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @pragma('vm:prefer-inline')
-  $Image_JpgCopyWith<Image_Jpg> get copyWith => _$Image_JpgCopyWithImpl<Image_Jpg>(this, _$identity);
+  $Image_JpegCopyWith<Image_Jpeg> get copyWith => _$Image_JpegCopyWithImpl<Image_Jpeg>(this, _$identity);
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is Image_Jpg &&
-            (identical(other.base64, base64) || other.base64 == base64));
+            other is Image_Jpeg &&
+            const DeepCollectionEquality().equals(other.data, data));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, base64);
+  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(data));
 
   @override
   String toString() {
-    return 'Image.jpg(base64: $base64)';
+    return 'Image.jpeg(data: $data)';
   }
 }
 
 /// @nodoc
-abstract mixin class $Image_JpgCopyWith<$Res> implements $ImageCopyWith<$Res> {
-  factory $Image_JpgCopyWith(Image_Jpg value, $Res Function(Image_Jpg) _then) = _$Image_JpgCopyWithImpl;
+abstract mixin class $Image_JpegCopyWith<$Res> implements $ImageCopyWith<$Res> {
+  factory $Image_JpegCopyWith(Image_Jpeg value, $Res Function(Image_Jpeg) _then) = _$Image_JpegCopyWithImpl;
   @useResult
-  $Res call({String base64});
+  $Res call({Uint8List data});
 }
 
 /// @nodoc
-class _$Image_JpgCopyWithImpl<$Res> implements $Image_JpgCopyWith<$Res> {
-  _$Image_JpgCopyWithImpl(this._self, this._then);
+class _$Image_JpegCopyWithImpl<$Res> implements $Image_JpegCopyWith<$Res> {
+  _$Image_JpegCopyWithImpl(this._self, this._then);
 
-  final Image_Jpg _self;
-  final $Res Function(Image_Jpg) _then;
+  final Image_Jpeg _self;
+  final $Res Function(Image_Jpeg) _then;
 
   /// Create a copy of Image
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   $Res call({
-    Object? base64 = null,
+    Object? data = null,
   }) {
-    return _then(Image_Jpg(
-      base64: null == base64
-          ? _self.base64
-          : base64 // ignore: cast_nullable_to_non_nullable
-              as String,
+    return _then(Image_Jpeg(
+      data: null == data
+          ? _self.data
+          : data // ignore: cast_nullable_to_non_nullable
+              as Uint8List,
     ));
   }
 }

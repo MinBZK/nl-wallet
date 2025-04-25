@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:equatable/equatable.dart';
 
 import '../../feature/common/widget/app_image.dart';
@@ -5,22 +7,32 @@ import '../../feature/common/widget/app_image.dart';
 /// Represents any image that can be rendered using the [AppImage] widget and aligns
 /// with the variants of images that are provided by the wallet_core.
 sealed class AppImageData extends Equatable {
-  final String data;
-
-  const AppImageData(this.data);
-
-  @override
-  List<Object?> get props => [data];
+  const AppImageData();
 }
 
 class SvgImage extends AppImageData {
-  const SvgImage(super.data);
+  final String data;
+
+  @override
+  List<Object?> get props => [data];
+
+  const SvgImage(this.data);
 }
 
 class AppAssetImage extends AppImageData {
-  const AppAssetImage(super.data);
+  final String name;
+
+  @override
+  List<Object?> get props => [name];
+
+  const AppAssetImage(this.name);
 }
 
-class Base64Image extends AppImageData {
-  const Base64Image(super.data);
+class AppMemoryImage extends AppImageData {
+  final Uint8List data;
+
+  @override
+  List<Object?> get props => [data];
+
+  const AppMemoryImage(this.data);
 }
