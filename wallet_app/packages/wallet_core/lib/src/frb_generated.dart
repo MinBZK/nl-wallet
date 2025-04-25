@@ -11,6 +11,7 @@ import 'frb_generated.io.dart' if (dart.library.js_interop) 'frb_generated.web.d
 import 'models/attestation.dart';
 import 'models/config.dart';
 import 'models/disclosure.dart';
+import 'models/image.dart';
 import 'models/instruction.dart';
 import 'models/localize.dart';
 import 'models/pin.dart';
@@ -1118,9 +1119,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  LogoMetadata dco_decode_box_autoadd_logo_metadata(dynamic raw) {
+  ImageWithMetadata dco_decode_box_autoadd_image_with_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_logo_metadata(raw);
+    return dco_decode_image_with_metadata(raw);
   }
 
   @protected
@@ -1275,6 +1276,17 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  ImageWithMetadata dco_decode_image_with_metadata(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ImageWithMetadata(
+      image: dco_decode_image(arr[0]),
+      altText: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
   List<Attestation> dco_decode_list_attestation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_attestation).toList();
@@ -1334,18 +1346,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  LogoMetadata dco_decode_logo_metadata(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
-    return LogoMetadata(
-      uri: dco_decode_String(arr[0]),
-      uriIntegrity: dco_decode_String(arr[1]),
-      altText: dco_decode_String(arr[2]),
-    );
-  }
-
-  @protected
   MissingAttribute dco_decode_missing_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1368,9 +1368,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  LogoMetadata? dco_decode_opt_box_autoadd_logo_metadata(dynamic raw) {
+  ImageWithMetadata? dco_decode_opt_box_autoadd_image_with_metadata(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_box_autoadd_logo_metadata(raw);
+    return raw == null ? null : dco_decode_box_autoadd_image_with_metadata(raw);
   }
 
   @protected
@@ -1429,7 +1429,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (raw[0]) {
       case 0:
         return RenderingMetadata_Simple(
-          logo: dco_decode_opt_box_autoadd_logo_metadata(raw[1]),
+          logo: dco_decode_opt_box_autoadd_image_with_metadata(raw[1]),
           backgroundColor: dco_decode_opt_String(raw[2]),
           textColor: dco_decode_opt_String(raw[3]),
         );
@@ -1710,9 +1710,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  LogoMetadata sse_decode_box_autoadd_logo_metadata(SseDeserializer deserializer) {
+  ImageWithMetadata sse_decode_box_autoadd_image_with_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_logo_metadata(deserializer));
+    return (sse_decode_image_with_metadata(deserializer));
   }
 
   @protected
@@ -1866,6 +1866,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  ImageWithMetadata sse_decode_image_with_metadata(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_image = sse_decode_image(deserializer);
+    var var_altText = sse_decode_String(deserializer);
+    return ImageWithMetadata(image: var_image, altText: var_altText);
+  }
+
+  @protected
   List<Attestation> sse_decode_list_attestation(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -1965,15 +1973,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  LogoMetadata sse_decode_logo_metadata(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_uri = sse_decode_String(deserializer);
-    var var_uriIntegrity = sse_decode_String(deserializer);
-    var var_altText = sse_decode_String(deserializer);
-    return LogoMetadata(uri: var_uri, uriIntegrity: var_uriIntegrity, altText: var_altText);
-  }
-
-  @protected
   MissingAttribute sse_decode_missing_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_labels = sse_decode_list_localized_string(deserializer);
@@ -2003,11 +2002,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  LogoMetadata? sse_decode_opt_box_autoadd_logo_metadata(SseDeserializer deserializer) {
+  ImageWithMetadata? sse_decode_opt_box_autoadd_image_with_metadata(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_box_autoadd_logo_metadata(deserializer));
+      return (sse_decode_box_autoadd_image_with_metadata(deserializer));
     } else {
       return null;
     }
@@ -2099,7 +2098,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_logo = sse_decode_opt_box_autoadd_logo_metadata(deserializer);
+        var var_logo = sse_decode_opt_box_autoadd_image_with_metadata(deserializer);
         var var_backgroundColor = sse_decode_opt_String(deserializer);
         var var_textColor = sse_decode_opt_String(deserializer);
         return RenderingMetadata_Simple(logo: var_logo, backgroundColor: var_backgroundColor, textColor: var_textColor);
@@ -2474,9 +2473,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_box_autoadd_logo_metadata(LogoMetadata self, SseSerializer serializer) {
+  void sse_encode_box_autoadd_image_with_metadata(ImageWithMetadata self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_logo_metadata(self, serializer);
+    sse_encode_image_with_metadata(self, serializer);
   }
 
   @protected
@@ -2610,6 +2609,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  void sse_encode_image_with_metadata(ImageWithMetadata self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_image(self.image, serializer);
+    sse_encode_String(self.altText, serializer);
+  }
+
+  @protected
   void sse_encode_list_attestation(List<Attestation> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -2687,14 +2693,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_logo_metadata(LogoMetadata self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_String(self.uri, serializer);
-    sse_encode_String(self.uriIntegrity, serializer);
-    sse_encode_String(self.altText, serializer);
-  }
-
-  @protected
   void sse_encode_missing_attribute(MissingAttribute self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_localized_string(self.labels, serializer);
@@ -2721,12 +2719,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_opt_box_autoadd_logo_metadata(LogoMetadata? self, SseSerializer serializer) {
+  void sse_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_box_autoadd_logo_metadata(self, serializer);
+      sse_encode_box_autoadd_image_with_metadata(self, serializer);
     }
   }
 
@@ -2802,7 +2800,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           textColor: final textColor
         ):
         sse_encode_i_32(0, serializer);
-        sse_encode_opt_box_autoadd_logo_metadata(logo, serializer);
+        sse_encode_opt_box_autoadd_image_with_metadata(logo, serializer);
         sse_encode_opt_String(backgroundColor, serializer);
         sse_encode_opt_String(textColor, serializer);
       case RenderingMetadata_SvgTemplates():

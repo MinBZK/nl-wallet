@@ -8,6 +8,7 @@ export 'src/frb_generated.dart';
 export 'src/models/attestation.dart';
 export 'src/models/config.dart';
 export 'src/models/disclosure.dart';
+export 'src/models/image.dart';
 export 'src/models/instruction.dart';
 export 'src/models/localize.dart';
 export 'src/models/pin.dart';

@@ -13,6 +13,7 @@
 pub mod attestation;
 pub mod config;
 pub mod disclosure;
+pub mod image;
 pub mod instruction;
 pub mod localize;
 pub mod pin;
