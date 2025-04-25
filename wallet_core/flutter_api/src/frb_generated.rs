@@ -1289,31 +1289,43 @@ impl SseDecode for crate::models::uri::IdentifyUriResult {
     }
 }
 
-impl SseDecode for crate::models::disclosure::Image {
+impl SseDecode for crate::models::image::Image {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
                 let mut var_xml = <String>::sse_decode(deserializer);
-                return crate::models::disclosure::Image::Svg { xml: var_xml };
+                return crate::models::image::Image::Svg { xml: var_xml };
             }
             1 => {
-                let mut var_base64 = <String>::sse_decode(deserializer);
-                return crate::models::disclosure::Image::Png { base64: var_base64 };
+                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::image::Image::Png { data: var_data };
             }
             2 => {
-                let mut var_base64 = <String>::sse_decode(deserializer);
-                return crate::models::disclosure::Image::Jpg { base64: var_base64 };
+                let mut var_data = <Vec<u8>>::sse_decode(deserializer);
+                return crate::models::image::Image::Jpeg { data: var_data };
             }
             3 => {
                 let mut var_path = <String>::sse_decode(deserializer);
-                return crate::models::disclosure::Image::Asset { path: var_path };
+                return crate::models::image::Image::Asset { path: var_path };
             }
             _ => {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseDecode for crate::models::image::ImageWithMetadata {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_image = <crate::models::image::Image>::sse_decode(deserializer);
+        let mut var_altText = <String>::sse_decode(deserializer);
+        return crate::models::image::ImageWithMetadata {
+            image: var_image,
+            alt_text: var_altText,
+        };
     }
 }
 
@@ -1429,20 +1441,6 @@ impl SseDecode for crate::models::localize::LocalizedString {
     }
 }
 
-impl SseDecode for crate::models::attestation::LogoMetadata {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_uri = <String>::sse_decode(deserializer);
-        let mut var_uriIntegrity = <String>::sse_decode(deserializer);
-        let mut var_altText = <String>::sse_decode(deserializer);
-        return crate::models::attestation::LogoMetadata {
-            uri: var_uri,
-            uri_integrity: var_uriIntegrity,
-            alt_text: var_altText,
-        };
-    }
-}
-
 impl SseDecode for crate::models::disclosure::MissingAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1462,22 +1460,22 @@ impl SseDecode for Option<String> {
     }
 }
 
-impl SseDecode for Option<crate::models::disclosure::Image> {
+impl SseDecode for Option<crate::models::image::Image> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::models::disclosure::Image>::sse_decode(deserializer));
+            return Some(<crate::models::image::Image>::sse_decode(deserializer));
         } else {
             return None;
         }
     }
 }
 
-impl SseDecode for Option<crate::models::attestation::LogoMetadata> {
+impl SseDecode for Option<crate::models::image::ImageWithMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<crate::models::attestation::LogoMetadata>::sse_decode(deserializer));
+            return Some(<crate::models::image::ImageWithMetadata>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1538,7 +1536,7 @@ impl SseDecode for crate::models::disclosure::Organization {
         let mut var_legalName = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_displayName = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
         let mut var_description = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
-        let mut var_image = <Option<crate::models::disclosure::Image>>::sse_decode(deserializer);
+        let mut var_image = <Option<crate::models::image::Image>>::sse_decode(deserializer);
         let mut var_webUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_privacyPolicyUrl = <Option<String>>::sse_decode(deserializer);
         let mut var_kvk = <Option<String>>::sse_decode(deserializer);
@@ -1582,7 +1580,7 @@ impl SseDecode for crate::models::attestation::RenderingMetadata {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_logo = <Option<crate::models::attestation::LogoMetadata>>::sse_decode(deserializer);
+                let mut var_logo = <Option<crate::models::image::ImageWithMetadata>>::sse_decode(deserializer);
                 let mut var_backgroundColor = <Option<String>>::sse_decode(deserializer);
                 let mut var_textColor = <Option<String>>::sse_decode(deserializer);
                 return crate::models::attestation::RenderingMetadata::Simple {
@@ -2083,19 +2081,15 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::uri::IdentifyUriResult>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::disclosure::Image {
+impl flutter_rust_bridge::IntoDart for crate::models::image::Image {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
-            crate::models::disclosure::Image::Svg { xml } => {
-                [0.into_dart(), xml.into_into_dart().into_dart()].into_dart()
+            crate::models::image::Image::Svg { xml } => [0.into_dart(), xml.into_into_dart().into_dart()].into_dart(),
+            crate::models::image::Image::Png { data } => [1.into_dart(), data.into_into_dart().into_dart()].into_dart(),
+            crate::models::image::Image::Jpeg { data } => {
+                [2.into_dart(), data.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::disclosure::Image::Png { base64 } => {
-                [1.into_dart(), base64.into_into_dart().into_dart()].into_dart()
-            }
-            crate::models::disclosure::Image::Jpg { base64 } => {
-                [2.into_dart(), base64.into_into_dart().into_dart()].into_dart()
-            }
-            crate::models::disclosure::Image::Asset { path } => {
+            crate::models::image::Image::Asset { path } => {
                 [3.into_dart(), path.into_into_dart().into_dart()].into_dart()
             }
             _ => {
@@ -2104,9 +2098,27 @@ impl flutter_rust_bridge::IntoDart for crate::models::disclosure::Image {
         }
     }
 }
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::disclosure::Image {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::Image> for crate::models::disclosure::Image {
-    fn into_into_dart(self) -> crate::models::disclosure::Image {
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::image::Image {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::image::Image> for crate::models::image::Image {
+    fn into_into_dart(self) -> crate::models::image::Image {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::image::ImageWithMetadata {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.image.into_into_dart().into_dart(),
+            self.alt_text.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::image::ImageWithMetadata {}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::image::ImageWithMetadata>
+    for crate::models::image::ImageWithMetadata
+{
+    fn into_into_dart(self) -> crate::models::image::ImageWithMetadata {
         self
     }
 }
@@ -2125,25 +2137,6 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::localize::LocalizedString>
     for crate::models::localize::LocalizedString
 {
     fn into_into_dart(self) -> crate::models::localize::LocalizedString {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::attestation::LogoMetadata {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.uri.into_into_dart().into_dart(),
-            self.uri_integrity.into_into_dart().into_dart(),
-            self.alt_text.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::LogoMetadata {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::LogoMetadata>
-    for crate::models::attestation::LogoMetadata
-{
-    fn into_into_dart(self) -> crate::models::attestation::LogoMetadata {
         self
     }
 }
@@ -2702,23 +2695,23 @@ impl SseEncode for crate::models::uri::IdentifyUriResult {
     }
 }
 
-impl SseEncode for crate::models::disclosure::Image {
+impl SseEncode for crate::models::image::Image {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         match self {
-            crate::models::disclosure::Image::Svg { xml } => {
+            crate::models::image::Image::Svg { xml } => {
                 <i32>::sse_encode(0, serializer);
                 <String>::sse_encode(xml, serializer);
             }
-            crate::models::disclosure::Image::Png { base64 } => {
+            crate::models::image::Image::Png { data } => {
                 <i32>::sse_encode(1, serializer);
-                <String>::sse_encode(base64, serializer);
+                <Vec<u8>>::sse_encode(data, serializer);
             }
-            crate::models::disclosure::Image::Jpg { base64 } => {
+            crate::models::image::Image::Jpeg { data } => {
                 <i32>::sse_encode(2, serializer);
-                <String>::sse_encode(base64, serializer);
+                <Vec<u8>>::sse_encode(data, serializer);
             }
-            crate::models::disclosure::Image::Asset { path } => {
+            crate::models::image::Image::Asset { path } => {
                 <i32>::sse_encode(3, serializer);
                 <String>::sse_encode(path, serializer);
             }
@@ -2726,6 +2719,14 @@ impl SseEncode for crate::models::disclosure::Image {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseEncode for crate::models::image::ImageWithMetadata {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::models::image::Image>::sse_encode(self.image, serializer);
+        <String>::sse_encode(self.alt_text, serializer);
     }
 }
 
@@ -2817,15 +2818,6 @@ impl SseEncode for crate::models::localize::LocalizedString {
     }
 }
 
-impl SseEncode for crate::models::attestation::LogoMetadata {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <String>::sse_encode(self.uri, serializer);
-        <String>::sse_encode(self.uri_integrity, serializer);
-        <String>::sse_encode(self.alt_text, serializer);
-    }
-}
-
 impl SseEncode for crate::models::disclosure::MissingAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2843,22 +2835,22 @@ impl SseEncode for Option<String> {
     }
 }
 
-impl SseEncode for Option<crate::models::disclosure::Image> {
+impl SseEncode for Option<crate::models::image::Image> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::models::disclosure::Image>::sse_encode(value, serializer);
+            <crate::models::image::Image>::sse_encode(value, serializer);
         }
     }
 }
 
-impl SseEncode for Option<crate::models::attestation::LogoMetadata> {
+impl SseEncode for Option<crate::models::image::ImageWithMetadata> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <crate::models::attestation::LogoMetadata>::sse_encode(value, serializer);
+            <crate::models::image::ImageWithMetadata>::sse_encode(value, serializer);
         }
     }
 }
@@ -2909,7 +2901,7 @@ impl SseEncode for crate::models::disclosure::Organization {
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.legal_name, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.display_name, serializer);
         <Vec<crate::models::localize::LocalizedString>>::sse_encode(self.description, serializer);
-        <Option<crate::models::disclosure::Image>>::sse_encode(self.image, serializer);
+        <Option<crate::models::image::Image>>::sse_encode(self.image, serializer);
         <Option<String>>::sse_encode(self.web_url, serializer);
         <Option<String>>::sse_encode(self.privacy_policy_url, serializer);
         <Option<String>>::sse_encode(self.kvk, serializer);
@@ -2948,7 +2940,7 @@ impl SseEncode for crate::models::attestation::RenderingMetadata {
                 text_color,
             } => {
                 <i32>::sse_encode(0, serializer);
-                <Option<crate::models::attestation::LogoMetadata>>::sse_encode(logo, serializer);
+                <Option<crate::models::image::ImageWithMetadata>>::sse_encode(logo, serializer);
                 <Option<String>>::sse_encode(background_color, serializer);
                 <Option<String>>::sse_encode(text_color, serializer);
             }
@@ -3313,18 +3305,18 @@ mod io {
             CstDecode::<crate::models::attestation::Attestation>::cst_decode(*wrap).into()
         }
     }
-    impl CstDecode<crate::models::disclosure::Image> for *mut wire_cst_image {
+    impl CstDecode<crate::models::image::Image> for *mut wire_cst_image {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::disclosure::Image {
+        fn cst_decode(self) -> crate::models::image::Image {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<crate::models::disclosure::Image>::cst_decode(*wrap).into()
+            CstDecode::<crate::models::image::Image>::cst_decode(*wrap).into()
         }
     }
-    impl CstDecode<crate::models::attestation::LogoMetadata> for *mut wire_cst_logo_metadata {
+    impl CstDecode<crate::models::image::ImageWithMetadata> for *mut wire_cst_image_with_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::attestation::LogoMetadata {
+        fn cst_decode(self) -> crate::models::image::ImageWithMetadata {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<crate::models::attestation::LogoMetadata>::cst_decode(*wrap).into()
+            CstDecode::<crate::models::image::ImageWithMetadata>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<crate::models::disclosure::Organization> for *mut wire_cst_organization {
@@ -3412,35 +3404,44 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::disclosure::Image> for wire_cst_image {
+    impl CstDecode<crate::models::image::Image> for wire_cst_image {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::disclosure::Image {
+        fn cst_decode(self) -> crate::models::image::Image {
             match self.tag {
                 0 => {
                     let ans = unsafe { self.kind.Svg };
-                    crate::models::disclosure::Image::Svg {
+                    crate::models::image::Image::Svg {
                         xml: ans.xml.cst_decode(),
                     }
                 }
                 1 => {
                     let ans = unsafe { self.kind.Png };
-                    crate::models::disclosure::Image::Png {
-                        base64: ans.base64.cst_decode(),
+                    crate::models::image::Image::Png {
+                        data: ans.data.cst_decode(),
                     }
                 }
                 2 => {
-                    let ans = unsafe { self.kind.Jpg };
-                    crate::models::disclosure::Image::Jpg {
-                        base64: ans.base64.cst_decode(),
+                    let ans = unsafe { self.kind.Jpeg };
+                    crate::models::image::Image::Jpeg {
+                        data: ans.data.cst_decode(),
                     }
                 }
                 3 => {
                     let ans = unsafe { self.kind.Asset };
-                    crate::models::disclosure::Image::Asset {
+                    crate::models::image::Image::Asset {
                         path: ans.path.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::image::ImageWithMetadata> for wire_cst_image_with_metadata {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::image::ImageWithMetadata {
+            crate::models::image::ImageWithMetadata {
+                image: self.image.cst_decode(),
+                alt_text: self.alt_text.cst_decode(),
             }
         }
     }
@@ -3529,16 +3530,6 @@ mod io {
             crate::models::localize::LocalizedString {
                 language: self.language.cst_decode(),
                 value: self.value.cst_decode(),
-            }
-        }
-    }
-    impl CstDecode<crate::models::attestation::LogoMetadata> for wire_cst_logo_metadata {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::attestation::LogoMetadata {
-            crate::models::attestation::LogoMetadata {
-                uri: self.uri.cst_decode(),
-                uri_integrity: self.uri_integrity.cst_decode(),
-                alt_text: self.alt_text.cst_decode(),
             }
         }
     }
@@ -3833,6 +3824,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_image_with_metadata {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                image: Default::default(),
+                alt_text: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_image_with_metadata {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_localized_string {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -3842,20 +3846,6 @@ mod io {
         }
     }
     impl Default for wire_cst_localized_string {
-        fn default() -> Self {
-            Self::new_with_null_ptr()
-        }
-    }
-    impl NewWithNullPtr for wire_cst_logo_metadata {
-        fn new_with_null_ptr() -> Self {
-            Self {
-                uri: core::ptr::null_mut(),
-                uri_integrity: core::ptr::null_mut(),
-                alt_text: core::ptr::null_mut(),
-            }
-        }
-    }
-    impl Default for wire_cst_logo_metadata {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -4224,8 +4214,9 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_logo_metadata() -> *mut wire_cst_logo_metadata {
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_logo_metadata::new_with_null_ptr())
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata() -> *mut wire_cst_image_with_metadata
+    {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_image_with_metadata::new_with_null_ptr())
     }
 
     #[unsafe(no_mangle)]
@@ -4498,7 +4489,7 @@ mod io {
     pub union ImageKind {
         Svg: wire_cst_Image_Svg,
         Png: wire_cst_Image_Png,
-        Jpg: wire_cst_Image_Jpg,
+        Jpeg: wire_cst_Image_Jpeg,
         Asset: wire_cst_Image_Asset,
         nil__: (),
     }
@@ -4510,17 +4501,23 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_Image_Png {
-        base64: *mut wire_cst_list_prim_u_8_strict,
+        data: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_Image_Jpg {
-        base64: *mut wire_cst_list_prim_u_8_strict,
+    pub struct wire_cst_Image_Jpeg {
+        data: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_Image_Asset {
         path: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_image_with_metadata {
+        image: wire_cst_image,
+        alt_text: *mut wire_cst_list_prim_u_8_strict,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4578,13 +4575,6 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_logo_metadata {
-        uri: *mut wire_cst_list_prim_u_8_strict,
-        uri_integrity: *mut wire_cst_list_prim_u_8_strict,
-        alt_text: *mut wire_cst_list_prim_u_8_strict,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
     pub struct wire_cst_missing_attribute {
         labels: *mut wire_cst_list_localized_string,
     }
@@ -4618,7 +4608,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_RenderingMetadata_Simple {
-        logo: *mut wire_cst_logo_metadata,
+        logo: *mut wire_cst_image_with_metadata,
         background_color: *mut wire_cst_list_prim_u_8_strict,
         text_color: *mut wire_cst_list_prim_u_8_strict,
     }

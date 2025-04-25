@@ -4,6 +4,8 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: {{ .Values.gbaEncryptTestData.name }}
+  labels:
+    {{- include "common.labels.component" (list .Values.gbaEncryptTestData.name .) | nindent 4 }}
 spec:
   schedule: "0 0 * * *"
   suspend: true
@@ -17,13 +19,13 @@ spec:
           labels:
             {{- include "common.labels.component" (list .Values.gbaEncryptTestData.name .) | nindent 12 }}
             {{- with .Values.gbaEncryptTestData.extraPodlabels }}
-            {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
         spec:
           restartPolicy: Never
           {{- with .Values.imagePullSecrets }}
           imagePullSecrets:
-            {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           serviceAccountName: {{ .Values.serviceAccountName }}
           securityContext:

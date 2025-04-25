@@ -1,3 +1,4 @@
+pub mod data_uri;
 pub mod error;
 #[cfg(feature = "client")]
 pub mod reqwest;

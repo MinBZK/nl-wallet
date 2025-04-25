@@ -59,7 +59,7 @@ spec:
 
         {{- with .Values.backup.s3Credentials }}
         s3Credentials:
-        {{- . | toYaml | nindent 10}}
+          {{- . | toYaml | nindent 10}}
         {{- end }}
 
         wal:
@@ -113,7 +113,7 @@ spec:
 
   {{- with .Values.backup.s3Credentials }}
       s3Credentials:
-      {{- . | toYaml | nindent 8}}
+        {{- . | toYaml | nindent 8}}
   {{- end }}
 
       wal:
@@ -146,7 +146,7 @@ spec:
   template:
     metadata:
       labels:
-{{- $chart.Values.metadata.labels | toYaml | nindent 8 }}
+        {{- $chart.Values.metadata.labels | toYaml | nindent 8 }}
         app.kubernetes.io/component: "{{ $chart.Release.Name}}-pgbouncer"
     spec:
       containers:

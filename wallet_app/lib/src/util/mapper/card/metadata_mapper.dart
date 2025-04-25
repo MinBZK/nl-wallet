@@ -18,7 +18,7 @@ class DisplayMetadataMapper extends Mapper<DisplayMetadata, CardDisplayMetadata>
       RenderingMetadata_Simple() => SimpleCardRendering(
           bgColor: rendering.backgroundColor?.toColor(),
           textColor: rendering.textColor?.toColor(),
-          logoUri: rendering.logo?.uri,
+          logoUri: null,
           logoAltText: rendering.logo?.altText,
         ),
       RenderingMetadata_SvgTemplates() => null,

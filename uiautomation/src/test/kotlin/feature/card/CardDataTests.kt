@@ -1,5 +1,9 @@
 package feature.card
 
+import helper.CardMetadataHelper
+import helper.GbaDataHelper
+import helper.GbaDataHelper.Field.FIRST_NAME
+import helper.GbaDataHelper.Field.NAME
 import helper.TestBase
 import navigator.CardNavigator
 import navigator.screen.CardNavigatorScreen
@@ -26,10 +30,14 @@ class CardDataTests : TestBase() {
     }
 
     private lateinit var cardDataScreen: CardDataScreen
+    private lateinit var cardMetadata: CardMetadataHelper
+    private lateinit var gbaData: GbaDataHelper
 
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
+        cardMetadata = CardMetadataHelper()
+        gbaData = GbaDataHelper()
         CardNavigator().toScreen(CardNavigatorScreen.CardData)
 
         cardDataScreen = CardDataScreen()
@@ -41,8 +49,12 @@ class CardDataTests : TestBase() {
         setUp(testInfo)
         assertAll(
             { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
-            { assertTrue(cardDataScreen.dataAttributesVisible(), "data attributes are not visible") },
-            { assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "data privacy banner not visible") }
+            { assertTrue(cardDataScreen.dataPrivacyBannerVisible(), "privacy banner is not visible") },
+            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, "999991772")), "data attribute are not visible") },
+            { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "data label are not visible") },
+            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, "999991772")), "data attribute are not visible") },
+            { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("family_name")), "data label are not visible") },
+            { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("birthdate")), "data label are not visible") },
         )
     }
 
@@ -63,7 +75,12 @@ class CardDataTests : TestBase() {
     @DisplayName("$USE_CASE.4 The Card attribute labels are multi-lingual. 5 The Card attribute values are multi-lingual if applicable and are rendered according to their schema. [${JIRA_ID}]")
     fun verifyDataLabelMultiLingual(testInfo: TestInfo) {
         setUp(testInfo)
-        assertTrue(cardDataScreen.englishDataLabelsVisible(), "english data labels are not visible")
+        assertAll(
+            { assertTrue(cardDataScreen.visible(), "card data screen is not visible") },
+            { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "english data labels are not visible") },
+            { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("family_name")), "english data labels are not visible") },
+            { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("birthdate")), "english data labels are not visible") },
+        )
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

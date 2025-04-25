@@ -11,6 +11,7 @@ import 'frb_generated.dart';
 import 'models/attestation.dart';
 import 'models/config.dart';
 import 'models/disclosure.dart';
+import 'models/image.dart';
 import 'models/instruction.dart';
 import 'models/localize.dart';
 import 'models/pin.dart';
@@ -73,7 +74,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Image dco_decode_box_autoadd_image(dynamic raw);
 
   @protected
-  LogoMetadata dco_decode_box_autoadd_logo_metadata(dynamic raw);
+  ImageWithMetadata dco_decode_box_autoadd_image_with_metadata(dynamic raw);
 
   @protected
   Organization dco_decode_box_autoadd_organization(dynamic raw);
@@ -124,6 +125,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Image dco_decode_image(dynamic raw);
 
   @protected
+  ImageWithMetadata dco_decode_image_with_metadata(dynamic raw);
+
+  @protected
   List<Attestation> dco_decode_list_attestation(dynamic raw);
 
   @protected
@@ -151,9 +155,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   LocalizedString dco_decode_localized_string(dynamic raw);
 
   @protected
-  LogoMetadata dco_decode_logo_metadata(dynamic raw);
-
-  @protected
   MissingAttribute dco_decode_missing_attribute(dynamic raw);
 
   @protected
@@ -163,7 +164,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Image? dco_decode_opt_box_autoadd_image(dynamic raw);
 
   @protected
-  LogoMetadata? dco_decode_opt_box_autoadd_logo_metadata(dynamic raw);
+  ImageWithMetadata? dco_decode_opt_box_autoadd_image_with_metadata(dynamic raw);
 
   @protected
   RenderingMetadata? dco_decode_opt_box_autoadd_rendering_metadata(dynamic raw);
@@ -259,7 +260,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Image sse_decode_box_autoadd_image(SseDeserializer deserializer);
 
   @protected
-  LogoMetadata sse_decode_box_autoadd_logo_metadata(SseDeserializer deserializer);
+  ImageWithMetadata sse_decode_box_autoadd_image_with_metadata(SseDeserializer deserializer);
 
   @protected
   Organization sse_decode_box_autoadd_organization(SseDeserializer deserializer);
@@ -310,6 +311,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Image sse_decode_image(SseDeserializer deserializer);
 
   @protected
+  ImageWithMetadata sse_decode_image_with_metadata(SseDeserializer deserializer);
+
+  @protected
   List<Attestation> sse_decode_list_attestation(SseDeserializer deserializer);
 
   @protected
@@ -337,9 +341,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   LocalizedString sse_decode_localized_string(SseDeserializer deserializer);
 
   @protected
-  LogoMetadata sse_decode_logo_metadata(SseDeserializer deserializer);
-
-  @protected
   MissingAttribute sse_decode_missing_attribute(SseDeserializer deserializer);
 
   @protected
@@ -349,7 +350,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   Image? sse_decode_opt_box_autoadd_image(SseDeserializer deserializer);
 
   @protected
-  LogoMetadata? sse_decode_opt_box_autoadd_logo_metadata(SseDeserializer deserializer);
+  ImageWithMetadata? sse_decode_opt_box_autoadd_image_with_metadata(SseDeserializer deserializer);
 
   @protected
   RenderingMetadata? sse_decode_opt_box_autoadd_rendering_metadata(SseDeserializer deserializer);
@@ -482,10 +483,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_logo_metadata> cst_encode_box_autoadd_logo_metadata(LogoMetadata raw) {
+  ffi.Pointer<wire_cst_image_with_metadata> cst_encode_box_autoadd_image_with_metadata(ImageWithMetadata raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    final ptr = wire.cst_new_box_autoadd_logo_metadata();
-    cst_api_fill_to_wire_logo_metadata(raw, ptr.ref);
+    final ptr = wire.cst_new_box_autoadd_image_with_metadata();
+    cst_api_fill_to_wire_image_with_metadata(raw, ptr.ref);
     return ptr;
   }
 
@@ -627,9 +628,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_logo_metadata> cst_encode_opt_box_autoadd_logo_metadata(LogoMetadata? raw) {
+  ffi.Pointer<wire_cst_image_with_metadata> cst_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_logo_metadata(raw);
+    return raw == null ? ffi.nullptr : cst_encode_box_autoadd_image_with_metadata(raw);
   }
 
   @protected
@@ -749,9 +750,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_box_autoadd_logo_metadata(
-      LogoMetadata apiObj, ffi.Pointer<wire_cst_logo_metadata> wireObj) {
-    cst_api_fill_to_wire_logo_metadata(apiObj, wireObj.ref);
+  void cst_api_fill_to_wire_box_autoadd_image_with_metadata(
+      ImageWithMetadata apiObj, ffi.Pointer<wire_cst_image_with_metadata> wireObj) {
+    cst_api_fill_to_wire_image_with_metadata(apiObj, wireObj.ref);
   }
 
   @protected
@@ -837,15 +838,15 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is Image_Png) {
-      var pre_base64 = cst_encode_String(apiObj.base64);
+      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
       wireObj.tag = 1;
-      wireObj.kind.Png.base64 = pre_base64;
+      wireObj.kind.Png.data = pre_data;
       return;
     }
-    if (apiObj is Image_Jpg) {
-      var pre_base64 = cst_encode_String(apiObj.base64);
+    if (apiObj is Image_Jpeg) {
+      var pre_data = cst_encode_list_prim_u_8_strict(apiObj.data);
       wireObj.tag = 2;
-      wireObj.kind.Jpg.base64 = pre_base64;
+      wireObj.kind.Jpeg.data = pre_data;
       return;
     }
     if (apiObj is Image_Asset) {
@@ -857,16 +858,15 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_localized_string(LocalizedString apiObj, wire_cst_localized_string wireObj) {
-    wireObj.language = cst_encode_String(apiObj.language);
-    wireObj.value = cst_encode_String(apiObj.value);
+  void cst_api_fill_to_wire_image_with_metadata(ImageWithMetadata apiObj, wire_cst_image_with_metadata wireObj) {
+    cst_api_fill_to_wire_image(apiObj.image, wireObj.image);
+    wireObj.alt_text = cst_encode_String(apiObj.altText);
   }
 
   @protected
-  void cst_api_fill_to_wire_logo_metadata(LogoMetadata apiObj, wire_cst_logo_metadata wireObj) {
-    wireObj.uri = cst_encode_String(apiObj.uri);
-    wireObj.uri_integrity = cst_encode_String(apiObj.uriIntegrity);
-    wireObj.alt_text = cst_encode_String(apiObj.altText);
+  void cst_api_fill_to_wire_localized_string(LocalizedString apiObj, wire_cst_localized_string wireObj) {
+    wireObj.language = cst_encode_String(apiObj.language);
+    wireObj.value = cst_encode_String(apiObj.value);
   }
 
   @protected
@@ -892,7 +892,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_rendering_metadata(RenderingMetadata apiObj, wire_cst_rendering_metadata wireObj) {
     if (apiObj is RenderingMetadata_Simple) {
-      var pre_logo = cst_encode_opt_box_autoadd_logo_metadata(apiObj.logo);
+      var pre_logo = cst_encode_opt_box_autoadd_image_with_metadata(apiObj.logo);
       var pre_background_color = cst_encode_opt_String(apiObj.backgroundColor);
       var pre_text_color = cst_encode_opt_String(apiObj.textColor);
       wireObj.tag = 0;
@@ -1103,7 +1103,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_box_autoadd_image(Image self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_logo_metadata(LogoMetadata self, SseSerializer serializer);
+  void sse_encode_box_autoadd_image_with_metadata(ImageWithMetadata self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_organization(Organization self, SseSerializer serializer);
@@ -1154,6 +1154,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_image(Image self, SseSerializer serializer);
 
   @protected
+  void sse_encode_image_with_metadata(ImageWithMetadata self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_attestation(List<Attestation> self, SseSerializer serializer);
 
   @protected
@@ -1181,9 +1184,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_localized_string(LocalizedString self, SseSerializer serializer);
 
   @protected
-  void sse_encode_logo_metadata(LogoMetadata self, SseSerializer serializer);
-
-  @protected
   void sse_encode_missing_attribute(MissingAttribute self, SseSerializer serializer);
 
   @protected
@@ -1193,7 +1193,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_box_autoadd_image(Image? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_box_autoadd_logo_metadata(LogoMetadata? self, SseSerializer serializer);
+  void sse_encode_opt_box_autoadd_image_with_metadata(ImageWithMetadata? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_rendering_metadata(RenderingMetadata? self, SseSerializer serializer);
@@ -1846,15 +1846,15 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_image =
       _cst_new_box_autoadd_imagePtr.asFunction<ffi.Pointer<wire_cst_image> Function()>();
 
-  ffi.Pointer<wire_cst_logo_metadata> cst_new_box_autoadd_logo_metadata() {
-    return _cst_new_box_autoadd_logo_metadata();
+  ffi.Pointer<wire_cst_image_with_metadata> cst_new_box_autoadd_image_with_metadata() {
+    return _cst_new_box_autoadd_image_with_metadata();
   }
 
-  late final _cst_new_box_autoadd_logo_metadataPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_logo_metadata> Function()>>(
-          'frbgen_wallet_core_cst_new_box_autoadd_logo_metadata');
-  late final _cst_new_box_autoadd_logo_metadata =
-      _cst_new_box_autoadd_logo_metadataPtr.asFunction<ffi.Pointer<wire_cst_logo_metadata> Function()>();
+  late final _cst_new_box_autoadd_image_with_metadataPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_image_with_metadata> Function()>>(
+          'frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata');
+  late final _cst_new_box_autoadd_image_with_metadata =
+      _cst_new_box_autoadd_image_with_metadataPtr.asFunction<ffi.Pointer<wire_cst_image_with_metadata> Function()>();
 
   ffi.Pointer<wire_cst_organization> cst_new_box_autoadd_organization() {
     return _cst_new_box_autoadd_organization();
@@ -2058,16 +2058,47 @@ final class wire_cst_attestation_identity extends ffi.Struct {
   external AttestationIdentityKind kind;
 }
 
-final class wire_cst_logo_metadata extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> uri;
+final class wire_cst_Image_Svg extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> xml;
+}
 
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> uri_integrity;
+final class wire_cst_Image_Png extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
+}
+
+final class wire_cst_Image_Jpeg extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> data;
+}
+
+final class wire_cst_Image_Asset extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> path;
+}
+
+final class ImageKind extends ffi.Union {
+  external wire_cst_Image_Svg Svg;
+
+  external wire_cst_Image_Png Png;
+
+  external wire_cst_Image_Jpeg Jpeg;
+
+  external wire_cst_Image_Asset Asset;
+}
+
+final class wire_cst_image extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external ImageKind kind;
+}
+
+final class wire_cst_image_with_metadata extends ffi.Struct {
+  external wire_cst_image image;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> alt_text;
 }
 
 final class wire_cst_RenderingMetadata_Simple extends ffi.Struct {
-  external ffi.Pointer<wire_cst_logo_metadata> logo;
+  external ffi.Pointer<wire_cst_image_with_metadata> logo;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> background_color;
 
@@ -2115,39 +2146,6 @@ final class wire_cst_list_localized_string extends ffi.Struct {
 
   @ffi.Int32()
   external int len;
-}
-
-final class wire_cst_Image_Svg extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> xml;
-}
-
-final class wire_cst_Image_Png extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> base64;
-}
-
-final class wire_cst_Image_Jpg extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> base64;
-}
-
-final class wire_cst_Image_Asset extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_prim_u_8_strict> path;
-}
-
-final class ImageKind extends ffi.Union {
-  external wire_cst_Image_Svg Svg;
-
-  external wire_cst_Image_Png Png;
-
-  external wire_cst_Image_Jpg Jpg;
-
-  external wire_cst_Image_Asset Asset;
-}
-
-final class wire_cst_image extends ffi.Struct {
-  @ffi.Int32()
-  external int tag;
-
-  external ImageKind kind;
 }
 
 final class wire_cst_organization extends ffi.Struct {

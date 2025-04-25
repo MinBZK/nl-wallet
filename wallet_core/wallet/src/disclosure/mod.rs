@@ -1,5 +1,7 @@
 mod uri;
 
+use std::hash::Hash;
+
 use openid4vc::disclosure_session::VpVerifierError;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
@@ -92,6 +94,7 @@ pub trait MdocDisclosureProposal {
     async fn disclose<K, KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         K: CredentialEcdsaKey,
+        K: Eq + Hash,
         KF: KeyFactory<Key = K>,
         KF: PoaFactory<Key = K>;
 }
@@ -181,6 +184,7 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
     async fn disclose<K, KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
         K: CredentialEcdsaKey,
+        K: Eq + Hash,
         KF: KeyFactory<Key = K>,
         KF: PoaFactory<Key = K>,
     {

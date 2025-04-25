@@ -103,7 +103,7 @@ gbaCliTool:
 ## @param gbaEncryptTestData.extraPodlabels Additional labels for the GBA Encrypt Test Data pods
 ##
 gbaEncryptTestData:
-  name: cronjob-encrypt-gba-v-testdata
+  name: encrypt-gba-v-testdata
   enabled: false
   extraPodlabels: {}
 

@@ -32,14 +32,41 @@ typedef struct wire_cst_attestation_identity {
   union AttestationIdentityKind kind;
 } wire_cst_attestation_identity;
 
-typedef struct wire_cst_logo_metadata {
-  struct wire_cst_list_prim_u_8_strict *uri;
-  struct wire_cst_list_prim_u_8_strict *uri_integrity;
+typedef struct wire_cst_Image_Svg {
+  struct wire_cst_list_prim_u_8_strict *xml;
+} wire_cst_Image_Svg;
+
+typedef struct wire_cst_Image_Png {
+  struct wire_cst_list_prim_u_8_strict *data;
+} wire_cst_Image_Png;
+
+typedef struct wire_cst_Image_Jpeg {
+  struct wire_cst_list_prim_u_8_strict *data;
+} wire_cst_Image_Jpeg;
+
+typedef struct wire_cst_Image_Asset {
+  struct wire_cst_list_prim_u_8_strict *path;
+} wire_cst_Image_Asset;
+
+typedef union ImageKind {
+  struct wire_cst_Image_Svg Svg;
+  struct wire_cst_Image_Png Png;
+  struct wire_cst_Image_Jpeg Jpeg;
+  struct wire_cst_Image_Asset Asset;
+} ImageKind;
+
+typedef struct wire_cst_image {
+  int32_t tag;
+  union ImageKind kind;
+} wire_cst_image;
+
+typedef struct wire_cst_image_with_metadata {
+  struct wire_cst_image image;
   struct wire_cst_list_prim_u_8_strict *alt_text;
-} wire_cst_logo_metadata;
+} wire_cst_image_with_metadata;
 
 typedef struct wire_cst_RenderingMetadata_Simple {
-  struct wire_cst_logo_metadata *logo;
+  struct wire_cst_image_with_metadata *logo;
   struct wire_cst_list_prim_u_8_strict *background_color;
   struct wire_cst_list_prim_u_8_strict *text_color;
 } wire_cst_RenderingMetadata_Simple;
@@ -75,34 +102,6 @@ typedef struct wire_cst_list_localized_string {
   struct wire_cst_localized_string *ptr;
   int32_t len;
 } wire_cst_list_localized_string;
-
-typedef struct wire_cst_Image_Svg {
-  struct wire_cst_list_prim_u_8_strict *xml;
-} wire_cst_Image_Svg;
-
-typedef struct wire_cst_Image_Png {
-  struct wire_cst_list_prim_u_8_strict *base64;
-} wire_cst_Image_Png;
-
-typedef struct wire_cst_Image_Jpg {
-  struct wire_cst_list_prim_u_8_strict *base64;
-} wire_cst_Image_Jpg;
-
-typedef struct wire_cst_Image_Asset {
-  struct wire_cst_list_prim_u_8_strict *path;
-} wire_cst_Image_Asset;
-
-typedef union ImageKind {
-  struct wire_cst_Image_Svg Svg;
-  struct wire_cst_Image_Png Png;
-  struct wire_cst_Image_Jpg Jpg;
-  struct wire_cst_Image_Asset Asset;
-} ImageKind;
-
-typedef struct wire_cst_image {
-  int32_t tag;
-  union ImageKind kind;
-} wire_cst_image;
 
 typedef struct wire_cst_organization {
   struct wire_cst_list_localized_string *legal_name;
@@ -425,7 +424,7 @@ struct wire_cst_attestation *frbgen_wallet_core_cst_new_box_autoadd_attestation(
 
 struct wire_cst_image *frbgen_wallet_core_cst_new_box_autoadd_image(void);
 
-struct wire_cst_logo_metadata *frbgen_wallet_core_cst_new_box_autoadd_logo_metadata(void);
+struct wire_cst_image_with_metadata *frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata(void);
 
 struct wire_cst_organization *frbgen_wallet_core_cst_new_box_autoadd_organization(void);
 
@@ -456,7 +455,7 @@ static int64_t dummy_method_to_enforce_bundling(void) {
     int64_t dummy_var = 0;
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_attestation);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image);
-    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_logo_metadata);
+    dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_image_with_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_organization);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_rendering_metadata);
     dummy_var ^= ((int64_t) (void*) frbgen_wallet_core_cst_new_box_autoadd_request_policy);

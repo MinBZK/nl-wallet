@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:test/test.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/domain/model/converter/app_image_data_converter.dart';
@@ -12,8 +14,8 @@ void main() {
     expect(image, equals(decodedImage));
   });
 
-  test('base64', () {
-    const image = Base64Image('base64');
+  test('memory', () {
+    final image = AppMemoryImage(Uint8List.fromList([0xca, 0xfe]));
     final json = converter.toJson(image);
     final decodedImage = converter.fromJson(json);
     expect(image, equals(decodedImage));

@@ -21,24 +21,24 @@ spec:
       labels:
         {{- include "common.labels.componentSelectorLabels" (list .Values.frontend.name .) | nindent 8 }}
         {{ with .Values.frontend.extraPodlabels }}
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ .Values.serviceAccountName }}
       {{- with .Values.securityContext }}
       securityContext:
-      {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ .Values.frontend.name }}
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageGbaFrontend.repository }}{{- if (.Values.image).tag }}:{{ .Values.image.tag }}{{- end }}"
           {{ with .Values.frontend.resources }}
           resources:
-            {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
             - name: preloaded-gba-v-data-volume
@@ -107,5 +107,5 @@ spec:
 
       {{- with .Values.hostAliases }}
       hostAliases:
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}

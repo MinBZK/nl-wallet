@@ -1,0 +1,53 @@
+{{ if .Values.migration.reset }}
+{{ $name := include "common.names.fullname" . }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}-reset
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  schedule: "0 0 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "common.labels.component" (list "migration" .) | nindent 12 }}
+            {{- with .Values.migration.labels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: {{ $name }}-migrations
+              image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
+              args: ["up"]
+              env:
+                - name: WALLET_PROVIDER__DATABASE__HOST
+                  value: db-cluster-rw
+                - name: WALLET_PROVIDER__DATABASE__NAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: db-cluster-app
+                      key: dbname
+                - name: WALLET_PROVIDER__DATABASE__USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: db-cluster-app
+                      key: username
+                - name: WALLET_PROVIDER__DATABASE__PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: db-cluster-app
+                      key: password
+          restartPolicy: Never
+{{- end }}

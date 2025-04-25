@@ -3,7 +3,9 @@ package util
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import data.TestConfigRepository.Companion.testConfig
 import helper.BrowserStackHelper
+import helper.CardMetadataHelper
 import helper.LocalizationHelper
+import helper.OrganizationAuthMetadataHelper
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
@@ -29,6 +31,8 @@ open class MobileActions {
 
     protected val find = FlutterFinder(driver)
     protected val l10n = LocalizationHelper()
+    protected val cardMetadata = CardMetadataHelper()
+    protected val organizationAuthMetadata = OrganizationAuthMetadataHelper()
 
     /**
      * Checks if the given element is visible.
@@ -204,8 +208,6 @@ open class MobileActions {
         val jsScript = "return arguments[0].querySelector('.modal-anchor')"
         return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
     }
-
-    protected fun navigateBack() = driver.navigate().back()
 
     private fun <T> performAction(frameSync: Boolean = true, action: () -> T): T {
         if (!frameSync) driver.executeScript("flutter:setFrameSync", false, SET_FRAME_SYNC_MAX_WAIT_MILLIS)

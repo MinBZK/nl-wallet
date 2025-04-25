@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'disclosure.dart';
+import 'image.dart';
 import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
@@ -150,36 +151,12 @@ class DisplayMetadata {
           rendering == other.rendering;
 }
 
-class LogoMetadata {
-  final String uri;
-  final String uriIntegrity;
-  final String altText;
-
-  const LogoMetadata({
-    required this.uri,
-    required this.uriIntegrity,
-    required this.altText,
-  });
-
-  @override
-  int get hashCode => uri.hashCode ^ uriIntegrity.hashCode ^ altText.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is LogoMetadata &&
-          runtimeType == other.runtimeType &&
-          uri == other.uri &&
-          uriIntegrity == other.uriIntegrity &&
-          altText == other.altText;
-}
-
 @freezed
 sealed class RenderingMetadata with _$RenderingMetadata {
   const RenderingMetadata._();
 
   const factory RenderingMetadata.simple({
-    LogoMetadata? logo,
+    ImageWithMetadata? logo,
     String? backgroundColor,
     String? textColor,
   }) = RenderingMetadata_Simple;

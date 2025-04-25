@@ -133,3 +133,10 @@
 | Name            | Description            | Value |
 | --------------- | ---------------------- | ----- |
 | `appIdentifier` | Application identifier | `nil` |
+
+### Migration parameters
+
+| Name               | Description                             | Value  |
+| ------------------ | --------------------------------------- | ------ |
+| `migration.labels` | Additional labels for the migration job | `{}`   |
+| `migration.reset`  | Enable reset cron job                   | `true` |

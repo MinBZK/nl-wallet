@@ -1,4 +1,8 @@
+use anyhow::anyhow;
+
 use crate::models::disclosure::Organization;
+use crate::models::image::Image;
+use crate::models::image::ImageWithMetadata;
 
 pub struct Attestation {
     pub identity: AttestationIdentity,
@@ -56,7 +60,7 @@ impl From<wallet::sd_jwt_vc_metadata::DisplayMetadata> for DisplayMetadata {
 
 pub enum RenderingMetadata {
     Simple {
-        logo: Option<LogoMetadata>,
+        logo: Option<ImageWithMetadata>,
         background_color: Option<String>,
         text_color: Option<String>,
     },
@@ -71,7 +75,7 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
                 background_color,
                 text_color,
             } => RenderingMetadata::Simple {
-                logo: logo.map(LogoMetadata::from),
+                logo: logo.map(ImageWithMetadata::try_from).and_then(Result::ok),
                 background_color,
                 text_color,
             },
@@ -80,18 +84,26 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
     }
 }
 
-pub struct LogoMetadata {
-    pub uri: String,
-    pub uri_integrity: String,
-    pub alt_text: String,
-}
+impl TryFrom<wallet::sd_jwt_vc_metadata::LogoMetadata> for ImageWithMetadata {
+    type Error = anyhow::Error;
 
-impl From<wallet::sd_jwt_vc_metadata::LogoMetadata> for LogoMetadata {
-    fn from(value: wallet::sd_jwt_vc_metadata::LogoMetadata) -> Self {
-        Self {
-            uri: value.uri.to_string(),
-            uri_integrity: value.uri_integrity.into_inner().to_string(),
-            alt_text: value.alt_text.into_inner(),
+    fn try_from(value: wallet::sd_jwt_vc_metadata::LogoMetadata) -> Result<Self, Self::Error> {
+        // For simplicity, we let the embedded and remote distinction bubble up to here
+        // and only convert supported embedded images.
+        // If remote images were to be supported, there should be some logic that fetches the url,
+        // most likely that concern should not be here.
+        let alt_text = value.alt_text.into_inner();
+        match value.uri_metadata {
+            wallet::sd_jwt_vc_metadata::UriMetadata::Embedded { uri } => match uri.mime_type.as_str() {
+                "image/jpeg" => Ok(Image::Jpeg { data: uri.data }),
+                "image/png" => Ok(Image::Png { data: uri.data }),
+                "image/svg+xml" => String::from_utf8(uri.data)
+                    .map(|xml| Image::Svg { xml })
+                    .map_err(anyhow::Error::from),
+                _ => Err(anyhow!("Unsupported mime type: {}", uri.mime_type)),
+            }
+            .map(|image| ImageWithMetadata { image, alt_text }),
+            wallet::sd_jwt_vc_metadata::UriMetadata::Remote { .. } => Err(anyhow!("Remote images are not supported")),
         }
     }
 }

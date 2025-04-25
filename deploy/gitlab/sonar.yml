@@ -24,7 +24,7 @@ sonar-rust:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.sources=.
-      -Dsonar.exclusions=target/**,**/resources/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs
+      -Dsonar.exclusions=target/**,**/examples/**,**/resources/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs
       -Dsonar.coverage.exclusions=configuration_server/**,gba_hc_converter/src/fetch/askama_axum.rs,mock_relying_party/**,**/migrations/**,uniffi-bindgen/**
       -Dtest=.
       -Dtest.inclusions=**/tests/**,**/tests_integration/**
@@ -72,10 +72,8 @@ sonar-wallet-web:
       -Dsonar.projectKey=nl-wallet-web
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=lib/
-      -Dsonar.exclusions=lib/__tests__/**/*,lib/util/qrcodegen.ts
-      -Dsonar.tests=lib/
-      -Dsonar.test.inclusions=lib/__tests__/**/*
-      -Dsonar.coverage.exclusions=lib/__tests__
+      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/util/qrcodegen.ts
+      -Dsonar.tests=lib/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
 
