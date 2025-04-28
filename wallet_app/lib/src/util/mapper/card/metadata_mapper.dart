@@ -2,13 +2,16 @@ import 'dart:ui';
 
 import 'package:wallet_core/core.dart';
 
+import '../../../domain/model/app_image_data.dart';
 import '../../../domain/model/card/metadata/card_display_metadata.dart';
 import '../../../domain/model/card/metadata/card_rendering.dart';
 import '../../extension/locale_extension.dart';
 import '../mapper.dart';
 
 class DisplayMetadataMapper extends Mapper<DisplayMetadata, CardDisplayMetadata> {
-  DisplayMetadataMapper();
+  final Mapper<Image, AppImageData> _imageMapper;
+
+  DisplayMetadataMapper(this._imageMapper);
 
   @override
   CardDisplayMetadata map(DisplayMetadata input) {
@@ -18,7 +21,7 @@ class DisplayMetadataMapper extends Mapper<DisplayMetadata, CardDisplayMetadata>
       RenderingMetadata_Simple() => SimpleCardRendering(
           bgColor: rendering.backgroundColor?.toColor(),
           textColor: rendering.textColor?.toColor(),
-          logoUri: null,
+          logo: rendering.logo?.image == null ? null : _imageMapper.map(rendering.logo!.image),
           logoAltText: rendering.logo?.altText,
         ),
       RenderingMetadata_SvgTemplates() => null,

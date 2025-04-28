@@ -68,7 +68,7 @@ final _kSampleCardMetaData = [
     name: 'Sample Card',
     rawSummary: 'Subtitle',
     rendering: SimpleCardRendering(
-      logoUri: WalletAssets.illustration_digid_failure,
+      logo: AppAssetImage(WalletAssets.illustration_digid_failure),
       textColor: DarkWalletTheme.textColor,
     ),
   ),
@@ -80,7 +80,7 @@ final _kAltSampleCardMetaData = [
     name: 'Alt Sample Card',
     rawSummary: 'Alt Subtitle',
     rendering: SimpleCardRendering(
-      logoUri: WalletAssets.logo_card_rijksoverheid,
+      logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid),
       textColor: LightWalletTheme.textColor,
     ),
   ),
@@ -387,7 +387,7 @@ class OtherStylesTab extends StatelessWidget {
           title: 'Card Title',
           background: DecoratedBox(decoration: BoxDecoration(color: Colors.orangeAccent)),
           subtitle: 'Card subtitle1',
-          logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+          logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
         ),
         const ThemeSectionSubHeader(title: 'StackedWalletCards'),
         StackedWalletCards(
