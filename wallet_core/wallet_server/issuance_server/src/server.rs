@@ -118,7 +118,7 @@ where
         issuer_settings.wallet_client_ids,
         RequestUriBehaviour::ByUsecaseId,
     )
-    .create_wallet_router(disclosure_sessions, result_handler);
+    .create_wallet_router(disclosure_sessions, Some(Box::new(result_handler)));
 
     listen(
         listener,

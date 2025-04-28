@@ -5,6 +5,7 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
+use async_trait::async_trait;
 use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
@@ -516,7 +517,7 @@ pub enum DisclosureResultHandlerError {
 /// Types may implement this to receive disclosed attributes after a successful disclosure session.
 /// The return value is URL-serialized and appended to the query of the redirect URI, if present,
 /// that gets sent to the wallet.
-#[trait_variant::make(Send)]
+#[async_trait] // This makes the trait object safe so we can use `dyn DisclosureResultHandler` below.
 pub trait DisclosureResultHandler {
     async fn disclosure_result(
         &self,
@@ -525,48 +526,32 @@ pub trait DisclosureResultHandler {
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 
-/// The trivial disclosure result handler that does nothing and always returns Ok.
-#[derive(Debug)]
-pub struct NoOpDisclosureResultHandler;
-
-impl DisclosureResultHandler for NoOpDisclosureResultHandler {
-    async fn disclosure_result(
-        &self,
-        _: &str,
-        _: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
-        Ok(HashMap::new())
-    }
-}
-
 pub enum SessionIdentifier {
     Token(SessionToken),
     UseCaseId(String),
 }
 
-#[derive(Debug)]
-pub struct Verifier<S, K, H> {
+pub struct Verifier<S, K> {
     use_cases: UseCases<K>,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<TrustAnchor<'static>>,
     ephemeral_id_secret: Option<hmac::Key>,
-    result_handler: H,
+    result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
     accepted_wallet_client_ids: Vec<String>,
 }
 
-impl<S, K, H> Drop for Verifier<S, K, H> {
+impl<S, K> Drop for Verifier<S, K> {
     fn drop(&mut self) {
         // Stop the task at the next .await
         self.cleanup_task.abort();
     }
 }
 
-impl<S, K, H> Verifier<S, K, H>
+impl<S, K> Verifier<S, K>
 where
     S: SessionStore<DisclosureData>,
     K: EcdsaKey,
-    H: DisclosureResultHandler,
 {
     /// Create a new [`Verifier`].
     ///
@@ -582,7 +567,7 @@ where
         sessions: Arc<S>,
         trust_anchors: Vec<TrustAnchor<'static>>,
         ephemeral_id_secret: Option<hmac::Key>,
-        result_handler: H,
+        result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
         accepted_wallet_client_ids: Vec<String>,
     ) -> Self
     where
@@ -783,7 +768,7 @@ where
                 &self.accepted_wallet_client_ids,
                 time,
                 &self.trust_anchors,
-                &self.result_handler,
+                self.result_handler.as_deref(),
             )
             .await;
 
@@ -890,7 +875,7 @@ where
     }
 }
 
-impl<S, K, H> Verifier<S, K, H> {
+impl<S, K> Verifier<S, K> {
     fn generate_ephemeral_id(
         ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
@@ -1153,7 +1138,7 @@ impl Session<WaitingForResponse> {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor<'_>],
-        result_handler: &impl DisclosureResultHandler,
+        result_handler: Option<&(dyn DisclosureResultHandler + Send + Sync)>,
     ) -> (
         Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
         Session<Done>,
@@ -1200,16 +1185,25 @@ impl Session<WaitingForResponse> {
             Err(err) => return self.handle_err(err.into()),
         };
 
-        let query_params = match result_handler
-            .disclosure_result(&self.state.data.usecase_id, &disclosed)
-            .await
-        {
-            Ok(query_params) => query_params,
-            Err(err) => {
-                return self.handle_err(match err {
-                    DisclosureResultHandlerError::WalletError(err) => err, // pass the error on as is to the wallet
-                    DisclosureResultHandlerError::Other(err) => PostAuthResponseError::HandlingDisclosureResult(err),
-                });
+        let query_params = match result_handler {
+            None => HashMap::default(),
+            Some(result_handler) => {
+                match result_handler
+                    .disclosure_result(&self.state.data.usecase_id, &disclosed)
+                    .await
+                {
+                    Ok(query_params) => query_params,
+                    Err(err) => {
+                        return self.handle_err(match err {
+                            DisclosureResultHandlerError::WalletError(err) => {
+                                err // pass the error on as is to the wallet
+                            }
+                            DisclosureResultHandlerError::Other(err) => {
+                                PostAuthResponseError::HandlingDisclosureResult(err)
+                            }
+                        });
+                    }
+                }
             }
         };
 
@@ -1287,6 +1281,7 @@ mod tests {
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
+    use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
     use crate::verifier::EphemeralIdParameters;
     use crate::verifier::SessionIdentifier;
@@ -1301,12 +1296,10 @@ mod tests {
     use super::HashMap;
     use super::ItemsRequests;
     use super::NewSessionError;
-    use super::NoOpDisclosureResultHandler;
     use super::SessionError;
     use super::SessionResult;
     use super::SessionState;
     use super::SessionStatus;
-    use super::SessionStore;
     use super::SessionType;
     use super::SessionTypeReturnUrl;
     use super::StatusResponse;
@@ -1341,7 +1334,7 @@ mod tests {
         .into()
     }
 
-    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>, SigningKey, NoOpDisclosureResultHandler> {
+    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>, SigningKey> {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
@@ -1388,7 +1381,7 @@ mod tests {
             session_store,
             trust_anchors,
             Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
-            NoOpDisclosureResultHandler,
+            None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
         )
     }
@@ -1424,7 +1417,7 @@ mod tests {
     async fn init_and_start_disclosure(
         time: &impl Generator<DateTime<Utc>>,
     ) -> (
-        Verifier<MemorySessionStore<DisclosureData>, SigningKey, NoOpDisclosureResultHandler>,
+        Verifier<MemorySessionStore<DisclosureData>, SigningKey>,
         SessionToken,
         VpRequestUriObject,
     ) {
@@ -1671,15 +1664,11 @@ mod tests {
         let time = time_str.parse().unwrap();
 
         // Create a UL for the wallet, given the provided parameters.
-        let verifier_url = Verifier::<(), (), ()>::format_ul(
+        let verifier_url = Verifier::<(), ()>::format_ul(
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             Some(EphemeralIdParameters {
-                ephemeral_id: Verifier::<(), (), ()>::generate_ephemeral_id(
-                    &ephemeral_id_secret,
-                    &session_token,
-                    &time,
-                ),
+                ephemeral_id: Verifier::<(), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
                 time,
             }),
             SessionType::CrossDevice,
@@ -1704,7 +1693,7 @@ mod tests {
     #[test]
     fn test_verifier_url_without_ephemeral_id() {
         // Create a UL for the wallet, given the provided parameters.
-        let verifier_url = Verifier::<(), (), ()>::format_ul(
+        let verifier_url = Verifier::<(), ()>::format_ul(
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             None,
@@ -1745,7 +1734,7 @@ mod tests {
             session_store,
             trust_anchors,
             None,
-            NoOpDisclosureResultHandler,
+            None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
         );
 

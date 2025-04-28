@@ -3137,6 +3137,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "async-trait",
  "axum",
  "base64 0.22.1",
  "chrono",
@@ -3940,6 +3941,7 @@ name = "openid4vc"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "async-trait",
  "axum",
  "base64 0.22.1",
  "biscuit",

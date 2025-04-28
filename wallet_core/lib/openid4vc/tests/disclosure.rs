@@ -6,6 +6,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use assert_matches::assert_matches;
+use async_trait::async_trait;
 use chrono::Utc;
 use futures::future;
 use indexmap::IndexMap;
@@ -385,6 +386,7 @@ impl MockDisclosureResultHandler {
     }
 }
 
+#[async_trait]
 impl DisclosureResultHandler for MockDisclosureResultHandler {
     async fn disclosure_result(
         &self,
@@ -642,7 +644,7 @@ async fn test_client_and_server_cancel_after_created() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Starting the session in the wallet should result in an error
-    let error = start_disclosure_session(
+    let Err(error) = start_disclosure_session(
         Arc::clone(&verifier),
         stored_documents,
         &issuer_ca,
@@ -652,7 +654,9 @@ async fn test_client_and_server_cancel_after_created() {
         &MockRemoteKeyFactory::default(),
     )
     .await
-    .expect_err("should not be able to start the disclosure session in the wallet");
+    else {
+        panic!("should not be able to start the disclosure session in the wallet")
+    };
 
     assert_matches!(
         error,
@@ -869,7 +873,7 @@ fn setup_verifier(
         Arc::new(MemorySessionStore::default()),
         vec![issuer_ca.to_trust_anchor().to_owned()],
         Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
-        MockDisclosureResultHandler::new(session_result_query_param),
+        Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
     ));
 
@@ -941,9 +945,8 @@ async fn request_status_endpoint(
         .unwrap()
 }
 
-type MockVerifier = Verifier<MemorySessionStore<DisclosureData>, SigningKey, MockDisclosureResultHandler>;
+type MockVerifier = Verifier<MemorySessionStore<DisclosureData>, SigningKey>;
 
-#[derive(Debug)]
 struct VerifierMockVpMessageClient {
     verifier: Arc<MockVerifier>,
 }

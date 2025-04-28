@@ -34,6 +34,7 @@ mock = []
 
 [dependencies]
 anyhow.workspace = true
+async-trait.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
 chrono = { workspace = true, features = ["clock", "serde", "std"] }
