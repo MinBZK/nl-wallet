@@ -1,14 +1,9 @@
-{% call header::header(base.trans.insurance_title, "") %}
+{% call header::header(base.trans.insurance_title, demo_utils::OPTION_STR_NONE) %}
 
 <main>
     <section>
         <h2>{{ base.trans.insurance_get_cards }}</h2>
     </section>
-    {% match base.session_token %}
-        {% when Some with (session_token) %}
-        {% call notification::notification(base.trans.failed_try_again, "", session_token) %}
-        {% when None %}
-    {% endmatch %}
     <section class="buttons">
         <nl-wallet-button
             text="{{ base.trans.add_to_nl_wallet }}"

@@ -24,8 +24,7 @@
     {% else %}
         {% call attributes::attributes(attributes) %}
 {% endmatch %}
-{# using it in the call directly didn't work #}
-{% let selected_lang = base.selected_lang %}
+
 {# should be last for accessibility purposes #}
-{% call demo_bar::demo_bar(base.trans.demo_see_other, format!("../?lang={}", selected_lang), base.trans.demo_see_examples, selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}
+{% call demo_bar::demo_bar(base.trans.demo_see_other, base.selected_lang | fmt("../?lang={}"), base.trans.demo_see_examples, base.selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}
 {% endblock %}

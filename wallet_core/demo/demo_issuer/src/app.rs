@@ -1,8 +1,8 @@
-use std::result::Result as StdResult;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::Path;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
@@ -13,19 +13,19 @@ use axum::response::Response;
 use axum::routing::get;
 use axum::Router;
 use base64::prelude::*;
-use demo_utils::headers::set_static_cache_control;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
-
-use demo_utils::askama_axum;
-use demo_utils::language::Language;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing::warn;
+
+use demo_utils::headers::set_static_cache_control;
+use demo_utils::language::Language;
 use url::Url;
 use utils::path::prefix_local_path;
 
@@ -44,8 +44,6 @@ impl IntoResponse for Error {
         (StatusCode::INTERNAL_SERVER_ERROR, self.as_ref().to_string()).into_response()
     }
 }
-
-type Result<T> = StdResult<T, Error>;
 
 struct ApplicationState {
     usecases: IndexMap<String, Usecase>,
@@ -83,14 +81,12 @@ struct SessionOptions {
 }
 
 struct BaseTemplate<'a> {
-    session_token: Option<String>, // TODO how to fix this
-    nonce: Option<String>,
     selected_lang: Language,
     trans: &'a Words<'a>,
-    available_languages: &'a Vec<Language>,
+    available_languages: &'a [Language],
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
@@ -111,26 +107,23 @@ async fn usecase(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
     language: Language,
-) -> Result<Response> {
+) -> Response {
     if !state.usecases.contains_key(&usecase) {
-        return Ok(StatusCode::NOT_FOUND.into_response());
+        return StatusCode::NOT_FOUND.into_response();
     }
 
     let start_url = "https://example.com/start_url_here".parse().unwrap(); // TODO
-    let result = UsecaseTemplate {
+    UsecaseTemplate {
         usecase: &usecase,
         start_url,
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
         base: BaseTemplate {
-            session_token: None,
-            nonce: None,
             selected_lang: language,
             trans: &TRANSLATIONS[language],
-            available_languages: &Language::iter().collect(),
+            available_languages: &Language::iter().collect_vec(),
         },
-    };
-
-    Ok(askama_axum::into_response(&result))
+    }
+    .into_response()
 }

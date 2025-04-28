@@ -33,11 +33,3 @@ main p {
   letter-spacing: 0.4px;
   line-height: 18px;
 }
-
-main a {
-  color: var(--primary-color);
-}
-
-main a:hover {
-  color: var(--hover-color);
-}

@@ -1,9 +1,9 @@
-{% let username = attributes|attribute("given_name") %}
-
+{% let username = Some(attributes | attribute("given_name")) %}
 {% call header::header(base.trans.monkeybike_title, username) %}
+
 <main>
     {% let welcome = base.trans.welcome %}
-    {% call notification::notification(format!("{welcome} {username}"), "", "") %}
+    {% call notification::notification(format!("{welcome} {}", username.unwrap()), "", "") %}
     {% call search::search(base.trans.search_product) %}
     {% call products::products(6) %}
 </main>

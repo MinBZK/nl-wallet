@@ -3,6 +3,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::State;
@@ -20,6 +21,7 @@ use demo_utils::headers::cors_layer;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::LanguageParam;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
@@ -30,7 +32,6 @@ use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
-use demo_utils::askama_axum;
 use demo_utils::language::Language;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DisclosedAttributes;
@@ -160,35 +161,34 @@ async fn create_session(
 
 struct BaseTemplate<'a> {
     session_token: Option<SessionToken>,
-    nonce: Option<String>,
+    nonce: Option<&'a str>,
     selected_lang: Language,
     trans: &'a Words<'a>,
-    available_languages: &'a Vec<Language>,
+    available_languages: &'a [Language],
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate<'a> {
     usecases: &'a [&'a str],
     base: BaseTemplate<'a>,
 }
 
-async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Result<Response> {
-    let result = IndexTemplate {
-        usecases: &state.usecases.keys().map(|s| s.as_str()).collect::<Vec<_>>(),
+async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Response {
+    IndexTemplate {
+        usecases: &state.usecases.keys().map(AsRef::as_ref).collect_vec(),
         base: BaseTemplate {
             session_token: None,
             nonce: None,
             selected_lang: language,
             trans: &TRANSLATIONS[language],
-            available_languages: &Language::iter().collect(),
+            available_languages: &Language::iter().collect_vec(),
         },
-    };
-
-    Ok(askama_axum::into_response(&result))
+    }
+    .into_response()
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
@@ -217,13 +217,13 @@ async fn usecase(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
     language: Language,
-) -> Result<Response> {
+) -> Response {
     if !state.usecases.contains_key(&usecase) {
-        return Ok(StatusCode::NOT_FOUND.into_response());
+        return StatusCode::NOT_FOUND.into_response();
     }
 
     let start_url = format_start_url(&state.public_url, language);
-    let result = UsecaseTemplate {
+    UsecaseTemplate {
         usecase: &usecase,
         start_url,
         usecase_js_sha256: &USECASE_JS_SHA256,
@@ -234,11 +234,10 @@ async fn usecase(
             nonce: None,
             selected_lang: language,
             trans: &TRANSLATIONS[language],
-            available_languages: &Language::iter().collect(),
+            available_languages: &Language::iter().collect_vec(),
         },
-    };
-
-    Ok(askama_axum::into_response(&result))
+    }
+    .into_response()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -247,7 +246,7 @@ pub struct DisclosedAttributesParams {
     pub session_token: SessionToken,
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
@@ -260,9 +259,9 @@ async fn disclosed_attributes(
     Path(usecase): Path<String>,
     Query(params): Query<DisclosedAttributesParams>,
     language: Language,
-) -> Result<Response> {
+) -> Response {
     if !state.usecases.contains_key(&usecase) {
-        return Ok(StatusCode::NOT_FOUND.into_response());
+        return StatusCode::NOT_FOUND.into_response();
     }
 
     let attributes = state
@@ -273,32 +272,30 @@ async fn disclosed_attributes(
     let start_url = format_start_url(&state.public_url, language);
     let base = BaseTemplate {
         session_token: Some(params.session_token),
-        nonce: params.nonce,
+        nonce: params.nonce.as_deref(),
         selected_lang: language,
         trans: &TRANSLATIONS[language],
-        available_languages: &Language::iter().collect(),
+        available_languages: &Language::iter().collect_vec(),
     };
 
     match attributes {
-        Ok(attributes) => {
-            let result = DisclosedAttributesTemplate {
-                usecase: &usecase,
-                attributes,
-                base,
-            };
-            Ok(askama_axum::into_response(&result))
+        Ok(attributes) => DisclosedAttributesTemplate {
+            usecase: &usecase,
+            attributes,
+            base,
         }
+        .into_response(),
         Err(err) => {
             warn!("Error getting disclosed attributes: {err}");
-            let result = UsecaseTemplate {
+            UsecaseTemplate {
                 usecase: &usecase,
                 start_url,
                 usecase_js_sha256: &USECASE_JS_SHA256,
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,
                 base,
-            };
-            Ok(askama_axum::into_response(&result))
+            }
+            .into_response()
         }
     }
 }
@@ -306,18 +303,20 @@ async fn disclosed_attributes(
 mod filters {
     use mdoc::verifier::DisclosedAttributes;
 
-    #[allow(clippy::unnecessary_wraps)]
-    pub fn attribute(attributes: &DisclosedAttributes, name: &str) -> ::askama::Result<String> {
+    pub fn attribute(attributes: &DisclosedAttributes, _: &dyn askama::Values, name: &str) -> askama::Result<String> {
         for doctype in attributes {
             for namespace in &doctype.1.attributes {
                 for (attribute_name, attribute_value) in namespace.1 {
                     if attribute_name == name {
-                        return Ok(attribute_value.as_text().unwrap().to_owned());
+                        return Ok(attribute_value
+                            .as_text()
+                            .ok_or(askama::Error::custom("could not format attribute_value as text"))?
+                            .to_owned());
                     }
                 }
             }
         }
 
-        Ok(format!("attribute '{name}' cannot be found"))
+        Err(askama::Error::custom("attribute '{name}' cannot be found"))
     }
 }

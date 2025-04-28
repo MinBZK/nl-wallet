@@ -30,5 +30,5 @@
 {% endmatch %}
 
 {# should be last for accessibility purposes #}
-{% call demo_bar::demo_bar(base.trans.demo_follow_development, "https://edi.pleio.nl", "edi.pleio.nl", base.selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}
+{% call demo_bar::demo_bar(base.trans.demo_follow_development, "https://edi.pleio.nl", "edi.pleio.nl", base.selected_lang, base.trans, base.available_languages, demo_utils::OPTION_STR_NONE, demo_utils::OPTION_STR_NONE) %}
 {% endblock %}

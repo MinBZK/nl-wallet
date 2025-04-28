@@ -7,6 +7,7 @@ use std::sync::Arc;
 use aes_gcm::Aes256Gcm;
 use anyhow::anyhow;
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::extract::FromRequestParts;
 use axum::extract::Request;
 use axum::extract::State;
@@ -34,7 +35,6 @@ use tracing_subscriber::EnvFilter;
 
 use utils::built_info::version_string;
 
-use gba_hc_converter::fetch::askama_axum;
 use gba_hc_converter::gba::client::GbavClient;
 use gba_hc_converter::gba::client::HttpGbavClient;
 use gba_hc_converter::gba::encryption::clear_files_in_dir;
@@ -76,7 +76,7 @@ impl IntoResponse for Error {
         let result = ResultTemplate {
             msg: self.as_ref().to_string(),
         };
-        let mut response = askama_axum::into_response(&result);
+        let mut response = result.into_response();
         *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
         response
     }
@@ -182,14 +182,14 @@ struct ClearPayload {
     authenticity_token: String,
 }
 
-#[derive(Template, Default)]
+#[derive(Template, WebTemplate, Default)]
 #[template(path = "index.askama", escape = "html", ext = "html")]
 struct IndexTemplate {
     authenticity_token: String,
     preloaded_count: u64,
 }
 
-#[derive(Template, Default)]
+#[derive(Template, WebTemplate, Default)]
 #[template(path = "result.askama", escape = "html", ext = "html")]
 struct ResultTemplate {
     msg: String,
@@ -204,7 +204,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, token: CsrfToken) -> 
         preloaded_count,
     };
 
-    Ok(askama_axum::into_response_with_csrf(token, &result))
+    Ok((token, result).into_response())
 }
 
 async fn fetch(
@@ -251,7 +251,7 @@ async fn fetch(
         &serial
     );
 
-    Ok(askama_axum::into_response(&result))
+    Ok(result.into_response())
 }
 
 async fn clear(
@@ -282,5 +282,5 @@ async fn clear(
 
     info!("Cleared {count} items using certificate having serial: {:?}", &serial);
 
-    Ok(askama_axum::into_response(&result))
+    Ok(result.into_response())
 }

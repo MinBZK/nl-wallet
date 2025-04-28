@@ -26,6 +26,10 @@ main a {
   letter-spacing: 1px;
 }
 
-main a:hover {
+main a:not(:disabled):hover {
   color: var(--hover-color);
+}
+
+main a:disabled {
+  cursor: not-allowed;
 }

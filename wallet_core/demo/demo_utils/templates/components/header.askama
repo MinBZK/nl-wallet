@@ -1,10 +1,12 @@
-{% macro header(title, username) %}
+{% macro header(title, username = None) %}
 <header>
     <div>
         <h1 aria-label="{{ title }}"><span>{{ title }}</span></h1>
-        {% if username.len() > 0 %}
-        <span class="username">{{ username }}</span>
-        {% endif %}
+        {% match username %}
+        {% when Some with (name) %}
+        <span class="username">{{ name }}</span>
+        {% else %}
+        {% endmatch %}
     </div>
 </header>
 {% endmacro %}
