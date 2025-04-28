@@ -82,6 +82,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
             .json(disclosed)
             .send()
             .await?
+            .error_for_status()?
             .json()
             .await?;
 
