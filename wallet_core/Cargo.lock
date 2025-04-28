@@ -5253,7 +5253,6 @@ dependencies = [
  "crypto",
  "derive_more",
  "http",
- "http-serde",
  "http_utils",
  "itertools 0.14.0",
  "jsonschema",

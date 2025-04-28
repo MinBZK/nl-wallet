@@ -7,7 +7,6 @@ use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use http::Uri;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jsonschema::Draft;
@@ -237,8 +236,7 @@ pub enum SchemaOption {
     },
     Remote {
         /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
-        #[serde(with = "http_serde::uri")]
-        schema_uri: Uri,
+        schema_uri: BaseUrl,
         /// Validating the integrity of the schema_uri field.
         /// Note that although this is optional in the specification, we consider validation using a digest mandatory
         /// if the schema is to be fetched from an external URI, in order to check that this matches the
