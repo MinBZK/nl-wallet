@@ -104,7 +104,7 @@ final kMockHealthInsuranceWalletCard = Attestation(
     englishTitle: 'European Health Insurance Card',
     dutchTitle: 'Europese gezondheidskaart',
     englishSummary: '{{mock_healthIssuerId}}',
-    dutchSummary: 'Zorgverzekeraar Z',
+    dutchSummary: '{{mock_healthIssuerId}}',
     logoAsset: 'assets/non-free/logos/nl_health_insurance.png',
     textColor: '#FFFFFF',
   ),
