@@ -66,6 +66,7 @@ use crate::dpop::DpopError;
 use crate::issuable_document::IssuableDocument;
 use crate::issuable_document::IssuableDocuments;
 use crate::metadata;
+use crate::metadata::CredentialMetadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerMetadata;
 use crate::oidc;
@@ -416,7 +417,12 @@ where
         let credential_configurations_supported = attestation_config
             .as_ref()
             .iter()
-            .map(|(typ, attestation)| (typ.to_string(), (&attestation.metadata).into()))
+            .map(|(typ, attestation)| {
+                (
+                    typ.to_string(),
+                    CredentialMetadata::from_sd_jwt_vc_type_metadata(&attestation.metadata),
+                )
+            })
             .collect();
 
         let issuer_url = server_url.join_base_url("issuance/");

@@ -382,9 +382,9 @@ impl From<DisplayMetadata> for CredentialDisplay {
     }
 }
 
-impl From<&NormalizedTypeMetadata> for CredentialMetadata {
-    fn from(metadata: &NormalizedTypeMetadata) -> Self {
-        CredentialMetadata {
+impl CredentialMetadata {
+    pub fn from_sd_jwt_vc_type_metadata(metadata: &NormalizedTypeMetadata) -> Self {
+        Self {
             format: CredentialFormat::MsoMdoc {
                 doctype: metadata.vct().to_string(),
                 claims: HashMap::new(),
