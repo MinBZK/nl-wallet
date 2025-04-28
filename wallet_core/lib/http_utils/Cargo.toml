@@ -44,4 +44,3 @@ tower-http = { workspace = true, optional = true, features = ["cors"] }
 [dev-dependencies]
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
-serde_test.workspace = true
