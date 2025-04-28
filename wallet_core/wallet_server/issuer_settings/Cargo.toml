@@ -32,9 +32,3 @@ server_utils.path = "../server_utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
-
-crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }
-mdoc = { path = "../../lib/mdoc", features = ["generate", "mock"] }
-openid4vc = { path = "../../lib/openid4vc", features = ["mock"] }
-sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
-server_utils = { path = "../server_utils", features = ["integration_test"] }
