@@ -7,7 +7,6 @@ use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
@@ -22,6 +21,7 @@ use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use ssri::Integrity;
 
+use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 
