@@ -34,14 +34,9 @@ mock = []
 anyhow.workspace = true
 async-trait.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
-base64.workspace = true
-chrono = { workspace = true, features = ["clock", "serde", "std"] }
 config = { workspace = true, features = ["toml"] }
-derive_more = { workspace = true, features = ["as_ref", "from"] }
 futures = { workspace = true, features = ["std", "async-await"] }
-http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
-p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
@@ -50,10 +45,8 @@ serde_with = { workspace = true, features = ["base64"] }
 serde_urlencoded.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
-tower-http = { workspace = true, features = ["auth", "cors", "set-header", "trace"] }
 tracing.workspace = true
 trait-variant.workspace = true
-url = { workspace = true, features = ["serde"] }
 
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
@@ -65,22 +58,16 @@ sea-orm = { workspace = true, optional = true, features = [
 
 crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
-jwt.path = "../../lib/jwt"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils.path = "../../lib/http_utils"
 mdoc.path = "../../lib/mdoc"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance", "disclosure"] }
-sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 server_utils.path = "../server_utils"
 utils.path = "../../lib/utils"
 
 [dev-dependencies]
-assert_matches.workspace = true
-ciborium.workspace = true
-rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
+p256 = { workspace = true, features = ["ecdsa"] }
 
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
-mdoc = { path = "../../lib/mdoc", features = ["generate", "mock_example_constructors"] }
-sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
