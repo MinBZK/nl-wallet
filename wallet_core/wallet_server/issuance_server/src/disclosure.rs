@@ -4,8 +4,6 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use indexmap::IndexMap;
 
-use crypto::EcdsaKeySend;
-
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
@@ -18,7 +16,6 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::WteTracker;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::PostAuthResponseError;
@@ -100,11 +97,11 @@ pub struct IssuanceResultHandler<AF, AS, K, S, W> {
 #[async_trait]
 impl<AF, AS, K, S, W> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, W>
 where
-    AF: AttributesFetcher + Sync + 'static,
-    AS: AttributeService + Sync + 'static,
-    K: EcdsaKeySend + Sync + 'static,
-    S: SessionStore<IssuanceData> + Sync + 'static,
-    W: WteTracker + Sync + 'static,
+    AF: AttributesFetcher + Sync,
+    AS: AttributeService + Sync,
+    S: SessionStore<IssuanceData> + Sync,
+    K: Send + Sync,
+    W: Send + Sync,
 {
     async fn disclosure_result(
         &self,

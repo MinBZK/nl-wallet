@@ -474,10 +474,7 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
 
 impl<A, K, S, W> Issuer<A, K, S, W>
 where
-    A: AttributeService,
-    K: EcdsaKey,
     S: SessionStore<IssuanceData>,
-    W: WteTracker,
 {
     pub async fn new_session(&self, to_issue: IssuableDocuments) -> Result<SessionToken, SessionStoreError> {
         let token = SessionToken::new_random();
@@ -493,7 +490,15 @@ where
 
         Ok(token)
     }
+}
 
+impl<A, K, S, W> Issuer<A, K, S, W>
+where
+    A: AttributeService,
+    K: EcdsaKey,
+    S: SessionStore<IssuanceData>,
+    W: WteTracker,
+{
     pub async fn process_token_request(
         &self,
         token_request: TokenRequest,
