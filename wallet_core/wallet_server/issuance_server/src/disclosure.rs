@@ -31,8 +31,6 @@ pub enum AttributesFetcherError {
     UnknownUsecase(String),
     #[error("failed to fetch attributes to be issued: {0}")]
     AttestationsFetching(#[from] reqwest::Error),
-    #[error("failed to deserialize attributes to be issued: {0}")]
-    AttestationsDeserializing(#[from] serde_json::Error),
 }
 
 /// Represents types that can take disclosed attributes and respond with attestations to be issued.
