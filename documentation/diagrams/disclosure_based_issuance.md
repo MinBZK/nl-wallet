@@ -11,8 +11,8 @@ The issuer side of this functionality is implemented by the `issuance_server` bi
 Technically, disclosure based issuance is achieved as follows:
 
 1. At the end of the disclosure session, the `issuance_server` sends the disclosed attributes to a preconfigured HTTP endpoint, at which the issuer must run an HTTP server that must respond with the attestations to be issued. This server is called the *attestation server*.
-2. The `issuance_server` starts an OpenID4VCI session in the [Pre-Authorized Code Flow](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-pre-authorized-code-flow), puts the  Pre-Authorized Code into an [OpenID4VCI Credential Offer](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer), and URL-encodes that into the `redirect_uri` that gets sent to the wallet.
-3. Using the Credential Offer with the Pre-Authorized Code within it, the wallet performs an OpenID4VCI session with the `issuance_server`.
+2. The `issuance_server` starts an OpenID4VCI session in the [Pre-Authorized Code Flow](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-pre-authorized-code-flow), puts the Pre-Authorized Code into an [OpenID4VCI Credential Offer](https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer), and URL-encodes that into the `redirect_uri` that gets sent to the wallet.
+3. Using the Credential Offer with the Pre-Authorized Code within it, the wallet performs the OpenID4VCI session with the `issuance_server`.
 
 ## API
 
@@ -101,7 +101,7 @@ private_key_type = "software" # or "hsm", see above
 private_key = "MIG..."        # DER-encoded private key, in case of "software"
 certificate = "MIJ..."        # Issuer certificate
 
-# Files containing SD-JWT Type Metadata documents for each attestations that will be issued
+# Files containing SD-JWT Type Metadata documents for each attestation that will be issued
 metadata = ["com_example_degree_metadata.json"]
 ```
 
