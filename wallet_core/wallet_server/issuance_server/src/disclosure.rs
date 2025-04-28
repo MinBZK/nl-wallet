@@ -18,7 +18,6 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStore;
-use openid4vc::server_state::SessionStoreError;
 use openid4vc::server_state::WteTracker;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
@@ -141,7 +140,7 @@ where
                 credential_issuer: self.credential_issuer.clone(),
                 credential_configuration_ids,
                 grants: Some(Grants::PreAuthorizedCode {
-                    pre_authorized_code: GrantPreAuthorizedCode::new(token.as_ref().clone().into()),
+                    pre_authorized_code: GrantPreAuthorizedCode::new(token.into()),
                 }),
             },
         };
