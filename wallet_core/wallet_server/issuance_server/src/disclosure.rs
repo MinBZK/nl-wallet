@@ -213,8 +213,7 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
 
-    use crate::disclosure::mock::MockAttributesFetcher;
-
+    use super::mock::MockAttributesFetcher;
     use super::AttributesFetcher;
     use super::IssuanceResultHandler;
 
