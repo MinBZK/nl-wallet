@@ -5,7 +5,6 @@ use anyhow::Result;
 use axum::Router;
 use futures::future::try_join_all;
 use tokio::net::TcpListener;
-use tracing::info;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
@@ -23,8 +22,7 @@ use openid4vc_server::verifier::RequestUriBehaviour;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::create_wallet_listener;
-use server_utils::server::decorate_router;
-use utils::built_info::version_string;
+use server_utils::server::listen;
 
 use crate::disclosure::AttributesFetcher;
 use crate::disclosure::IssuanceResultHandler;
@@ -128,17 +126,4 @@ where
         log_requests,
     )
     .await
-}
-
-async fn listen(wallet_listener: TcpListener, mut wallet_router: Router, log_requests: bool) -> Result<()> {
-    wallet_router = decorate_router(wallet_router, log_requests);
-
-    info!("{}", version_string());
-    info!("listening for wallet on {}", wallet_listener.local_addr()?);
-
-    axum::serve(wallet_listener, wallet_router)
-        .await
-        .expect("wallet server should be started");
-
-    Ok(())
 }
