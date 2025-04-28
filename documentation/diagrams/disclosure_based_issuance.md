@@ -1,7 +1,9 @@
 # Disclosure based issuance
 
 Disclosure based issuance allows an attestation issuer to issue attestations to a wallet based on the contents of attributes disclosed by that same wallet.
-The wallet first presents a disclosure screen to the user, which upon user consent is followed immediately by an issuance screen presenting the new attestations.
+
+The flow starts when the user scans a QR code, or taps on a UL, that starts the disclosure based issuance flow.
+The wallet then presents a disclosure screen to the user, which upon user consent is followed immediately by an issuance screen presenting the new attestations.
 In between the two screens, the issuer receives the disclosed attributes, and can use those to determine the contents of the attestation(s) to be issued.
 
 The issuer side of this functionality is implemented by the `issuance_server` binary under `wallet_core/wallet_server`.
