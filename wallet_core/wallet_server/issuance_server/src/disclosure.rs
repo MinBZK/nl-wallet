@@ -36,11 +36,13 @@ pub enum AttributesFetcherError {
 /// Represents types that can take disclosed attributes and respond with attestations to be issued.
 #[trait_variant::make(Send)]
 pub trait AttributesFetcher {
+    type Error: std::error::Error + Send + Sync + 'static;
+
     async fn attributes(
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<Vec<IssuableDocument>, AttributesFetcherError>;
+    ) -> Result<Vec<IssuableDocument>, Self::Error>;
 }
 
 pub struct HttpAttributesFetcher {
@@ -48,11 +50,13 @@ pub struct HttpAttributesFetcher {
 }
 
 impl AttributesFetcher for HttpAttributesFetcher {
+    type Error = AttributesFetcherError;
+
     async fn attributes(
         &self,
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<Vec<IssuableDocument>, AttributesFetcherError> {
+    ) -> Result<Vec<IssuableDocument>, Self::Error> {
         let usecase_url = self
             .urls
             .get(usecase_id)
@@ -152,22 +156,25 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use std::convert::Infallible;
+
     use indexmap::IndexMap;
 
     use mdoc::verifier::DocumentDisclosedAttributes;
     use openid4vc::issuable_document::IssuableDocument;
 
     use super::AttributesFetcher;
-    use super::AttributesFetcherError;
 
     pub struct MockAttributesFetcher(pub Vec<IssuableDocument>);
 
     impl AttributesFetcher for MockAttributesFetcher {
+        type Error = Infallible;
+
         async fn attributes(
             &self,
             _usecase_id: &str,
             _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-        ) -> Result<Vec<IssuableDocument>, AttributesFetcherError> {
+        ) -> Result<Vec<IssuableDocument>, Self::Error> {
             Ok(self.0.clone())
         }
     }
@@ -176,6 +183,7 @@ pub mod mock {
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
+    use std::convert::Infallible;
     use std::sync::Arc;
 
     use indexmap::IndexMap;
@@ -205,7 +213,6 @@ mod tests {
     use crate::disclosure::mock::MockAttributesFetcher;
 
     use super::AttributesFetcher;
-    use super::AttributesFetcherError;
     use super::IssuanceResultHandler;
 
     pub struct TestAttributesFetcher;
@@ -228,11 +235,13 @@ mod tests {
     }
 
     impl AttributesFetcher for TestAttributesFetcher {
+        type Error = Infallible;
+
         async fn attributes(
             &self,
             _usecase_id: &str,
             disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-        ) -> Result<Vec<IssuableDocument>, AttributesFetcherError> {
+        ) -> Result<Vec<IssuableDocument>, Self::Error> {
             // Insert the received attribute type into the issuable document to demonstrate that the
             // issued attributes can depend on the disclosed attributes.
             let (attestation_type, _) = disclosed.first().unwrap();
