@@ -1294,20 +1294,20 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__accept_disclosure = _wire__crate__api__full__accept_disclosurePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
-  void wire__crate__api__full__accept_pid_issuance(
+  void wire__crate__api__full__accept_issuance(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
   ) {
-    return _wire__crate__api__full__accept_pid_issuance(
+    return _wire__crate__api__full__accept_issuance(
       port_,
       pin,
     );
   }
 
-  late final _wire__crate__api__full__accept_pid_issuancePtr =
+  late final _wire__crate__api__full__accept_issuancePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
-          'frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance');
-  late final _wire__crate__api__full__accept_pid_issuance = _wire__crate__api__full__accept_pid_issuancePtr
+          'frbgen_wallet_core_wire__crate__api__full__accept_issuance');
+  late final _wire__crate__api__full__accept_issuance = _wire__crate__api__full__accept_issuancePtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__cancel_disclosure(
@@ -1323,19 +1323,18 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__cancel_disclosure =
       _wire__crate__api__full__cancel_disclosurePtr.asFunction<void Function(int)>();
 
-  void wire__crate__api__full__cancel_pid_issuance(
+  void wire__crate__api__full__cancel_issuance(
     int port_,
   ) {
-    return _wire__crate__api__full__cancel_pid_issuance(
+    return _wire__crate__api__full__cancel_issuance(
       port_,
     );
   }
 
-  late final _wire__crate__api__full__cancel_pid_issuancePtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-          'frbgen_wallet_core_wire__crate__api__full__cancel_pid_issuance');
-  late final _wire__crate__api__full__cancel_pid_issuance =
-      _wire__crate__api__full__cancel_pid_issuancePtr.asFunction<void Function(int)>();
+  late final _wire__crate__api__full__cancel_issuancePtr = _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+      'frbgen_wallet_core_wire__crate__api__full__cancel_issuance');
+  late final _wire__crate__api__full__cancel_issuance =
+      _wire__crate__api__full__cancel_issuancePtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__change_pin(
     int port_,
@@ -1560,19 +1559,19 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__has_active_disclosure_session =
       _wire__crate__api__full__has_active_disclosure_sessionPtr.asFunction<void Function(int)>();
 
-  void wire__crate__api__full__has_active_pid_issuance_session(
+  void wire__crate__api__full__has_active_issuance_session(
     int port_,
   ) {
-    return _wire__crate__api__full__has_active_pid_issuance_session(
+    return _wire__crate__api__full__has_active_issuance_session(
       port_,
     );
   }
 
-  late final _wire__crate__api__full__has_active_pid_issuance_sessionPtr =
+  late final _wire__crate__api__full__has_active_issuance_sessionPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
-          'frbgen_wallet_core_wire__crate__api__full__has_active_pid_issuance_session');
-  late final _wire__crate__api__full__has_active_pid_issuance_session =
-      _wire__crate__api__full__has_active_pid_issuance_sessionPtr.asFunction<void Function(int)>();
+          'frbgen_wallet_core_wire__crate__api__full__has_active_issuance_session');
+  late final _wire__crate__api__full__has_active_issuance_session =
+      _wire__crate__api__full__has_active_issuance_sessionPtr.asFunction<void Function(int)>();
 
   void wire__crate__api__full__has_registration(
     int port_,

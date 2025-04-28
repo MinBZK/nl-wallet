@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.9.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -498773829;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1861382066;
 
 // Section: executor
 
@@ -69,13 +69,13 @@ fn wire__crate__api__full__accept_disclosure_impl(
         },
     )
 }
-fn wire__crate__api__full__accept_pid_issuance_impl(
+fn wire__crate__api__full__accept_issuance_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     pin: impl CstDecode<String>,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "accept_pid_issuance",
+            debug_name: "accept_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
@@ -84,7 +84,7 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::accept_pid_issuance(api_pin).await?;
+                        let output_ok = crate::api::full::accept_issuance(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -113,10 +113,10 @@ fn wire__crate__api__full__cancel_disclosure_impl(port_: flutter_rust_bridge::fo
         },
     )
 }
-fn wire__crate__api__full__cancel_pid_issuance_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+fn wire__crate__api__full__cancel_issuance_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "cancel_pid_issuance",
+            debug_name: "cancel_issuance",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
@@ -124,7 +124,7 @@ fn wire__crate__api__full__cancel_pid_issuance_impl(port_: flutter_rust_bridge::
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::cancel_pid_issuance().await?;
+                        let output_ok = crate::api::full::cancel_issuance().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -468,12 +468,10 @@ fn wire__crate__api__full__has_active_disclosure_session_impl(port_: flutter_rus
         },
     )
 }
-fn wire__crate__api__full__has_active_pid_issuance_session_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-) {
+fn wire__crate__api__full__has_active_issuance_session_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "has_active_pid_issuance_session",
+            debug_name: "has_active_issuance_session",
             port: Some(port_),
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
@@ -481,7 +479,7 @@ fn wire__crate__api__full__has_active_pid_issuance_session_impl(
             move |context| async move {
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
-                        let output_ok = crate::api::full::has_active_pid_issuance_session().await?;
+                        let output_ok = crate::api::full::has_active_issuance_session().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -4012,11 +4010,11 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_pid_issuance(
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__accept_issuance(
         port_: i64,
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
-        wire__crate__api__full__accept_pid_issuance_impl(port_, pin)
+        wire__crate__api__full__accept_issuance_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]
@@ -4025,8 +4023,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_pid_issuance(port_: i64) {
-        wire__crate__api__full__cancel_pid_issuance_impl(port_)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_issuance(port_: i64) {
+        wire__crate__api__full__cancel_issuance_impl(port_)
     }
 
     #[unsafe(no_mangle)]
@@ -4124,8 +4122,8 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__has_active_pid_issuance_session(port_: i64) {
-        wire__crate__api__full__has_active_pid_issuance_session_impl(port_)
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__has_active_issuance_session(port_: i64) {
+        wire__crate__api__full__has_active_issuance_session_impl(port_)
     }
 
     #[unsafe(no_mangle)]
