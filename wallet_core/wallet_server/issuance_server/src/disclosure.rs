@@ -98,14 +98,6 @@ pub struct IssuanceResultHandler<AF, AS, K, S, W> {
     pub credential_issuer: BaseUrl,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum IssuanceResultHandlerError {
-    #[error("failed to fetch attributes: {0}")]
-    FetchingAttributes(#[from] AttributesFetcherError),
-    #[error("failed to write issuance session: {0}")]
-    WriteIssuanceSession(#[from] SessionStoreError),
-}
-
 #[async_trait]
 impl<AF, AS, K, S, W> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, W>
 where
