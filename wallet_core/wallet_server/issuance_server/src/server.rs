@@ -106,7 +106,7 @@ where
 
     let disclosure_router = VerifierFactory::new(
         issuer_settings.server_settings.public_url.join_base_url("disclosure"),
-        settings.universal_link_base_url.clone(),
+        settings.universal_link_base_url,
         use_cases,
         None,
         issuer_settings
