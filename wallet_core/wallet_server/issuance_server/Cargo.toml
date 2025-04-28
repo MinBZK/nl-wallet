@@ -25,10 +25,8 @@ default = ["postgres"]
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres", "dep:sea-orm"]
-# Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["postgres", "allow_insecure_url", "openid4vc/test", "tokio/sync"]
 # Enable integration tests
-integration_test = ["allow_insecure_url", "server_utils/integration_test"]
+integration_test = []
 # Enable mock attributes fetcher
 mock = []
 
