@@ -302,6 +302,16 @@ pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
 }
 
 #[flutter_api_error]
+pub async fn continue_disclosure_based_issuance(pin: String) -> anyhow::Result<Vec<Attestation>> {
+    let mut wallet = wallet().write().await;
+
+    let attestations = wallet.continue_disclosure_based_issuance(pin).await?;
+    let attestations = attestations.into_iter().map(Attestation::from).collect();
+
+    Ok(attestations)
+}
+
+#[flutter_api_error]
 pub async fn is_biometric_unlock_enabled() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 

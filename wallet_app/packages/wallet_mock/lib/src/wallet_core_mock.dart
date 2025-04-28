@@ -261,6 +261,10 @@ class WalletCoreMock implements WalletCoreApi {
   Future<bool> crateApiFullHasActivePidIssuanceSession({hint}) async => false;
 
   @override
+  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin, hint}) async =>
+      kPidAttestations;
+
+  @override
   Future<bool> crateApiFullIsBiometricUnlockEnabled({hint}) async => _isBiometricsEnabled;
 
   @override

@@ -73,7 +73,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.9.0';
 
   @override
-  int get rustContentHash => 1458509282;
+  int get rustContentHash => -498773829;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -106,6 +106,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<void> crateApiFullClearVersionStateStream();
 
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
+
+  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin});
 
   Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri});
 
@@ -421,6 +423,28 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullContinueChangePinConstMeta => const TaskConstMeta(
         debugName: "continue_change_pin",
+        argNames: ["pin"],
+      );
+
+  @override
+  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__continue_disclosure_based_issuance(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_list_attestation,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullContinueDisclosureBasedIssuanceConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiFullContinueDisclosureBasedIssuanceConstMeta => const TaskConstMeta(
+        debugName: "continue_disclosure_based_issuance",
         argNames: ["pin"],
       );
 

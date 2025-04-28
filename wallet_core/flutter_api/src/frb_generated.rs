@@ -37,7 +37,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.9.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1458509282;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -498773829;
 
 // Section: executor
 
@@ -309,6 +309,30 @@ fn wire__crate__api__full__continue_change_pin_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::continue_change_pin(&api_pin).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__continue_disclosure_based_issuance_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    pin: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "continue_disclosure_based_issuance",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::continue_disclosure_based_issuance(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -940,6 +964,7 @@ impl CstDecode<crate::models::uri::IdentifyUriResult> for i32 {
         match self {
             0 => crate::models::uri::IdentifyUriResult::PidIssuance,
             1 => crate::models::uri::IdentifyUriResult::Disclosure,
+            2 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", self),
         }
     }
@@ -1284,6 +1309,7 @@ impl SseDecode for crate::models::uri::IdentifyUriResult {
         return match inner {
             0 => crate::models::uri::IdentifyUriResult::PidIssuance,
             1 => crate::models::uri::IdentifyUriResult::Disclosure,
+            2 => crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance,
             _ => unreachable!("Invalid variant for IdentifyUriResult: {}", inner),
         };
     }
@@ -2070,6 +2096,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::uri::IdentifyUriResult {
         match self {
             Self::PidIssuance => 0.into_dart(),
             Self::Disclosure => 1.into_dart(),
+            Self::DisclosureBasedIssuance => 2.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -2693,6 +2720,7 @@ impl SseEncode for crate::models::uri::IdentifyUriResult {
             match self {
                 crate::models::uri::IdentifyUriResult::PidIssuance => 0,
                 crate::models::uri::IdentifyUriResult::Disclosure => 1,
+                crate::models::uri::IdentifyUriResult::DisclosureBasedIssuance => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -4049,6 +4077,14 @@ mod io {
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__continue_change_pin_impl(port_, pin)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__continue_disclosure_based_issuance_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]

@@ -1457,6 +1457,23 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__continue_change_pin = _wire__crate__api__full__continue_change_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
+  void wire__crate__api__full__continue_disclosure_based_issuance(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
+  ) {
+    return _wire__crate__api__full__continue_disclosure_based_issuance(
+      port_,
+      pin,
+    );
+  }
+
+  late final _wire__crate__api__full__continue_disclosure_based_issuancePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>>(
+          'frbgen_wallet_core_wire__crate__api__full__continue_disclosure_based_issuance');
+  late final _wire__crate__api__full__continue_disclosure_based_issuance =
+      _wire__crate__api__full__continue_disclosure_based_issuancePtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
   void wire__crate__api__full__continue_pid_issuance(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> uri,
