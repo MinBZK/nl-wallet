@@ -20,6 +20,7 @@ use super::Wallet;
 pub enum UriType {
     PidIssuance(Url),
     Disclosure(Url),
+    DisclosureBasedIssuance(Url),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -53,14 +54,17 @@ where
             return Ok(UriType::PidIssuance(uri));
         }
 
+        if uri.as_str().starts_with(
+            urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
+                .as_ref()
+                .as_str(),
+        ) {
+            return Ok(UriType::DisclosureBasedIssuance(uri));
+        }
+
         if uri
             .as_str()
             .starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
-            || uri.as_str().starts_with(
-                urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
-                    .as_ref()
-                    .as_str(),
-            )
         {
             return Ok(UriType::Disclosure(uri));
         }
@@ -89,11 +93,13 @@ mod tests {
         let example_uri = "https://example.com";
 
         let disclosure_uri_base = urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL);
+        let disclosure_based_issuance_uri_base = urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
 
         let digid_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
         let digid_uri = digid_uri.as_ref().as_str();
 
         let disclosure_uri = disclosure_uri_base.join("abcd");
+        let disclosure_based_issuance_uri = disclosure_based_issuance_uri_base.join("abcd");
 
         // The example URI should not be recognised.
         assert_matches!(
@@ -125,6 +131,12 @@ mod tests {
         assert_matches!(
             wallet.identify_uri(disclosure_uri.as_str()).unwrap(),
             UriType::Disclosure(_)
+        );
+
+        // The disclosure based issuance URI should be recognised.
+        assert_matches!(
+            wallet.identify_uri(disclosure_based_issuance_uri.as_str()).unwrap(),
+            UriType::DisclosureBasedIssuance(_)
         );
     }
 }
