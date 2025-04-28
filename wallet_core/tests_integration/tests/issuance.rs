@@ -103,13 +103,13 @@ async fn test_disclosure_based_issuance_ok_http_attributes_fetcher() {
     let (settings, _) = issuance_server_settings();
 
     let url = start_attestation_server(vec![mock_issuable_document()]).await;
-    let attributes_fetcher = HttpAttributesFetcher {
-        urls: settings
+    let attributes_fetcher = HttpAttributesFetcher::new(
+        settings
             .disclosure_settings
             .keys()
             .map(|id| (id.to_string(), url.clone()))
             .collect(),
-    };
+    );
 
     test_disclosure_based_issuance_ok(settings, attributes_fetcher).await
 }

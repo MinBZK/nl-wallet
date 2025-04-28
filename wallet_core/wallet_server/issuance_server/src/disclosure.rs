@@ -46,7 +46,19 @@ pub trait AttributesFetcher {
 }
 
 pub struct HttpAttributesFetcher {
-    pub urls: HashMap<String, BaseUrl>,
+    urls: HashMap<String, BaseUrl>,
+    http_client: reqwest::Client,
+}
+
+impl HttpAttributesFetcher {
+    pub fn new(urls: HashMap<String, BaseUrl>) -> Self {
+        Self {
+            urls,
+            http_client: default_reqwest_client_builder()
+                .build()
+                .expect("failed to construct reqwest instance"),
+        }
+    }
 }
 
 impl AttributesFetcher for HttpAttributesFetcher {
@@ -64,9 +76,8 @@ impl AttributesFetcher for HttpAttributesFetcher {
             .as_ref()
             .clone();
 
-        let to_issue = default_reqwest_client_builder()
-            .build()
-            .expect("failed to construct reqwest instance")
+        let to_issue = self
+            .http_client
             .post(usecase_url)
             .json(disclosed)
             .send()
