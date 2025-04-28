@@ -35,10 +35,11 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
-use crate::wallet::attestations::AttestationsCallback;
-use crate::wallet::disclosure::WalletDisclosureSession;
-use crate::wallet::issuance::WalletIssuanceSession;
 use crate::wte::WpWteIssuanceClient;
+
+use self::attestations::AttestationsCallback;
+use self::disclosure::WalletDisclosureSession;
+use self::issuance::WalletIssuanceSession;
 
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
