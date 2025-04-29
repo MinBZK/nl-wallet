@@ -414,7 +414,8 @@ where
         APC: AccountProviderClient,
         WIC: Default,
     {
-        self.perform_disclosure(pin, RedirectUriPurpose::Browser).await
+        self.perform_disclosure(pin, RedirectUriPurpose::Browser, self.config_repository.get().as_ref())
+            .await
     }
 
     #[instrument(skip_all)]
@@ -422,6 +423,7 @@ where
         &mut self,
         pin: String,
         redirect_uri_purpose: RedirectUriPurpose,
+        config: &WalletConfiguration,
     ) -> Result<Option<Url>, DisclosureError>
     where
         S: Storage,
@@ -430,11 +432,10 @@ where
         WIC: Default,
     {
         info!("Accepting disclosure");
-
-        let config = &self.config_repository.get().update_policy_server;
-
         info!("Fetching update policy");
-        self.update_policy_repository.fetch(&config.http_config).await?;
+        self.update_policy_repository
+            .fetch(&config.update_policy_server.http_config)
+            .await?;
 
         info!("Checking if blocked");
         if self.is_blocked() {
@@ -500,8 +501,6 @@ where
         }
 
         // Prepare the `RemoteEcdsaKeyFactory` for signing using the provided PIN.
-        let config = self.config_repository.get();
-
         let instruction_result_public_key = config.account_server.instruction_result_public_key.as_inner().into();
 
         let remote_instruction = self

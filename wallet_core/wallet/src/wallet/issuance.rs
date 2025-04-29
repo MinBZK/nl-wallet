@@ -7,6 +7,7 @@ use http::HeaderMap;
 use http::HeaderValue;
 use itertools::Itertools;
 use p256::ecdsa::signature;
+use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use tracing::instrument;
 use url::Url;
@@ -291,9 +292,12 @@ where
             .await
             .map_err(IssuanceError::DigidSessionFinish)?;
 
+        let config = self.config_repository.get();
+
         self.issuance_fetch_previews(
             token_request,
-            self.config_repository.get().pid_issuance.pid_issuer_url.clone(),
+            config.pid_issuance.pid_issuer_url.clone(),
+            &config.mdoc_trust_anchors(),
             true,
         )
         .await
@@ -304,6 +308,7 @@ where
         &mut self,
         token_request: TokenRequest,
         issuer_url: BaseUrl,
+        mdoc_trust_anchors: &Vec<TrustAnchor<'_>>,
         is_pid: bool,
     ) -> Result<Vec<Attestation>, IssuanceError> {
         let http_client = default_reqwest_client_builder()
@@ -318,7 +323,7 @@ where
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
             issuer_url,
             token_request,
-            &self.config_repository.get().mdoc_trust_anchors(),
+            mdoc_trust_anchors,
         )
         .await?;
 

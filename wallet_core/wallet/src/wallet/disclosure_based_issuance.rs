@@ -76,7 +76,12 @@ where
         &mut self,
         pin: String,
     ) -> Result<Vec<Attestation>, DisclosureBasedIssuanceError> {
-        let redirect_uri = match self.perform_disclosure(pin, RedirectUriPurpose::Issuance).await {
+        let config = self.config_repository.get();
+
+        let redirect_uri = match self
+            .perform_disclosure(pin, RedirectUriPurpose::Issuance, config.as_ref())
+            .await
+        {
             Ok(Some(redirect_uri)) if redirect_uri.scheme() == "openid-credential-offer" => redirect_uri,
 
             Ok(Some(redirect_uri)) => Err(DisclosureBasedIssuanceError::UnexpectedScheme(
@@ -115,7 +120,12 @@ where
         };
 
         let previews = self
-            .issuance_fetch_previews(token_request, credential_offer.credential_issuer, false)
+            .issuance_fetch_previews(
+                token_request,
+                credential_offer.credential_issuer,
+                &config.mdoc_trust_anchors(),
+                false,
+            )
             .await?;
 
         Ok(previews)
