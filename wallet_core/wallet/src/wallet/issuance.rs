@@ -24,7 +24,7 @@ use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::credential::MdocCopies;
 use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpVcMessageClient;
-use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
@@ -126,12 +126,12 @@ pub enum IssuanceError {
 }
 
 #[derive(Debug, Clone)]
-pub struct WalletIssuanceSession<IS> {
+pub struct IssuanceSession<IS> {
     pub is_pid: bool,
     pub protocol_state: IS,
 }
 
-impl<IS> WalletIssuanceSession<IS> {
+impl<IS> IssuanceSession<IS> {
     pub fn new(is_pid: bool, protocol_state: IS) -> Self {
         Self { is_pid, protocol_state }
     }
@@ -143,7 +143,7 @@ where
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
     DS: DigidSession,
-    IS: IssuanceSession,
+    IS: Openid4vcIssuanceSession,
     S: Storage,
     APC: AccountProviderClient,
 {
@@ -348,8 +348,7 @@ where
             })
             .collect::<Result<Vec<_>, IssuanceError>>()?;
 
-        self.issuance_session
-            .replace(WalletIssuanceSession::new(is_pid, issuer));
+        self.issuance_session.replace(IssuanceSession::new(is_pid, issuer));
 
         Ok(attestations)
     }
@@ -626,7 +625,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup a mock OpenID4VCI session.
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, MockIssuanceSession::default()));
+        wallet.issuance_session = Some(IssuanceSession::new(true, MockIssuanceSession::default()));
 
         // Creating a DigiD authentication URL on a `Wallet` that has
         // an active OpenID4VCI session should return an error.
@@ -684,7 +683,7 @@ mod tests {
             client.expect_reject().return_once(|| Ok(()));
             client
         };
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, pid_issuer));
+        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
 
         // Cancelling PID issuance should not fail.
         wallet.cancel_issuance().await.expect("Could not cancel PID issuance");
@@ -881,7 +880,7 @@ mod tests {
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
             client
         };
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, pid_issuer));
+        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
 
         // Canceling PID issuance on a wallet should forward this error.
         let error = wallet
@@ -909,7 +908,7 @@ mod tests {
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
         let pid_issuer = mock_issuance_session(mdoc);
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, pid_issuer));
+        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
 
         // Accept the PID issuance with the PIN.
         wallet
@@ -967,7 +966,7 @@ mod tests {
         // a single valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
         let pid_issuer = mock_issuance_session(mdoc);
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, pid_issuer));
+        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
 
         // Accept the PID issuance with the PIN.
         let error = wallet
@@ -1050,7 +1049,7 @@ mod tests {
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
             client
         };
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, pid_issuer));
+        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
 
         // Accepting PID issuance should result in an error.
         let error = wallet
@@ -1129,7 +1128,7 @@ mod tests {
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
             client
         };
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, pid_issuer));
+        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
 
         // Accepting PID issuance should result in an error.
         let error = wallet
@@ -1151,7 +1150,7 @@ mod tests {
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let mdoc = test::create_example_pid_mdoc();
         let pid_issuer = mock_issuance_session(mdoc);
-        wallet.issuance_session = Some(WalletIssuanceSession::new(true, pid_issuer));
+        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
 
         // Have the mdoc storage return an error on query.
         wallet.storage.write().await.has_query_error = true;

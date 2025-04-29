@@ -162,12 +162,12 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone)]
-pub struct WalletDisclosureSession<MDS> {
+pub struct DisclosureSession<MDS> {
     redirect_uri_purpose: RedirectUriPurpose,
     protocol_state: MDS,
 }
 
-impl<MDS> WalletDisclosureSession<MDS> {
+impl<MDS> DisclosureSession<MDS> {
     pub fn new(redirect_uri_purpose: RedirectUriPurpose, protocol_state: MDS) -> Self {
         Self {
             redirect_uri_purpose,
@@ -177,7 +177,7 @@ impl<MDS> WalletDisclosureSession<MDS> {
 }
 
 // Normal sessions resulting in a redirect_uri will be the most common, so we provide a From impl for convenience.
-impl<MDS> From<MDS> for WalletDisclosureSession<MDS> {
+impl<MDS> From<MDS> for DisclosureSession<MDS> {
     fn from(protocol_state: MDS) -> Self {
         Self {
             redirect_uri_purpose: RedirectUriPurpose::Browser,
@@ -276,7 +276,7 @@ where
                 // Store the session so that it will only be terminated on user interaction.
                 // This prevents gleaning of missing attributes by a verifier.
                 self.disclosure_session
-                    .replace(WalletDisclosureSession::new(purpose, session));
+                    .replace(DisclosureSession::new(purpose, session));
 
                 return Err(DisclosureError::AttributesNotAvailable {
                     reader_registration,
@@ -324,7 +324,7 @@ where
 
         // Retain the session as `Wallet` state.
         self.disclosure_session
-            .replace(WalletDisclosureSession::new(purpose, session));
+            .replace(DisclosureSession::new(purpose, session));
 
         Ok(proposal)
     }
@@ -1712,10 +1712,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let disclosure_session = MockMdocDisclosureSession { ..Default::default() };
-        wallet.disclosure_session = Some(WalletDisclosureSession::new(
-            RedirectUriPurpose::Issuance,
-            disclosure_session,
-        ));
+        wallet.disclosure_session = Some(DisclosureSession::new(RedirectUriPurpose::Issuance, disclosure_session));
 
         let error = wallet
             .accept_disclosure(PIN.to_owned())

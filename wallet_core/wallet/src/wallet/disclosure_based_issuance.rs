@@ -8,7 +8,7 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
-use openid4vc::issuance_session::IssuanceSession;
+use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenRequestGrantType;
 use openid4vc::PostAuthResponseErrorCode;
@@ -66,7 +66,7 @@ where
     AKH: AttestedKeyHolder,
     APC: AccountProviderClient,
     DS: DigidSession,
-    IS: IssuanceSession,
+    IS: Openid4vcIssuanceSession,
     MDS: MdocDisclosureSession<Self>,
     WIC: Default,
 {
@@ -145,8 +145,8 @@ mod tests {
     use crate::issuance;
     use crate::mock::MockMdocDisclosureProposal;
     use crate::mock::MockMdocDisclosureSession;
+    use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
-    use crate::wallet::disclosure::WalletDisclosureSession;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::WalletWithMocks;
     use crate::wallet::test::ISSUER_KEY;
@@ -174,7 +174,7 @@ mod tests {
         let credential_offer = ("openid-credential-offer://?".to_string() + &credential_offer)
             .parse()
             .unwrap();
-        wallet.disclosure_session = Some(WalletDisclosureSession::new(
+        wallet.disclosure_session = Some(DisclosureSession::new(
             RedirectUriPurpose::Issuance,
             MockMdocDisclosureSession {
                 session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
@@ -227,7 +227,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
-        wallet.disclosure_session = Some(WalletDisclosureSession::new(
+        wallet.disclosure_session = Some(DisclosureSession::new(
             RedirectUriPurpose::Issuance,
             MockMdocDisclosureSession {
                 session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
@@ -258,10 +258,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let disclosure_session = MockMdocDisclosureSession { ..Default::default() };
-        wallet.disclosure_session = Some(WalletDisclosureSession::new(
-            RedirectUriPurpose::Browser,
-            disclosure_session,
-        ));
+        wallet.disclosure_session = Some(DisclosureSession::new(RedirectUriPurpose::Browser, disclosure_session));
 
         let error = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())

@@ -21,7 +21,7 @@ use cfg_if::cfg_if;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureSession as Openid4vcDisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
@@ -38,8 +38,8 @@ use crate::update_policy::UpdatePolicyRepository;
 use crate::wte::WpWteIssuanceClient;
 
 use self::attestations::AttestationsCallback;
-use self::disclosure::WalletDisclosureSession;
-use self::issuance::WalletIssuanceSession;
+use self::disclosure::DisclosureSession;
+use self::issuance::IssuanceSession;
 
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
@@ -92,15 +92,15 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 pub struct Wallet<
-    CR = WalletConfigurationRepository,                 // Repository<WalletConfiguration>
-    UR = UpdatePolicyRepository,                        // Repository<VersionState>
-    S = DatabaseStorage<HardwareEncryptionKey>,         // Storage
-    AKH = KeyHolderType,                                // AttestedKeyHolder
-    APC = HttpAccountProviderClient,                    // AccountProviderClient
-    DS = HttpDigidSession,                              // DigidSession
-    IS = HttpIssuanceSession,                           // IssuanceSession
-    MDS = DisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
-    WIC = WpWteIssuanceClient,                          // WteIssuanceClient
+    CR = WalletConfigurationRepository,         // Repository<WalletConfiguration>
+    UR = UpdatePolicyRepository,                // Repository<VersionState>
+    S = DatabaseStorage<HardwareEncryptionKey>, // Storage
+    AKH = KeyHolderType,                        // AttestedKeyHolder
+    APC = HttpAccountProviderClient,            // AccountProviderClient
+    DS = HttpDigidSession,                      // DigidSession
+    IS = HttpIssuanceSession,                   // IssuanceSession
+    MDS = Openid4vcDisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
+    WIC = WpWteIssuanceClient,                  // WteIssuanceClient
 > where
     AKH: AttestedKeyHolder,
 {
@@ -111,8 +111,8 @@ pub struct Wallet<
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
     digid_session: Option<DS>,
-    issuance_session: Option<WalletIssuanceSession<IS>>,
-    disclosure_session: Option<WalletDisclosureSession<MDS>>,
+    issuance_session: Option<IssuanceSession<IS>>,
+    disclosure_session: Option<DisclosureSession<MDS>>,
     wte_issuance_client: WIC,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,
