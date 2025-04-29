@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use derive_more::Constructor;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use tracing::error;
@@ -161,19 +162,10 @@ pub enum RedirectUriPurpose {
     Issuance,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Constructor)]
 pub struct DisclosureSession<MDS> {
     redirect_uri_purpose: RedirectUriPurpose,
     protocol_state: MDS,
-}
-
-impl<MDS> DisclosureSession<MDS> {
-    pub fn new(redirect_uri_purpose: RedirectUriPurpose, protocol_state: MDS) -> Self {
-        Self {
-            redirect_uri_purpose,
-            protocol_state,
-        }
-    }
 }
 
 // Normal sessions resulting in a redirect_uri will be the most common, so we provide a From impl for convenience.
