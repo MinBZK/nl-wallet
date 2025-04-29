@@ -304,7 +304,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn issuance_fetch_previews(
+    pub(super) async fn issuance_fetch_previews(
         &mut self,
         token_request: TokenRequest,
         issuer_url: BaseUrl,

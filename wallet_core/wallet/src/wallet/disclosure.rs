@@ -419,7 +419,7 @@ where
     }
 
     #[instrument(skip_all)]
-    pub(crate) async fn perform_disclosure(
+    pub(super) async fn perform_disclosure(
         &mut self,
         pin: String,
         redirect_uri_purpose: RedirectUriPurpose,
