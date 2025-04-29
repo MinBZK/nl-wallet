@@ -113,6 +113,7 @@ mod tests {
 
     use crate::disclosure::MockMdocDisclosureSession;
     use crate::storage::StorageState;
+    use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::issuance::IssuanceSession;
 
     use super::super::test;
@@ -168,7 +169,7 @@ mod tests {
         // Create the impossible Wallet that is doing everything at once and reset it.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
         wallet.issuance_session = Some(IssuanceSession::new(true, MockIssuanceSession::default()));
-        wallet.disclosure_session = Some(MockMdocDisclosureSession::default().into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
 
         wallet
             .reset()

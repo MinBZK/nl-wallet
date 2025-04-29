@@ -168,16 +168,6 @@ pub struct DisclosureSession<MDS> {
     protocol_state: MDS,
 }
 
-// Normal sessions resulting in a redirect_uri will be the most common, so we provide a From impl for convenience.
-impl<MDS> From<MDS> for DisclosureSession<MDS> {
-    fn from(protocol_state: MDS) -> Self {
-        Self {
-            redirect_uri_purpose: RedirectUriPurpose::Browser,
-            protocol_state,
-        }
-    }
-}
-
 impl RedirectUriPurpose {
     fn from_uri(uri: &Url) -> Result<(Self, Url), DisclosureError> {
         let disclosure_base_uri = urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
@@ -676,6 +666,15 @@ mod tests {
         LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
+    impl<MDS> DisclosureSession<MDS> {
+        pub(crate) fn new_browser(protocol_state: MDS) -> Self {
+            DisclosureSession {
+                redirect_uri_purpose: RedirectUriPurpose::Browser,
+                protocol_state,
+            }
+        }
+    }
+
     fn setup_proposed_attributes(attrs: &[(&str, DataElementValue)]) -> ProposedAttributes {
         let metadata_props = attrs
             .iter()
@@ -803,7 +802,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Start an active disclosure session.
-        wallet.disclosure_session = Some(MockMdocDisclosureSession::default().into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
 
         // Starting disclosure on a wallet with an active disclosure should result in an error.
         let error = wallet
@@ -1127,7 +1126,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        wallet.disclosure_session = Some(MockMdocDisclosureSession::default().into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
 
         wallet.lock();
 
@@ -1205,7 +1204,7 @@ mod tests {
 
         let reader_certificate = disclosure_session.certificate.clone();
 
-        wallet.disclosure_session = Some(disclosure_session.into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
 
         // Accepting disclosure should succeed and give us the return URL.
         let accept_result = wallet
@@ -1257,7 +1256,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        wallet.disclosure_session = Some(MockMdocDisclosureSession::default().into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
 
         wallet.lock();
 
@@ -1343,7 +1342,7 @@ mod tests {
             session_state: MdocDisclosureSessionState::MissingAttributes(Default::default()),
             ..Default::default()
         };
-        wallet.disclosure_session = Some(disclosure_session.into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
 
         // Accepting disclosure on a wallet that has a disclosure session
         // with missing attributes should result in an error.
@@ -1397,7 +1396,7 @@ mod tests {
             }),
             ..Default::default()
         };
-        wallet.disclosure_session = Some(disclosure_session.into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
 
         // Accepting disclosure when the verifier responds with
         // an invalid request error should result in an error.
@@ -1534,7 +1533,7 @@ mod tests {
             }),
             ..Default::default()
         };
-        wallet.disclosure_session = Some(disclosure_session.into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
 
         let was_terminated = Arc::clone(
             &wallet
@@ -1646,7 +1645,7 @@ mod tests {
 
         let reader_certificate = disclosure_session.certificate.clone();
 
-        wallet.disclosure_session = Some(disclosure_session.into());
+        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
 
         // Accepting disclosure when the verifier responds with an error indicating that
         // attributes were shared should result in a disclosure event being recorded.
