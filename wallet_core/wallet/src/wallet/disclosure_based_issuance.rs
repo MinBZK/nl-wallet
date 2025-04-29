@@ -153,9 +153,9 @@ mod tests {
 
     use crate::disclosure::MdocDisclosureError;
     use crate::disclosure::MdocDisclosureSessionState;
+    use crate::disclosure::MockMdocDisclosureProposal;
+    use crate::disclosure::MockMdocDisclosureSession;
     use crate::issuance;
-    use crate::mock::MockMdocDisclosureProposal;
-    use crate::mock::MockMdocDisclosureSession;
     use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
     use crate::wallet::test::WalletDeviceVendor;
