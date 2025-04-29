@@ -6,6 +6,7 @@ use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::credential::CredentialOfferContainer;
+use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
@@ -82,7 +83,7 @@ where
             .perform_disclosure(pin, RedirectUriPurpose::Issuance, config.as_ref())
             .await
         {
-            Ok(Some(redirect_uri)) if redirect_uri.scheme() == "openid-credential-offer" => redirect_uri,
+            Ok(Some(redirect_uri)) if redirect_uri.scheme() == OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME => redirect_uri,
 
             Ok(Some(redirect_uri)) => Err(DisclosureBasedIssuanceError::UnexpectedScheme(
                 redirect_uri.scheme().to_string(),

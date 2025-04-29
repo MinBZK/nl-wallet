@@ -166,6 +166,8 @@ impl CredentialRequestProof {
     }
 }
 
+pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offer";
+
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialOffer {
