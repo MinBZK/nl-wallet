@@ -268,7 +268,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        let disclosure_session = MockMdocDisclosureSession { ..Default::default() };
+        let disclosure_session = MockMdocDisclosureSession::default();
         wallet.disclosure_session = Some(DisclosureSession::new(RedirectUriPurpose::Browser, disclosure_session));
 
         let error = wallet
