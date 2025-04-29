@@ -1,6 +1,7 @@
 use std::mem;
 use std::sync::Arc;
 
+use derive_more::Constructor;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
@@ -125,16 +126,10 @@ pub enum IssuanceError {
     Certificate(#[from] CertificateError),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Constructor)]
 pub struct IssuanceSession<IS> {
     pub is_pid: bool,
     pub protocol_state: IS,
-}
-
-impl<IS> IssuanceSession<IS> {
-    pub fn new(is_pid: bool, protocol_state: IS) -> Self {
-        Self { is_pid, protocol_state }
-    }
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
