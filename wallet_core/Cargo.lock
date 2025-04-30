@@ -6401,6 +6401,7 @@ dependencies = [
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
+ "wiremock",
 ]
 
 [[package]]

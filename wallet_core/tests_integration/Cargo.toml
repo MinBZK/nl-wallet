@@ -122,6 +122,7 @@ integration_test = [
     "dep:serde_urlencoded",
     "dep:serial_test",
     "dep:tokio",
+    "dep:wiremock",
     "tokio/macros",
     "tokio/sync",
 ]
@@ -216,6 +217,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 ] }
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
+wiremock = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }
@@ -224,7 +226,7 @@ crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
 http_utils = { path = "../lib/http_utils", optional = true }
-issuance_server = { path = "../wallet_server/issuance_server", optional = true, features = ["mock"] }
+issuance_server = { path = "../wallet_server/issuance_server", optional = true }
 jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["generate", "test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }

@@ -27,8 +27,6 @@ allow_insecure_url = ["openid4vc/allow_insecure_url"]
 postgres = ["server_utils/postgres", "dep:sea-orm"]
 # Enable integration tests
 integration_test = []
-# Enable mock attributes fetcher
-mock = []
 
 [dependencies]
 anyhow.workspace = true

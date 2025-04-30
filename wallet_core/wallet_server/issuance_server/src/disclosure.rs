@@ -154,32 +154,6 @@ where
     }
 }
 
-#[cfg(any(test, feature = "mock"))]
-pub mod mock {
-    use std::convert::Infallible;
-
-    use indexmap::IndexMap;
-
-    use mdoc::verifier::DocumentDisclosedAttributes;
-    use openid4vc::issuable_document::IssuableDocument;
-
-    use super::AttributesFetcher;
-
-    pub struct MockAttributesFetcher(pub Vec<IssuableDocument>);
-
-    impl AttributesFetcher for MockAttributesFetcher {
-        type Error = Infallible;
-
-        async fn attributes(
-            &self,
-            _usecase_id: &str,
-            _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-        ) -> Result<Vec<IssuableDocument>, Self::Error> {
-            Ok(self.0.clone())
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -210,7 +184,6 @@ mod tests {
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
 
-    use super::mock::MockAttributesFetcher;
     use super::AttributesFetcher;
     use super::IssuanceResultHandler;
 
@@ -253,6 +226,20 @@ mod tests {
                 )]),
             )
             .unwrap()])
+        }
+    }
+
+    pub struct MockAttributesFetcher(pub Vec<IssuableDocument>);
+
+    impl AttributesFetcher for MockAttributesFetcher {
+        type Error = Infallible;
+
+        async fn attributes(
+            &self,
+            _usecase_id: &str,
+            _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+        ) -> Result<Vec<IssuableDocument>, Self::Error> {
+            Ok(self.0.clone())
         }
     }
 
