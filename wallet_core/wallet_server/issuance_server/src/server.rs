@@ -8,6 +8,7 @@ use tokio::net::TcpListener;
 
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::service::Pkcs11Hsm;
+use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::issuer::TrivialAttributeService;
@@ -76,7 +77,7 @@ where
                 s.key_pair.parse(hsm.clone()).await?,
                 SessionTypeReturnUrl::Both,
                 Some(s.to_disclose),
-                Some("openid-credential-offer://".parse().unwrap()),
+                Some(format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap()),
             )?,
         ))
     }))

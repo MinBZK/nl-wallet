@@ -54,7 +54,7 @@ pub enum DisclosureBasedIssuanceError {
     #[error("no Authorization Code found in Credential Offer")]
     #[category(critical)]
     MissingAuthorizationCode,
-    #[error("unexpected scheme: expected 'openid-credential-offer', found '{0}'")]
+    #[error("unexpected scheme: expected '{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}', found '{0}'")]
     #[category(critical)]
     UnexpectedScheme(String),
 }
@@ -149,6 +149,7 @@ mod tests {
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
     use openid4vc::credential::GrantPreAuthorizedCode;
+    use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::credential_formats::CredentialFormats;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpMessageClientError;
@@ -190,7 +191,7 @@ mod tests {
             },
         })
         .unwrap();
-        let credential_offer = ("openid-credential-offer://?".to_string() + &credential_offer)
+        let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer}")
             .parse()
             .unwrap();
         wallet.disclosure_session = Some(DisclosureSession::new(
