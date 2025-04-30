@@ -10,6 +10,20 @@ ephemeral_id_secret = "" # hex encoded, minimally 16 bytes (32 characters)
 
 allow_origins = ["http://localhost:3004"] # or allow_origins = "*"
 
+# The base of the Universal Link (UL) of the wallet, used in QRs/ULs
+# Production value is "https://app.example.com/deeplink/"
+universal_link_base_url = "walletdebuginteraction://wallet.edi.rijksoverheid.nl/" # default value
+
+# Whether HTTP requests/responses should be logged
+log_requests = false # default value
+
+# Emit logs in JSON format
+structured_logging = false # default value
+
+# `client_id` values that this server accepts, identifying the wallet implementation (not individual instances,
+# i.e., the `client_id` value of a wallet implementation is constant across all wallets of that implementation).
+wallet_client_ids = ["https://wallet.edi.rijksoverheid.nl"] # default value
+
 [storage]
 url = 'postgres://postgres:postgres@localhost:5432/verification_server' # or 'memory://'
 
