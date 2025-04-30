@@ -52,6 +52,7 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
 use crate::storage::WalletEvent;
+use crate::wallet::Session;
 
 use super::Wallet;
 
@@ -218,8 +219,8 @@ where
             return Err(DisclosureError::Locked);
         }
 
-        info!("Checking if there is already a disclosure session");
-        if self.disclosure_session.is_some() {
+        info!("Checking if there is already an active session");
+        if self.session.is_some() {
             return Err(DisclosureError::SessionState);
         }
 
@@ -257,8 +258,8 @@ where
 
                 // Store the session so that it will only be terminated on user interaction.
                 // This prevents gleaning of missing attributes by a verifier.
-                self.disclosure_session
-                    .replace(DisclosureSession::new(purpose, session));
+                self.session
+                    .replace(Session::Disclosure(DisclosureSession::new(purpose, session)));
 
                 return Err(DisclosureError::AttributesNotAvailable {
                     reader_registration,
@@ -305,8 +306,8 @@ where
         };
 
         // Retain the session as `Wallet` state.
-        self.disclosure_session
-            .replace(DisclosureSession::new(purpose, session));
+        self.session
+            .replace(Session::Disclosure(DisclosureSession::new(purpose, session)));
 
         Ok(proposal)
     }
@@ -356,7 +357,7 @@ where
             return Err(DisclosureError::Locked);
         }
 
-        let has_active_session = self.disclosure_session.is_some();
+        let has_active_session = matches!(self.session, Some(Session::Disclosure(..)));
 
         Ok(has_active_session)
     }
@@ -382,8 +383,13 @@ where
         }
 
         info!("Checking if a disclosure session is present");
-        let session = self.disclosure_session.take().ok_or(DisclosureError::SessionState)?;
+        if !matches!(self.session, Some(Session::Disclosure(..))) {
+            return Err(DisclosureError::SessionState);
+        }
 
+        let Session::Disclosure(session) = self.session.take().unwrap() else {
+            panic!()
+        };
         self.terminate_disclosure_session(session.protocol_state).await
     }
 
@@ -436,7 +442,9 @@ where
         }
 
         info!("Checking if a disclosure session is present");
-        let session = self.disclosure_session.as_ref().ok_or(DisclosureError::SessionState)?;
+        let Some(Session::Disclosure(session)) = &self.session else {
+            return Err(DisclosureError::SessionState);
+        };
 
         if session.redirect_uri_purpose != redirect_uri_purpose {
             return Err(DisclosureError::UnexpectedRedirectUriPurpose {
@@ -534,7 +542,9 @@ where
                     // and lock the wallet, as the user is probably not the owner of the wallet.
                     // The UI should catch this specific error and close the disclosure screens.
 
-                    let session = self.disclosure_session.take().unwrap();
+                    let Some(Session::Disclosure(session)) = self.session.take() else {
+                        panic!();
+                    };
                     if let Err(terminate_error) = self.terminate_disclosure_session(session.protocol_state).await {
                         // Log the error, but do not return it from this method.
                         error!(
@@ -557,7 +567,7 @@ where
         let reader_certificate = session.rp_certificate().clone();
         let reader_registration = session.reader_registration().clone();
 
-        self.disclosure_session.take();
+        self.session.take();
 
         // Save data for disclosure in event log.
         let event = WalletEvent::new_disclosure_success(
@@ -742,10 +752,11 @@ mod tests {
             .expect("Could not start disclosure");
 
         // Test that the `Wallet` now contains a `DisclosureSession`.
-        assert_matches!(
-            wallet.disclosure_session,
-            Some(session) if session.protocol_state.disclosure_uri_source == DisclosureUriSource::QrCode
-        );
+        assert!(matches!(
+            wallet.session,
+            Some(Session::Disclosure(session))
+                if session.protocol_state.disclosure_uri_source == DisclosureUriSource::QrCode
+        ));
 
         // Test that the returned `DisclosureProposal` contains the
         // `ReaderRegistration` we set up earlier, as well as the
@@ -779,7 +790,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::Locked);
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -794,7 +805,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::NotRegistered);
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -802,7 +813,9 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Start an active disclosure session.
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(
+            MockMdocDisclosureSession::default(),
+        )));
 
         // Starting disclosure on a wallet with an active disclosure should result in an error.
         let error = wallet
@@ -811,7 +824,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
     }
 
     #[tokio::test]
@@ -830,7 +843,7 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::DisclosureUri(_));
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -851,7 +864,7 @@ mod tests {
             error,
             DisclosureError::VpDisclosureSession(VpClientError::MissingSessionType)
         );
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -882,7 +895,7 @@ mod tests {
 
         assert_matches!(error, DisclosureError::VpDisclosureSession(_));
         assert_eq!(error.return_url(), Some(&return_url));
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -920,7 +933,7 @@ mod tests {
             } if !shared_data_with_relying_party_before &&
                 missing_attributes == vec!["com.example.pid/com.example.pid/age_over_18"]
         );
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
     }
 
     #[tokio::test]
@@ -973,7 +986,7 @@ mod tests {
             )
         );
 
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -1008,14 +1021,10 @@ mod tests {
             .expect("Could not start disclosure");
 
         // Verify disclosure session is not yet terminated
-        let was_terminated = Arc::clone(
-            &wallet
-                .disclosure_session
-                .as_ref()
-                .unwrap()
-                .protocol_state
-                .was_terminated,
-        );
+        let Some(Session::Disclosure(session)) = wallet.session.as_ref() else {
+            panic!("wallet in unexpected state")
+        };
+        let was_terminated = Arc::clone(&session.protocol_state.was_terminated);
         assert!(!was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
@@ -1030,7 +1039,7 @@ mod tests {
         assert_eq!(cancel_return_url, Some(return_url));
 
         // Verify disclosure session is terminated
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
         assert!(was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
@@ -1080,17 +1089,13 @@ mod tests {
             .start_disclosure(&DISCLOSURE_URI, DisclosureUriSource::Link)
             .await
             .expect_err("Starting disclosure should have resulted in an error");
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
 
         // Verify disclosure session is not yet terminated
-        let was_terminated = Arc::clone(
-            &wallet
-                .disclosure_session
-                .as_ref()
-                .unwrap()
-                .protocol_state
-                .was_terminated,
-        );
+        let Some(Session::Disclosure(session)) = wallet.session.as_ref() else {
+            panic!("wallet in unexpected state")
+        };
+        let was_terminated = Arc::clone(&session.protocol_state.was_terminated);
         assert!(!was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
@@ -1105,7 +1110,7 @@ mod tests {
         assert_eq!(cancel_return_url, Some(return_url));
 
         // Verify disclosure session is terminated
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
         assert!(was_terminated.load(Ordering::Relaxed));
 
         // Get latest emitted recent_history events
@@ -1126,7 +1131,9 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(
+            MockMdocDisclosureSession::default(),
+        )));
 
         wallet.lock();
 
@@ -1137,7 +1144,7 @@ mod tests {
             .expect_err("Cancelling disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::Locked);
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
     }
 
     #[tokio::test]
@@ -1152,7 +1159,7 @@ mod tests {
             .expect_err("Cancelling disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::NotRegistered);
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -1168,7 +1175,7 @@ mod tests {
             .expect_err("Cancelling disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     const PIN: &str = "051097";
@@ -1204,7 +1211,7 @@ mod tests {
 
         let reader_certificate = disclosure_session.certificate.clone();
 
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
 
         // Accepting disclosure should succeed and give us the return URL.
         let accept_result = wallet
@@ -1216,7 +1223,7 @@ mod tests {
 
         // Check that the disclosure session is no longer
         // present and that the disclosure count is 1.
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
         assert!(!wallet.is_locked());
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 1);
 
@@ -1256,7 +1263,9 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(
+            MockMdocDisclosureSession::default(),
+        )));
 
         wallet.lock();
 
@@ -1267,14 +1276,16 @@ mod tests {
             .expect_err("Accepting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::Locked);
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
         assert!(wallet.is_locked());
-        match wallet.disclosure_session.as_ref().unwrap().protocol_state.session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
-            }
-            _ => unreachable!(),
+
+        let Some(Session::Disclosure(session)) = &wallet.session else {
+            panic!("wallet in unexpected state")
         };
+        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+            panic!("wallet in unexpected state")
+        };
+        assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // The mdoc copy usage counts should not be incremented.
         assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
@@ -1302,7 +1313,7 @@ mod tests {
             .expect_err("Accepting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::NotRegistered);
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
         assert!(wallet.is_locked());
 
         // Verify no Disclosure events are logged
@@ -1329,7 +1340,7 @@ mod tests {
             .expect_err("Accepting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
         assert!(!wallet.is_locked());
     }
 
@@ -1342,7 +1353,7 @@ mod tests {
             session_state: MdocDisclosureSessionState::MissingAttributes(Default::default()),
             ..Default::default()
         };
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
 
         // Accepting disclosure on a wallet that has a disclosure session
         // with missing attributes should result in an error.
@@ -1352,7 +1363,7 @@ mod tests {
             .expect_err("Accepting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::SessionState);
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
         assert!(!wallet.is_locked());
 
         // The mdoc copy usage counts should not be incremented.
@@ -1396,7 +1407,7 @@ mod tests {
             }),
             ..Default::default()
         };
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
 
         // Accepting disclosure when the verifier responds with
         // an invalid request error should result in an error.
@@ -1409,14 +1420,15 @@ mod tests {
             error,
             DisclosureError::VpDisclosureSession(VpClientError::Request(VpMessageClientError::AuthPostResponse(_)))
         );
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
         assert!(!wallet.is_locked());
-        match wallet.disclosure_session.as_ref().unwrap().protocol_state.session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
-            }
-            _ => unreachable!(),
+        let Some(Session::Disclosure(session)) = &wallet.session else {
+            panic!("wallet in unexpected state")
         };
+        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+            panic!("wallet in unexpected state")
+        };
+        assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
         assert_eq!(wallet.storage.read().await.mdoc_copies_usage_counts.len(), 1);
@@ -1446,7 +1458,7 @@ mod tests {
         );
 
         // Set up the disclosure session to return a different error.
-        match wallet.disclosure_session.as_ref().unwrap().protocol_state.session_state {
+        match session.protocol_state.session_state {
             MdocDisclosureSessionState::Proposal(ref proposal) => {
                 proposal
                     .next_error
@@ -1473,14 +1485,15 @@ mod tests {
                 _
             ))))
         );
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
         assert!(!wallet.is_locked());
-        match wallet.disclosure_session.as_ref().unwrap().protocol_state.session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
-            }
-            _ => unreachable!(),
+        let Some(Session::Disclosure(session)) = &wallet.session else {
+            panic!("wallet in unexpected state")
         };
+        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+            panic!("wallet in unexpected state")
+        };
+        assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented again for the proposed mdoc copy id.
         let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
@@ -1533,17 +1546,11 @@ mod tests {
             }),
             ..Default::default()
         };
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
 
-        let was_terminated = Arc::clone(
-            &wallet
-                .disclosure_session
-                .as_ref()
-                .unwrap()
-                .protocol_state
-                .was_terminated,
-        );
+        let was_terminated = Arc::clone(&disclosure_session.was_terminated);
         assert!(!was_terminated.load(Ordering::Relaxed));
+
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
 
         // Accepting disclosure when the verifier responds with an `InstructionError` indicating
         // that the account is blocked should result in a `DisclosureError::Instruction` error.
@@ -1558,13 +1565,13 @@ mod tests {
             // If the disclosure session should be terminated, there
             // should be no session, the wallet should be locked and
             // the session should be terminated at the remote end.
-            assert!(wallet.disclosure_session.is_none());
+            assert!(wallet.session.is_none());
             assert!(wallet.is_locked());
             assert!(was_terminated.load(Ordering::Relaxed));
         } else {
             // Otherwise, the session should still be present, the wallet
             // unlocked and the session should not be terminated.
-            assert!(wallet.disclosure_session.is_some());
+            assert!(wallet.session.is_some());
             assert!(!wallet.is_locked());
             assert!(!was_terminated.load(Ordering::Relaxed));
         }
@@ -1645,7 +1652,7 @@ mod tests {
 
         let reader_certificate = disclosure_session.certificate.clone();
 
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(disclosure_session));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
 
         // Accepting disclosure when the verifier responds with an error indicating that
         // attributes were shared should result in a disclosure event being recorded.
@@ -1658,14 +1665,15 @@ mod tests {
             error,
             DisclosureError::VpDisclosureSession(VpClientError::MissingReaderRegistration)
         );
-        assert!(wallet.disclosure_session.is_some());
+        assert!(wallet.session.is_some());
         assert!(!wallet.is_locked());
-        match wallet.disclosure_session.as_ref().unwrap().protocol_state.session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => {
-                assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
-            }
-            _ => unreachable!(),
+        let Some(Session::Disclosure(session)) = &wallet.session else {
+            panic!("wallet in unexpected state")
         };
+        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+            panic!("wallet in unexpected state")
+        };
+        assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
         let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
@@ -1702,7 +1710,10 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let disclosure_session = MockMdocDisclosureSession::default();
-        wallet.disclosure_session = Some(DisclosureSession::new(RedirectUriPurpose::Issuance, disclosure_session));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
+            RedirectUriPurpose::Issuance,
+            disclosure_session,
+        )));
 
         let error = wallet
             .accept_disclosure(PIN.to_owned())

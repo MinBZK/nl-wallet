@@ -172,6 +172,7 @@ mod tests {
     use crate::wallet::test::ISSUER_KEY;
     use crate::wallet::DisclosureBasedIssuanceError;
     use crate::wallet::DisclosureError;
+    use crate::wallet::Session;
 
     const PIN: &str = "051097";
 
@@ -194,7 +195,7 @@ mod tests {
         let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer}")
             .parse()
             .unwrap();
-        wallet.disclosure_session = Some(DisclosureSession::new(
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
             RedirectUriPurpose::Issuance,
             MockMdocDisclosureSession {
                 session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
@@ -203,7 +204,7 @@ mod tests {
                 }),
                 ..Default::default()
             },
-        ));
+        )));
 
         // Setup wallet issuance state
         let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
@@ -247,7 +248,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
-        wallet.disclosure_session = Some(DisclosureSession::new(
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
             RedirectUriPurpose::Issuance,
             MockMdocDisclosureSession {
                 session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
@@ -261,7 +262,7 @@ mod tests {
                 }),
                 ..Default::default()
             },
-        ));
+        )));
 
         let previews = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())
@@ -278,7 +279,10 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let disclosure_session = MockMdocDisclosureSession::default();
-        wallet.disclosure_session = Some(DisclosureSession::new(RedirectUriPurpose::Browser, disclosure_session));
+        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
+            RedirectUriPurpose::Browser,
+            disclosure_session,
+        )));
 
         let error = wallet
             .continue_disclosure_based_issuance(PIN.to_owned())

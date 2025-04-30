@@ -13,6 +13,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::issuance::DigidSession;
 use crate::repository::Repository;
+use crate::wallet::Session;
 
 use super::Wallet;
 
@@ -45,7 +46,7 @@ where
 
         let uri = Url::parse(uri_str)?;
 
-        if self.digid_session.is_some()
+        if matches!(self.session, Some(Session::Digid(_)))
             && uri
                 .as_str()
                 .starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
@@ -108,13 +109,13 @@ mod tests {
         );
 
         // Set up a `DigidSession` that will match the URI.
-        wallet.digid_session = Some(MockDigidSession::new());
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
 
         // The wallet should now recognise the DigiD URI.
         assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance(_));
 
         // After clearing the `DigidSession`, the URI should not be recognised again.
-        wallet.digid_session = None;
+        wallet.session = None;
 
         assert_matches!(
             wallet.identify_uri(digid_uri).unwrap_err(),

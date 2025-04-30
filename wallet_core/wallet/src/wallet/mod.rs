@@ -91,6 +91,13 @@ impl<A, G> WalletRegistration<A, G> {
     }
 }
 
+#[derive(Debug)]
+enum Session<DS, IS, MDS> {
+    Digid(DS),
+    Issuance(IssuanceSession<IS>),
+    Disclosure(DisclosureSession<MDS>),
+}
+
 pub struct Wallet<
     CR = WalletConfigurationRepository,         // Repository<WalletConfiguration>
     UR = UpdatePolicyRepository,                // Repository<VersionState>
@@ -110,9 +117,7 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    digid_session: Option<DS>,
-    issuance_session: Option<IssuanceSession<IS>>,
-    disclosure_session: Option<DisclosureSession<MDS>>,
+    session: Option<Session<DS, IS, MDS>>,
     wte_issuance_client: WIC,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,

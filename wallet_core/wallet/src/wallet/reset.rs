@@ -62,9 +62,7 @@ where
                 }
             };
 
-            self.digid_session.take();
-            self.issuance_session.take();
-            self.disclosure_session.take();
+            self.session.take();
 
             // Send empty collections to both the attestations and recent history callbacks, if present.
             if let Some(ref mut attestations_callback) = self.attestations_callback {
@@ -111,10 +109,9 @@ mod tests {
 
     use openid4vc::mock::MockIssuanceSession;
 
-    use crate::disclosure::MockMdocDisclosureSession;
     use crate::storage::StorageState;
-    use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::issuance::IssuanceSession;
+    use crate::wallet::Session;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -168,8 +165,10 @@ mod tests {
     async fn test_wallet_reset_full() {
         // Create the impossible Wallet that is doing everything at once and reset it.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        wallet.issuance_session = Some(IssuanceSession::new(true, MockIssuanceSession::default()));
-        wallet.disclosure_session = Some(DisclosureSession::new_browser(MockMdocDisclosureSession::default()));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+            true,
+            MockIssuanceSession::default(),
+        )));
 
         wallet
             .reset()
@@ -182,8 +181,7 @@ mod tests {
             wallet.storage.read().await.state().await.unwrap(),
             StorageState::Uninitialized
         );
-        assert!(wallet.issuance_session.is_none());
-        assert!(wallet.disclosure_session.is_none());
+        assert!(wallet.session.is_none());
         assert!(wallet.is_locked());
     }
 

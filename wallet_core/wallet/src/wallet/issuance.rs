@@ -57,6 +57,7 @@ use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::WalletEvent;
 use crate::wallet::attestations::AttestationsError;
+use crate::wallet::Session;
 use crate::wte::WteIssuanceClient;
 
 use super::Wallet;
@@ -163,8 +164,8 @@ where
             return Err(IssuanceError::Locked);
         }
 
-        info!("Checking if there is an active issuance session");
-        if self.digid_session.is_some() || self.issuance_session.is_some() {
+        info!("Checking if there is an active session");
+        if self.session.is_some() {
             return Err(IssuanceError::SessionState);
         }
 
@@ -190,7 +191,7 @@ where
         .map_err(IssuanceError::DigidSessionStart)?;
 
         info!("DigiD auth URL generated");
-        self.digid_session.replace(session);
+        self.session.replace(Session::Digid(session));
 
         Ok(auth_url)
     }
@@ -215,7 +216,7 @@ where
             return Err(IssuanceError::Locked);
         }
 
-        let has_active_session = self.digid_session.is_some() || self.issuance_session.is_some();
+        let has_active_session = matches!(self.session, Some(Session::Digid(..)) | Some(Session::Issuance(..)));
 
         Ok(has_active_session)
     }
@@ -241,20 +242,18 @@ where
         }
 
         info!("Checking if there is an active issuance session");
-
-        if self.digid_session.is_none() && self.issuance_session.is_none() {
+        if matches!(self.session, None | Some(Session::Disclosure(..))) {
             return Err(IssuanceError::SessionState);
         }
 
-        // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state.
-        self.digid_session.take();
-
-        let Some(issuance_session) = self.issuance_session.take() else {
-            return Ok(());
+        let session = self.session.take().unwrap();
+        if let Session::Issuance(issuance_session) = session {
+            info!("Rejecting issuance");
+            issuance_session.protocol_state.reject_issuance().await?;
         };
 
-        info!("Rejecting issuance");
-        issuance_session.protocol_state.reject_issuance().await?;
+        // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state,
+        // so we don't need to match `session` on that arm.
 
         Ok(())
     }
@@ -280,12 +279,14 @@ where
         }
 
         info!("Checking if there is an active DigiD issuance session");
-        if self.digid_session.is_none() || self.issuance_session.is_some() {
+        if !matches!(self.session, Some(Session::Digid(..))) {
             return Err(IssuanceError::SessionState);
         }
 
         // Take ownership of the active session, now that we know that it exists.
-        let session = self.digid_session.take().unwrap();
+        let Some(Session::Digid(session)) = self.session.take() else {
+            panic!()
+        };
 
         let token_request = session
             .into_token_request(redirect_uri)
@@ -348,7 +349,8 @@ where
             })
             .collect::<Result<Vec<_>, IssuanceError>>()?;
 
-        self.issuance_session.replace(IssuanceSession::new(is_pid, issuer));
+        self.session
+            .replace(Session::Issuance(IssuanceSession::new(is_pid, issuer)));
 
         Ok(attestations)
     }
@@ -385,11 +387,10 @@ where
             return Err(IssuanceError::Locked);
         }
 
-        info!("Checking if there is an active PID issuance session");
-        if self.digid_session.is_some() {
+        info!("Checking if there is an active issuance session");
+        let Some(Session::Issuance(issuance_session)) = &self.session else {
             return Err(IssuanceError::SessionState);
-        }
-        let issuance_session = self.issuance_session.as_ref().ok_or(IssuanceError::SessionState)?;
+        };
 
         let config = self.config_repository.get();
 
@@ -462,7 +463,7 @@ where
             .collect::<Result<Vec<_>, _>>()?;
 
         info!("Isuance succeeded; removing issuance session state");
-        self.issuance_session.take();
+        self.session.take();
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
@@ -553,7 +554,7 @@ mod tests {
 
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        assert!(wallet.digid_session.is_none());
+        assert!(wallet.session.is_none());
 
         // Set up a mock DigiD session.
         let session_start_context = MockDigidSession::start_context();
@@ -569,7 +570,7 @@ mod tests {
             .expect("Could not generate PID issuance auth URL");
 
         assert_eq!(auth_url.as_str(), AUTH_URL);
-        assert!(wallet.digid_session.is_some());
+        assert!(wallet.session.is_some());
     }
 
     #[tokio::test]
@@ -608,7 +609,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
-        wallet.digid_session = Some(MockDigidSession::default());
+        wallet.session = Some(Session::Digid(MockDigidSession::default()));
 
         // Creating a DigiD authentication URL on a `Wallet` that
         // has an active DigiD session should return an error.
@@ -625,7 +626,10 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup a mock OpenID4VCI session.
-        wallet.issuance_session = Some(IssuanceSession::new(true, MockIssuanceSession::default()));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+            true,
+            MockIssuanceSession::default(),
+        )));
 
         // Creating a DigiD authentication URL on a `Wallet` that has
         // an active OpenID4VCI session should return an error.
@@ -662,14 +666,14 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up a mock DigiD session.
-        wallet.digid_session = Some(MockDigidSession::default());
+        wallet.session = Some(Session::Digid(MockDigidSession::default()));
 
-        assert!(wallet.digid_session.is_some());
+        assert!(wallet.session.is_some());
 
         // Cancelling PID issuance should clear this session.
         wallet.cancel_issuance().await.expect("Could not cancel PID issuance");
 
-        assert!(wallet.digid_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -683,12 +687,12 @@ mod tests {
             client.expect_reject().return_once(|| Ok(()));
             client
         };
-        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Cancelling PID issuance should not fail.
         wallet.cancel_issuance().await.expect("Could not cancel PID issuance");
 
-        assert!(wallet.issuance_session.is_none());
+        assert!(wallet.session.is_none());
     }
 
     #[tokio::test]
@@ -842,7 +846,7 @@ mod tests {
 
             session
         };
-        wallet.digid_session = Some(digid_session);
+        wallet.session = Some(Session::Digid(digid_session));
 
         wallet
     }
@@ -880,7 +884,7 @@ mod tests {
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
             client
         };
-        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Canceling PID issuance on a wallet should forward this error.
         let error = wallet
@@ -908,7 +912,7 @@ mod tests {
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
         let pid_issuer = mock_issuance_session(mdoc);
-        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Accept the PID issuance with the PIN.
         wallet
@@ -966,7 +970,7 @@ mod tests {
         // a single valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
         let pid_issuer = mock_issuance_session(mdoc);
-        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Accept the PID issuance with the PIN.
         let error = wallet
@@ -1049,7 +1053,7 @@ mod tests {
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
             client
         };
-        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Accepting PID issuance should result in an error.
         let error = wallet
@@ -1128,7 +1132,7 @@ mod tests {
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
             client
         };
-        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Accepting PID issuance should result in an error.
         let error = wallet
@@ -1150,7 +1154,7 @@ mod tests {
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let mdoc = test::create_example_pid_mdoc();
         let pid_issuer = mock_issuance_session(mdoc);
-        wallet.issuance_session = Some(IssuanceSession::new(true, pid_issuer));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Have the mdoc storage return an error on query.
         wallet.storage.write().await.has_query_error = true;
