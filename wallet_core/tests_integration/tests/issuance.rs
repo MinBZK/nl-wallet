@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use serial_test::serial;
@@ -16,6 +17,25 @@ use wallet::Attestation;
 use wallet::AttestationAttributeValue;
 use wallet::DisclosureUriSource;
 
+pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<Attestation> {
+    // Emit attestations into this local variable
+    let attestations: Arc<std::sync::Mutex<Vec<Attestation>>> = Arc::new(std::sync::Mutex::new(vec![]));
+
+    {
+        let attestations = Arc::clone(&attestations);
+        wallet
+            .set_attestations_callback(Box::new(move |mut a| {
+                let mut attestations = attestations.lock().unwrap();
+                attestations.append(&mut a);
+            }))
+            .await
+            .unwrap();
+    }
+
+    let attestations = attestations.lock().unwrap().to_vec();
+    attestations
+}
+
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -27,21 +47,8 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     wallet = do_wallet_registration(wallet, pin).await;
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
-    // Emit attestations into this local variable
-    let attestations: Arc<std::sync::Mutex<Vec<Attestation>>> = Arc::new(std::sync::Mutex::new(vec![]));
-    {
-        let attestations = attestations.clone();
-        wallet
-            .set_attestations_callback(Box::new(move |mut a| {
-                let mut attestations = attestations.lock().unwrap();
-                attestations.append(&mut a);
-            }))
-            .await
-            .unwrap();
-    }
-
     // Verify that the first mdoc contains the bsn
-    let attestations = attestations.lock().unwrap();
+    let attestations = wallet_attestations(&mut wallet).await;
     let pid_attestation = attestations.first().unwrap();
     let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec!["bsn"]);
 
@@ -105,9 +112,23 @@ async fn test_disclosure_based_issuance_ok() {
         .start_disclosure(&universal_link(&issuance_params.url), DisclosureUriSource::Link)
         .await
         .unwrap();
-    let _attestation_previews = wallet.continue_disclosure_based_issuance(pin.to_owned()).await.unwrap();
+
+    let attestation_previews = wallet.continue_disclosure_based_issuance(pin.to_owned()).await.unwrap();
 
     wallet.accept_issuance(pin.to_owned()).await.unwrap();
+
+    // With collecting into this map, we willfully ignore the possibility here that the wallet might have
+    // multiple attestation for a single attestation type.
+    let attestations: HashMap<String, Attestation> = wallet_attestations(&mut wallet)
+        .await
+        .into_iter()
+        .map(|att| (att.attestation_type.clone(), att))
+        .collect();
+
+    attestation_previews.iter().for_each(|preview| {
+        let attestation = attestations.get(&preview.attestation_type).unwrap();
+        assert_eq!(&attestation.attributes, &preview.attributes);
+    });
 }
 
 #[tokio::test]
