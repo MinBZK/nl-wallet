@@ -59,6 +59,14 @@ pub enum DisclosureBasedIssuanceError {
     UnexpectedScheme(String),
 }
 
+// This method requires the caller to be aware which flow it is in: ordinary disclosure
+// (in which case it should call accept_disclosure()), or disclosure based issuance.
+// Calling this method in a non-disclosure based issuance setting will result in an error.
+// Alternatively, we could have made accept_disclosure() return an enum, containing either
+// the redirect URI (in case of ordinary disclosure), or a `Vec<Attestation>`.
+// However, the `flutter_api` already knows which flow it is in anyway, because it displays
+// different things to the user in each flow. So keeping this a distinct method is more
+// pragmatic.
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
     CR: Repository<Arc<WalletConfiguration>>,
