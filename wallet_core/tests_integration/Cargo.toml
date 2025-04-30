@@ -96,6 +96,7 @@ test_common = [
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
+    "dep:wiremock",
 ]
 # Include the fake_digid submodule
 fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
@@ -122,7 +123,6 @@ integration_test = [
     "dep:serde_urlencoded",
     "dep:serial_test",
     "dep:tokio",
-    "dep:wiremock",
     "tokio/macros",
     "tokio/sync",
 ]
