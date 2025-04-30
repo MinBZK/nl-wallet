@@ -156,7 +156,7 @@ pub async fn setup_wallet_and_default_env(vendor: WalletDeviceVendor) -> WalletW
     wallet
 }
 
-pub struct WalletUrls {
+pub struct DisclosureParameters {
     pub verifier_url: BaseUrl,
     pub verifier_internal_url: BaseUrl,
 }
@@ -175,7 +175,7 @@ pub async fn setup_wallet_and_env(
     verifier_settings: VerifierSettings,
     issuer_settings: PidIssuerSettings,
     (issuance_server_settings, issuable_documents): (IssuanceServerSettings, Vec<IssuableDocument>),
-) -> (WalletWithMocks, WalletUrls, IssuanceParameters) {
+) -> (WalletWithMocks, DisclosureParameters, IssuanceParameters) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
             AttestationEnvironment::Development,
@@ -566,7 +566,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     port
 }
 
-pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) -> WalletUrls {
+pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) -> DisclosureParameters {
     let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
@@ -609,7 +609,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
     });
 
     wait_for_server(public_url.clone(), vec![]).await;
-    WalletUrls {
+    DisclosureParameters {
         verifier_url: public_url,
         verifier_internal_url: internal_url,
     }
