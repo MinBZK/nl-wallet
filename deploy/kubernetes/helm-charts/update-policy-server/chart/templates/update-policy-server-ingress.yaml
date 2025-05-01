@@ -24,7 +24,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3009
+                  number: 3002
             path: /{{ .Values.ingress.contextPath }}/(.*)
             pathType: Prefix
   tls:

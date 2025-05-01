@@ -34,7 +34,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3004
+                  number: 3008
             path: /{{ .Values.demoRelyingParty.contextPath }}/(.*)
             pathType: Prefix
   tls:

@@ -37,18 +37,18 @@ spec:
           {{- end }}
           ports:
             - name: demo-rp-port
-              containerPort: 3004
+              containerPort: 3008
           volumeMounts:
             - name: config-volume
               mountPath: /demo_relying_party.toml
               subPath: config.toml
           env:
             - name: DEMO_RELYING_PARTY__WEBSERVER__PORT
-              value: "3004"
+              value: "3008"
             - name: DEMO_RELYING_PARTY__PUBLIC_WALLET_SERVER_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.walletServer.hostname .Values.walletServer.contextPath) }}
             - name: DEMO_RELYING_PARTY__INTERNAL_WALLET_SERVER_URL
-              value: "http://demo-rp-verification-server:3002/"
+              value: "http://demo-rp-verification-server:3010/"
             - name: DEMO_RELYING_PARTY__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.demoRelyingParty.hostname .Values.demoRelyingParty.contextPath) }}
             - name: DEMO_RELYING_PARTY__STRUCTURED_LOGGING

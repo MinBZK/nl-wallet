@@ -9,6 +9,6 @@ spec:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}
   ports:
     - name: update-policy-server-http
-      port: 3009
+      port: 3002
       targetPort: ups-port
       protocol: TCP
