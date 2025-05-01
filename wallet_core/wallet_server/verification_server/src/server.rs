@@ -40,7 +40,7 @@ where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     // Needed when called directly
-    check_request_listener_with_settings(&requester_listener, &settings);
+    check_requester_listener_with_settings(&requester_listener, &settings);
     let log_requests = settings.server_settings.log_requests;
 
     let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
@@ -83,7 +83,7 @@ fn secure_requester_router(requester_server: &RequesterAuth, requester_router: R
 }
 
 /// Sanity check to see if [requester_listener] is set conform [settings].
-fn check_request_listener_with_settings(requester_listener: &Option<TcpListener>, settings: &VerifierSettings) {
+fn check_requester_listener_with_settings(requester_listener: &Option<TcpListener>, settings: &VerifierSettings) {
     match settings.requester_server {
         RequesterAuth::Authentication(_) => {
             assert!(
