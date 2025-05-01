@@ -102,7 +102,7 @@ private_key = "MIG..."        # DER-encoded private key, in case of "software"
 certificate = "MIJ..."        # Issuer certificate
 
 # Files containing SD-JWT Type Metadata documents for each attestation that will be issued
-metadata = ["com_example_degree_metadata.json"]
+metadata = ["com.example.degree.json"]
 ```
 
 Here, `my_issuer` is an example of a freely choosable identifier that has to be present in the QR/UL that starts the session.

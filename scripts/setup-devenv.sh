@@ -308,15 +308,15 @@ export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com_example_degree_metadata.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com_example_degree_metadata.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${ISSUANCE_SERVER_DIR}"
 ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
 export ISSUER_METADATA_PID_PATH
 ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
 export ISSUER_METADATA_PID_NL_PATH
 ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
 export ISSUER_METADATA_ADDRESS_PATH
-ISSUER_METADATA_DEGREE_PATH="com_example_degree_metadata.json"
+ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
 export ISSUER_METADATA_DEGREE_PATH
 ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
 export ISSUER_METADATA_ADDRESS_NL_PATH

@@ -13,4 +13,4 @@
 /*.der
 *.snap.new
 /eudi:*.json
-/com_example*.json
+/com.example.*.json
