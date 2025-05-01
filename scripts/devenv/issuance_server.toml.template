@@ -26,8 +26,8 @@ private_key = "${ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE}"
 certificate = "${ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE}"
 
 [[disclosure_settings.disclosure_based_issuance.to_disclose]]
-docType = "com.example.pid"
-nameSpaces = { "com.example.pid" = { bsn = true } }
+docType = "urn:eudi:pid:nl:1"
+nameSpaces = { "urn:eudi:pid:nl:1" = { bsn = true } }
 
 [attestation_settings."com.example.degree"]
 valid_days = 365
