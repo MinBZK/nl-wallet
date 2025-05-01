@@ -8,7 +8,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "common.labels.selectorLabels" . | nindent 6 }}
+      {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,14 +19,14 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 8 }}
         {{- if .Values.extraPodlabels }}
-          {{ toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- toYaml .Values.extraPodlabels | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-      {{ toYaml . | nindent 10 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
@@ -34,7 +34,7 @@ spec:
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           {{- with .Values.resources }}
           resources:
-          {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
             - name: {{ .Values.nameOverride | default .Chart.Name }}-port
@@ -44,11 +44,17 @@ spec:
               mountPath: /pid_issuer.toml
               subPath: pid_issuer.toml
             - name: pid-issuer-metadata
-              mountPath: /pid-metadata.json
-              subPath: pid-metadata.json
+              mountPath: /eudi:pid:1.json
+              subPath: eudi_pid_1.json
             - name: pid-issuer-metadata
-              mountPath: /address-metadata.json
-              subPath: address-metadata.json
+              mountPath: /eudi:pid:nl:1.json
+              subPath: eudi_pid_nl_1.json
+            - name: pid-issuer-metadata
+              mountPath: /eudi:pid-address:1.json
+              subPath: eudi_pid-address_1.json
+            - name: pid-issuer-metadata
+              mountPath: /eudi:pid-address:nl:1.json
+              subPath: eudi_pid-address_nl_1.json
           env:
             - name: PID_ISSUER__WALLET_SERVER__PORT
               value: "3007"
@@ -81,7 +87,7 @@ spec:
                   name: nl-pid-issuer-wte-issuer-pubkey
                   key: wte_issuer_pubkey
             - name: PID_ISSUER__METADATA
-              value: "pid-metadata.json,address-metadata.json"
+              value: "eudi:pid:1.json,eudi:pid:nl:1.json,eudi:pid-address:1.json,eudi:pid-address:nl:1.json"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:

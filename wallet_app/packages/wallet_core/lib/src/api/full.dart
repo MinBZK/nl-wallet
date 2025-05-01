@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import '../models/attestation.dart';
 import '../models/config.dart';
 import '../models/disclosure.dart';
+import '../models/image.dart';
 import '../models/instruction.dart';
 import '../models/localize.dart';
 import '../models/pin.dart';

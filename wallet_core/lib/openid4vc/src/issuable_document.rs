@@ -78,7 +78,9 @@ impl IssuableDocument {
             }
         }
 
-        result.insert(namespace, entries);
+        if !entries.is_empty() {
+            result.insert(namespace, entries);
+        }
     }
 
     /// Convert an issuable document into an `UnsignedMdoc`. This is done by walking down the tree of attributes and
@@ -251,6 +253,33 @@ mod test {
                 "com.example.address.house": {
                     "number": 1,
                     "letter": "A",
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn test_issuable_attributes_to_unsigned_mdoc_empty_root() {
+        let attributes = vec![IssuableDocument {
+            attestation_type: "com.example.address".to_string(),
+            attributes: IndexMap::from_iter(vec![(
+                "house".to_string(),
+                Attribute::Nested(IndexMap::from_iter(vec![(
+                    "number".to_string(),
+                    Attribute::Single(AttributeValue::Integer(1)),
+                )])),
+            )]),
+        }]
+        .try_into()
+        .unwrap();
+
+        let unsigned_mdoc = issuable_attrs_to_unsigned_mdocs(&attributes).unwrap().remove(0);
+
+        assert_eq!(
+            serde_json::to_value(readable_attrs(unsigned_mdoc.attributes.as_ref())).unwrap(),
+            json!({
+                "com.example.address.house": {
+                    "number": 1,
                 },
             })
         );

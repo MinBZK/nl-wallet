@@ -120,3 +120,12 @@ See: [definition-of-done.md](./wow/definition-of-done.md)
 We have various re-occuring chores, but currently just one documented:
 
 See: [update-rust.md](./chores/update-rust.md)
+
+## Implementation profiles for external formal specifications.
+
+
+
+| Specification      | Link to profile description                                           |
+|--------------------|-----------------------------------------------------------------------|
+| SD-JWT VC          | [NL-Wallet profile for SD-JWT VC](./spec-profiles/sd-jwt-vc.md)       | 
+

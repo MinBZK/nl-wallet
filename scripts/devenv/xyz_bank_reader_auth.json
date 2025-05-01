@@ -45,19 +45,19 @@
   },
   "requestOriginBaseUrl": "https://www.xyzbank.nl",
   "attributes": {
-    "com.example.pid": {
-      "com.example.pid": {
+    "urn:eudi:pid:nl:1": {
+      "urn:eudi:pid:nl:1": {
         "given_name": {},
         "family_name": {},
-        "birth_date": {},
+        "birthdate": {},
         "bsn": {}
       }
     },
-    "com.example.address": {
-      "com.example.address": {
-        "resident_street": {},
-        "resident_house_number": {},
-        "resident_postal_code": {}
+    "urn:eudi:pid-address:nl:1": {
+      "urn:eudi:pid-address:nl:1.address": {
+        "street_address": {},
+        "house_number": {},
+        "postal_code": {}
       }
     }
   }

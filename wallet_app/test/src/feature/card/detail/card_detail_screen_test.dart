@@ -1,17 +1,27 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/card_config.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/wallet_card_detail.dart';
+import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/feature/card/detail/argument/card_detail_screen_argument.dart';
 import 'package:wallet/src/feature/card/detail/bloc/card_detail_bloc.dart';
 import 'package:wallet/src/feature/card/detail/card_detail_screen.dart';
 import 'package:wallet/src/feature/common/widget/card/wallet_card_item.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
+import '../../../mocks/wallet_mocks.dart';
 import '../../../test_util/golden_utils.dart';
 import '../../../test_util/test_utils.dart';
 
@@ -205,5 +215,102 @@ void main() {
     // Validate that the widget exists
     final ctaFinder = find.text(l10n.cardDetailScreenCardDeleteCta);
     expect(ctaFinder, findsOneWidget);
+  });
+
+  testWidgets('remove button opens the placeholder screen', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      CardDetailScreen(
+        cardTitle: WalletMockData.card.title.testValue,
+      ).withState<CardDetailBloc, CardDetailState>(
+        MockCardSummaryBloc(),
+        CardDetailLoadSuccess(
+          WalletCardDetail(
+            card: WalletCard(
+              docType: 'com.example.docType',
+              issuer: WalletMockData.organization,
+              attributes: const [],
+              id: 'id',
+              config: const CardConfig(removable: true),
+            ),
+            mostRecentIssuance: WalletMockData.issuanceEvent,
+            mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
+          ),
+        ),
+      ),
+      providers: [
+        RepositoryProvider<WalletRepository>(
+          create: (c) {
+            final mock = MockWalletRepository();
+            when(mock.isLockedStream).thenAnswer((_) => Stream.value(false));
+            return mock;
+          },
+        ),
+        RepositoryProvider<IsWalletInitializedUseCase>(create: (c) => MockIsWalletInitializedUseCase()),
+        RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
+        RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+        RepositoryProvider<UnlockWalletWithPinUseCase>(create: (c) => MockUnlockWalletWithPinUseCase()),
+      ],
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    // Validate that the widget exists
+    final ctaFinder = find.text(l10n.cardDetailScreenCardDeleteCta);
+    expect(ctaFinder, findsOneWidget);
+
+    await tester.tap(ctaFinder);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.placeholderScreenHeadline), findsAtLeast(1));
+  });
+
+  testWidgets('update button opens the no update available sheet', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      CardDetailScreen(
+        cardTitle: WalletMockData.card.title.testValue,
+      ).withState<CardDetailBloc, CardDetailState>(
+        MockCardSummaryBloc(),
+        CardDetailLoadSuccess(
+          WalletCardDetail(
+            card: WalletCard(
+              docType: 'com.example.docType',
+              issuer: WalletMockData.organization,
+              attributes: const [],
+              id: 'id',
+              config: const CardConfig(updatable: true),
+            ),
+            mostRecentIssuance: WalletMockData.issuanceEvent,
+            mostRecentSuccessfulDisclosure: WalletMockData.disclosureEvent,
+          ),
+        ),
+      ),
+      providers: [],
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    // Validate that the widget exists
+    final ctaFinder = find.text(l10n.cardDetailScreenCardUpdateCta);
+    expect(ctaFinder, findsOneWidget);
+
+    await tester.tap(ctaFinder);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.cardDetailScreenNoUpdateAvailableSheetTitle), findsOneWidget);
+  });
+
+  group('unit', () {
+    test('CardDetailScreenArgument can be extracted from RouteSettings', () async {
+      final inputCard = WalletCard(
+        docType: 'com.example.docType',
+        issuer: WalletMockData.organization,
+        attributes: const [],
+        id: 'id',
+        config: const CardConfig(updatable: true),
+      );
+      final CardDetailScreenArgument inputArgument = CardDetailScreenArgument(
+        card: inputCard,
+        cardId: inputCard.id,
+        cardTitle: ''.untranslated,
+      );
+      final resultArgument = CardDetailScreen.getArgument(RouteSettings(arguments: inputArgument.toJson()));
+      expect(resultArgument, inputArgument);
+    });
   });
 }

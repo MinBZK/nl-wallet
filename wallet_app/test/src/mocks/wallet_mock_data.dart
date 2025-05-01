@@ -28,7 +28,7 @@ abstract class WalletMockData {
         name: 'Sample Card #1',
         rawSummary: 'Subtitle',
         rendering: SimpleCardRendering(
-          logoUri: WalletAssets.logo_card_rijksoverheid,
+          logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid),
           textColor: DarkWalletTheme.textColor,
           bgColor: Color(0xFF35426E),
         ),
@@ -64,7 +64,7 @@ abstract class WalletMockData {
         rawSummary: 'Alt Subtitle',
         rendering: SimpleCardRendering(
           textColor: LightWalletTheme.textColor,
-          logoUri: WalletAssets.logo_card_rijksoverheid,
+          logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid),
           bgColor: Color(0xFFCCEFF0),
         ),
       ),
@@ -92,6 +92,7 @@ abstract class WalletMockData {
 
   static final DataAttribute textDataAttribute = DataAttribute.untranslated(
     key: 'text_key',
+    svgId: 'text_svgId',
     label: 'Label',
     value: const StringValue('Value'),
     sourceCardDocType: 'com.example.docType',

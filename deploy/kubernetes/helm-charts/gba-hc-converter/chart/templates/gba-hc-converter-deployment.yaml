@@ -26,12 +26,12 @@ spec:
       labels:
         {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 8 }}
         {{ with .Values.gbaHcConverter.extraPodlabels }}
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
         - name: {{ include "common.names.fullname" . }}
@@ -39,7 +39,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{ with .Values.gbaHcConverter.resources }}
           resources:
-          {{ toYaml . | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
             - name: preloaded-gba-v-data-volume
@@ -116,5 +116,5 @@ spec:
 
       {{- with .Values.hostAliases }}
       hostAliases:
-        {{ toYaml . | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}

@@ -932,7 +932,7 @@ mod tests {
             assert_eq!(attestations[1].len(), 1);
             let attestation = &attestations[1][0];
             assert_matches!(attestation.identity, AttestationIdentity::Fixed { id: _ });
-            assert_eq!(attestation.attestation_type, "com.example.pid");
+            assert_eq!(attestation.attestation_type, PID_DOCTYPE);
 
             // Test that one successful issuance event is logged
             let events = events.lock();

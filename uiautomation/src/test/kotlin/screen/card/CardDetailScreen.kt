@@ -1,14 +1,14 @@
 package screen.card
 
-import helper.LocalizationHelper.Translation.PID_CARD_TITLE
+import helper.OrganizationAuthMetadataHelper.Organization.RVIG
 import util.MobileActions
 
 class CardDetailScreen : MobileActions() {
 
     private val screen = find.byValueKey("cardDetailScreen")
 
-    private val pidIdTitleText = find.byText(l10n.translate(PID_CARD_TITLE))
-    private val cardIssuerStateText = find.byText("RvIG")
+    private val pidIdTitleText = find.byText(cardMetadata.getPidDisplayName())
+    private val cardIssuerStateText = find.byText(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", RVIG))
     private val cardHistoryStateText = find.byText(l10n.getString("cardDetailScreenLatestSuccessInteractionUnknown"))
 
     private val cardDataButton = find.byText(l10n.getString("cardDetailScreenCardDataCta"))

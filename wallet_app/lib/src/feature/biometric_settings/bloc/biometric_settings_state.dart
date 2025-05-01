@@ -9,15 +9,6 @@ class BiometricSettingsInitial extends BiometricSettingsState {
   List<Object> get props => [];
 }
 
-class BiometricSettingsLoading extends BiometricSettingsState {
-  final bool? biometricLoginEnabled;
-
-  const BiometricSettingsLoading({this.biometricLoginEnabled});
-
-  @override
-  List<Object?> get props => [biometricLoginEnabled];
-}
-
 class BiometricSettingsError extends BiometricSettingsState {
   const BiometricSettingsError();
 

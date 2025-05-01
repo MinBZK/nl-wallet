@@ -32,7 +32,10 @@ class KeyboardDigitKey extends StatelessWidget {
                 return states.isPressedOrFocused ? textStyle.underlined : textStyle;
               }),
             ),
-            child: Center(
+            child: OverflowBox(
+              maxWidth: double.infinity,
+              maxHeight: double.infinity,
+              alignment: Alignment.center,
               child: Text.rich(
                 digit.toString().toTextSpan(context),
                 textAlign: TextAlign.center,

@@ -266,7 +266,7 @@ class WalletUseCaseProvider extends StatelessWidget {
             context.read(),
           ),
         ),
-        RepositoryProvider<RequestBiometricsUsecase>(
+        RepositoryProvider<RequestBiometricsUseCase>(
           create: (context) => RequestBiometricsUsecaseImpl(
             LocalAuthentication(),
             context.read(),

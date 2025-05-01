@@ -11,6 +11,7 @@ use jwt::Jwt;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
+use sd_jwt_vc_metadata::UriMetadata;
 use serde_with::skip_serializing_none;
 
 /// Credential issuer metadata, as per
@@ -371,7 +372,10 @@ impl From<DisplayMetadata> for CredentialDisplay {
             name: value.name,
             locale: Some(value.lang),
             logo: logo.map(|logo| Logo {
-                uri: logo.uri,
+                uri: match logo.uri_metadata {
+                    UriMetadata::Embedded { uri } => uri.to_string().parse().unwrap(),
+                    UriMetadata::Remote { uri, .. } => uri,
+                },
                 alt_text: Some(logo.alt_text.into_inner()),
             }),
             description: value.description,

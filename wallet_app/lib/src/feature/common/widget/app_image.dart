@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -10,23 +8,26 @@ class AppImage extends StatelessWidget {
   final AppImageData asset;
   final BoxFit fit;
   final Alignment alignment;
+  final String? altText;
 
   const AppImage({
     super.key,
     required this.asset,
     this.fit = BoxFit.contain,
     this.alignment = Alignment.center,
+    this.altText,
   });
 
   @override
   Widget build(BuildContext context) {
-    switch (asset) {
+    final object = asset;
+    switch (object) {
       case SvgImage():
-        return SvgPicture.string(asset.data, fit: fit, alignment: alignment);
+        return SvgPicture.string(object.data, fit: fit, alignment: alignment, semanticsLabel: altText);
       case AppAssetImage():
-        return Image(image: AssetImage(asset.data), fit: fit, alignment: alignment);
-      case Base64Image():
-        return Image.memory(const Base64Decoder().convert(asset.data), fit: fit, alignment: alignment);
+        return Image(image: AssetImage(object.name), fit: fit, alignment: alignment, semanticLabel: altText);
+      case AppMemoryImage():
+        return Image.memory(object.data, fit: fit, alignment: alignment, semanticLabel: altText);
     }
   }
 }

@@ -417,8 +417,8 @@ mod test {
         "https://sd_jwt_vc_metadata.example.com/example_credential",
         TypeMetadataDocuments::example()
     )]
-    #[case("com.example.pid", TypeMetadataDocuments::pid_example())]
-    #[case("com.example.address", TypeMetadataDocuments::address_example())]
+    #[case("urn:eudi:pid:nl:1", TypeMetadataDocuments::pid_example())]
+    #[case("urn:eudi:pid-address:nl:1", TypeMetadataDocuments::address_example())]
     #[case("com.example.degree", TypeMetadataDocuments::degree_example())]
     #[case(
         "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
@@ -523,7 +523,7 @@ mod test {
             .into_normalized("https://sd_jwt_vc_metadata.example.com/example_credential_v3")
             .expect_err("parsing metadata document chain should not succeed");
 
-        assert_matches!(error, TypeMetadataChainError::ExcessDocuments(vcts) if vcts == vec!["com.example.pid"]);
+        assert_matches!(error, TypeMetadataChainError::ExcessDocuments(vcts) if vcts == vec!["urn:eudi:pid:nl:1"]);
     }
 
     fn test_type_metadata_documents_incorrect_extended_resource_integrity(

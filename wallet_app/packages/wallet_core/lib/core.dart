@@ -8,6 +8,7 @@ export 'src/frb_generated.dart';
 export 'src/models/attestation.dart';
 export 'src/models/config.dart';
 export 'src/models/disclosure.dart';
+export 'src/models/image.dart';
 export 'src/models/instruction.dart';
 export 'src/models/localize.dart';
 export 'src/models/pin.dart';
@@ -17,8 +18,8 @@ export 'src/models/wallet_event.dart';
 
 // Hardcoded docTypes, these are exposed here because the card data is still enriched
 // based on this docType inside wallet_app (see [CardFrontMapper]). To be removed #someday
-const kPidDocType = 'com.example.pid';
-const kAddressDocType = 'com.example.address';
+const kPidDocType = 'urn:eudi:pid:nl:1';
+const kAddressDocType = 'urn:eudi:pid-address:nl:1';
 
 Future<void> postInit() async {
   if (await core.isInitialized()) {

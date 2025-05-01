@@ -33,7 +33,7 @@ postgres = ["server_utils/postgres", "dep:sea-orm"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["postgres", "allow_insecure_url", "openid4vc/test", "tokio/sync"]
 # Enable mock PID issuance
-mock = []
+mock = ["dep:derive_more", "openid4vc/mock"]
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/integration_test"]
 
@@ -54,6 +54,7 @@ tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"]
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
+derive_more = { workspace = true, optional = true, features = ["constructor"] }
 sea-orm = { workspace = true, optional = true, features = [
     "macros",
     "runtime-tokio-rustls",

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/model/app_image_data.dart';
+import '../app_image.dart';
+
 const kLogoBorderRadius = 4.0;
 const kLogoHeight = 40.0;
 
 class CardLogo extends StatelessWidget {
-  final String logo;
+  final AppImageData logo;
   final String? altText;
 
   const CardLogo({
@@ -15,12 +18,18 @@ class CardLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(kLogoBorderRadius),
-      child: Image.asset(
-        logo,
-        height: kLogoHeight,
-        semanticLabel: altText,
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minHeight: kLogoHeight,
+        maxHeight: kLogoHeight,
+        maxWidth: kLogoHeight * 2 /* add sane width restriction */,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(kLogoBorderRadius),
+        child: AppImage(
+          asset: logo,
+          altText: altText,
+        ),
       ),
     );
   }

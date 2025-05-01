@@ -49,9 +49,8 @@ use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
-use openid4vc::oidc;
 use openid4vc::token::TokenRequest;
-use pid_issuer::pid::mock::MockAttributesLookup;
+use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::settings::PidIssuerSettings;
 use pid_issuer::wte_tracker::WteTrackerVariant;
 use platform_support::attested_key::mock::KeyHolderType;
@@ -61,7 +60,6 @@ use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
-use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
@@ -228,7 +226,8 @@ pub async fn setup_wallet_and_env(
     );
 
     let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
-    let pid_issuer_port = start_pid_issuer_server(issuer_settings, Some(hsm.clone()), MockAttributeService).await;
+    let pid_issuer_port =
+        start_pid_issuer_server(issuer_settings, Some(hsm.clone()), MockAttributeService::default()).await;
     let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), attributes_fetcher).await;
 
     let issuance_setup = IssuanceParameters {
@@ -695,20 +694,6 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
         .await
         .expect("Could not accept pid issuance");
     wallet
-}
-
-pub struct MockAttributeService;
-
-impl AttributeService for MockAttributeService {
-    type Error = std::convert::Infallible;
-
-    async fn attributes(&self, _token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
-        Ok(MockAttributesLookup::default().attributes("999991772").unwrap())
-    }
-
-    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
-        Ok(oidc::Config::new_mock(issuer_url))
-    }
 }
 
 // The type of MockDigidSession::Context is too complex, but keeping ownership is important.

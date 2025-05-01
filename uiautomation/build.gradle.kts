@@ -1,24 +1,22 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    kotlin("jvm") version "2.0.21"
+    kotlin("jvm") version "2.1.20"
     application
 }
 
-group = "org.example"
+
+group = "nl.ictu.edi.wallet.uiautomation"
 version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+kotlin {
+    jvmToolchain(jdkVersion = 17)
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
+    implementation(kotlin("stdlib"))
 
     implementation("com.codeborne:selenide-appium:7.5.1")
     implementation("com.squareup.moshi:moshi-kotlin:1.15.1")
@@ -32,6 +30,7 @@ dependencies {
 
     implementation(platform("io.qameta.allure:allure-bom:2.29.1"))
     implementation("io.qameta.allure:allure-junit5")
+    implementation("org.json:json:20240303")
 }
 
 // Test config args and default/fallback values
@@ -43,20 +42,11 @@ val testConfigMap = mapOf<String, Any>(
     "test.config.remote" to false,
 )
 
-// Set system properties for test config
-fun configureTestTask(task: Test) {
-    testConfigMap.forEach { (key, value) ->
-        task.systemProperty(key, System.getProperty(key, value.toString()))
-    }
-}
-
 tasks.test {
-    configureTestTask(this)
     useJUnitPlatform()
 }
 
 tasks.register<Test>("smokeTest") {
-    configureTestTask(this)
     useJUnitPlatform {
         includeTags("smoke")
 
@@ -67,7 +57,6 @@ tasks.register<Test>("smokeTest") {
 }
 
 tasks.register<Test>("runOnAll") {
-    configureTestTask(this)
     useJUnitPlatform {
         includeTags("runonall")
 
@@ -77,12 +66,9 @@ tasks.register<Test>("runOnAll") {
     }
 }
 
-val compileKotlin: KotlinCompile by tasks
-compileKotlin.kotlinOptions {
-    jvmTarget = "17"
-}
-
-val compileTestKotlin: KotlinCompile by tasks
-compileTestKotlin.kotlinOptions {
-    jvmTarget = "17"
+// Set system properties for test config
+tasks.withType<Test>().configureEach {
+    testConfigMap.forEach { (key, value) ->
+        systemProperty(key, System.getProperty(key, value.toString()))
+    }
 }

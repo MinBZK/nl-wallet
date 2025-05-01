@@ -492,6 +492,9 @@ Next to these configuration files the build can be configured with:
 | SENTRY_RELEASE                | Env         | Flutter                             | [Sentry Release](https://docs.sentry.io/product/releases/) (passed via Dart define as SENTRY_RELEASE). |
 | build                         | Option      | iOS / Android build                 | The build number of the build (should be strictly increasing when submitting to App or Play Store). Defaults to `0`. |
 | version                       | Option      | iOS / Android build                 | The version of the build (should be semver). Defaults to the version in the [pubspec.yaml](wallet_app/pubspec.yaml). |
+| app_name                      | Option      | iOS / Android build                 | The app name (passed via environment as APP_NAME). Defaults to the `NL Wallet`. |
+| application_id                | Option      | Android build                       | The Android application id (passed via environment as APPLICATION_ID). Defaults to `nl.ictu.edi.wallet.latest`. |
+| bundle_id                     | Option      | iOS                                 | The iOS bundle id (changed via update_code_signing_settings lane). Defaults to `nl.ictu.edi.wallet.latest`. |
 | build_mode                    | Option      | Flutter                             | The build mode of Flutter (debug / profile / release). Defaults to `release`. |
 | file_format                   | Option      | Android build                       | File format (aab / apk)  for Android build. Defaults to `aab`. |
 | fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`. |

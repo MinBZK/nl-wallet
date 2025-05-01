@@ -116,7 +116,9 @@ version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "bitflags 2.8.0",
+ "bytes",
  "cfg-if",
+ "cfg_eval",
  "chrono",
  "const-decoder",
  "der",
@@ -142,6 +144,7 @@ dependencies = [
  "rustls-webpki",
  "serde",
  "serde_json",
+ "serde_repr",
  "serde_with",
  "spki",
  "strum 0.26.3",
@@ -948,9 +951,12 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
-version = "1.10.0"
+version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f61dac84819c6588b558454b194026eb1f09c293b9036ae9b159e74e73ab6cf9"
+checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "camino"
@@ -995,6 +1001,17 @@ name = "cfg_aliases"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
+
+[[package]]
+name = "cfg_eval"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45565fc9416b9896014f5732ac776f810ee53a66730c17e4020c3ec064a8f88f"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "chrono"
@@ -1545,6 +1562,12 @@ name = "data-encoding"
 version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0e60eed09d8c01d3cee5b7d30acb059b76614c918fa0f992e0dd6eeb10daad6f"
+
+[[package]]
+name = "data-url"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c297a1c74b71ae29df00c3e22dd9534821d60eb9af5a0192823fa2acea70c2a"
 
 [[package]]
 name = "deadpool"
@@ -2758,7 +2781,9 @@ version = "0.3.0-dev"
 dependencies = [
  "axum",
  "axum-server",
+ "base64 0.22.1",
  "cfg-if",
+ "data-url",
  "derive_more",
  "http",
  "mime",
@@ -4248,6 +4273,7 @@ dependencies = [
  "chrono",
  "config",
  "crypto",
+ "derive_more",
  "futures",
  "hsm",
  "http_utils",
@@ -4349,6 +4375,7 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "cfg-if",
+ "cfg_eval",
  "crypto",
  "derive_more",
  "error_category",

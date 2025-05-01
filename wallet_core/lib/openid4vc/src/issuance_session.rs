@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::hash::Hash;
 
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -269,6 +270,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey,
+        K: Eq + Hash,
         KF: KeyFactory<Key = K>,
         KF: PoaFactory<Key = K>;
 
@@ -596,6 +598,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey,
+        K: Eq + Hash,
         KF: KeyFactory<Key = K>,
         KF: PoaFactory<Key = K>,
     {
@@ -649,7 +652,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect_vec();
 
         // We need a minimum of two keys to associate for a PoA to be sensible.
-        let poa = VecAtLeastTwoUnique::new(poa_keys).ok().map(|poa_keys| async {
+        let poa = VecAtLeastTwoUnique::try_from(poa_keys).ok().map(|poa_keys| async {
             key_factory
                 .poa(poa_keys, pop_claims.aud.clone(), pop_claims.nonce.clone())
                 .await

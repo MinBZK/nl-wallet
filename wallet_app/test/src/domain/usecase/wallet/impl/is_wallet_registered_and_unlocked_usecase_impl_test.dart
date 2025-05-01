@@ -41,4 +41,11 @@ void main() {
     final result = await usecase.invoke();
     expect(result, isFalse);
   });
+
+  test('StateError is thrown when check fails', () async {
+    final mockWalletRepository = MockWalletRepository();
+    when(mockWalletRepository.isRegistered()).thenAnswer((_) async => throw Exception());
+    final usecase = IsWalletRegisteredAndUnlockedUseCaseImpl(mockWalletRepository);
+    await expectLater(usecase.invoke, throwsA(isA<StateError>()));
+  });
 }

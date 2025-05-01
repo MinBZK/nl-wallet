@@ -12,4 +12,5 @@
 /*.pem
 /*.der
 *.snap.new
-/*metadata.json
+/eudi:*.json
+/com_example*.json

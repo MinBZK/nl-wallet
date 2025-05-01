@@ -23,8 +23,11 @@ sonar-rust:
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-rust
-      -Dsonar.exclusions="target/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs"
-      -Dsonar.coverage.exclusions=flutter_api/src/frb_generated.rs,mock_relying_party/src/askama_axum.rs,wallet/migration/**,wallet_provider/migrations/**,wallet_server/server_utils/migration/**
+      -Dsonar.sources=.
+      -Dsonar.exclusions=target/**,**/examples/**,**/resources/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs
+      -Dsonar.coverage.exclusions=configuration_server/**,gba_hc_converter/src/fetch/askama_axum.rs,mock_relying_party/**,**/migrations/**,uniffi-bindgen/**
+      -Dtest=.
+      -Dtest.inclusions=**/tests/**,**/tests_integration/**
       -Dcommunity.rust.cpd.ignoretests=true
       -Dcommunity.rust.lcov.reportPaths="lcov.info"
       -Dcommunity.rust.test.reportPath="target/nextest/ci/junit.xml"
@@ -69,10 +72,8 @@ sonar-wallet-web:
       -Dsonar.projectKey=nl-wallet-web
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=lib/
-      -Dsonar.exclusions=lib/__tests__/**/*,lib/util/qrcodegen.ts
-      -Dsonar.tests=lib/
-      -Dsonar.test.inclusions=lib/__tests__/**/*
-      -Dsonar.coverage.exclusions=lib/__tests__
+      -Dsonar.exclusions=lib/__tests__/**/*,lib/**/__mocks__/**,lib/util/qrcodegen.ts
+      -Dsonar.tests=lib/__tests__
       -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
   allow_failure: true
 
@@ -88,7 +89,8 @@ sonar-ios:
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-ios
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
-      -Dsonar.exclusions="*Tests*/**"
+      -Dsonar.sources=PlatformSupport
+      -Dsonar.tests="Integration Tests,Integration Tests Host App"
       -Dsonar.c.file.suffixes=-
       -Dsonar.cpp.file.suffixes=-
       -Dsonar.objc.file.suffixes=-
@@ -108,8 +110,9 @@ sonar-android:
       -Dsonar.projectKey=nl-wallet-demo-app-platform-support-android
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=src/main
-      -Dsonar.tests=src/androidTest
+      -Dsonar.exclusions=**/AndroidManifest.xml
+      -Dsonar.tests=src/test,src/androidTest
       -Dsonar.findbugs.allowuncompiledcode=true
-      -Dsonar.junit.reportPaths="build/outputs/androidTest-results/connected/debug/"
-      -Dsonar.coverage.jacoco.xmlReportPaths="build/reports/coverage/androidTest/debug/connected/report.xml"
+      -Dsonar.junit.reportPaths=build/test-results/testDebugUnitTest,build/outputs/androidTest-results/connected/debug
+      -Dsonar.coverage.jacoco.xmlReportPaths=build/reports/coverage/**/report.xml
   allow_failure: true

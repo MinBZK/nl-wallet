@@ -39,7 +39,6 @@ pub mod configuration {
 
 pub mod mdoc {
     pub use mdoc::utils::auth::Image;
-    pub use mdoc::utils::auth::ImageType;
     pub use mdoc::utils::auth::LocalizedStrings;
     pub use mdoc::utils::auth::Organization;
     pub use mdoc::utils::reader_auth::DeletionPolicy;
@@ -59,6 +58,7 @@ pub mod sd_jwt_vc_metadata {
     pub use sd_jwt_vc_metadata::DisplayMetadata;
     pub use sd_jwt_vc_metadata::LogoMetadata;
     pub use sd_jwt_vc_metadata::RenderingMetadata;
+    pub use sd_jwt_vc_metadata::UriMetadata;
 }
 
 pub mod utils {

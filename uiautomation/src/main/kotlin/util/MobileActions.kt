@@ -3,7 +3,9 @@ package util
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import data.TestConfigRepository.Companion.testConfig
 import helper.BrowserStackHelper
+import helper.CardMetadataHelper
 import helper.LocalizationHelper
+import helper.OrganizationAuthMetadataHelper
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
@@ -29,6 +31,8 @@ open class MobileActions {
 
     protected val find = FlutterFinder(driver)
     protected val l10n = LocalizationHelper()
+    protected val cardMetadata = CardMetadataHelper()
+    protected val organizationAuthMetadata = OrganizationAuthMetadataHelper()
 
     /**
      * Checks if the given element is visible.
@@ -205,8 +209,6 @@ open class MobileActions {
         return jsExecutor.executeScript(jsScript, startButton.shadowRoot) as WebElement
     }
 
-    protected fun navigateBack() = driver.navigate().back()
-
     private fun <T> performAction(frameSync: Boolean = true, action: () -> T): T {
         if (!frameSync) driver.executeScript("flutter:setFrameSync", false, SET_FRAME_SYNC_MAX_WAIT_MILLIS)
         return try {
@@ -296,7 +298,7 @@ open class MobileActions {
         process.waitFor()
     }
 
-    fun getTextFromElementContainingText(partialText: String): String = withNativeContext {
+    fun getTextFromElementContainingText(partialText: String): String? = withNativeContext {
         val element = try {
             findElementByPartialText(partialText)
         } catch (e: Exception) {
@@ -308,10 +310,10 @@ open class MobileActions {
             throw NoSuchElementException("No element found containing: $partialText")
         }
 
-        when (platformName()) {
+        when (val platform = platformName()) {
             "ANDROID" -> element.getAttribute("contentDescription")
             "IOS" -> element.getAttribute("name")
-            else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 
@@ -333,14 +335,14 @@ open class MobileActions {
     }
 
     private fun findElementByPartialText(partialText: String): WebElement {
-        return when (platformName()) {
+        return when (val platform = platformName()) {
             "ANDROID" -> driver.findElement(
                 AppiumBy.androidUIAutomator("new UiSelector().descriptionContains(\"$partialText\")")
             )
             "IOS" -> driver.findElement(
                 By.xpath("//*[contains(@name, '$partialText')]")
             )
-            else -> throw IllegalArgumentException("Unsupported platform: ${platformName()}")
+            else -> throw IllegalArgumentException("Unsupported platform: $platform")
         }
     }
 

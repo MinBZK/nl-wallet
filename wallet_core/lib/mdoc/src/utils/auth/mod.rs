@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -25,26 +26,17 @@ impl From<Vec<(&str, &str)>> for LocalizedStrings {
     }
 }
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ImageType {
-    #[default]
-    #[serde(rename = "image/svg+xml")]
-    Svg,
-    #[serde(rename = "image/png")]
-    Png,
-    #[serde(rename = "image/jpeg")]
-    Jpeg,
-}
-
 /// Encapsulates an image.
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Image {
-    /// Media Type of the image, expected to start with: `image/`.
-    pub mime_type: ImageType,
-    /// String encoded data of the image, f.e. XML text for `image/xml+svg`, or Base64 encoded binary data for
-    /// `image/png`.
-    pub image_data: String,
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "mimeType", content = "imageData")]
+pub enum Image {
+    #[serde(rename = "image/svg+xml")]
+    Svg(String),
+    #[serde(rename = "image/png")]
+    Png(#[serde_as(as = "Base64")] Vec<u8>),
+    #[serde(rename = "image/jpeg")]
+    Jpeg(#[serde_as(as = "Base64")] Vec<u8>),
 }
 
 #[serde_as]
@@ -89,5 +81,24 @@ pub mod mock {
                 logo: None,
             }
         }
+    }
+}
+
+#[cfg(test)]
+pub mod test {
+    use super::*;
+
+    use rstest::rstest;
+    use serde_json::json;
+
+    #[rstest]
+    #[case("image/svg+xml", "<svg></svg>", Image::Svg("<svg></svg>".to_owned()))]
+    #[case("image/png", "yv4=", Image::Png(vec![0xca, 0xfe]))]
+    #[case("image/jpeg", "q80=", Image::Jpeg(vec![0xab, 0xcd]))]
+    fn image_deserialize(#[case] mime_type: &str, #[case] image_data: &str, #[case] expected: Image) {
+        assert_eq!(
+            serde_json::from_value::<Image>(json!({"mimeType": mime_type ,"imageData": image_data})).unwrap(),
+            expected,
+        )
     }
 }

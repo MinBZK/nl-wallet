@@ -7,14 +7,16 @@ part of 'card_rendering.dart';
 // **************************************************************************
 
 SimpleCardRendering _$SimpleCardRenderingFromJson(Map<String, dynamic> json) => SimpleCardRendering(
-      logoUri: json['logoUri'] as String?,
+      logo: _$JsonConverterFromJson<Map<String, dynamic>, AppImageData>(
+          json['logo'], const AppImageDataConverter().fromJson),
       logoAltText: json['logoAltText'] as String?,
       bgColor: _$JsonConverterFromJson<int, Color>(json['bgColor'], const ColorConverter().fromJson),
       textColor: _$JsonConverterFromJson<int, Color>(json['textColor'], const ColorConverter().fromJson),
     );
 
 Map<String, dynamic> _$SimpleCardRenderingToJson(SimpleCardRendering instance) => <String, dynamic>{
-      'logoUri': instance.logoUri,
+      'logo': _$JsonConverterToJson<Map<String, dynamic>, AppImageData>(
+          instance.logo, const AppImageDataConverter().toJson),
       'logoAltText': instance.logoAltText,
       'bgColor': _$JsonConverterToJson<int, Color>(instance.bgColor, const ColorConverter().toJson),
       'textColor': _$JsonConverterToJson<int, Color>(instance.textColor, const ColorConverter().toJson),

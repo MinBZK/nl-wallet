@@ -5,11 +5,7 @@ kind: Job
 metadata:
   name: {{ $name }}-migrations
   labels:
-    app.kubernetes.io/name: {{ $name }}-migrations
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    {{- include "common.labels.standard" . | nindent 4 }}
   annotations:
     "helm.sh/hook": pre-install,pre-upgrade
     "helm.sh/hook-weight": "0"
@@ -19,8 +15,9 @@ spec:
   template:
     metadata:
       labels:
-        {{- if .Values.extraPodlabels }}
-        {{ toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- include "common.labels.component" (list "migration" .) | nindent 8 }}
+        {{- with .Values.migration.labels }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
@@ -30,7 +27,7 @@ spec:
       containers:
         - name: {{ $name }}-migrations
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
-          args: [ "fresh" ]
+          args: ["up"]
           env:
             - name: WALLET_PROVIDER__DATABASE__HOST
               value: db-cluster-rw

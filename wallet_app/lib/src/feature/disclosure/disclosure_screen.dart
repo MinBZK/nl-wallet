@@ -335,16 +335,7 @@ class DisclosureScreen extends StatelessWidget {
           ReportingOption.overAskingOrganization,
           ReportingOption.suspiciousOrganization,
         ];
-      case DisclosureInitial():
-      case DisclosureLoadInProgress():
-      case DisclosureExternalScannerError():
-      case DisclosureGenericError():
-      case DisclosureSessionExpired():
-      case DisclosureNetworkError():
-      case DisclosureSuccess():
-      case DisclosureStopped():
-      case DisclosureCancelledSessionError():
-      case DisclosureLeftFeedback():
+      default:
         Fimber.d('No ReportingOptions provided for $state');
         return <ReportingOption>[];
     }

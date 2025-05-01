@@ -2,6 +2,7 @@ package helper
 
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import helper.FileUtils.getProjectFile
 import util.TestInfoHandler.Companion.language
 import java.io.File
 
@@ -20,17 +21,7 @@ class LocalizationHelper {
         val nl: String,
         val en: String,
     ) {
-        PID_CARD_TITLE("Persoonsgegevens", "Personal data"),
-        ADDRESS_CARD_TITLE("Woonadres", "Residential address"),
         SECONDS("seconden", "seconds"),
-        AMSTERDAM_DISPLAY_NAME("Gemeente Amsterdam", "City of Amsterdam"),
-        NAME_LABEL("Achternaam", "Name"),
-        FIRST_NAME_LABEL("Voornaam", "First name"),
-        BIRTH_DATE_LABEL("Geboortedatum", "Birth date"),
-        BSN_LABEL("BSN", "BSN"),
-        OVER_18_LABEL("18+", "Over 18"),
-        CREATE_ACCOUNT_SHARING_REASON("Account aanmaken", "Create Account"),
-
     }
 
     fun translate(translation: Translation): String {
@@ -56,7 +47,7 @@ class LocalizationHelper {
     }
 
     companion object {
-        const val L10N_FILE_PATH = "../wallet_app/lib/l10n"
+        val L10N_FILE_PATH = getProjectFile("wallet_app/lib/l10n")
     }
 }
 

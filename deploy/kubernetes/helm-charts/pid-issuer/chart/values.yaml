@@ -95,6 +95,8 @@ digid:
 ## @section Migration parameters
 ## Parameters for the migration configuration
 ## @param migration.labels Additional labels for the migration job
+## @param migration.reset Enable reset cron job
 ##
 migration:
   labels: {}
+  reset: true

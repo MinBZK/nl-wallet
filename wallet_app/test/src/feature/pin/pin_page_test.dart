@@ -24,6 +24,18 @@ void main() {
       await screenMatchesGolden('pin_page/pin_initial');
     });
 
+    testGoldens('PinEntryInProgress - 0 - Initial - Extreme scaling', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(
+          MockPinBloc(),
+          const PinEntryInProgress(0),
+        ),
+        textScaleSize: 3.25,
+      );
+      await tester.pumpAndSettle();
+      await screenMatchesGolden('pin_page/pin_initial_scaled');
+    });
+
     testGoldens('PinEntryInProgress - 3', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         PinPage(onPinValidated: (_) {}).withState<PinBloc, PinState>(

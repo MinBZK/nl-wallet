@@ -21,6 +21,7 @@ use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
 use ssri::Integrity;
 
+use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
@@ -64,7 +65,7 @@ pub enum TypeMetadataError {
 /// Note that within the context of the wallet app we place additional constraints on the contents of this document,
 /// most of which stem from practical concerns. These constraints consist of the following:
 ///
-/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
+/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptional` type.
 /// * Attributes contained in arrays are not (yet) supported.
 /// * Optional attributes are not yet supported.
 /// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
@@ -398,14 +399,26 @@ pub enum RenderingMetadata {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LogoMetadata {
-    pub uri: BaseUrl,
+#[serde(untagged)]
+pub enum UriMetadata {
+    Embedded {
+        uri: DataUri,
+    },
+    Remote {
+        uri: BaseUrl,
 
-    /// Note that although this is optional in the specification, we consider validation using a digest mandatory if
-    /// the logo is to be fetched from an external URI, in order to check that this matches the image as intended
-    /// by the issuer.
-    #[serde(rename = "uri#integrity")]
-    pub uri_integrity: SpecOptional<Integrity>,
+        /// Note that although this is optional in the specification, we consider validation using a digest mandatory
+        /// if the logo is to be fetched from an external URI, in order to check that this matches the image as
+        /// intended by the issuer.
+        #[serde(rename = "uri#integrity")]
+        uri_integrity: SpecOptional<Integrity>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LogoMetadata {
+    #[serde(flatten)]
+    pub uri_metadata: UriMetadata,
 
     /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
     /// because of accessibility requirements.
@@ -540,6 +553,8 @@ mod example_constructors {
     use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
     use crate::examples::SD_JWT_VC_SPEC_METADATA_BYTES;
+    use crate::examples::SIMPLE_EMBEDDED_BYTES;
+    use crate::examples::SIMPLE_REMOTE_BYTES;
 
     use super::ClaimDisplayMetadata;
     use super::ClaimMetadata;
@@ -647,6 +662,14 @@ mod example_constructors {
         pub fn credential_payload_sd_jwt_metadata() -> Self {
             serde_json::from_slice(CREDENTIAL_PAYLOAD_SD_JWT_SPEC_METADATA_BYTES).unwrap()
         }
+
+        pub fn simple_embedded_example() -> Self {
+            serde_json::from_slice(SIMPLE_EMBEDDED_BYTES).unwrap()
+        }
+
+        pub fn simple_remote_example() -> Self {
+            serde_json::from_slice(SIMPLE_REMOTE_BYTES).unwrap()
+        }
     }
 
     impl TypeMetadata {
@@ -696,6 +719,14 @@ mod example_constructors {
         pub fn address_example() -> Self {
             Self::try_new(UncheckedTypeMetadata::address_example()).unwrap()
         }
+
+        pub fn simple_embedded_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::simple_embedded_example()).unwrap()
+        }
+
+        pub fn simple_remote_example() -> Self {
+            Self::try_new(UncheckedTypeMetadata::simple_remote_example()).unwrap()
+        }
     }
 
     impl JsonSchema {
@@ -736,16 +767,14 @@ mod test {
     use jsonschema::ValidationError;
     use rstest::rstest;
     use serde_json::json;
+
+    use http_utils::data_uri::DataUri;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
+    use crate::examples::RED_DOT_BYTES;
 
-    use super::ClaimPath;
-    use super::MetadataExtends;
-    use super::SchemaOption;
-    use super::TypeMetadata;
-    use super::TypeMetadataError;
-    use super::UncheckedTypeMetadata;
+    use super::*;
 
     #[test]
     fn test_deserialize() {
@@ -753,6 +782,44 @@ mod test {
         assert_eq!(
             "https://sd_jwt_vc_metadata.example.com/example_credential",
             metadata.as_ref().vct
+        );
+    }
+
+    #[test]
+    fn test_deserialize_with_simple_rendering_and_embedded_logo() {
+        assert_eq!(
+            Some(RenderingMetadata::Simple {
+                logo: Some(LogoMetadata {
+                    uri_metadata: UriMetadata::Embedded {
+                        uri: DataUri {
+                            mime_type: "image/png".to_string(),
+                            data: RED_DOT_BYTES.to_vec()
+                        }
+                    },
+                    alt_text: "An example PNG logo".to_string().into(),
+                }),
+                background_color: Some("#FF8000".to_string()),
+                text_color: Some("#0080FF".to_string()),
+            }),
+            TypeMetadata::simple_embedded_example().as_ref().display[0].rendering
+        );
+    }
+
+    #[test]
+    fn test_deserialize_with_simple_rendering_and_remote_logo() {
+        assert_eq!(
+            Some(RenderingMetadata::Simple {
+                logo: Some(LogoMetadata {
+                    uri_metadata: UriMetadata::Remote {
+                        uri: "https://simple.example.com/red-dot.png".parse().unwrap(),
+                        uri_integrity: Integrity::from(RED_DOT_BYTES).into(),
+                    },
+                    alt_text: "An example PNG logo".to_string().into(),
+                }),
+                background_color: Some("#FF8000".to_string()),
+                text_color: Some("#0080FF".to_string()),
+            }),
+            TypeMetadata::simple_remote_example().as_ref().display[0].rendering
         );
     }
 
