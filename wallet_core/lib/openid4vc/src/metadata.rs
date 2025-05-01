@@ -13,6 +13,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
 use sd_jwt_vc_metadata::UriMetadata;
 use serde_with::skip_serializing_none;
+use url::Url;
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
@@ -175,7 +176,7 @@ pub struct NameLocale {
 pub struct Logo {
     /// A URI where the Wallet can obtain the logo of the Credential Issuer. The Wallet needs
     /// to determine the scheme, since the URI value could use the `https:` scheme, the `data:` scheme, etc.
-    pub uri: BaseUrl,
+    pub uri: Url,
 
     /// String value of the alternative text for the logo image.
     pub alt_text: Option<String>,
@@ -373,8 +374,8 @@ impl From<DisplayMetadata> for CredentialDisplay {
             locale: Some(value.lang),
             logo: logo.map(|logo| Logo {
                 uri: match logo.uri_metadata {
-                    UriMetadata::Embedded { uri } => uri.to_string().parse().unwrap(),
-                    UriMetadata::Remote { uri, .. } => uri,
+                    UriMetadata::Embedded { uri } => uri.to_string().parse().unwrap(), // a data URIs is a valid `Url`
+                    UriMetadata::Remote { uri, .. } => uri.into_inner(),
                 },
                 alt_text: Some(logo.alt_text.into_inner()),
             }),
