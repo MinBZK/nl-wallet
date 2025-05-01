@@ -11,3 +11,7 @@
 .primary {
   color: var(--primary-color);
 }
+
+main section {
+  gap: 40px;
+}

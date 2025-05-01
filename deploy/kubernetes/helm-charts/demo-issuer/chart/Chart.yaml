@@ -1,0 +1,14 @@
+apiVersion: v2
+name: demo-issuer
+description: A Helm chart for demo-issuer
+
+type: application
+
+version: 0.3.0
+
+appVersion: ""
+
+dependencies:
+  - name: sp-common
+    repository: "file://../../sp-common"
+    version: 1.x.x

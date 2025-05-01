@@ -1,0 +1,3 @@
+{% macro banner(usecase) %}
+<div class="banner banner-{{ usecase }}"></div>
+{% endmacro %}

@@ -1,0 +1,7 @@
+[webserver]
+ip = '127.0.0.1'
+port = 3011
+
+[[usecases.university]]
+
+[[usecases.insurance]]

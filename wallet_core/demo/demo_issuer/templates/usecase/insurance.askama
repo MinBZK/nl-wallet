@@ -1,0 +1,22 @@
+{% call header::header(base.trans.insurance_title, "") %}
+
+<main>
+    <section>
+        <h2>{{ base.trans.insurance_get_cards }}</h2>
+    </section>
+    {% match base.session_token %}
+        {% when Some with (session_token) %}
+        {% call notification::notification(base.trans.failed_try_again, "", session_token) %}
+        {% when None %}
+    {% endmatch %}
+    <section class="buttons">
+        <nl-wallet-button
+            text="{{ base.trans.add_to_nl_wallet }}"
+            usecase="{{ usecase }}"
+            start-url="{{ start_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+        <a href="#" disabled>{{ base.trans.choose_another_wallet }}</a>
+    </section>
+    {% call banner::banner(usecase) %}
+</main>

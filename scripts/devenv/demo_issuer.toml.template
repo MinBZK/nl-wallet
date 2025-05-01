@@ -1,0 +1,11 @@
+[webserver]
+ip = '0.0.0.0'
+port = ${DEMO_ISSUER_PORT}
+
+[wallet_web]
+filename = "${WALLET_WEB_FILENAME}"
+sha256 = "${WALLET_WEB_SHA256}"
+
+[[usecases.university]]
+
+[[usecases.insurance]]

@@ -91,7 +91,13 @@ trivy-scan:
     - job: build-demo-relying-party-image
       artifacts: false
       optional: true
+    - job: build-demo-issuer-image
+      artifacts: false
+      optional: true
     - job: build-verification-server-image
+      artifacts: false
+      optional: true
+    - job: build-issuance-server-image
       artifacts: false
       optional: true
     - job: build-pid-issuer-image
@@ -100,10 +106,12 @@ trivy-scan:
   before_script:
     - BUILD_IMAGES=(
       "nl-wallet-demo-relying-party"
+      "nl-wallet-demo-issuer"
       "nl-wallet-provider-migrations"
       "nl-wallet-provider"
       "nl-wallet-server-migrations"
       "nl-wallet-verification-server"
+      "nl-wallet-issuance-server"
       "nl-wallet-pid-issuer"
       "nl-wallet-gba-hc-converter"
       )

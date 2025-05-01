@@ -7,7 +7,7 @@ metadata = [
 ]
 
 [storage]
-url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer'
+url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/issuance_server'
 
 [wallet_server]
 ip = '0.0.0.0'

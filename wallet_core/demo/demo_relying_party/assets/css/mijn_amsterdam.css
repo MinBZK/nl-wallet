@@ -9,6 +9,8 @@
 :root {
   --primary-color: #da2e20;
   --hover-color: #85150b;
+  --title-color: #30293d;
+  --text-color: #2e2e2e;
   --notification-color: #3d8540;
   --error-color: #da2e20;
   --logo-url: url("../non-free/images/mijn_amsterdam_text.svg");
@@ -96,7 +98,7 @@ main > section {
 }
 
 main section {
-  gap: 40px;
+  gap: 8px;
 }
 
 @media only screen and (min-width: 1145px) {

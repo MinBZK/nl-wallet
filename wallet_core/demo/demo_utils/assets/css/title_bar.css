@@ -40,7 +40,7 @@ header h1 {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #2e2e2e;
+  color: var(--title-color);
   font-size: 21.818px;
   font-weight: 700;
   line-height: 32px;

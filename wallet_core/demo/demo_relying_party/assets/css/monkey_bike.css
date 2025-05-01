@@ -6,6 +6,8 @@
 
 :root {
   --primary-color: #563dc8;
+  --title-color: #30293d;
+  --text-color: #2e2e2e;
   --error-color: #ab0065;
   --logo-url: url("../images/monkey_bike.svg");
 }

@@ -11,6 +11,7 @@ main {
 
 main > * {
   max-width: 1145px;
+  width: 100%;
 }
 
 @media only screen and (min-width: 1145px) {

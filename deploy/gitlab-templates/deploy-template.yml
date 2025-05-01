@@ -96,14 +96,55 @@ read-hash-labels-image-demo-rp-${DEPLOY_ENV}:
         fi
         echo "$value" > "$output_file"
       }
-      extract_and_validate "csp_script_demo_rp_base64" "csp_script_demo_rp_base64.txt"
-      extract_and_validate "csp_style_demo_rp_base64" "csp_style_demo_rp_base64.txt"
+      extract_and_validate "csp_script_demo_rp" "csp_script_src.txt"
+      extract_and_validate "csp_style_demo_rp" "csp_style_src.txt"
       extract_and_validate "wallet_web_filename" "wallet_web_filename.txt"
       extract_and_validate "wallet_web_sha256" "wallet_web_sha256.txt"
   artifacts:
     paths:
-      - csp_script_demo_rp_base64.txt
-      - csp_style_demo_rp_base64.txt
+      - csp_script_src.txt
+      - csp_style_src.txt
+      - wallet_web_filename.txt
+      - wallet_web_sha256.txt
+
+docker-manifest-demo-issuer:
+  rules:
+    - when: always
+  image: $CRANE_DOCKER_ALT_IMAGE
+  script:
+    - !reference [.docker-login, script]
+    - crane config ${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-demo-issuer:${DEPLOY_IMAGE_VERSION} > image_demo_issuer_manifest.json
+  artifacts:
+    paths:
+      - image_demo_issuer_manifest.json
+
+read-hash-labels-image-demo-issuer-${DEPLOY_ENV}:
+  rules:
+    - when: always
+  needs:
+    - docker-manifest-demo-issuer
+  script:
+    - |
+      cat image_demo_issuer_manifest.json
+      # Function to extract and validate JSON values
+      extract_and_validate() {
+        local key=$1
+        local output_file=$2
+        local value=$(jq -r ".config.Labels.${key}" image_demo_issuer_manifest.json)
+        if [ -z "$value" ]; then
+          echo "Error: ${key} value is empty"
+          exit 1
+        fi
+        echo "$value" > "$output_file"
+      }
+      extract_and_validate "csp_script_demo_issuer" "csp_script_src.txt"
+      extract_and_validate "csp_style_demo_issuer" "csp_style_src.txt"
+      extract_and_validate "wallet_web_filename" "wallet_web_filename.txt"
+      extract_and_validate "wallet_web_sha256" "wallet_web_sha256.txt"
+  artifacts:
+    paths:
+      - csp_script_src.txt
+      - csp_style_src.txt
       - wallet_web_filename.txt
       - wallet_web_sha256.txt
 
@@ -134,6 +175,21 @@ db-cluster-demo-rp-${DEPLOY_ENV}:
     RELEASE_NAME: db-cluster-demo-rp
     CONFIG_NAME: demo-rp
     CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/demo-rp/values.yaml"
+  script:
+    - !reference [.deploy-postgres-cluster, script]
+
+db-cluster-demo-issuer-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: on_success
+  <<: *deploy-environment
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: database-cnpg
+    RELEASE_NAME: db-cluster-demo-issuer
+    CONFIG_NAME: demo-issuer
+    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/demo-issuer/values.yaml"
   script:
     - !reference [.deploy-postgres-cluster, script]
 
@@ -222,8 +278,8 @@ demo-relying-party-${DEPLOY_ENV}:
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
       cat variables/${DEPLOY_ENV}/demo-relying-party.yaml
-      export CSP_SCRIPT_DEMO_RP=$(cat csp_script_demo_rp_base64.txt | base64 -d)
-      export CSP_STYLE_DEMO_RP=$(cat csp_style_demo_rp_base64.txt | base64 -d)
+      export CSP_SCRIPT_DEMO_RP=$(cat csp_script_src.txt | base64 -d)
+      export CSP_STYLE_DEMO_RP=$(cat csp_style_src.txt | base64 -d)
       export WALLET_WEB_FILENAME=$(cat wallet_web_filename.txt)
       export WALLET_WEB_SHA256=$(cat wallet_web_sha256.txt)
       helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
@@ -233,6 +289,51 @@ demo-relying-party-${DEPLOY_ENV}:
       --set ingress.cspStyleSrc="${CSP_STYLE_DEMO_RP}" \
       --set demoRelyingParty.walletWebFilename="${WALLET_WEB_FILENAME}" \
       --set demoRelyingParty.walletWebSha256="${WALLET_WEB_SHA256}" \
+       $FILE_OPTIONS
+    - !reference [.check-helm-install-status, script]
+
+demo-issuer-issuance-server-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - db-cluster-demo-issuer-${DEPLOY_ENV}
+    - fetch-variables
+  variables:
+    CHART_NAME: demo-issuer-issuance-server
+    RELEASE_NAME: demo-issuer-issuance-server
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
+  <<: *basic-helm-deployment
+
+demo-issuer-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+    - read-hash-labels-image-demo-issuer-${DEPLOY_ENV}
+  variables:
+    CHART_NAME: demo-issuer
+    RELEASE_NAME: demo-issuer
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-issuer.yaml"
+  script:
+    - !reference [.build-helm-dependency, script]
+    - !reference [.replace-chart-app-version, script]
+    - !reference [.parse-config-files, script]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      cat variables/${DEPLOY_ENV}/demo-issuer.yaml
+      export CSP_SCRIPT_DEMO_ISSUER=$(cat csp_script_src.txt | base64 -d)
+      export CSP_STYLE_DEMO_ISSUER=$(cat csp_style_src.txt | base64 -d)
+      export WALLET_WEB_FILENAME=$(cat wallet_web_filename.txt)
+      export WALLET_WEB_SHA256=$(cat wallet_web_sha256.txt)
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+      --set image.tag=${DEPLOY_IMAGE_VERSION} \
+      --set ingress.cspScriptSrc="${CSP_SCRIPT_DEMO_ISSUER}" \
+      --set ingress.cspStyleSrc="${CSP_STYLE_DEMO_ISSUER}" \
+      --set demoIssuer.walletWebFilename="${WALLET_WEB_FILENAME}" \
+      --set demoIssuer.walletWebSha256="${WALLET_WEB_SHA256}" \
        $FILE_OPTIONS
     - !reference [.check-helm-install-status, script]
 

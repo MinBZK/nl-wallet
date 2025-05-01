@@ -3,16 +3,12 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use askama::Template;
-use axum::extract::FromRequestParts;
 use axum::extract::Path;
 use axum::extract::Query;
-use axum::extract::Request;
 use axum::extract::State;
 use axum::handler::HandlerWithoutStateExt;
-use axum::http::Method;
 use axum::http::StatusCode;
 use axum::middleware;
-use axum::middleware::Next;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
@@ -20,33 +16,27 @@ use axum::routing::post;
 use axum::Json;
 use axum::Router;
 use base64::prelude::*;
-use http::header::ACCEPT_LANGUAGE;
-use http::header::CACHE_CONTROL;
-use http::request::Parts;
-use http::HeaderMap;
-use http::HeaderValue;
+use demo_utils::headers::cors_layer;
+use demo_utils::headers::set_static_cache_control;
+use demo_utils::language::LanguageParam;
 use indexmap::IndexMap;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
-use tower_http::cors::Any;
-use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
+use demo_utils::askama_axum;
+use demo_utils::language::Language;
 use http_utils::urls::BaseUrl;
-use http_utils::urls::CorsOrigin;
 use mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
 use utils::path::prefix_local_path;
 
-use crate::askama_axum;
 use crate::client::WalletServerClient;
 use crate::settings::ReturnUrlMode;
 use crate::settings::Settings;
@@ -77,26 +67,6 @@ struct ApplicationState {
     wallet_web: WalletWeb,
 }
 
-fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
-    CorsLayer::new()
-        .allow_origin(allow_origins)
-        .allow_headers(Any)
-        .allow_methods([Method::GET, Method::POST])
-}
-
-async fn set_static_cache_control(request: Request, next: Next) -> Response {
-    // only cache images and fonts, not CSS and JS (except wallet_web, as that is suffixed with a hash)
-    let set_no_store = !request.uri().path().ends_with(".iife.js")
-        && [".css", ".js"].iter().any(|ext| request.uri().path().ends_with(ext));
-    let mut response = next.run(request).await;
-    if set_no_store {
-        response
-            .headers_mut()
-            .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
-    }
-    response
-}
-
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
         client: WalletServerClient::new(settings.internal_wallet_server_url.clone()),
@@ -118,8 +88,11 @@ pub fn create_router(settings: Settings) -> Router {
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))
                 .service(
-                    ServeDir::new(prefix_local_path("assets".as_ref()).as_ref())
-                        .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                    ServeDir::new(prefix_local_path("assets".as_ref())).fallback(
+                        ServiceBuilder::new()
+                            .service(ServeDir::new(prefix_local_path("../demo_utils/assets".as_ref())))
+                            .not_found_service({ StatusCode::NOT_FOUND }.into_service()),
+                    ),
                 ),
         )
         .with_state(application_state)
@@ -141,66 +114,6 @@ struct SessionOptions {
 struct SessionResponse {
     status_url: Url,
     session_token: SessionToken,
-}
-
-#[derive(
-    Debug,
-    Default,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    SerializeDisplay,
-    DeserializeFromStr,
-    strum::EnumString,
-    strum::Display,
-    strum::EnumIter,
-)]
-pub enum Language {
-    #[default]
-    #[strum(to_string = "nl")]
-    Nl,
-    #[strum(to_string = "en")]
-    En,
-}
-
-impl Language {
-    fn parse(s: &str) -> Option<Self> {
-        match s.split('-').next() {
-            Some("en") => Some(Language::En),
-            Some("nl") => Some(Language::Nl),
-            _ => None,
-        }
-    }
-
-    fn match_accept_language(headers: &HeaderMap) -> Option<Self> {
-        let accept_language = headers.get(ACCEPT_LANGUAGE)?;
-        let languages = accept_language::parse(accept_language.to_str().ok()?);
-
-        // applies function to the elements of iterator and returns the first non-None result
-        languages.into_iter().find_map(|l| Language::parse(&l))
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct LanguageParam {
-    pub lang: Language,
-}
-
-impl<S> FromRequestParts<S> for Language
-where
-    S: Send + Sync,
-{
-    type Rejection = std::convert::Infallible;
-
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> std::result::Result<Self, Self::Rejection> {
-        let lang = Query::<LanguageParam>::from_request_parts(parts, state)
-            .await
-            .map(|l| l.lang)
-            .unwrap_or(Language::match_accept_language(&parts.headers).unwrap_or_default());
-        Ok(lang)
-    }
 }
 
 async fn create_session(
@@ -286,8 +199,11 @@ struct UsecaseTemplate<'a> {
     base: BaseTemplate<'a>,
 }
 
-static USECASE_JS_SHA256: LazyLock<String> =
-    LazyLock::new(|| BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!("../assets/usecase.js"))));
+static USECASE_JS_SHA256: LazyLock<String> = LazyLock::new(|| {
+    BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!(
+        "../../demo_utils/assets/usecase.js"
+    )))
+});
 
 fn format_start_url(public_url: &BaseUrl, lang: Language) -> Url {
     let mut start_url = public_url.join("/sessions");
@@ -403,22 +319,5 @@ mod filters {
         }
 
         Ok(format!("attribute '{name}' cannot be found"))
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use rstest::rstest;
-
-    use super::*;
-
-    #[rstest]
-    #[case("en", Some(Language::En))]
-    #[case("nl", Some(Language::Nl))]
-    #[case("123", None)]
-    #[case("en-GB", Some(Language::En))]
-    #[case("nl-NL", Some(Language::Nl))]
-    fn test_parse_language(#[case] s: &str, #[case] expected: Option<Language>) {
-        assert_eq!(Language::parse(s), expected);
     }
 }

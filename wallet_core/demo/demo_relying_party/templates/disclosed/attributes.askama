@@ -1,8 +1,8 @@
-{% extends "../base.askama" %}
-{%- import "components/demo_bar.askama" as demo_bar -%}
-{%- import "components/header.askama" as header -%}
+{% extends "../../../demo_utils/templates/base.askama" %}
+{%- import "../../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
+{%- import "../../../demo_utils/templates/components/header.askama" as header -%}
 {%- import "components/attributes.askama" as attributes -%}
-{%- import "components/notification.askama" as notification -%}
+{%- import "../../../demo_utils/templates/components/notification.askama" as notification -%}
 {%- import "components/search.askama" as search -%}
 {%- import "components/products.askama" as products -%}
 

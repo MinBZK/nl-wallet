@@ -1,7 +1,7 @@
-{% extends "../base.askama" %}
-{%- import "components/demo_bar.askama" as demo_bar -%}
-{%- import "components/header.askama" as header -%}
-{%- import "components/notification.askama" as notification -%}
+{% extends "../../../demo_utils/templates/base.askama" %}
+{%- import "../../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
+{%- import "../../../demo_utils/templates/components/header.askama" as header -%}
+{%- import "../../../demo_utils/templates/components/notification.askama" as notification -%}
 
 {% block styles %}
 <link rel="stylesheet" href="../css/demo_bar.css" />

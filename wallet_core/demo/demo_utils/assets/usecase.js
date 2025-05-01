@@ -1,3 +1,4 @@
+// TODO make generic for issuance
 const wallet_buttons = document.getElementsByTagName("nl-wallet-button")
 for (const button of wallet_buttons) {
   const return_url_callback = (e) => {

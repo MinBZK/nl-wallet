@@ -1607,16 +1607,41 @@ dependencies = [
 ]
 
 [[package]]
-name = "demo_relying_party"
+name = "demo_issuer"
 version = "0.3.0-dev"
 dependencies = [
- "accept-language",
  "anyhow",
  "askama",
  "axum",
  "base64 0.22.1",
  "config",
  "crypto",
+ "demo_utils",
+ "http_utils",
+ "indexmap 2.7.1",
+ "nutype",
+ "serde",
+ "strum 0.26.3",
+ "tokio",
+ "tower 0.5.2",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "utils",
+]
+
+[[package]]
+name = "demo_relying_party"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "askama",
+ "axum",
+ "base64 0.22.1",
+ "config",
+ "crypto",
+ "demo_utils",
  "futures",
  "http",
  "http_utils",
@@ -1639,6 +1664,21 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "utils",
+]
+
+[[package]]
+name = "demo_utils"
+version = "0.3.0-dev"
+dependencies = [
+ "accept-language",
+ "askama",
+ "axum",
+ "http_utils",
+ "rstest",
+ "serde",
+ "serde_with",
+ "strum 0.26.3",
+ "tower-http",
 ]
 
 [[package]]
