@@ -15,7 +15,6 @@ use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
-use http_utils::urls;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
@@ -30,7 +29,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::Attestation;
 use crate::attestation::AttestationError;
-use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
 use crate::disclosure::MdocDisclosureError;
@@ -54,6 +52,8 @@ use crate::storage::StoredMdocCopy;
 use crate::storage::WalletEvent;
 use crate::wallet::Session;
 
+use super::uri::identify_uri;
+use super::UriType;
 use super::Wallet;
 
 #[derive(Debug, Clone)]
@@ -170,20 +170,21 @@ pub struct DisclosureSession<MDS> {
 }
 
 impl RedirectUriPurpose {
-    fn from_uri(uri: &Url) -> Result<(Self, Url), DisclosureError> {
-        let disclosure_base_uri = urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
-        let disclosure_based_issuance_base_uri =
-            urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner();
+    fn from_uri(uri: &Url) -> Result<Self, DisclosureError> {
+        let uri_type = identify_uri(uri)
+            .map_err(|_| DisclosureError::DisclosureUri(DisclosureUriError::Malformed(uri.clone())))?;
 
-        if uri.as_str().starts_with(disclosure_based_issuance_base_uri.as_str()) {
-            Ok((Self::Issuance, disclosure_based_issuance_base_uri))
-        } else if uri.as_str().starts_with(disclosure_base_uri.as_str()) {
-            Ok((Self::Browser, disclosure_base_uri))
-        } else {
-            Err(DisclosureError::DisclosureUri(DisclosureUriError::Malformed(
-                uri.clone(),
-            )))
-        }
+        let purpose = match uri_type {
+            UriType::PidIssuance => {
+                return Err(DisclosureError::DisclosureUri(DisclosureUriError::Malformed(
+                    uri.clone(),
+                )))
+            }
+            UriType::Disclosure => Self::Browser,
+            UriType::DisclosureBasedIssuance => Self::Issuance,
+        };
+
+        Ok(purpose)
     }
 }
 
@@ -226,8 +227,8 @@ where
 
         let config = &self.config_repository.get().disclosure;
 
-        let (purpose, base_url) = RedirectUriPurpose::from_uri(uri)?;
-        let disclosure_uri = MDS::parse_url(uri, &base_url).map_err(DisclosureError::DisclosureUri)?;
+        let purpose = RedirectUriPurpose::from_uri(uri)?;
+        let disclosure_uri = MDS::parse_url(uri).map_err(DisclosureError::DisclosureUri)?;
 
         // Start the disclosure session based on the parsed disclosure URI.
         let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors()).await?;
@@ -640,6 +641,7 @@ mod tests {
     use serial_test::serial;
     use uuid::uuid;
 
+    use http_utils::urls;
     use mdoc::holder::Mdoc;
     use mdoc::holder::ProposedAttributes;
     use mdoc::holder::ProposedDocumentAttributes;

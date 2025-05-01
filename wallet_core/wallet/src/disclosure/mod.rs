@@ -47,7 +47,7 @@ pub trait MdocDisclosureSession<D> {
     type Proposal: MdocDisclosureProposal;
     type DisclosureUriData;
 
-    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError>;
+    fn parse_url(uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError>;
 
     async fn start(
         disclosure_uri: Self::DisclosureUriData,
@@ -94,8 +94,8 @@ where
     type Proposal = VpDisclosureProposal;
     type DisclosureUriData = VpDisclosureUriData;
 
-    fn parse_url(uri: &Url, base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
-        VpDisclosureUriData::parse_from_uri(uri, base_uri)
+    fn parse_url(uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+        VpDisclosureUriData::parse_from_uri(uri)
     }
 
     async fn start(
@@ -306,7 +306,7 @@ mod mock {
         type Proposal = MockMdocDisclosureProposal;
         type DisclosureUriData = ();
 
-        fn parse_url(uri: &Url, _base_uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
+        fn parse_url(uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
             if uri.query_pairs().any(|(param, _)| param == "invalid") {
                 Err(DisclosureUriError::Malformed(uri.clone()))
             } else {
