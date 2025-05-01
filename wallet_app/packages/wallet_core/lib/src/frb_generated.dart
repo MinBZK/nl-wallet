@@ -73,7 +73,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.9.0';
 
   @override
-  int get rustContentHash => 1458509282;
+  int get rustContentHash => 1861382066;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -85,11 +85,11 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
 abstract class WalletCoreApi extends BaseApi {
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin});
 
-  Future<WalletInstructionResult> crateApiFullAcceptPidIssuance({required String pin});
+  Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin});
 
   Future<String?> crateApiFullCancelDisclosure();
 
-  Future<void> crateApiFullCancelPidIssuance();
+  Future<void> crateApiFullCancelIssuance();
 
   Future<WalletInstructionResult> crateApiFullChangePin({required String oldPin, required String newPin});
 
@@ -107,6 +107,8 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
 
+  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin});
+
   Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri});
 
   Future<String> crateApiFullCreatePidIssuanceRedirectUri();
@@ -119,7 +121,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<bool> crateApiFullHasActiveDisclosureSession();
 
-  Future<bool> crateApiFullHasActivePidIssuanceSession();
+  Future<bool> crateApiFullHasActiveIssuanceSession();
 
   Future<bool> crateApiFullHasRegistration();
 
@@ -189,24 +191,24 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<WalletInstructionResult> crateApiFullAcceptPidIssuance({required String pin}) {
+  Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         var arg0 = cst_encode_String(pin);
-        return wire.wire__crate__api__full__accept_pid_issuance(port_, arg0);
+        return wire.wire__crate__api__full__accept_issuance(port_, arg0);
       },
       codec: DcoCodec(
         decodeSuccessData: dco_decode_wallet_instruction_result,
         decodeErrorData: dco_decode_AnyhowException,
       ),
-      constMeta: kCrateApiFullAcceptPidIssuanceConstMeta,
+      constMeta: kCrateApiFullAcceptIssuanceConstMeta,
       argValues: [pin],
       apiImpl: this,
     ));
   }
 
-  TaskConstMeta get kCrateApiFullAcceptPidIssuanceConstMeta => const TaskConstMeta(
-        debugName: "accept_pid_issuance",
+  TaskConstMeta get kCrateApiFullAcceptIssuanceConstMeta => const TaskConstMeta(
+        debugName: "accept_issuance",
         argNames: ["pin"],
       );
 
@@ -232,23 +234,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<void> crateApiFullCancelPidIssuance() {
+  Future<void> crateApiFullCancelIssuance() {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
-        return wire.wire__crate__api__full__cancel_pid_issuance(port_);
+        return wire.wire__crate__api__full__cancel_issuance(port_);
       },
       codec: DcoCodec(
         decodeSuccessData: dco_decode_unit,
         decodeErrorData: dco_decode_AnyhowException,
       ),
-      constMeta: kCrateApiFullCancelPidIssuanceConstMeta,
+      constMeta: kCrateApiFullCancelIssuanceConstMeta,
       argValues: [],
       apiImpl: this,
     ));
   }
 
-  TaskConstMeta get kCrateApiFullCancelPidIssuanceConstMeta => const TaskConstMeta(
-        debugName: "cancel_pid_issuance",
+  TaskConstMeta get kCrateApiFullCancelIssuanceConstMeta => const TaskConstMeta(
+        debugName: "cancel_issuance",
         argNames: [],
       );
 
@@ -425,6 +427,28 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
+  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin}) {
+    return handler.executeNormal(NormalTask(
+      callFfi: (port_) {
+        var arg0 = cst_encode_String(pin);
+        return wire.wire__crate__api__full__continue_disclosure_based_issuance(port_, arg0);
+      },
+      codec: DcoCodec(
+        decodeSuccessData: dco_decode_list_attestation,
+        decodeErrorData: dco_decode_AnyhowException,
+      ),
+      constMeta: kCrateApiFullContinueDisclosureBasedIssuanceConstMeta,
+      argValues: [pin],
+      apiImpl: this,
+    ));
+  }
+
+  TaskConstMeta get kCrateApiFullContinueDisclosureBasedIssuanceConstMeta => const TaskConstMeta(
+        debugName: "continue_disclosure_based_issuance",
+        argNames: ["pin"],
+      );
+
+  @override
   Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
@@ -553,23 +577,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<bool> crateApiFullHasActivePidIssuanceSession() {
+  Future<bool> crateApiFullHasActiveIssuanceSession() {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
-        return wire.wire__crate__api__full__has_active_pid_issuance_session(port_);
+        return wire.wire__crate__api__full__has_active_issuance_session(port_);
       },
       codec: DcoCodec(
         decodeSuccessData: dco_decode_bool,
         decodeErrorData: dco_decode_AnyhowException,
       ),
-      constMeta: kCrateApiFullHasActivePidIssuanceSessionConstMeta,
+      constMeta: kCrateApiFullHasActiveIssuanceSessionConstMeta,
       argValues: [],
       apiImpl: this,
     ));
   }
 
-  TaskConstMeta get kCrateApiFullHasActivePidIssuanceSessionConstMeta => const TaskConstMeta(
-        debugName: "has_active_pid_issuance_session",
+  TaskConstMeta get kCrateApiFullHasActiveIssuanceSessionConstMeta => const TaskConstMeta(
+        debugName: "has_active_issuance_session",
         argNames: [],
       );
 

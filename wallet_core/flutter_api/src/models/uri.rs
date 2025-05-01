@@ -4,6 +4,7 @@ use wallet::UriType;
 pub enum IdentifyUriResult {
     PidIssuance,
     Disclosure,
+    DisclosureBasedIssuance,
 }
 
 impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
@@ -14,6 +15,7 @@ impl TryFrom<Result<UriType, UriIdentificationError>> for IdentifyUriResult {
             Ok(uri_type) => match uri_type {
                 UriType::PidIssuance(_) => Ok(Self::PidIssuance),
                 UriType::Disclosure(_) => Ok(Self::Disclosure),
+                UriType::DisclosureBasedIssuance(_) => Ok(Self::DisclosureBasedIssuance),
             },
             Err(e) => Err(e),
         }

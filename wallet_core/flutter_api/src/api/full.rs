@@ -221,7 +221,7 @@ pub async fn create_pid_issuance_redirect_uri() -> anyhow::Result<String> {
 }
 
 #[flutter_api_error]
-pub async fn cancel_pid_issuance() -> anyhow::Result<()> {
+pub async fn cancel_issuance() -> anyhow::Result<()> {
     let mut wallet = wallet().write().await;
 
     wallet.cancel_issuance().await?;
@@ -242,7 +242,7 @@ pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Attestatio
 }
 
 #[flutter_api_error]
-pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
+pub async fn accept_issuance(pin: String) -> anyhow::Result<WalletInstructionResult> {
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_issuance(pin).await.try_into()?;
@@ -251,7 +251,7 @@ pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<WalletInstructio
 }
 
 #[flutter_api_error]
-pub async fn has_active_pid_issuance_session() -> anyhow::Result<bool> {
+pub async fn has_active_issuance_session() -> anyhow::Result<bool> {
     let wallet = wallet().read().await;
 
     let has_active_session = wallet.has_active_issuance_session()?;
@@ -299,6 +299,16 @@ pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
     let has_active_session = wallet.has_active_disclosure_session()?;
 
     Ok(has_active_session)
+}
+
+#[flutter_api_error]
+pub async fn continue_disclosure_based_issuance(pin: String) -> anyhow::Result<Vec<Attestation>> {
+    let mut wallet = wallet().write().await;
+
+    let attestations = wallet.continue_disclosure_based_issuance(pin).await?;
+    let attestations = attestations.into_iter().map(Attestation::from).collect();
+
+    Ok(attestations)
 }
 
 #[flutter_api_error]

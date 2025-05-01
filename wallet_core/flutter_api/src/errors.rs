@@ -14,6 +14,7 @@ use wallet::errors::reqwest;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
 use wallet::errors::DigidSessionError;
+use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::HistoryError;
 use wallet::errors::HttpClientError;
@@ -118,6 +119,7 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<UriIdentificationError>().map(Self::from))
             .or_else(|e| e.downcast::<IssuanceError>().map(Self::from))
             .or_else(|e| e.downcast::<DisclosureError>().map(Self::from))
+            .or_else(|e| e.downcast::<DisclosureBasedIssuanceError>().map(Self::from))
             .or_else(|e| e.downcast::<HistoryError>().map(Self::from))
             .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
@@ -246,9 +248,10 @@ impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
-                FlutterApiErrorType::WalletState
-            }
+            DisclosureError::NotRegistered
+            | DisclosureError::Locked
+            | DisclosureError::SessionState
+            | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::WalletState,
             DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
@@ -291,6 +294,24 @@ impl FlutterApiErrorFields for DisclosureError {
             .unwrap() // This conversion should never fail.
         } else {
             serde_json::Value::Null
+        }
+    }
+}
+
+impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::Disclosure(error) => error.typ(),
+            Self::Issuance(error) => error.typ(),
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            Self::Disclosure(error) => error.data(),
+            Self::Issuance(error) => error.data(),
+            _ => serde_json::Value::Null,
         }
     }
 }

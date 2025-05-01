@@ -3881,23 +3881,21 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<_i19.AcceptDisclosureResult>);
 
   @override
-  _i8.Future<_i19.WalletInstructionResult> crateApiFullAcceptPidIssuance({
+  _i8.Future<_i19.WalletInstructionResult> crateApiFullAcceptIssuance({
     required String? pin,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(#crateApiFullAcceptPidIssuance, [], {#pin: pin}),
+        Invocation.method(#crateApiFullAcceptIssuance, [], {#pin: pin}),
         returnValue: _i8.Future<_i19.WalletInstructionResult>.value(
           _i12.dummyValue<_i19.WalletInstructionResult>(
             this,
-            Invocation.method(#crateApiFullAcceptPidIssuance, [], {
-              #pin: pin,
-            }),
+            Invocation.method(#crateApiFullAcceptIssuance, [], {#pin: pin}),
           ),
         ),
         returnValueForMissingStub: _i8.Future<_i19.WalletInstructionResult>.value(
           _i12.dummyValue<_i19.WalletInstructionResult>(
             this,
-            Invocation.method(#crateApiFullAcceptPidIssuance, [], {
+            Invocation.method(#crateApiFullAcceptIssuance, [], {
               #pin: pin,
             }),
           ),
@@ -3912,8 +3910,8 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<String?>);
 
   @override
-  _i8.Future<void> crateApiFullCancelPidIssuance() => (super.noSuchMethod(
-        Invocation.method(#crateApiFullCancelPidIssuance, []),
+  _i8.Future<void> crateApiFullCancelIssuance() => (super.noSuchMethod(
+        Invocation.method(#crateApiFullCancelIssuance, []),
         returnValue: _i8.Future<void>.value(),
         returnValueForMissingStub: _i8.Future<void>.value(),
       ) as _i8.Future<void>);
@@ -4028,6 +4026,22 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<_i19.WalletInstructionResult>);
 
   @override
+  _i8.Future<List<_i19.Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String? pin}) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #crateApiFullContinueDisclosureBasedIssuance,
+          [],
+          {#pin: pin},
+        ),
+        returnValue: _i8.Future<List<_i19.Attestation>>.value(
+          <_i19.Attestation>[],
+        ),
+        returnValueForMissingStub: _i8.Future<List<_i19.Attestation>>.value(
+          <_i19.Attestation>[],
+        ),
+      ) as _i8.Future<List<_i19.Attestation>>);
+
+  @override
   _i8.Future<List<_i19.Attestation>> crateApiFullContinuePidIssuance({
     required String? uri,
   }) =>
@@ -4118,8 +4132,8 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<bool>);
 
   @override
-  _i8.Future<bool> crateApiFullHasActivePidIssuanceSession() => (super.noSuchMethod(
-        Invocation.method(#crateApiFullHasActivePidIssuanceSession, []),
+  _i8.Future<bool> crateApiFullHasActiveIssuanceSession() => (super.noSuchMethod(
+        Invocation.method(#crateApiFullHasActiveIssuanceSession, []),
         returnValue: _i8.Future<bool>.value(false),
         returnValueForMissingStub: _i8.Future<bool>.value(false),
       ) as _i8.Future<bool>);
