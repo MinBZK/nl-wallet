@@ -62,6 +62,7 @@ use crate::server_state::SessionToken;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
+use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
 
 pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
@@ -144,18 +145,16 @@ pub enum GetAuthRequestError {
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum PostAuthResponseError {
     #[error("session error: {0}")]
     Session(#[from] SessionError),
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
     #[error("failed handling disclosure result: {0}")]
-    HandlingDisclosureResult(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    HandlingDisclosureResult(#[from] DisclosureResultHandlerError),
     #[error("failed serializing response: {0}")]
     ResponseEncoding(#[from] serde_urlencoded::ser::Error),
-    #[error("issuer has no attestations to be issued")]
-    NoIssuableAttestations,
 }
 
 /// Errors that can occur when creating a [`UseCase`] instance.
@@ -504,15 +503,13 @@ impl<K> UseCase<K> {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum DisclosureResultHandlerError {
-    #[error("error handling disclosure result: {0}")]
-    Other(Box<dyn std::error::Error + Send + Sync + 'static>),
-
-    /// Error that should be passed as is to the wallet
-    #[error(transparent)]
-    WalletError(PostAuthResponseError),
+pub trait ToPostAuthResponseErrorCode: std::error::Error {
+    fn to_error_code(&self) -> PostAuthResponseErrorCode;
 }
+
+#[derive(Debug, AsRef, thiserror::Error)]
+#[error("{0}")]
+pub struct DisclosureResultHandlerError(pub Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
 
 /// Types may implement this to receive disclosed attributes after a successful disclosure session.
 /// The return value is URL-serialized and appended to the query of the redirect URI, if present,
@@ -1193,16 +1190,7 @@ impl Session<WaitingForResponse> {
                     .await
                 {
                     Ok(query_params) => query_params,
-                    Err(err) => {
-                        return self.handle_err(match err {
-                            DisclosureResultHandlerError::WalletError(err) => {
-                                err // pass the error on as is to the wallet
-                            }
-                            DisclosureResultHandlerError::Other(err) => {
-                                PostAuthResponseError::HandlingDisclosureResult(err)
-                            }
-                        });
-                    }
+                    Err(err) => return self.handle_err(err.into()),
                 }
             }
         };

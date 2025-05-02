@@ -155,8 +155,11 @@ mod tests {
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::token::CredentialPreview;
+    use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::verifier::ToPostAuthResponseErrorCode;
     use openid4vc::DisclosureErrorResponse;
+    use openid4vc::PostAuthResponseErrorCode;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::vec_at_least::VecNonEmpty;
 
@@ -242,6 +245,16 @@ mod tests {
         assert!(!previews.is_empty())
     }
 
+    #[derive(thiserror::Error, Debug)]
+    #[error("mock error")]
+    pub struct MockError;
+
+    impl ToPostAuthResponseErrorCode for MockError {
+        fn to_error_code(&self) -> PostAuthResponseErrorCode {
+            PostAuthResponseErrorCode::NoIssuableAttestations
+        }
+    }
+
     #[tokio::test]
     async fn test_wallet_accept_disclosure_based_issuance_no_attestations() {
         // Prepare a registered and unlocked wallet with an active disclosure session.
@@ -254,7 +267,10 @@ mod tests {
                 session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                     next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpClientError::Request(
                         VpMessageClientError::AuthPostResponse(DisclosureErrorResponse {
-                            error_response: PostAuthResponseError::NoIssuableAttestations.into(),
+                            error_response: PostAuthResponseError::HandlingDisclosureResult(
+                                DisclosureResultHandlerError(Box::new(MockError)),
+                            )
+                            .into(),
                             redirect_uri: None,
                         }),
                     )))),

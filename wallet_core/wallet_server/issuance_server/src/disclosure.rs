@@ -16,9 +16,11 @@ use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::server_state::SessionStore;
+use openid4vc::server_state::SessionStoreError;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
-use openid4vc::verifier::PostAuthResponseError;
+use openid4vc::verifier::ToPostAuthResponseErrorCode;
+use openid4vc::PostAuthResponseErrorCode;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
@@ -94,6 +96,29 @@ pub struct IssuanceResultHandler<AF, AS, K, S, W> {
     pub credential_issuer: BaseUrl,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum IssuanceResultHandlerError {
+    #[error("failed to fetch attributes: {0}")]
+    AttributesFetching(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("no attestations to issue")]
+    NoIssuableAttestations,
+    #[error("failed to create session: {0}")]
+    SessionStore(#[from] SessionStoreError),
+    #[error("URL encoding failed: {0}")]
+    UrlEncoding(#[from] serde_urlencoded::ser::Error),
+    #[error("URL decoding failed: {0}")]
+    UrlDecoding(#[from] serde_urlencoded::de::Error),
+}
+
+impl ToPostAuthResponseErrorCode for IssuanceResultHandlerError {
+    fn to_error_code(&self) -> PostAuthResponseErrorCode {
+        match self {
+            IssuanceResultHandlerError::NoIssuableAttestations => PostAuthResponseErrorCode::NoIssuableAttestations,
+            _ => PostAuthResponseErrorCode::ServerError,
+        }
+    }
+}
+
 #[async_trait]
 impl<AF, AS, K, S, W> DisclosureResultHandler for IssuanceResultHandler<AF, AS, K, S, W>
 where
@@ -112,13 +137,15 @@ where
             .attributes_fetcher
             .attributes(usecase_id, disclosed)
             .await
-            .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
+            .map_err(|e| {
+                DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::AttributesFetching(e.into())))
+            })?;
 
         // Return a specific error code if there are no attestations to be issued so the wallet
         // can distinguish this case from other (error) cases.
         let to_issue: VecNonEmpty<_> = to_issue
             .try_into()
-            .map_err(|_| DisclosureResultHandlerError::WalletError(PostAuthResponseError::NoIssuableAttestations))?;
+            .map_err(|_| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::NoIssuableAttestations)))?;
 
         let credential_configuration_ids = to_issue
             .iter()
@@ -130,7 +157,7 @@ where
             .issuer
             .new_session(to_issue)
             .await
-            .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
+            .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::SessionStore(err))))?;
 
         let credential_offer = CredentialOfferContainer {
             credential_offer: CredentialOffer {
@@ -146,9 +173,9 @@ where
         // then this would be a lot less awkward.
         let query_params = serde_urlencoded::from_str(
             &serde_urlencoded::to_string(credential_offer)
-                .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?,
+                .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::UrlEncoding(err))))?,
         )
-        .map_err(|err| DisclosureResultHandlerError::Other(err.into()))?;
+        .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::UrlDecoding(err))))?;
 
         Ok(query_params)
     }
@@ -181,8 +208,7 @@ mod tests {
     use openid4vc::server_state::SessionStoreTimeouts;
     use openid4vc::server_state::SessionToken;
     use openid4vc::verifier::DisclosureResultHandler;
-    use openid4vc::verifier::DisclosureResultHandlerError;
-    use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::PostAuthResponseErrorCode;
 
     use super::AttributesFetcher;
     use super::IssuanceResultHandler;
@@ -304,13 +330,14 @@ mod tests {
             credential_issuer: "https://example.com".parse().unwrap(),
         };
 
+        let err = result_handler
+            .disclosure_result("usecase_id", &mock_disclosed_attrs("vct".to_string()))
+            .await
+            .unwrap_err();
+
         assert!(matches!(
-            result_handler
-                .disclosure_result("usecase_id", &mock_disclosed_attrs("vct".to_string()))
-                .await,
-            Err(DisclosureResultHandlerError::WalletError(
-                PostAuthResponseError::NoIssuableAttestations
-            ))
+            err.as_ref().to_error_code(),
+            PostAuthResponseErrorCode::NoIssuableAttestations,
         ));
     }
 }

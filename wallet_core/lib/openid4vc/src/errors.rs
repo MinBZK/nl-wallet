@@ -269,7 +269,6 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                     PostAuthResponseErrorCode::CancelledSession
                 }
                 PostAuthResponseError::Session(SessionError::SessionStore(_))
-                | PostAuthResponseError::HandlingDisclosureResult(_)
                 | PostAuthResponseError::ResponseEncoding(_) => PostAuthResponseErrorCode::ServerError,
                 PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
                     PostAuthResponseErrorCode::UnknownSession
@@ -278,7 +277,7 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                 | PostAuthResponseError::Session(SessionError::UnexpectedState(_)) => {
                     PostAuthResponseErrorCode::InvalidRequest
                 }
-                PostAuthResponseError::NoIssuableAttestations => PostAuthResponseErrorCode::NoIssuableAttestations,
+                PostAuthResponseError::HandlingDisclosureResult(err) => err.as_ref().to_error_code(),
             },
             error_description: Some(description),
             error_uri: None,
