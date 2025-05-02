@@ -11,7 +11,6 @@ workspace = true
 examples = []
 generate = [ "dep:rcgen", "crypto/generate" ]
 mock = [ "crypto/mock" ]
-test = []
 
 [dependencies]
 derive_more = { workspace = true, features = ["debug", "display"] }
@@ -29,6 +28,7 @@ error_category.path = "../error_category"
 utils.path = "../utils"
 
 [dev-dependencies]
+assert_matches.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 rstest.workspace = true

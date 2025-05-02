@@ -98,6 +98,7 @@ tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lo
 wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
+attestation = { path = "../lib/attestation" }
 crypto = { path = "../lib/crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
 mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }

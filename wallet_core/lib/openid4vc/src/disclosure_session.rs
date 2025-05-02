@@ -15,6 +15,7 @@ use tracing::info;
 use tracing::warn;
 
 use attestation::auth::reader_auth::ReaderRegistration;
+use attestation::auth::reader_auth::ValidationError;
 use attestation::identifiers::AttributeIdentifier;
 use attestation::x509::CertificateType;
 use crypto::factory::KeyFactory;
@@ -31,8 +32,6 @@ use mdoc::holder::DisclosureRequestMatch;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use mdoc::holder::ProposedDocument;
-use mdoc::utils::reader_auth::ValidationError;
-use mdoc::utils::reader_auth::VerifyRequestedAttributesExt;
 use poa::factory::PoaFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 
@@ -757,6 +756,7 @@ mod tests {
     use serde_json::json;
 
     use attestation::auth::reader_auth::ReaderRegistration;
+    use attestation::auth::reader_auth::ValidationError;
     use attestation::identifiers::AttributeIdentifier;
     use attestation::identifiers::AttributeIdentifierHolder;
     use attestation::x509::generate::mock::generate_reader_mock;
@@ -778,7 +778,6 @@ mod tests {
     use mdoc::holder::HolderError;
     use mdoc::holder::ProposedDocument;
     use mdoc::utils::cose::ClonePayload;
-    use mdoc::utils::reader_auth::ValidationError;
     use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
     use mdoc::utils::serialization::CborBase64;

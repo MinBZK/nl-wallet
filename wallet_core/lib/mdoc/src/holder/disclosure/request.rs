@@ -15,7 +15,6 @@ use crate::engagement::SessionTranscript;
 use crate::errors::Result;
 use crate::holder::HolderError;
 use crate::utils::cose::ClonePayload;
-use crate::utils::reader_auth::VerifyRequestedAttributesExt;
 use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;

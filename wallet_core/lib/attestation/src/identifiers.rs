@@ -70,14 +70,31 @@ mod examples {
     }
 }
 
-#[cfg(any(test, feature = "test"))]
-mod tests {
+#[cfg(any(test, feature = "mock"))]
+pub mod mock {
+    use indexmap::IndexSet;
+
     use super::AttributeIdentifier;
+    use super::AttributeIdentifierHolder;
 
     #[derive(Debug, thiserror::Error, PartialEq, Eq)]
     pub enum AttributeIdParsingError {
         #[error("Expected string with 3 parts separated by '/', got {0} parts")]
         InvalidPartsCount(usize),
+    }
+
+    pub struct MockAttributeIdentifierHolder(IndexSet<AttributeIdentifier>);
+
+    impl From<Vec<AttributeIdentifier>> for MockAttributeIdentifierHolder {
+        fn from(value: Vec<AttributeIdentifier>) -> Self {
+            Self(value.into_iter().collect())
+        }
+    }
+
+    impl AttributeIdentifierHolder for MockAttributeIdentifierHolder {
+        fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+            self.0.clone()
+        }
     }
 
     // This implementation is solely intended for unit testing purposes to easily construct AttributeIdentifiers.

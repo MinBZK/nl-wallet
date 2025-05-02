@@ -101,7 +101,7 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 
-attestation = { path = "../attestation", features = ["mock", "test"] }
+attestation = { path = "../attestation", features = ["mock"] }
 crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
