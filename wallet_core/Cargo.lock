@@ -3562,10 +3562,10 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
+ "nom",
  "nutype",
  "p256",
  "rand_core",
- "rcgen",
  "regex",
  "ring",
  "rstest",
@@ -3585,7 +3585,6 @@ dependencies = [
  "tracing",
  "url",
  "utils",
- "x509-parser 0.17.0",
 ]
 
 [[package]]

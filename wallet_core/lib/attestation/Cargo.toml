@@ -14,7 +14,7 @@ mock = [ "crypto/mock" ]
 test = []
 
 [dependencies]
-derive_more = { workspace = true, features = ["debug", "as_ref", "display"] }
+derive_more = { workspace = true, features = ["debug", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2", "macros"] }

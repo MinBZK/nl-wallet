@@ -134,6 +134,7 @@ libsqlite3-sys = { version = "0.30.1", default-features = false }
 log = "0.4.25"
 mime = "0.3.17"
 mockall = "0.13.1"
+nom = "7.1.3"
 num-bigint = "0.4.6"
 num-traits = "0.2.19"
 nutype = "0.6.0"
