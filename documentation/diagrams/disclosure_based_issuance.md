@@ -74,7 +74,7 @@ The JSON array may be empty (i.e. `[]`) to indicate that no attestations to be i
 For each attestation server, a configuration block like the following must be put in the configuration file of the `issuance_server`.
 
 ```toml
-[disclosure_settings.my_issuer]
+[disclosure_settings.degree]
 # URL to the attestation server
 attestation_url = "https://attestation_server.example.com"
 
@@ -88,8 +88,8 @@ private_key = "my_issuer_key"
 # RP certificate
 certificate = "MIJ..."
 
-# Attributes that have to be disclosed for `my_issuer`
-[[disclosure_settings.my_issuer.to_disclose]]
+# Attributes that have to be disclosed for `degree`
+[[disclosure_settings.degree.to_disclose]]
 docType = "com.example.pid"
 nameSpaces = { "com.example.pid" = { bsn = true } }
 
@@ -105,7 +105,7 @@ certificate = "MIJ..."        # Issuer certificate
 metadata = ["com.example.degree.json"]
 ```
 
-Here, `my_issuer` is an example of a freely choosable identifier that has to be present in the QR/UL that starts the session.
+Here, `degree` is an example of a freely choosable identifier that has to be present in the QR/UL that starts the session.
 
 For the rest of the configuration parameters of the `issuance_server`, see the [`issuance_server` example configuration file](../../wallet_core/wallet_server/issuance_server/issuance_server.example.toml) and the [Relying Party documentation](../relying-party.md#retrieve-disclosure-results).
 
@@ -115,9 +115,9 @@ The wallet starts disclosure based issuance if it encounters a UL (or a QR with 
 
 1. If your `issuance_server` is reachable on the internet by the wallet at `https://issuer.example.com`, create a URL of the following form:
     ```
-    https://issuer.example.com/disclosure/my_issuer/request_uri?session_type=same_device
+    https://issuer.example.com/disclosure/degree/request_uri?session_type=same_device
     ```
-    In which `my_issuer` has to be the identifier mentioned above.
+    In which `degree` has to be the identifier mentioned above.
 2. URL-encode the above URL.
 3. Create the UL as follows (newlines only for readability purposes):
     ```
