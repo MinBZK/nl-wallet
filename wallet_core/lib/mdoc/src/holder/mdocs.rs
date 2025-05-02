@@ -3,6 +3,7 @@ use std::result::Result;
 use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use itertools::Itertools;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -64,6 +65,10 @@ impl Mdoc {
 
     pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, CoseError> {
         self.issuer_signed.issuer_auth.signing_cert()
+    }
+
+    pub fn issuer_signed_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.issuer_signed.attribute_identifiers(self.doc_type())
     }
 
     pub fn doc_type(&self) -> &String {
