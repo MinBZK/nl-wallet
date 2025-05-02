@@ -49,8 +49,10 @@ pub enum CertificateUsage {
     ReaderAuth,
 }
 
-pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013 .5 .1 .2);
-pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013 .5 .1 .6);
+#[rustfmt::skip]
+pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
+#[rustfmt::skip]
+pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
 
 impl CertificateUsage {
     pub fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {

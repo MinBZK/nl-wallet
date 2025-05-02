@@ -29,23 +29,6 @@ pub struct ReaderRegistration {
     pub attributes: IndexMap<String, AuthorizedMdoc>,
 }
 
-// TODO: ensure that `mdoc` contains a replacement for this
-// impl ReaderRegistration {
-//     /// Verify whether all requested attributes exist in the registration.
-//     pub fn verify_requested_attributes<'a, R>(&self, requested_attributes: &R) -> Result<(), ValidationError>
-//     where
-//         R: IntoIterator<Item = &'a ItemsRequest> + Clone,
-//     {
-//         let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self).into_iter().collect();
-
-//         if !difference.is_empty() {
-//             return Err(ValidationError::UnregisteredAttributes(difference));
-//         }
-
-//         Ok(())
-//     }
-// }
-
 #[cfg(feature = "generate")]
 impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
     type Error = crypto::x509::CertificateError;
@@ -115,7 +98,8 @@ impl BorrowingCertificateExtension for ReaderRegistration {
     /// oid: 2.1.123.1
     /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
     /// suffix: 1, unofficial id for Reader Authentication
-    const OID: Oid<'static> = oid!(2.1.123 .1);
+    #[rustfmt::skip]
+    const OID: Oid<'static> = oid!(2.1.123.1);
 }
 
 #[cfg(any(test, feature = "mock"))]

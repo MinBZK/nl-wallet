@@ -8,12 +8,10 @@ rust-version.workspace = true
 workspace = true
 
 [features]
-# Include code for generating certificates and keys
-generate = ["attestation/generate", "crypto/generate"]
 # Include examples from the ISO specification
 examples = ["test", "attestation/examples"] # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "attestation/generate", "dep:rstest", "dep:regex", "generate", "mock", "sd_jwt_vc_metadata/example_constructors"]
+test = ["dep:assert_matches", "attestation/generate", "dep:rstest", "dep:regex", "mock", "sd_jwt_vc_metadata/example_constructors"]
 # Include mock implementations and constructors for testing
 mock = ["attestation/mock", "crypto/mock"]
 # Include example based constructors to several types for testing

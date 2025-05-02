@@ -105,7 +105,7 @@ attestation = { path = "../attestation", features = ["mock", "test"] }
 crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }
-mdoc = { path = "../mdoc", features = ["generate", "test", "mock_example_constructors"] }
+mdoc = { path = "../mdoc", features = ["test", "mock_example_constructors"] }
 poa = { path = "../poa", features = ["mock"] }
 sd_jwt = { path = "../sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }

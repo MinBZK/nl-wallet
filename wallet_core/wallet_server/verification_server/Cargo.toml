@@ -82,6 +82,6 @@ tokio = { workspace = true, features = ["macros", "test-util"] }
 
 attestation = { path = "../../lib/attestation", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
-mdoc = { path = "../../lib/mdoc", features = ["generate", "mock_example_constructors"] }
+mdoc = { path = "../../lib/mdoc", features = ["mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

@@ -20,7 +20,8 @@ impl BorrowingCertificateExtension for IssuerRegistration {
     /// oid: 2.1.123.2
     /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
     /// suffix: 2, unofficial id for Issuer Authentication
-    const OID: Oid<'static> = oid!(2.1.123 .2);
+    #[rustfmt::skip]
+    const OID: Oid<'static> = oid!(2.1.123.2);
 }
 
 impl From<IssuerRegistration> for CertificateType {
