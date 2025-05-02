@@ -150,10 +150,7 @@ class CardDetailScreen extends StatelessWidget {
       slivers: [
         const SliverSizedBox(height: 24 + 8),
         SliverToBoxAdapter(
-          child: Semantics(
-            image: true,
-            attributedLabel: context.l10n.cardDetailScreenCardImageWCAGLabel(cardTitle).toAttributedString(context),
-            excludeSemantics: true,
+          child: ExcludeSemantics(
             child: FractionallySizedBox(
               widthFactor: 0.6,
               child: Hero(

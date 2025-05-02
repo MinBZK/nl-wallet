@@ -106,7 +106,6 @@
     "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDeleteCta": "Delete card",
     "cardDetailScreenCardHistoryCta": "Card activities",
-    "cardDetailScreenCardImageWCAGLabel": "{name} card",
     "cardDetailScreenCardUpdateCta": "Renew data",
     "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
     "@cardDetailScreenCardValidUntil": {
