@@ -9,13 +9,13 @@ workspace = true
 
 [features]
 # Include code for generating certificates and keys
-generate = ["dep:rcgen", "crypto/generate"]
+generate = ["dep:rcgen", "attestation/generate", "crypto/generate"]
 # Include examples from the ISO specification
-examples = ["test"] # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
+examples = ["test", "attestation/examples"] # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "dep:rstest", "dep:regex", "generate", "mock", "sd_jwt_vc_metadata/example_constructors"]
+test = ["dep:assert_matches", "attestation/generate", "dep:rstest", "dep:regex", "generate", "mock", "sd_jwt_vc_metadata/example_constructors"]
 # Include mock implementations and constructors for testing
-mock = ["crypto/mock"]
+mock = ["attestation/mock", "crypto/mock"]
 # Include example based constructors to several types for testing
 mock_example_constructors = [
     "test",                   # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
@@ -60,6 +60,7 @@ rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
+attestation.path = "../attestation"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
@@ -76,6 +77,7 @@ serde_json.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
+attestation = { path = "../attestation", features = ["test"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

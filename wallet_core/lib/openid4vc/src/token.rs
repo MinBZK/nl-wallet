@@ -13,6 +13,8 @@ use serde_with::DurationSeconds;
 use serde_with::StringWithSeparator;
 use url::Url;
 
+use attestation::auth::issuer_auth::IssuerRegistration;
+use attestation::x509::CertificateType;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;
@@ -21,8 +23,6 @@ use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use mdoc::unsigned::UnsignedMdoc;
-use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::x509::CertificateType;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;

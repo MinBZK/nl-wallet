@@ -5,7 +5,7 @@ use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
 
-use mdoc::utils::auth::Organization;
+use attestation::auth::Organization;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimPath;

@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use assert_matches::assert_matches;
 
+use attestation::x509::generate::mock::generate_issuer_mock;
 use crypto::server_keys::generate::Ca;
 use http_utils::urls::HttpsUri;
 use issuer_settings::settings::AttestationTypeConfigSettings;
 use issuer_settings::settings::IssuerSettingsError;
-use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use pid_issuer::settings::PidIssuerSettings;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use server_utils::settings::CertificateVerificationError;

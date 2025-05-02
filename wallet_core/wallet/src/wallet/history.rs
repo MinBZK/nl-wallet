@@ -146,9 +146,9 @@ mod tests {
     use chrono::TimeZone;
     use chrono::Utc;
 
+    use attestation::auth::reader_auth::ReaderRegistration;
+    use attestation::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
-    use mdoc::server_keys::generate::mock::generate_reader_mock;
-    use mdoc::utils::reader_auth::ReaderRegistration;
 
     use super::Wallet;
 

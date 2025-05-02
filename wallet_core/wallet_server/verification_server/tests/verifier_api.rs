@@ -16,8 +16,6 @@ use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use mdoc::server_keys::generate::mock::generate_issuer_mock;
-use mdoc::server_keys::generate::mock::generate_reader_mock;
 use parking_lot::RwLock;
 use reqwest::Client;
 use reqwest::Response;
@@ -27,6 +25,9 @@ use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
+use attestation::auth::issuer_auth::IssuerRegistration;
+use attestation::x509::generate::mock::generate_issuer_mock;
+use attestation::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
@@ -43,8 +44,7 @@ use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
-use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::utils::serialization::TaggedBytes;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::DeviceResponse;
@@ -149,7 +149,7 @@ async fn wallet_server_settings_and_listener(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
-    let reader_registration = Some(ReaderRegistration::new_mock_from_requests(
+    let reader_registration = Some(reader_registration_mock_from_requests(
         &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
     ));
 

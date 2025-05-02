@@ -8,8 +8,8 @@ use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation::auth::Organization;
 use error_category::ErrorCategory;
-use mdoc::utils::auth::Organization;
 use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;

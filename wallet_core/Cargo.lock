@@ -565,6 +565,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "attestation"
+version = "0.3.0-dev"
+dependencies = [
+ "chrono",
+ "crypto",
+ "derive_more",
+ "error_category",
+ "indexmap 2.7.1",
+ "rcgen",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.11",
+ "time",
+ "url",
+ "utils",
+ "x509-parser 0.17.0",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3160,6 +3181,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 name = "issuer_settings"
 version = "0.3.0-dev"
 dependencies = [
+ "attestation",
  "chrono",
  "crypto",
  "derive_more",
@@ -3323,6 +3345,7 @@ name = "jwt"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation",
  "base64 0.22.1",
  "chrono",
  "crypto",
@@ -3331,7 +3354,6 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
- "mdoc",
  "p256",
  "rand_core",
  "rustls-pki-types",
@@ -3526,6 +3548,7 @@ version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
+ "attestation",
  "base64 0.22.1",
  "chrono",
  "ciborium",
@@ -3921,6 +3944,7 @@ name = "openid4vc"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation",
  "axum",
  "base64 0.22.1",
  "biscuit",
@@ -4234,6 +4258,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "attestation",
  "axum",
  "chrono",
  "config",
@@ -5772,6 +5797,7 @@ name = "server_utils"
 version = "0.3.0-dev"
 dependencies = [
  "anyhow",
+ "attestation",
  "axum",
  "base64 0.22.1",
  "chrono",
@@ -7202,6 +7228,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "attestation",
  "axum",
  "chrono",
  "config",
@@ -7274,6 +7301,7 @@ dependencies = [
  "aes-gcm",
  "apple_app_attest",
  "assert_matches",
+ "attestation",
  "base64 0.22.1",
  "cfg-if",
  "chrono",
@@ -7364,12 +7392,12 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "assert_fs",
+ "attestation",
  "chrono",
  "clap",
  "clio",
  "crypto",
  "itertools 0.14.0",
- "mdoc",
  "p256",
  "pem",
  "predicates",

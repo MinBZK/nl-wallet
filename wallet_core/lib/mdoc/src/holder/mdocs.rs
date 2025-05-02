@@ -9,6 +9,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use ssri::Integrity;
 
+use attestation::identifiers::AttributeIdentifier;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;
@@ -18,7 +19,6 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::generator::Generator;
 
 use crate::errors::Error;
-use crate::identifiers::AttributeIdentifier;
 use crate::iso::*;
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;

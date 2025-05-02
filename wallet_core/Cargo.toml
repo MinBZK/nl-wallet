@@ -6,6 +6,7 @@ members = [
     "gba_hc_converter",
     "lib/android_attest",
     "lib/apple_app_attest",
+    "lib/attestation",
     "lib/crypto",
     "lib/error_category",
     "lib/error_category/error_category_derive",

@@ -6,9 +6,8 @@ use x509_parser::oid_registry::Oid;
 
 use crypto::x509::BorrowingCertificateExtension;
 
-use crate::utils::x509::CertificateType;
-
-use super::Organization;
+use crate::auth::Organization;
+use crate::x509::CertificateType;
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

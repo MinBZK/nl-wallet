@@ -490,13 +490,13 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
+    use attestation::auth::issuer_auth::IssuerRegistration;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateUsage;
     use utils::generator::TimeGenerator;
 
     use crate::utils::cose;
     use crate::utils::cose::CoseError;
-    use crate::utils::issuer_auth::IssuerRegistration;
 
     use super::ClonePayload;
     use super::MdocCose;

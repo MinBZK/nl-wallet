@@ -9,6 +9,8 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
+use attestation::auth::issuer_auth::IssuerRegistration;
+use attestation::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
@@ -18,8 +20,6 @@ use http_utils::urls;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
-use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::reader_auth::ReaderRegistration;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::verifier::SessionType;
 use platform_support::attested_key::AttestedKeyHolder;

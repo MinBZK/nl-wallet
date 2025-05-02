@@ -1145,14 +1145,14 @@ mod tests {
     use chrono::Utc;
     use indexmap::IndexMap;
     use itertools::Itertools;
-    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
     use ring::rand;
     use rstest::rstest;
 
+    use attestation::auth::reader_auth::ReaderRegistration;
+    use attestation::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
-    use mdoc::utils::reader_auth::ReaderRegistration;
     use mdoc::ItemsRequest;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;

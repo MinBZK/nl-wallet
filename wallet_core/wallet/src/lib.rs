@@ -38,13 +38,13 @@ pub mod configuration {
 }
 
 pub mod mdoc {
-    pub use mdoc::utils::auth::Image;
-    pub use mdoc::utils::auth::LocalizedStrings;
-    pub use mdoc::utils::auth::Organization;
-    pub use mdoc::utils::reader_auth::DeletionPolicy;
-    pub use mdoc::utils::reader_auth::ReaderRegistration;
-    pub use mdoc::utils::reader_auth::RetentionPolicy;
-    pub use mdoc::utils::reader_auth::SharingPolicy;
+    pub use attestation::auth::reader_auth::DeletionPolicy;
+    pub use attestation::auth::reader_auth::ReaderRegistration;
+    pub use attestation::auth::reader_auth::RetentionPolicy;
+    pub use attestation::auth::reader_auth::SharingPolicy;
+    pub use attestation::auth::Image;
+    pub use attestation::auth::LocalizedStrings;
+    pub use attestation::auth::Organization;
 }
 
 pub mod openid4vc {

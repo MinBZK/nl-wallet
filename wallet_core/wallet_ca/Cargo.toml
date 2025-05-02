@@ -22,7 +22,7 @@ serde_json.workspace = true
 x509-parser.workspace = true
 
 crypto = { path = "../lib/crypto", features = ["generate"] }
-mdoc = { path = "../lib/mdoc", features = ["generate"] }
+attestation = { path = "../lib/attestation", features = ["generate"] }
 utils.path = "../lib/utils"
 
 [dev-dependencies]
@@ -32,4 +32,4 @@ predicates = { workspace = true, features = ["regex"] }
 time.workspace = true
 
 crypto = { path = "../lib/crypto", features = ["mock"] }
-mdoc = { path = "../lib/mdoc", features = ["mock"] }
+attestation = { path = "../lib/attestation", features = ["mock"] }

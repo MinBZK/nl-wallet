@@ -7,9 +7,6 @@ pub mod holder;
 pub mod issuer;
 pub mod verifier;
 
-// Data types shared between servers
-pub mod server_keys;
-
 // General code used throughout the crate.
 pub mod identifiers;
 pub mod utils;

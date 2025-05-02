@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 
+use attestation::auth::Organization;
 use mdoc::unsigned::Entry;
-use mdoc::utils::auth::Organization;
 use mdoc::NameSpace;
 use openid4vc::attributes::Attribute;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -30,7 +30,7 @@ mod test {
     use indexmap::IndexMap;
     use mdoc::unsigned::Entry;
 
-    use mdoc::utils::auth::Organization;
+    use attestation::auth::Organization;
     use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;

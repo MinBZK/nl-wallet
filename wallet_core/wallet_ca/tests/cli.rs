@@ -26,8 +26,8 @@ use time::Duration;
 use time::OffsetDateTime;
 use x509_parser::oid_registry::OID_KEY_TYPE_EC_PUBLIC_KEY;
 
-use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::reader_auth::ReaderRegistration;
+use attestation::auth::issuer_auth::IssuerRegistration;
+use attestation::auth::reader_auth::ReaderRegistration;
 
 trait RangeCompare<Offset> {
     /// Compare [`self`] to the range of [`other`] +/- the [`offset`].

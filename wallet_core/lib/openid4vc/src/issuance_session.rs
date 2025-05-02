@@ -20,6 +20,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
 
+use attestation::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use error_category::ErrorCategory;
@@ -32,7 +33,6 @@ use jwt::wte::WteClaims;
 use jwt::Jwt;
 use mdoc::holder::IssuedDocumentMismatchError;
 use mdoc::holder::Mdoc;
-use mdoc::identifiers::AttributeIdentifier;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::CborError;
@@ -954,16 +954,16 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
+    use attestation::auth::issuer_auth::IssuerRegistration;
+    use attestation::x509::generate::mock::generate_issuer_mock;
     use crypto::factory::KeyFactory;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateError;
     use mdoc::holder::IssuedDocumentMismatchError;
-    use mdoc::server_keys::generate::mock::generate_issuer_mock;
     use mdoc::test::data;
     use mdoc::unsigned::UnsignedMdoc;
-    use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::AttestationQualification;
