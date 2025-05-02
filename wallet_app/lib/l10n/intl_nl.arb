@@ -102,7 +102,6 @@
     "cardDetailScreenCardDataCta": "Gegevens in deze kaart",
     "cardDetailScreenCardDeleteCta": "Kaart verwijderen",
     "cardDetailScreenCardHistoryCta": "Kaartactiviteiten",
-    "cardDetailScreenCardImageWCAGLabel": "{name} kaart",
     "cardDetailScreenCardUpdateCta": "Opnieuw ophalen",
     "cardDetailScreenCardValidUntil": "Geldig tot en met {dateTime}",
     "@cardDetailScreenCardValidUntil": {

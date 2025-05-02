@@ -99,7 +99,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<WalletInstructionResult> crateApiFullAcceptPidIssuance({required String pin, hint}) async {
+  Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin, hint}) async {
     final result = _pinManager.checkPin(pin);
     if (result is WalletInstructionResult_InstructionError && result.error is WalletInstructionError_Timeout) {
       /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
@@ -116,7 +116,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<void> crateApiFullCancelPidIssuance({hint}) async {
+  Future<void> crateApiFullCancelIssuance({hint}) async {
     // Stub only, no need to cancel it on the mock
   }
 
@@ -258,7 +258,11 @@ class WalletCoreMock implements WalletCoreApi {
   Future<bool> crateApiFullHasActiveDisclosureSession({hint}) async => _ongoingDisclosure != null;
 
   @override
-  Future<bool> crateApiFullHasActivePidIssuanceSession({hint}) async => false;
+  Future<bool> crateApiFullHasActiveIssuanceSession({hint}) async => false;
+
+  @override
+  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin, hint}) async =>
+      kPidAttestations;
 
   @override
   Future<bool> crateApiFullIsBiometricUnlockEnabled({hint}) async => _isBiometricsEnabled;

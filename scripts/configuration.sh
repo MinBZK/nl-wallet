@@ -5,6 +5,7 @@ source "${SCRIPTS_DIR}/utils.sh"
 WALLET_CORE_DIR="${BASE_DIR}/wallet_core"
 WP_DIR="${WALLET_CORE_DIR}/wallet_provider"
 PID_ISSUER_DIR="${WALLET_CORE_DIR}/wallet_server/pid_issuer"
+ISSUANCE_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/issuance_server"
 VERIFICATION_SERVER_DIR="${WALLET_CORE_DIR}/wallet_server/verification_server"
 WALLET_WEB_DIR="${BASE_DIR}/wallet_web"
 MOCK_RELYING_PARTY_DIR="${WALLET_CORE_DIR}/mock_relying_party"
@@ -30,6 +31,7 @@ export SERVICES_HOST=localhost
 
 export WALLET_PROVIDER_PORT=3000
 export PID_ISSUER_WS_PORT=3001
+export ISSUANCE_SERVER_WS_PORT=3002
 export CONFIG_SERVER_PORT=3003
 export MOCK_RP_PORT=3004
 export MOCK_RP_WS_PORT=3005

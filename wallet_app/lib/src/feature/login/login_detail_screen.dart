@@ -91,40 +91,43 @@ class LoginDetailScreen extends StatelessWidget {
 
   Widget _buildOrganizationSection(BuildContext context) {
     return SliverToBoxAdapter(
-      child: InkWell(
-        onTap: () => OrganizationDetailScreen.showPreloaded(
-          context,
-          organization,
-          sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              ExcludeSemantics(
-                child: OrganizationLogo(image: organization.logo, size: 32, fixedRadius: 8),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text.rich(
-                      organization.displayName.l10nSpan(context),
-                      textAlign: TextAlign.start,
-                      style: context.textTheme.labelLarge,
-                    ),
-                    Text.rich(
-                      organization.category?.l10nSpan(context) ?? ''.toTextSpan(context),
-                      textAlign: TextAlign.start,
-                      style: context.textTheme.bodySmall,
-                    ),
-                  ],
+      child: Semantics(
+        button: true,
+        child: InkWell(
+          onTap: () => OrganizationDetailScreen.showPreloaded(
+            context,
+            organization,
+            sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ExcludeSemantics(
+                  child: OrganizationLogo(image: organization.logo, size: 32, fixedRadius: 8),
                 ),
-              ),
-              const Icon(Icons.chevron_right_rounded),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
+                        organization.displayName.l10nSpan(context),
+                        textAlign: TextAlign.start,
+                        style: context.textTheme.labelLarge,
+                      ),
+                      Text.rich(
+                        organization.category?.l10nSpan(context) ?? ''.toTextSpan(context),
+                        textAlign: TextAlign.start,
+                        style: context.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
           ),
         ),
       ),

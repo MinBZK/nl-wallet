@@ -302,7 +302,7 @@ mod test {
                 vec![]
             }
 
-            fn alg_name(&self) -> &str {
+            fn alg_name(&self) -> &'static str {
                 "test_alg"
             }
         }

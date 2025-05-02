@@ -1,6 +1,6 @@
 use wallet::errors::ChangePinError;
 use wallet::errors::InstructionError;
-use wallet::errors::PidIssuanceError;
+use wallet::errors::IssuanceError;
 use wallet::errors::WalletUnlockError;
 
 pub enum WalletInstructionResult {
@@ -69,14 +69,14 @@ impl TryFrom<Result<(), WalletUnlockError>> for WalletInstructionResult {
 ///    the nested [InstructionError].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`PidIssuanceError`] will be returned
 ///    unchanged.
-impl TryFrom<Result<(), PidIssuanceError>> for WalletInstructionResult {
-    type Error = PidIssuanceError;
+impl TryFrom<Result<(), IssuanceError>> for WalletInstructionResult {
+    type Error = IssuanceError;
 
-    fn try_from(value: Result<(), PidIssuanceError>) -> Result<Self, Self::Error> {
+    fn try_from(value: Result<(), IssuanceError>) -> Result<Self, Self::Error> {
         match value {
             Ok(_) => Ok(WalletInstructionResult::Ok),
-            Err(PidIssuanceError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
-                error: instruction_error.try_into().map_err(PidIssuanceError::Instruction)?,
+            Err(IssuanceError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
+                error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
             }),
             Err(error) => Err(error),
         }

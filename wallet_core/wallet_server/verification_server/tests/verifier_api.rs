@@ -60,6 +60,7 @@ use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
 use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
@@ -550,8 +551,10 @@ async fn test_disclosure_not_found() {
     request_uri.set_query(
         serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
-            ephemeral_id: vec![42],
-            time: Utc::now(),
+            ephemeral_id_params: Some(EphemeralIdParameters {
+                ephemeral_id: vec![42],
+                time: Utc::now(),
+            }),
         })
         .unwrap()
         .as_str()

@@ -7,7 +7,7 @@ use config::File;
 use derive_more::AsRef;
 use derive_more::From;
 use derive_more::IntoIterator;
-use futures::future::join_all;
+use futures::future::try_join_all;
 use nutype::nutype;
 use ring::hmac;
 use rustls_pki_types::TrustAnchor;
@@ -87,15 +87,14 @@ pub struct UseCaseSettings {
 
 impl UseCasesSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCases<PrivateKeyVariant>, anyhow::Error> {
-        let iter = self.into_iter().map(|(id, use_case)| async {
-            let result = (id, use_case.parse(hsm.clone()).await?);
-            Ok(result)
-        });
-
-        let use_cases = join_all(iter)
-            .await
+        let iter = self
             .into_iter()
-            .collect::<Result<HashMap<String, UseCase<_>>, anyhow::Error>>()?;
+            .map(|(id, use_case)| async { Ok::<_, anyhow::Error>((id, use_case.parse(hsm.clone()).await?)) });
+
+        let use_cases = try_join_all(iter)
+            .await?
+            .into_iter()
+            .collect::<HashMap<String, UseCase<_>>>();
 
         Ok(use_cases.into())
     }
@@ -103,7 +102,12 @@ impl UseCasesSettings {
 
 impl UseCaseSettings {
     pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
-        let use_case = UseCase::try_new(self.key_pair.parse(hsm).await?, self.session_type_return_url)?;
+        let use_case = UseCase::try_new(
+            self.key_pair.parse(hsm).await?,
+            self.session_type_return_url,
+            None,
+            None,
+        )?;
 
         Ok(use_case)
     }
@@ -178,11 +182,11 @@ impl ServerSettings for VerifierSettings {
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect::<Vec<_>>();
 
-        let key_pairs: Vec<(String, KeyPair)> = self
+        let key_pairs: Vec<(&str, &KeyPair)> = self
             .usecases
             .as_ref()
             .iter()
-            .map(|(use_case_id, usecase)| (use_case_id.clone(), usecase.key_pair.clone()))
+            .map(|(use_case_id, usecase)| (use_case_id.as_ref(), &usecase.key_pair))
             .collect();
 
         verify_key_pairs(

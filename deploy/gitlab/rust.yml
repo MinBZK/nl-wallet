@@ -98,7 +98,7 @@ test-rust-gba-pid:
       sha256sum gba_hc_converter.toml
       unset $GBA_JSON
       set -x
-    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features gba_pid_test --locked --lcov --output-path ../lcov-gba-pid.info
+    - RUST_BACKTRACE=1 cargo llvm-cov nextest --features gba_pid_test --locked --lcov --output-path ../lcov-gba-pid.info --fail-fast
     - cargo llvm-cov report --locked --cobertura --output-path ../rust-gba-pid-coverage.xml
     - mv ../target/nextest/ci/junit.xml ../target/nextest/ci/junit-gba-pid.xml
   after_script:

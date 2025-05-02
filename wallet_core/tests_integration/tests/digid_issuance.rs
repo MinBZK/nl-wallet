@@ -51,7 +51,7 @@ async fn test_pid_issuance_digid_bridge() {
         settings.digid.http_config.clone(),
     )
     .unwrap();
-    let port = start_issuer_server(settings.clone(), hsm, attr_service).await;
+    let port = start_pid_issuer_server(settings.clone(), hsm, attr_service).await;
 
     start_gba_hc_converter(gba_hc_converter_settings()).await;
 
@@ -92,7 +92,6 @@ async fn test_pid_issuance_digid_bridge() {
             &wallet_config.mdoc_trust_anchors(),
             &MockRemoteKeyFactory::default(),
             None,
-            server_url,
         )
         .await
         .unwrap();

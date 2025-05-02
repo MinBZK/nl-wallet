@@ -64,12 +64,14 @@ test_common = [
     "rustls",
     "dep:android_attest",
     "dep:apple_app_attest",
+    "dep:axum",
     "dep:chrono",
     "dep:configuration_server",
     "dep:ctor",
     "dep:gba_hc_converter",
     "dep:http_utils",
     "dep:indexmap",
+    "dep:issuance_server",
     "dep:jsonwebtoken",
     "dep:mdoc",
     "dep:openid4vc",
@@ -94,6 +96,7 @@ test_common = [
     "dep:wallet_provider",
     "dep:wallet_provider_persistence",
     "dep:wallet_provider_service",
+    "dep:wiremock",
 ]
 # Include the fake_digid submodule
 fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
@@ -178,6 +181,7 @@ gba_pid_test = [
 
 [dependencies]
 assert_matches = { workspace = true, optional = true }
+axum = { workspace = true, optional = true, features = ["http1", "json", "tokio"] }
 ctor = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
@@ -213,6 +217,7 @@ tracing-subscriber = { workspace = true, optional = true, features = [
 ] }
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }
+wiremock = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }
@@ -221,6 +226,7 @@ crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
 http_utils = { path = "../lib/http_utils", optional = true }
+issuance_server = { path = "../wallet_server/issuance_server", optional = true }
 jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["test"] }
 openid4vc = { path = "../lib/openid4vc", optional = true }
@@ -247,6 +253,7 @@ dotenvy = { workspace = true, optional = true }
 # * hsm_test
 # * db_test
 android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
+issuance_server = { path = "../wallet_server/issuance_server", features = ["integration_test"] }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", features = ["integration_test"] }
 platform_support = { path = "../wallet/platform_support", features = ["persistent_mock_attested_key"] }

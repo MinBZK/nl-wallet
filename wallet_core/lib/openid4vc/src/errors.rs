@@ -212,6 +212,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
                 | GetAuthRequestError::Jwt(_)
                 | GetAuthRequestError::ReturnUrlConfigurationMismatch
                 | GetAuthRequestError::UnknownUseCase(_)
+                | GetAuthRequestError::NoAttributesToRequest(_)
                 | GetAuthRequestError::Session(SessionError::SessionStore(_)) => GetRequestErrorCode::ServerError,
                 GetAuthRequestError::QueryParametersMissing
                 | GetAuthRequestError::QueryParametersDeserialization(_)
@@ -240,6 +241,7 @@ impl ErrorStatusCode for GetRequestErrorCode {
     }
 }
 
+/// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-20.html#name-error-response>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum PostAuthResponseErrorCode {
@@ -249,6 +251,10 @@ pub enum PostAuthResponseErrorCode {
     UnknownSession,
 
     ServerError,
+
+    /// An NL Wallet specific error code, meaning the following: in a disclosure based issuance session,
+    /// the issuer found no attestations to issue.
+    NoIssuableAttestations,
 }
 
 impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
@@ -262,7 +268,8 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                 PostAuthResponseError::Session(SessionError::UnexpectedState(SessionStatus::Cancelled)) => {
                     PostAuthResponseErrorCode::CancelledSession
                 }
-                PostAuthResponseError::Session(SessionError::SessionStore(_)) => PostAuthResponseErrorCode::ServerError,
+                PostAuthResponseError::Session(SessionError::SessionStore(_))
+                | PostAuthResponseError::ResponseEncoding(_) => PostAuthResponseErrorCode::ServerError,
                 PostAuthResponseError::Session(SessionError::UnknownSession(_)) => {
                     PostAuthResponseErrorCode::UnknownSession
                 }
@@ -270,6 +277,7 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
                 | PostAuthResponseError::Session(SessionError::UnexpectedState(_)) => {
                     PostAuthResponseErrorCode::InvalidRequest
                 }
+                PostAuthResponseError::HandlingDisclosureResult(err) => err.as_ref().to_error_code(),
             },
             error_description: Some(description),
             error_uri: None,
@@ -282,7 +290,8 @@ impl ErrorStatusCode for PostAuthResponseErrorCode {
         match self {
             PostAuthResponseErrorCode::ExpiredSession
             | PostAuthResponseErrorCode::CancelledSession
-            | PostAuthResponseErrorCode::UnknownSession => StatusCode::NOT_FOUND,
+            | PostAuthResponseErrorCode::UnknownSession
+            | PostAuthResponseErrorCode::NoIssuableAttestations => StatusCode::NOT_FOUND,
             PostAuthResponseErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             PostAuthResponseErrorCode::InvalidRequest => StatusCode::BAD_REQUEST,
         }

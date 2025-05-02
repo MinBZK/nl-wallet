@@ -66,15 +66,15 @@ Future<IdentifyUriResult> identifyUri({required String uri}) =>
 
 Future<String> createPidIssuanceRedirectUri() => WalletCore.instance.api.crateApiFullCreatePidIssuanceRedirectUri();
 
-Future<void> cancelPidIssuance() => WalletCore.instance.api.crateApiFullCancelPidIssuance();
+Future<void> cancelIssuance() => WalletCore.instance.api.crateApiFullCancelIssuance();
 
 Future<List<Attestation>> continuePidIssuance({required String uri}) =>
     WalletCore.instance.api.crateApiFullContinuePidIssuance(uri: uri);
 
-Future<WalletInstructionResult> acceptPidIssuance({required String pin}) =>
-    WalletCore.instance.api.crateApiFullAcceptPidIssuance(pin: pin);
+Future<WalletInstructionResult> acceptIssuance({required String pin}) =>
+    WalletCore.instance.api.crateApiFullAcceptIssuance(pin: pin);
 
-Future<bool> hasActivePidIssuanceSession() => WalletCore.instance.api.crateApiFullHasActivePidIssuanceSession();
+Future<bool> hasActiveIssuanceSession() => WalletCore.instance.api.crateApiFullHasActiveIssuanceSession();
 
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
@@ -85,6 +85,9 @@ Future<AcceptDisclosureResult> acceptDisclosure({required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptDisclosure(pin: pin);
 
 Future<bool> hasActiveDisclosureSession() => WalletCore.instance.api.crateApiFullHasActiveDisclosureSession();
+
+Future<List<Attestation>> continueDisclosureBasedIssuance({required String pin}) =>
+    WalletCore.instance.api.crateApiFullContinueDisclosureBasedIssuance(pin: pin);
 
 Future<bool> isBiometricUnlockEnabled() => WalletCore.instance.api.crateApiFullIsBiometricUnlockEnabled();
 

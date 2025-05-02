@@ -14,11 +14,12 @@ use wallet::errors::reqwest;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
 use wallet::errors::DigidSessionError;
+use wallet::errors::DisclosureBasedIssuanceError;
 use wallet::errors::DisclosureError;
 use wallet::errors::HistoryError;
 use wallet::errors::HttpClientError;
 use wallet::errors::InstructionError;
-use wallet::errors::PidIssuanceError;
+use wallet::errors::IssuanceError;
 use wallet::errors::ResetError;
 use wallet::errors::UpdatePolicyError;
 use wallet::errors::UriIdentificationError;
@@ -116,8 +117,9 @@ impl TryFrom<anyhow::Error> for FlutterApiError {
             .or_else(|e| e.downcast::<WalletRegistrationError>().map(Self::from))
             .or_else(|e| e.downcast::<WalletUnlockError>().map(Self::from))
             .or_else(|e| e.downcast::<UriIdentificationError>().map(Self::from))
-            .or_else(|e| e.downcast::<PidIssuanceError>().map(Self::from))
+            .or_else(|e| e.downcast::<IssuanceError>().map(Self::from))
             .or_else(|e| e.downcast::<DisclosureError>().map(Self::from))
+            .or_else(|e| e.downcast::<DisclosureBasedIssuanceError>().map(Self::from))
             .or_else(|e| e.downcast::<HistoryError>().map(Self::from))
             .or_else(|e| e.downcast::<ResetError>().map(Self::from))
             .or_else(|e| e.downcast::<url::ParseError>().map(Self::from))
@@ -192,30 +194,30 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
     None
 }
 
-impl FlutterApiErrorFields for PidIssuanceError {
+impl FlutterApiErrorFields for IssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
         if let Some(network_error) = detect_networking_error(self) {
             return network_error;
         }
 
         match self {
-            PidIssuanceError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            PidIssuanceError::NotRegistered | PidIssuanceError::Locked | PidIssuanceError::SessionState => {
+            IssuanceError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
+            IssuanceError::NotRegistered | IssuanceError::Locked | IssuanceError::SessionState => {
                 FlutterApiErrorType::WalletState
             }
-            PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(_))) => {
+            IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(_))) => {
                 FlutterApiErrorType::RedirectUri
             }
-            PidIssuanceError::PidIssuer(IssuanceSessionError::TokenRequest(_))
-            | PidIssuanceError::PidIssuer(IssuanceSessionError::CredentialRequest(_))
-            | PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(_)))
-            | PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingAccessToken(_)))
-            | PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_)))
-            | PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingAccessToken(_)))
-            | PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
+            IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(_))
+            | IssuanceError::IssuanceSession(IssuanceSessionError::CredentialRequest(_))
+            | IssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(_)))
+            | IssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingAccessToken(_)))
+            | IssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_)))
+            | IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingAccessToken(_)))
+            | IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
                 FlutterApiErrorType::Server
             }
-            PidIssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
+            IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
         }
     }
@@ -246,9 +248,10 @@ impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
-                FlutterApiErrorType::WalletState
-            }
+            DisclosureError::NotRegistered
+            | DisclosureError::Locked
+            | DisclosureError::SessionState
+            | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::WalletState,
             DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
@@ -291,6 +294,24 @@ impl FlutterApiErrorFields for DisclosureError {
             .unwrap() // This conversion should never fail.
         } else {
             serde_json::Value::Null
+        }
+    }
+}
+
+impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
+    fn typ(&self) -> FlutterApiErrorType {
+        match self {
+            Self::Disclosure(error) => error.typ(),
+            Self::Issuance(error) => error.typ(),
+            _ => FlutterApiErrorType::Generic,
+        }
+    }
+
+    fn data(&self) -> serde_json::Value {
+        match self {
+            Self::Disclosure(error) => error.data(),
+            Self::Issuance(error) => error.data(),
+            _ => serde_json::Value::Null,
         }
     }
 }
@@ -400,7 +421,7 @@ mod tests {
     use wallet::errors::openid4vc::ErrorResponse;
     use wallet::errors::openid4vc::OidcError;
     use wallet::errors::DigidSessionError;
-    use wallet::errors::PidIssuanceError;
+    use wallet::errors::IssuanceError;
 
     use super::FlutterApiError;
     use super::FlutterApiErrorType;
@@ -408,23 +429,23 @@ mod tests {
     // TODO: (PVW-4073) Add more error test cases.
     #[rstest]
     #[case(
-        PidIssuanceError::VersionBlocked,
+        IssuanceError::VersionBlocked,
         FlutterApiErrorType::VersionBlocked,
         serde_json::Value::Null
     )]
     #[case(
-        PidIssuanceError::NotRegistered,
+        IssuanceError::NotRegistered,
         FlutterApiErrorType::WalletState,
         serde_json::Value::Null
     )]
-    #[case(PidIssuanceError::Locked, FlutterApiErrorType::WalletState, serde_json::Value::Null)]
+    #[case(IssuanceError::Locked, FlutterApiErrorType::WalletState, serde_json::Value::Null)]
     #[case(
-        PidIssuanceError::SessionState,
+        IssuanceError::SessionState,
         FlutterApiErrorType::WalletState,
         serde_json::Value::Null
     )]
     #[case(
-        PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(
+        IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::InvalidRequest,
                 error_description: None,
@@ -435,7 +456,7 @@ mod tests {
         json!({"redirect_error": "invalid_request"})
     )]
     #[case(
-        PidIssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(
+        IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(
             Box::new(ErrorResponse {
                 error: AuthorizationErrorCode::Other("some_error".to_string()),
                 error_description: None,
@@ -446,7 +467,7 @@ mod tests {
         json!({"redirect_error": "some_error"})
     )]
     #[case(
-        PidIssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(Box::new(ErrorResponse {
+        IssuanceError::DigidSessionStart(DigidSessionError::Oidc(OidcError::RedirectUriError(Box::new(ErrorResponse {
             error: AuthorizationErrorCode::InvalidRequest,
             error_description: None,
             error_uri: None,
@@ -455,7 +476,7 @@ mod tests {
         serde_json::Value::Null
     )]
     #[case(
-        PidIssuanceError::MissingSignature,
+        IssuanceError::MissingSignature,
         FlutterApiErrorType::Generic,
         serde_json::Value::Null
     )]

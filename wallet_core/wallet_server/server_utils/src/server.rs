@@ -10,8 +10,11 @@ use tokio::net::TcpListener;
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
 use tracing::error;
+use tracing::info;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
+
+use utils::built_info::version_string;
 
 use crate::log_requests::log_request_response;
 use crate::settings::Server;
@@ -37,6 +40,19 @@ pub fn decorate_router(mut router: Router, log_requests: bool) -> Router {
 /// Create Wallet listener from [settings].
 pub async fn create_wallet_listener(wallet_server: &Server) -> Result<TcpListener, io::Error> {
     TcpListener::bind((wallet_server.ip, wallet_server.port)).await
+}
+
+/// Attach the specified router to the specified listener.
+pub async fn listen(listener: TcpListener, mut router: Router, log_requests: bool) -> Result<()> {
+    router = decorate_router(router, log_requests);
+
+    info!("{}", version_string());
+    info!("listening for wallet on {}", listener.local_addr()?);
+    axum::serve(listener, router)
+        .await
+        .expect("wallet server should be started");
+
+    Ok(())
 }
 
 /// Setup tracing and read settings, then run `app`.

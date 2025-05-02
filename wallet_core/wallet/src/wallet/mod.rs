@@ -2,6 +2,7 @@ mod attestations;
 mod change_pin;
 mod config;
 mod disclosure;
+mod disclosure_based_issuance;
 mod history;
 mod init;
 mod instruction_client;
@@ -20,7 +21,7 @@ use cfg_if::cfg_if;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureSession as Openid4vcDisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
@@ -34,15 +35,19 @@ use crate::lock::WalletLock;
 use crate::storage::DatabaseStorage;
 use crate::storage::RegistrationData;
 use crate::update_policy::UpdatePolicyRepository;
-use crate::wallet::attestations::AttestationsCallback;
 use crate::wte::WpWteIssuanceClient;
+
+use self::attestations::AttestationsCallback;
+use self::disclosure::DisclosureSession;
+use self::issuance::IssuanceSession;
 
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposal;
+pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
 pub use self::init::WalletInitError;
-pub use self::issuance::PidIssuanceError;
+pub use self::issuance::IssuanceError;
 pub use self::lock::LockCallback;
 pub use self::lock::UnlockMethod;
 pub use self::lock::WalletUnlockError;
@@ -50,8 +55,6 @@ pub use self::registration::WalletRegistrationError;
 pub use self::reset::ResetError;
 pub use self::uri::UriIdentificationError;
 pub use self::uri::UriType;
-
-use self::issuance::PidIssuanceSession;
 
 cfg_if! {
     if #[cfg(feature = "fake_attestation")] {
@@ -88,16 +91,23 @@ impl<A, G> WalletRegistration<A, G> {
     }
 }
 
+#[derive(Debug)]
+enum Session<DS, IS, MDS> {
+    Digid(DS),
+    Issuance(IssuanceSession<IS>),
+    Disclosure(DisclosureSession<MDS>),
+}
+
 pub struct Wallet<
-    CR = WalletConfigurationRepository,                 // Repository<WalletConfiguration>
-    UR = UpdatePolicyRepository,                        // Repository<VersionState>
-    S = DatabaseStorage<HardwareEncryptionKey>,         // Storage
-    AKH = KeyHolderType,                                // AttestedKeyHolder
-    APC = HttpAccountProviderClient,                    // AccountProviderClient
-    DS = HttpDigidSession,                              // DigidSession
-    IS = HttpIssuanceSession,                           // IssuanceSession
-    MDS = DisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
-    WIC = WpWteIssuanceClient,                          // WteIssuanceClient
+    CR = WalletConfigurationRepository,         // Repository<WalletConfiguration>
+    UR = UpdatePolicyRepository,                // Repository<VersionState>
+    S = DatabaseStorage<HardwareEncryptionKey>, // Storage
+    AKH = KeyHolderType,                        // AttestedKeyHolder
+    APC = HttpAccountProviderClient,            // AccountProviderClient
+    DS = HttpDigidSession,                      // DigidSession
+    IS = HttpIssuanceSession,                   // IssuanceSession
+    MDS = Openid4vcDisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
+    WIC = WpWteIssuanceClient,                  // WteIssuanceClient
 > where
     AKH: AttestedKeyHolder,
 {
@@ -107,8 +117,7 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    issuance_session: Option<PidIssuanceSession<DS, IS>>,
-    disclosure_session: Option<MDS>,
+    session: Option<Session<DS, IS, MDS>>,
     wte_issuance_client: WIC,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,

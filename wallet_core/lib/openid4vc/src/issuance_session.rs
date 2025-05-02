@@ -15,7 +15,6 @@ use reqwest::header::ToStrError;
 use reqwest::header::AUTHORIZATION;
 use reqwest::Method;
 use rustls_pki_types::TrustAnchor;
-use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
@@ -41,6 +40,7 @@ use mdoc::ATTR_RANDOM_LENGTH;
 use poa::factory::PoaFactory;
 use poa::Poa;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecAtLeastTwoUnique;
@@ -267,7 +267,6 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-        credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey,
@@ -596,7 +595,6 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-        credential_issuer_identifier: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey,
@@ -623,7 +621,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let keys_and_proofs = CredentialRequestProof::new_multiple(
             self.session_state.c_nonce.clone(),
             self.message_client.client_id().to_string(),
-            credential_issuer_identifier.clone(),
+            self.session_state.issuer_url.clone(),
             credential_previews.len().try_into().unwrap(),
             key_factory,
         )
@@ -632,7 +630,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         let pop_claims = JwtPopClaims::new(
             Some(self.session_state.c_nonce.clone()),
             self.message_client.client_id().to_string(),
-            credential_issuer_identifier.as_ref().to_string(),
+            self.session_state.issuer_url.as_ref().to_string(),
         );
 
         // This could be written better with `Option::map`, but `Option::map` does not support async closures
@@ -1278,12 +1276,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state,
         }
-        .accept_issuance(
-            &[trust_anchor],
-            &key_factory,
-            wte,
-            "https://issuer.example.com".parse().unwrap(),
-        )
+        .accept_issuance(&[trust_anchor], &key_factory, wte)
         .await;
     }
 
@@ -1306,12 +1299,7 @@ mod tests {
             message_client: mock_msg_client,
             session_state: new_session_state(vec![format_with_documents.clone(), format_with_documents]),
         }
-        .accept_issuance(
-            &[trust_anchor],
-            &MockRemoteKeyFactory::default(),
-            None,
-            "https://issuer.example.com".parse().unwrap(),
-        )
+        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), None)
         .await
         .unwrap_err();
 

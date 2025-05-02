@@ -100,6 +100,48 @@ pub struct Config {
 }
 
 impl Config {
+    /// Returns a new instance with the specified URLs, and all other parameters set to none/empty/false.
+    pub fn new(issuer: BaseUrl, authorization_endpoint: Url, token_endpoint: Url, jwks_uri: Url) -> Self {
+        Self {
+            issuer,
+            authorization_endpoint,
+            token_endpoint,
+            userinfo_endpoint: None,
+            jwks_uri,
+            registration_endpoint: None,
+            scopes_supported: None,
+            response_types_supported: IndexSet::new(),
+            response_modes_supported: None,
+            grant_types_supported: None,
+            acr_values_supported: None,
+            subject_types_supported: IndexSet::new(),
+            id_token_signing_alg_values_supported: IndexSet::new(),
+            id_token_encryption_alg_values_supported: None,
+            id_token_encryption_enc_values_supported: None,
+            userinfo_signing_alg_values_supported: None,
+            userinfo_encryption_alg_values_supported: None,
+            userinfo_encryption_enc_values_supported: None,
+            request_object_signing_alg_values_supported: None,
+            request_object_encryption_alg_values_supported: None,
+            request_object_encryption_enc_values_supported: None,
+            token_endpoint_auth_methods_supported: None,
+            token_endpoint_auth_signing_alg_values_supported: None,
+            display_values_supported: None,
+            claim_types_supported: None,
+            claims_supported: None,
+            service_documentation: None,
+            claims_locales_supported: None,
+            ui_locales_supported: None,
+            claims_parameter_supported: false,
+            request_parameter_supported: false,
+            request_uri_parameter_supported: false,
+            require_request_uri_registration: false,
+            op_policy_uri: None,
+            op_tos_uri: None,
+            code_challenge_methods_supported: None,
+        }
+    }
+
     pub async fn discover(http_config: &impl JsonReqwestBuilder) -> Result<Self, OidcError> {
         // If the Issuer value contains a path component, any terminating / MUST be removed before
         // appending /.well-known/openid-configuration.

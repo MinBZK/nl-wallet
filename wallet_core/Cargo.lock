@@ -1334,9 +1334,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.15"
+version = "0.5.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
+checksum = "06ba6d68e24814cb8de6bb986db8222d3a027d15872cabc0d18817bc3c0e4471"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -3179,9 +3179,44 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
+name = "issuance_server"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "attestation",
+ "axum",
+ "config",
+ "crypto",
+ "futures",
+ "hsm",
+ "http_utils",
+ "indexmap 2.7.1",
+ "issuer_settings",
+ "mdoc",
+ "openid4vc",
+ "openid4vc_server",
+ "p256",
+ "reqwest",
+ "rustls-pki-types",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "server_utils",
+ "thiserror 2.0.11",
+ "tokio",
+ "tracing",
+ "trait-variant",
+ "utils",
+]
+
+[[package]]
 name = "issuer_settings"
 version = "0.3.0-dev"
 dependencies = [
+ "assert_matches",
  "attestation",
  "chrono",
  "crypto",
@@ -3944,6 +3979,7 @@ name = "openid4vc"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "async-trait",
  "attestation",
  "axum",
  "base64 0.22.1",
@@ -4020,9 +4056,9 @@ dependencies = [
 
 [[package]]
 name = "openssl"
-version = "0.10.72"
+version = "0.10.70"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fedfea7d58a1f73118430a55da6a286e7b044961736ce96a16a17068ea25e5da"
+checksum = "61cfb4e166a8bb8c9b55c500bc2308550148ece889be90f609377e58140f42c6"
 dependencies = [
  "bitflags 2.8.0",
  "cfg-if",
@@ -4055,9 +4091,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.107"
+version = "0.9.105"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8288979acd84749c744a9014b4382d42b8f7b2592847b5afb2ed29e5d16ede07"
+checksum = "8b22d5b84be05a8d6947c7cb71f7c849aa0f112acd4bf51c2a7c1c988ac0a9dc"
 dependencies = [
  "cc",
  "libc",
@@ -5269,7 +5305,6 @@ dependencies = [
  "crypto",
  "derive_more",
  "http",
- "http-serde",
  "http_utils",
  "itertools 0.14.0",
  "jsonschema",
@@ -6370,6 +6405,7 @@ dependencies = [
  "android_attest",
  "apple_app_attest",
  "assert_matches",
+ "axum",
  "chrono",
  "configuration_server",
  "crypto",
@@ -6380,6 +6416,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "insta",
+ "issuance_server",
  "jsonwebtoken",
  "jwt",
  "mdoc",
@@ -6416,6 +6453,7 @@ dependencies = [
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
+ "wiremock",
 ]
 
 [[package]]

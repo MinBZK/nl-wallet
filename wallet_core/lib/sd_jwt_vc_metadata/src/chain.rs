@@ -262,7 +262,7 @@ mod example_constructors {
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::ADDRESS_METADATA_BYTES;
-    use crate::examples::DIPLOMA_METADATA_BYTES;
+    use crate::examples::DEGREE_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::EXAMPLE_V2_METADATA_BYTES;
     use crate::examples::EXAMPLE_V3_METADATA_BYTES;
@@ -335,10 +335,10 @@ mod example_constructors {
             )
         }
 
-        pub fn diploma_example() -> (Integrity, Self) {
+        pub fn degree_example() -> (Integrity, Self) {
             (
-                Integrity::from(DIPLOMA_METADATA_BYTES),
-                Self::new(vec![DIPLOMA_METADATA_BYTES.to_vec()].try_into().unwrap()),
+                Integrity::from(DEGREE_METADATA_BYTES),
+                Self::new(vec![DEGREE_METADATA_BYTES.to_vec()].try_into().unwrap()),
             )
         }
 
@@ -419,7 +419,7 @@ mod test {
     )]
     #[case("urn:eudi:pid:nl:1", TypeMetadataDocuments::pid_example())]
     #[case("urn:eudi:pid-address:nl:1", TypeMetadataDocuments::address_example())]
-    #[case("com.example.diploma", TypeMetadataDocuments::diploma_example())]
+    #[case("com.example.degree", TypeMetadataDocuments::degree_example())]
     #[case(
         "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
         TypeMetadataDocuments::example_with_extensions()
