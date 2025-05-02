@@ -30,6 +30,7 @@ test = ["jwt/test", "poa/mock", "crypto/mock_remote_key", "dep:assert_matches", 
 integration = ["mock", "test"]
 
 [dependencies]
+async-trait.workspace = true
 base64.workspace = true
 biscuit.workspace = true
 cfg-if.workspace = true

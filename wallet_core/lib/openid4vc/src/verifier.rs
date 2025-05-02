@@ -5,11 +5,13 @@ use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
 
+use async_trait::async_trait;
 use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
+use indexmap::IndexMap;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use josekit::jwk::Jwk;
@@ -36,6 +38,7 @@ use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use jwt::Jwt;
 use mdoc::verifier::DisclosedAttributes;
+use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use utils::generator::Generator;
 
@@ -59,6 +62,7 @@ use crate::server_state::SessionToken;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::AuthorizationErrorCode;
 use crate::ErrorResponse;
+use crate::PostAuthResponseErrorCode;
 use crate::VpAuthorizationErrorCode;
 
 pub const EPHEMERAL_ID_VALIDITY_SECONDS: Duration = Duration::from_secs(10);
@@ -136,15 +140,21 @@ pub enum GetAuthRequestError {
     QueryParametersMissing,
     #[error("failed to deserialize query parameters: {0}")]
     QueryParametersDeserialization(#[from] serde_urlencoded::de::Error),
+    #[error("no attributes configured to be disclosed in usecase {0}")]
+    NoAttributesToRequest(String),
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
-#[derive(thiserror::Error, Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum PostAuthResponseError {
     #[error("session error: {0}")]
     Session(#[from] SessionError),
     #[error("error decrypting or verifying Authorization Response JWE: {0}")]
     AuthResponse(#[from] AuthResponseError),
+    #[error("failed handling disclosure result: {0}")]
+    HandlingDisclosureResult(#[from] DisclosureResultHandlerError),
+    #[error("failed serializing response: {0}")]
+    ResponseEncoding(#[from] serde_urlencoded::ser::Error),
 }
 
 /// Errors that can occur when creating a [`UseCase`] instance.
@@ -206,6 +216,7 @@ pub struct Created {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct WaitingForResponse {
     auth_request: IsoVpAuthorizationRequest,
+    usecase_id: String,
     encryption_key: EncryptionPrivateKey,
     redirect_uri: Option<RedirectUri>,
 }
@@ -463,12 +474,16 @@ pub struct UseCase<K> {
     pub key_pair: KeyPair<K>,
     pub client_id: String,
     pub session_type_return_url: SessionTypeReturnUrl,
+    pub items_requests: Option<ItemsRequests>,
+    pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
 impl<K> UseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
+        items_requests: Option<ItemsRequests>,
+        return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = String::from(
             key_pair
@@ -480,19 +495,46 @@ impl<K> UseCase<K> {
             key_pair,
             client_id,
             session_type_return_url,
+            items_requests,
+            return_url_template,
         };
 
         Ok(use_case)
     }
 }
 
-#[derive(Debug)]
+pub trait ToPostAuthResponseErrorCode: std::error::Error {
+    fn to_error_code(&self) -> PostAuthResponseErrorCode;
+}
+
+#[derive(Debug, AsRef, thiserror::Error)]
+#[error("{0}")]
+pub struct DisclosureResultHandlerError(pub Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
+
+/// Types may implement this to receive disclosed attributes after a successful disclosure session.
+/// The return value is URL-serialized and appended to the query of the redirect URI, if present,
+/// that gets sent to the wallet.
+#[async_trait] // This makes the trait object safe so we can use `dyn DisclosureResultHandler` below.
+pub trait DisclosureResultHandler {
+    async fn disclosure_result(
+        &self,
+        usecase_id: &str,
+        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
+}
+
+pub enum SessionIdentifier {
+    Token(SessionToken),
+    UseCaseId(String),
+}
+
 pub struct Verifier<S, K> {
     use_cases: UseCases<K>,
     sessions: Arc<S>,
     cleanup_task: JoinHandle<()>,
     trust_anchors: Vec<TrustAnchor<'static>>,
-    ephemeral_id_secret: hmac::Key,
+    ephemeral_id_secret: Option<hmac::Key>,
+    result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
     accepted_wallet_client_ids: Vec<String>,
 }
 
@@ -521,7 +563,8 @@ where
         use_cases: UseCases<K>,
         sessions: Arc<S>,
         trust_anchors: Vec<TrustAnchor<'static>>,
-        ephemeral_id_secret: hmac::Key,
+        ephemeral_id_secret: Option<hmac::Key>,
+        result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
         accepted_wallet_client_ids: Vec<String>,
     ) -> Self
     where
@@ -533,6 +576,7 @@ where
             sessions,
             trust_anchors,
             ephemeral_id_secret,
+            result_handler,
             accepted_wallet_client_ids,
         }
     }
@@ -587,19 +631,26 @@ where
     }
 
     fn verify_ephemeral_id(
-        &self,
+        ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
         url_params: &VerifierUrlParameters,
     ) -> Result<(), GetAuthRequestError> {
-        if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > url_params.time {
-            return Err(GetAuthRequestError::ExpiredEphemeralId(url_params.ephemeral_id.clone()));
+        let ephemeral_id_params = url_params
+            .ephemeral_id_params
+            .as_ref()
+            .ok_or(GetAuthRequestError::QueryParametersMissing)?;
+
+        if Utc::now() - EPHEMERAL_ID_VALIDITY_SECONDS > ephemeral_id_params.time {
+            return Err(GetAuthRequestError::ExpiredEphemeralId(
+                ephemeral_id_params.ephemeral_id.clone(),
+            ));
         }
         hmac::verify(
-            &self.ephemeral_id_secret,
-            &Self::format_ephemeral_id_payload(session_token, &url_params.time),
-            &url_params.ephemeral_id,
+            ephemeral_id_secret,
+            &Self::format_ephemeral_id_payload(session_token, &ephemeral_id_params.time),
+            &ephemeral_id_params.ephemeral_id,
         )
-        .map_err(|_| GetAuthRequestError::InvalidEphemeralId(url_params.ephemeral_id.clone()))?;
+        .map_err(|_| GetAuthRequestError::InvalidEphemeralId(ephemeral_id_params.ephemeral_id.clone()))?;
 
         Ok(())
     }
@@ -632,12 +683,37 @@ where
 
     pub async fn process_get_request(
         &self,
-        session_token: &SessionToken,
-        response_uri: BaseUrl,
+        session_identifier: &SessionIdentifier,
+        response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
-        let session: Session<Created> = self.get_session(session_token).await?;
+        let session: Session<Created> = match session_identifier {
+            SessionIdentifier::Token(session_token) => self.get_session(session_token).await?,
+            SessionIdentifier::UseCaseId(usecase_id) => {
+                let usecase = self
+                    .use_cases
+                    .as_ref()
+                    .get(usecase_id)
+                    .ok_or(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()))?;
+
+                let items_requests = usecase
+                    .items_requests
+                    .as_ref()
+                    .ok_or(GetAuthRequestError::NoAttributesToRequest(usecase_id.to_string()))?
+                    .clone();
+
+                Session::<Created>::new(
+                    items_requests,
+                    usecase_id.clone(),
+                    usecase.client_id.clone(),
+                    usecase.return_url_template.clone(),
+                )
+            }
+        };
+
+        let session_token = &session.state.token;
+        let response_uri = response_uri_base.join_base_url(&format!("/{session_token}/response_uri"));
 
         info!("Session({session_token}): get request");
 
@@ -645,19 +721,15 @@ where
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
 
-        // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
-        // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
-        // session. This means that the QR code/UL stays on the website so that the user can try again.
-        self.verify_ephemeral_id(session_token, &url_params)?;
+        if let Some(ephemeral_id_secret) = &self.ephemeral_id_secret {
+            // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
+            // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
+            // session. This means that the QR code/UL stays on the website so that the user can try again.
+            Self::verify_ephemeral_id(ephemeral_id_secret, session_token, &url_params)?;
+        }
 
         let (result, redirect_uri, next) = match session
-            .process_get_request(
-                session_token,
-                response_uri,
-                url_params.session_type,
-                wallet_nonce,
-                &self.use_cases,
-            )
+            .process_get_request(response_uri, url_params.session_type, wallet_nonce, &self.use_cases)
             .await
         {
             Ok((jws, next)) => (
@@ -687,12 +759,15 @@ where
     ) -> Result<VpResponse, WithRedirectUri<PostAuthResponseError>> {
         let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
 
-        let (result, next) = session.process_authorization_response(
-            wallet_response,
-            &self.accepted_wallet_client_ids,
-            time,
-            &self.trust_anchors,
-        );
+        let (result, next) = session
+            .process_authorization_response(
+                wallet_response,
+                &self.accepted_wallet_client_ids,
+                time,
+                &self.trust_anchors,
+                self.result_handler.as_deref(),
+            )
+            .await;
 
         self.sessions.write(next.into(), false).await.map_err(|err| {
             WithRedirectUri::new(
@@ -720,14 +795,11 @@ where
                 let ul = session_type
                     .map(|session_type| {
                         let time = time.generate();
-                        Self::format_ul(
-                            ul_base,
-                            request_uri,
+                        let ephemeral_id = self.ephemeral_id_secret.as_ref().map(|secret| EphemeralIdParameters {
+                            ephemeral_id: Self::generate_ephemeral_id(secret, session_token, &time),
                             time,
-                            Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
-                            session_type,
-                            client_id,
-                        )
+                        });
+                        Self::format_ul(ul_base, request_uri, ephemeral_id, session_type, client_id)
                     })
                     .transpose()?;
 
@@ -818,16 +890,14 @@ impl<S, K> Verifier<S, K> {
     fn format_ul(
         base_ul: &BaseUrl,
         request_uri: BaseUrl,
-        time: DateTime<Utc>,
-        ephemeral_id: Vec<u8>,
+        ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
         client_id: String,
     ) -> Result<BaseUrl, serde_urlencoded::ser::Error> {
         let mut request_uri = request_uri.into_inner();
         request_uri.set_query(Some(&serde_urlencoded::to_string(VerifierUrlParameters {
-            time,
-            ephemeral_id,
             session_type,
+            ephemeral_id_params,
         })?));
 
         let mut ul = base_ul.clone().into_inner();
@@ -852,12 +922,20 @@ impl<S, K> Verifier<S, K> {
     }
 }
 
-#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VerifierUrlParameters {
     pub session_type: SessionType,
+
+    #[serde(flatten)]
+    pub ephemeral_id_params: Option<EphemeralIdParameters>,
+}
+
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EphemeralIdParameters {
     #[serde_as(as = "Hex")]
     pub ephemeral_id: Vec<u8>,
+
     // default (de)serialization of DateTime is the RFC 3339 format
     pub time: DateTime<Utc>,
 }
@@ -911,7 +989,6 @@ impl Session<Created> {
     /// returning a response to answer the device with and the next session state.
     async fn process_get_request<K>(
         self,
-        session_token: &SessionToken,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
@@ -926,14 +1003,15 @@ impl Session<Created> {
         info!("Session({}): process get request", self.state.token);
 
         let (response, next) = match self
-            .process_get_request_inner(session_token, response_uri, session_type, wallet_nonce, use_cases)
+            .process_get_request_inner(&self.state.token, response_uri, session_type, wallet_nonce, use_cases)
             .await
         {
             Ok((jws, auth_request, redirect_uri, enc_keypair)) => {
                 let next = WaitingForResponse {
                     auth_request,
-                    encryption_key: EncryptionPrivateKey::from(enc_keypair),
                     redirect_uri,
+                    encryption_key: EncryptionPrivateKey::from(enc_keypair),
+                    usecase_id: self.state.data.usecase_id.clone(),
                 };
                 let next = self.transition(next);
                 Ok((jws, next))
@@ -1051,12 +1129,13 @@ impl Session<WaitingForResponse> {
     /// because it differs from similar methods in the following aspect: in some cases (to wit, if the user
     /// sent an error instead of a disclosure) then we should respond with HTTP 200 to the user (mandated by
     /// the OpenID4VP spec), while we fail our session. This does not neatly fit in the `_inner()` method pattern.
-    fn process_authorization_response(
+    async fn process_authorization_response(
         self,
         wallet_response: WalletAuthResponse,
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
+        trust_anchors: &[TrustAnchor<'_>],
+        result_handler: Option<&(dyn DisclosureResultHandler + Send + Sync)>,
     ) -> (
         Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
         Session<Done>,
@@ -1072,7 +1151,7 @@ impl Session<WaitingForResponse> {
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
-                let response = self.ok_response();
+                let response = self.ok_response(&HashMap::new());
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
@@ -1089,7 +1168,9 @@ impl Session<WaitingForResponse> {
             "Session({}): process response: decrypting and deserializing Authorization Response JWE",
             self.state.token
         );
-        let (result, next) = match VpAuthorizationResponse::decrypt_and_verify(
+
+        // We can't use ? here, because of the return type of this method and because the error branches consume self.
+        let disclosed = match VpAuthorizationResponse::decrypt_and_verify(
             &jwe,
             self.state().encryption_key.as_ref(),
             &self.state().auth_request,
@@ -1097,25 +1178,54 @@ impl Session<WaitingForResponse> {
             time,
             trust_anchors,
         ) {
-            Ok(disclosed) => {
-                let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
-                let response = self.ok_response();
-                let next = self.transition_finish(disclosed, redirect_uri_nonce);
-                (Ok(response), next)
-            }
-            Err(err) => {
-                let redirect_uri = self.state().redirect_uri.as_ref().map(|u| u.uri.clone());
-                let next = self.transition_fail(&err);
-                (Err(WithRedirectUri::new(err.into(), redirect_uri)), next)
+            Ok(disclosed) => disclosed,
+            Err(err) => return self.handle_err(err.into()),
+        };
+
+        let query_params = match result_handler {
+            None => HashMap::default(),
+            Some(result_handler) => {
+                match result_handler
+                    .disclosure_result(&self.state.data.usecase_id, &disclosed)
+                    .await
+                {
+                    Ok(query_params) => query_params,
+                    Err(err) => return self.handle_err(err.into()),
+                }
             }
         };
 
-        (result, next)
+        let redirect_uri_nonce = self.state().redirect_uri.as_ref().map(|u| u.nonce.clone());
+        let response = self.ok_response(&query_params);
+        let next = self.transition_finish(disclosed, redirect_uri_nonce);
+
+        (Ok(response), next)
     }
 
-    fn ok_response(&self) -> VpResponse {
+    fn handle_err(
+        self,
+        err: PostAuthResponseError,
+    ) -> (
+        Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
+        Session<Done>,
+    ) {
+        let redirect_uri = self.state().redirect_uri.as_ref().map(|u| u.uri.clone());
+        let next = self.transition_fail(&err);
+        (Err(WithRedirectUri::new(err, redirect_uri)), next)
+    }
+
+    fn ok_response(&self, url_params: &HashMap<String, String>) -> VpResponse {
         VpResponse {
-            redirect_uri: self.state().redirect_uri.as_ref().map(|u| u.uri.clone()),
+            redirect_uri: self.state().redirect_uri.as_ref().map(|u| {
+                let mut uri = u.uri.clone().into_inner();
+                url_params.iter().fold(uri.query_pairs_mut(), |mut acc, (name, value)| {
+                    acc.append_pair(name, value);
+                    acc
+                });
+
+                // This is safe as this URI was obtained from a BaseUrl
+                uri.try_into().unwrap()
+            }),
         }
     }
 
@@ -1159,7 +1269,11 @@ mod tests {
 
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::server_state::MemorySessionStore;
+    use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
+    use crate::verifier::EphemeralIdParameters;
+    use crate::verifier::SessionIdentifier;
+    use crate::verifier::VerifierUrlParameters;
 
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
@@ -1174,7 +1288,6 @@ mod tests {
     use super::SessionResult;
     use super::SessionState;
     use super::SessionStatus;
-    use super::SessionStore;
     use super::SessionType;
     use super::SessionTypeReturnUrl;
     use super::StatusResponse;
@@ -1222,6 +1335,8 @@ mod tests {
                     key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
+                    items_requests: None,
+                    return_url_template: None,
                 },
             ),
             (
@@ -1230,6 +1345,8 @@ mod tests {
                     key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::SameDevice,
                     client_id: "client_id".to_string(),
+                    items_requests: None,
+                    return_url_template: None,
                 },
             ),
             (
@@ -1238,6 +1355,8 @@ mod tests {
                     key_pair: generate_reader_mock(&ca, reader_registration).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Both,
                     client_id: "client_id".to_string(),
+                    items_requests: None,
+                    return_url_template: None,
                 },
             ),
         ])
@@ -1249,7 +1368,8 @@ mod tests {
             use_cases,
             session_store,
             trust_anchors,
-            hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+            Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
+            None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
         )
     }
@@ -1332,10 +1452,8 @@ mod tests {
         // Getting the Authorization Request should succeed
         verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/disclosure/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &SessionIdentifier::Token(session_token.clone()),
+                &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1377,10 +1495,8 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/disclosure/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &SessionIdentifier::Token(session_token.clone()),
+                &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1424,10 +1540,8 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/disclosure/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &SessionIdentifier::Token(session_token.clone()),
+                &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
             )
@@ -1530,7 +1644,7 @@ mod tests {
     }
 
     #[test]
-    fn test_verifier_url() {
+    fn test_verifier_url_with_ephemeral_id() {
         let ephemeral_id_secret = hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap();
 
         let session_token = "session_token".into();
@@ -1541,8 +1655,10 @@ mod tests {
         let verifier_url = Verifier::<(), ()>::format_ul(
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
-            time,
-            Verifier::<(), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
+            Some(EphemeralIdParameters {
+                ephemeral_id: Verifier::<(), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
+                time,
+            }),
             SessionType::CrossDevice,
             "client_id".to_string(),
         )
@@ -1560,5 +1676,70 @@ mod tests {
         );
 
         assert_eq!(verifier_url.as_ref().as_str(), expected_url);
+    }
+
+    #[test]
+    fn test_verifier_url_without_ephemeral_id() {
+        // Create a UL for the wallet, given the provided parameters.
+        let verifier_url = Verifier::<(), ()>::format_ul(
+            &"https://app-ul.example.com".parse().unwrap(),
+            "https://rp.example.com".parse().unwrap(),
+            None,
+            SessionType::CrossDevice,
+            "client_id".to_string(),
+        )
+        .unwrap();
+
+        let expected_url =
+            "https://app-ul.example.com/?request_uri=https%3A%2F%2Frp.example.com%2F%3Fsession_type%3Dcross_device\
+            &request_uri_method=post&client_id=client_id";
+
+        assert_eq!(verifier_url.as_ref().as_str(), expected_url);
+    }
+
+    #[tokio::test]
+    async fn test_session_creation_by_usecase() {
+        // Initialize server state
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
+        let reader_registration = Some(ReaderRegistration::new_mock());
+
+        let use_cases = HashMap::from([(
+            DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
+            UseCase {
+                key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                session_type_return_url: SessionTypeReturnUrl::Neither,
+                client_id: "client_id".to_string(),
+                items_requests: Some(vec![ItemsRequest::new_example()].into()),
+                return_url_template: None,
+            },
+        )]);
+
+        let session_store = Arc::new(MemorySessionStore::default());
+
+        let verifier = Verifier::new(
+            use_cases.into(),
+            session_store,
+            trust_anchors,
+            None,
+            None,
+            vec![MOCK_WALLET_CLIENT_ID.to_string()],
+        );
+
+        let query_params = serde_urlencoded::to_string(VerifierUrlParameters {
+            session_type: SessionType::SameDevice,
+            ephemeral_id_params: None,
+        })
+        .unwrap();
+
+        verifier
+            .process_get_request(
+                &SessionIdentifier::UseCaseId(DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string()),
+                &"https://example.com/response_uri".parse().unwrap(),
+                Some(&query_params),
+                None,
+            )
+            .await
+            .unwrap();
     }
 }

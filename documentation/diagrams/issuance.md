@@ -101,7 +101,7 @@ sequenceDiagram
     User->>-Wallet: approve with PIN
     activate Wallet
         Wallet->>Wallet: create PoPs by signing nonce using Wallet Provider
-    Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
-    WalletServer->>-Wallet: attestations
+        Wallet->>+WalletServer: POST /batch_credential(access_token, PoPs)
+        WalletServer->>-Wallet: attestations
     deactivate Wallet
 ```

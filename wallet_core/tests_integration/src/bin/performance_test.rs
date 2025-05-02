@@ -103,7 +103,7 @@ async fn main() {
         .expect("Could not continue pid issuance");
 
     wallet
-        .accept_pid_issuance(pin.to_owned())
+        .accept_issuance(pin.to_owned())
         .await
         .expect("Could not accept pid issuance");
 

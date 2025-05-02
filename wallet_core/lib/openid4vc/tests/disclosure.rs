@@ -6,12 +6,15 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use assert_matches::assert_matches;
+use async_trait::async_trait;
 use chrono::Utc;
 use futures::future;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use mdoc::server_keys::generate::mock::generate_reader_mock;
+use openid4vc::verifier::SessionIdentifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -40,6 +43,7 @@ use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::TestDocuments;
 use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::DocType;
@@ -60,6 +64,9 @@ use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionToken;
 use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::DisclosureResultHandler;
+use openid4vc::verifier::DisclosureResultHandlerError;
+use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
@@ -227,8 +234,10 @@ impl DirectMockVpMessageClient {
     fn new(auth_keypair: KeyPair, trust_anchors: Vec<TrustAnchor<'static>>) -> Self {
         let query = serde_urlencoded::to_string(VerifierUrlParameters {
             session_type: SessionType::SameDevice,
-            ephemeral_id: vec![42],
-            time: Utc::now(),
+            ephemeral_id_params: Some(EphemeralIdParameters {
+                ephemeral_id: vec![42],
+                time: Utc::now(),
+            }),
         })
         .unwrap();
         let request_uri = ("https://example.com/request_uri?".to_string() + &query)
@@ -366,6 +375,32 @@ impl MdocDataSource for MockMdocDataSource {
     }
 }
 
+#[derive(Debug)]
+pub struct MockDisclosureResultHandler {
+    pub key: Option<String>,
+}
+
+impl MockDisclosureResultHandler {
+    pub fn new(key: Option<String>) -> Self {
+        Self { key }
+    }
+}
+
+#[async_trait]
+impl DisclosureResultHandler for MockDisclosureResultHandler {
+    async fn disclosure_result(
+        &self,
+        _usecase_id: &str,
+        _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
+        Ok(self
+            .key
+            .as_ref()
+            .map(|key| HashMap::from([(key.clone(), "foobar".to_string())]))
+            .unwrap_or_default())
+    }
+}
+
 #[rstest]
 #[case(
     SessionType::SameDevice,
@@ -480,8 +515,9 @@ async fn test_client_and_server(
     #[case] stored_documents: TestDocuments,
     #[case] requested_documents: ItemsRequests,
     #[case] expected_documents: TestDocuments,
+    #[values(None, Some("query_param".to_string()))] result_query_param: Option<String>,
 ) {
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&requested_documents);
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&requested_documents, result_query_param.clone());
 
     // Start the session
     let session_token = verifier
@@ -528,11 +564,23 @@ async fn test_client_and_server(
     };
     assert_eq!(redirect_uri.is_some(), should_have_redirect_uri);
 
-    let redirect_uri_nonce = redirect_uri.and_then(|uri| {
-        uri.as_ref()
-            .query_pairs()
-            .find_map(|(name, val)| (name == "nonce").then(|| val.to_string()))
-    });
+    let redirect_uri_query_pairs: IndexMap<String, String> = redirect_uri
+        .as_ref()
+        .map(|uri| {
+            uri.as_ref()
+                .query_pairs()
+                .map(|(k, v)| (k.into_owned(), v.into_owned()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    if let Some(result_query_param) = &result_query_param {
+        if redirect_uri.is_some() && !redirect_uri_query_pairs.contains_key(result_query_param) {
+            panic!("expected query parameter not found in redirect URI");
+        }
+    }
+
+    let redirect_uri_nonce = redirect_uri_query_pairs.get("nonce").cloned();
 
     // If we have a redirect URI (nonce), then fetching the attributes without a nonce or with a wrong one should fail.
     if redirect_uri_nonce.is_some() {
@@ -567,7 +615,7 @@ async fn test_client_and_server_cancel_after_created() {
     let items_requests = pid_full_name().into();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests);
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -595,7 +643,7 @@ async fn test_client_and_server_cancel_after_created() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Starting the session in the wallet should result in an error
-    let error = start_disclosure_session(
+    let Err(error) = start_disclosure_session(
         Arc::clone(&verifier),
         stored_documents,
         &issuer_ca,
@@ -605,7 +653,9 @@ async fn test_client_and_server_cancel_after_created() {
         &MockRemoteKeyFactory::default(),
     )
     .await
-    .expect_err("should not be able to start the disclosure session in the wallet");
+    else {
+        panic!("should not be able to start the disclosure session in the wallet")
+    };
 
     assert_matches!(
         error,
@@ -620,7 +670,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     let items_requests = pid_full_name().into();
     let session_type = SessionType::SameDevice;
 
-    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests);
+    let (verifier, trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -726,7 +776,7 @@ async fn test_disclosure_invalid_poa() {
     let session_type = SessionType::SameDevice;
     let use_case = NO_RETURN_URL_USE_CASE;
 
-    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests);
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
 
     // Start the session
     let session_token = verifier
@@ -773,7 +823,10 @@ async fn test_disclosure_invalid_poa() {
     );
 }
 
-fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAnchor<'static>, Ca) {
+fn setup_verifier(
+    items_requests: &ItemsRequests,
+    session_result_query_param: Option<String>,
+) -> (Arc<MockVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
@@ -786,6 +839,8 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
             UseCase::try_new(
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::Neither,
+                None,
+                None,
             )
             .unwrap(),
         ),
@@ -794,6 +849,8 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
             UseCase::try_new(
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
+                None,
+                None,
             )
             .unwrap(),
         ),
@@ -802,6 +859,8 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
             UseCase::try_new(
                 generate_reader_mock(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
+                None,
+                None,
             )
             .unwrap(),
         ),
@@ -812,7 +871,8 @@ fn setup_verifier(items_requests: &ItemsRequests) -> (Arc<MockVerifier>, TrustAn
         usecases,
         Arc::new(MemorySessionStore::default()),
         vec![issuer_ca.to_trust_anchor().to_owned()],
-        hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+        Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
+        Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
     ));
 
@@ -886,7 +946,6 @@ async fn request_status_endpoint(
 
 type MockVerifier = Verifier<MemorySessionStore<DisclosureData>, SigningKey>;
 
-#[derive(Debug)]
 struct VerifierMockVpMessageClient {
     verifier: Arc<MockVerifier>,
 }
@@ -904,15 +963,13 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
         let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
-        let session_token = path_segments[path_segments.len() - 2].to_owned().into();
+        let session_token: SessionToken = path_segments[path_segments.len() - 2].to_owned().into();
 
         let jws = self
             .verifier
             .process_get_request(
-                &session_token,
-                format!("https://example.com/verifier_base_url/{session_token}/response_uri")
-                    .parse()
-                    .unwrap(),
+                &SessionIdentifier::Token(session_token.clone()),
+                &"https://example.com/verifier_base_url".parse().unwrap(),
                 url.as_ref().query(),
                 wallet_nonce,
             )

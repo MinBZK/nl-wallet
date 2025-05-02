@@ -53,14 +53,14 @@ The following sub-sections describe those flows and link to flow diagrams.
 Details what happens when the app is started, mainly focusing on the
 initialisation of the `wallet_core`.
 
-See: [app_startup.md](./diagrams/app_startup_flow.md)
+See: [app_startup.md](./diagrams/app_startup.md)
 
 ### Create Wallet
 
 Details what happens when the wallet is created, this includes registering with
 the `wallet_provider`.
 
-See: [wallet_creation.md](./diagrams/wallet_creation_flow.md)
+See: [wallet_creation.md](./diagrams/wallet_creation.md)
 
 ### Pin Validation
 
@@ -68,14 +68,18 @@ Details what happens when the user enters a pin before registering with the
 `wallet_provier` (local validation) and what happens when the user tries to
 unlock the wallet after registration.
 
-See: [pin_validation.md](./diagrams/pin_validation_flow.md)
+See: [pin_validation.md](./diagrams/pin_validation.md)
 
 ### Issuance (Personalise Wallet)
 
 Details what happens after registering with `wallet_provider`, when it's time to
 fetch and add some attestations.
 
-See: [issuance.md](./diagrams/issuance_flow.md)
+See: [issuance.md](./diagrams/issuance.md)
+
+Details what happens when receiving attestations from an issuer, based on a disclosure.
+
+See: [disclosure_based_issuance.md](./diagrams/disclosure_based_issuance.md)
 
 ## API Documentation
 
@@ -90,6 +94,8 @@ attestations presented by the wallet). A relying party needs to have a general
 idea of what has to be done to integrate with the wallet environment.
 
 See: [relying-party.md](./relying-party.md)
+
+For details on the disclosure flow, see: [disclosure.md](./diagrams/disclosure.md)
 
 ## Localisation
 

@@ -13,14 +13,15 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::issuance::DigidSession;
 use crate::repository::Repository;
-use crate::wallet::PidIssuanceSession;
+use crate::wallet::Session;
 
 use super::Wallet;
 
 #[derive(Debug)]
 pub enum UriType {
-    PidIssuance(Url),
-    Disclosure(Url),
+    PidIssuance,
+    Disclosure,
+    DisclosureBasedIssuance,
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -31,6 +32,32 @@ pub enum UriIdentificationError {
     #[error("unknown URI")]
     #[category(critical)]
     Unknown,
+}
+
+pub(super) fn identify_uri(uri: &Url) -> Result<UriType, UriIdentificationError> {
+    if uri
+        .as_str()
+        .starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
+    {
+        return Ok(UriType::PidIssuance);
+    }
+
+    if uri.as_str().starts_with(
+        urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL)
+            .as_ref()
+            .as_str(),
+    ) {
+        return Ok(UriType::DisclosureBasedIssuance);
+    }
+
+    if uri
+        .as_str()
+        .starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
+    {
+        return Ok(UriType::Disclosure);
+    }
+
+    Err(UriIdentificationError::Unknown)
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -44,24 +71,13 @@ where
     pub fn identify_uri(&self, uri_str: &str) -> Result<UriType, UriIdentificationError> {
         info!("Identifying type of URI: {}", uri_str);
 
-        let uri = Url::parse(uri_str)?;
+        let uri_type = identify_uri(&Url::parse(uri_str)?)?;
 
-        if matches!(self.issuance_session, Some(PidIssuanceSession::Digid(_)))
-            && uri
-                .as_str()
-                .starts_with(urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
-        {
-            return Ok(UriType::PidIssuance(uri));
+        if matches!(uri_type, UriType::PidIssuance) && !matches!(self.session, Some(Session::Digid(_))) {
+            return Err(UriIdentificationError::Unknown);
         }
 
-        if uri
-            .as_str()
-            .starts_with(urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().as_str())
-        {
-            return Ok(UriType::Disclosure(uri));
-        }
-
-        Err(UriIdentificationError::Unknown)
+        Ok(uri_type)
     }
 }
 
@@ -71,7 +87,6 @@ mod tests {
 
     use crate::config::UNIVERSAL_LINK_BASE_URL;
     use crate::issuance::MockDigidSession;
-    use crate::wallet::PidIssuanceSession;
 
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
@@ -86,11 +101,13 @@ mod tests {
         let example_uri = "https://example.com";
 
         let disclosure_uri_base = urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL);
+        let disclosure_based_issuance_uri_base = urls::disclosure_based_issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
 
         let digid_uri = urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL);
         let digid_uri = digid_uri.as_ref().as_str();
 
         let disclosure_uri = disclosure_uri_base.join("abcd");
+        let disclosure_based_issuance_uri = disclosure_based_issuance_uri_base.join("abcd");
 
         // The example URI should not be recognised.
         assert_matches!(
@@ -105,13 +122,13 @@ mod tests {
         );
 
         // Set up a `DigidSession` that will match the URI.
-        wallet.issuance_session = Some(PidIssuanceSession::Digid(MockDigidSession::new()));
+        wallet.session = Some(Session::Digid(MockDigidSession::new()));
 
         // The wallet should now recognise the DigiD URI.
-        assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance(_));
+        assert_matches!(wallet.identify_uri(digid_uri).unwrap(), UriType::PidIssuance);
 
         // After clearing the `DigidSession`, the URI should not be recognised again.
-        wallet.issuance_session = None;
+        wallet.session = None;
 
         assert_matches!(
             wallet.identify_uri(digid_uri).unwrap_err(),
@@ -121,7 +138,13 @@ mod tests {
         // The disclosure URI should be recognised.
         assert_matches!(
             wallet.identify_uri(disclosure_uri.as_str()).unwrap(),
-            UriType::Disclosure(_)
+            UriType::Disclosure
+        );
+
+        // The disclosure based issuance URI should be recognised.
+        assert_matches!(
+            wallet.identify_uri(disclosure_based_issuance_uri.as_str()).unwrap(),
+            UriType::DisclosureBasedIssuance
         );
     }
 }

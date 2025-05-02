@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::ops::Add;
 use std::sync::Arc;
@@ -63,7 +64,9 @@ use crate::credential_payload::CredentialPayloadError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::issuable_document::IssuableDocument;
+use crate::issuable_document::IssuableDocuments;
 use crate::metadata;
+use crate::metadata::CredentialMetadata;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerMetadata;
 use crate::oidc;
@@ -74,6 +77,7 @@ use crate::server_state::SessionDataType;
 use crate::server_state::SessionState;
 use crate::server_state::SessionStore;
 use crate::server_state::SessionStoreError;
+use crate::server_state::SessionToken;
 use crate::server_state::WteTracker;
 use crate::server_state::CLEANUP_INTERVAL_SECONDS;
 use crate::token::AccessToken;
@@ -184,7 +188,7 @@ pub enum CredentialRequestError {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    pub credential_previews: Option<Vec<CredentialFormats<CredentialPreview>>>,
+    pub issuable_documents: Option<VecNonEmpty<IssuableDocument>>,
 }
 
 // TODO (PVW-4110): Do not store the entire preview in the database, but just the attributes that are to be issued.
@@ -264,15 +268,6 @@ pub struct Session<S: IssuanceState> {
 
 /// Implementations of this trait are responsible for determine the attributes to be issued, given the session and
 /// the token request. See for example the [`BrpPidAttributeService`].
-///
-/// A future implementation of this trait is expected to enable generic issuance of attributes as follows:
-/// - The owner of the issuance server determines the attributes to be issued and sends those to the issuance server.
-/// - The issuance server creates a new `SessionState<Created>` instance, puts that in its session store, and returns an
-///   authorization code that is to be forwarded to the wallet.
-/// - The wallet contacts the issuance server with the authorization code.
-/// - The issuance server looks up the `SessionState<Created>` from its session store and feeds that to the future
-///   implementation of this trait.
-/// - That implementation of this trait returns the attributes to be issued out of the `SessionState<Created>`.
 #[trait_variant::make(Send)]
 pub trait AttributeService {
     type Error: std::error::Error + Send + Sync + 'static;
@@ -280,6 +275,32 @@ pub trait AttributeService {
     async fn attributes(&self, token_request: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error>;
 
     async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error>;
+}
+
+pub struct TrivialAttributeService;
+
+impl AttributeService for TrivialAttributeService {
+    type Error = Infallible;
+
+    async fn attributes(&self, _: TokenRequest) -> Result<VecNonEmpty<IssuableDocument>, Self::Error> {
+        unimplemented!()
+    }
+
+    async fn oauth_metadata(&self, issuer_url: &BaseUrl) -> Result<oidc::Config, Self::Error> {
+        // TODO (PVW-4257): we don't use the `authorize` and `jwks` endpoint here, but we need to specify them
+        // because they are mandatory in an OIDC Provider Metadata document (see
+        // <https://openid.net/specs/openid-connect-discovery-1_0.html>).
+        // However, OpenID4VCI says that this should return not an OIDC Provider Metadata document but an OAuth
+        // Authorization Metadata document instead, see <https://www.rfc-editor.org/rfc/rfc8414.html>, which to
+        // a large extent has the same fields but `authorize` and `jwks` are optional there.
+
+        Ok(oidc::Config::new(
+            issuer_url.clone(),
+            issuer_url.join("authorize"),
+            issuer_url.join("token"),
+            issuer_url.join("jwks"),
+        ))
+    }
 }
 
 /// Static attestation data shared across all instances of an attestation type. The issuer augments this with an
@@ -393,6 +414,17 @@ where
             .as_ref()
             .map(|wte_config| Arc::clone(&wte_config.wte_tracker));
 
+        let credential_configurations_supported = attestation_config
+            .as_ref()
+            .iter()
+            .map(|(typ, attestation)| {
+                (
+                    typ.to_string(),
+                    CredentialMetadata::from_sd_jwt_vc_type_metadata(&attestation.metadata),
+                )
+            })
+            .collect();
+
         let issuer_url = server_url.join_base_url("issuance/");
         let issuer_data = IssuerData {
             attestation_config,
@@ -426,7 +458,7 @@ where
                     },
                     credential_identifiers_supported: Some(false),
                     display: None,
-                    credential_configurations_supported: HashMap::new(),
+                    credential_configurations_supported,
                 },
                 protected_metadata: None,
             },
@@ -438,6 +470,26 @@ fn logged_issuance_result<T, E: std::error::Error>(result: Result<T, E>) -> Resu
     result
         .inspect(|_| info!("Issuance success"))
         .inspect_err(|error| info!("Issuance error: {error}"))
+}
+
+impl<A, K, S, W> Issuer<A, K, S, W>
+where
+    S: SessionStore<IssuanceData>,
+{
+    pub async fn new_session(&self, to_issue: IssuableDocuments) -> Result<SessionToken, SessionStoreError> {
+        let token = SessionToken::new_random();
+
+        let session = SessionState::new(
+            token.clone(),
+            IssuanceData::Created(Created {
+                issuable_documents: Some(to_issue),
+            }),
+        );
+
+        self.sessions.write(session, true).await?;
+
+        Ok(token)
+    }
 }
 
 impl<A, K, S, W> Issuer<A, K, S, W>
@@ -456,17 +508,25 @@ where
 
         // Retrieve the session from the session store, if present. It need not be, depending on the implementation of
         // the attribute service.
-        let session = self
+        let maybe_session = self
             .sessions
             .get(&session_token)
             .await
-            .map_err(IssuanceError::SessionStore)?
-            .unwrap_or(SessionState::<IssuanceData>::new(
-                session_token,
-                IssuanceData::Created(Created {
-                    credential_previews: None,
-                }),
-            ));
+            .map_err(IssuanceError::SessionStore)?;
+
+        let (is_new_session, session) = match maybe_session {
+            Some(session) => (false, session),
+            None => (
+                true,
+                SessionState::<IssuanceData>::new(
+                    session_token,
+                    IssuanceData::Created(Created {
+                        issuable_documents: None,
+                    }),
+                ),
+            ),
+        };
+
         let session: Session<Created> = session.try_into().map_err(TokenRequestError::IssuanceError)?;
 
         let result = session
@@ -486,7 +546,7 @@ where
         };
 
         self.sessions
-            .write(next, true)
+            .write(next, is_new_session)
             .await
             .map_err(|e| TokenRequestError::IssuanceError(e.into()))?;
 
@@ -663,14 +723,17 @@ impl Session<Created> {
 
         let code = token_request.code().clone();
 
-        let issuables = attr_service
-            .attributes(token_request)
-            .await
-            .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?;
+        let issuables = match &self.session_data().issuable_documents {
+            Some(docs) => docs,
+            None => &attr_service
+                .attributes(token_request)
+                .await
+                .map_err(|e| TokenRequestError::AttributeService(Box::new(e)))?,
+        };
 
         let previews = issuables
-            .into_inner()
-            .into_iter()
+            .as_ref()
+            .iter()
             .map(|document| {
                 let attestation_data = attestation_settings
                     .as_ref()

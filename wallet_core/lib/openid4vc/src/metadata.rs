@@ -8,7 +8,12 @@ use serde::Serialize;
 
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
+use sd_jwt_vc_metadata::DisplayMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::RenderingMetadata;
+use sd_jwt_vc_metadata::UriMetadata;
 use serde_with::skip_serializing_none;
+use url::Url;
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
@@ -171,7 +176,7 @@ pub struct NameLocale {
 pub struct Logo {
     /// A URI where the Wallet can obtain the logo of the Credential Issuer. The Wallet needs
     /// to determine the scheme, since the URI value could use the `https:` scheme, the `data:` scheme, etc.
-    pub uri: BaseUrl,
+    pub uri: Url,
 
     /// String value of the alternative text for the logo image.
     pub alt_text: Option<String>,
@@ -351,6 +356,63 @@ pub struct CredentialDisplay {
     /// String value of a text color of the Credential represented as numerical color values defined in CSS Color
     /// Module Level 37.
     pub text_color: Option<String>,
+}
+
+impl From<DisplayMetadata> for CredentialDisplay {
+    fn from(value: DisplayMetadata) -> Self {
+        let (logo, background_color, text_color) = match value.rendering {
+            Some(RenderingMetadata::Simple {
+                logo,
+                background_color,
+                text_color,
+            }) => (logo, background_color, text_color),
+            _ => (None, None, None),
+        };
+
+        CredentialDisplay {
+            name: value.name,
+            locale: Some(value.lang),
+            logo: logo.map(|logo| Logo {
+                uri: match logo.uri_metadata {
+                    UriMetadata::Embedded { uri } => uri.to_string().parse().unwrap(), // a data URIs is a valid `Url`
+                    UriMetadata::Remote { uri, .. } => uri.into_inner(),
+                },
+                alt_text: Some(logo.alt_text.into_inner()),
+            }),
+            description: value.description,
+            background_color,
+            background_image: None,
+            text_color,
+        }
+    }
+}
+
+impl CredentialMetadata {
+    pub fn from_sd_jwt_vc_type_metadata(metadata: &NormalizedTypeMetadata) -> Self {
+        Self {
+            format: CredentialFormat::MsoMdoc {
+                doctype: metadata.vct().to_string(),
+                claims: HashMap::new(),
+                order: None,
+            },
+            display: Some(
+                metadata
+                    .display()
+                    .iter()
+                    .map(|display| display.clone().into())
+                    .collect(),
+            ),
+            scope: None,
+            cryptographic_binding_methods_supported: Some(vec![CryptographicBindingMethod::CoseKey]),
+            credential_signing_alg_values_supported: Some(vec![CredentialSigningAlg::ES256]),
+            proof_types_supported: Some(HashMap::from([(
+                ProofType::Jwt,
+                ProofTypeData {
+                    proof_signing_alg_values_supported: vec![ProofSigningAlg::ES256],
+                },
+            )])),
+        }
+    }
 }
 
 /// Object with information about the background image of the Credential.
