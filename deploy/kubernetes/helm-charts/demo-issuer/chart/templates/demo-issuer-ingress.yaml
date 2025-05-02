@@ -4,6 +4,29 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
+  name: nl-{{ $name }}-vpn
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingressVpn.hostname | quote }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  number: 3006
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - {{ .Values.ingressVpn.hostname | quote }}
+      secretName: wildcard-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
   name: nl-{{ $name }}-public
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
@@ -34,7 +57,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3004
+                  number: 3005
             path: /{{ .Values.demoIssuer.contextPath }}/(.*)
             pathType: Prefix
   tls:

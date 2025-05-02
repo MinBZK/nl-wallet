@@ -36,15 +36,19 @@ spec:
             {{ toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: demo-iss-port
-              containerPort: 3004
+            - name: demo-iw-port
+              containerPort: 3005
+            - name: demo-ii-port
+              containerPort: 3005
           volumeMounts:
             - name: config-volume
               mountPath: /demo_issuer.toml
               subPath: config.toml
           env:
             - name: DEMO_ISSUER__WEBSERVER__PORT
-              value: "3004"
+              value: "3005"
+            - name: DEMO_ISSUER__ISSUANCE_SERVER__PORT
+              value: "3006"
             - name: DEMO_ISSUER__STRUCTURED_LOGGING
               value: "true"
             - name: DEMO_ISSUER__WALLET_WEB__FILENAME

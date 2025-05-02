@@ -37,16 +37,30 @@ spec:
           {{- end }}
           ports:
             - name: wallet-port
-              containerPort: 3001
+              containerPort: 3007
+          volumeMounts:
+            - name: demo-issuer-private-keys
+              mountPath: /issuance_server.toml
+              subPath: issuance_server.toml
+            - name: demo-issuer-metadata
+              mountPath: /com.example.degree.json
+              subPath: com.example.degree.json
+            - name: demo-issuer-metadata
+              mountPath: /com.example.insurance.json
+              subPath: com.example.insurance.json
           env:
             - name: ISSUANCE_SERVER__WALLET_SERVER__PORT
-              value: "3001"
+              value: "3007"
             - name: ISSUANCE_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.issuanceServer.hostname .Values.issuanceServer.contextPath) }}
             - name: ISSUANCE_SERVER__UNIVERSAL_LINK_BASE_URL
               value: {{ .Values.universalLinkBaseUrl }}
             - name: ISSUANCE_SERVER__STRUCTURED_LOGGING
               value: "true"
+            - name: ISSUANCE_SERVER__METADATA
+              value: "'com.example.degree.json','com.example.insurance.json'"
+            - name: ISSUANCE_SERVER__DISCLOSURE_SETTINGS__DISCLOSURE_BASED_ISSUANCE__ATTESTATION_URL
+              value "http://demo-issuer:3006/"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -71,3 +85,10 @@ spec:
                   key: reader_trust_anchors
             - name: RUST_LOG
               value: "debug,hyper=warn"
+      volumes:
+        - name: demo-issuer-private-keys
+          secret:
+            secretName: nl-wallet-demo-issuer-private-keys
+        - name: demo-issuer-metadata
+          configMap:
+            name: nl-wallet-demo-issuer-metadata

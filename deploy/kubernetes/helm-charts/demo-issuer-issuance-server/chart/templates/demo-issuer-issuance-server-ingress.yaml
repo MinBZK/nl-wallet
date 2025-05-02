@@ -29,7 +29,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3001
+                  number: 3007
             path: /{{ .Values.issuanceServer.contextPath }}/(.*)
             pathType: Prefix
   tls:

@@ -21,7 +21,7 @@ max_sessions = 3
 max_session_lifetime_in_sec = 900
 
 [disclosure_settings.disclosure_based_issuance]
-attestation_url = "http://localhost:3010"
+attestation_url = "http://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}"
 private_key_type = "hsm"
 private_key = "${ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE}"
 certificate = "${ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE}"

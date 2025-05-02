@@ -11,7 +11,11 @@ spec:
     {{ toYaml .Values.extraPodlabels | nindent 4 }}
     {{- end }}
   ports:
-    - name: demo-issuer-http
-      port: 3004
-      targetPort: demo-iss-port
+    - name: demo-issuer-web-http
+      port: 3005
+      targetPort: demo-iw-port
+      protocol: TCP
+    - name: demo-issuer-issuance-http
+      port: 3006
+      targetPort: demo-ii-port
       protocol: TCP
