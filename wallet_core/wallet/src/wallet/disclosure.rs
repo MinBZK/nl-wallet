@@ -122,6 +122,16 @@ pub enum DisclosureError {
 }
 
 impl DisclosureError {
+    fn with_organization(error: MdocDisclosureError, organization: Organization) -> Self {
+        match error {
+            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => Self::VpVerifierServer {
+                organization: Some(Box::new(organization)),
+                error,
+            },
+            error => error.into(),
+        }
+    }
+
     pub fn return_url(&self) -> Option<&Url> {
         match self {
             Self::VpVerifierServer {
@@ -130,18 +140,6 @@ impl DisclosureError {
             }
             | Self::VpClient(VpClientError::Request(error)) => error.redirect_uri().map(AsRef::as_ref),
             _ => None,
-        }
-    }
-}
-
-impl DisclosureError {
-    fn with_organization(error: MdocDisclosureError, organization: Organization) -> Self {
-        match error {
-            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => Self::VpVerifierServer {
-                organization: Some(Box::new(organization)),
-                error,
-            },
-            error => error.into(),
         }
     }
 }
