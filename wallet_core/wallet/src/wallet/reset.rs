@@ -163,7 +163,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_wallet_reset_full() {
-        // Create the impossible Wallet that is doing everything at once and reset it.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
