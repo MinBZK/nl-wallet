@@ -9,12 +9,15 @@ workspace = true
 
 [dependencies]
 accept-language.workspace = true
+anyhow.workspace = true
 askama.workspace = true
 axum.workspace = true
+nutype.workspace = true
 serde = { workspace = true, features = ["derive"] }
 strum.workspace = true
 serde_with = { workspace = true, features = ["macros"] }
 tower-http.workspace = true
+tracing.workspace = true
 
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 

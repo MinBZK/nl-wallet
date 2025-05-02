@@ -9,11 +9,13 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
+use openid4vc::issuable_document::IssuableDocuments;
 use utils::path::prefix_local_path;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     pub webserver: Server,
+    pub issuance_server: Server,
     pub structured_logging: bool,
     pub wallet_web: WalletWeb,
     pub usecases: IndexMap<String, Usecase>,
@@ -32,14 +34,18 @@ pub struct Server {
     pub port: u16,
 }
 
-#[derive(Deserialize, Clone)]
-pub struct Usecase {}
+#[derive(Debug, Deserialize, Clone)]
+pub struct Usecase {
+    #[serde(flatten)]
+    pub data: IndexMap<String, IssuableDocuments>,
+}
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 3011)?
+            .set_default("issuance_server.port", 3010)?
             .set_default("structured_logging", false)?
             .add_source(File::from(prefix_local_path("demo_issuer.toml".as_ref()).as_ref()).required(false))
             .add_source(

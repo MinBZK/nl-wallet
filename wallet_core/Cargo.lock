@@ -1642,7 +1642,9 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
+ "mdoc",
  "nutype",
+ "openid4vc",
  "serde",
  "strum 0.26.3",
  "tokio",
@@ -1696,14 +1698,17 @@ name = "demo_utils"
 version = "0.3.0-dev"
 dependencies = [
  "accept-language",
+ "anyhow",
  "askama",
  "axum",
  "http_utils",
+ "nutype",
  "rstest",
  "serde",
  "serde_with",
  "strum 0.26.3",
  "tower-http",
+ "tracing",
 ]
 
 [[package]]

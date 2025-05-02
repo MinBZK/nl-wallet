@@ -314,18 +314,20 @@ render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_i
 
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${ISSUANCE_SERVER_DIR}"
 ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
 export ISSUER_METADATA_PID_PATH
 ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
 export ISSUER_METADATA_PID_NL_PATH
 ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
 export ISSUER_METADATA_ADDRESS_PATH
-ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
-export ISSUER_METADATA_DEGREE_PATH
 ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
 export ISSUER_METADATA_ADDRESS_NL_PATH
+ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
+export ISSUER_METADATA_DEGREE_PATH
+ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
+export ISSUER_METADATA_INSURANCE_PATH
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"

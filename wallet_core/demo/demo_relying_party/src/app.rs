@@ -1,4 +1,3 @@
-use std::result::Result as StdResult;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -22,7 +21,6 @@ use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::LanguageParam;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use strum::IntoEnumIterator;
@@ -32,6 +30,7 @@ use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
+use demo_utils::error::Result;
 use demo_utils::language::Language;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DisclosedAttributes;
@@ -45,18 +44,6 @@ use crate::settings::Usecase;
 use crate::settings::WalletWeb;
 use crate::translations::Words;
 use crate::translations::TRANSLATIONS;
-
-#[nutype(derive(Debug, From, AsRef))]
-pub struct Error(anyhow::Error);
-
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        warn!("error result: {:?}", self);
-        (StatusCode::INTERNAL_SERVER_ERROR, self.as_ref().to_string()).into_response()
-    }
-}
-
-type Result<T> = StdResult<T, Error>;
 
 const RETURN_URL_SEGMENT: &str = "return";
 
