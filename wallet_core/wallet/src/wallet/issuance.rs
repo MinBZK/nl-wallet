@@ -242,7 +242,7 @@ where
         }
 
         info!("Checking if there is an active issuance session");
-        if matches!(self.session, None | Some(Session::Disclosure(..))) {
+        if !matches!(self.session, Some(Session::Digid(..)) | Some(Session::Issuance(..))) {
             return Err(IssuanceError::SessionState);
         }
 
