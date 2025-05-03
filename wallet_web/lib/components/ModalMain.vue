@@ -30,7 +30,8 @@ onMounted(async () => setTimeout(() => main.value && main.value.focus(), 0))
     <loading-section v-if="['creating', 'loading'].includes(modalState.kind)"></loading-section>
     <created-section
       v-if="modalState.kind === 'created'"
-      :ul="modalState.ul"
+      :same-device-ul="modalState.crossDeviceUl"
+      :cross-device-ul="modalState.sameDeviceUl"
       :sessionType="modalState.session.sessionType"
       @choice="handleChoice"
     ></created-section>

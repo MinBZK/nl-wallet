@@ -1,7 +1,5 @@
-import { type StatusUrl } from "./state"
-
 export interface SessionResponse {
-  status_url: StatusUrl
+  status_url: URL
   session_token: string
 }
 

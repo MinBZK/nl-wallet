@@ -1,7 +1,5 @@
-export type AppUL = string & { __typename: "app_ul" }
-
 export type StatusResponse =
-  | { status: "CREATED"; ul: AppUL }
+  | { status: "CREATED"; ul: URL } // TODO apparently the UL parameter is optional in the Rust code
   | { status: "WAITING_FOR_RESPONSE" }
   | { status: "DONE" }
   | { status: "FAILED" }

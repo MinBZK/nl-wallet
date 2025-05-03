@@ -47,19 +47,24 @@
         iaculis at erat pellentesque adipiscing. Neque viverra justo nec ultrices dui sapien eget.
         Sagittis vitae et leo duis ut diam quam nulla porttitor.
       </p>
-      <button>test123</button>
       <nl-wallet-button
         id="mijn_amsterdam_button"
         text="18+ met NL Wallet"
         usecase="mijn_amsterdam"
-        start-url="http://localhost:3004/sessions"
+        start-url="http://localhost:3008/sessions"
       ></nl-wallet-button>
       <nl-wallet-button
         id="mijn_amsterdam_button_en"
-        class="blue"
         text="18+ with NL Wallet"
         usecase="mijn_amsterdam"
-        start-url="http://localhost:3004/sessions?lang=en"
+        start-url="http://localhost:3008/sessions?lang=en"
+        lang="en"
+      ></nl-wallet-button>
+      <nl-wallet-button
+        id="university_button"
+        text="Add to NL Wallet"
+        same-device-ul="http://ul.example.com/disclosure_based_issuance"
+        cross-device-ul="http://ul.example.com/disclosure_based_issuance"
         lang="en"
       ></nl-wallet-button>
       <p>
