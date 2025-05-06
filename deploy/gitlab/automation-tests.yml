@@ -164,7 +164,7 @@ run-demo-rp-browsertest-test-ont:
   variables:
     DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME: "${DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}"
   after_script:
-    - deploy/bin/store-artifact.sh browsertests/packages/demo-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
+    - deploy/bin/store-artifact.sh browsertests/packages/demo-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-demo-rp.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-demo-rp.zip browsertests/packages/demo-relying-party/allure-results/*
   artifacts:
     name: browsertest-demo-rp

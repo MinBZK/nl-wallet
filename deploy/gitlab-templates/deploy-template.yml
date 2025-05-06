@@ -133,7 +133,7 @@ db-cluster-demo-rp-${DEPLOY_ENV}:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster-demo-rp
     CONFIG_NAME: demo-rp
-    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/demo_rp/values.yaml"
+    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/demo-rp/values.yaml"
   script:
     - !reference [.deploy-postgres-cluster, script]
 
