@@ -30,7 +30,7 @@ build-test-report:
     - job: run-automation-tests-publish-results
       artifacts: false
       optional: true
-    - job: run-mrp-browsertest-test-ont
+    - job: run-demo-rp-browsertest-test-ont
       artifacts: false
       optional: true
     - job: run-fallback-page-browsertest-test-ont

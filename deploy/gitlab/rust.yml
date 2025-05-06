@@ -224,13 +224,13 @@ build-wallet-server-migrations-binary:
 build-demo-relying-party-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "mock_relying_party" --bin mock_relying_party
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "mock_relying_party" --bin mock_relying_party
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_relying_party" --bin demo_relying_party
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_relying_party" --bin demo_relying_party
   artifacts:
-    name: mock_relying_party
+    name: demo_relying_party
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/mock_relying_party
-      - wallet_core/target/x86_64-unknown-linux-musl/release/mock_relying_party
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_relying_party
+      - wallet_core/target/x86_64-unknown-linux-musl/release/demo_relying_party
 
 build-gba-hc-converter-binary:
   extends: .build-binary
@@ -283,9 +283,9 @@ build-performance-test:
     APPLE_ATTESTATION_ENVIRONMENT: "production"
     CONFIG_ENV: ont
     UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
-    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
-    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
+    INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
   artifacts:
     name: performance-test
     paths:

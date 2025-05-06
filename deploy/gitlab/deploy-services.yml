@@ -4,7 +4,7 @@
     - build-update-policy-server-image
     - build-wallet-provider-image
     - build-wp-migrations-image
-    - build-mock-relying-party-image
+    - build-demo-relying-party-image
     - build-verification-server-image
     - build-pid-issuer-image
     - build-ws-migrations-image

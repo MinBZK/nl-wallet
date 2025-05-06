@@ -10,19 +10,19 @@ build-wallet-web:
     - (cd wallet_web; EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build)
     - WALLET_WEB_SHA256_FILENAME=$(cat wallet_web/dist/nl-wallet-web.iife.js | openssl sha256 -binary | base64 | tr '/+' '_-' | tr -d '=\n') # url safe to prevent '/' to appear in filename
     - WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
-    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME}
-    - WALLET_WEB_SHA256=$(cat wallet_core/mock_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | base64)
+    - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/demo/demo_relying_party/assets/${WALLET_WEB_FILENAME}
+    - WALLET_WEB_SHA256=$(cat wallet_core/demo/demo_relying_party/assets/${WALLET_WEB_FILENAME} | openssl sha256 -binary | base64)
     # take the sha256 hash of every JS files and format them accordingly
-    - JS_HASHES=$(find wallet_core/mock_relying_party/assets -regex '.*\.js' -exec bash -c 'echo sha256-`openssl sha256 -binary "$1" | base64`' _ {} \; | tr '\n' ';' | sed "s/;$/'\n/; s/^/'/; s/;/' '/g")
-    - CSP_SCRIPT_SRC_MRP=${JS_HASHES:-\'none\'}
+    - JS_HASHES=$(find wallet_core/demo/demo_relying_party/assets -regex '.*\.js' -exec bash -c 'echo sha256-`openssl sha256 -binary "$1" | base64`' _ {} \; | tr '\n' ';' | sed "s/;$/'\n/; s/^/'/; s/;/' '/g")
+    - CSP_SCRIPT_SRC_DEMO_RP=${JS_HASHES:-\'none\'}
     # take the sha256 hash of the inlined style and add it to the default directive
     - STYLE_INJECTED_HASH=$(echo \'sha256-`cat wallet_web/dist/nl-wallet-web.css | tr -d "\n" | openssl sha256 -binary | base64`\')
-    - CSP_STYLE_SRC_MRP="'self' ${STYLE_INJECTED_HASH}"
-    - mkdir -p wallet_core/mock_relying_party/hashes
-    - echo $CSP_SCRIPT_SRC_MRP | base64 > wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt
-    - echo $CSP_STYLE_SRC_MRP | base64 > wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt
-    - echo $WALLET_WEB_FILENAME > wallet_core/mock_relying_party/hashes/wallet_web_filename.txt
-    - echo $WALLET_WEB_SHA256 > wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt
+    - CSP_STYLE_SRC_DEMO_RP="'self' ${STYLE_INJECTED_HASH}"
+    - mkdir -p wallet_core/demo/demo_relying_party/hashes
+    - echo $CSP_SCRIPT_SRC_DEMO_RP | base64 > wallet_core/demo/demo_relying_party/hashes/csp_script_src_demo_rp_base64.txt
+    - echo $CSP_STYLE_SRC_DEMO_RP | base64 > wallet_core/demo/demo_relying_party/hashes/csp_style_src_demo_rp_base64.txt
+    - echo $WALLET_WEB_FILENAME > wallet_core/demo/demo_relying_party/hashes/wallet_web_filename.txt
+    - echo $WALLET_WEB_SHA256 > wallet_core/demo/demo_relying_party/hashes/wallet_web_sha256.txt
   after_script:
     - deploy/bin/store-artifact.sh wallet_web/test-results/junit.xml qt/quality-time/junit-results/web.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/web.zip wallet_web/allure-results/*
@@ -35,5 +35,5 @@ build-wallet-web:
       - wallet_web/coverage
       - wallet_web/test-results
       - wallet_web/allure-results
-      - wallet_core/mock_relying_party/assets/nl-wallet-web.*
-      - wallet_core/mock_relying_party/hashes/*.txt
+      - wallet_core/demo/demo_relying_party/assets/nl-wallet-web.*
+      - wallet_core/demo/demo_relying_party/hashes/*.txt

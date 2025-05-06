@@ -183,7 +183,7 @@ Of course, these requirements will change with time and duration of usage, and a
 - wallet_provider
 - verification_server,
 - pid_issuer
-- mock_relying_party
+- demo_relying_party
 - gba_hc_converter
 
 The above Rust-based services require a regular Linux machine or container
@@ -195,7 +195,7 @@ requirements are effectively non-existent due to usage of PostgreSQL for state.
 #### Network connectivity
 
 For end-users, an internet connection is required to use the disclosure and
-issueance features of the wallet app. For relying parties and issuers, who want
+issuance features of the wallet app. For relying parties and issuers, who want
 to obtain disclosed attributes and issue attributes respectively, the same
 requirement holds.
 
@@ -296,7 +296,7 @@ following:
 - wallet_provider
 - verification_server
 - pid_issuer
-- mock_relying_party
+- demo_relying_party
 - digid-connector
 - configuration_server
 - brpproxy
@@ -499,7 +499,7 @@ Next to these configuration files the build can be configured with:
 | file_format                   | Option      | Android build                       | File format (aab / apk)  for Android build. Defaults to `aab`. |
 | fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`. |
 | mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`. |
-| mock_relying_party_url        | Option      | Flutter                             | The URL to launch the mock relying part in Browser for tests (passed via Dart define as MOCK_RELYING_PART_URL). |
+| demo_relying_party_url        | Option      | Flutter                             | The URL to launch the demo Relying Party in Browser for tests (passed via Dart define as DEMO_RELYING_PART_URL). |
 
 
 ## Troubleshooting

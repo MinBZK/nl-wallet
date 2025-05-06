@@ -9,7 +9,7 @@ class Environment {
 
   static bool get isMockOrTest => mockRepositories || isTest;
 
-  static String get mockRelyingPartyUrl => const String.fromEnvironment('MOCK_RELYING_PARTY_URL');
+  static String get demoRelyingPartyUrl => const String.fromEnvironment('DEMO_RELYING_PARTY_URL');
 
   static String get sentryDsn => const String.fromEnvironment('SENTRY_DSN');
 
