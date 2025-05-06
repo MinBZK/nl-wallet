@@ -10,7 +10,7 @@ LABEL wallet_web_filename="$WALLET_WEB_FILENAME"
 LABEL wallet_web_sha256="$WALLET_WEB_SHA256"
 
 COPY ./target/x86_64-unknown-linux-musl/release/demo_relying_party .
-COPY demo_relying_party/assets/ ./assets/
+COPY demo/demo_relying_party/assets/ ./assets/
 
 USER 1000
 ENTRYPOINT ["./demo_relying_party"]
