@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecase/app/check_is_app_initialized_usecase.dart';
 import '../../domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/helper/dialog_helper.dart';
 import 'bloc/pin_bloc.dart';
 import 'pin_screen.dart';
 
@@ -42,7 +43,7 @@ class PinOverlay extends StatelessWidget {
           /// Only dismiss when the app was locked this build(), this avoids dismissing new dialogs
           if (didChangeState) {
             _announceLogout(context);
-            _dismissOpenDialogs(context);
+            DialogHelper.dismissOpenDialogs(context);
           }
           return _buildLockedState();
         } else {
@@ -65,15 +66,5 @@ class PinOverlay extends StatelessWidget {
 
   void _announceLogout(BuildContext context) {
     SemanticsService.announce(context.l10n.generalWCAGLogoutAnnouncement, TextDirection.ltr);
-  }
-
-  void _dismissOpenDialogs(BuildContext context) {
-    final navigator = Navigator.of(context);
-    Future.microtask(() {
-      navigator.popUntil((route) {
-        final isDialog = route is ModalBottomSheetRoute || route is DialogRoute;
-        return !isDialog;
-      });
-    });
   }
 }
