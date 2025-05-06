@@ -839,6 +839,7 @@
     "pinConfirmationErrorDialogFatalTitle": "Deze pincode is anders",
     "pinConfirmationErrorDialogTitle": "Deze pincode is anders",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} cijfer over} other {{count} cijfers over}}",
+    "pinEnteredWCAGAnnouncement": "Pincode ingevoerd",
     "pinErrorDialogCloseCta": "SLUITEN",
     "pinErrorDialogFinalRoundFinalAttempt": "Je mag het nog 1 keer proberen. Als de volgende pincode ongeldig is wordt de app permanent geblokkeerd.",
     "pinErrorDialogFinalRoundNonFinalAttempt": "Je mag het nog {count} keer proberen. Na {count} ongeldige pincodes wordt de app permanent geblokkeerd.",

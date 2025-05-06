@@ -1,6 +1,6 @@
 import 'package:flutter/semantics.dart';
-import '../../../l10n/generated/app_localizations.dart';
 
+import '../../../l10n/generated/app_localizations.dart';
 import '../../wallet_constants.dart';
 
 class AnnouncementsHelper {
@@ -10,6 +10,7 @@ class AnnouncementsHelper {
     SemanticsService.announce(
       l10n.pinEnteredDigitsAnnouncement(kPinDigits - enteredDigits),
       TextDirection.ltr,
+      assertiveness: Assertiveness.assertive,
     );
   }
 }
