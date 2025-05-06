@@ -20,6 +20,8 @@ import '../common/widget/organization/organization_logo.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
+import '../common/widget/text/body_text.dart';
+import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import '../info/info_screen.dart';
 import '../organization/detail/organization_detail_screen.dart';
@@ -156,14 +158,12 @@ class LoginDetailScreen extends StatelessWidget {
           child: Icon(Icons.credit_card_outlined),
         ),
         const SizedBox(height: 16),
-        Text.rich(
-          context.l10n.loginDetailScreenCredentialsTitle.toTextSpan(context),
-          style: context.textTheme.headlineMedium,
+        TitleText(
+          context.l10n.loginDetailScreenCredentialsTitle,
+          style: context.textTheme.titleLarge,
         ),
-        Text.rich(
-          context.l10n.loginDetailScreenCredentialsBody.toTextSpan(context),
-          style: context.textTheme.bodyLarge,
-        ),
+        SizedBox(height: 8),
+        BodyText(context.l10n.loginDetailScreenCredentialsBody),
         const SizedBox(height: 24),
       ],
     );
@@ -189,35 +189,21 @@ class LoginDetailScreen extends StatelessWidget {
             child: Icon(Icons.handshake_outlined),
           ),
           const SizedBox(height: 16),
-          MergeSemantics(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text.rich(
-                  context.l10n.loginDetailScreenAgreementTitle.toTextSpan(context),
-                  style: context.textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 4),
-                Text.rich(
-                  context
-                      .read<ContextMapper<OrganizationPolicy, String>>()
-                      .map(
-                        context,
-                        OrganizationPolicy(organization: organization, policy: policy),
-                      )
-                      .toTextSpan(context),
-                  style: context.textTheme.bodyLarge,
-                ),
-              ],
-            ),
+          TitleText(
+            context.l10n.loginDetailScreenAgreementTitle,
+            style: context.textTheme.titleLarge,
           ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: LinkButton(
-              text: Text.rich(context.l10n.loginDetailScreenAgreementCta.toTextSpan(context)),
-              onPressed: () => PolicyScreen.show(context, organization, policy),
-            ),
+          SizedBox(height: 8),
+          BodyText(
+            context.read<ContextMapper<OrganizationPolicy, String>>().map(
+                  context,
+                  OrganizationPolicy(organization: organization, policy: policy),
+                ),
+          ),
+          const SizedBox(height: 6),
+          LinkButton(
+            text: Text.rich(context.l10n.loginDetailScreenAgreementCta.toTextSpan(context)),
+            onPressed: () => PolicyScreen.show(context, organization, policy),
           ),
         ],
       ),
