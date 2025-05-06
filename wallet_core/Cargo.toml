@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "configuration_server",
+    "demo/demo_relying_party",
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
@@ -19,7 +20,6 @@ members = [
     "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
     "lib/utils",
-    "mock_relying_party",
     "tests_integration",
     "update_policy/model",
     "update_policy/server",

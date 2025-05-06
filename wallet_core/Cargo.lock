@@ -1609,6 +1609,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "demo_relying_party"
+version = "0.3.0-dev"
+dependencies = [
+ "accept-language",
+ "anyhow",
+ "askama",
+ "axum",
+ "base64 0.22.1",
+ "config",
+ "crypto",
+ "futures",
+ "http",
+ "http_utils",
+ "indexmap 2.7.1",
+ "mdoc",
+ "nutype",
+ "openid4vc",
+ "openid4vc_server",
+ "reqwest",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "strum 0.26.3",
+ "tokio",
+ "tower 0.5.2",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+ "url",
+ "utils",
+]
+
+[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3668,41 +3703,6 @@ dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "mock_relying_party"
-version = "0.3.0-dev"
-dependencies = [
- "accept-language",
- "anyhow",
- "askama",
- "axum",
- "base64 0.22.1",
- "config",
- "crypto",
- "futures",
- "http",
- "http_utils",
- "indexmap 2.7.1",
- "mdoc",
- "nutype",
- "openid4vc",
- "openid4vc_server",
- "reqwest",
- "rstest",
- "serde",
- "serde_json",
- "serde_urlencoded",
- "serde_with",
- "strum 0.26.3",
- "tokio",
- "tower 0.5.2",
- "tower-http",
- "tracing",
- "tracing-subscriber",
- "url",
- "utils",
 ]
 
 [[package]]

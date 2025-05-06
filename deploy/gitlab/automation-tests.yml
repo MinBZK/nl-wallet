@@ -148,7 +148,7 @@ browsertests-format-lint:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
   extends: .env-ont-k8s
 
-run-mrp-browsertest-test-ont:
+run-demo-rp-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
     - !reference [.default-branch, rules]
@@ -158,22 +158,22 @@ run-mrp-browsertest-test-ont:
   script: |
     cd browsertests
     npm ci
-    cd packages/mock-relying-party
+    cd packages/demo-relying-party
     npx playwright install chromium webkit
     npm run test:ci
   variables:
-    MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME: "${MOCK_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}"
+    DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME: "${DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}"
   after_script:
-    - deploy/bin/store-artifact.sh browsertests/packages/mock-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-mrp.zip browsertests/packages/mock-relying-party/allure-results/*
+    - deploy/bin/store-artifact.sh browsertests/packages/demo-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-mrp.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-demo-rp.zip browsertests/packages/demo-relying-party/allure-results/*
   artifacts:
-    name: browsertest-mrp
+    name: browsertest-demo-rp
     when: always
     paths:
-      - browsertests/packages/mock-relying-party/test-results/
-      - browsertests/packages/mock-relying-party/allure-results/
+      - browsertests/packages/demo-relying-party/test-results/
+      - browsertests/packages/demo-relying-party/allure-results/
     reports:
-      junit: browsertests/packages/mock-relying-party/test-results/*.xml
+      junit: browsertests/packages/demo-relying-party/test-results/*.xml
 
 run-fallback-page-browsertest-test-ont:
   extends: .run-browsertest-common
@@ -297,7 +297,7 @@ create-pipeline-for-running-test-on-all-browserstack-androids:
       .run-automation-test-ont:
         stage: test
         rules:
-         - if: \$CI_PIPELINE_SOURCE == "parent_pipeline"
+          - if: \$CI_PIPELINE_SOURCE == "parent_pipeline"
         extends: .run-automation-tests-common-setup
         script:
           - |

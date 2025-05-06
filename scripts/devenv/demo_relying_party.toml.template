@@ -1,0 +1,40 @@
+internal_wallet_server_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_RS_PORT}'
+public_wallet_server_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}'
+public_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
+allow_origins = ["http://${SERVICES_HOST}:5175"]
+
+[webserver]
+ip = '0.0.0.0'
+port = ${DEMO_RP_PORT}
+
+[wallet_web]
+filename = "${WALLET_WEB_FILENAME}"
+sha256 = "${WALLET_WEB_SHA256}"
+
+[[usecases.mijn_amsterdam.items_requests]]
+docType = "urn:eudi:pid:nl:1"
+nameSpaces = { "urn:eudi:pid:nl:1" = { bsn = true } }
+
+[[usecases.online_marketplace.items_requests]]
+docType = "urn:eudi:pid:nl:1"
+nameSpaces = { "urn:eudi:pid:nl:1" = { given_name = true, family_name = true, birthdate = true } }
+
+[[usecases.online_marketplace.items_requests]]
+docType = "urn:eudi:pid-address:nl:1"
+nameSpaces = { "urn:eudi:pid-address:nl:1.address" = { street_address = true, house_number = true, postal_code = true } }
+
+[[usecases.xyz_bank.items_requests]]
+docType = "urn:eudi:pid:nl:1"
+nameSpaces = { "urn:eudi:pid:nl:1" = { given_name = true, family_name = true, birthdate = true, bsn = true } }
+
+[[usecases.xyz_bank.items_requests]]
+docType = "urn:eudi:pid-address:nl:1"
+nameSpaces = { "urn:eudi:pid-address:nl:1.address" = { street_address = true, house_number = true, postal_code = true } }
+
+[[usecases.monkey_bike.items_requests]]
+docType = "urn:eudi:pid:nl:1"
+nameSpaces = { "urn:eudi:pid:nl:1" = { given_name = true, family_name = true, birthdate = true, gender = true } }
+
+[[usecases.monkey_bike.items_requests]]
+docType = "urn:eudi:pid-address:nl:1"
+nameSpaces = { "urn:eudi:pid-address:nl:1.address" = { street_address = true, house_number = true, postal_code = true, locality = true } }

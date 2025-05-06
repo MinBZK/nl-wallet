@@ -3,7 +3,7 @@
 # to run a completely local NL Wallet development environment.
 #
 # - nl-rdo-max (digid-connector)
-# - mock_relying_party
+# - demo_relying_party
 # - verification_server
 # - pid_issuer
 # - wallet_provider
@@ -47,7 +47,7 @@ Where:
                                 'docker' service.
     vs, verification_server:    Start the verification_server.
     pi, pid_issuer:             Start the pid_issuer.
-    mrp, mock_relying_party:    Start the mock_relying_party.
+    drp, demo_relying_party:    Start the demo_relying_party.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
     ups, update_policy_server:  Start the update policy server
@@ -75,7 +75,7 @@ have cargo docker flutter
 # Commandline arguments
 ########################################################################
 
-MOCK_RELYING_PARTY=1
+DEMO_RELYING_PARTY=1
 WALLET_PROVIDER=1
 VERIFICATION_SERVER=1
 PID_ISSUER=1
@@ -116,8 +116,8 @@ do
             PID_ISSUER=0
             shift # past argument
             ;;
-        mrp|mock_relying_party)
-            MOCK_RELYING_PARTY=0
+        drp|demo_relying_party)
+            demo_relying_party=0
             shift # past argument
             ;;
         digid|digid_connector)
@@ -151,7 +151,7 @@ do
             ;;
         --default)
             DIGID_CONNECTOR=0
-            MOCK_RELYING_PARTY=0
+            DEMO_RELYING_PARTY=0
             VERIFICATION_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
@@ -164,7 +164,7 @@ do
         --all)
             DIGID_CONNECTOR=0
             POSTGRES=0
-            MOCK_RELYING_PARTY=0
+            DEMO_RELYING_PARTY=0
             VERIFICATION_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
@@ -244,27 +244,27 @@ then
 fi
 
 ########################################################################
-# Manage mock_relying_party
+# Manage demo_relying_party
 ########################################################################
 
-if [ "${MOCK_RELYING_PARTY}" == "0" ]
+if [ "${DEMO_RELYING_PARTY}" == "0" ]
 then
     echo
-    echo -e "${SECTION}Manage mock_relying_party${NC}"
+    echo -e "${SECTION}Manage demo_relying_party${NC}"
 
-    cd "${MOCK_RELYING_PARTY_DIR}"
+    cd "${DEMO_RELYING_PARTY_DIR}"
 
     if [ "${STOP}" == "0" ]
     then
-        echo -e "${INFO}Kill any running ${ORANGE}mock_relying_party${NC}"
-        killall mock_relying_party || true
+        echo -e "${INFO}Kill any running ${ORANGE}demo_relying_party${NC}"
+        killall demo_relying_party || true
     fi
     if [ "${START}" == "0" ]
     then
-        echo -e "${INFO}Start ${ORANGE}mock_relying_party${NC}"
-        RUST_LOG=debug cargo run --features "allow_insecure_url" --bin mock_relying_party > "${TARGET_DIR}/mock_relying_party.log" 2>&1 &
+        echo -e "${INFO}Start ${ORANGE}demo_relying_party${NC}"
+        RUST_LOG=debug cargo run --features "allow_insecure_url" --bin demo_relying_party > "${TARGET_DIR}/demo_relying_party.log" 2>&1 &
 
-        echo -e "mock_relying_party logs can be found at ${CYAN}${TARGET_DIR}/mock_relying_party.log${NC}"
+        echo -e "demo_relying_party logs can be found at ${CYAN}${TARGET_DIR}/demo_relying_party.log${NC}"
     fi
 fi
 
@@ -304,7 +304,7 @@ fi
 
 if [ "${VERIFICATION_SERVER}" == "0" ]
 then
-    # As part of the MRP a verification_server is started
+    # As part of the demo RP a verification_server is started
     echo
     echo -e "${SECTION}Manage verification_server${NC}"
 
@@ -323,9 +323,9 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin verification_server > "${TARGET_DIR}/mrp_verification_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
 
-        echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/mrp_verification_server.log${NC}"
+        echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/demo_rp_verification_server.log${NC}"
     fi
 fi
 

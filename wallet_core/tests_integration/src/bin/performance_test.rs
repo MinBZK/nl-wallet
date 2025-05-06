@@ -127,12 +127,12 @@ async fn main() {
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 
-    let internal_mrp_url: Url = internal_wallet_server_url.parse().unwrap();
-    let public_mrp_url: Url = public_wallet_server_url.parse().unwrap();
+    let internal_demo_rp_url: Url = internal_wallet_server_url.parse().unwrap();
+    let public_demo_rp_url: Url = public_wallet_server_url.parse().unwrap();
 
     let response = client
         .post(
-            internal_mrp_url
+            internal_demo_rp_url
                 .join("/disclosure/sessions")
                 .expect("could not join url with endpoint"),
         )
@@ -144,7 +144,7 @@ async fn main() {
 
     let StartDisclosureResponse { session_token } = response.json::<StartDisclosureResponse>().await.unwrap();
 
-    let mut status_url = public_mrp_url
+    let mut status_url = public_demo_rp_url
         .join(&format!("disclosure/sessions/{session_token}"))
         .unwrap();
     let status_query = serde_urlencoded::to_string(StatusParams {
