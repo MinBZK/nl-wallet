@@ -116,13 +116,14 @@ async fn test_disclosure_usecases_ok(
     let _context = setup_digid_context();
 
     let pin = "112233";
-    let (mut wallet, urls) = setup_wallet_and_env(
+    let (mut wallet, urls, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
         verification_server_settings(),
         pid_issuer_settings(),
+        issuance_server_settings(),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;
@@ -242,13 +243,14 @@ async fn test_disclosure_without_pid() {
     });
 
     let pin = "112233";
-    let (mut wallet, urls) = setup_wallet_and_env(
+    let (mut wallet, urls, _) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
         verification_server_settings(),
         pid_issuer_settings(),
+        issuance_server_settings(),
     )
     .await;
     wallet = do_wallet_registration(wallet, pin).await;

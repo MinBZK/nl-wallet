@@ -4,6 +4,7 @@ use strfmt::strfmt;
 
 use url::Url;
 
+use crate::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use crate::server_state::SessionToken;
 
 #[nutype(
@@ -23,9 +24,9 @@ impl ReturnUrlTemplate {
     fn is_valid_return_url_template(s: &str) -> bool {
         cfg_if! {
             if #[cfg(feature = "allow_insecure_url")] {
-                const ALLOWED_SCHEMES: [&str; 2] = ["https", "http"];
+                const ALLOWED_SCHEMES: [&str; 3] = [OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME, "https", "http"];
             } else {
-                const ALLOWED_SCHEMES: [&str; 1] = ["https"];
+                const ALLOWED_SCHEMES: [&str; 2] = [OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME, "https"];
             }
         }
 

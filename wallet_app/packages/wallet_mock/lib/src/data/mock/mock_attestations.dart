@@ -104,7 +104,7 @@ final kMockHealthInsuranceWalletCard = Attestation(
     englishTitle: 'European Health Insurance Card',
     dutchTitle: 'Europese gezondheidskaart',
     englishSummary: '{{mock_healthIssuerId}}',
-    dutchSummary: 'Zorgverzekeraar Z',
+    dutchSummary: '{{mock_healthIssuerId}}',
     logoAsset: 'assets/non-free/logos/nl_health_insurance.png',
     textColor: '#FFFFFF',
   ),
@@ -142,7 +142,7 @@ List<DisplayMetadata> _buildDisplayMetaData({
       name: englishTitle,
       summary: englishSummary,
       rendering: RenderingMetadata.simple(
-        logo: null,
+        logo: logoAsset == null ? null : ImageWithMetadata(image: Image.asset(path: logoAsset), altText: ''),
         textColor: textColor,
         backgroundColor: bgColor,
       ),
@@ -152,7 +152,7 @@ List<DisplayMetadata> _buildDisplayMetaData({
       name: dutchTitle,
       summary: dutchSummary,
       rendering: RenderingMetadata.simple(
-        logo: null,
+        logo: logoAsset == null ? null : ImageWithMetadata(image: Image.asset(path: logoAsset), altText: ''),
         textColor: textColor,
         backgroundColor: bgColor,
       ),

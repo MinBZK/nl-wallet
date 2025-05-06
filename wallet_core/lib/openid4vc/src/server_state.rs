@@ -25,6 +25,8 @@ use jwt::VerifiedJwt;
 use utils::generator::Generator;
 use utils::generator::TimeGenerator;
 
+use crate::token::AuthorizationCode;
+
 /// The cleanup task that removes stale sessions runs every so often.
 pub const CLEANUP_INTERVAL_SECONDS: Duration = Duration::from_secs(120);
 
@@ -231,6 +233,12 @@ pub struct SessionToken(String);
 impl SessionToken {
     pub fn new_random() -> Self {
         random_string(32).into()
+    }
+}
+
+impl From<SessionToken> for AuthorizationCode {
+    fn from(value: SessionToken) -> Self {
+        AuthorizationCode::from(value.0)
     }
 }
 

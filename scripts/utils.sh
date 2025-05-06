@@ -324,7 +324,8 @@ function generate_mock_relying_party_key_pair {
 # The label of the key is "${READER_NAME}_key"
 #
 # $1 - READER_NAME: Name of the Relying Party
-function generate_mock_relying_party_hsm_key_pair {
+# $2 - path where the certificate will be written to
+function generate_relying_party_hsm_key_pair {
     # Generate EC key pair in the HSM
     p11tool \
         --provider "${HSM_LIBRARY_PATH}" \
@@ -341,25 +342,25 @@ function generate_mock_relying_party_hsm_key_pair {
         --set-pin "${HSM_USER_PIN}" \
         --export-pubkey "$(p11tool --login --set-pin 12345678 --provider="${HSM_LIBRARY_PATH}" --list-all --only-urls | grep "$1_key" | grep public)" \
         --label "$1_key" \
-        --outfile "${TARGET_DIR}/mock_relying_party/$1.pub.pem"
+        --outfile "${TARGET_DIR}/$2/$1.pub.pem"
 
     # Generate a certificate for the public key including reader authentication
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
           --bin wallet_ca reader-cert \
-          --public-key-file "${TARGET_DIR}/mock_relying_party/$1.pub.pem" \
+          --public-key-file "${TARGET_DIR}/$2/$1.pub.pem" \
           --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
           --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
           --common-name "$1.example.com" \
           --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
-          --file-prefix "${TARGET_DIR}/mock_relying_party/$1" \
+          --file-prefix "${TARGET_DIR}/$2/$1" \
           --force
 
     # Convert the PEM certificate to DER format
     openssl x509 \
-            -in "${TARGET_DIR}/mock_relying_party/$1.crt.pem" \
+            -in "${TARGET_DIR}/$2/$1.crt.pem" \
             -inform PEM \
             -outform DER \
-            -out "${TARGET_DIR}/mock_relying_party/$1.crt.der"
+            -out "${TARGET_DIR}/$2/$1.crt.der"
 }
 
 function encrypt_gba_v_responses {

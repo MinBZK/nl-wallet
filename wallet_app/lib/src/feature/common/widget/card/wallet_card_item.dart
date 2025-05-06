@@ -19,7 +19,6 @@ import '../text/headline_small_text.dart';
 import '../utility/disable_text_scaling.dart';
 import 'bottom_clip_shadow.dart';
 import 'card_logo.dart';
-import 'card_network_logo.dart';
 import 'mock_card_background.dart';
 import 'mock_card_holograph.dart';
 import 'show_details_cta.dart';
@@ -389,12 +388,12 @@ extension WalletCardRenderExtension on WalletCard {
 
     switch (rendering) {
       case SimpleCardRendering():
-        final logoUri = rendering.logoUri;
-        if (logoUri == null) return null;
-        if (Environment.isMockOrTest && logoUri.startsWith('assets/')) {
-          return CardLogo(logo: logoUri, altText: rendering.logoAltText);
-        }
-        return CardNetworkLogo(uri: logoUri, altText: rendering.logoAltText);
+        final logo = rendering.logo;
+        if (logo == null) return null;
+        return CardLogo(
+          logo: logo,
+          altText: rendering.logoAltText,
+        );
     }
   }
 }

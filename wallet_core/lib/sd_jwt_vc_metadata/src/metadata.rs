@@ -7,7 +7,6 @@ use std::fmt::Write;
 use std::ops::Deref;
 use std::sync::LazyLock;
 
-use http::Uri;
 use itertools::Itertools;
 use jsonschema::Draft;
 use jsonschema::ValidationError;
@@ -23,6 +22,7 @@ use serde_with::MapSkipError;
 use ssri::Integrity;
 
 use http_utils::data_uri::DataUri;
+use http_utils::urls::BaseUrl;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -65,7 +65,7 @@ pub enum TypeMetadataError {
 /// Note that within the context of the wallet app we place additional constraints on the contents of this document,
 /// most of which stem from practical concerns. These constraints consist of the following:
 ///
-/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptionalImplRequired` type.
+/// * Some optional fields we consider as mandatory. These are marked by the `SpecOptional` type.
 /// * Attributes contained in arrays are not (yet) supported.
 /// * Optional attributes are not yet supported.
 /// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
@@ -237,8 +237,7 @@ pub enum SchemaOption {
     },
     Remote {
         /// A URL pointing to a JSON Schema document describing the structure of the Verifiable Credential.
-        #[serde(with = "http_serde::uri")]
-        schema_uri: Uri,
+        schema_uri: BaseUrl,
         /// Validating the integrity of the schema_uri field.
         /// Note that although this is optional in the specification, we consider validation using a digest mandatory
         /// if the schema is to be fetched from an external URI, in order to check that this matches the
@@ -406,8 +405,7 @@ pub enum UriMetadata {
         uri: DataUri,
     },
     Remote {
-        #[serde(with = "http_serde::uri")]
-        uri: Uri,
+        uri: BaseUrl,
 
         /// Note that although this is optional in the specification, we consider validation using a digest mandatory
         /// if the logo is to be fetched from an external URI, in order to check that this matches the image as
@@ -813,7 +811,7 @@ mod test {
             Some(RenderingMetadata::Simple {
                 logo: Some(LogoMetadata {
                     uri_metadata: UriMetadata::Remote {
-                        uri: Uri::from_static("https://simple.example.com/red-dot.png"),
+                        uri: "https://simple.example.com/red-dot.png".parse().unwrap(),
                         uri_integrity: Integrity::from(RED_DOT_BYTES).into(),
                     },
                     alt_text: "An example PNG logo".to_string().into(),

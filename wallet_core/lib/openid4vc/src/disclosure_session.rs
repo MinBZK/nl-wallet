@@ -157,9 +157,9 @@ pub enum VpMessageClientError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("auth request server error response: {0:?}")]
-    AuthGetResponse(DisclosureErrorResponse<GetRequestErrorCode>),
+    AuthGetResponse(Box<DisclosureErrorResponse<GetRequestErrorCode>>),
     #[error("auth request server error response: {0:?}")]
-    AuthPostResponse(DisclosureErrorResponse<PostAuthResponseErrorCode>),
+    AuthPostResponse(Box<DisclosureErrorResponse<PostAuthResponseErrorCode>>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -171,13 +171,13 @@ pub enum VpMessageClientErrorType {
 
 impl From<DisclosureErrorResponse<GetRequestErrorCode>> for VpMessageClientError {
     fn from(value: DisclosureErrorResponse<GetRequestErrorCode>) -> Self {
-        Self::AuthGetResponse(value)
+        Self::AuthGetResponse(value.into())
     }
 }
 
 impl From<DisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClientError {
     fn from(value: DisclosureErrorResponse<PostAuthResponseErrorCode>) -> Self {
-        Self::AuthPostResponse(value)
+        Self::AuthPostResponse(value.into())
     }
 }
 
@@ -185,20 +185,14 @@ impl VpMessageClientError {
     pub fn error_type(&self) -> VpMessageClientErrorType {
         match self {
             // Consider the different error codes when getting the disclosure request.
-            Self::AuthGetResponse(DisclosureErrorResponse {
-                error_response: ErrorResponse { error, .. },
-                ..
-            }) => match error {
+            Self::AuthGetResponse(error) => match error.response_error() {
                 GetRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
                 GetRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
                 GetRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
                 _ => VpMessageClientErrorType::Other,
             },
             // Consider the different error codes when posting the disclosure response.
-            Self::AuthPostResponse(DisclosureErrorResponse {
-                error_response: ErrorResponse { error, .. },
-                ..
-            }) => match error {
+            Self::AuthPostResponse(error) => match error.response_error() {
                 PostAuthResponseErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
                 PostAuthResponseErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
                 _ => VpMessageClientErrorType::Other,

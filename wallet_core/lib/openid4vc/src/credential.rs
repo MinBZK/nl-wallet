@@ -6,7 +6,9 @@ use futures::future::try_join_all;
 use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::TryFromInto;
 
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
@@ -164,12 +166,42 @@ impl CredentialRequestProof {
     }
 }
 
+pub const OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME: &str = "openid-credential-offer";
+
 #[skip_serializing_none]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialOffer {
     pub credential_issuer: BaseUrl,
     pub credential_configuration_ids: Vec<String>,
     pub grants: Option<Grants>,
+}
+
+/// OpenID4VCI protocol message containing the credential offer.
+/// The Credential Offer is passed as a single URI-encoded parameter containing a JSON-encoded value.
+/// <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-13.html#name-credential-offer>
+/// Note: the spec says that this may contain a `credential_offer_uri` instead of a `credential_offer`, but we don't
+/// support that (yet).
+#[serde_as]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CredentialOfferContainer {
+    #[serde_as(as = "TryFromInto<String>")]
+    pub credential_offer: CredentialOffer,
+}
+
+impl TryFrom<String> for CredentialOffer {
+    type Error = serde_json::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        serde_json::from_str(&value)
+    }
+}
+
+impl TryInto<String> for CredentialOffer {
+    type Error = serde_json::Error;
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        serde_json::to_string(&self)
+    }
 }
 
 /// Grants for a Verifiable Credential.
@@ -217,6 +249,16 @@ pub struct GrantPreAuthorizedCode {
     pub pre_authorized_code: AuthorizationCode,
     pub tx_code: Option<PreAuthTransactionCode>,
     pub authorization_server: Option<BaseUrl>,
+}
+
+impl GrantPreAuthorizedCode {
+    pub fn new(pre_authorized_code: AuthorizationCode) -> Self {
+        Self {
+            pre_authorized_code,
+            tx_code: None,
+            authorization_server: None,
+        }
+    }
 }
 
 #[skip_serializing_none]

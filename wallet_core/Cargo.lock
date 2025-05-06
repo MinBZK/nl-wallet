@@ -2792,7 +2792,6 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "serde_test",
  "serde_with",
  "strum 0.26.3",
  "thiserror 2.0.11",
@@ -3158,9 +3157,43 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
+name = "issuance_server"
+version = "0.3.0-dev"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "config",
+ "crypto",
+ "futures",
+ "hsm",
+ "http_utils",
+ "indexmap 2.7.1",
+ "issuer_settings",
+ "mdoc",
+ "openid4vc",
+ "openid4vc_server",
+ "p256",
+ "reqwest",
+ "rustls-pki-types",
+ "sea-orm",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "server_utils",
+ "thiserror 2.0.11",
+ "tokio",
+ "tracing",
+ "trait-variant",
+ "utils",
+]
+
+[[package]]
 name = "issuer_settings"
 version = "0.3.0-dev"
 dependencies = [
+ "assert_matches",
  "chrono",
  "crypto",
  "derive_more",
@@ -3922,6 +3955,7 @@ name = "openid4vc"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "async-trait",
  "axum",
  "base64 0.22.1",
  "biscuit",
@@ -4032,9 +4066,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.107"
+version = "0.9.108"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8288979acd84749c744a9014b4382d42b8f7b2592847b5afb2ed29e5d16ede07"
+checksum = "e145e1651e858e820e4860f7b9c5e169bc1d8ce1c86043be79fa7b7634821847"
 dependencies = [
  "cc",
  "libc",
@@ -5246,7 +5280,6 @@ dependencies = [
  "crypto",
  "derive_more",
  "http",
- "http-serde",
  "http_utils",
  "itertools 0.14.0",
  "jsonschema",
@@ -5642,15 +5675,6 @@ name = "serde_spanned"
 version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "87607cb1398ed59d48732e575a4c28a7a8ebf2454b964fe3f224f2afc07909e1"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "serde_test"
-version = "1.0.177"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f901ee573cab6b3060453d2d5f0bae4e6d628c23c0a962ff9b5f1d7c8d4f1ed"
 dependencies = [
  "serde",
 ]
@@ -6356,6 +6380,7 @@ dependencies = [
  "android_attest",
  "apple_app_attest",
  "assert_matches",
+ "axum",
  "chrono",
  "configuration_server",
  "crypto",
@@ -6366,6 +6391,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "insta",
+ "issuance_server",
  "jsonwebtoken",
  "jwt",
  "mdoc",
@@ -6402,6 +6428,7 @@ dependencies = [
  "wallet_provider",
  "wallet_provider_persistence",
  "wallet_provider_service",
+ "wiremock",
 ]
 
 [[package]]

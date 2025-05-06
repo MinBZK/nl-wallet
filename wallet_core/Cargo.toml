@@ -36,6 +36,7 @@ members = [
     "wallet_provider/persistence",
     "wallet_provider/service",
     "wallet_provider/wallet_account",
+    "wallet_server/issuance_server",
     "wallet_server/issuer_settings",
     "wallet_server/pid_issuer",
     "wallet_server/server_utils",
@@ -63,6 +64,7 @@ needless_pass_by_value = "warn"
 redundant_allocation = "warn"
 trivially_copy_pass_by_ref = "warn"
 unnecessary_join = "warn"
+unnecessary_literal_bound = "warn"
 unnecessary_wraps = "warn"
 unused_async = "warn"
 unused_self = "warn"
@@ -117,7 +119,6 @@ hex = "0.4.3"
 hex-literal = "0.4.1"
 http = "1.2.0"
 http-cache-reqwest = { version = "0.15.1", default-features = false }
-http-serde = "2.1.1"
 hmac = "0.12.1"
 indexmap = "2.7.1"
 insta = { version = "1.42.1", default-features = false }
@@ -174,7 +175,6 @@ serde-aux = "4.5.0"
 serde_bytes = "0.11.15"
 serde_json = { version = "1.0.138", default-features = false }
 serde_repr = "0.1.19"
-serde_test = "1.0.177"
 serde_urlencoded = "0.7.1"
 serde_valid = "1.0.5"
 serde_with = "3.12.0"

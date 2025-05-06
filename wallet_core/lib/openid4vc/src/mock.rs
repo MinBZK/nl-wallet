@@ -64,7 +64,6 @@ impl IssuanceSession for MockIssuanceSession {
         _: &[TrustAnchor<'_>],
         _: &KF,
         _: Option<JwtCredential<WteClaims>>,
-        _: BaseUrl,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey,
@@ -87,44 +86,20 @@ impl Config {
     /// Construct a new `Config` based on the OP's URL and some standardized or reasonable defaults.
     pub fn new_mock(issuer: &BaseUrl) -> Self {
         Self {
-            issuer: issuer.clone(),
-            authorization_endpoint: issuer.join("/authorize"),
-            token_endpoint: issuer.join("/token"),
             userinfo_endpoint: Some(issuer.join("/userinfo")),
-            jwks_uri: issuer.join("/jwks.json"),
             registration_endpoint: None,
             scopes_supported: Some(IndexSet::from_iter(["openid".to_string()])),
             response_types_supported: IndexSet::from_iter(
                 ["code", "code id_token", "id_token", "id_token token"].map(str::to_string),
             ),
-            response_modes_supported: None,
-            grant_types_supported: None,
-            acr_values_supported: None,
-            subject_types_supported: IndexSet::new(),
             id_token_signing_alg_values_supported: IndexSet::from_iter(["RS256".to_string()]),
-            id_token_encryption_alg_values_supported: None,
-            id_token_encryption_enc_values_supported: None,
-            userinfo_signing_alg_values_supported: None,
-            userinfo_encryption_alg_values_supported: None,
-            userinfo_encryption_enc_values_supported: None,
-            request_object_signing_alg_values_supported: None,
-            request_object_encryption_alg_values_supported: None,
-            request_object_encryption_enc_values_supported: None,
-            token_endpoint_auth_methods_supported: None,
-            token_endpoint_auth_signing_alg_values_supported: None,
-            display_values_supported: None,
-            claim_types_supported: None,
-            claims_supported: None,
-            service_documentation: None,
-            claims_locales_supported: None,
-            ui_locales_supported: None,
-            claims_parameter_supported: false,
-            request_parameter_supported: false,
-            request_uri_parameter_supported: false,
-            require_request_uri_registration: false,
-            op_policy_uri: None,
-            op_tos_uri: None,
-            code_challenge_methods_supported: None,
+
+            ..Config::new(
+                issuer.clone(),
+                issuer.join("/authorize"),
+                issuer.join("/token"),
+                issuer.join("/jwks.json"),
+            )
         }
     }
 }

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/app_image_data.dart';
 import 'package:wallet/src/feature/common/widget/card/card_holograph.dart';
 import 'package:wallet/src/feature/common/widget/card/card_logo.dart';
 import 'package:wallet/src/feature/common/widget/card/mock_card_background.dart';
@@ -51,7 +52,7 @@ void main() {
                 title: 'Dark Card',
                 subtitle: 'subtitle',
                 background: MockCardBackground(docType: kAddressDocType),
-                logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+                logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 textColor: DarkWalletTheme.textColor,
                 onPressed: _voidCallback,
               ),
@@ -59,7 +60,7 @@ void main() {
                 title: 'Light Card',
                 subtitle: 'subtitle',
                 background: MockCardBackground(docType: kPidDocType),
-                logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+                logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 textColor: LightWalletTheme.textColor,
                 onPressed: _voidCallback,
               ),
@@ -85,7 +86,7 @@ void main() {
                 title: '50 characters looooooong title is consider the max',
                 subtitle: '50 characters loong subtitle is considered the max',
                 background: MockCardBackground(docType: kAddressDocType),
-                logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+                logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 textColor: DarkWalletTheme.textColor,
                 onPressed: _voidCallback,
               ),
@@ -95,7 +96,7 @@ void main() {
                   title: '50 characters looooooong title is consider the max',
                   subtitle: '50 characters loong subtitle is considered the max',
                   background: MockCardBackground(docType: kPidDocType),
-                  logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+                  logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                   textColor: LightWalletTheme.textColor,
                   onPressed: _voidCallback,
                 ),
@@ -120,7 +121,7 @@ void main() {
                 subtitle: 'SUBTITLE',
                 textColor: LightWalletTheme.textColor,
                 background: MockCardBackground(docType: kPidDocType),
-                logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+                logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 onPressed: _voidCallback,
               ),
               WalletCardItem(
@@ -134,14 +135,14 @@ void main() {
                 title: 'TITLE - NO SUBTITLE',
                 textColor: LightWalletTheme.textColor,
                 background: MockCardBackground(docType: kPidDocType),
-                logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+                logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 onPressed: _voidCallback,
               ),
               WalletCardItem(
                 title: 'TITLE - NO SHOW DETAILS',
                 textColor: LightWalletTheme.textColor,
                 background: MockCardBackground(docType: kPidDocType),
-                logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+                logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
               ),
             ],
           ),
@@ -160,7 +161,7 @@ void main() {
             title: 'Holograph',
             textColor: DarkWalletTheme.textColor,
             background: MockCardBackground(docType: kAddressDocType),
-            logo: CardLogo(logo: WalletAssets.logo_card_rijksoverheid),
+            logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
             holograph: CardHolograph(holograph: WalletAssets.svg_rijks_card_holo, brightness: Brightness.dark),
           ),
           surfaceSize: const Size(328, 198),

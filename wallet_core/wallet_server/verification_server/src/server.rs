@@ -11,6 +11,7 @@ use tracing::info;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
+use openid4vc_server::verifier::RequestUriBehaviour;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
@@ -40,14 +41,14 @@ where
     S: SessionStore<DisclosureData> + Send + Sync + 'static,
 {
     // Needed when called directly
-    check_request_listener_with_settings(&requester_listener, &settings);
+    check_requester_listener_with_settings(&requester_listener, &settings);
     let log_requests = settings.server_settings.log_requests;
 
     let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
-        settings.server_settings.public_url,
+        settings.server_settings.public_url.join_base_url("disclosure/sessions"),
         settings.universal_link_base_url,
         settings.usecases.parse(hsm).await?,
-        (&settings.ephemeral_id_secret).into(),
+        Some((&settings.ephemeral_id_secret).into()),
         settings
             .server_settings
             .issuer_trust_anchors
@@ -55,16 +56,17 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         settings.wallet_client_ids,
+        RequestUriBehaviour::BySessionToken,
     )
-    .create_routers(settings.allow_origins, disclosure_sessions);
+    .create_routers(settings.allow_origins, disclosure_sessions, None);
 
     let requester_router = secure_requester_router(&settings.requester_server, requester_router);
 
     listen(
         wallet_listener,
         requester_listener,
-        Router::new().nest("/disclosure", wallet_disclosure_router),
-        Router::new().nest("/disclosure", requester_router),
+        Router::new().nest("/disclosure/sessions", wallet_disclosure_router),
+        Router::new().nest("/disclosure/sessions", requester_router),
         log_requests,
     )
     .await
@@ -83,7 +85,7 @@ fn secure_requester_router(requester_server: &RequesterAuth, requester_router: R
 }
 
 /// Sanity check to see if [requester_listener] is set conform [settings].
-fn check_request_listener_with_settings(requester_listener: &Option<TcpListener>, settings: &VerifierSettings) {
+fn check_requester_listener_with_settings(requester_listener: &Option<TcpListener>, settings: &VerifierSettings) {
     match settings.requester_server {
         RequesterAuth::Authentication(_) => {
             assert!(

@@ -11,7 +11,7 @@ use openid4vc::TokenErrorCode;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use tests_integration::default;
 use tests_integration::fake_digid::fake_digid_auth;
-use wallet::errors::PidIssuanceError;
+use wallet::errors::IssuanceError;
 use wallet::mock::LocalConfigurationRepository;
 use wallet::mock::MockStorage;
 use wallet::mock::MockUpdatePolicyRepository;
@@ -156,14 +156,14 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let attestations_result = wallet.continue_pid_issuance(redirect_url).await;
     let attestations = match attestations_result {
         Ok(mdocs) => mdocs,
-        Err(PidIssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(ErrorResponse {
+        Err(IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(ErrorResponse {
             error: TokenErrorCode::ServerError,
             error_description: Some(description),
             ..
         }))) if description.contains("Error converting GBA-V XML to Haal-Centraal JSON: GBA-V error") => {
             return Err(TestError::Conversion)
         }
-        Err(PidIssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(ErrorResponse {
+        Err(IssuanceError::IssuanceSession(IssuanceSessionError::TokenRequest(ErrorResponse {
             error: TokenErrorCode::ServerError,
             error_description: Some(description),
             ..

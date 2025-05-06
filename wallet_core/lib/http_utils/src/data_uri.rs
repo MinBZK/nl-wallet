@@ -8,13 +8,10 @@ use base64::engine::general_purpose::STANDARD;
 use data_url::forgiving_base64::InvalidBase64;
 use data_url::DataUrl;
 use data_url::DataUrlError;
-use serde::de;
-use serde::Deserialize;
-use serde::Deserializer;
-use serde::Serialize;
-use serde::Serializer;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct DataUri {
     pub mime_type: String,
     pub data: Vec<u8>,
@@ -51,25 +48,11 @@ impl FromStr for DataUri {
     }
 }
 
-impl Serialize for DataUri {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        String::serialize(&self.to_string(), serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for DataUri {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        String::deserialize(deserializer).and_then(|s| DataUri::from_str(&s).map_err(de::Error::custom))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use rstest::rstest;
-    use serde_test::assert_tokens;
-    use serde_test::Token;
 
     #[rstest]
     #[case("data:image/jpeg;base64,yv4=", DataUri {
@@ -102,11 +85,5 @@ mod tests {
             DataUri::from_str("data:image/jpeg;base64,/").unwrap_err().to_string(),
             "base64 decode error: lone alphabet symbol present"
         );
-    }
-
-    #[test]
-    fn serde_serialize_and_deserialize_as_string() {
-        let uri = "data:image/jpeg;base64,q80=";
-        assert_tokens(&DataUri::from_str(uri).unwrap(), &[Token::String(uri)]);
     }
 }

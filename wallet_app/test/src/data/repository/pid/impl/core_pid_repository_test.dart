@@ -28,7 +28,7 @@ void main() {
       CardConfigMapper(),
       CardAttributeMapper(CardAttributeValueMapper(), ClaimDisplayMetadataMapper()),
       OrganizationMapper(LocalizedLabelsMapper(), ImageMapper()),
-      DisplayMetadataMapper(),
+      DisplayMetadataMapper(ImageMapper()),
     );
     pidRepository = CorePidRepository(core, cardMapper);
   });
