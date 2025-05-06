@@ -1027,6 +1027,15 @@
     "setupSecurityScreenWCAGPinChosenAnnouncement": "Pincode gekozen. Herhaal pincode om te bevestigen.",
     "setupSecuritySelectPinPageTitle": "Kies een 6-cijferige pincode",
     "sharedAttributesCardCta": "Bekijk",
+    "sharedAttributesCardCtaSemanticsLabel": "Bekijk {card}",
+    "@sharedAttributesCardCtaSemanticsLabel": {
+        "placeholders": {
+            "card": {
+                "example": "Card Title",
+                "type": "String"
+            }
+        }
+    },
     "sharedAttributesCardTitle": "{count} uit {cardTitle}",
     "showDetailsCta": "Bekijk",
     "signConfirmPinPageDescription": "Hiermee geef je toestemming om gegevens uit te wisselen.",

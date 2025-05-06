@@ -122,8 +122,13 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
             statesController: _statesController,
             icon: const Icon(Icons.arrow_forward),
             iconAlignment: IconAlignment.end,
-            label: Text.rich(
-              context.l10n.sharedAttributesCardCta.toTextSpan(context),
+            label: Semantics(
+              button: true,
+              attributedLabel: context.l10n
+                  .sharedAttributesCardCtaSemanticsLabel(widget.card.title.l10nValue(context))
+                  .toAttributedString(context),
+              excludeSemantics: true /* exclude semantics of descendants */,
+              child: Text.rich(context.l10n.sharedAttributesCardCta.toTextSpan(context)),
             ),
             style: context.theme.textButtonTheme.style?.copyWith(
               backgroundColor: WidgetStateProperty.all(Colors.transparent),
