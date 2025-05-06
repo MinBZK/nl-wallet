@@ -198,6 +198,12 @@ pub struct DisclosureSession<MDS> {
     protocol_state: MDS,
 }
 
+impl<MDS> DisclosureSession<MDS> {
+    pub(super) fn protocol_state(&self) -> &MDS {
+        &self.protocol_state
+    }
+}
+
 impl RedirectUriPurpose {
     fn from_uri(uri: &Url) -> Result<Self, DisclosureError> {
         let uri_type = identify_uri(uri)
