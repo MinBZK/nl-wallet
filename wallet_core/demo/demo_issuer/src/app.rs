@@ -29,8 +29,15 @@ use url::Url;
 
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use http_utils::urls::disclosure_based_issuance_base_uri;
+use http_utils::urls::BaseUrl;
+use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::issuable_document::IssuableDocument;
+use openid4vc::openid4vp::RequestUriMethod;
+use openid4vc::openid4vp::VpRequestUriObject;
+use openid4vc::verifier::SessionType;
+use openid4vc::verifier::VerifierUrlParameters;
 use utils::path::prefix_local_path;
 
 use crate::settings::Settings;
@@ -52,12 +59,14 @@ impl IntoResponse for Error {
 struct ApplicationState {
     usecases: IndexMap<String, Usecase>,
     wallet_web: WalletWeb,
+    issuance_server_url: BaseUrl,
 }
 
 pub fn create_routers(settings: Settings) -> (Router, Router) {
     let application_state = Arc::new(ApplicationState {
         usecases: settings.usecases,
         wallet_web: settings.wallet_web,
+        issuance_server_url: settings.issuance_server_url,
     });
 
     let app = Router::new()
@@ -99,7 +108,7 @@ struct BaseTemplate<'a> {
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
-    start_url: Url,
+    universal_links: (Url, Url),
     usecase_js_sha256: &'a str,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
@@ -112,6 +121,34 @@ static USECASE_JS_SHA256: LazyLock<String> = LazyLock::new(|| {
     )))
 });
 
+fn disclosure_based_issuance_universal_links(issuance_server_url: &BaseUrl) -> (Url, Url) {
+    SessionType::iter()
+        .map(|session_type| {
+            let params = serde_urlencoded::to_string(VerifierUrlParameters {
+                session_type,
+                ephemeral_id_params: None,
+            })
+            .unwrap();
+
+            let mut issuance_server_url = issuance_server_url.join("/disclosure/disclosure_based_issuance/request_uri");
+            issuance_server_url.set_query(Some(&params));
+
+            let query = serde_urlencoded::to_string(VpRequestUriObject {
+                request_uri: issuance_server_url.try_into().unwrap(),
+                request_uri_method: Some(RequestUriMethod::POST),
+                client_id: "disclosure_based_issuance.example.com".to_string(), // TODO
+            })
+            .unwrap();
+
+            let mut uri =
+                disclosure_based_issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
+            uri.set_query(Some(&query));
+            uri
+        })
+        .collect_tuple()
+        .unwrap()
+}
+
 async fn usecase(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
@@ -121,10 +158,10 @@ async fn usecase(
         return StatusCode::NOT_FOUND.into_response();
     }
 
-    let start_url = "https://example.com/start_url_here".parse().unwrap(); // TODO
+    let universal_links = disclosure_based_issuance_universal_links(&state.issuance_server_url);
     UsecaseTemplate {
         usecase: &usecase,
-        start_url,
+        universal_links,
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
@@ -146,35 +183,12 @@ async fn attestation(
         return StatusCode::NOT_FOUND.into_response();
     };
 
-    dbg!(&state.usecases);
-
     // TODO add attributes for the lookup to be based upon
     let documents: Vec<IssuableDocument> = usecase
         .data
-        .get("9999999999")
+        .get("999991772")
         .map(|docs| docs.clone().into_inner())
         .unwrap_or_default();
-
-    // let documents: Vec<IssuableDocument> = vec![IssuableDocument::try_new(
-    //     usecase.attestation_type.clone(),
-    //     IndexMap::from_iter(vec![
-    //         (
-    //             "city".to_string(),
-    //             Attribute::Single(AttributeValue::Text("The Capital".to_string())),
-    //         ),
-    //         (
-    //             "street".to_string(),
-    //             Attribute::Single(AttributeValue::Text("Main St.".to_string())),
-    //         ),
-    //         (
-    //             "house".to_string(),
-    //             Attribute::Single(AttributeValue::Text("Main St.".to_string())),
-    //         ),
-    //     ]),
-    // )
-    // .unwrap()]
-    // .try_into()
-    // .unwrap();
 
     Json(documents).into_response()
 }

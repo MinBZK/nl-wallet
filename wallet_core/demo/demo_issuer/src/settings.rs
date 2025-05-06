@@ -9,6 +9,7 @@ use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 
+use http_utils::urls::BaseUrl;
 use openid4vc::issuable_document::IssuableDocuments;
 use utils::path::prefix_local_path;
 
@@ -16,6 +17,7 @@ use utils::path::prefix_local_path;
 pub struct Settings {
     pub webserver: Server,
     pub issuance_server: Server,
+    pub issuance_server_url: BaseUrl,
     pub structured_logging: bool,
     pub wallet_web: WalletWeb,
     pub usecases: IndexMap<String, Usecase>,

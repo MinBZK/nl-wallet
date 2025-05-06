@@ -1646,6 +1646,7 @@ dependencies = [
  "nutype",
  "openid4vc",
  "serde",
+ "serde_urlencoded",
  "strum 0.26.3",
  "tokio",
  "tower 0.5.2",
