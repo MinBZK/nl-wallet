@@ -37,7 +37,7 @@ pub mod configuration {
     pub use wallet_configuration::wallet_config::WalletConfiguration;
 }
 
-pub mod mdoc {
+pub mod attestation_data {
     pub use attestation::auth::reader_auth::DeletionPolicy;
     pub use attestation::auth::reader_auth::ReaderRegistration;
     pub use attestation::auth::reader_auth::RetentionPolicy;

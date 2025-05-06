@@ -50,10 +50,12 @@ pub enum CertificateUsage {
 }
 
 #[rustfmt::skip]
-pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
-#[rustfmt::skip]
-pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
+mod extended_key_usage_oid {
+    pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
+    pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
+}
 
+use extended_key_usage_oid::*;
 impl CertificateUsage {
     pub fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {
         let usage = cert
