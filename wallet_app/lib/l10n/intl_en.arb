@@ -1033,6 +1033,15 @@
     "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN",
     "sharedAttributesCardCta": "View",
     "sharedAttributesCardTitle": "{count} from {cardTitle}",
+    "sharedAttributesCardCtaSemanticsLabel": "View {card}",
+    "@sharedAttributesCardCtaSemanticsLabel": {
+        "placeholders": {
+            "card": {
+                "example": "Card Title",
+                "type": "String"
+            }
+        }
+    },
     "showDetailsCta": "View",
     "signConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
     "signConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
