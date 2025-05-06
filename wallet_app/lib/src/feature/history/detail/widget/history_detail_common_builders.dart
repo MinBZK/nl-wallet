@@ -226,10 +226,12 @@ class HistoryDetailCommonBuilders {
           onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
         ),
         dividerSide: DividerSide.bottom,
-        trailing: SizedBox(
-          height: 36,
-          width: 36,
-          child: AppImage(asset: organization.logo),
+        trailing: ExcludeSemantics(
+          child: SizedBox(
+            height: 36,
+            width: 36,
+            child: AppImage(asset: organization.logo),
+          ),
         ),
       ),
     );
