@@ -23,7 +23,6 @@ use x509_parser::der_parser::Oid;
 use x509_parser::extensions::GeneralName;
 use x509_parser::nom;
 use x509_parser::nom::AsBytes;
-use x509_parser::oid_registry::asn1_rs::oid;
 use x509_parser::prelude::ExtendedKeyUsage;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::PEMError;
@@ -51,11 +50,15 @@ pub enum CertificateUsage {
 
 #[rustfmt::skip]
 mod extended_key_usage_oid {
+    use x509_parser::der_parser::Oid;
+    use x509_parser::oid_registry::asn1_rs::oid;
+
     pub const EXTENDED_KEY_USAGE_MDL: &Oid = &oid!(1.0.18013.5.1.2);
     pub const EXTENDED_KEY_USAGE_READER_AUTH: &Oid = &oid!(1.0.18013.5.1.6);
 }
 
 use extended_key_usage_oid::*;
+
 impl CertificateUsage {
     pub fn from_certificate(cert: &X509Certificate) -> Result<Self, CertificateError> {
         let usage = cert

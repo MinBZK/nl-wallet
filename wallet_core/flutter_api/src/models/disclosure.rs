@@ -1,7 +1,7 @@
 use url::Url;
 
+use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
-use wallet::mdoc::ReaderRegistration;
 use wallet::openid4vc::SessionType;
 use wallet::DisclosureProposal;
 
@@ -80,11 +80,11 @@ pub enum AcceptDisclosureResult {
     InstructionError { error: WalletInstructionError },
 }
 
-pub struct RPLocalizedStrings(pub wallet::mdoc::LocalizedStrings);
+pub struct RPLocalizedStrings(pub wallet::attestation_data::LocalizedStrings);
 
 impl From<RPLocalizedStrings> for Vec<LocalizedString> {
     fn from(value: RPLocalizedStrings) -> Self {
-        let RPLocalizedStrings(wallet::mdoc::LocalizedStrings(localized_strings)) = value;
+        let RPLocalizedStrings(wallet::attestation_data::LocalizedStrings(localized_strings)) = value;
         localized_strings
             .iter()
             .map(|(language, value)| LocalizedString {
@@ -95,18 +95,18 @@ impl From<RPLocalizedStrings> for Vec<LocalizedString> {
     }
 }
 
-impl From<wallet::mdoc::Image> for Image {
-    fn from(value: wallet::mdoc::Image) -> Self {
+impl From<wallet::attestation_data::Image> for Image {
+    fn from(value: wallet::attestation_data::Image) -> Self {
         match value {
-            wallet::mdoc::Image::Svg(xml) => Image::Svg { xml },
-            wallet::mdoc::Image::Png(data) => Image::Png { data },
-            wallet::mdoc::Image::Jpeg(data) => Image::Jpeg { data },
+            wallet::attestation_data::Image::Svg(xml) => Image::Svg { xml },
+            wallet::attestation_data::Image::Png(data) => Image::Png { data },
+            wallet::attestation_data::Image::Jpeg(data) => Image::Jpeg { data },
         }
     }
 }
 
-impl From<wallet::mdoc::Organization> for Organization {
-    fn from(value: wallet::mdoc::Organization) -> Self {
+impl From<wallet::attestation_data::Organization> for Organization {
+    fn from(value: wallet::attestation_data::Organization) -> Self {
         Organization {
             legal_name: RPLocalizedStrings(value.legal_name).into(),
             display_name: RPLocalizedStrings(value.display_name).into(),

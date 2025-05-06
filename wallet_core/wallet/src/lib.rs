@@ -29,14 +29,6 @@ pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 
-pub mod configuration {
-    pub use wallet_configuration::wallet_config::AccountServerConfiguration;
-    pub use wallet_configuration::wallet_config::DisclosureConfiguration;
-    pub use wallet_configuration::wallet_config::LockTimeoutConfiguration;
-    pub use wallet_configuration::wallet_config::PidIssuanceConfiguration;
-    pub use wallet_configuration::wallet_config::WalletConfiguration;
-}
-
 pub mod attestation_data {
     pub use attestation::auth::reader_auth::DeletionPolicy;
     pub use attestation::auth::reader_auth::ReaderRegistration;
@@ -45,6 +37,14 @@ pub mod attestation_data {
     pub use attestation::auth::Image;
     pub use attestation::auth::LocalizedStrings;
     pub use attestation::auth::Organization;
+}
+
+pub mod configuration {
+    pub use wallet_configuration::wallet_config::AccountServerConfiguration;
+    pub use wallet_configuration::wallet_config::DisclosureConfiguration;
+    pub use wallet_configuration::wallet_config::LockTimeoutConfiguration;
+    pub use wallet_configuration::wallet_config::PidIssuanceConfiguration;
+    pub use wallet_configuration::wallet_config::WalletConfiguration;
 }
 
 pub mod openid4vc {
