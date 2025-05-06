@@ -842,6 +842,7 @@
     "pinConfirmationErrorDialogFatalTitle": "This PIN is different",
     "pinConfirmationErrorDialogTitle": "This PIN is different",
     "pinEnteredDigitsAnnouncement": "{count, plural, one {{count} digit left} other {{count} digits left}}",
+    "pinEnteredWCAGAnnouncement": "PIN entered",
     "pinErrorDialogCloseCta": "CLOSE",
     "pinErrorDialogFinalRoundFinalAttempt": "You have one more try. If the next PIN is wrong, the app will be permanently blocked.",
     "pinErrorDialogFinalRoundNonFinalAttempt": "You can try {count} more times. After {count} wrong attempts, the app will be permanently blocked.",

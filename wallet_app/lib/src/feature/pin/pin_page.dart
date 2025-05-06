@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../environment.dart';
@@ -130,18 +131,28 @@ class PinPage extends StatelessWidget {
   }
 
   void _runEnteredDigitsAnnouncement(PinState state, AppLocalizations l10n) {
-    if (state is! PinEntryInProgress) return;
-    unawaited(
-      Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then(
-        (value) {
-          if (state.afterBackspacePressed) {
-            AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
-          } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
-            AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
-          }
-        },
-      ),
-    );
+    switch (state) {
+      case PinEntryInProgress():
+        unawaited(
+          Future.delayed(Environment.isTest ? Duration.zero : kDefaultAnnouncementDelay).then(
+            (value) {
+              if (state.afterBackspacePressed) {
+                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+              } else if (state.enteredDigits > 0 && state.enteredDigits < kPinDigits) {
+                AnnouncementsHelper.announceEnteredDigits(l10n, state.enteredDigits);
+              }
+            },
+          ),
+        );
+      case PinValidateInProgress():
+        SemanticsService.announce(
+          l10n.pinEnteredWCAGAnnouncement,
+          TextDirection.ltr,
+          assertiveness: Assertiveness.assertive,
+        );
+      default:
+        return;
+    }
   }
 
   Widget _buildPortrait(BuildContext context) {
