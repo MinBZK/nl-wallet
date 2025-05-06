@@ -55,19 +55,17 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                MergeSemantics(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TitleText(
-                        context.l10n.historyDetailScreenPurposeTitle,
-                        style: BaseWalletTheme.headlineExtraSmallTextStyle,
-                      ),
-                      const SizedBox(height: 8),
-                      BodyText(event.purpose.l10nValue(context)),
-                    ],
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TitleText(
+                      context.l10n.historyDetailScreenPurposeTitle,
+                      style: BaseWalletTheme.headlineExtraSmallTextStyle,
+                    ),
+                    const SizedBox(height: 8),
+                    BodyText(event.purpose.l10nValue(context)),
+                  ],
                 ),
               ],
             ),
@@ -131,21 +129,19 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                MergeSemantics(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TitleText(
-                        title,
-                        style: BaseWalletTheme.headlineExtraSmallTextStyle,
-                      ),
-                      const SizedBox(height: 8),
-                      BodyText(
-                        subtitle,
-                      ),
-                    ],
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TitleText(
+                      title,
+                      style: BaseWalletTheme.headlineExtraSmallTextStyle,
+                    ),
+                    const SizedBox(height: 8),
+                    BodyText(
+                      subtitle,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -179,21 +175,19 @@ class HistoryDetailCommonBuilders {
                   color: context.colorScheme.onSurfaceVariant,
                 ),
                 const SizedBox(height: 16),
-                MergeSemantics(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TitleText(
-                        context.l10n.historyDetailScreenTermsTitle,
-                        style: BaseWalletTheme.headlineExtraSmallTextStyle,
-                      ),
-                      const SizedBox(height: 8),
-                      BodyText(
-                        policyTextMapper.map(context, orgPolicy),
-                      ),
-                    ],
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TitleText(
+                      context.l10n.historyDetailScreenTermsTitle,
+                      style: BaseWalletTheme.headlineExtraSmallTextStyle,
+                    ),
+                    const SizedBox(height: 8),
+                    BodyText(
+                      policyTextMapper.map(context, orgPolicy),
+                    ),
+                  ],
                 ),
               ],
             ),
