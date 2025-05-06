@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 
-use attestation::auth::Organization;
+use attestation_data::auth::Organization;
 use mdoc::unsigned::Entry;
 use mdoc::NameSpace;
 use openid4vc::attributes::Attribute;
@@ -32,7 +32,7 @@ mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
 
-    use attestation::auth::Organization;
+    use attestation_data::auth::Organization;
     use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
     use openid4vc::attributes::AttributeError;

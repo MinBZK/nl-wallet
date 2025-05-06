@@ -12,7 +12,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
-use attestation::x509::CertificateType;
+use attestation_data::x509::CertificateType;
 use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;

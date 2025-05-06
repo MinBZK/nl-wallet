@@ -10,7 +10,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use ssri::Integrity;
 
-use attestation::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifier;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;

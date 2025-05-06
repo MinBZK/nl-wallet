@@ -9,8 +9,8 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
-use attestation::auth::issuer_auth::IssuerRegistration;
-use attestation::x509::generate::mock::generate_issuer_mock;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;

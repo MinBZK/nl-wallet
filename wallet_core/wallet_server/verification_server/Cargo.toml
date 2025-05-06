@@ -60,7 +60,7 @@ url = { workspace = true, features = ["serde"] }
 
 serial_test = { workspace = true, optional = true }
 
-attestation.path = "../../lib/attestation"
+attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
@@ -80,7 +80,7 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-attestation = { path = "../../lib/attestation", features = ["mock"] }
+attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
 mdoc = { path = "../../lib/mdoc", features = ["mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }

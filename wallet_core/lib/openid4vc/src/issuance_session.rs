@@ -19,7 +19,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
 
-use attestation::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use error_category::ErrorCategory;
@@ -952,8 +952,8 @@ mod tests {
     use rstest::rstest;
     use serde_bytes::ByteBuf;
 
-    use attestation::auth::issuer_auth::IssuerRegistration;
-    use attestation::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::factory::KeyFactory;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;

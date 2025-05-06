@@ -1260,8 +1260,8 @@ mod tests {
     use ring::rand;
     use rstest::rstest;
 
-    use attestation::auth::reader_auth::ReaderRegistration;
-    use attestation::x509::generate::mock::generate_reader_mock;
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use mdoc::ItemsRequest;
     use utils::generator::Generator;

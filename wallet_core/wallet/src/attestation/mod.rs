@@ -8,7 +8,7 @@ use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;
 
-use attestation::auth::Organization;
+use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use openid4vc::attributes::AttributeError;
 use openid4vc::attributes::AttributeValue;

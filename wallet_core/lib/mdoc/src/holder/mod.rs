@@ -1,6 +1,6 @@
 //! Holder software to store and disclose mdocs.
 
-use attestation::auth::reader_auth;
+use attestation_data::auth::reader_auth;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;

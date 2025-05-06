@@ -81,7 +81,7 @@ axum = { workspace = true, optional = true, features = ["json"] }
 mockall = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 
-attestation.path = "../attestation"
+attestation_data.path = "../attestation_data"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils = { path = "../http_utils", features = ["client"] }
@@ -102,7 +102,7 @@ serde_json = { workspace = true, features = ["preserve_order"] }
 tracing-test.workspace = true
 wiremock.workspace = true
 
-attestation = { path = "../attestation", features = ["mock"] }
+attestation_data = { path = "../attestation_data", features = ["mock"] }
 crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }

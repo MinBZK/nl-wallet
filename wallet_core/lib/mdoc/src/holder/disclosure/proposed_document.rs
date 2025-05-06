@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
-use attestation::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;

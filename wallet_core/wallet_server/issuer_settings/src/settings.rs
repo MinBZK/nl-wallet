@@ -11,7 +11,7 @@ use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
 
-use attestation::x509::CertificateType;
+use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
@@ -222,8 +222,8 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    use attestation::auth::issuer_auth::IssuerRegistration;
-    use attestation::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;

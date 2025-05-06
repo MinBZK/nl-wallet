@@ -4,8 +4,8 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 
-use attestation::identifiers::AttributeIdentifier;
-use attestation::identifiers::AttributeIdentifierHolder;
+use attestation_data::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifierHolder;
 
 use crate::engagement::DeviceAuthenticationKeyed;
 use crate::engagement::SessionTranscript;

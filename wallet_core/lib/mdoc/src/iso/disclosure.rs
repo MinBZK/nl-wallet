@@ -15,7 +15,7 @@ use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
-use attestation::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifier;
 
 use crate::iso::mdocs::*;
 use crate::unsigned::Entry;

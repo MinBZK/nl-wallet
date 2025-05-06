@@ -10,8 +10,8 @@ use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use attestation::auth::issuer_auth::IssuerRegistration;
-use attestation::x509::generate::mock::generate_issuer_mock;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::server_keys::generate::Ca;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -248,8 +248,8 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use attestation::auth::issuer_auth::IssuerRegistration;
-    use attestation::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::keys::WithIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;

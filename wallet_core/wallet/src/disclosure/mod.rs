@@ -6,8 +6,8 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 use uuid::Uuid;
 
-use attestation::auth::reader_auth::ReaderRegistration;
-use attestation::identifiers::AttributeIdentifier;
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
@@ -190,7 +190,7 @@ mod mock {
     use std::sync::Arc;
     use std::sync::LazyLock;
 
-    use attestation::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use parking_lot::Mutex;
 
     use crypto::server_keys::generate::Ca;

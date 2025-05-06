@@ -10,8 +10,8 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
-use attestation::auth::issuer_auth::IssuerRegistration;
-use attestation::auth::reader_auth::ReaderRegistration;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;

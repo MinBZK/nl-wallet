@@ -490,7 +490,7 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
-    use attestation::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateUsage;
     use utils::generator::TimeGenerator;

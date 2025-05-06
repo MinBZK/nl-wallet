@@ -12,7 +12,7 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-use attestation::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;

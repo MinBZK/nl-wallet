@@ -7,9 +7,9 @@ use crypto::server_keys::generate::Ca;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
-use attestation::identifiers::AttributeIdentifier;
-use attestation::identifiers::AttributeIdentifierHolder;
-use attestation::x509::generate::mock::generate_issuer_mock;
+use attestation_data::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifierHolder;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -198,7 +198,7 @@ impl TestDocument {
     where
         KF: crypto::factory::KeyFactory,
     {
-        use attestation::auth::issuer_auth::IssuerRegistration;
+        use attestation_data::auth::issuer_auth::IssuerRegistration;
         use crypto::keys::EcdsaKey;
 
         use crate::iso::disclosure::IssuerSigned;

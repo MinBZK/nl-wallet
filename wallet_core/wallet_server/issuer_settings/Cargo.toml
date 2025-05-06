@@ -21,7 +21,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
-attestation.path = "../../lib/attestation"
+attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils.path = "../../lib/http_utils"

@@ -13,8 +13,8 @@ use serde_with::DurationSeconds;
 use serde_with::StringWithSeparator;
 use url::Url;
 
-use attestation::auth::issuer_auth::IssuerRegistration;
-use attestation::x509::CertificateType;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::x509::CertificateType;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
 use crypto::x509::BorrowingCertificate;

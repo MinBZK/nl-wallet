@@ -30,13 +30,13 @@ pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 
 pub mod attestation_data {
-    pub use attestation::auth::reader_auth::DeletionPolicy;
-    pub use attestation::auth::reader_auth::ReaderRegistration;
-    pub use attestation::auth::reader_auth::RetentionPolicy;
-    pub use attestation::auth::reader_auth::SharingPolicy;
-    pub use attestation::auth::Image;
-    pub use attestation::auth::LocalizedStrings;
-    pub use attestation::auth::Organization;
+    pub use attestation_data::auth::reader_auth::DeletionPolicy;
+    pub use attestation_data::auth::reader_auth::ReaderRegistration;
+    pub use attestation_data::auth::reader_auth::RetentionPolicy;
+    pub use attestation_data::auth::reader_auth::SharingPolicy;
+    pub use attestation_data::auth::Image;
+    pub use attestation_data::auth::LocalizedStrings;
+    pub use attestation_data::auth::Organization;
 }
 
 pub mod configuration {

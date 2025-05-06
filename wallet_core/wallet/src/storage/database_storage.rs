@@ -33,7 +33,7 @@ use tokio::fs;
 use tracing::warn;
 use uuid::Uuid;
 
-use attestation::auth::reader_auth::ReaderRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::disclosure_history_event;
@@ -727,10 +727,10 @@ pub(crate) mod tests {
     use chrono::Utc;
     use tokio::fs;
 
-    use attestation::auth::issuer_auth::IssuerRegistration;
-    use attestation::auth::reader_auth::ReaderRegistration;
-    use attestation::x509::generate::mock::generate_issuer_mock;
-    use attestation::x509::generate::mock::generate_reader_mock;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
     use crypto::utils::random_bytes;

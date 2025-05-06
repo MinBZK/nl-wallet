@@ -10,8 +10,8 @@ use parking_lot::Mutex;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
-use attestation::auth::reader_auth::ReaderRegistration;
-use attestation::x509::generate::mock::generate_reader_mock;
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;

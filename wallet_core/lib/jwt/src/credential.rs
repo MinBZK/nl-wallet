@@ -134,7 +134,7 @@ pub struct JwtCredentialConfirmation {
 mod tests {
     use indexmap::IndexMap;
 
-    use attestation::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
 

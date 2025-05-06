@@ -5,8 +5,8 @@ use chrono::Utc;
 use itertools::Itertools;
 use uuid::Uuid;
 
-use attestation::auth::issuer_auth::IssuerRegistration;
-use attestation::auth::reader_auth::ReaderRegistration;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::disclosure_history_event::EventStatus;
@@ -214,8 +214,8 @@ mod test {
     use indexmap::IndexMap;
     use rstest::rstest;
 
-    use attestation::auth::issuer_auth::IssuerRegistration;
-    use attestation::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
     use mdoc::holder::ProposedDocumentAttributes;

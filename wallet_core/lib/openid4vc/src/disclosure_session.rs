@@ -14,10 +14,10 @@ use serde::de::DeserializeOwned;
 use tracing::info;
 use tracing::warn;
 
-use attestation::auth::reader_auth::ReaderRegistration;
-use attestation::auth::reader_auth::ValidationError;
-use attestation::identifiers::AttributeIdentifier;
-use attestation::x509::CertificateType;
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::auth::reader_auth::ValidationError;
+use attestation_data::identifiers::AttributeIdentifier;
+use attestation_data::x509::CertificateType;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::utils::random_string;
@@ -755,12 +755,12 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
-    use attestation::auth::reader_auth::ReaderRegistration;
-    use attestation::auth::reader_auth::ValidationError;
-    use attestation::identifiers::AttributeIdentifier;
-    use attestation::identifiers::AttributeIdentifierHolder;
-    use attestation::x509::generate::mock::generate_reader_mock;
-    use attestation::x509::CertificateType;
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::auth::reader_auth::ValidationError;
+    use attestation_data::identifiers::AttributeIdentifier;
+    use attestation_data::identifiers::AttributeIdentifierHolder;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::CertificateType;
     use crypto::factory::KeyFactory;
     use crypto::keys::CredentialEcdsaKey;
     use crypto::mock_remote::MockRemoteEcdsaKey;

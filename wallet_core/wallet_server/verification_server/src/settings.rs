@@ -16,7 +16,7 @@ use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
-use attestation::x509::CertificateType;
+use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;

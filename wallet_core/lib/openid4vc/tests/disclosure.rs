@@ -21,7 +21,7 @@ use ring::rand;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 
-use attestation::x509::generate::mock::generate_reader_mock;
+use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;

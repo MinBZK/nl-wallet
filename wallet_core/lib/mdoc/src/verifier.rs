@@ -14,8 +14,8 @@ use serde_with::IfIsHumanReadable;
 use tracing::debug;
 use tracing::warn;
 
-use attestation::identifiers::AttributeIdentifier;
-use attestation::identifiers::AttributeIdentifierHolder;
+use attestation_data::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifierHolder;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
@@ -353,7 +353,7 @@ mod tests {
     use chrono::Utc;
     use rstest::rstest;
 
-    use attestation::identifiers::AttributeIdentifierHolder;
+    use attestation_data::identifiers::AttributeIdentifierHolder;
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
 

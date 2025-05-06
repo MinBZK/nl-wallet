@@ -831,7 +831,7 @@ mod tests {
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
-    use attestation::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::examples::Examples;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;

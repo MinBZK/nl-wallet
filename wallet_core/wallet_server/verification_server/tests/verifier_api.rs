@@ -25,9 +25,9 @@ use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
-use attestation::auth::issuer_auth::IssuerRegistration;
-use attestation::x509::generate::mock::generate_issuer_mock;
-use attestation::x509::generate::mock::generate_reader_mock;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
+use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;

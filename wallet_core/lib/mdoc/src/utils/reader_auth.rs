@@ -2,10 +2,10 @@
 pub mod mock {
     use indexmap::IndexMap;
 
-    use attestation::auth::reader_auth::AuthorizedAttribute;
-    use attestation::auth::reader_auth::AuthorizedMdoc;
-    use attestation::auth::reader_auth::AuthorizedNamespace;
-    use attestation::auth::reader_auth::ReaderRegistration;
+    use attestation_data::auth::reader_auth::AuthorizedAttribute;
+    use attestation_data::auth::reader_auth::AuthorizedMdoc;
+    use attestation_data::auth::reader_auth::AuthorizedNamespace;
+    use attestation_data::auth::reader_auth::ReaderRegistration;
 
     use crate::verifier::ItemsRequests;
 

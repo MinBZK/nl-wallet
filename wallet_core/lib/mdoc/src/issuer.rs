@@ -118,8 +118,8 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use attestation::auth::issuer_auth::IssuerRegistration;
-    use attestation::x509::generate::mock::generate_issuer_mock;
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use sd_jwt_vc_metadata::TypeMetadata;

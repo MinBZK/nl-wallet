@@ -2,8 +2,8 @@ use chrono::DateTime;
 use chrono::Utc;
 use rustls_pki_types::TrustAnchor;
 
-use attestation::auth::reader_auth::ReaderRegistration;
-use attestation::x509::CertificateType;
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::x509::CertificateType;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use utils::generator::Generator;
@@ -114,7 +114,7 @@ impl DocRequest {
 mod tests {
     use assert_matches::assert_matches;
 
-    use attestation::x509::generate::mock::generate_reader_mock;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
     use utils::generator::TimeGenerator;

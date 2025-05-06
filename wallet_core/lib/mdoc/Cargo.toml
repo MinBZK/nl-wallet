@@ -9,11 +9,11 @@ workspace = true
 
 [features]
 # Include examples from the ISO specification
-examples = ["test", "attestation/examples"] # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
+examples = ["test", "attestation_data/examples"] # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
 # Include miscellaneous test utilities
-test = ["dep:assert_matches", "attestation/generate", "dep:rstest", "dep:regex", "mock", "sd_jwt_vc_metadata/example_constructors"]
+test = ["dep:assert_matches", "attestation_data/generate", "dep:rstest", "dep:regex", "mock", "sd_jwt_vc_metadata/example_constructors"]
 # Include mock implementations and constructors for testing
-mock = ["attestation/mock", "crypto/mock"]
+mock = ["attestation_data/mock", "crypto/mock"]
 # Include example based constructors to several types for testing
 mock_example_constructors = [
     "test",                   # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
@@ -57,7 +57,7 @@ hex-literal = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
-attestation.path = "../attestation"
+attestation_data.path = "../attestation_data"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
@@ -73,7 +73,7 @@ serde_json.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
-attestation = { path = "../attestation", features = ["mock"] }
+attestation_data = { path = "../attestation_data", features = ["mock"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../utils", features = ["mock_time"] }

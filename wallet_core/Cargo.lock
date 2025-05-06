@@ -565,7 +565,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
-name = "attestation"
+name = "attestation_data"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
@@ -3184,7 +3184,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
- "attestation",
+ "attestation_data",
  "axum",
  "config",
  "crypto",
@@ -3217,7 +3217,7 @@ name = "issuer_settings"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
- "attestation",
+ "attestation_data",
  "chrono",
  "crypto",
  "derive_more",
@@ -3381,7 +3381,7 @@ name = "jwt"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
- "attestation",
+ "attestation_data",
  "base64 0.22.1",
  "chrono",
  "crypto",
@@ -3584,7 +3584,7 @@ version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
- "attestation",
+ "attestation_data",
  "base64 0.22.1",
  "chrono",
  "ciborium",
@@ -3980,7 +3980,7 @@ version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "async-trait",
- "attestation",
+ "attestation_data",
  "axum",
  "base64 0.22.1",
  "biscuit",
@@ -4294,7 +4294,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
- "attestation",
+ "attestation_data",
  "axum",
  "chrono",
  "config",
@@ -5831,7 +5831,7 @@ name = "server_utils"
 version = "0.3.0-dev"
 dependencies = [
  "anyhow",
- "attestation",
+ "attestation_data",
  "axum",
  "base64 0.22.1",
  "chrono",
@@ -7264,7 +7264,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
- "attestation",
+ "attestation_data",
  "axum",
  "chrono",
  "config",
@@ -7337,7 +7337,7 @@ dependencies = [
  "aes-gcm",
  "apple_app_attest",
  "assert_matches",
- "attestation",
+ "attestation_data",
  "base64 0.22.1",
  "cfg-if",
  "chrono",
@@ -7428,7 +7428,7 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "assert_fs",
- "attestation",
+ "attestation_data",
  "chrono",
  "clap",
  "clio",
