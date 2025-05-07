@@ -21,8 +21,8 @@ const isMobile = inject(isMobileKey)
 
 const modalState = ref<ModalState>({
   kind: "created",
-  crossDeviceUl: props.crossDeviceUl,
   sameDeviceUl: props.sameDeviceUl,
+  crossDeviceUl: props.crossDeviceUl,
   session: {
     statusUrl: new URL("http://status.example.com/status"),
     sessionType: isMobile ? "same_device" : "cross_device",
