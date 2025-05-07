@@ -53,12 +53,12 @@
 | `resources.requests.memory` | Memory request | `512Mi` |
 | `resources.requests.cpu`    | CPU request    | `300m`  |
 
-### Wallet Server parameters
+### Issuance Server parameters
 
-| Name                       | Description                        | Value |
-| -------------------------- | ---------------------------------- | ----- |
-| `walletServer.hostname`    | Hostname for the wallet server     | `nil` |
-| `walletServer.contextPath` | Context path for the wallet server | `nil` |
+| Name                         | Description                          | Value |
+| ---------------------------- | ------------------------------------ | ----- |
+| `issuanceServer.hostname`    | Hostname for the issuance server     | `nil` |
+| `issuanceServer.contextPath` | Context path for the issuance server | `nil` |
 
 ### Demo Issuer parameters
 
@@ -68,3 +68,4 @@
 | `demoIssuer.contextPath`       | Context path for the demo issuer         | `nil` |
 | `demoIssuer.walletWebFilename` | Filename for the wallet web              | `nil` |
 | `demoIssuer.walletWebSha256`   | SHA-256 checksum for the wallet web file | `nil` |
+| `universalLinkBaseUrl`         | Base URL for universal links             | `nil` |

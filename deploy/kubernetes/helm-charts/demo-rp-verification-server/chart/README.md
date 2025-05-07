@@ -77,14 +77,6 @@
 | `verificationServer.contextPath` | Context path for the verification server | `nil` |
 | `universalLinkBaseUrl`           | Base URL for universal links             | `nil` |
 
-### DigiD parameters
-
-| Name                | Description                        | Value |
-| ------------------- | ---------------------------------- | ----- |
-| `digid.hostname`    | Hostname for the DigiD service     | `nil` |
-| `digid.clientId`    | Client ID for the DigiD service    | `nil` |
-| `digid.contextPath` | Context path for the DigiD service | `nil` |
-
 ### Migration parameters
 
 | Name               | Description                             | Value  |

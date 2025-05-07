@@ -45,12 +45,6 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
-### Ingress VPN parameters
-
-| Name                  | Description                  | Value |
-| --------------------- | ---------------------------- | ----- |
-| `ingressVpn.hostname` | Hostname for the VPN ingress | `nil` |
-
 ### Ingress parameters
 
 | Name                    | Description                            | Value   |
@@ -76,14 +70,6 @@
 | `issuanceServer.hostname`    | Hostname for the issuance server     | `nil` |
 | `issuanceServer.contextPath` | Context path for the issuance server | `nil` |
 | `universalLinkBaseUrl`       | Base URL for universal links         | `nil` |
-
-### DigiD parameters
-
-| Name                | Description                        | Value |
-| ------------------- | ---------------------------------- | ----- |
-| `digid.hostname`    | Hostname for the DigiD service     | `nil` |
-| `digid.clientId`    | Client ID for the DigiD service    | `nil` |
-| `digid.contextPath` | Context path for the DigiD service | `nil` |
 
 ### Migration parameters
 
