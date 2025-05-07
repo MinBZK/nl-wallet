@@ -39,7 +39,7 @@ spec:
             - name: wallet-port
               containerPort: 3007
           volumeMounts:
-            - name: demo-issuer-private-keys
+            - name: issuance-server-settings
               mountPath: /issuance_server.toml
               subPath: issuance_server.toml
             - name: demo-issuer-metadata
@@ -86,9 +86,9 @@ spec:
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
-        - name: demo-issuer-private-keys
+        - name: issuance-server-settings
           secret:
-            secretName: nl-wallet-demo-issuer-private-keys
+            secretName: nl-wallet-demo-issuer-issuance-server-settings
         - name: demo-issuer-metadata
           configMap:
             name: nl-wallet-demo-issuer-metadata
