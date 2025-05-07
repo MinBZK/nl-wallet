@@ -85,6 +85,9 @@ issuanceServer:
   hostname: null
   contextPath: null
 
+## @param universalLinkBaseUrl Base URL for universal links
+universalLinkBaseUrl: null
+
 ## @section Migration parameters
 ## Parameters for the migration configuration
 ## @param migration.labels Additional labels for the migration job
