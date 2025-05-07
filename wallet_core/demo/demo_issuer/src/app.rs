@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use askama::Template;
@@ -96,7 +97,8 @@ struct BaseTemplate<'a> {
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
-    universal_links: (Url, Url),
+    same_device_ul: Url,
+    cross_device_ul: Url,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
     base: BaseTemplate<'a>,
@@ -106,7 +108,7 @@ fn disclosure_based_issuance_universal_links(
     issuance_server_url: &BaseUrl,
     universal_link_base: &BaseUrl,
     client_id: &str,
-) -> (Url, Url) {
+) -> HashMap<SessionType, Url> {
     SessionType::iter()
         .map(|session_type| {
             let params = serde_urlencoded::to_string(VerifierUrlParameters {
@@ -127,10 +129,9 @@ fn disclosure_based_issuance_universal_links(
 
             let mut uri = disclosure_based_issuance_base_uri(universal_link_base).into_inner();
             uri.set_query(Some(&query));
-            uri
+            (session_type, uri)
         })
-        .collect_tuple()
-        .unwrap()
+        .collect::<HashMap<_, _>>()
 }
 
 async fn usecase(
@@ -149,7 +150,8 @@ async fn usecase(
     );
     UsecaseTemplate {
         usecase: &usecase_id,
-        universal_links,
+        same_device_ul: universal_links.get(&SessionType::SameDevice).unwrap().to_owned(),
+        cross_device_ul: universal_links.get(&SessionType::CrossDevice).unwrap().to_owned(),
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
         base: BaseTemplate {

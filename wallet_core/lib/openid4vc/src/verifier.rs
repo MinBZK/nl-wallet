@@ -452,6 +452,7 @@ impl From<DisclosureData> for SessionStatus {
     Copy,
     PartialEq,
     Eq,
+    Hash,
     SerializeDisplay,
     DeserializeFromStr,
     strum::EnumString,

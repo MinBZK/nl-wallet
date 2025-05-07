@@ -22,8 +22,8 @@
     {% else %}
         <nl-wallet-button
             text={{ base.trans.add_to_nl_wallet }}
-            same-device-ul="{{ universal_links.0 }}"
-            cross-device-ul="{{ universal_links.1 }}"
+            same-device-ul="{{ same_device_ul }}"
+            cross-device-ul="{{ cross_device_ul }}"
             lang="{{ base.selected_lang }}">
         </nl-wallet-button>
 {% endmatch %}
