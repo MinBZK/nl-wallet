@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use std::sync::LazyLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
@@ -14,24 +13,21 @@ use axum::routing::get;
 use axum::routing::post;
 use axum::Json;
 use axum::Router;
-use base64::prelude::*;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
-use tracing::warn;
 use url::Url;
 
+use demo_utils::error::Result;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::BaseUrl;
-use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -46,27 +42,19 @@ use crate::settings::WalletWeb;
 use crate::translations::Words;
 use crate::translations::TRANSLATIONS;
 
-#[nutype(derive(Debug, From, AsRef))]
-pub struct Error(anyhow::Error);
-
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        warn!("error result: {:?}", self);
-        (StatusCode::INTERNAL_SERVER_ERROR, self.as_ref().to_string()).into_response()
-    }
-}
-
 struct ApplicationState {
     usecases: IndexMap<String, Usecase>,
-    wallet_web: WalletWeb,
     issuance_server_url: BaseUrl,
+    universal_link_base_url: BaseUrl,
+    wallet_web: WalletWeb,
 }
 
 pub fn create_routers(settings: Settings) -> (Router, Router) {
     let application_state = Arc::new(ApplicationState {
         usecases: settings.usecases,
-        wallet_web: settings.wallet_web,
         issuance_server_url: settings.issuance_server_url,
+        universal_link_base_url: settings.universal_link_base_url,
+        wallet_web: settings.wallet_web,
     });
 
     let app = Router::new()
@@ -109,19 +97,16 @@ struct BaseTemplate<'a> {
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
     universal_links: (Url, Url),
-    usecase_js_sha256: &'a str,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
     base: BaseTemplate<'a>,
 }
 
-static USECASE_JS_SHA256: LazyLock<String> = LazyLock::new(|| {
-    BASE64_STANDARD.encode(crypto::utils::sha256(include_bytes!(
-        "../../demo_utils/assets/usecase.js"
-    )))
-});
-
-fn disclosure_based_issuance_universal_links(issuance_server_url: &BaseUrl) -> (Url, Url) {
+fn disclosure_based_issuance_universal_links(
+    issuance_server_url: &BaseUrl,
+    universal_link_base: &BaseUrl,
+    client_id: &str,
+) -> (Url, Url) {
     SessionType::iter()
         .map(|session_type| {
             let params = serde_urlencoded::to_string(VerifierUrlParameters {
@@ -136,12 +121,11 @@ fn disclosure_based_issuance_universal_links(issuance_server_url: &BaseUrl) -> (
             let query = serde_urlencoded::to_string(VpRequestUriObject {
                 request_uri: issuance_server_url.try_into().unwrap(),
                 request_uri_method: Some(RequestUriMethod::POST),
-                client_id: "disclosure_based_issuance.example.com".to_string(), // TODO
+                client_id: client_id.to_owned(),
             })
             .unwrap();
 
-            let mut uri =
-                disclosure_based_issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner();
+            let mut uri = disclosure_based_issuance_base_uri(universal_link_base).into_inner();
             uri.set_query(Some(&query));
             uri
         })
@@ -151,18 +135,21 @@ fn disclosure_based_issuance_universal_links(issuance_server_url: &BaseUrl) -> (
 
 async fn usecase(
     State(state): State<Arc<ApplicationState>>,
-    Path(usecase): Path<String>,
+    Path(usecase_id): Path<String>,
     language: Language,
 ) -> Response {
-    if !state.usecases.contains_key(&usecase) {
+    let Some(usecase) = state.usecases.get(&usecase_id) else {
         return StatusCode::NOT_FOUND.into_response();
-    }
+    };
 
-    let universal_links = disclosure_based_issuance_universal_links(&state.issuance_server_url);
+    let universal_links = disclosure_based_issuance_universal_links(
+        &state.issuance_server_url,
+        &state.universal_link_base_url,
+        &usecase.client_id,
+    );
     UsecaseTemplate {
-        usecase: &usecase,
+        usecase: &usecase_id,
         universal_links,
-        usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
         base: BaseTemplate {
@@ -177,18 +164,26 @@ async fn usecase(
 async fn attestation(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Json(_disclosed): Json<IndexMap<String, DocumentDisclosedAttributes>>,
-) -> Response {
+    Json(disclosed): Json<IndexMap<String, DocumentDisclosedAttributes>>,
+) -> Result<Response> {
     let Some(usecase) = state.usecases.get(&usecase) else {
-        return StatusCode::NOT_FOUND.into_response();
+        return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    // TODO add attributes for the lookup to be based upon
+    // get the bsn from the disclosed attributes, ignore everything else as we trust the issuance_server blindly
+    let bsn = disclosed
+        .get(&usecase.disclosed.0)
+        .and_then(|document| document.attributes.get(&usecase.disclosed.1))
+        .and_then(|attributes| attributes.get(&usecase.disclosed.2))
+        .ok_or(anyhow::Error::msg("invalid disclosure result"))?
+        .as_text()
+        .unwrap();
+
     let documents: Vec<IssuableDocument> = usecase
         .data
-        .get("999991772")
+        .get(bsn)
         .map(|docs| docs.clone().into_inner())
         .unwrap_or_default();
 
-    Json(documents).into_response()
+    Ok(Json(documents).into_response())
 }

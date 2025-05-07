@@ -11,7 +11,6 @@
 
 {% block scripts %}
 <script integrity="sha256-{{ wallet_web_sha256 }}" type="module" src="../{{ wallet_web_filename }}"></script>
-<script integrity="sha256-{{ usecase_js_sha256 }}" src="../usecase.js" defer></script>
 {% endblock %}
 
 {% block content %}
