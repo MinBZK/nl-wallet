@@ -47,9 +47,13 @@ spec:
           env:
             - name: DEMO_ISSUER__WEBSERVER__PORT
               value: "3005"
+            - name: DEMO_ISSUER__ISSUANCE_SERVER__IP
+              value: "0.0.0.0"
             - name: DEMO_ISSUER__ISSUANCE_SERVER__PORT
               value: "3006"
-            - name: VERIFICATION_SERVER__UNIVERSAL_LINK_BASE_URL
+            - name: DEMO_ISSUER__ISSUANCE_SERVER_URL
+              value: {{ include "common.urls.combineDomainAndContext" (list .Values.issuanceServer.hostname .Values.issuanceServer.contextPath) }}
+            - name: DEMO_ISSUER__UNIVERSAL_LINK_BASE_URL
               value: {{ .Values.universalLinkBaseUrl }}
             - name: DEMO_ISSUER__STRUCTURED_LOGGING
               value: "true"
