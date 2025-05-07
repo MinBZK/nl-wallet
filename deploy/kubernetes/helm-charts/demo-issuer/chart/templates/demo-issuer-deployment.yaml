@@ -39,7 +39,7 @@ spec:
             - name: demo-iw-port
               containerPort: 3005
             - name: demo-ii-port
-              containerPort: 3005
+              containerPort: 3006
           volumeMounts:
             - name: config-volume
               mountPath: /demo_issuer.toml

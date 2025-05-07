@@ -14,6 +14,10 @@ pub async fn serve(settings: Settings) -> Result<()> {
     info!("{}", version_string());
 
     info!("listening on {}:{}", settings.webserver.ip, settings.webserver.port);
+    info!(
+        "listening on {}:{}",
+        settings.issuance_server.ip, settings.issuance_server.port
+    );
 
     let (web_router, issuance_router) = create_routers(settings);
 
