@@ -59,8 +59,6 @@ spec:
               value: "true"
             - name: ISSUANCE_SERVER__METADATA
               value: "com.example.degree.json,com.example.insurance.json"
-            - name: ISSUANCE_SERVER__DISCLOSURE_SETTINGS__DISCLOSURE_BASED_ISSUANCE__ATTESTATION_URL
-              value: "http://demo-issuer:3006/"
             - name: DB_USERNAME
               valueFrom:
                 secretKeyRef:
