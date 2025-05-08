@@ -73,6 +73,7 @@ aside .text {
 
 .lang-selector {
   position: relative;
+  margin: 8px 0;
 }
 
 .lang-selector label[for="lang_toggle"] {

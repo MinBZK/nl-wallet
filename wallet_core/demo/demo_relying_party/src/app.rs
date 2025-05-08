@@ -67,7 +67,6 @@ pub fn create_router(settings: Settings) -> Router {
     });
 
     let mut app = Router::new()
-        .route("/", get(index))
         .route("/sessions", post(create_session))
         .route("/{usecase}/", get(usecase))
         .route(
@@ -154,27 +153,6 @@ struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
-}
-
-#[derive(Template, WebTemplate)]
-#[template(path = "index.askama", escape = "html", ext = "html")]
-struct IndexTemplate<'a> {
-    usecases: &'a [&'a str],
-    base: BaseTemplate<'a>,
-}
-
-async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Response {
-    IndexTemplate {
-        usecases: &state.usecases.keys().map(AsRef::as_ref).collect_vec(),
-        base: BaseTemplate {
-            session_token: None,
-            nonce: None,
-            selected_lang: language,
-            trans: &TRANSLATIONS[language],
-            available_languages: &Language::iter().collect_vec(),
-        },
-    }
-    .into_response()
 }
 
 #[derive(Template, WebTemplate)]
