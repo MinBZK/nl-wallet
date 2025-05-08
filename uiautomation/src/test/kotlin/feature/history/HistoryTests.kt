@@ -1,10 +1,10 @@
 package feature.history
 
-import helper.CardMetadataHelper
 import helper.LocalizationHelper
 import helper.OrganizationAuthMetadataHelper
 import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
 import helper.OrganizationAuthMetadataHelper.Organization.RVIG
+import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
@@ -64,7 +64,7 @@ class HistoryTests : TestBase() {
     fun verifyHistoryEntries(testInfo: TestInfo) {
         setUp(testInfo)
         val l10n = LocalizationHelper()
-        val pidData = CardMetadataHelper()
+        val tasData = TasDataHelper()
         val organizationAuthData = OrganizationAuthMetadataHelper()
 
         val historyOverviewScreen = HistoryOverviewScreen()
@@ -82,7 +82,7 @@ class HistoryTests : TestBase() {
         val historyDetailScreen = HistoryDetailScreen()
         assertAll(
             { assertTrue(historyDetailScreen.issuanceOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", RVIG)), "organization not visible") },
-            { assertTrue(historyDetailScreen.titleCorrectForIssuance(pidData.getPidDisplayName()), "title not visible") }
+            { assertTrue(historyDetailScreen.titleCorrectForIssuance(tasData.getPidDisplayName()), "title not visible") }
         )
 
         // 1. The identity of party the interaction was done with (e.g. issuer or verifier) with a link to its detailed information, moving to PVW-1997.
@@ -93,11 +93,11 @@ class HistoryTests : TestBase() {
         // 3. All the attributes that were issued or disclosed, grouped per card, including their values.
         // 1(3.)  The page offers an entrance to Report a Problem
         assertAll(
-            { assertTrue(historyDetailScreen.attributeLabelVisible(pidData.getPidClaimLabel("family_name")), "lastname label not visible") },
-            { assertTrue(historyDetailScreen.attributeLabelVisible(pidData.getPidClaimLabel("given_name")), "first name label not visible") },
-            { assertTrue(historyDetailScreen.attributeLabelVisible(pidData.getPidClaimLabel("birthdate")), "birthdate label not visible") },
-            { assertTrue(historyDetailScreen.attributeLabelVisible(pidData.getPidClaimLabel("age_over_18")), "18+ label not visible") },
-            { assertTrue(historyDetailScreen.attributeLabelVisible(pidData.getPidClaimLabel("bsn")), "BSN label not visible") },
+            { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("family_name")), "lastname label not visible") },
+            { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("given_name")), "first name label not visible") },
+            { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("birthdate")), "birthdate label not visible") },
+            { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("age_over_18")), "18+ label not visible") },
+            { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("bsn")), "BSN label not visible") },
             { assertTrue(historyDetailScreen.reportProblemButtonVisible(), "report problem button not visible") }
         )
 
@@ -110,7 +110,7 @@ class HistoryTests : TestBase() {
         assertAll(
             { assertTrue(historyDetailScreen.reasonForSharingHeaderVisible(), "reason for sharing header not visible") },
             { assertTrue(historyDetailScreen.reasonForSharingVisible(l10n.getString("organizationApprovePageLoginCta")), "reason for sharing not visible") },
-            { assertTrue(historyDetailScreen.attributeLabelVisible(pidData.getPidClaimLabel("bsn")), "BSN label not visible") },
+            { assertTrue(historyDetailScreen.attributeLabelVisible(tasData.getPidClaimLabel("bsn")), "BSN label not visible") },
             { assertTrue(historyDetailScreen.disclosureOrganizationVisible(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)), "organization not visible") },
             { assertTrue(historyDetailScreen.titleCorrectForLogin(organizationAuthData.getAttributeValueForOrganization("organization.displayName", AMSTERDAM)), "title not visible") },
             { assertTrue(historyDetailScreen.reportProblemButtonVisible(), "report problem button not visible") },

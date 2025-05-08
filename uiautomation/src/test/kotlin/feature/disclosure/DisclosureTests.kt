@@ -1,6 +1,5 @@
 package feature.disclosure
 
-import helper.CardMetadataHelper
 import helper.GbaDataHelper
 import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
@@ -10,6 +9,7 @@ import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
 import helper.OrganizationAuthMetadataHelper.Organization.MARKETPLACE
 import helper.OrganizationAuthMetadataHelper.Organization.MONKEYBIKE
 import helper.OrganizationAuthMetadataHelper.Organization.XYZ
+import helper.TasDataHelper
 import helper.TestBase
 import navigator.MenuNavigator
 import navigator.OnboardingNavigator
@@ -46,7 +46,7 @@ class DisclosureTests : TestBase() {
     private lateinit var monkeyBikeWebPage: RelyingPartyMonkeyBikeWebPage
     private lateinit var pinScreen: PinScreen
     private lateinit var l10n: LocalizationHelper
-    private lateinit var cardMetadata: CardMetadataHelper
+    private lateinit var tasData: TasDataHelper
     private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
     private lateinit var gbaData: GbaDataHelper
 
@@ -57,7 +57,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen = DisclosureApproveOrganizationScreen()
         pinScreen = PinScreen()
         l10n = LocalizationHelper()
-        cardMetadata = CardMetadataHelper()
+        tasData = TasDataHelper()
         organizationAuthMetadata = OrganizationAuthMetadataHelper()
         gbaData = GbaDataHelper()
     }
@@ -105,7 +105,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.viewOrganization(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", AMSTERDAM))
         val organizationDetailScreen = OrganizationDetailScreen()
         organizationDetailScreen.clickBackButton()
-        disclosureScreen.viewSharedData("1", cardMetadata.getPidDisplayName())
+        disclosureScreen.viewSharedData("1", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.bsnVisible("999991772"), "BSN not visible")
         disclosureScreen.goBack()
         disclosureScreen.goBack()
@@ -142,15 +142,15 @@ class DisclosureTests : TestBase() {
         disclosureScreen.proceed()
         assertAll(
             { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)), "Header is not visible") },
-            { assertTrue(disclosureScreen.labelVisible(cardMetadata.getPidClaimLabel("family_name")), "Label is not visible") },
-            { assertTrue(disclosureScreen.labelVisible(cardMetadata.getPidClaimLabel("given_name")), "Label is not visible") },
+            { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("family_name")), "Label is not visible") },
+            { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("given_name")), "Label is not visible") },
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, "999991772")), "data is visible") },
             { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, "999991772")), "data is visible") },
             { assertTrue(disclosureScreen.sharingReasonVisible(organizationAuthMetadata.getAttributeValueForOrganization("purposeStatement", MARKETPLACE)), "reason is not visible") },
             { assertTrue(disclosureScreen.conditionsHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.conditionsButtonVisible(), "Try again button is not visible") }
         )
-        disclosureScreen.viewSharedData("3", cardMetadata.getPidDisplayName())
+        disclosureScreen.viewSharedData("3", tasData.getPidDisplayName())
         assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, "999991772")), "Name not visible")
         disclosureScreen.goBack()
         disclosureScreen.readTerms()
