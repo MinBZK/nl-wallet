@@ -4,7 +4,6 @@ metadata:
   name: {{ include "common.names.fullname" . }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
-    service: demo-issuer-issuance-server
 spec:
   selector:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}

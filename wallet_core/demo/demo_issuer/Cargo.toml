@@ -12,11 +12,9 @@ anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
-base64.workspace = true
 config = { workspace = true, features = ["preserve_order", "toml"] }
 indexmap.workspace = true
 itertools.workspace = true
-nutype.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_urlencoded.workspace = true
 strum.workspace = true
@@ -36,7 +34,6 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url.workspace = true
 
-crypto.path = "../../lib/crypto"
 demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 mdoc.path = "../../lib/mdoc"

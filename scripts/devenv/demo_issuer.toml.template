@@ -16,10 +16,10 @@ sha256 = "${WALLET_WEB_SHA256}"
 client_id = "cert.issuer.example.com"
 disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]
 
-[[usecases.university.9999999999]]
+[[usecases.university.999991772]]
 attestation_type = "com.example.degree"
 
-[usecases.university.9999999999.attributes]
+[usecases.university.999991772.attributes]
 university = "University Holland"
 education = "MSc Economics"
 graduation_date = "1970-01-01"
@@ -30,10 +30,10 @@ cum_laude = false
 client_id = "cert.issuer.example.com"
 disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]
 
-[[usecases.insurance.9999999999]]
+[[usecases.insurance.999991772]]
 attestation_type = "com.example.insurance"
 
-[usecases.insurance.9999999999.attributes]
+[usecases.insurance.999991772.attributes]
 product = "Health Insurance"
 coverage = "Basic"
 start_date = "2025-01-01"

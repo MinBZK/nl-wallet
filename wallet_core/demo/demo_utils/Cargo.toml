@@ -10,7 +10,6 @@ workspace = true
 [dependencies]
 accept-language.workspace = true
 anyhow.workspace = true
-askama.workspace = true
 axum.workspace = true
 nutype.workspace = true
 serde = { workspace = true, features = ["derive"] }

@@ -25,12 +25,10 @@ futures = { workspace = true, features = ["std"] }
 http.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
-nutype = { workspace = true, features = ["serde"] }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower.workspace = true
@@ -57,4 +55,3 @@ openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosur
 utils = { path = "../../lib/utils" }
 
 [dev-dependencies]
-rstest.workspace = true
