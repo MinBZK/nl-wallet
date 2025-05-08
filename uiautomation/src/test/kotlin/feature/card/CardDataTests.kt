@@ -1,9 +1,9 @@
 package feature.card
 
-import helper.CardMetadataHelper
 import helper.GbaDataHelper
 import helper.GbaDataHelper.Field.FIRST_NAME
 import helper.GbaDataHelper.Field.NAME
+import helper.TasDataHelper
 import helper.TestBase
 import navigator.CardNavigator
 import navigator.screen.CardNavigatorScreen
@@ -30,13 +30,13 @@ class CardDataTests : TestBase() {
     }
 
     private lateinit var cardDataScreen: CardDataScreen
-    private lateinit var cardMetadata: CardMetadataHelper
+    private lateinit var cardMetadata: TasDataHelper
     private lateinit var gbaData: GbaDataHelper
 
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
-        cardMetadata = CardMetadataHelper()
+        cardMetadata = TasDataHelper()
         gbaData = GbaDataHelper()
         CardNavigator().toScreen(CardNavigatorScreen.CardData)
 
