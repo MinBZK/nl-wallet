@@ -3,6 +3,7 @@
 # to run a completely local NL Wallet development environment.
 #
 # - nl-rdo-max (digid-connector)
+# - demo_index
 # - demo_relying_party
 # - demo_issuer
 # - verification_server
@@ -52,6 +53,7 @@ Where:
     pi, pid_issuer:             Start the pid_issuer.
     drp, demo_relying_party:    Start the demo_relying_party.
     di, demo_issuer:            Start the demo_issuer.
+    dx, demo_index:             Start the demo_index.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
     ups, update_policy_server:  Start the update policy server
@@ -81,6 +83,7 @@ have cargo docker flutter
 
 DEMO_RELYING_PARTY=1
 DEMO_ISSUER=1
+DEMO_INDEX=1
 WALLET_PROVIDER=1
 VERIFICATION_SERVER=1
 ISSUANCE_SERVER=1
@@ -132,6 +135,10 @@ do
             ;;
         di|demo_issuer)
             DEMO_ISSUER=0
+            shift # past argument
+            ;;
+        dx|demo_index)
+            DEMO_INDEX=0
             shift # past argument
             ;;
         digid|digid_connector)
@@ -257,6 +264,31 @@ then
     then
         echo -e "${INFO}Starting postgres services${NC}"
         docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach postgres
+    fi
+fi
+
+########################################################################
+# Manage demo_index
+########################################################################
+
+if [ "${DEMO_INDEX}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage demo_index${NC}"
+
+    cd "${DEMO_INDEX_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}demo_index${NC}"
+        killall demo_index || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "${INFO}Start ${ORANGE}demo_index${NC}"
+        RUST_LOG=debug cargo run --bin demo_index > "${TARGET_DIR}/demo_index.log" 2>&1 &
+
+        echo -e "demo_index logs can be found at ${CYAN}${TARGET_DIR}/demo_index.log${NC}"
     fi
 fi
 
