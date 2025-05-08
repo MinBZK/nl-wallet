@@ -70,3 +70,10 @@
 | `demoRelyingParty.walletWebSha256`   | SHA-256 checksum for the wallet web file | `nil` |
 | `helpBaseUrl`                        | Base URL for the help link in wallet web | `nil` |
 
+### Demo Index parameters
+
+| Name                    | Description                     | Value |
+| ----------------------- | ------------------------------- | ----- |
+| `demoIndex.hostname`    | Hostname for the demo index     | `nil` |
+| `demoIndex.contextPath` | Context path for the demo index | `nil` |
+

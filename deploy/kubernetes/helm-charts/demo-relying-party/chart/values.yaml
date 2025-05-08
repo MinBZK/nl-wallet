@@ -96,3 +96,12 @@ demoRelyingParty:
 
 ## @param helpBaseUrl Base URL for the help link in wallet web
 helpBaseUrl: null
+
+## @section Demo Index parameters
+## Parameters for the demo index configuration
+## @param demoIndex.hostname Hostname for the demo index
+## @param demoIndex.contextPath Context path for the demo index
+##
+demoIndex:
+  hostname: null
+  contextPath: null

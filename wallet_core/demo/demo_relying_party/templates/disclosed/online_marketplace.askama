@@ -3,7 +3,7 @@
 
 <main>
     {% let welcome = base.trans.welcome %}
-    {% call notification::notification(format!("{welcome} {username}"), "", "") %}
+    {% call notification::notification("{} {}" | format(welcome, username), "", "") %}
     {% call search::search(base.trans.search_by_topic) %}
     {% call products::products(6) %}
 </main>

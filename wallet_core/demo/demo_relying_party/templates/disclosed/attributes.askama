@@ -26,5 +26,5 @@
 {% endmatch %}
 
 {# should be last for accessibility purposes #}
-{% call demo_bar::demo_bar(base.trans.demo_see_other, base.selected_lang | fmt("../?lang={}"), base.trans.demo_see_examples, base.selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}
+{% call demo_bar::demo_bar(base.trans.demo_see_other, "{}?lang={}" | format(demo_index_url, base.selected_lang), base.trans.demo_see_examples, base.selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}
 {% endblock %}

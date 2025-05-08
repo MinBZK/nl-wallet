@@ -2,6 +2,7 @@ internal_wallet_server_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_RS_P
 public_wallet_server_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}'
 public_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
 help_base_url = "https://example.com/"
+demo_index_url = "http://${SERVICES_HOST}:${DEMO_INDEX_PORT}/"
 allow_origins = ["http://${SERVICES_HOST}:5175"]
 
 [webserver]
