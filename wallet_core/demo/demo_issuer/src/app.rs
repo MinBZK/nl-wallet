@@ -106,6 +106,7 @@ struct UsecaseTemplate<'a> {
 
 fn disclosure_based_issuance_universal_links(
     issuance_server_url: &BaseUrl,
+    usecase: &str,
     universal_link_base: &BaseUrl,
     client_id: &str,
 ) -> HashMap<SessionType, Url> {
@@ -117,7 +118,7 @@ fn disclosure_based_issuance_universal_links(
             })
             .unwrap();
 
-            let mut issuance_server_url = issuance_server_url.join("/disclosure/disclosure_based_issuance/request_uri");
+            let mut issuance_server_url = issuance_server_url.join(&format!("/disclosure/{usecase}/request_uri"));
             issuance_server_url.set_query(Some(&params));
 
             let query = serde_urlencoded::to_string(VpRequestUriObject {
@@ -145,6 +146,7 @@ async fn usecase(
 
     let universal_links = disclosure_based_issuance_universal_links(
         &state.issuance_server_url,
+        &usecase_id,
         &state.universal_link_base_url,
         &usecase.client_id,
     );
