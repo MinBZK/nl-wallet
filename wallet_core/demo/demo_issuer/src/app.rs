@@ -174,18 +174,19 @@ async fn attestation(
         return Ok(StatusCode::NOT_FOUND.into_response());
     };
 
-    // get the bsn from the disclosed attributes, ignore everything else as we trust the issuance_server blindly
-    let bsn = disclosed
-        .get(&usecase.disclosed.0)
-        .and_then(|document| document.attributes.get(&usecase.disclosed.1))
-        .and_then(|attributes| attributes.get(&usecase.disclosed.2))
+    // get the requested attribute from the disclosed attributes, ignore everything else as we trust the issuance_server
+    // blindly
+    let attribute = disclosed
+        .get(&usecase.disclosed.doc_type)
+        .and_then(|document| document.attributes.get(&usecase.disclosed.namespace))
+        .and_then(|attributes| attributes.get(&usecase.disclosed.attribute_name))
         .ok_or(anyhow::Error::msg("invalid disclosure result"))?
         .as_text()
         .unwrap();
 
     let documents: Vec<IssuableDocument> = usecase
         .data
-        .get(bsn)
+        .get(attribute)
         .map(|docs| docs.clone().into_inner())
         .unwrap_or_default();
 

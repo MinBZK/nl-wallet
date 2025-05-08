@@ -8,6 +8,7 @@ use config::File;
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_tuple::Deserialize_tuple;
 
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
@@ -38,12 +39,19 @@ pub struct Server {
     pub port: u16,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Usecase {
     #[serde(flatten)]
     pub data: IndexMap<String, IssuableDocuments>,
     pub client_id: String,
-    pub disclosed: (String, String, String), // doctype, namespace, attribute name
+    pub disclosed: Disclosed,
+}
+
+#[derive(Deserialize_tuple, Clone)]
+pub struct Disclosed {
+    pub doc_type: String,
+    pub namespace: String,
+    pub attribute_name: String,
 }
 
 impl Settings {
