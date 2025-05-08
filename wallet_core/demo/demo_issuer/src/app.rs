@@ -47,6 +47,7 @@ struct ApplicationState {
     usecases: IndexMap<String, Usecase>,
     issuance_server_url: BaseUrl,
     universal_link_base_url: BaseUrl,
+    help_base_url: BaseUrl,
     wallet_web: WalletWeb,
 }
 
@@ -55,6 +56,7 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         usecases: settings.usecases,
         issuance_server_url: settings.issuance_server_url,
         universal_link_base_url: settings.universal_link_base_url,
+        help_base_url: settings.help_base_url,
         wallet_web: settings.wallet_web,
     });
 
@@ -99,6 +101,7 @@ struct UsecaseTemplate<'a> {
     usecase: &'a str,
     same_device_ul: Url,
     cross_device_ul: Url,
+    help_base_url: Url,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
     base: BaseTemplate<'a>,
@@ -154,6 +157,7 @@ async fn usecase(
         usecase: &usecase_id,
         same_device_ul: universal_links.get(&SessionType::SameDevice).unwrap().to_owned(),
         cross_device_ul: universal_links.get(&SessionType::CrossDevice).unwrap().to_owned(),
+        help_base_url: state.help_base_url.clone().into_inner(),
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
         base: BaseTemplate {

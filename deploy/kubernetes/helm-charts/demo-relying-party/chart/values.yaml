@@ -93,3 +93,6 @@ demoRelyingParty:
   contextPath: null
   walletWebFilename: null
   walletWebSha256: null
+
+## @param helpBaseUrl Base URL for the help link in wallet web
+helpBaseUrl: null

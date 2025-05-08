@@ -21,6 +21,7 @@ pub struct Settings {
     pub issuance_server: Server,
     pub issuance_server_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
+    pub help_base_url: BaseUrl,
     pub structured_logging: bool,
     pub wallet_web: WalletWeb,
     pub usecases: IndexMap<String, Usecase>,

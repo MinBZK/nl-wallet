@@ -69,3 +69,4 @@
 | `demoIssuer.walletWebFilename` | Filename for the wallet web              | `nil` |
 | `demoIssuer.walletWebSha256`   | SHA-256 checksum for the wallet web file | `nil` |
 | `universalLinkBaseUrl`         | Base URL for universal links             | `nil` |
+| `helpBaseUrl`                  | Base URL for the help link in wallet web | `nil` |

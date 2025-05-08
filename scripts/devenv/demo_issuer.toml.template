@@ -1,4 +1,5 @@
 issuance_server_url = 'http://${SERVICES_HOST}:${ISSUANCE_SERVER_WS_PORT}'
+help_base_url = "https://example.com/"
 
 [webserver]
 ip = '0.0.0.0'

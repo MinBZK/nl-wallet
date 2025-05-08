@@ -20,6 +20,7 @@ pub struct Settings {
     pub internal_wallet_server_url: BaseUrl,
     pub public_wallet_server_url: BaseUrl,
     pub public_url: BaseUrl,
+    pub help_base_url: BaseUrl,
     pub structured_logging: bool,
     pub allow_origins: Option<CorsOrigin>,
     pub wallet_web: WalletWeb,

@@ -96,3 +96,6 @@ demoIssuer:
 
 ## @param universalLinkBaseUrl Base URL for universal links
 universalLinkBaseUrl: null
+
+## @param helpBaseUrl Base URL for the help link in wallet web
+helpBaseUrl: null

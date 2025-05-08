@@ -51,6 +51,7 @@ struct ApplicationState {
     client: WalletServerClient,
     public_wallet_server_url: BaseUrl,
     public_url: BaseUrl,
+    help_base_url: BaseUrl,
     usecases: IndexMap<String, Usecase>,
     wallet_web: WalletWeb,
 }
@@ -60,6 +61,7 @@ pub fn create_router(settings: Settings) -> Router {
         client: WalletServerClient::new(settings.internal_wallet_server_url.clone()),
         public_wallet_server_url: settings.public_wallet_server_url,
         public_url: settings.public_url,
+        help_base_url: settings.help_base_url,
         usecases: settings.usecases,
         wallet_web: settings.wallet_web,
     });
@@ -180,6 +182,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
     start_url: Url,
+    help_base_url: Url,
     usecase_js_sha256: &'a str,
     wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
@@ -210,6 +213,7 @@ async fn usecase(
     UsecaseTemplate {
         usecase: &usecase,
         start_url,
+        help_base_url: state.help_base_url.clone().into_inner(),
         usecase_js_sha256: &USECASE_JS_SHA256,
         wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
         wallet_web_sha256: &state.wallet_web.sha256,
@@ -274,6 +278,7 @@ async fn disclosed_attributes(
             UsecaseTemplate {
                 usecase: &usecase,
                 start_url,
+                help_base_url: state.help_base_url.clone().into_inner(),
                 usecase_js_sha256: &USECASE_JS_SHA256,
                 wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
                 wallet_web_sha256: &state.wallet_web.sha256,

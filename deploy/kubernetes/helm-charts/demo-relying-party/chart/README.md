@@ -68,4 +68,5 @@
 | `demoRelyingParty.contextPath`       | Context path for the demo Relying Party  | `nil` |
 | `demoRelyingParty.walletWebFilename` | Filename for the wallet web              | `nil` |
 | `demoRelyingParty.walletWebSha256`   | SHA-256 checksum for the wallet web file | `nil` |
+| `helpBaseUrl`                        | Base URL for the help link in wallet web | `nil` |
 

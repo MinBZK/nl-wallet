@@ -51,6 +51,8 @@ spec:
               value: "http://demo-rp-verification-server:3010/"
             - name: DEMO_RELYING_PARTY__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.demoRelyingParty.hostname .Values.demoRelyingParty.contextPath) }}
+            - name: DEMO_ISSUER__HELP_BASE_URL
+              value: {{ .Values.helpBaseUrl }}
             - name: DEMO_RELYING_PARTY__STRUCTURED_LOGGING
               value: "true"
             - name: DEMO_RELYING_PARTY__WALLET_WEB__FILENAME
