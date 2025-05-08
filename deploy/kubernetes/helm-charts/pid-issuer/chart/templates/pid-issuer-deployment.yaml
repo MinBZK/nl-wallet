@@ -38,7 +38,7 @@ spec:
           {{- end }}
           ports:
             - name: {{ .Values.nameOverride | default .Chart.Name }}-port
-              containerPort: 3007
+              containerPort: 3003
           volumeMounts:
             - name: pid-issuer-private-keys
               mountPath: /pid_issuer.toml
@@ -57,7 +57,7 @@ spec:
               subPath: eudi_pid-address_nl_1.json
           env:
             - name: PID_ISSUER__WALLET_SERVER__PORT
-              value: "3007"
+              value: "3003"
             - name: PID_ISSUER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: PID_ISSUER__STRUCTURED_LOGGING

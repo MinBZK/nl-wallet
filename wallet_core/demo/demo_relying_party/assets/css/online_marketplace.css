@@ -6,6 +6,8 @@
 
 :root {
   --primary-color: #007279;
+  --title-color: #2e2e2e;
+  --text-color: #30293d;
   --error-color: #ab0065;
   --logo-url: url("../images/online_marketplace.svg");
 }

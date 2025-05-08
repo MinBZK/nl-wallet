@@ -29,14 +29,16 @@
   font-weight: 700;
   letter-spacing: 1px;
   line-height: 20px;
+  border-radius: 12px;
+  padding: 16px 24px;
 }
 
 .buttons button::after,
 .buttons nl-wallet-button::part(button)::after {
   content: " ";
   border-radius: 6px;
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
 }
 
 .buttons button:hover:not(:disabled) > span,

@@ -1,6 +1,6 @@
-{% let username = attributes|attribute("given_name") %}
+{% let username = attributes | attribute("given_name") %}
+{% call header::header(base.trans.marketplace_title, Some(username)) %}
 
-{% call header::header(base.trans.marketplace_title, username) %}
 <main>
     {% let welcome = base.trans.welcome %}
     {% call notification::notification(format!("{welcome} {username}"), "", "") %}

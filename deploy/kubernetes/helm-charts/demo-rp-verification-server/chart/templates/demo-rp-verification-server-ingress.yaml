@@ -16,7 +16,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3002
+                  number: 3010
             pathType: ImplementationSpecific
   tls:
     - hosts:
@@ -52,7 +52,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3001
+                  number: 3009
             path: /{{ .Values.verificationServer.contextPath }}/(.*)
             pathType: Prefix
   tls:

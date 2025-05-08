@@ -5,14 +5,14 @@ import { injectStrict, translationsKey } from "@/util/translations"
 import { ref, watch } from "vue"
 
 const props = defineProps<{
-  text: string
+  ul: URL
 }>()
 
 const t = injectStrict(translationsKey)
 const canvas = ref<HTMLCanvasElement | null>()
 
 watch(
-  [() => props.text, canvas],
+  [() => props.ul.toString(), canvas],
   ([text, cv]) => {
     if (cv) {
       const QRC = qrcodegen.QrCode

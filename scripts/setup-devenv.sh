@@ -5,8 +5,9 @@
 # - nl-rdo-max (digid-connector)
 # - wallet_provider
 # - wallet
-# - pid_issuer and verification_server
+# - pid_issuer, verification_server and issuance_server
 # - demo_relying_party
+# - demo_issuer
 # - softhsm2
 #
 # User specific variables can be supplied in the `.env` files.
@@ -98,9 +99,10 @@ fi
 mkdir -p "${TARGET_DIR}"
 mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
-mkdir -p "${TARGET_DIR}/issuance_server"
 mkdir -p "${TARGET_DIR}/verification_server"
+mkdir -p "${TARGET_DIR}/issuance_server"
 mkdir -p "${TARGET_DIR}/demo_relying_party"
+mkdir -p "${TARGET_DIR}/demo_issuer"
 mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
@@ -170,7 +172,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     cd "${WALLET_WEB_DIR}"
 
     if [[ -n "${RM_OLD_WALLET_WEB+x}" ]]; then
-        rm ../wallet_core/demo/demo_relying_party/assets/*.iife.js || true
+        rm ../wallet_core/demo/demo_utils/assets/*.iife.js || true
     fi
 
     VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
@@ -182,7 +184,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     export WALLET_WEB_SHA256_FILENAME
     WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
     export WALLET_WEB_FILENAME
-    cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_relying_party/assets/"${WALLET_WEB_FILENAME}"
+    cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/"${WALLET_WEB_FILENAME}"
 fi
 
 
@@ -301,25 +303,31 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
 fi
 
+
 # Generate relying party ephemeral ID secret
 generate_ws_random_key ephemeral_id_secret
 DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/demo_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
 export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
+
+render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_issuer.toml"
+
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${ISSUANCE_SERVER_DIR}"
 ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
 export ISSUER_METADATA_PID_PATH
 ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
 export ISSUER_METADATA_PID_NL_PATH
 ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
 export ISSUER_METADATA_ADDRESS_PATH
-ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
-export ISSUER_METADATA_DEGREE_PATH
 ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
 export ISSUER_METADATA_ADDRESS_NL_PATH
+ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
+export ISSUER_METADATA_DEGREE_PATH
+ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
+export ISSUER_METADATA_INSURANCE_PATH
 
 # And the demo RP's verification_server config
 render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
@@ -330,8 +338,8 @@ render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issu
 render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
 
 # And the issuance_server config
-render_template "${DEVENV}/issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
-render_template "${DEVENV}/issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
+render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
+render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

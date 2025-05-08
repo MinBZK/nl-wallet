@@ -1,4 +1,4 @@
-{% call header::header(base.trans.amsterdam_title, "") %}
+{% call header::header(base.trans.amsterdam_title, demo_utils::OPTION_STR_NONE) %}
 <main>
     {% match base.session_token %}
     {% when Some with (session_token) %}
@@ -17,6 +17,7 @@
             text="{{ base.trans.login_with_nl_wallet }}"
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
+            help-base-url="{{ help_base_url }}"
             lang="{{ base.selected_lang }}">
         </nl-wallet-button>
         <button id="digid" disabled><span>{{ base.trans.login_with_digid }}</span></button>

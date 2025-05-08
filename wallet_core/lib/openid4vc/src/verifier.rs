@@ -447,7 +447,17 @@ impl From<DisclosureData> for SessionStatus {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    SerializeDisplay,
+    DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
+    strum::EnumIter,
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum SessionType {

@@ -4,7 +4,9 @@
 #
 # - nl-rdo-max (digid-connector)
 # - demo_relying_party
+# - demo_issuer
 # - verification_server
+# - issuance_server
 # - pid_issuer
 # - wallet_provider
 # - wallet
@@ -46,8 +48,10 @@ Where:
                                 This requires a PostgreSQL database to be running, which can be provided by the
                                 'docker' service.
     vs, verification_server:    Start the verification_server.
+    is, issuance_server:        Start the issuance_server.
     pi, pid_issuer:             Start the pid_issuer.
     drp, demo_relying_party:    Start the demo_relying_party.
+    di, demo_issuer:            Start the demo_issuer.
     digid, digid_connector:     Start the digid_connector and a redis on docker.
     cs, configuration_server:   Start the configuration server
     ups, update_policy_server:  Start the update policy server
@@ -76,8 +80,10 @@ have cargo docker flutter
 ########################################################################
 
 DEMO_RELYING_PARTY=1
+DEMO_ISSUER=1
 WALLET_PROVIDER=1
 VERIFICATION_SERVER=1
+ISSUANCE_SERVER=1
 PID_ISSUER=1
 WALLET=1
 DIGID_CONNECTOR=1
@@ -112,12 +118,20 @@ do
             VERIFICATION_SERVER=0
             shift # past argument
             ;;
+        is|issuance_server)
+            ISSUANCE_SERVER=0
+            shift # past argument
+            ;;
         pi|pid_issuer)
             PID_ISSUER=0
             shift # past argument
             ;;
         drp|demo_relying_party)
-            demo_relying_party=0
+            DEMO_RELYING_PARTY=0
+            shift # past argument
+            ;;
+        di|demo_issuer)
+            DEMO_ISSUER=0
             shift # past argument
             ;;
         digid|digid_connector)
@@ -152,7 +166,9 @@ do
         --default)
             DIGID_CONNECTOR=0
             DEMO_RELYING_PARTY=0
+            DEMO_ISSUER=0
             VERIFICATION_SERVER=0
+            ISSUANCE_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
             CONFIG_SERVER=0
@@ -165,7 +181,9 @@ do
             DIGID_CONNECTOR=0
             POSTGRES=0
             DEMO_RELYING_PARTY=0
+            DEMO_ISSUER=0
             VERIFICATION_SERVER=0
+            ISSUANCE_SERVER=0
             PID_ISSUER=0
             WALLET_PROVIDER=0
             WALLET=0
@@ -173,7 +191,6 @@ do
             UPDATE_POLICY_SERVER=0
             BRP_PROXY=0
             GBA_HC=0
-
             shift # past argument
             ;;
         -h|--help)
@@ -269,6 +286,31 @@ then
 fi
 
 ########################################################################
+# Manage demo_issuer
+########################################################################
+
+if [ "${DEMO_ISSUER}" == "0" ]
+then
+    echo
+    echo -e "${SECTION}Manage demo_issuer${NC}"
+
+    cd "${DEMO_ISSUER_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}demo_issuer${NC}"
+        killall demo_issuer || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        echo -e "${INFO}Start ${ORANGE}demo_issuer${NC}"
+        RUST_LOG=debug cargo run --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
+
+        echo -e "demo_issuer logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer.log${NC}"
+    fi
+fi
+
+########################################################################
 # Manage pid_issuer
 ########################################################################
 
@@ -326,6 +368,37 @@ then
         RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
 
         echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/demo_rp_verification_server.log${NC}"
+    fi
+fi
+
+########################################################################
+# Manage issuance_server
+########################################################################
+
+if [ "${ISSUANCE_SERVER}" == "0" ]
+then
+    # As part of the demo RP a issuance_server is started
+    echo
+    echo -e "${SECTION}Manage issuance_server${NC}"
+
+    cd "${ISSUANCE_SERVER_DIR}"
+
+    if [ "${STOP}" == "0" ]
+    then
+        echo -e "${INFO}Kill any running ${ORANGE}issuance_server${NC}"
+        killall issuance_server || true
+    fi
+    if [ "${START}" == "0" ]
+    then
+        pushd "${WALLET_CORE_DIR}"
+        echo -e "${INFO}Running issuance_server database migrations${NC}"
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/issuance_server" cargo run --bin wallet_server_migrations -- fresh
+        popd
+
+        echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
+        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_rp_issuance_server.log" 2>&1 &
+
+        echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
     fi
 fi
 

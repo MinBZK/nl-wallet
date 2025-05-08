@@ -1,23 +1,26 @@
-import { type AppUL, type SessionType } from "./status"
+import { type SessionType } from "./status"
 
 const errors = ["failed", "cancelled", "expired", "network"] as const
 export type ErrorType = (typeof errors)[number]
 
 export const isError = (e: any): e is ErrorType => errors.includes(e)
 
-export type StatusUrl = string & { __typename: "status_url" }
-
 export type Session = {
-  statusUrl: StatusUrl
+  statusUrl: URL
   sessionType: SessionType
   sessionToken: string
 }
+
+export type ModalType =
+  | { strategy: "dynamic"; usecase: string; startUrl: URL }
+  | { strategy: "static"; sameDeviceUl: URL; crossDeviceUl: URL }
 
 export type ModalState =
   | { kind: "creating" }
   | {
       kind: "created"
-      ul: AppUL
+      sameDeviceUl: URL
+      crossDeviceUl: URL
       session: Session
     }
   | { kind: "loading"; session: Session }

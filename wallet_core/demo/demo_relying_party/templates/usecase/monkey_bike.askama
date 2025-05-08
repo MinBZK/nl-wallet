@@ -1,4 +1,4 @@
-{% call header::header(base.trans.monkeybike_title, "") %}
+{% call header::header(base.trans.monkeybike_title, demo_utils::OPTION_STR_NONE) %}
 <main>
     <section>
         <h2>{{ base.trans.monkeybike_login }}</h2>
@@ -13,6 +13,7 @@
             text="{{ base.trans.continue_with_nl_wallet }}"
             usecase="{{ usecase }}"
             start-url="{{ start_url }}"
+            help-base-url="{{ help_base_url }}"
             lang="{{ base.selected_lang }}">
         </nl-wallet-button>
         <button id="google" disabled>{{ base.trans.continue_with_google }}</button>

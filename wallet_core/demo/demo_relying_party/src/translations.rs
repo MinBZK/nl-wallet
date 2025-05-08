@@ -1,6 +1,6 @@
 use std::ops::Index;
 
-use crate::app::Language;
+use demo_utils::language::Language;
 
 pub struct Translations<'a> {
     en: Words<'a>,

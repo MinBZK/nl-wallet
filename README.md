@@ -168,11 +168,12 @@ anything, but the glibc binary really requires a glibc-based distribution.
 - BrpProxy v2.1.x (see [their repository][28] for details)
 
 Specifically for PostgreSQL you need to consider storage requirements. Our
-database-backed services are wallet_provider, verification_server and pid_issuer.
-They have a very simple database layout.
-A good ballpark figure is to allocate 100GiB for a wallet_provider instance and
-10GiB for instances of the verification_server or pid_issuer.
-Of course, these requirements will change with time and duration of usage, and are subject to change.
+database-backed services are wallet_provider, verification_server,
+issuance_server and pid_issuer. They have a very simple database layout. A good
+ballpark figure is to allocate 100GiB for a wallet_provider instance and 10GiB
+for instances of the verification_server, issuance_server or pid_issuer. Of
+course, these requirements will change with time and duration of usage, and are
+subject to change.
 
 ##### Static configuration service
 
@@ -182,8 +183,10 @@ Of course, these requirements will change with time and duration of usage, and a
 
 - wallet_provider
 - verification_server,
+- issuance_server
 - pid_issuer
 - demo_relying_party
+- demo_issuer
 - gba_hc_converter
 
 The above Rust-based services require a regular Linux machine or container
@@ -295,8 +298,10 @@ following:
 
 - wallet_provider
 - verification_server
+- issuance_server
 - pid_issuer
 - demo_relying_party
+- demo_issuer
 - digid-connector
 - configuration_server
 - brpproxy

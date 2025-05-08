@@ -12,6 +12,8 @@ then
     then
         adb reverse tcp:${VERIFICATION_SERVER_WS_PORT} tcp:${VERIFICATION_SERVER_WS_PORT}
         adb reverse tcp:${DEMO_RP_PORT} tcp:${DEMO_RP_PORT}
+        adb reverse tcp:${DEMO_ISSUER_WS_PORT} tcp:${DEMO_ISSUER_WS_PORT}
+        adb reverse tcp:${DEMO_ISSUER_PORT} tcp:${DEMO_ISSUER_PORT}
         adb reverse tcp:${CONFIG_SERVER_PORT} tcp:${CONFIG_SERVER_PORT}
         adb reverse tcp:${PID_ISSUER_WS_PORT} tcp:${PID_ISSUER_WS_PORT}
         adb reverse tcp:${RDO_MAX_PORT} tcp:${RDO_MAX_PORT}

@@ -15,21 +15,20 @@ doctest = false
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 
 [dependencies]
-accept-language.workspace = true
 anyhow.workspace = true
 askama.workspace = true
+askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
 config = { workspace = true, features = ["preserve_order", "toml"] }
 futures = { workspace = true, features = ["std"] }
 http.workspace = true
 indexmap.workspace = true
-nutype = { workspace = true, features = ["serde"] }
+itertools.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_urlencoded.workspace = true
-serde_with = { workspace = true, features = ["macros"] }
 strum = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }
 tower.workspace = true
@@ -48,6 +47,7 @@ tracing-subscriber = { workspace = true, features = [
 url = { workspace = true, features = ["serde"] }
 
 crypto.path = "../../lib/crypto"
+demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 mdoc.path = "../../lib/mdoc"
 openid4vc.path = "../../lib/openid4vc"
@@ -55,4 +55,3 @@ openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosur
 utils = { path = "../../lib/utils" }
 
 [dev-dependencies]
-rstest.workspace = true

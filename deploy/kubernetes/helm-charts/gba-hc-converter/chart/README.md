@@ -76,11 +76,11 @@
 
 ### GBA Encrypt Test Data parameters
 
-| Name                                | Description                                          | Value                            |
-| ----------------------------------- | ---------------------------------------------------- | -------------------------------- |
-| `gbaEncryptTestData.name`           | Name of the GBA Encrypt Test Data cronjob            | `cronjob-encrypt-gba-v-testdata` |
-| `gbaEncryptTestData.enabled`        | Enable or disable the GBA Encrypt Test Data          | `false`                          |
-| `gbaEncryptTestData.extraPodlabels` | Additional labels for the GBA Encrypt Test Data pods | `{}`                             |
+| Name                                | Description                                          | Value                    |
+| ----------------------------------- | ---------------------------------------------------- | ------------------------ |
+| `gbaEncryptTestData.name`           | Name of the GBA Encrypt Test Data cronjob            | `encrypt-gba-v-testdata` |
+| `gbaEncryptTestData.enabled`        | Enable or disable the GBA Encrypt Test Data          | `false`                  |
+| `gbaEncryptTestData.extraPodlabels` | Additional labels for the GBA Encrypt Test Data pods | `{}`                     |
 
 ### Host Aliases
 

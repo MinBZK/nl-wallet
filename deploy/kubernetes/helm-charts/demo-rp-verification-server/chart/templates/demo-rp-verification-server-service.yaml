@@ -9,10 +9,10 @@ spec:
     {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 4 }}
   ports:
     - name: demo-rp-ws-http
-      port: 3001
+      port: 3009
       targetPort: wallet-port
       protocol: TCP
     - name: demo-rp-ws-req-http
-      port: 3002
+      port: 3010
       targetPort: requester-port
       protocol: TCP

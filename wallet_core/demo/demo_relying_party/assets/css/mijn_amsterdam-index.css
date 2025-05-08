@@ -4,9 +4,6 @@
 .buttons button > span,
 .buttons nl-wallet-button::part(button-span) {
   padding: 10px 16px;
-}
-
-.buttons nl-wallet-button::part(button-span) {
   border-radius: 0;
 }
 

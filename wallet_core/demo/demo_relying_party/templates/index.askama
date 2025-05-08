@@ -1,5 +1,5 @@
-{% extends "base.askama" %}
-{%- import "components/demo_bar.askama" as demo_bar -%}
+{% extends "../../demo_utils/templates/base.askama" %}
+{%- import "../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
 
 {% block styles %}
 <link rel="stylesheet" href="./css/reset.css" />

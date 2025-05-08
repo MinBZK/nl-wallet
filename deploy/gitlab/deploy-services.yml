@@ -5,7 +5,9 @@
     - build-wallet-provider-image
     - build-wp-migrations-image
     - build-demo-relying-party-image
+    - build-demo-issuer-image
     - build-verification-server-image
+    - build-issuance-server-image
     - build-pid-issuer-image
     - build-ws-migrations-image
     - build-gba-hc-converter-image

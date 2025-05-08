@@ -123,7 +123,7 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
-            .set_default("port", 3008)?
+            .set_default("port", 3012)?
             .add_source(File::from(prefix_local_path("gba_hc_converter.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("gba_hc_converter")
