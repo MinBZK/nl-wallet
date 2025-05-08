@@ -20,6 +20,9 @@ spec:
     metadata:
       labels:
         {{- include "common.labels.standard" . | nindent 8 }}
+        {{- if .Values.extraPodlabels }}
+        {{- toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- end }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
