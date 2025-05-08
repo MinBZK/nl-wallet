@@ -24,6 +24,7 @@ const modalState = ref<ModalState>({
   sameDeviceUl: props.sameDeviceUl,
   crossDeviceUl: props.crossDeviceUl,
   session: {
+    // TODO this statusUrl is currently unused (PVW-4365)
     statusUrl: new URL("http://status.example.com/status"),
     sessionType: isMobile ? "same_device" : "cross_device",
     sessionToken: "",
