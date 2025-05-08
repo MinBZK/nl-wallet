@@ -1,0 +1,11 @@
+[webserver]
+ip = '0.0.0.0'
+port = ${DEMO_INDEX_PORT}
+
+[[demo_services]]
+service_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
+usecases = ['mijn_amsterdam', 'online_marketplace', 'xyz_bank', 'monkey_bike']
+
+[[demo_services]]
+service_url = 'http://${SERVICES_HOST}:${DEMO_ISSUER_PORT}/'
+usecases = ['university', 'insurance']
