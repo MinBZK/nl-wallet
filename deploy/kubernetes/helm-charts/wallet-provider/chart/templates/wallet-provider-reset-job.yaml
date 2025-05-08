@@ -30,7 +30,7 @@ spec:
           containers:
             - name: {{ $name }}-migrations
               image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
-              args: ["up"]
+              args: ["fresh"]
               env:
                 - name: WALLET_PROVIDER__DATABASE__HOST
                   value: db-cluster-rw
