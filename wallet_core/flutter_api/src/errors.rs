@@ -2,7 +2,6 @@ use std::error::Error;
 use std::fmt::Display;
 
 use anyhow::Chain;
-use itertools::Itertools;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
@@ -255,19 +254,7 @@ impl FlutterApiErrorFields for IssuanceError {
 
         let organization_name = match self {
             IssuanceError::Attestation { organization, .. } => Some(organization.display_name.clone()),
-            IssuanceError::IssuerServer { organizations, .. } => match organizations
-                .iter()
-                .map(|organization| organization.display_name.clone())
-                .dedup()
-                .at_most_one()
-            {
-                Ok(Some(organization)) => Some(organization),
-                Ok(None) => None,
-                Err(_) => {
-                    tracing::warn!("multiple issuer organizations detected in issuance session, returning first");
-                    organizations.first().map(|o| o.display_name.clone())
-                }
-            },
+            IssuanceError::IssuerServer { organization, .. } => Some(organization.display_name.clone()),
             _ => None,
         };
 

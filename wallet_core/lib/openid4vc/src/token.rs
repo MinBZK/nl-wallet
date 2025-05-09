@@ -25,6 +25,7 @@ use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::utils::x509::CertificateType;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::TimeGenerator;
+use utils::single_unique::MultipleItemsFound;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
@@ -231,6 +232,12 @@ pub enum CredentialPreviewError {
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
+    #[error("issuer registration not found in credential previews")]
+    #[category(critical)]
+    NoIssuerRegistrationInPreviews,
+    #[error("multiple issuer registrations found in credential previews")]
+    #[category(critical)]
+    MultipleIssuerRegistrationInPreviews(#[source] MultipleItemsFound),
     #[error("issuer URI {0} not found in SAN {1:?}")]
     #[category(pd)]
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),

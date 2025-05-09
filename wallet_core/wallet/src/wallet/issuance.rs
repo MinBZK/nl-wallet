@@ -88,7 +88,7 @@ pub enum IssuanceError {
     IssuanceSession(#[from] IssuanceSessionError),
     #[error("could not retrieve attestations from issuer: {error}")]
     IssuerServer {
-        organizations: Vec<Organization>,
+        organization: Box<Organization>,
         #[defer]
         #[source]
         error: IssuanceSessionError,
@@ -254,19 +254,17 @@ where
 
         let session = self.session.take().unwrap();
         if let Session::Issuance(issuance_session) = session {
-            let organizations = issuance_session
-                .protocol_state
-                .issuer_registrations()?
-                .iter()
-                .map(|registration| registration.organization.clone())
-                .collect_vec();
+            let organization = issuance_session.protocol_state.issuer_registration()?.organization;
 
             info!("Rejecting issuance");
             issuance_session
                 .protocol_state
                 .reject_issuance()
                 .await
-                .map_err(|error| IssuanceError::IssuerServer { organizations, error })?;
+                .map_err(|error| IssuanceError::IssuerServer {
+                    organization: Box::new(organization),
+                    error,
+                })?;
         };
 
         // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state,
@@ -444,12 +442,7 @@ where
 
         info!("Signing nonce using Wallet Provider");
 
-        let organizations = issuance_session
-            .protocol_state
-            .issuer_registrations()?
-            .iter()
-            .map(|registration| registration.organization.clone())
-            .collect_vec();
+        let organization = issuance_session.protocol_state.issuer_registration()?.organization;
 
         let issuance_result = issuance_session
             .protocol_state
@@ -468,7 +461,10 @@ where
                             RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
                         }
                     }
-                    _ => IssuanceError::IssuerServer { organizations, error },
+                    _ => IssuanceError::IssuerServer {
+                        organization: Box::new(organization),
+                        error,
+                    },
                 }
             });
 
@@ -538,6 +534,7 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use mdoc::utils::issuer_auth::IssuerRegistration;
     use mockall::predicate::*;
     use openid4vc::credential_formats::CredentialFormats;
     use rstest::rstest;
@@ -568,10 +565,10 @@ mod tests {
     fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = mdoc.issuer_certificate().unwrap();
-        client.expect_issuers().return_once(move || {
+        client.expect_issuer().return_once(move || {
             Ok(match IssuerRegistration::from_certificate(&issuer_certificate) {
-                Ok(Some(registration)) => vec![registration],
-                _ => vec![],
+                Ok(Some(registration)) => registration,
+                _ => IssuerRegistration::new_mock(),
             })
         });
 
@@ -721,7 +718,9 @@ mod tests {
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
             client.expect_reject().return_once(|| Ok(()));
-            client.expect_issuers().return_once(|| Ok(vec![]));
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
             client
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
@@ -920,7 +919,9 @@ mod tests {
                 .expect_reject()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
 
-            client.expect_issuers().return_once(|| Ok(vec![]));
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
 
             client
         };
@@ -1092,7 +1093,9 @@ mod tests {
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
 
-            client.expect_issuers().return_once(|| Ok(vec![]));
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
 
             client
         };
@@ -1174,7 +1177,9 @@ mod tests {
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
 
-            client.expect_issuers().return_once(|| Ok(vec![]));
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
 
             client
         };

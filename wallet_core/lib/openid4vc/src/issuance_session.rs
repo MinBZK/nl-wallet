@@ -44,6 +44,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use utils::generator::TimeGenerator;
+use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -273,7 +274,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 
-    fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError>;
+    fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError>;
 }
 
 #[derive(Debug)]
@@ -762,7 +763,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok(())
     }
 
-    fn issuer_registrations(&self) -> Result<Vec<IssuerRegistration>, CredentialPreviewError> {
+    fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
         let registrations = self
             .session_state
             .credential_previews
@@ -777,7 +778,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        Ok(registrations)
+        let registration = registrations
+            .iter()
+            .single_unique()
+            .map_err(CredentialPreviewError::MultipleIssuerRegistrationInPreviews)?
+            .ok_or(CredentialPreviewError::NoIssuerRegistrationInPreviews)?;
+
+        Ok(registration)
     }
 }
 
