@@ -123,7 +123,7 @@ platform :android do
     file_format = options[:file_format] || "aab"
     build_mode = options[:build_mode] || "release"
     mock_repositories = options[:mock] || false
-    demo_relying_party_url = options[:demo_relying_party_url] || ""
+    demo_index_url = options[:demo_index_url] || ""
 
     UI.user_error!("Invalid file_format: #{file_format}") unless ["aab", "apk"].include? file_format
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
@@ -141,7 +141,7 @@ platform :android do
             "--build-name", version.to_s,
             "--#{build_mode}",
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
-            "--dart-define=DEMO_RELYING_PARTY_URL=#{demo_relying_party_url}",
+            "--dart-define=DEMO_INDEX_URL=#{demo_index_url}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",
@@ -317,7 +317,7 @@ platform :ios do
     build_mode = options[:build_mode] || "release"
     fake_attestation = !!options[:fake_attestation]
     mock_repositories = options[:mock] || false
-    demo_relying_party_url = options[:demo_relying_party_url] || ""
+    demo_index_url = options[:demo_index_url] || ""
 
     UI.user_error!("Invalid build_mode: #{build_mode}") unless ["release", "profile", "debug"].include? build_mode
 
@@ -356,7 +356,7 @@ platform :ios do
             "--export-method", export_method,
             "--dart-define=FAKE_ATTESTATION=#{fake_attestation}",
             "--dart-define=MOCK_REPOSITORIES=#{mock_repositories}",
-            "--dart-define=DEMO_RELYING_PARTY_URL=#{demo_relying_party_url}",
+            "--dart-define=DEMO_INDEX_URL=#{demo_index_url}",
             "--dart-define=UL_HOSTNAME=#{universal_link_base}",
             "--dart-define=SENTRY_DSN=#{sentry_dsn}",
             "--dart-define=SENTRY_ENVIRONMENT=#{sentry_environment}",

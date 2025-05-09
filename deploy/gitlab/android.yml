@@ -69,7 +69,7 @@ test-android:
         file_format:"${APP_FILE_FORMAT}" \
         build_mode:"${APP_BUILD_MODE}" \
         mock:"${APP_MOCK}" \
-        demo_relying_party_url:"${DEMO_RELYING_PARTY_URL:-}" \
+        demo_index_url:"${DEMO_INDEX_URL:-}" \
         universal_link_base:"${UL_HOSTNAME:-}" \
         build:"$((CI_PIPELINE_IID + APP_BUILD_OFFSET))" \
         version:"${VERSION:-}"
@@ -107,7 +107,7 @@ build-android-app-ont-profile:
   variables:
     APP_FILE_FORMAT: "apk"
     APP_BUILD_MODE: "profile"
-    DEMO_RELYING_PARTY_URL: "https://${DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    DEMO_INDEX_URL: "https://${DEMO_INDEX_EXTERNAL_HOSTNAME_ONT}/${DEMO_INDEX_EXTERNAL_CONTEXT_PATH}/"
 
 .build-android-app-release-tag:
   extends: [.env-ont-k8s, .build-android-app]
