@@ -1,0 +1,32 @@
+{
+  "organization": {
+    "displayName": {
+      "nl": "VerzekerAar",
+      "en": "InsurAnce"
+    },
+    "legalName": {
+      "nl": "VerzekerAar N.V.",
+      "en": "VerzekerAar N.V."
+    },
+    "description": {
+      "nl": "VerzekerAar is een voorbeeld-verzekeraar.",
+      "en": "InsurAnce is an exemplar insurance company."
+    },
+    "webUrl": "https://insurance.example.com",
+    "city": {
+      "nl": "Den Haag",
+      "en": "The Hague"
+    },
+    "category": {
+      "nl": "Verzekeringen",
+      "en": "Insurance"
+    },
+    "logo": {
+      "mimeType": "image/svg+xml",
+      "imageData": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" fill=\"none\"><rect width=\"64\" height=\"64\" y=\"-.002\" fill=\"#3A839A\" rx=\"12\"/><path fill=\"#FCFCFC\" d=\"M29.563 33.6H25.5v-4.8h4.063v-4h4.875v4H38.5v4.8h-4.062v4h-4.876zM32 16l-13 4.8v9.744C19 38.624 24.541 46.16 32 48c7.459-1.84 13-9.376 13-17.456V20.8zm9.75 14.544c0 6.4-4.144 12.32-9.75 14.128-5.606-1.808-9.75-7.712-9.75-14.128v-7.52l9.75-3.6 9.75 3.6z\"/></svg>"
+    },
+    "countryCode": "nl",
+    "kvk": "99876543",
+    "privacyPolicyUrl": "https://insurance.example.com/privacy"
+  }
+}

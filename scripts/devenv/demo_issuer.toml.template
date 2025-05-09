@@ -21,7 +21,7 @@ disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]
 attestation_type = "com.example.degree"
 
 [usecases.university.999991772.attributes]
-university = "University Holland"
+university = "Holland University"
 education = "MSc Economics"
 graduation_date = "1970-01-01"
 grade = 7
