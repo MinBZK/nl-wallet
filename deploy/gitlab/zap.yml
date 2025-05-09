@@ -35,7 +35,7 @@
       envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload_temp.json
       SESSION_TOKEN=$(curl -s -X POST -d @deploy/zap/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')
 
-zap-scan-rp:
+zap-scan-demo:
   extends: .zap-scan-common-setup
   needs:
     - job: deploy-apps-ont
@@ -44,8 +44,8 @@ zap-scan-rp:
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
-    SUT: "RELYING_PARTY"
+    DEMO_INDEX_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_INDEX_EXTERNAL_CONTEXT_PATH}"
+    SUT: "DEMO_RP_AND_ISSUER"
 
 zap-scan-config-server:
   extends: .zap-scan-common-setup
@@ -124,7 +124,7 @@ zap-scan-public-wallet-server:
 zap-scan-publish-results:
   rules: !reference [.zap-scan-common-setup, rules]
   needs:
-    - { job: zap-scan-rp }
+    - { job: zap-scan-demo }
     - { job: zap-scan-config-server }
     - { job: zap-scan-wallet-provider }
     - { job: zap-scan-pid-issuer }
