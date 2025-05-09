@@ -56,7 +56,6 @@ use crate::VpAuthorizationErrorCode;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
-#[allow(clippy::large_enum_variant)] // Otherwise pattern matching does not work.
 pub enum VpSessionError {
     #[error("{0}")]
     Client(#[from] VpClientError),
