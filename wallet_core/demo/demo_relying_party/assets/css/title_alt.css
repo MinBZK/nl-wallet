@@ -1,0 +1,46 @@
+header {
+  display: flex;
+  justify-content: center;
+  margin: 40px 0;
+}
+
+@media only screen and (min-width: 577px) {
+  header {
+    margin: 64px 0;
+  }
+}
+
+header h1::before {
+  content: " ";
+  background: var(--logo-url) no-repeat center center / cover;
+  border-radius: 4.36px;
+  width: 23.273px;
+  height: 23.273px;
+}
+
+@media only screen and (min-width: 577px) {
+  header h1::before {
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+  }
+}
+
+header h1 {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  color: var(--title-color);
+  font-size: 21.818px;
+  font-weight: 700;
+  line-height: 32px;
+}
+
+@media only screen and (min-width: 577px) {
+  header h1 {
+    gap: 20px;
+    font-size: 30px;
+    line-height: 44px;
+  }
+}

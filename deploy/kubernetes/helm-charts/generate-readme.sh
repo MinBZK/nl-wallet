@@ -6,7 +6,7 @@ BASE_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd -P)"
 
 if command -v readme-generator > /dev/null; then
     GENERATOR='readme-generator'
-elif command -v npxsd > /dev/null; then
+elif command -v npx > /dev/null; then
     GENERATOR='npx @bitnami/readme-generator-for-helm'
 else
     >&2 echo 'ERROR: Cannot find readme-generator or npx'

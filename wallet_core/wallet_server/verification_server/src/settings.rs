@@ -127,8 +127,8 @@ impl ServerSettings for VerifierSettings {
 
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
-            .set_default("wallet_server.port", 3001)?
-            .set_default("public_url", "http://localhost:3001/")?
+            .set_default("wallet_server.port", 3009)?
+            .set_default("public_url", "http://localhost:3009/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
             .set_default("storage.url", "memory://")?
@@ -146,7 +146,7 @@ impl ServerSettings for VerifierSettings {
             )?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("requester_server.ip", "0.0.0.0")?
-            .set_default("requester_server.port", 3002)?
+            .set_default("requester_server.port", 3010)?
             .set_default("wallet_client_ids", vec![NL_WALLET_CLIENT_ID.to_string()])?;
 
         // Look for a config file that is in the same directory as Cargo.toml if run through cargo,

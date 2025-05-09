@@ -1,0 +1,30 @@
+{% extends "../../../demo_utils/templates/base.askama" %}
+{%- import "../../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
+{%- import "../../../demo_utils/templates/components/header.askama" as header -%}
+{%- import "components/attributes.askama" as attributes -%}
+{%- import "../../../demo_utils/templates/components/notification.askama" as notification -%}
+{%- import "components/search.askama" as search -%}
+{%- import "components/products.askama" as products -%}
+
+{% block styles %}
+<link rel="stylesheet" href="../css/demo_bar.css" />
+<link rel="stylesheet" href="../css/{{ usecase }}-return.css" />
+{% endblock %}
+
+{% block content %}
+{% match usecase %}
+    {% when "mijn_amsterdam" %}
+        {% include "mijn_amsterdam.askama" %}
+    {% when "monkey_bike" %}
+        {% include "monkey_bike.askama" %}
+    {% when "online_marketplace" %}
+        {% include "online_marketplace.askama" %}
+    {% when "xyz_bank" %}
+        {% include "xyz_bank.askama" %}
+    {% else %}
+        {% call attributes::attributes(attributes) %}
+{% endmatch %}
+
+{# should be last for accessibility purposes #}
+{% call demo_bar::demo_bar(base.trans.demo_see_other, base.selected_lang | fmt("../?lang={}"), base.trans.demo_see_examples, base.selected_lang, base.trans, base.available_languages, base.session_token, base.nonce) %}
+{% endblock %}

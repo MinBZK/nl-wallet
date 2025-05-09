@@ -1871,8 +1871,16 @@ class MockNavigationService extends _i1.Mock implements _i33.NavigationService {
       ) as _i8.Future<void>);
 
   @override
-  _i8.Future<void> showDialog(_i33.WalletDialogType? type) => (super.noSuchMethod(
-        Invocation.method(#showDialog, [type]),
+  _i8.Future<void> showDialog(
+    _i33.WalletDialogType? type, {
+    bool? dismissOpenDialogs = false,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #showDialog,
+          [type],
+          {#dismissOpenDialogs: dismissOpenDialogs},
+        ),
         returnValue: _i8.Future<void>.value(),
         returnValueForMissingStub: _i8.Future<void>.value(),
       ) as _i8.Future<void>);

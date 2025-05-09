@@ -1,0 +1,38 @@
+@import url("./reset.css");
+@import url("./button-reset.css");
+@import url("./fonts.css");
+@import url("./common.css");
+@import url("./title_bar.css");
+@import url("./notification.css");
+@import url("./banner.css");
+@import url("./page.css");
+@import url("./buttons-after.css");
+
+:root {
+  --primary-color: #188484;
+  --hover-color: #004c4c;
+  --title-color: #3a839a;
+  --text-color: #002328;
+  --logo-url: url("../images/insurance.svg");
+}
+
+.banner-insurance {
+  background-image: url("../images/banner-insurance.svg");
+}
+
+main a {
+  color: var(--text-color);
+}
+
+main h2 {
+  font-size: 36px;
+  font-weight: 550;
+  line-height: 1.5;
+}
+
+@media only screen and (min-width: 1145px) {
+  main h2 {
+    font-size: 44px;
+    line-height: 1.4;
+  }
+}

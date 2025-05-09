@@ -1,0 +1,62 @@
+public_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}/'
+issuer_trust_anchors = ["${PID_CA_CRT}"]
+reader_trust_anchors = ["${RP_CA_CRT}"]
+
+ephemeral_id_secret = "${DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
+allow_origins = ["http://${SERVICES_HOST}:${DEMO_RP_PORT}"]
+
+[storage]
+url = 'postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server'
+
+[wallet_server]
+ip = '0.0.0.0'
+port = ${VERIFICATION_SERVER_WS_PORT}
+
+[requester_server]
+ip = '0.0.0.0'
+port = ${VERIFICATION_SERVER_RS_PORT}
+
+[hsm]
+library_path = "${HSM_LIBRARY_PATH}"
+user_pin = "${HSM_USER_PIN}"
+max_sessions = 3
+max_session_lifetime_in_sec = 900
+
+[usecases.mijn_amsterdam]
+certificate = "${DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM}"
+private_key = "${DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM}"
+private_key_type = "hsm"
+
+[usecases.online_marketplace]
+certificate = "${DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE}"
+private_key = "${DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE}"
+private_key_type = "software"
+
+[usecases.xyz_bank]
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
+[usecases.monkey_bike]
+certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
+private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"
+private_key_type = "software"
+
+# Integration test cases
+[usecases.multiple_cards]
+session_type_return_url = "neither"
+certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
+private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"
+private_key_type = "software"
+
+[usecases.xyz_bank_no_return_url]
+session_type_return_url = "neither"
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"
+
+[usecases.xyz_bank_all_return_url]
+session_type_return_url = "both"
+certificate = "${DEMO_RELYING_PARTY_CRT_XYZ_BANK}"
+private_key = "${DEMO_RELYING_PARTY_KEY_XYZ_BANK}"
+private_key_type = "software"

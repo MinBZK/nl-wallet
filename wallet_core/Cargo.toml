@@ -1,6 +1,9 @@
 [workspace]
 members = [
     "configuration_server",
+    "demo/demo_issuer",
+    "demo/demo_relying_party",
+    "demo/demo_utils",
     "flutter_api",
     "flutter_api/flutter_api_macros",
     "gba_hc_converter",
@@ -20,7 +23,6 @@ members = [
     "lib/sd_jwt",
     "lib/sd_jwt_vc_metadata",
     "lib/utils",
-    "mock_relying_party",
     "tests_integration",
     "update_policy/model",
     "update_policy/server",
@@ -75,7 +77,8 @@ accept-language = "3.1.0"
 aes-gcm = "0.10.3"
 android_logger = { version = "0.14.1", default-features = false }
 anyhow = "1.0.95"
-askama = "0.12.1"
+askama = "0.14.0"
+askama_web = "0.14.0"
 assert-json-diff = "2.0.2"
 assert_cmd = "2.0.16"
 assert_fs = "1.1.2"
@@ -177,6 +180,7 @@ serde-aux = "4.5.0"
 serde_bytes = "0.11.15"
 serde_json = { version = "1.0.138", default-features = false }
 serde_repr = "0.1.19"
+serde_tuple = "1.1.0"
 serde_urlencoded = "0.7.1"
 serde_valid = "1.0.5"
 serde_with = "3.12.0"

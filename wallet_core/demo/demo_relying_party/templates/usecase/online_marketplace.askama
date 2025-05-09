@@ -1,0 +1,27 @@
+{% call header::header(base.trans.marketplace_title, demo_utils::OPTION_STR_NONE) %}
+<main>
+    <section>
+        <h2>{{ base.trans.marketplace_login }}</h2>
+    </section>
+    {% match base.session_token %}
+        {% when Some with (session_token) %}
+        {% call notification::notification(base.trans.login_failed_try_again, "", session_token) %}
+        {% when None %}
+    {% endmatch %}
+    <section class="buttons">
+        <nl-wallet-button
+            text="{{ base.trans.continue_with_nl_wallet }}"
+            usecase="{{ usecase }}"
+            start-url="{{ start_url }}"
+            help-base-url="{{ help_base_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+        <button id="google" disabled>{{ base.trans.continue_with_google }}</button>
+        <button id="email" disabled>{{ base.trans.continue_with_email }}</button>
+        <p class="small">
+            {{ base.trans.click_continue }}
+            <a href="#">{{ base.trans.terms_and_conditions }}</a> {{ base.trans.and_the }}
+            <a href="#">{{ base.trans.privacy_policy }}</a>.
+        </p>
+    </section>
+</main>

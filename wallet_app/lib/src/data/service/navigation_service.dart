@@ -13,6 +13,7 @@ import '../../feature/common/dialog/reset_wallet_dialog.dart';
 import '../../feature/common/dialog/scan_with_wallet_dialog.dart';
 import '../../feature/common/dialog/update_notification_dialog.dart';
 import '../../navigation/wallet_routes.dart';
+import '../../util/helper/dialog_helper.dart';
 
 class NavigationService {
   /// Key that holds [NavigatorState], used to perform navigation from a non-Widget.
@@ -99,9 +100,11 @@ class NavigationService {
   }
 
   /// Show the dialog specified by [type]. Useful when caller does not have a valid context.
-  Future<void> showDialog(WalletDialogType type) async {
+  Future<void> showDialog(WalletDialogType type, {bool dismissOpenDialogs = false}) async {
     final context = _navigatorKey.currentState?.context;
     if (context == null || !context.mounted) return;
+    if (dismissOpenDialogs) await DialogHelper.dismissOpenDialogs(context);
+    if (!context.mounted) return; // Fixes lint warning: context across async gaps
     return switch (type) {
       WalletDialogType.idleWarning => IdleWarningDialog.show(context),
       WalletDialogType.resetWallet => ResetWalletDialog.show(context),

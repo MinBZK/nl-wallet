@@ -46,13 +46,13 @@ class TextWithLink extends StatelessWidget {
           TextSpan(
             style: textStyle,
             children: [
-              TextSpan(text: parts.first),
+              parts.first.toTextSpan(context),
               UrlSpan(
                 ctaText: linkText,
                 onPressed: onLinkPressed,
                 textStyle: style,
               ),
-              TextSpan(text: parts.last),
+              parts.last.toTextSpan(context),
             ],
           ),
           textAlign: textAlign,

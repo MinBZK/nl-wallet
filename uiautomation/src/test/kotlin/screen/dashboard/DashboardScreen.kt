@@ -9,7 +9,7 @@ class DashboardScreen : MobileActions() {
     private val menuButton = find.byText(l10n.getString("dashboardScreenTitle"))
 
     private val pidIdCard = find.byValueKey(cardMetadata.getPidVCT())
-    private val pidAddressCard = find.byValueKey(cardMetadata.getAddressACT())
+    private val pidAddressCard = find.byValueKey(cardMetadata.getAddressVCT())
 
     private val pidIdTitleText = find.byText(cardMetadata.getPidDisplayName())
     private val pidAddressTitleText = find.byText(cardMetadata.getAddressDisplayName())

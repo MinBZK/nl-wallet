@@ -239,7 +239,7 @@ function generate_wp_random_key {
 # Generate a random key (64 bytes)
 function generate_ws_random_key {
     echo -e "${INFO}Generating random wallet server key${NC}"
-    random_bytes 64 > "${TARGET_DIR}/mock_relying_party/$1.key"
+    random_bytes 64 > "${TARGET_DIR}/demo_relying_party/$1.key"
 }
 
 # Generate an EC root CA for the pid_issuer
@@ -292,35 +292,35 @@ function generate_pid_issuer_key_pair {
             -out "${TARGET_DIR}/pid_issuer/issuer.crt.der"
 }
 
-# Generate an EC root CA for the mock_relying_party
-function generate_mock_relying_party_root_ca {
+# Generate an EC root CA for the demo_relying_party
+function generate_demo_relying_party_root_ca {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
         --common-name "ca.rp.example.com" \
-        --file-prefix "${TARGET_DIR}/mock_relying_party/ca" \
+        --file-prefix "${TARGET_DIR}/demo_relying_party/ca" \
         --force
 }
 
-# Generate an EC key pair for the mock_relying_party
+# Generate an EC key pair for the demo_relying_party
 #
 # $1 - READER_NAME: Name of the Relying Party
-function generate_mock_relying_party_key_pair {
+function generate_demo_relying_party_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca reader \
-        --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+        --ca-key-file "${TARGET_DIR}/demo_relying_party/ca.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/demo_relying_party/ca.crt.pem" \
         --common-name "$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
-        --file-prefix "${TARGET_DIR}/mock_relying_party/$1" \
+        --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \
         --force
 
-    openssl x509 -in "${TARGET_DIR}/mock_relying_party/$1.crt.pem" \
-        -outform der -out "${TARGET_DIR}/mock_relying_party/$1.crt.der"
+    openssl x509 -in "${TARGET_DIR}/demo_relying_party/$1.crt.pem" \
+        -outform der -out "${TARGET_DIR}/demo_relying_party/$1.crt.der"
 
     openssl pkcs8 -topk8 -inform PEM -outform DER \
-        -in "${TARGET_DIR}/mock_relying_party/$1.key.pem" -out "${TARGET_DIR}/mock_relying_party/$1.key.der" -nocrypt
+        -in "${TARGET_DIR}/demo_relying_party/$1.key.pem" -out "${TARGET_DIR}/demo_relying_party/$1.key.der" -nocrypt
 }
 
-# Generate an EC key pair for the mock_relying_party in the HSM.
+# Generate an EC key pair for the demo_relying_party in the HSM.
 # The label of the key is "${READER_NAME}_key"
 #
 # $1 - READER_NAME: Name of the Relying Party
@@ -348,8 +348,8 @@ function generate_relying_party_hsm_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
           --bin wallet_ca reader-cert \
           --public-key-file "${TARGET_DIR}/$2/$1.pub.pem" \
-          --ca-key-file "${TARGET_DIR}/mock_relying_party/ca.key.pem" \
-          --ca-crt-file "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
+          --ca-key-file "${TARGET_DIR}/demo_relying_party/ca.key.pem" \
+          --ca-crt-file "${TARGET_DIR}/demo_relying_party/ca.crt.pem" \
           --common-name "$1.example.com" \
           --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
           --file-prefix "${TARGET_DIR}/$2/$1" \

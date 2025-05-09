@@ -1,0 +1,18 @@
+{% call header::header(base.trans.university_title, demo_utils::OPTION_STR_NONE) %}
+
+<main>
+    <section>
+        <h2>{{ base.trans.university_get_card }}</h2>
+    </section>
+    <section class="buttons">
+        <nl-wallet-button
+            text="{{ base.trans.add_to_nl_wallet }}"
+            same-device-ul="{{ same_device_ul }}"
+            cross-device-ul="{{ cross_device_ul }}"
+            help-base-url="{{ help_base_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+        <a href="#" disabled>{{ base.trans.choose_another_wallet }}</a>
+    </section>
+    {% call banner::banner(usecase) %}
+</main>

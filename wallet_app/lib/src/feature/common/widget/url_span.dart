@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import 'focus_builder.dart';
 
 const _kHyperlinkHorizontalPadding = 2.0;
@@ -37,8 +38,8 @@ class UrlSpan extends WidgetSpan {
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: hasFocus ? _kHyperlinkHorizontalPadding : 0),
                   decoration: hasFocus ? focusedBorderDecoration : null,
-                  child: Text(
-                    ctaText,
+                  child: Text.rich(
+                    ctaText.toTextSpan(context),
                     style: urlTextStyle,
                     textScaler: TextScaler.noScaling, // Scaled by the parent
                   ),

@@ -2,7 +2,7 @@ import { basename, extname } from "node:path"
 
 // Mapping to rename filenames to human-readable strings
 const filenameToGroupMapping: Record<string, string> = {
-  "browsertest-mrp": "Browsertests",
+  "browsertest-demo-rp": "Browsertests",
   "browsertest-gbafetch": "Browsertests",
   "browsertest-fallback-pages": "Browsertests",
   e2e: "End-to-end tests",

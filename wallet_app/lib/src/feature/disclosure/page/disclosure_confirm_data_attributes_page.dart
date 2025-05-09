@@ -7,7 +7,6 @@ import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
@@ -144,22 +143,20 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildReasonSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.info_outline_rounded, size: 24),
-            const SizedBox(height: 16),
-            TitleText(
-              context.l10n.disclosureConfirmDataAttributesSubtitlePurpose,
-              style: BaseWalletTheme.headlineExtraSmallTextStyle,
-            ),
-            const SizedBox(height: 4),
-            BodyText(
-              requestPurpose.l10nValue(context),
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline_rounded, size: 24),
+          const SizedBox(height: 16),
+          TitleText(
+            context.l10n.disclosureConfirmDataAttributesSubtitlePurpose,
+            style: context.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 4),
+          BodyText(
+            requestPurpose.l10nValue(context),
+          ),
+        ],
       ),
     );
   }
@@ -167,22 +164,20 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   Widget _buildCardsSectionHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: MergeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.credit_card_outlined, size: 24),
-            const SizedBox(height: 16),
-            TitleText(
-              context.l10n.disclosureConfirmDataAttributesSubtitleData(totalNrOfAttributes),
-              style: BaseWalletTheme.headlineExtraSmallTextStyle,
-            ),
-            const SizedBox(height: 4),
-            BodyText(
-              context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes),
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.credit_card_outlined, size: 24),
+          const SizedBox(height: 16),
+          TitleText(
+            context.l10n.disclosureConfirmDataAttributesSubtitleData(totalNrOfAttributes),
+            style: context.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 4),
+          BodyText(
+            context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes),
+          ),
+        ],
       ),
     );
   }
@@ -195,23 +190,21 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
         children: [
           const Icon(Icons.handshake_outlined, size: 24),
           const SizedBox(height: 16),
-          MergeSemantics(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TitleText(
-                  context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
-                  style: BaseWalletTheme.headlineExtraSmallTextStyle,
-                ),
-                const SizedBox(height: 4),
-                BodyText(
-                  context.read<ContextMapper<OrganizationPolicy, String>>().map(
-                        context,
-                        OrganizationPolicy(organization: relyingParty, policy: policy),
-                      ),
-                ),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TitleText(
+                context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
+                style: context.textTheme.titleLarge,
+              ),
+              const SizedBox(height: 4),
+              BodyText(
+                context.read<ContextMapper<OrganizationPolicy, String>>().map(
+                      context,
+                      OrganizationPolicy(organization: relyingParty, policy: policy),
+                    ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           LinkButton(

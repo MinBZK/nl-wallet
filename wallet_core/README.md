@@ -11,7 +11,7 @@ The list below is not exhaustive, but is meant as a starting point for understan
 - `flutter_api`: Contains `flutter_rust_bridge` bindings. This allows Flutter to use the functionality from the `wallet` crate.
 - `gba_hc_converter`: Web server that converts GBA-V XML responses to HaalCentraal JSON format.
 - `lib`: Contains multiple libraries and protocols that are shared between the `wallet` and other applications.
-- `mock_relying_party`: Mock relying party server, mocks multiple use cases.
+- `demo_relying_party`: Demo Pelying Party server, mocks multiple use cases.
 - `tests_integration`: Integration tests for the `wallet` and core applications.
 - `uniffi-bindgen`: Helpers for `wallet/platform_support` bridge code generation.
 - `update_policy`: Server component for the update policy and shared data types with `wallet`.
