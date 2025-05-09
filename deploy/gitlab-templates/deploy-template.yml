@@ -337,6 +337,18 @@ demo-issuer-${DEPLOY_ENV}:
        $FILE_OPTIONS
     - !reference [.check-helm-install-status, script]
 
+demo-index-${DEPLOY_ENV}:
+  <<: *deploy-environment
+  rules:
+    - when: on_success
+  needs:
+    - fetch-variables
+  variables:
+    CHART_NAME: demo-index
+    RELEASE_NAME: demo-index
+    CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-index.yaml"
+  <<: *basic-helm-deployment
+
 update-policy-server-${DEPLOY_ENV}:
   <<: *deploy-environment
   rules:

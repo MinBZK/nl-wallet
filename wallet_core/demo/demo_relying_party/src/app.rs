@@ -52,6 +52,7 @@ struct ApplicationState {
     public_wallet_server_url: BaseUrl,
     public_url: BaseUrl,
     help_base_url: BaseUrl,
+    demo_index_url: BaseUrl,
     usecases: IndexMap<String, Usecase>,
     wallet_web: WalletWeb,
 }
@@ -62,12 +63,12 @@ pub fn create_router(settings: Settings) -> Router {
         public_wallet_server_url: settings.public_wallet_server_url,
         public_url: settings.public_url,
         help_base_url: settings.help_base_url,
+        demo_index_url: settings.demo_index_url,
         usecases: settings.usecases,
         wallet_web: settings.wallet_web,
     });
 
     let mut app = Router::new()
-        .route("/", get(index))
         .route("/sessions", post(create_session))
         .route("/{usecase}/", get(usecase))
         .route(
@@ -157,27 +158,6 @@ struct BaseTemplate<'a> {
 }
 
 #[derive(Template, WebTemplate)]
-#[template(path = "index.askama", escape = "html", ext = "html")]
-struct IndexTemplate<'a> {
-    usecases: &'a [&'a str],
-    base: BaseTemplate<'a>,
-}
-
-async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -> Response {
-    IndexTemplate {
-        usecases: &state.usecases.keys().map(AsRef::as_ref).collect_vec(),
-        base: BaseTemplate {
-            session_token: None,
-            nonce: None,
-            selected_lang: language,
-            trans: &TRANSLATIONS[language],
-            available_languages: &Language::iter().collect_vec(),
-        },
-    }
-    .into_response()
-}
-
-#[derive(Template, WebTemplate)]
 #[template(path = "usecase/usecase.askama", escape = "html", ext = "html")]
 struct UsecaseTemplate<'a> {
     usecase: &'a str,
@@ -239,6 +219,7 @@ pub struct DisclosedAttributesParams {
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
     attributes: DisclosedAttributes,
+    demo_index_url: Url,
     base: BaseTemplate<'a>,
 }
 
@@ -269,6 +250,7 @@ async fn disclosed_attributes(
     match attributes {
         Ok(attributes) => DisclosedAttributesTemplate {
             usecase: &usecase,
+            demo_index_url: state.demo_index_url.clone().into_inner(),
             attributes,
             base,
         }

@@ -18,7 +18,7 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0 16px;
+  margin: 0 16px 16px 16px;
 }
 
 main > * {
@@ -27,13 +27,17 @@ main > * {
 
 aside {
   justify-content: right;
-  padding: 24px 16px 8px 16px;
+  padding: 38px 16px 0 16px;
 }
 
 @media only screen and (min-width: 577px) {
   aside {
-    padding: 24px;
+    padding: 16px 24px;
   }
+}
+
+.lang-selector {
+  margin: 0;
 }
 
 header {
@@ -129,4 +133,12 @@ nav a::before {
 
 #monkey_bike::before {
   background: url("../images/monkey_bike.svg") no-repeat center center / cover;
+}
+
+#university::before {
+  background: url("../images/university.svg") no-repeat center center / cover;
+}
+
+#insurance::before {
+  background: url("../images/insurance.svg") no-repeat center center / cover;
 }

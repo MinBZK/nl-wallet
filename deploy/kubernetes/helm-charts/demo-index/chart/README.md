@@ -53,23 +53,6 @@
 | `resources.requests.memory` | Memory request | `512Mi` |
 | `resources.requests.cpu`    | CPU request    | `300m`  |
 
-### Wallet Server parameters
-
-| Name                       | Description                        | Value |
-| -------------------------- | ---------------------------------- | ----- |
-| `walletServer.hostname`    | Hostname for the wallet server     | `nil` |
-| `walletServer.contextPath` | Context path for the wallet server | `nil` |
-
-### Demo Relying Party parameters
-
-| Name                                 | Description                              | Value |
-| ------------------------------------ | ---------------------------------------- | ----- |
-| `demoRelyingParty.hostname`          | Hostname for the demo Relying Party      | `nil` |
-| `demoRelyingParty.contextPath`       | Context path for the demo Relying Party  | `nil` |
-| `demoRelyingParty.walletWebFilename` | Filename for the wallet web              | `nil` |
-| `demoRelyingParty.walletWebSha256`   | SHA-256 checksum for the wallet web file | `nil` |
-| `helpBaseUrl`                        | Base URL for the help link in wallet web | `nil` |
-
 ### Demo Index parameters
 
 | Name                    | Description                     | Value |

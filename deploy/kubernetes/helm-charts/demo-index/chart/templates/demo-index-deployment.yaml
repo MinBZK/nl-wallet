@@ -36,34 +36,20 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: demo-rp-port
-              containerPort: 3008
+            - name: demo-index-port
+              containerPort: 3004
           volumeMounts:
             - name: config-volume
-              mountPath: /demo_relying_party.toml
+              mountPath: /demo_index.toml
               subPath: config.toml
           env:
-            - name: DEMO_RELYING_PARTY__WEBSERVER__PORT
-              value: "3008"
-            - name: DEMO_RELYING_PARTY__PUBLIC_WALLET_SERVER_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.walletServer.hostname .Values.walletServer.contextPath) }}
-            - name: DEMO_RELYING_PARTY__INTERNAL_WALLET_SERVER_URL
-              value: "http://demo-rp-verification-server:3010/"
-            - name: DEMO_RELYING_PARTY__PUBLIC_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.demoRelyingParty.hostname .Values.demoRelyingParty.contextPath) }}
-            - name: DEMO_RELYING_PARTY__HELP_BASE_URL
-              value: {{ .Values.helpBaseUrl }}
-            - name: DEMO_RELYING_PARTY__DEMO_INDEX_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.demoIndex.hostname .Values.demoIndex.contextPath) }}
-            - name: DEMO_RELYING_PARTY__STRUCTURED_LOGGING
+            - name: DEMO_INDEX__WEBSERVER__PORT
+              value: "3004"
+            - name: DEMO_INDEX__STRUCTURED_LOGGING
               value: "true"
-            - name: DEMO_RELYING_PARTY__WALLET_WEB__FILENAME
-              value: {{ .Values.demoRelyingParty.walletWebFilename }}
-            - name: DEMO_RELYING_PARTY__WALLET_WEB__SHA256
-              value: {{ .Values.demoRelyingParty.walletWebSha256 }}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
         - name: config-volume
           configMap:
-            name: nl-wallet-demo-relying-party-data
+            name: nl-wallet-demo-index-data

@@ -1,0 +1,50 @@
+{% extends "../../demo_utils/templates/base.askama" %}
+{%- import "../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
+
+{% block styles %}
+<link rel="stylesheet" href="./css/reset.css" />
+<link rel="stylesheet" href="./css/button-reset.css" />
+<link rel="stylesheet" href="./css/fonts.css" />
+<link rel="stylesheet" href="./css/demo_bar.css" />
+<link rel="stylesheet" href="./css/nav.css" />
+{% endblock %}
+
+{% block content %}
+<aside>{% call demo_bar::lang_selector(base.selected_lang, base.trans, base.available_languages, demo_utils::OPTION_STR_NONE, demo_utils::OPTION_STR_NONE) %}</aside>
+<header><!-- just the logo --></header>
+<main>
+    <section>
+        <h1>{{ base.trans.index_title }}</h1>
+        <p>
+            {{ base.trans.index_intro }}
+            <a href="https://edi.pleio.nl">{{ base.trans.index_intro_link }}</a>.
+        </p>
+    </section>
+    <nav>
+        {% for service in demo_services %}
+            {% for usecase_id in service.usecases %}
+                <a role="button" id="{{ usecase_id }}" href="{{ service.service_url.join(usecase_id) }}/?lang={{ base.selected_lang }}">
+                    <span>
+                        {% match usecase_id.as_ref() %}
+                            {% when "mijn_amsterdam" %}
+                                {{ base.trans.amsterdam_index }}
+                            {% when "monkey_bike" %}
+                                {{ base.trans.monkeybike_index }}
+                            {% when "online_marketplace" %}
+                                {{ base.trans.marketplace_index }}
+                            {% when "xyz_bank" %}
+                                {{ base.trans.xyz_index }}
+                            {% when "university" %}
+                                {{ base.trans.university_index }}
+                            {% when "insurance" %}
+                                {{ base.trans.insurance_index }}
+                            {% else %}
+                                {{ usecase_id }}
+                        {% endmatch %}
+                    </span>
+                </a>
+            {% endfor %}
+        {% endfor %}
+    </nav>
+</main>
+{% endblock %}

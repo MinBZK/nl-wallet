@@ -6,8 +6,7 @@
 # - wallet_provider
 # - wallet
 # - pid_issuer, verification_server and issuance_server
-# - demo_relying_party
-# - demo_issuer
+# - demo_index, demo_issuer and demo_relying_party
 # - softhsm2
 #
 # User specific variables can be supplied in the `.env` files.
@@ -101,6 +100,7 @@ mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
 mkdir -p "${TARGET_DIR}/verification_server"
 mkdir -p "${TARGET_DIR}/issuance_server"
+mkdir -p "${TARGET_DIR}/demo_index"
 mkdir -p "${TARGET_DIR}/demo_relying_party"
 mkdir -p "${TARGET_DIR}/demo_issuer"
 mkdir -p "${TARGET_DIR}/update_policy_server"
@@ -230,6 +230,8 @@ fi
 openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
         -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
 
+render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_issuer.toml"
+
 # Generate key for WTE signing
 generate_wp_signing_key wte_signing
 WP_WTE_SIGNING_KEY_PATH="${TARGET_DIR}/wallet_provider/wte_signing.pem"
@@ -309,8 +311,7 @@ generate_ws_random_key ephemeral_id_secret
 DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/demo_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
 export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
 
-
-render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_issuer.toml"
+render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_index.toml"
 
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"

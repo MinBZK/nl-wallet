@@ -254,6 +254,17 @@ build-demo-issuer-binary:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_issuer
       - wallet_core/target/x86_64-unknown-linux-musl/release/demo_issuer
 
+build-demo-index-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_index" --bin demo_index
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_index" --bin demo_index
+  artifacts:
+    name: demo_index
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_index
+      - wallet_core/target/x86_64-unknown-linux-musl/release/demo_index
+
 build-gba-hc-converter-binary:
   extends: .build-binary
   script:

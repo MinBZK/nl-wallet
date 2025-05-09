@@ -72,33 +72,8 @@ resources:
     memory: "512Mi"
     cpu: "300m"
 
-## @section Wallet Server parameters
-## Parameters for the wallet server configuration
-## @param walletServer.hostname Hostname for the wallet server
-## @param walletServer.contextPath Context path for the wallet server
-##
-walletServer:
-  hostname: null
-  contextPath: null
-
-## @section Demo Relying Party parameters
-## Parameters for the demo Relying Party configuration
-## @param demoRelyingParty.hostname Hostname for the demo Relying Party
-## @param demoRelyingParty.contextPath Context path for the demo Relying Party
-## @param demoRelyingParty.walletWebFilename Filename for the wallet web
-## @param demoRelyingParty.walletWebSha256 SHA-256 checksum for the wallet web file
-##
-demoRelyingParty:
-  hostname: null
-  contextPath: null
-  walletWebFilename: null
-  walletWebSha256: null
-
-## @param helpBaseUrl Base URL for the help link in wallet web
-helpBaseUrl: null
-
 ## @section Demo Index parameters
-## Parameters for the demo index configuration
+## Parameters for the demo issuer configuration
 ## @param demoIndex.hostname Hostname for the demo index
 ## @param demoIndex.contextPath Context path for the demo index
 ##

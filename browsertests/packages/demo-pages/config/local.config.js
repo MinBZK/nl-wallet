@@ -17,11 +17,7 @@ export default defineConfig({
   ],
   use: {
     baseURL:
-      "https://" +
-      process.env.DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME +
-      "/" +
-      process.env.DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH +
-      "/",
+      "https://" + process.env.DEMO_INDEX_EXTERNAL_HOSTNAME + "/" + process.env.DEMO_INDEX_EXTERNAL_CONTEXT_PATH + "/",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     trace: "retain-on-failure",

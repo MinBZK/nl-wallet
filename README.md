@@ -504,7 +504,7 @@ Next to these configuration files the build can be configured with:
 | file_format                   | Option      | Android build                       | File format (aab / apk)  for Android build. Defaults to `aab`. |
 | fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`. |
 | mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`. |
-| demo_relying_party_url        | Option      | Flutter                             | The URL to launch the demo Relying Party in Browser for tests (passed via Dart define as DEMO_RELYING_PART_URL). |
+| demo_index_url                | Option      | Flutter                             | The URL to launch the demo index page in Browser for tests (passed via Dart define as DEMO_INDEX_URL). |
 
 
 ## Troubleshooting

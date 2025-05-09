@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "${RELYING_PARTY_URL}/"
+    - "${DEMO_INDEX_URL}/"
     includePaths:
-    - "${RELYING_PARTY_URL}/.*"
+    - "${DEMO_INDEX_URL}/.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -124,7 +124,7 @@ jobs:
     theme: "console"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
     reportFile: ""
-    reportTitle: "RELYING_PARTY ZAP Scanning Report"
+    reportTitle: "DEMO_RP_AND_ISSUER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -150,8 +150,8 @@ jobs:
 - parameters:
     template: "traditional-xml"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "RELYING_PARTY-zap.xml"
-    reportTitle: "RELYING_PARTY ZAP Scanning Report"
+    reportFile: "DEMO_RP_AND_ISSUER-zap.xml"
+    reportTitle: "DEMO_RP_AND_ISSUER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -171,8 +171,8 @@ jobs:
 - parameters:
     template: "traditional-json"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "RELYING_PARTY-zap.json"
-    reportTitle: "RELYING_PARTY ZAP Scanning Report"
+    reportFile: "DEMO_RP_AND_ISSUER-zap.json"
+    reportTitle: "DEMO_RP_AND_ISSUER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -189,5 +189,3 @@ jobs:
   sites: []
   name: "report"
   type: "report"
-
-

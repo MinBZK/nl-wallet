@@ -1,6 +1,6 @@
 {
-  "name": "demo-relying-party-browsertests",
-  "description": "Browsertest for demo Relying Party",
+  "name": "demo-pages-browsertests",
+  "description": "Browsertest for demo Issuer and Relying Party",
   "scripts": {
     "test:ci": "npx playwright test --config=config/ci.config.js",
     "test:local": "npx playwright test --config=config/local.config.js"
