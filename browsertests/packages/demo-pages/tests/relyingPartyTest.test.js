@@ -1,11 +1,11 @@
 import { test as base, expect } from "@playwright/test"
-import { DemoRelyingPartyPage } from "../pages/demoRelyingPartyPage.js"
+import { DemoPage } from "../pages/demoPage.js"
 import AxeBuilder from "@axe-core/playwright"
 
 const test = base.extend({
-  demoRelyingPartyPage: async ({ page, baseURL }, use) => {
+  demoPage: async ({ page, baseURL }, use) => {
     await page.goto(baseURL)
-    await use(new DemoRelyingPartyPage(page))
+    await use(new DemoPage(page))
   },
 
   // eslint-disable-next-line no-empty-pattern -- fixtures require destructuring
@@ -13,10 +13,10 @@ const test = base.extend({
     await use(testInfo.project.name.split("-")[1] === "mobile")
   },
 
-  accessibilityCheck: async ({ page, demoRelyingPartyPage }, use) => {
+  accessibilityCheck: async ({ page, demoPage }, use) => {
     async function check() {
       const accessibilityScanResults = await new AxeBuilder({ page })
-        .include(demoRelyingPartyPage.nlWalletButtonTag)
+        .include(demoPage.nlWalletButtonTag)
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
         .analyze()
       expect(accessibilityScanResults.violations).toEqual([])
@@ -28,25 +28,25 @@ const test = base.extend({
 test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end to User", () => {
   test("The library offers a standardized Start-button, the Verifier decides which button text to display.", async ({
     page,
-    demoRelyingPartyPage,
+    demoPage,
   }) => {
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    expect(await demoRelyingPartyPage.getWalletButtonText()).toContain("Login with NL Wallet")
+    await demoPage.goToAmsterdamMunicipality()
+    expect(await demoPage.getWalletButtonText()).toContain("Login with NL Wallet")
     await page.goBack()
-    await demoRelyingPartyPage.goToXyzBank()
-    expect(await demoRelyingPartyPage.getWalletButtonText()).toBe("Use NL Wallet")
+    await demoPage.goToXyzBank()
+    expect(await demoPage.getWalletButtonText()).toBe("Use NL Wallet")
     await page.goBack()
-    await demoRelyingPartyPage.goToMarketplace()
-    expect(await demoRelyingPartyPage.getWalletButtonText()).toBe("Continue with NL Wallet")
+    await demoPage.goToMarketplace()
+    expect(await demoPage.getWalletButtonText()).toBe("Continue with NL Wallet")
     await page.goBack()
-    await demoRelyingPartyPage.goToMonkeyBike()
-    expect(await demoRelyingPartyPage.getWalletButtonText()).toBe("Continue with NL Wallet")
+    await demoPage.goToMonkeyBike()
+    expect(await demoPage.getWalletButtonText()).toBe("Continue with NL Wallet")
     await page.goBack()
   })
 
   test("When a user clicks one of these buttons, the library requests a new disclosure session from the Relying Party backend (to be implemented by the RP). The RP backend should request a new session from the OV and return the information to the library.", async ({
     page,
-    demoRelyingPartyPage,
+    demoPage,
     accessibilityCheck,
   }) => {
     const requestPromise = page.waitForRequest(
@@ -55,8 +55,8 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     const responsePromise = page.waitForResponse(
       (response) => response.url().includes("/disclosure/sessions/") && response.status() === 200,
     )
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
     const request = await requestPromise
     const response = await responsePromise
     const jsonResponse = await response.json()
@@ -69,48 +69,48 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
   test("When the frontend library tries to fetch the session status, but this takes too long or fails, the user is warned that they may not have a good internet connection and offers to try again.", async ({
     context,
     page,
-    demoRelyingPartyPage,
+    demoPage,
     accessibilityCheck,
   }) => {
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
+    await demoPage.goToAmsterdamMunicipality()
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.abort()
     })
     await context.setOffline(true)
-    await demoRelyingPartyPage.openWalletLogin()
-    expect(await demoRelyingPartyPage.getModalMessageHeaderText()).toBe("Sorry, no internet connection")
-    expect(await demoRelyingPartyPage.getModalMessageText()).toBe(
+    await demoPage.openWalletLogin()
+    expect(await demoPage.getModalMessageHeaderText()).toBe("Sorry, no internet connection")
+    expect(await demoPage.getModalMessageText()).toBe(
       "Your internet connection seems to be down or too slow. Check your connection and try again.",
     )
-    expect(await demoRelyingPartyPage.getWebsiteLink()).toBeDefined()
-    await expect(await demoRelyingPartyPage.getTryAgainButton()).toBeVisible()
-    await expect(await demoRelyingPartyPage.getCloseButton()).toBeVisible()
+    expect(await demoPage.getWebsiteLink()).toBeDefined()
+    await expect(await demoPage.getTryAgainButton()).toBeVisible()
+    await expect(await demoPage.getCloseButton()).toBeVisible()
     await accessibilityCheck()
   })
 
   test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
-    demoRelyingPartyPage,
+    demoPage,
     isMobileDevice,
     accessibilityCheck,
   }) => {
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
     /* eslint-disable playwright/no-conditional-expect */
     // eslint-disable-next-line playwright/no-conditional-in-test,
     if (isMobileDevice) {
-      await expect(await demoRelyingPartyPage.getSameDeviceButton()).toBeVisible()
-      await expect(await demoRelyingPartyPage.getCrossDeviceButton()).toBeVisible()
-      await expect(await demoRelyingPartyPage.getQrCode()).toBeHidden()
-      await expect(await demoRelyingPartyPage.getCloseButton()).toBeVisible()
-      expect(await demoRelyingPartyPage.getWebsiteLink()).toBeDefined()
+      await expect(await demoPage.getSameDeviceButton()).toBeVisible()
+      await expect(await demoPage.getCrossDeviceButton()).toBeVisible()
+      await expect(await demoPage.getQrCode()).toBeHidden()
+      await expect(await demoPage.getCloseButton()).toBeVisible()
+      expect(await demoPage.getWebsiteLink()).toBeDefined()
       await accessibilityCheck()
     } else {
-      await expect(await demoRelyingPartyPage.getSameDeviceButton()).toBeHidden()
-      await expect(await demoRelyingPartyPage.getCrossDeviceButton()).toBeHidden()
-      await expect(await demoRelyingPartyPage.getQrCode()).toBeVisible()
-      await expect(await demoRelyingPartyPage.getCloseButton()).toBeVisible()
-      expect(await demoRelyingPartyPage.getWebsiteLink()).toBeDefined()
-      expect(await demoRelyingPartyPage.getModalMessageHeaderText()).toBe("Scan the QR code with your NL Wallet app")
+      await expect(await demoPage.getSameDeviceButton()).toBeHidden()
+      await expect(await demoPage.getCrossDeviceButton()).toBeHidden()
+      await expect(await demoPage.getQrCode()).toBeVisible()
+      await expect(await demoPage.getCloseButton()).toBeVisible()
+      expect(await demoPage.getWebsiteLink()).toBeDefined()
+      expect(await demoPage.getModalMessageHeaderText()).toBe("Scan the QR code with your NL Wallet app")
       await accessibilityCheck()
     }
     /* eslint-enable */
@@ -118,20 +118,20 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
 
   test("The QR is automatically refreshed every 2 second to prevent a passive attacker from just relaying the QR code to (potential) victims.", async ({
     page,
-    demoRelyingPartyPage,
+    demoPage,
   }) => {
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
-    await demoRelyingPartyPage.startCrossDeviceFlow()
-    const initialQrScreenshot = await demoRelyingPartyPage.getQrScreenshot()
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
+    await demoPage.startCrossDeviceFlow()
+    const initialQrScreenshot = await demoPage.getQrScreenshot()
     await page.waitForTimeout(2100) // eslint-disable-line playwright/no-wait-for-timeout
-    const newQrScreenshot = await demoRelyingPartyPage.getQrScreenshot()
+    const newQrScreenshot = await demoPage.getQrScreenshot()
     expect(newQrScreenshot).not.toEqual(initialQrScreenshot)
   })
 
   test('The library polls the status of this session. Upon "failed", the library informs the user that something went wrong and offers the option to try again, which leads to a new session.', async ({
     page,
-    demoRelyingPartyPage,
+    demoPage,
     accessibilityCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
@@ -139,21 +139,21 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
         status: 500,
       })
     })
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
-    expect(await demoRelyingPartyPage.getModalMessageHeaderText()).toBe("Sorry, something went wrong")
-    expect(await demoRelyingPartyPage.getModalMessageText()).toBe(
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
+    expect(await demoPage.getModalMessageHeaderText()).toBe("Sorry, something went wrong")
+    expect(await demoPage.getModalMessageText()).toBe(
       "This action was unsuccessful. This may have several reasons. Please try again.",
     )
-    await expect(await demoRelyingPartyPage.getTryAgainButton()).toBeVisible()
-    expect(await demoRelyingPartyPage.getWebsiteLink()).toBeDefined()
-    await expect(await demoRelyingPartyPage.getCloseButton()).toBeVisible()
+    await expect(await demoPage.getTryAgainButton()).toBeVisible()
+    expect(await demoPage.getWebsiteLink()).toBeDefined()
+    await expect(await demoPage.getCloseButton()).toBeVisible()
     await accessibilityCheck()
   })
 
   test('The library polls the status of this session. Upon "waiting for response", the library hides the QR code (when in cross-device) and tells the User to follow the instructions on their mobile device.', async ({
     page,
-    demoRelyingPartyPage,
+    demoPage,
     accessibilityCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
@@ -163,18 +163,18 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
         body: JSON.stringify({ status: "WAITING_FOR_RESPONSE" }),
       })
     })
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
-    expect(await demoRelyingPartyPage.getModalMessageHeaderText()).toBe("Follow the steps in your NL Wallet app")
-    await expect(await demoRelyingPartyPage.getHelpLink()).toBeVisible()
-    expect(await demoRelyingPartyPage.getWebsiteLink()).toBeDefined()
-    await expect(await demoRelyingPartyPage.getCancelButton()).toBeVisible()
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
+    expect(await demoPage.getModalMessageHeaderText()).toBe("Follow the steps in your NL Wallet app")
+    await expect(await demoPage.getHelpLink()).toBeVisible()
+    expect(await demoPage.getWebsiteLink()).toBeDefined()
+    await expect(await demoPage.getCancelButton()).toBeVisible()
     await accessibilityCheck()
   })
 
   test('The library polls the status of this session. Upon "expired", the library informs the user that the session was expired and offers them the option to try again, which leads to a new session.', async ({
     page,
-    demoRelyingPartyPage,
+    demoPage,
     accessibilityCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
@@ -184,21 +184,21 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
         body: JSON.stringify({ status: "EXPIRED" }),
       })
     })
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
-    expect(await demoRelyingPartyPage.getModalMessageHeaderText()).toBe("Sorry, time is over")
-    expect(await demoRelyingPartyPage.getModalMessageText()).toBe(
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
+    expect(await demoPage.getModalMessageHeaderText()).toBe("Sorry, time is over")
+    expect(await demoPage.getModalMessageText()).toBe(
       "This action has been stopped because too much time has passed. This happens to keep your data safe. Please try again.",
     )
-    await expect(await demoRelyingPartyPage.getHelpLink()).toBeVisible()
-    await expect(await demoRelyingPartyPage.getTryAgainButton()).toBeVisible()
-    await expect(await demoRelyingPartyPage.getCloseButton()).toBeVisible()
+    await expect(await demoPage.getHelpLink()).toBeVisible()
+    await expect(await demoPage.getTryAgainButton()).toBeVisible()
+    await expect(await demoPage.getCloseButton()).toBeVisible()
     await accessibilityCheck()
   })
 
   test('The library polls the status of this session. Upon "cancelled", the library confirms to the user that they have aborted the session and offers them the option to try again, which leads to a new session.', async ({
     page,
-    demoRelyingPartyPage,
+    demoPage,
     accessibilityCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
@@ -208,24 +208,24 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
         body: JSON.stringify({ status: "CANCELLED" }),
       })
     })
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
-    expect(await demoRelyingPartyPage.getModalMessageHeaderText()).toBe("Stopped")
-    expect(await demoRelyingPartyPage.getModalMessageText()).toBe("Because you have stopped, no data has been shared.")
-    await expect(await demoRelyingPartyPage.getHelpLink()).toBeVisible()
-    await expect(await demoRelyingPartyPage.getTryAgainButton()).toBeVisible()
-    await expect(await demoRelyingPartyPage.getCloseButton()).toBeVisible()
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
+    expect(await demoPage.getModalMessageHeaderText()).toBe("Stopped")
+    expect(await demoPage.getModalMessageText()).toBe("Because you have stopped, no data has been shared.")
+    await expect(await demoPage.getHelpLink()).toBeVisible()
+    await expect(await demoPage.getTryAgainButton()).toBeVisible()
+    await expect(await demoPage.getCloseButton()).toBeVisible()
     await accessibilityCheck()
   })
 
   test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
-    demoRelyingPartyPage,
+    demoPage,
     isMobileDevice,
   }) => {
-    await demoRelyingPartyPage.setDutchLanguage()
-    await demoRelyingPartyPage.goToAmsterdamMunicipality()
-    await demoRelyingPartyPage.openWalletLogin()
-    expect(await demoRelyingPartyPage.getModalMessageHeaderText()).toBe(
+    await demoPage.setDutchLanguage()
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
+    expect(await demoPage.getModalMessageHeaderText()).toBe(
       isMobileDevice ? "Op welk apparaat staat je NL Wallet app?" : "Scan de QR-code met je NL Wallet app",
     )
   })

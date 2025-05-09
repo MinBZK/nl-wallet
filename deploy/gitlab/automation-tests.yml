@@ -148,7 +148,7 @@ browsertests-format-lint:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
   extends: .env-ont-k8s
 
-run-demo-rp-browsertest-test-ont:
+run-demo-pages-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
     - !reference [.default-branch, rules]
@@ -158,24 +158,24 @@ run-demo-rp-browsertest-test-ont:
   script: |
     cd browsertests
     npm ci
-    cd packages/demo-relying-party
+    cd packages/demo-pages
     npx playwright install chromium webkit
     npm run test:ci
   variables:
-    DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME: "${DEMO_RELYING_PARTY_EXTERNAL_HOSTNAME_ONT}"
+    DEMO_INDEX_EXTERNAL_HOSTNAME: "${DEMO_INDEX_EXTERNAL_HOSTNAME_ONT}"
   after_script:
-    - deploy/bin/store-artifact.sh browsertests/packages/demo-relying-party/test-results/results.xml qt/quality-time/junit-results/browsertest-demo-rp.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-demo-rp.zip browsertests/packages/demo-relying-party/allure-results/*
+    - deploy/bin/store-artifact.sh browsertests/packages/demo-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-demo-pages.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-demo-pages.zip browsertests/packages/demo-pages/allure-results/*
   artifacts:
     name: browsertest-demo-rp
     when: always
     paths:
-      - browsertests/packages/demo-relying-party/test-results/
-      - browsertests/packages/demo-relying-party/allure-results/
+      - browsertests/packages/demo-pages/test-results/
+      - browsertests/packages/demo-pages/allure-results/
     reports:
-      junit: browsertests/packages/demo-relying-party/test-results/*.xml
+      junit: browsertests/packages/demo-pages/test-results/*.xml
 
-run-fallback-page-browsertest-test-ont:
+run-fallback-pages-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
     - !reference [.default-branch, rules]
@@ -219,8 +219,8 @@ run-gba-fetch-browsertest-test-ont:
     npm run test:authenticated
     npm run test:unauthenticated
   after_script:
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/test-results-*/*.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-gbafetch.zip browsertests/packages/gba-fetch/allure-results/*
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/browsertest-gba-fetch.zip browsertests/packages/gba-fetch/test-results-*/*.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-gba-fetch.zip browsertests/packages/gba-fetch/allure-results/*
   artifacts:
     name: browsertest-gba-fetch
     when: always
