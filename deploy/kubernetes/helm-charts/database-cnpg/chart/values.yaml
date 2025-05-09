@@ -65,18 +65,18 @@ persistence:
 
 ## @section Resource configuration
 ## Parameters for the resource requests and limits
-## @param resources.requests.memory Memory request for the container
 ## @param resources.requests.cpu CPU request for the container
-## @param resources.limits.memory Memory limit for the container
+## @param resources.requests.memory Memory request for the container
 ## @param resources.limits.cpu CPU limit for the container
+## @param resources.limits.memory Memory limit for the container
 ##
 resources:
   requests:
-    memory: "384Mi"
     cpu: "400m"
+    memory: "384Mi"
   limits:
+    cpu: "1000m"
     memory: "512Mi"
-    cpu: "800m"
 
 ## @section PostgreSQL parameters
 ## Parameters for PostgreSQL configuration

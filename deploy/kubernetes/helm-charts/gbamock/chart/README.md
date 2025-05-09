@@ -42,10 +42,10 @@
 
 | Name                        | Description    | Value   |
 | --------------------------- | -------------- | ------- |
-| `resources.limits.memory`   | Memory limit   | `512Mi` |
-| `resources.limits.cpu`      | CPU limit      | `100m`  |
-| `resources.requests.memory` | Memory request | `128Mi` |
 | `resources.requests.cpu`    | CPU request    | `50m`   |
+| `resources.requests.memory` | Memory request | `64Mi`  |
+| `resources.limits.cpu`      | CPU limit      | `200m`  |
+| `resources.limits.memory`   | Memory limit   | `128Mi` |
 
 ### GbaMock parameters
 

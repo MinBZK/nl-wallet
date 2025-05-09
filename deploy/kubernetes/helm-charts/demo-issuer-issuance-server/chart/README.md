@@ -58,10 +58,10 @@
 
 | Name                        | Description    | Value   |
 | --------------------------- | -------------- | ------- |
-| `resources.limits.memory`   | Memory limit   | `512Mi` |
-| `resources.limits.cpu`      | CPU limit      | `500m`  |
-| `resources.requests.memory` | Memory request | `512Mi` |
-| `resources.requests.cpu`    | CPU request    | `300m`  |
+| `resources.requests.cpu`    | CPU request    | `50m`   |
+| `resources.requests.memory` | Memory request | `64Mi`  |
+| `resources.limits.memory`   | Memory limit   | `128Mi` |
+| `resources.limits.cpu`      | CPU limit      | `200m`  |
 
 ### Issuance Server parameters
 

@@ -56,10 +56,10 @@
 | `gbaHcConverter.envVarNamePreloaded`       | Environment variable name for the preloaded run mode           | `ALL__PRELOADED`                      |
 | `gbaHcConverter.envVarNameGbav`            | Environment variable name for the GBAV run mode                | `ALL__GBAV`                           |
 | `gbaHcConverter.preloadedXmlPath`          | Path to the preloaded XML files                                | `resources/encrypted-gba-v-responses` |
+| `gbaHcConverter.resources.requests.cpu`    | CPU request                                                    | `50m`                                 |
+| `gbaHcConverter.resources.requests.memory` | Memory request                                                 | `64Mi`                                |
+| `gbaHcConverter.resources.limits.cpu`      | CPU limit                                                      | `200m`                                |
 | `gbaHcConverter.resources.limits.memory`   | Memory limit                                                   | `128Mi`                               |
-| `gbaHcConverter.resources.limits.cpu`      | CPU limit                                                      | `400m`                                |
-| `gbaHcConverter.resources.requests.memory` | Memory request                                                 | `128Mi`                               |
-| `gbaHcConverter.resources.requests.cpu`    | CPU request                                                    | `100m`                                |
 
 ### GBA Fetch parameters
 
@@ -97,10 +97,10 @@
 | `frontend.extraPodlabels`            | Additional labels for the frontend pods       | `{}`                 |
 | `frontend.ingress.className`         | Ingress class name for the frontend           | `nginx`              |
 | `frontend.ingress.secretName`        | Secret name for the ingress TLS configuration | `nil`                |
-| `frontend.resources.limits.memory`   | Memory limit for the frontend container       | `128Mi`              |
-| `frontend.resources.limits.cpu`      | CPU limit for the frontend container          | `100m`               |
-| `frontend.resources.requests.memory` | Memory request for the frontend container     | `128Mi`              |
 | `frontend.resources.requests.cpu`    | CPU request for the frontend container        | `50m`                |
+| `frontend.resources.requests.memory` | Memory request for the frontend container     | `64Mi`               |
+| `frontend.resources.limits.cpu`      | CPU limit for the frontend container          | `200m`               |
+| `frontend.resources.limits.memory`   | Memory limit for the frontend container       | `128Mi`              |
 
 ### Preload GBA Pod parameters
 

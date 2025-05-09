@@ -42,10 +42,10 @@
 
 | Name                        | Description    | Value   |
 | --------------------------- | -------------- | ------- |
-| `resources.limits.memory`   | Memory limit   | `512Mi` |
-| `resources.limits.cpu`      | CPU limit      | `100m`  |
+| `resources.requests.cpu`    | CPU request    | `100m`  |
 | `resources.requests.memory` | Memory request | `128Mi` |
-| `resources.requests.cpu`    | CPU request    | `50m`   |
+| `resources.limits.cpu`      | CPU limit      | `500m`  |
+| `resources.limits.memory`   | Memory limit   | `256Mi` |
 
 ### Environment variables
 
