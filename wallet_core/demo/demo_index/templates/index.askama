@@ -39,7 +39,7 @@
                             {% when "insurance" %}
                                 {{ base.trans.insurance_index }}
                             {% else %}
-                                panic!("usecase_id not found")
+                                {{ usecase_id }}
                         {% endmatch %}
                     </span>
                 </a>
