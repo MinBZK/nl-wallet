@@ -1,8 +1,9 @@
 use chrono::DateTime;
 use chrono::Utc;
-use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::x509::CertificateType;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateUsage;
 use utils::generator::Generator;
@@ -13,14 +14,10 @@ use crate::device_retrieval::ReaderAuthenticationKeyed;
 use crate::engagement::SessionTranscript;
 use crate::errors::Result;
 use crate::holder::HolderError;
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierHolder;
 use crate::utils::cose::ClonePayload;
-use crate::utils::reader_auth::ReaderRegistration;
 use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
-use crate::utils::x509::CertificateType;
 use crate::ItemsRequest;
 
 impl DeviceRequest {
@@ -86,15 +83,6 @@ impl DeviceRequest {
     }
 }
 
-impl<'a, T: IntoIterator<Item = &'a ItemsRequest> + Clone> AttributeIdentifierHolder for T {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.clone()
-            .into_iter()
-            .flat_map(|items_request| items_request.attribute_identifiers())
-            .collect()
-    }
-}
-
 impl DocRequest {
     pub fn verify(
         &self,
@@ -126,13 +114,13 @@ impl DocRequest {
 mod tests {
     use assert_matches::assert_matches;
 
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
     use utils::generator::TimeGenerator;
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
-    use crate::server_keys::generate::mock::generate_reader_mock;
     use crate::utils::cose;
     use crate::utils::cose::MdocCose;
 

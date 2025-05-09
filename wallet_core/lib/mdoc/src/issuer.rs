@@ -114,21 +114,22 @@ mod tests {
 
     use chrono::Days;
     use ciborium::Value;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
-    use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
+
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use crypto::mock_remote::MockRemoteEcdsaKey;
+    use crypto::server_keys::generate::Ca;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::TimeGenerator;
 
     use crate::holder::Mdoc;
-    use crate::server_keys::generate::mock::generate_issuer_mock;
     use crate::unsigned::Entry;
     use crate::unsigned::UnsignedMdoc;
     use crate::utils::cose::CoseKey;
-    use crate::utils::issuer_auth::IssuerRegistration;
     use crate::utils::serialization::TaggedBytes;
     use crate::verifier::ValidityRequirement;
     use crate::IssuerSigned;

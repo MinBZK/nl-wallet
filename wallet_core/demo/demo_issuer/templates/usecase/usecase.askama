@@ -1,0 +1,34 @@
+{% extends "../../../demo_utils/templates/base.askama" %}
+{%- import "../../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
+{%- import "../../../demo_utils/templates/components/header.askama" as header -%}
+{%- import "../../../demo_utils/templates/components/notification.askama" as notification -%}
+{%- import "../components/banner.askama" as banner -%}
+
+{% block styles %}
+<link rel="stylesheet" href="../css/demo_bar.css" />
+<link rel="stylesheet" href="../css/{{ usecase }}.css" />
+{% endblock %}
+
+{% block scripts %}
+<script integrity="sha256-{{ wallet_web_sha256 }}" type="module" src="../{{ wallet_web_filename }}"></script>
+{% endblock %}
+
+{% block content %}
+{% match usecase %}
+    {% when "university" %}
+        {% include "university.askama" %}
+    {% when "insurance" %}
+        {% include "insurance.askama" %}
+    {% else %}
+        <nl-wallet-button
+            text={{ base.trans.add_to_nl_wallet }}
+            same-device-ul="{{ same_device_ul }}"
+            cross-device-ul="{{ cross_device_ul }}"
+            help-base-url="{{ help_base_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+{% endmatch %}
+
+{# should be last for accessibility purposes #}
+{% call demo_bar::demo_bar(base.trans.demo_follow_development, "https://edi.pleio.nl", "edi.pleio.nl", base.selected_lang, base.trans, base.available_languages, demo_utils::OPTION_STR_NONE, demo_utils::OPTION_STR_NONE) %}
+{% endblock %}

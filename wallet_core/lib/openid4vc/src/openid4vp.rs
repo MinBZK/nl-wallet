@@ -828,17 +828,17 @@ mod tests {
     use itertools::Itertools;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
-    use jwt::Jwt;
-    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::examples::Examples;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
+    use jwt::Jwt;
     use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
     use mdoc::examples::IsoCertTimeGenerator;

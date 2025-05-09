@@ -12,6 +12,7 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use url::Url;
 
+use attestation_data::x509::CertificateType;
 use crypto::p256_der::DerSigningKey;
 use crypto::server_keys::KeyPair as ParsedKeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
@@ -21,7 +22,6 @@ use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use hsm::settings::Hsm;
 use http_utils::urls::BaseUrl;
-use mdoc::utils::x509::CertificateType;
 use openid4vc::server_state::SessionStoreTimeouts;
 use utils::generator::Generator;
 

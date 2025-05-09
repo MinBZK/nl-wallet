@@ -1,0 +1,22 @@
+main {
+  width: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 16px;
+  background: #fff;
+}
+
+main > * {
+  max-width: 1145px;
+  width: 100%;
+}
+
+@media only screen and (min-width: 1145px) {
+  main {
+    padding: 32px;
+    gap: 48px;
+  }
+}

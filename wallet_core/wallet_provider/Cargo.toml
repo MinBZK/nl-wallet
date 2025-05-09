@@ -24,7 +24,7 @@ path = "tests/settings.rs"
 required-features = ["hsm_test"]
 
 [features]
-# Allow software key attestations coming from the android emulator.
+# Allow software key attestation_datas coming from the android emulator.
 # This is DANGEROUS and should not be used in any production environment.
 allow_android_emulator_keys = ["android_attest/allow_emulator_keys"]
 # Mocks responses from the Google Integrity Verdict API and spoofs the request hash in these responses.

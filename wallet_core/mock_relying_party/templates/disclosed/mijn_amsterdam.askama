@@ -1,8 +1,0 @@
-{% call header::header(base.trans.amsterdam_title, base.trans.amsterdam_profile_name) %}
-<main>
-    {% call notification::notification(base.trans.amsterdam_success, base.trans.amsterdam_logged_in, "") %}
-    <section>
-        <h2 class="primary">{{ base.trans.amsterdam_welcome }}</h2>
-        <h3>{{ base.trans.amsterdam_subtitle }}</h3>
-    </section>
-</main>

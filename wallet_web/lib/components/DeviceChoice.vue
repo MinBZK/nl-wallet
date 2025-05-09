@@ -3,7 +3,7 @@ import { type SessionType } from "@/models/status"
 import { injectStrict, translationsKey } from "@/util/translations"
 
 defineProps<{
-  ul: string
+  ul: URL
 }>()
 
 const t = injectStrict(translationsKey)
@@ -18,7 +18,7 @@ const emit = defineEmits<{
   <section class="buttons" data-testid="device_choice">
     <a
       role="button"
-      :href="ul"
+      :href="ul.toString()"
       target="_blank"
       class="button primary"
       data-testid="same_device_button"

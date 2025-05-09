@@ -1,0 +1,12 @@
+.banner {
+  height: 181px;
+  background-position: top;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+@media only screen and (min-width: 1145px) {
+  .banner {
+    height: 250px;
+  }
+}

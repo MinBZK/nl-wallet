@@ -47,7 +47,7 @@ build-wp-migrations-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider-migrations
 
-.build-docker-image-mrp:
+.build-docker-image-demo-rp:
   extends: .build-docker-image
   script:
     - TAG=${CI_COMMIT_TAG:-latest}
@@ -56,15 +56,15 @@ build-wp-migrations-image:
       --dockerfile $DOCKER_FILE_TO_BUILD
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --build-arg CSP_SCRIPT_MRP_BASE64="${ARG_CSP_SCRIPT_MRP_BASE64}"
-      --build-arg CSP_STYLE_MRP_BASE64="${ARG_CSP_STYLE_MRP_BASE64}"
+      --build-arg CSP_SCRIPT_DEMO_RP="${ARG_CSP_SCRIPT_DEMO_RP}"
+      --build-arg CSP_STYLE_DEMO_RP="${ARG_CSP_STYLE_DEMO_RP}"
       --build-arg WALLET_WEB_FILENAME="${ARG_WALLET_WEB_FILENAME}"
       --build-arg WALLET_WEB_SHA256="${ARG_WALLET_WEB_SHA256}"
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
 
-build-mock-relying-party-image:
-  extends: .build-docker-image-mrp
+build-demo-relying-party-image:
+  extends: .build-docker-image-demo-rp
   needs:
     - job: build-wallet-web
       artifacts: true
@@ -72,13 +72,55 @@ build-mock-relying-party-image:
       artifacts: true
   before_script:
     - !reference [.build-docker-image, before_script]
-    - ARG_CSP_SCRIPT_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_script_src_mrp_base64.txt)"
-    - ARG_CSP_STYLE_MRP_BASE64="$(cat wallet_core/mock_relying_party/hashes/csp_style_src_mrp_base64.txt)"
-    - ARG_WALLET_WEB_FILENAME="$(cat wallet_core/mock_relying_party/hashes/wallet_web_filename.txt)"
-    - ARG_WALLET_WEB_SHA256="$(cat wallet_core/mock_relying_party/hashes/wallet_web_sha256.txt)"
+    - ARG_CSP_SCRIPT_DEMO_RP="$(cat wallet_core/demo/demo_relying_party/hashes/csp_script_src.txt)"
+    - ARG_CSP_STYLE_DEMO_RP="$(cat wallet_core/demo/demo_relying_party/hashes/csp_style_src.txt)"
+    - ARG_WALLET_WEB_FILENAME="$(cat wallet_core/demo/demo_relying_party/hashes/wallet_web_filename.txt)"
+    - ARG_WALLET_WEB_SHA256="$(cat wallet_core/demo/demo_relying_party/hashes/wallet_web_sha256.txt)"
   variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/mock_relying_party/Dockerfile
-    DOCKER_IMAGE_NAME: nl-wallet-mock-relying-party
+    DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_relying_party/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-demo-relying-party
+
+.build-docker-image-demo-issuer:
+  extends: .build-docker-image
+  script:
+    - TAG=${CI_COMMIT_TAG:-latest}
+    - /kaniko/executor
+      --context wallet_core
+      --dockerfile $DOCKER_FILE_TO_BUILD
+      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
+      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
+      --build-arg CSP_SCRIPT_DEMO_ISSUER="${ARG_CSP_SCRIPT_DEMO_ISSUER}"
+      --build-arg CSP_STYLE_DEMO_ISSUER="${ARG_CSP_STYLE_DEMO_ISSUER}"
+      --build-arg WALLET_WEB_FILENAME="${ARG_WALLET_WEB_FILENAME}"
+      --build-arg WALLET_WEB_SHA256="${ARG_WALLET_WEB_SHA256}"
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
+
+build-demo-issuer-image:
+  extends: .build-docker-image-demo-issuer
+  needs:
+    - job: build-wallet-web
+      artifacts: true
+    - job: build-demo-issuer-binary
+      artifacts: true
+  before_script:
+    - !reference [.build-docker-image, before_script]
+    - ARG_CSP_SCRIPT_DEMO_ISSUER="$(cat wallet_core/demo/demo_issuer/hashes/csp_script_src.txt)"
+    - ARG_CSP_STYLE_DEMO_ISSUER="$(cat wallet_core/demo/demo_issuer/hashes/csp_style_src.txt)"
+    - ARG_WALLET_WEB_FILENAME="$(cat wallet_core/demo/demo_issuer/hashes/wallet_web_filename.txt)"
+    - ARG_WALLET_WEB_SHA256="$(cat wallet_core/demo/demo_issuer/hashes/wallet_web_sha256.txt)"
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_issuer/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-demo-issuer
+
+build-demo-issuer-index:
+  extends: .build-docker-image
+  needs:
+    - job: build-demo-index-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_index/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-demo-index
 
 build-verification-server-image:
   extends: .build-docker-image
@@ -87,7 +129,16 @@ build-verification-server-image:
       artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/verification_server/Dockerfile
-    DOCKER_IMAGE_NAME: nl-verification-server
+    DOCKER_IMAGE_NAME: nl-wallet-verification-server
+
+build-issuance-server-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-issuance-server-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/issuance_server/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-issuance-server
 
 build-pid-issuer-image:
   extends: .build-docker-image
@@ -96,7 +147,7 @@ build-pid-issuer-image:
       artifacts: true
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/pid_issuer/Dockerfile
-    DOCKER_IMAGE_NAME: nl-pid-issuer
+    DOCKER_IMAGE_NAME: nl-wallet-pid-issuer
 
 build-ws-migrations-image:
   extends: .build-docker-image

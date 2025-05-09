@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
-use mdoc::utils::issuer_auth::IssuerRegistration;
 use poa::factory::PoaFactory;
 
 use crate::issuance_session::CredentialPreviewsNormalizedMetadata;

@@ -150,12 +150,12 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
       );
       defaultMenuItems.add(designSystemItem);
     }
-    if (widget.showBrowserTestRow && Environment.mockRelyingPartyUrl.isNotEmpty) {
+    if (widget.showBrowserTestRow && Environment.demoRelyingPartyUrl.isNotEmpty) {
       final browserTestItem = MenuRow(
         label: context.l10n.menuScreenBrowserCta,
-        subtitle: 'Open url: ${Environment.mockRelyingPartyUrl}',
+        subtitle: 'Open url: ${Environment.demoRelyingPartyUrl}',
         icon: Icons.web,
-        onTap: () => launchUrlString(Environment.mockRelyingPartyUrl, mode: LaunchMode.externalApplication),
+        onTap: () => launchUrlString(Environment.demoRelyingPartyUrl, mode: LaunchMode.externalApplication),
       );
       defaultMenuItems.add(browserTestItem);
     }

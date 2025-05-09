@@ -6,6 +6,7 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use wallet::attestation_data::LocalizedStrings;
 use wallet::errors::openid4vc::AuthorizationErrorCode;
 use wallet::errors::openid4vc::IssuanceSessionError;
 use wallet::errors::openid4vc::OidcError;
@@ -29,7 +30,6 @@ use wallet::errors::UriIdentificationError;
 use wallet::errors::WalletInitError;
 use wallet::errors::WalletRegistrationError;
 use wallet::errors::WalletUnlockError;
-use wallet::mdoc::LocalizedStrings;
 use wallet::openid4vc::SessionType;
 
 /// A type encapsulating data about a Flutter error that
@@ -253,8 +253,9 @@ impl FlutterApiErrorFields for IssuanceError {
             };
 
         let organization_name = match self {
-            IssuanceError::Attestation { organization, .. } => Some(organization.display_name.clone()),
-            IssuanceError::IssuerServer { organization, .. } => Some(organization.display_name.clone()),
+            IssuanceError::Attestation { organization, .. } | IssuanceError::IssuerServer { organization, .. } => {
+                Some(organization.display_name.clone())
+            }
             _ => None,
         };
 

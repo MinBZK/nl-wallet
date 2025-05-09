@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 4 }}
+  ports:
+    - name: demo-rp-ws-http
+      port: 3009
+      targetPort: wallet-port
+      protocol: TCP
+    - name: demo-rp-ws-req-http
+      port: 3010
+      targetPort: requester-port
+      protocol: TCP

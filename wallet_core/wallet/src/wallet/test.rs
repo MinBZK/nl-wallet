@@ -2,7 +2,6 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use futures::future::FutureExt;
-use mdoc::server_keys::generate::mock::generate_issuer_mock;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
@@ -10,6 +9,8 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::server_keys::generate::Ca;
@@ -18,7 +19,6 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::UnsignedMdoc;
-use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::IssuerSigned;
 use openid4vc::mock::MockIssuanceSession;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;

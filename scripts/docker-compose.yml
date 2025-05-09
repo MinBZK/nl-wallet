@@ -22,12 +22,12 @@ services:
     image: ghcr.io/brp-api/haal-centraal-brp-bevragen-proxy:latest
     environment:
       - ASPNETCORE_ENVIRONMENT=Release
-      - ASPNETCORE_URLS=http://+:3007
+      - ASPNETCORE_URLS=http://+:3011
       - Routes__0__DownstreamScheme=http
       - Routes__0__DownstreamHostAndPorts__0__Host=docker-host
       - Routes__0__DownstreamHostAndPorts__0__Port=${GBA_HC_CONV_PORT}
     ports:
-      - "${BRP_SERVER_PORT}:3007"
+      - "${BRP_SERVER_PORT}:3011"
     network_mode: bridge
     extra_hosts:
       - "docker-host:host-gateway"

@@ -33,6 +33,9 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   StreamSubscription? _inactiveWarningSubscription;
   StreamSubscription? _inactiveSubscription;
 
+  /// When true, semantic events will reset the 'user idle' ([_userInteractionStream]) timer
+  bool _semanticsTimerResetEnabled = true;
+
   LockWalletUseCase get _lockWalletUseCase => context.read();
 
   IsWalletRegisteredAndUnlockedUseCase get _isWalletRegisteredAndUnlockedUseCase => context.read();
@@ -62,7 +65,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
 
   void _setupSemanticActionListener() {
     PlatformDispatcher.instance.onSemanticsActionEvent = (SemanticsActionEvent action) {
-      if (action.type != SemanticsAction.didLoseAccessibilityFocus) _resetIdleTimeout();
+      if (_semanticsTimerResetEnabled && action.type != SemanticsAction.didLoseAccessibilityFocus) _resetIdleTimeout();
       try {
         final Object? arguments = action.arguments;
         // Decode the [SemanticsActionEvent] before passing it on. Needed to avoid ex. & support scroll like events.
@@ -123,7 +126,16 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
   }
 
   // Show the Timeout Warning Dialog (not called directly due to missing theme for the local context)
-  void _showIdleDialog(_) => context.read<NavigationService>().showDialog(WalletDialogType.idleWarning);
+  void _showIdleDialog(_) {
+    try {
+      // Briefly disable the semantics idle reset timer to avoid resetting the timer when the dialog grabs focus
+      _semanticsTimerResetEnabled = false;
+      context.read<NavigationService>().showDialog(WalletDialogType.idleWarning, dismissOpenDialogs: true);
+    } finally {
+      // Re-enable the idle timer
+      Future.delayed(Duration(seconds: 1)).then((_) => _semanticsTimerResetEnabled = true);
+    }
+  }
 
   void _lockWallet(_) {
     Fimber.d('Locking wallet!');

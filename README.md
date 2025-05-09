@@ -168,11 +168,12 @@ anything, but the glibc binary really requires a glibc-based distribution.
 - BrpProxy v2.1.x (see [their repository][28] for details)
 
 Specifically for PostgreSQL you need to consider storage requirements. Our
-database-backed services are wallet_provider, verification_server and pid_issuer.
-They have a very simple database layout.
-A good ballpark figure is to allocate 100GiB for a wallet_provider instance and
-10GiB for instances of the verification_server or pid_issuer.
-Of course, these requirements will change with time and duration of usage, and are subject to change.
+database-backed services are wallet_provider, verification_server,
+issuance_server and pid_issuer. They have a very simple database layout. A good
+ballpark figure is to allocate 100GiB for a wallet_provider instance and 10GiB
+for instances of the verification_server, issuance_server or pid_issuer. Of
+course, these requirements will change with time and duration of usage, and are
+subject to change.
 
 ##### Static configuration service
 
@@ -182,8 +183,10 @@ Of course, these requirements will change with time and duration of usage, and a
 
 - wallet_provider
 - verification_server,
+- issuance_server
 - pid_issuer
-- mock_relying_party
+- demo_relying_party
+- demo_issuer
 - gba_hc_converter
 
 The above Rust-based services require a regular Linux machine or container
@@ -195,7 +198,7 @@ requirements are effectively non-existent due to usage of PostgreSQL for state.
 #### Network connectivity
 
 For end-users, an internet connection is required to use the disclosure and
-issueance features of the wallet app. For relying parties and issuers, who want
+issuance features of the wallet app. For relying parties and issuers, who want
 to obtain disclosed attributes and issue attributes respectively, the same
 requirement holds.
 
@@ -295,8 +298,10 @@ following:
 
 - wallet_provider
 - verification_server
+- issuance_server
 - pid_issuer
-- mock_relying_party
+- demo_relying_party
+- demo_issuer
 - digid-connector
 - configuration_server
 - brpproxy
@@ -499,7 +504,7 @@ Next to these configuration files the build can be configured with:
 | file_format                   | Option      | Android build                       | File format (aab / apk)  for Android build. Defaults to `aab`. |
 | fake_attestation              | Option      | Cargo feature                       | Whether to use a fake Apple attestation (passed via Dart define as FAKE_ATTESTATION, via Xcode as `wallet/fake_attestation`). Defaults to `true` if built for Simulator otherwise `false`. |
 | mock                          | Option      | Flutter                             | Whether or not to use mock mode in Flutter (passed via Dart define as MOCK_REPOSITORIES). Defaults to `false`. |
-| mock_relying_party_url        | Option      | Flutter                             | The URL to launch the mock relying part in Browser for tests (passed via Dart define as MOCK_RELYING_PART_URL). |
+| demo_index_url                | Option      | Flutter                             | The URL to launch the demo index page in Browser for tests (passed via Dart define as DEMO_INDEX_URL). |
 
 
 ## Troubleshooting

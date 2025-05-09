@@ -2,9 +2,9 @@ import { createSession } from "@/api/session"
 import { getStatus } from "@/api/status"
 import DeviceChoice from "@/components/DeviceChoice.vue"
 import QrCode from "@/components/QrCode.vue"
-import WalletModal from "@/components/WalletModal.vue"
+import DynamicWalletModal from "@/components/DynamicWalletModal.vue"
 import type { ErrorType } from "@/models/state"
-import { type AppUL } from "@/models/status"
+
 import { translations, translationsKey } from "@/util/translations"
 import { isMobileKey } from "@/util/useragent"
 import { flushPromises, mount, VueWrapper } from "@vue/test-utils"
@@ -16,14 +16,14 @@ vi.mock("@/api/cancel")
 vi.mock("@/api/session")
 vi.mock("@/api/status")
 
-describe("WalletModal", () => {
+describe("DynamicWalletModal", () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.clearAllTimers()
   })
 
   it("should show loading screen", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -38,7 +38,7 @@ describe("WalletModal", () => {
   })
 
   it("should show qr code directly for desktop mode", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -56,7 +56,7 @@ describe("WalletModal", () => {
   })
 
   it("should show loading screen after choosing", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -76,7 +76,7 @@ describe("WalletModal", () => {
         await new Promise((r) => setTimeout(r, 10000))
         return {
           status: "CREATED",
-          ul: "ul_456" as AppUL,
+          ul: new URL("example://app.example.com/-/"),
         }
       },
       async () => {
@@ -93,7 +93,7 @@ describe("WalletModal", () => {
   })
 
   it("should show qr code for mobile after choosing", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -111,7 +111,7 @@ describe("WalletModal", () => {
   })
 
   it("should show loading when closing model", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -134,7 +134,7 @@ describe("WalletModal", () => {
     vi.clearAllMocks()
 
     const status = vi.mocked(getStatus)
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -154,7 +154,7 @@ describe("WalletModal", () => {
   })
 
   it("should show in progress when qr code is scanned", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -180,7 +180,7 @@ describe("WalletModal", () => {
   })
 
   it("should show confirm stop when clicking stop on in-progress screen", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -213,7 +213,7 @@ describe("WalletModal", () => {
   })
 
   it("should ask where the wallet is for mobile mode", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -230,7 +230,7 @@ describe("WalletModal", () => {
   })
 
   it("should have anchor for same device flow", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -243,14 +243,14 @@ describe("WalletModal", () => {
     await flushPromises()
 
     const sameDeviceButton = wrapper.find("[data-testid=same_device_button]")
-    expect(sameDeviceButton.attributes("href")).toEqual("ul_123")
+    expect(sameDeviceButton.attributes("href")).toEqual("example://app.example.com/-/")
   })
 
   describe("error screens for status", () => {
     let wrapper: VueWrapper
 
     beforeEach(async () => {
-      wrapper = mount(WalletModal, {
+      wrapper = mount(DynamicWalletModal, {
         props: {
           startUrl: new URL("http://localhost/sessions"),
           usecase: "test123",
@@ -306,7 +306,7 @@ describe("WalletModal", () => {
   it("should show error for post engagement failure", async () => {
     vi.mocked(createSession).mockRejectedValueOnce("failed" as ErrorType)
 
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -322,7 +322,7 @@ describe("WalletModal", () => {
   it("should show error for post engagement network", async () => {
     vi.mocked(createSession).mockRejectedValueOnce("network" as ErrorType)
 
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -336,7 +336,7 @@ describe("WalletModal", () => {
   })
 
   it("should show qr code again after retrying for desktop mode", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",
@@ -364,7 +364,7 @@ describe("WalletModal", () => {
   })
 
   it("should show device choice again after retrying for mobile mode", async () => {
-    const wrapper = mount(WalletModal, {
+    const wrapper = mount(DynamicWalletModal, {
       props: {
         startUrl: new URL("http://localhost/sessions"),
         usecase: "test123",

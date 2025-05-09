@@ -1,0 +1,145 @@
+{
+  "vct": "com.example.insurance",
+  "name": "Insurance credential",
+  "description": "Insurance credential",
+  "display": [
+    {
+      "lang": "en-US",
+      "name": "Insurance",
+      "description": "An insurance credential"
+    },
+    {
+      "lang": "nl-NL",
+      "name": "Verzekering",
+      "description": "Een verzekering attestatie"
+    }
+  ],
+  "claims": [
+    {
+      "path": ["product"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Product",
+          "description": "Soort verzekering"
+        },
+        {
+          "lang": "en-US",
+          "label": "Product",
+          "description": "Type of insurance"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["coverage"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Dekking",
+          "description": "Dekking van de verzekering"
+        },
+        {
+          "lang": "en-US",
+          "label": "Coverage",
+          "description": "Coverage of the insurance"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["start_date"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Startdatum",
+          "description": "Datum waarop de verzekering ingaat"
+        },
+        {
+          "lang": "en-US",
+          "label": "Start date",
+          "description": "Date on which the insurance starts"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["duration"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Duur",
+          "description": "Duur van de verzekering"
+        },
+        {
+          "lang": "en-US",
+          "label": "Duration",
+          "description": "Duration of the insurance"
+        }
+      ],
+      "sd": "always"
+    },
+    {
+      "path": ["customer_number"],
+      "display": [
+        {
+          "lang": "nl-NL",
+          "label": "Klantnummer",
+          "description": "Klantnummer van de verzekerde"
+        },
+        {
+          "lang": "en-US",
+          "label": "Customer number",
+          "description": "Customer number of the insured"
+        }
+      ],
+      "sd": "always"
+    }
+  ],
+  "schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "Insurance VCT Schema",
+    "description": "The JSON schema that defines a insurance VCT",
+    "type": "object",
+    "properties": {
+      "product": {
+        "type": "string"
+      },
+      "coverage": {
+        "type": "string"
+      },
+      "start_date": {
+        "type": "string",
+        "format": "date"
+      },
+      "duration": {
+        "type": "string"
+      },
+      "customer_number": {
+        "type": "string"
+      },
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      }
+    },
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
+  }
+}

@@ -1,0 +1,11 @@
+[webserver]
+ip = '127.0.0.1'
+port = 3004
+
+[[demo_services]]
+service_url = 'http://localhost:3008/'
+usecases = ['mijn_amsterdam', 'online_marketplace', 'xyz_bank', 'monkey_bike']
+
+[[demo_services]]
+service_url = 'http://localhost:3005/'
+usecases = ['university', 'insurance']

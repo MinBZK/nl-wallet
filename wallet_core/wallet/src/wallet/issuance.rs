@@ -12,6 +12,8 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::Organization;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
@@ -21,9 +23,7 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
-use mdoc::utils::auth::Organization;
 use mdoc::utils::cose::CoseError;
-use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::credential::CredentialCopies;
 use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpVcMessageClient;
@@ -534,15 +534,15 @@ where
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use mdoc::utils::issuer_auth::IssuerRegistration;
     use mockall::predicate::*;
-    use openid4vc::credential_formats::CredentialFormats;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
+    use openid4vc::credential_formats::CredentialFormats;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;

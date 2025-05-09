@@ -9,13 +9,13 @@ use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
-use mdoc::utils::x509::CertificateType;
 use mdoc::verifier::ItemsRequests;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::verify_key_pairs;
@@ -61,8 +61,8 @@ impl ServerSettings for IssuanceServerSettings {
 
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
-            .set_default("wallet_server.port", 3001)?
-            .set_default("public_url", "http://localhost:3002/")?
+            .set_default("wallet_server.port", 3007)?
+            .set_default("public_url", "http://localhost:3007/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
             .set_default("storage.url", "memory://")?

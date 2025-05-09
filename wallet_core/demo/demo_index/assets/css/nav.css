@@ -1,0 +1,144 @@
+:root {
+  font-family: "RO Sans", sans-serif;
+  font-feature-settings:
+    "clig" off,
+    "liga" off;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+body {
+  background: #faf9fb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 16px 16px 16px;
+}
+
+main > * {
+  max-width: 500px;
+}
+
+aside {
+  justify-content: right;
+  padding: 38px 16px 0 16px;
+}
+
+@media only screen and (min-width: 577px) {
+  aside {
+    padding: 16px 24px;
+  }
+}
+
+.lang-selector {
+  margin: 0;
+}
+
+header {
+  content: " ";
+  background: url("../non-free/images/nl-wallet.svg") no-repeat center center / cover;
+  width: 64px;
+  height: 64px;
+}
+
+main section {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  gap: 8px;
+  margin: 40px 0;
+}
+
+main section h1 {
+  color: #152a62;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 44px;
+}
+
+main section p {
+  color: #30293d;
+  letter-spacing: 0.5px;
+}
+
+main section a {
+  color: #383ede;
+}
+
+main section a:hover {
+  color: #3237c4;
+  text-decoration: none;
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+}
+
+nav a {
+  display: flex;
+  text-align: center;
+  gap: 16px;
+  height: 100%;
+  text-decoration: none;
+}
+
+nav a span {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #383ede;
+  color: white;
+  font-weight: 700;
+  letter-spacing: 1px;
+  border-radius: 12px;
+  padding: 16px 24px;
+  line-height: 20px;
+}
+
+nav a:hover span {
+  color: white;
+  background: #3237c4;
+}
+
+nav a::before {
+  content: " ";
+  background-color: black;
+  border-radius: 9.75px;
+  width: 52px;
+  height: 52px;
+}
+
+/* use case icons */
+#mijn_amsterdam::before {
+  background: url("../non-free/images/mijn_amsterdam.svg") no-repeat center center / cover;
+}
+
+#online_marketplace::before {
+  background: url("../images/online_marketplace.svg") no-repeat center center / cover;
+}
+
+#xyz_bank::before {
+  background: url("../images/xyz_bank.svg") no-repeat center center / cover;
+}
+
+#monkey_bike::before {
+  background: url("../images/monkey_bike.svg") no-repeat center center / cover;
+}
+
+#university::before {
+  background: url("../images/university.svg") no-repeat center center / cover;
+}
+
+#insurance::before {
+  background: url("../images/insurance.svg") no-repeat center center / cover;
+}

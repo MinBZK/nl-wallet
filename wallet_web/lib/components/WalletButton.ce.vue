@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import WalletModal from "@/components/WalletModal.vue"
+import type { ModalType } from "@/models/state"
 import { RO_SANS_BOLD, RO_SANS_REGULAR } from "@/non-free/fonts"
 import { type Language, translations, translationsKey } from "@/util/translations"
 import { isDesktop, isMobileKey } from "@/util/useragent"
 import { provide, ref } from "vue"
 
 export interface Props {
-  usecase: string
+  usecase?: string
   startUrl?: URL
+  sameDeviceUl?: URL
+  crossDeviceUl?: URL
   text?: string
   lang?: Language
   helpBaseUrl?: URL
@@ -27,6 +30,10 @@ const emit = defineEmits<{
   success: [sessionToken: string, sessionType: string]
   failed: [sessionToken?: string, sessionType?: string]
 }>()
+
+const modalType: ModalType = props.usecase
+  ? { strategy: "dynamic", usecase: props.usecase!, startUrl: props.startUrl! }
+  : { strategy: "static", sameDeviceUl: props.sameDeviceUl!, crossDeviceUl: props.crossDeviceUl! }
 
 const isVisible = ref(false)
 const button = ref<HTMLDivElement | null>(null)
@@ -87,8 +94,7 @@ document.adoptedStyleSheets = [...document.adoptedStyleSheets, fontFaceSheet]
   </button>
   <wallet-modal
     v-if="isVisible"
-    :startUrl
-    :usecase
+    :modalType
     :helpBaseUrl
     @close="close"
     @success="success"

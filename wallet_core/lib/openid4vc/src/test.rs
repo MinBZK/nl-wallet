@@ -6,11 +6,12 @@ use chrono::Utc;
 use derive_more::Debug;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use mdoc::server_keys::generate::mock::generate_reader_mock;
 use parking_lot::Mutex;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
@@ -21,7 +22,6 @@ use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::iso::device_retrieval::ItemsRequest;
-use mdoc::utils::reader_auth::ReaderRegistration;
 use mdoc::verifier::ItemsRequests;
 
 use crate::disclosure_session::DisclosureSession;

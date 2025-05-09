@@ -1,0 +1,11 @@
+{% macro attributes(attributes) %}
+<p class="attributes">
+{% for doctype in attributes %}
+    {% for namespace in doctype.1.attributes %}
+        {% for (_, value) in namespace.1 %}
+            {{ value.as_text().unwrap() }}<br />
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+</p>
+{% endmacro %}

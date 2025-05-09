@@ -3,9 +3,9 @@ package util
 import com.codeborne.selenide.WebDriverRunner.getWebDriver
 import data.TestConfigRepository.Companion.testConfig
 import helper.BrowserStackHelper
-import helper.CardMetadataHelper
 import helper.LocalizationHelper
 import helper.OrganizationAuthMetadataHelper
+import helper.TasDataHelper
 import io.appium.java_client.AppiumBy
 import io.appium.java_client.AppiumDriver
 import io.appium.java_client.android.AndroidDriver
@@ -31,7 +31,7 @@ open class MobileActions {
 
     protected val find = FlutterFinder(driver)
     protected val l10n = LocalizationHelper()
-    protected val cardMetadata = CardMetadataHelper()
+    protected val cardMetadata = TasDataHelper()
     protected val organizationAuthMetadata = OrganizationAuthMetadataHelper()
 
     /**

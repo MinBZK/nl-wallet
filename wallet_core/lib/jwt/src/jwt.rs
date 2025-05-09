@@ -543,12 +543,12 @@ mod tests {
     use rand_core::OsRng;
     use serde_json::json;
 
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use crypto::x509::CertificateUsage;
-    use mdoc::server_keys::generate::mock::generate_reader_mock;
     use utils::generator::TimeGenerator;
 
     use super::*;

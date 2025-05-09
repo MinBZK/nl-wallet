@@ -1,6 +1,4 @@
 import ModalFooter from "@/components/ModalFooter.vue"
-import { type StatusUrl } from "@/models/state"
-import { type AppUL } from "@/models/status"
 import { translations, translationsKey } from "@/util/translations"
 import { mount } from "@vue/test-utils"
 import { describe, expect, it } from "vitest"
@@ -27,9 +25,10 @@ describe("ModalFooter", () => {
       props: {
         modalState: {
           kind: "created",
-          ul: "123" as AppUL,
+          sameDeviceUl: new URL("example://app.example.com/-/?session_type=same_device"),
+          crossDeviceUl: new URL("example://app.example.com/-/?session_type=cross_device"),
           session: {
-            statusUrl: "http://example.com" as StatusUrl,
+            statusUrl: new URL("http://status.example.com/status"),
             sessionType: "cross_device",
             sessionToken: "123",
           },
@@ -50,7 +49,7 @@ describe("ModalFooter", () => {
         modalState: {
           kind: "loading",
           session: {
-            statusUrl: "http://example.com" as StatusUrl,
+            statusUrl: new URL("http://status.example.com/status"),
             sessionType: "cross_device",
             sessionToken: "123",
           },
@@ -71,7 +70,7 @@ describe("ModalFooter", () => {
         modalState: {
           kind: "in-progress",
           session: {
-            statusUrl: "http://example.com" as StatusUrl,
+            statusUrl: new URL("http://status.example.com/status"),
             sessionType: "cross_device",
             sessionToken: "123",
           },
@@ -104,7 +103,7 @@ describe("ModalFooter", () => {
         modalState: {
           kind: "success",
           session: {
-            statusUrl: "http://example.com" as StatusUrl,
+            statusUrl: new URL("http://status.example.com/status"),
             sessionType: "cross_device",
             sessionToken: "123",
           },
@@ -126,7 +125,7 @@ describe("ModalFooter", () => {
         modalState: {
           kind: "success",
           session: {
-            statusUrl: "http://example.com" as StatusUrl,
+            statusUrl: new URL("http://status.example.com/status"),
             sessionType: "same_device",
             sessionToken: "123",
           },

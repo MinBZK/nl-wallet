@@ -14,6 +14,7 @@ doctest = false
 aes-gcm = { workspace = true, features = ["std", "rand_core"] }
 anyhow.workspace = true
 askama.workspace = true
+askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["http1", "json", "form", "tokio", "tower-log", "tracing"] }
 axum_csrf = { workspace = true, features = ["layer"] }
 base64.workspace = true

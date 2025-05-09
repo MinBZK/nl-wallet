@@ -38,7 +38,7 @@ spec:
           {{- end }}
           ports:
             - name: {{ .Values.nameOverride | default .Chart.Name }}-port
-              containerPort: 3007
+              containerPort: 3003
           volumeMounts:
             - name: pid-issuer-private-keys
               mountPath: /pid_issuer.toml
@@ -57,7 +57,7 @@ spec:
               subPath: eudi_pid-address_nl_1.json
           env:
             - name: PID_ISSUER__WALLET_SERVER__PORT
-              value: "3007"
+              value: "3003"
             - name: PID_ISSUER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: PID_ISSUER__STRUCTURED_LOGGING
@@ -70,21 +70,21 @@ spec:
             - name: PID_ISSUER__DIGID__BSN_PRIVKEY
               valueFrom:
                 secretKeyRef:
-                  name: nl-pid-issuer-digid-bsn-privkey
+                  name: nl-wallet-pid-issuer-digid-bsn-privkey
                   key: bsn_privkey
             - name: PID_ISSUER__DIGID__HTTP_CONFIG__BASE_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.digid.hostname .Values.digid.contextPath) }}
             - name: PID_ISSUER__DIGID__HTTP_CONFIG__TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:
-                  name: nl-pid-issuer-digid-http-trust-anchors
+                  name: nl-wallet-pid-issuer-digid-http-trust-anchors
                   key: trust_anchors
             - name: PID_ISSUER__BRP_SERVER
               value: "http://brpproxy:5001/"
             - name: PID_ISSUER__WTE_ISSUER_PUBKEY
               valueFrom:
                 configMapKeyRef:
-                  name: nl-pid-issuer-wte-issuer-pubkey
+                  name: nl-wallet-pid-issuer-wte-issuer-pubkey
                   key: wte_issuer_pubkey
             - name: PID_ISSUER__METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json,eudi:pid-address:1.json,eudi:pid-address:nl:1.json"
@@ -105,7 +105,7 @@ spec:
       volumes:
         - name: pid-issuer-private-keys
           secret:
-            secretName: nl-pid-issuer-private-keys
+            secretName: nl-wallet-pid-issuer-private-keys
         - name: pid-issuer-metadata
           configMap:
             name: nl-wallet-pid-issuer-metadata

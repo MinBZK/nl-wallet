@@ -20,7 +20,7 @@ fake_attestation = [
     "platform_support/xcode_env",
 ]
 # Include mock implementations and constructors for testing
-mock = ["dep:mockall", "mdoc/generate", "mdoc/mock", "openid4vc/mock"]
+mock = ["dep:mockall", "mdoc/mock", "openid4vc/mock"]
 # Export the traits and actual implementations of the Wallet dependencies
 wallet_deps = []
 # Adds serializability for snapshot tests
@@ -66,6 +66,7 @@ uuid = { workspace = true, features = ["v4", "v7"] }
 
 mockall = { workspace = true, optional = true }
 
+attestation_data.path = "../lib/attestation_data"
 crypto.path = "../lib/crypto"
 entity.path = "entity"
 error_category = { path = "../lib/error_category", features = ["sentry"] }
@@ -97,9 +98,10 @@ tokio = { workspace = true, features = ["rt", "macros", "test-util", "parking_lo
 wiremock.workspace = true
 
 apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
+attestation_data = { path = "../lib/attestation_data" }
 crypto = { path = "../lib/crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
-mdoc = { path = "../lib/mdoc", features = ["generate", "mock_example_constructors", "test"] }
+mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }
 openid4vc = { path = "../lib/openid4vc", features = ["mock", "test"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }

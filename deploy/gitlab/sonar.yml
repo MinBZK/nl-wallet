@@ -25,7 +25,7 @@ sonar-rust:
       -Dsonar.projectKey=nl-wallet-demo-app-rust
       -Dsonar.sources=.
       -Dsonar.exclusions=target/**,**/examples/**,**/resources/**,**/tests/**,**/tests_integration/**,wallet/platform_support/android/**,wallet/platform_support/ios/**,flutter_api/src/frb_generated.rs
-      -Dsonar.coverage.exclusions=configuration_server/**,gba_hc_converter/src/fetch/askama_axum.rs,mock_relying_party/**,**/migrations/**,uniffi-bindgen/**
+      -Dsonar.coverage.exclusions=configuration_server/**,demo/**,**/migrations/**,uniffi-bindgen/**
       -Dtest=.
       -Dtest.inclusions=**/tests/**,**/tests_integration/**
       -Dcommunity.rust.cpd.ignoretests=true

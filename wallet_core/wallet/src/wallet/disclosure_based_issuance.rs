@@ -3,10 +3,10 @@ use std::sync::Arc;
 use tracing::info;
 use tracing::instrument;
 
+use attestation_data::auth::Organization;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
-use mdoc::utils::auth::Organization;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
 use openid4vc::disclosure_session::VpClientError;

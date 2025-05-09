@@ -1,11 +1,11 @@
 use tracing::info;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
-use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::credential_payload::CredentialPayloadError;
 use platform_support::attested_key::AttestedKeyHolder;
 

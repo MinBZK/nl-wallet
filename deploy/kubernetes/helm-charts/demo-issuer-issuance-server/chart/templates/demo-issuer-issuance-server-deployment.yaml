@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "common.labels.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 300
+  template:
+    metadata:
+      labels:
+        {{- include "common.labels.standard" . | nindent 8 }}
+        {{- if .Values.extraPodlabels }}
+        {{ toYaml .Values.extraPodlabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+      {{ toYaml . | nindent 10 }}
+      {{- end }}
+      containers:
+        - name: {{ include "common.names.fullname" . }}
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          {{- with .Values.resources }}
+          resources:
+          {{ toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: wallet-port
+              containerPort: 3007
+          volumeMounts:
+            - name: issuance-server-settings
+              mountPath: /issuance_server.toml
+              subPath: issuance_server.toml
+            - name: demo-issuer-metadata
+              mountPath: /com.example.degree.json
+              subPath: com.example.degree.json
+            - name: demo-issuer-metadata
+              mountPath: /com.example.insurance.json
+              subPath: com.example.insurance.json
+          env:
+            - name: ISSUANCE_SERVER__WALLET_SERVER__PORT
+              value: "3007"
+            - name: ISSUANCE_SERVER__PUBLIC_URL
+              value: {{ include "common.urls.combineDomainAndContext" (list .Values.issuanceServer.hostname .Values.issuanceServer.contextPath) }}
+            - name: ISSUANCE_SERVER__UNIVERSAL_LINK_BASE_URL
+              value: {{ .Values.universalLinkBaseUrl }}
+            - name: ISSUANCE_SERVER__STRUCTURED_LOGGING
+              value: "true"
+            - name: ISSUANCE_SERVER__METADATA
+              value: "com.example.degree.json,com.example.insurance.json"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-demo-issuer-app
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-cluster-demo-issuer-app
+                  key: password
+            - name: ISSUANCE_SERVER__STORAGE__URL
+              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-demo-issuer-rw:5432/issuance_server"
+            - name: ISSUANCE_SERVER__ISSUER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: issuer_trust_anchors
+            - name: ISSUANCE_SERVER__READER_TRUST_ANCHORS
+              valueFrom:
+                configMapKeyRef:
+                  name: nl-wallet-server-trust-anchors
+                  key: reader_trust_anchors
+            - name: RUST_LOG
+              value: "debug,hyper=warn"
+      volumes:
+        - name: issuance-server-settings
+          secret:
+            secretName: nl-wallet-demo-issuer-issuance-server-settings
+        - name: demo-issuer-metadata
+          configMap:
+            name: nl-wallet-demo-issuer-metadata

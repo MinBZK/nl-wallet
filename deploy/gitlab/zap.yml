@@ -2,8 +2,8 @@
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .env-ont-k8s
   rules:
-    - !reference [ .on-schedule, rules ]
-    - !reference [ .default-branch, rules ]
+    - !reference [.on-schedule, rules]
+    - !reference [.default-branch, rules]
     - if: $CI_PIPELINE_SOURCE == "web"
       when: manual
   allow_failure: true
@@ -33,9 +33,9 @@
   script:
     - |
       envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload_temp.json
-      SESSION_TOKEN=$(curl -s -X POST -d @deploy/zap/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')      
+      SESSION_TOKEN=$(curl -s -X POST -d @deploy/zap/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')
 
-zap-scan-rp:
+zap-scan-demo:
   extends: .zap-scan-common-setup
   needs:
     - job: deploy-apps-ont
@@ -44,8 +44,8 @@ zap-scan-rp:
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
-    SUT: "RELYING_PARTY"
+    DEMO_INDEX_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_INDEX_EXTERNAL_CONTEXT_PATH}"
+    SUT: "DEMO_RP_AND_ISSUER"
 
 zap-scan-config-server:
   extends: .zap-scan-common-setup
@@ -96,8 +96,8 @@ zap-scan-internal-wallet-server:
       yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/api/wallet-disclosure-private.openapi.yaml documentation/api/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-internal-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
-    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
+    INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
     SUT: "INTERNAL_WALLET_SERVER"
 
 zap-scan-public-wallet-server:
@@ -116,15 +116,15 @@ zap-scan-public-wallet-server:
       yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/api/wallet-disclosure-public.openapi.yaml documentation/api/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-public-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
-    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
-    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
+    INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
+    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
     SUT: "PUBLIC_WALLET_SERVER"
 
 zap-scan-publish-results:
   rules: !reference [.zap-scan-common-setup, rules]
   needs:
-    - { job: zap-scan-rp }
+    - { job: zap-scan-demo }
     - { job: zap-scan-config-server }
     - { job: zap-scan-wallet-provider }
     - { job: zap-scan-pid-issuer }

@@ -1,11 +1,10 @@
 //! Holder software to store and disclose mdocs.
 
+use attestation_data::auth::reader_auth;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
-
-use crate::utils::reader_auth;
 
 pub mod disclosure;
 pub use disclosure::*;

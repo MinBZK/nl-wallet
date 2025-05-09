@@ -8,7 +8,13 @@ defineProps<{
 
 const t = injectStrict(translationsKey)
 
-const emit = defineEmits(["close", "stop", "confirm", "retry", "back"])
+const emit = defineEmits<{
+  close: []
+  stop: []
+  confirm: []
+  retry: []
+  back: []
+}>()
 </script>
 
 <template>

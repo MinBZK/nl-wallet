@@ -5,8 +5,8 @@
 # - nl-rdo-max (digid-connector)
 # - wallet_provider
 # - wallet
-# - pid_issuer and verification_server
-# - mock_relying_party
+# - pid_issuer, verification_server and issuance_server
+# - demo_index, demo_issuer and demo_relying_party
 # - softhsm2
 #
 # User specific variables can be supplied in the `.env` files.
@@ -98,9 +98,11 @@ fi
 mkdir -p "${TARGET_DIR}"
 mkdir -p "${TARGET_DIR}/configuration_server"
 mkdir -p "${TARGET_DIR}/pid_issuer"
-mkdir -p "${TARGET_DIR}/issuance_server"
 mkdir -p "${TARGET_DIR}/verification_server"
-mkdir -p "${TARGET_DIR}/mock_relying_party"
+mkdir -p "${TARGET_DIR}/issuance_server"
+mkdir -p "${TARGET_DIR}/demo_index"
+mkdir -p "${TARGET_DIR}/demo_relying_party"
+mkdir -p "${TARGET_DIR}/demo_issuer"
 mkdir -p "${TARGET_DIR}/update_policy_server"
 mkdir -p "${TARGET_DIR}/wallet_provider"
 
@@ -170,7 +172,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     cd "${WALLET_WEB_DIR}"
 
     if [[ -n "${RM_OLD_WALLET_WEB+x}" ]]; then
-        rm ../wallet_core/mock_relying_party/assets/*.iife.js || true
+        rm ../wallet_core/demo/demo_utils/assets/*.iife.js || true
     fi
 
     VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
@@ -182,7 +184,7 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     export WALLET_WEB_SHA256_FILENAME
     WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
     export WALLET_WEB_FILENAME
-    cp dist/nl-wallet-web.iife.js ../wallet_core/mock_relying_party/assets/"${WALLET_WEB_FILENAME}"
+    cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/"${WALLET_WEB_FILENAME}"
 fi
 
 
@@ -211,11 +213,11 @@ softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token
 render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/hsm.toml"
 
 ########################################################################
-# Configure verification_server and mock_relying_party
+# Configure verification_server and demo_relying_party
 ########################################################################
 
 echo
-echo -e "${SECTION}Configure verification_server and mock_relying_party${NC}"
+echo -e "${SECTION}Configure verification_server and demo_relying_party${NC}"
 
 cd "${BASE_DIR}"
 
@@ -227,6 +229,8 @@ else
 fi
 openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
         -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
+
+render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_issuer.toml"
 
 # Generate key for WTE signing
 generate_wp_signing_key wte_signing
@@ -245,17 +249,17 @@ export PID_ISSUER_KEY
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
 export PID_ISSUER_CRT
 
-# Generate MRP root CA
-if [ ! -f "${TARGET_DIR}/mock_relying_party/ca.key.pem" ]; then
-    generate_mock_relying_party_root_ca
+# Generate demo RP root CA
+if [ ! -f "${TARGET_DIR}/demo_relying_party/ca.key.pem" ]; then
+    generate_demo_relying_party_root_ca
 else
-    echo -e "${INFO}Target file '${TARGET_DIR}/mock_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
+    echo -e "${INFO}Target file '${TARGET_DIR}/demo_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
 fi
-openssl x509 -in "${TARGET_DIR}/mock_relying_party/ca.crt.pem" \
-        -outform der -out "${TARGET_DIR}/mock_relying_party/ca.crt.der"
+openssl x509 -in "${TARGET_DIR}/demo_relying_party/ca.crt.pem" \
+        -outform der -out "${TARGET_DIR}/demo_relying_party/ca.crt.der"
 
 # Generate CA for RPs
-RP_CA_CRT=$(< "${TARGET_DIR}/mock_relying_party/ca.crt.der" ${BASE64})
+RP_CA_CRT=$(< "${TARGET_DIR}/demo_relying_party/ca.crt.der" ${BASE64})
 export RP_CA_CRT
 
 # Generate key and cert for the issuance_server
@@ -266,72 +270,77 @@ ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE=$(< "${TARGET_DIR}/issuance_server
 export ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE
 
 # Generate relying party key and cert
-generate_relying_party_hsm_key_pair mijn_amsterdam mock_relying_party
-MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
-export MOCK_RELYING_PARTY_KEY_MIJN_AMSTERDAM
-MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/mock_relying_party/mijn_amsterdam.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT_MIJN_AMSTERDAM
+generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party
+DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM=mijn_amsterdam_key
+export DEMO_RELYING_PARTY_KEY_MIJN_AMSTERDAM
+DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM=$(< "${TARGET_DIR}/demo_relying_party/mijn_amsterdam.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_MIJN_AMSTERDAM
 
 # Generate relying party key and cert
-generate_mock_relying_party_key_pair online_marketplace
-MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/mock_relying_party/online_marketplace.key.der" ${BASE64})
-export MOCK_RELYING_PARTY_KEY_ONLINE_MARKETPLACE
-MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/mock_relying_party/online_marketplace.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
+generate_demo_relying_party_key_pair online_marketplace
+DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_ONLINE_MARKETPLACE
+DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE=$(< "${TARGET_DIR}/demo_relying_party/online_marketplace.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_ONLINE_MARKETPLACE
 
 # Generate relying party key and cert
-generate_mock_relying_party_key_pair xyz_bank
-MOCK_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.key.der" ${BASE64})
-export MOCK_RELYING_PARTY_KEY_XYZ_BANK
-MOCK_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/mock_relying_party/xyz_bank.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT_XYZ_BANK
+generate_demo_relying_party_key_pair xyz_bank
+DEMO_RELYING_PARTY_KEY_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_XYZ_BANK
+DEMO_RELYING_PARTY_CRT_XYZ_BANK=$(< "${TARGET_DIR}/demo_relying_party/xyz_bank.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_XYZ_BANK
 
 # Generate relying party key and cert
-generate_mock_relying_party_key_pair monkey_bike
-MOCK_RELYING_PARTY_KEY_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_bike.key.der" ${BASE64})
-export MOCK_RELYING_PARTY_KEY_MONKEY_BIKE
-MOCK_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/mock_relying_party/monkey_bike.crt.der" ${BASE64})
-export MOCK_RELYING_PARTY_CRT_MONKEY_BIKE
+generate_demo_relying_party_key_pair monkey_bike
+DEMO_RELYING_PARTY_KEY_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_MONKEY_BIKE
+DEMO_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_MONKEY_BIKE
 
 if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
     WALLET_WEB_FILENAME="${WALLET_WEB_FILENAME:-nl-wallet-web.iife.js}"
     export WALLET_WEB_FILENAME
-    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(< ../wallet_core/mock_relying_party/assets/"${WALLET_WEB_FILENAME}" openssl sha256 -binary | ${BASE64})}"
+    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(< ../wallet_core/demo/demo_relying_party/assets/"${WALLET_WEB_FILENAME}" openssl sha256 -binary | ${BASE64})}"
     export WALLET_WEB_SHA256
-    render_template "${DEVENV}/mock_relying_party.toml.template" "${MOCK_RELYING_PARTY_DIR}/mock_relying_party.toml"
+    render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
 fi
+
 
 # Generate relying party ephemeral ID secret
 generate_ws_random_key ephemeral_id_secret
-MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/mock_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
-export MRP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
+DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET=$(< "${TARGET_DIR}/demo_relying_party/ephemeral_id_secret.key" xxd -p | tr -d '\n')
+export DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET
+
+render_template "${DEVENV}/demo_index.toml.template" "${DEMO_INDEX_DIR}/demo_index.toml"
 
 # Copy the Technical Attestation Schemas
 cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${PID_ISSUER_DIR}"
-cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${BASE_DIR}/wallet_core/tests_integration"
-cp "${DEVENV}/com.example.degree.json" "${ISSUANCE_SERVER_DIR}"
+cp "${DEVENV}/eudi:pid:1.json" "${DEVENV}/eudi:pid:nl:1.json" "${DEVENV}/eudi:pid-address:1.json" "${DEVENV}/eudi:pid-address:nl:1.json" "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${BASE_DIR}/wallet_core/tests_integration"
+cp "${DEVENV}/com.example.degree.json" "${DEVENV}/com.example.insurance.json" "${ISSUANCE_SERVER_DIR}"
 ISSUER_METADATA_PID_PATH="eudi:pid:1.json"
 export ISSUER_METADATA_PID_PATH
 ISSUER_METADATA_PID_NL_PATH="eudi:pid:nl:1.json"
 export ISSUER_METADATA_PID_NL_PATH
 ISSUER_METADATA_ADDRESS_PATH="eudi:pid-address:1.json"
 export ISSUER_METADATA_ADDRESS_PATH
-ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
-export ISSUER_METADATA_DEGREE_PATH
 ISSUER_METADATA_ADDRESS_NL_PATH="eudi:pid-address:nl:1.json"
 export ISSUER_METADATA_ADDRESS_NL_PATH
+ISSUER_METADATA_DEGREE_PATH="com.example.degree.json"
+export ISSUER_METADATA_DEGREE_PATH
+ISSUER_METADATA_INSURANCE_PATH="com.example.insurance.json"
+export ISSUER_METADATA_INSURANCE_PATH
 
-# And the mrp's verification_server config
-render_template "${DEVENV}/mrp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
-render_template "${DEVENV}/mrp_verification_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/verification_server.toml"
+# And the demo RP's verification_server config
+render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${VERIFICATION_SERVER_DIR}/verification_server.toml"
+render_template "${DEVENV}/demo_rp_verification_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/verification_server.toml"
 
 # And the pid_issuer config
 render_template "${DEVENV}/pid_issuer.toml.template" "${PID_ISSUER_DIR}/pid_issuer.toml"
 render_template "${DEVENV}/pid_issuer.toml.template" "${BASE_DIR}/wallet_core/tests_integration/pid_issuer.toml"
 
 # And the issuance_server config
-render_template "${DEVENV}/issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
-render_template "${DEVENV}/issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
+render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${ISSUANCE_SERVER_DIR}/issuance_server.toml"
+render_template "${DEVENV}/demo_issuer_issuance_server.toml.template" "${BASE_DIR}/wallet_core/tests_integration/issuance_server.toml"
 
 render_template "${DEVENV}/performance_test.env" "${BASE_DIR}/wallet_core/tests_integration/.env"
 

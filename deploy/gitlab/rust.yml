@@ -34,7 +34,7 @@ test-rust:
       variables:
         POSTGRESQL_USER: "postgres"
         POSTGRESQL_PASSWORD: "postgres"
-        POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server,pid_issuer"
+        POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
   script:
     - set -euxo pipefail
     - |
@@ -47,7 +47,7 @@ test-rust:
     - cd wallet_core
     - cargo run --bin wallet_provider_migrations --locked -- up
     - |
-      for name in pid_issuer verification_server; do
+      for name in pid_issuer verification_server issuance_server; do
         DATABASE_URL="postgres://postgres:postgres@postgres:5432/$name" \
           cargo run --bin wallet_server_migrations --locked -- up
       done
@@ -212,6 +212,17 @@ build-verification-server-binary:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/verification_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/verification_server
 
+build-issuance-server-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package issuance_server --bin issuance_server --no-default-features --features postgres
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package issuance_server --bin issuance_server --no-default-features --features postgres
+  artifacts:
+    name: issuance_server
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/issuance_server
+      - wallet_core/target/x86_64-unknown-linux-musl/release/issuance_server
+
 build-wallet-server-migrations-binary:
   extends: .build-binary
   script:
@@ -224,13 +235,35 @@ build-wallet-server-migrations-binary:
 build-demo-relying-party-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "mock_relying_party" --bin mock_relying_party
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "mock_relying_party" --bin mock_relying_party
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_relying_party" --bin demo_relying_party
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_relying_party" --bin demo_relying_party
   artifacts:
-    name: mock_relying_party
+    name: demo_relying_party
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/mock_relying_party
-      - wallet_core/target/x86_64-unknown-linux-musl/release/mock_relying_party
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_relying_party
+      - wallet_core/target/x86_64-unknown-linux-musl/release/demo_relying_party
+
+build-demo-issuer-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_issuer" --bin demo_issuer
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_issuer" --bin demo_issuer
+  artifacts:
+    name: demo_issuer
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_issuer
+      - wallet_core/target/x86_64-unknown-linux-musl/release/demo_issuer
+
+build-demo-index-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_index" --bin demo_index
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_index" --bin demo_index
+  artifacts:
+    name: demo_index
+    paths:
+      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_index
+      - wallet_core/target/x86_64-unknown-linux-musl/release/demo_index
 
 build-gba-hc-converter-binary:
   extends: .build-binary
@@ -283,9 +316,9 @@ build-performance-test:
     APPLE_ATTESTATION_ENVIRONMENT: "production"
     CONFIG_ENV: ont
     UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MOCK_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
-    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${MRP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
-    INTERNAL_WALLET_SERVER_URL: "https://${MRP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
+    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
+    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
+    INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
   artifacts:
     name: performance-test
     paths:

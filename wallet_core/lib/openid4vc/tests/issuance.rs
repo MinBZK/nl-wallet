@@ -12,14 +12,14 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use mdoc::server_keys::generate::mock::generate_issuer_mock;
-use mdoc::utils::issuer_auth::IssuerRegistration;
 use mdoc::AttestationQualification;
 use openid4vc::attributes::Attribute;
 use openid4vc::attributes::AttributeValue;
