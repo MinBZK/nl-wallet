@@ -10,6 +10,7 @@ use coset::iana;
 use coset::CoseKeyBuilder;
 use coset::Label;
 use derive_more::Debug;
+use nom::AsBytes;
 use p256::ecdh;
 use p256::ecdsa::VerifyingKey;
 use p256::EncodedPoint;
@@ -20,7 +21,6 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
-use x509_parser::nom::AsBytes;
 
 use crypto::utils::hkdf;
 use crypto::utils::sha256;

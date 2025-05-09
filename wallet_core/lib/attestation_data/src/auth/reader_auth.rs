@@ -10,13 +10,18 @@ use x509_parser::der_parser::Oid;
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
 
+use crate::auth::LocalizedStrings;
+use crate::auth::Organization;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
-use crate::utils::x509::CertificateType;
-use crate::ItemsRequest;
+use crate::x509::CertificateType;
 
-use super::LocalizedStrings;
-use super::Organization;
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum ValidationError {
+    #[error("requested unregistered attributes: {0:?}")]
+    #[category(critical)] // RP data, no user data
+    UnregisteredAttributes(Vec<AttributeIdentifier>),
+}
 
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,10 +39,10 @@ pub struct ReaderRegistration {
 
 impl ReaderRegistration {
     /// Verify whether all requested attributes exist in the registration.
-    pub fn verify_requested_attributes<'a, R>(&self, requested_attributes: &R) -> Result<(), ValidationError>
-    where
-        R: IntoIterator<Item = &'a ItemsRequest> + Clone,
-    {
+    pub fn verify_requested_attributes(
+        &self,
+        requested_attributes: &impl AttributeIdentifierHolder,
+    ) -> Result<(), ValidationError> {
         let difference: Vec<AttributeIdentifier> = requested_attributes.difference(self).into_iter().collect();
 
         if !difference.is_empty() {
@@ -113,77 +118,23 @@ pub struct AuthorizedNamespace(pub IndexMap<String, AuthorizedAttribute>);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizedAttribute {}
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum ValidationError {
-    #[error("requested unregistered attributes: {0:?}")]
-    #[category(critical)] // RP data, no user data
-    UnregisteredAttributes(Vec<AttributeIdentifier>),
-}
-
 impl BorrowingCertificateExtension for ReaderRegistration {
     /// oid: 2.1.123.1
     /// root: {joint-iso-itu-t(2) asn1(1) examples(123)}
     /// suffix: 1, unofficial id for Reader Authentication
-    const OID: Oid<'static> = oid!(2.1.123 .1);
+    #[rustfmt::skip]
+    const OID: Oid<'static> = oid!(2.1.123.1);
 }
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use crate::verifier::ItemsRequests;
-
     use super::*;
 
-    impl ReaderRegistration {
-        pub fn new_mock() -> Self {
-            let organization = Organization::new_mock();
-
-            ReaderRegistration {
-                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
-                    .into(),
-                retention_policy: RetentionPolicy {
-                    intent_to_retain: true,
-                    max_duration_in_minutes: Some(60 * 24 * 365),
-                },
-                sharing_policy: SharingPolicy { intent_to_share: true },
-                deletion_policy: DeletionPolicy { deleteable: true },
-                organization,
-                request_origin_base_url: "https://example.com/".parse().unwrap(),
-                attributes: Default::default(),
-            }
-        }
-
-        pub fn new_mock_from_requests(authorized_requests: &ItemsRequests) -> Self {
-            let attributes = authorized_requests
-                .0
-                .iter()
-                .map(|items_request| {
-                    let namespaces: IndexMap<_, _> = items_request
-                        .name_spaces
-                        .iter()
-                        .map(|(namespace, attributes)| {
-                            let authorized_attributes = attributes
-                                .iter()
-                                .map(|attribute| (attribute.0.clone(), AuthorizedAttribute {}))
-                                .collect();
-                            (namespace.clone(), AuthorizedNamespace(authorized_attributes))
-                        })
-                        .collect();
-                    (items_request.doc_type.clone(), AuthorizedMdoc(namespaces))
-                })
-                .collect();
-            Self {
-                attributes,
-                ..Self::new_mock()
-            }
-        }
-    }
-}
-
-#[cfg(any(test, feature = "test"))]
-mod test {
     use indexmap::IndexMap;
 
-    use super::*;
+    pub type Attributes<'a> = Vec<&'a str>;
+    pub type Namespaces<'a> = Vec<(&'a str, Attributes<'a>)>;
+    pub type DocTypes<'a> = Vec<(&'a str, Namespaces<'a>)>;
 
     impl ReaderRegistration {
         /// Build attributes for [`ReaderRegistration`] from a list of attributes.
@@ -209,19 +160,8 @@ mod test {
             .into()
         }
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use assert_matches::assert_matches;
-    use indexmap::IndexMap;
-
-    use crate::DeviceRequest;
-    use crate::ItemsRequest;
-
-    use super::*;
-
-    fn create_some_registration() -> ReaderRegistration {
+    pub fn create_some_registration() -> ReaderRegistration {
         create_registration(vec![
             (
                 "some_doctype",
@@ -240,151 +180,8 @@ mod tests {
         ])
     }
 
-    #[test]
-    fn verify_requested_attributes_in_device_request() {
-        let device_request = DeviceRequest::from_items_requests(vec![
-            create_items_request(vec![(
-                "some_doctype",
-                vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-            )]),
-            create_items_request(vec![(
-                "some_doctype",
-                vec![("another_namespace", vec!["some_attribute", "another_attribute"])],
-            )]),
-            create_items_request(vec![(
-                "another_doctype",
-                vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-            )]),
-        ]);
-        let registration = create_some_registration();
-        registration
-            .verify_requested_attributes(&device_request.items_requests())
-            .unwrap();
-    }
-
-    #[test]
-    fn verify_requested_attributes_in_device_request_missing() {
-        let device_request = DeviceRequest::from_items_requests(vec![
-            create_items_request(vec![(
-                "some_doctype",
-                vec![("some_namespace", vec!["some_attribute", "missing_attribute"])],
-            )]),
-            create_items_request(vec![(
-                "some_doctype",
-                vec![("missing_namespace", vec!["some_attribute", "another_attribute"])],
-            )]),
-            create_items_request(vec![(
-                "missing_doctype",
-                vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-            )]),
-        ]);
-        let registration = create_some_registration();
-        let result = registration.verify_requested_attributes(&device_request.items_requests());
-        assert_matches!(
-            result,
-            Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-                "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
-                "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
-                "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
-                "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
-                "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
-            ]
-        );
-    }
-
-    #[test]
-    fn validate_items_request() {
-        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
-            "some_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-        )])]);
-        let registration = create_some_registration();
-        registration
-            .verify_requested_attributes(&request.items_requests())
-            .unwrap();
-    }
-
-    #[test]
-    fn validate_items_request_missing_attribute() {
-        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
-            "some_doctype",
-            vec![("some_namespace", vec!["missing_attribute", "another_attribute"])],
-        )])]);
-        let registration = create_registration(vec![(
-            "some_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-        )]);
-
-        let result = registration.verify_requested_attributes(&request.items_requests());
-        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-            "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
-        ]);
-    }
-
-    #[test]
-    fn validate_items_request_missing_namespace() {
-        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
-            "some_doctype",
-            vec![("missing_namespace", vec!["some_attribute", "another_attribute"])],
-        )])]);
-        let registration = create_registration(vec![(
-            "some_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-        )]);
-
-        let result = registration.verify_requested_attributes(&request.items_requests());
-        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-            "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
-            "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
-        ]);
-    }
-
-    #[test]
-    fn validate_items_request_missing_doctype() {
-        let request = DeviceRequest::from_items_requests(vec![create_items_request(vec![(
-            "missing_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-        )])]);
-        let registration = create_registration(vec![(
-            "some_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
-        )]);
-
-        let result = registration.verify_requested_attributes(&request.items_requests());
-        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
-            "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
-            "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
-        ]);
-    }
-
-    type Attributes<'a> = Vec<&'a str>;
-    type Namespaces<'a> = Vec<(&'a str, Attributes<'a>)>;
-    type DocTypes<'a> = Vec<(&'a str, Namespaces<'a>)>;
-
-    // Utility function to easily create [`ItemsRequest`]
-    fn create_items_request(mut request_doctypes: DocTypes) -> ItemsRequest {
-        // An [`ItemRequest`] can only contain 1 doctype
-        assert_eq!(request_doctypes.len(), 1);
-        let (doc_type, namespaces) = request_doctypes.remove(0);
-
-        let mut name_spaces = IndexMap::new();
-        for (namespace, attrs) in namespaces {
-            let mut attribute_map = IndexMap::new();
-            for attr in attrs {
-                attribute_map.insert(attr.to_owned(), true);
-            }
-            name_spaces.insert(namespace.to_owned(), attribute_map);
-        }
-
-        ItemsRequest {
-            doc_type: doc_type.to_owned(),
-            name_spaces,
-            request_info: None,
-        }
-    }
-
     // Utility function to easily create [`ReaderRegistration`]
-    fn create_registration(registered_doctypes: DocTypes) -> ReaderRegistration {
+    pub fn create_registration(registered_doctypes: DocTypes) -> ReaderRegistration {
         let mut attributes = IndexMap::new();
         for (doc_type, namespaces) in registered_doctypes {
             let mut namespace_map = IndexMap::new();
@@ -402,5 +199,142 @@ mod tests {
             attributes,
             ..ReaderRegistration::new_mock()
         }
+    }
+
+    impl ReaderRegistration {
+        pub fn new_mock() -> Self {
+            let organization = Organization::new_mock();
+
+            ReaderRegistration {
+                purpose_statement: vec![("nl", "Beschrijving van mijn dienst"), ("en", "My Service Description")]
+                    .into(),
+                retention_policy: RetentionPolicy {
+                    intent_to_retain: true,
+                    max_duration_in_minutes: Some(60 * 24 * 365),
+                },
+                sharing_policy: SharingPolicy { intent_to_share: true },
+                deletion_policy: DeletionPolicy { deleteable: true },
+                organization,
+                request_origin_base_url: "https://example.com/".parse().unwrap(),
+                attributes: Default::default(),
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use assert_matches::assert_matches;
+
+    use crate::identifiers::mock::MockAttributeIdentifierHolder;
+
+    use super::mock::*;
+    use super::*;
+
+    #[test]
+    fn verify_requested_attributes_in_device_request() {
+        let device_request: MockAttributeIdentifierHolder = vec![
+            "some_doctype/some_namespace/some_attribute".parse().unwrap(),
+            "some_doctype/some_namespace/another_attribute".parse().unwrap(),
+            "some_doctype/another_namespace/some_attribute".parse().unwrap(),
+            "some_doctype/another_namespace/another_attribute".parse().unwrap(),
+            "another_doctype/some_namespace/some_attribute".parse().unwrap(),
+            "another_doctype/some_namespace/another_attribute".parse().unwrap(),
+        ]
+        .into();
+        let registration = create_some_registration();
+        registration.verify_requested_attributes(&device_request).unwrap();
+    }
+
+    #[test]
+    fn verify_requested_attributes_in_device_request_missing() {
+        let device_request: MockAttributeIdentifierHolder = vec![
+            "some_doctype/some_namespace/some_attribute".parse().unwrap(),
+            "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
+            "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
+            "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
+            "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
+            "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
+        ]
+        .into();
+        let registration = create_some_registration();
+        let result = registration.verify_requested_attributes(&device_request);
+        assert_matches!(
+            result,
+            Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
+                "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
+                "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
+                "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
+                "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
+                "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
+            ]
+        );
+    }
+
+    #[test]
+    fn validate_items_request() {
+        let request: MockAttributeIdentifierHolder = vec![
+            "some_doctype/some_namespace/some_attribute".parse().unwrap(),
+            "some_doctype/some_namespace/another_attribute".parse().unwrap(),
+        ]
+        .into();
+        let registration = create_some_registration();
+        registration.verify_requested_attributes(&request).unwrap();
+    }
+
+    #[test]
+    fn validate_items_request_missing_attribute() {
+        let request: MockAttributeIdentifierHolder = vec![
+            "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
+            "some_doctype/some_namespace/another_attribute".parse().unwrap(),
+        ]
+        .into();
+        let registration = create_registration(vec![(
+            "some_doctype",
+            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
+        )]);
+
+        let result = registration.verify_requested_attributes(&request);
+        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
+            "some_doctype/some_namespace/missing_attribute".parse().unwrap(),
+        ]);
+    }
+
+    #[test]
+    fn validate_items_request_missing_namespace() {
+        let request: MockAttributeIdentifierHolder = vec![
+            "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
+            "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
+        ]
+        .into();
+        let registration = create_registration(vec![(
+            "some_doctype",
+            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
+        )]);
+
+        let result = registration.verify_requested_attributes(&request);
+        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
+            "some_doctype/missing_namespace/some_attribute".parse().unwrap(),
+            "some_doctype/missing_namespace/another_attribute".parse().unwrap(),
+        ]);
+    }
+
+    #[test]
+    fn validate_items_request_missing_doctype() {
+        let request: MockAttributeIdentifierHolder = vec![
+            "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
+            "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
+        ]
+        .into();
+        let registration = create_registration(vec![(
+            "some_doctype",
+            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
+        )]);
+
+        let result = registration.verify_requested_attributes(&request);
+        assert_matches!(result, Err(ValidationError::UnregisteredAttributes(attrs)) if attrs == vec![
+            "missing_doctype/some_namespace/some_attribute".parse().unwrap(),
+            "missing_doctype/some_namespace/another_attribute".parse().unwrap(),
+        ]);
     }
 }

@@ -21,6 +21,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 
+attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils.path = "../../lib/http_utils"
@@ -32,3 +33,4 @@ server_utils.path = "../server_utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
+crypto = { path = "../../lib/crypto", features = ["generate", "mock"] }

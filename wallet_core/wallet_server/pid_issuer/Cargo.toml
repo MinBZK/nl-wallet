@@ -68,7 +68,6 @@ issuer_settings.path = "../issuer_settings"
 hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 jwt.path = "../../lib/jwt"
-mdoc.path = "../../lib/mdoc"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
 utils = { path = "../../lib/utils" }
@@ -79,7 +78,7 @@ assert_matches.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
+attestation_data = { path = "../../lib/attestation_data", features = ["generate", "mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
-mdoc = { path = "../../lib/mdoc", features = ["generate", "mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 utils = { path = "../../lib/utils", features = ["mock_time"] }

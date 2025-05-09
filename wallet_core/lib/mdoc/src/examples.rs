@@ -10,13 +10,13 @@ use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::server_keys::generate::Ca;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::Generator;
 
-use crate::server_keys::generate::mock::generate_issuer_mock;
-use crate::utils::issuer_auth::IssuerRegistration;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 use crate::verifier::ItemsRequests;
@@ -248,16 +248,16 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::keys::WithIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::holder::Mdoc;
-    use crate::server_keys::generate::mock::generate_issuer_mock;
     use crate::test::data::pid_example;
     use crate::utils::cose::CoseKey;
-    use crate::utils::issuer_auth::IssuerRegistration;
     use crate::IssuerSigned;
 
     use super::*;

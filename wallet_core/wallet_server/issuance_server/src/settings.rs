@@ -9,13 +9,13 @@ use serde::Deserialize;
 use serde_with::base64::Base64;
 use serde_with::serde_as;
 
+use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuer_settings::settings::IssuerSettings;
 use issuer_settings::settings::IssuerSettingsError;
-use mdoc::utils::x509::CertificateType;
 use mdoc::verifier::ItemsRequests;
 use openid4vc::server_state::SessionStoreTimeouts;
 use server_utils::settings::verify_key_pairs;

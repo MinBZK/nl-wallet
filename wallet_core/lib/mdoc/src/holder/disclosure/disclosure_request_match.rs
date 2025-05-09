@@ -4,12 +4,13 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 
+use attestation_data::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifierHolder;
+
 use crate::engagement::DeviceAuthenticationKeyed;
 use crate::engagement::SessionTranscript;
 use crate::errors::Result;
 use crate::holder::HolderError;
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierHolder;
 use crate::mdocs::DocType;
 use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;

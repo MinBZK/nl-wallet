@@ -13,8 +13,6 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
-use mdoc::server_keys::generate::mock::generate_reader_mock;
-use openid4vc::verifier::SessionIdentifier;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
@@ -23,6 +21,7 @@ use ring::rand;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 
+use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
@@ -42,7 +41,7 @@ use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::TestDocuments;
-use mdoc::utils::reader_auth::ReaderRegistration;
+use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
@@ -67,6 +66,7 @@ use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
 use openid4vc::verifier::EphemeralIdParameters;
+use openid4vc::verifier::SessionIdentifier;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
@@ -186,7 +186,7 @@ async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock(
         &ca,
-        Some(ReaderRegistration::new_mock_from_requests(&example_items_requests())),
+        Some(reader_registration_mock_from_requests(&example_items_requests())),
     )
     .unwrap();
 
@@ -832,7 +832,7 @@ fn setup_verifier(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
 
     // Initialize the verifier
-    let reader_registration = Some(ReaderRegistration::new_mock_from_requests(items_requests));
+    let reader_registration = Some(reader_registration_mock_from_requests(items_requests));
     let usecases = HashMap::from([
         (
             NO_RETURN_URL_USE_CASE.to_string(),

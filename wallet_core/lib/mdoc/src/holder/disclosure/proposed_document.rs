@@ -1,13 +1,13 @@
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use crate::errors::Result;
-use crate::identifiers::AttributeIdentifier;
 use crate::iso::disclosure::DeviceSigned;
 use crate::iso::disclosure::Document;
 use crate::iso::disclosure::IssuerSigned;

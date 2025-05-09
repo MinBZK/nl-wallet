@@ -29,22 +29,22 @@ pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 
+pub mod attestation_data {
+    pub use attestation_data::auth::reader_auth::DeletionPolicy;
+    pub use attestation_data::auth::reader_auth::ReaderRegistration;
+    pub use attestation_data::auth::reader_auth::RetentionPolicy;
+    pub use attestation_data::auth::reader_auth::SharingPolicy;
+    pub use attestation_data::auth::Image;
+    pub use attestation_data::auth::LocalizedStrings;
+    pub use attestation_data::auth::Organization;
+}
+
 pub mod configuration {
     pub use wallet_configuration::wallet_config::AccountServerConfiguration;
     pub use wallet_configuration::wallet_config::DisclosureConfiguration;
     pub use wallet_configuration::wallet_config::LockTimeoutConfiguration;
     pub use wallet_configuration::wallet_config::PidIssuanceConfiguration;
     pub use wallet_configuration::wallet_config::WalletConfiguration;
-}
-
-pub mod mdoc {
-    pub use mdoc::utils::auth::Image;
-    pub use mdoc::utils::auth::LocalizedStrings;
-    pub use mdoc::utils::auth::Organization;
-    pub use mdoc::utils::reader_auth::DeletionPolicy;
-    pub use mdoc::utils::reader_auth::ReaderRegistration;
-    pub use mdoc::utils::reader_auth::RetentionPolicy;
-    pub use mdoc::utils::reader_auth::SharingPolicy;
 }
 
 pub mod openid4vc {

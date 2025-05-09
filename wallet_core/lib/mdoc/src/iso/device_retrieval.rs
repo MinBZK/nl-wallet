@@ -6,10 +6,14 @@ use std::fmt::Debug;
 use ciborium::value::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
+use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
+
+use attestation_data::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifierHolder;
 
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
@@ -29,6 +33,15 @@ pub struct DeviceRequest {
     pub doc_requests: Vec<DocRequest>,
     /// This is a custom and optional field. Other implementations should ignore it.
     pub return_url: Option<Url>,
+}
+
+impl AttributeIdentifierHolder for DeviceRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.doc_requests
+            .iter()
+            .flat_map(|doc_request| doc_request.items_request.0.attribute_identifiers())
+            .collect()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
@@ -84,6 +97,21 @@ pub struct ItemsRequest {
 
     /// Free-form additional information.
     pub request_info: Option<IndexMap<String, Value>>,
+}
+
+impl AttributeIdentifierHolder for ItemsRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        self.name_spaces
+            .iter()
+            .flat_map(|(namespace, attributes)| {
+                attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
+                    credential_type: self.doc_type.to_owned(),
+                    namespace: namespace.to_owned(),
+                    attribute: attribute.to_owned(),
+                })
+            })
+            .collect()
+    }
 }
 
 /// The attribute names that the RP wishes disclosed, grouped per namespace, as part of a [`ItemsRequest`].

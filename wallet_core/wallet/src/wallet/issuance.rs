@@ -12,6 +12,7 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
@@ -22,7 +23,6 @@ use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
-use mdoc::utils::issuer_auth::IssuerRegistration;
 use openid4vc::credential::MdocCopies;
 use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpVcMessageClient;

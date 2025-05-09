@@ -7,17 +7,17 @@ use crypto::server_keys::generate::Ca;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use attestation_data::identifiers::AttributeIdentifier;
+use attestation_data::identifiers::AttributeIdentifierHolder;
+use attestation_data::x509::generate::mock::generate_issuer_mock;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::DocRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::mdocs::DataElementValue;
-use crate::server_keys::generate::mock::generate_issuer_mock;
 use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
@@ -198,10 +198,10 @@ impl TestDocument {
     where
         KF: crypto::factory::KeyFactory,
     {
+        use attestation_data::auth::issuer_auth::IssuerRegistration;
         use crypto::keys::EcdsaKey;
 
         use crate::iso::disclosure::IssuerSigned;
-        use crate::utils::issuer_auth::IssuerRegistration;
 
         let unsigned = {
             let mut unsigned = UnsignedMdoc::from(self);

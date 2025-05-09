@@ -5,14 +5,14 @@ use chrono::Utc;
 use itertools::Itertools;
 use uuid::Uuid;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event::EventType;
 use mdoc::holder::Mdoc;
 use mdoc::holder::ProposedAttributes;
-use mdoc::utils::issuer_auth::IssuerRegistration;
-use mdoc::utils::reader_auth::ReaderRegistration;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
@@ -214,13 +214,13 @@ mod test {
     use indexmap::IndexMap;
     use rstest::rstest;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
     use mdoc::holder::ProposedDocumentAttributes;
-    use mdoc::server_keys::generate::mock::generate_issuer_mock;
     use mdoc::unsigned::Entry;
     use mdoc::unsigned::UnsignedMdoc;
-    use mdoc::utils::issuer_auth::IssuerRegistration;
     use mdoc::DataElementValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;

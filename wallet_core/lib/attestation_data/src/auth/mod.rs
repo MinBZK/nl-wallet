@@ -1,3 +1,6 @@
+pub mod issuer_auth;
+pub mod reader_auth;
+
 use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
@@ -5,9 +8,6 @@ use serde_with::base64::Base64;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use url::Url;
-
-pub mod issuer_auth;
-pub mod reader_auth;
 
 type Language = String;
 

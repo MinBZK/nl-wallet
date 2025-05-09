@@ -16,13 +16,13 @@ use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
+use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use mdoc::utils::x509::CertificateType;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::UseCase;

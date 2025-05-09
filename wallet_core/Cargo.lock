@@ -365,7 +365,7 @@ dependencies = [
  "asn1-rs-derive 0.5.1",
  "asn1-rs-impl",
  "displaydoc",
- "nom",
+ "nom 7.1.3",
  "num-traits",
  "rusticata-macros",
  "thiserror 1.0.69",
@@ -381,7 +381,7 @@ dependencies = [
  "asn1-rs-derive 0.6.0",
  "asn1-rs-impl",
  "displaydoc",
- "nom",
+ "nom 7.1.3",
  "num-traits",
  "rusticata-macros",
  "thiserror 2.0.11",
@@ -584,6 +584,28 @@ name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
+
+[[package]]
+name = "attestation_data"
+version = "0.3.0-dev"
+dependencies = [
+ "assert_matches",
+ "chrono",
+ "crypto",
+ "derive_more",
+ "error_category",
+ "indexmap 2.7.1",
+ "rcgen",
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.11",
+ "time",
+ "url",
+ "utils",
+ "x509-parser 0.17.0",
+]
 
 [[package]]
 name = "autocfg"
@@ -899,7 +921,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d988fcc40055ceaa85edc55875a08f8abd29018582647fd82ad6128dba14a5f0"
 dependencies = [
  "bitvec",
- "nom",
+ "nom 7.1.3",
 ]
 
 [[package]]
@@ -1006,7 +1028,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fac387a98bb7c37292057cffc56d62ecb629900026402633ae9160df93a8766"
 dependencies = [
- "nom",
+ "nom 7.1.3",
 ]
 
 [[package]]
@@ -1727,7 +1749,7 @@ checksum = "5cd0a5c643689626bec213c4d8bd4d96acc8ffdb4ad4bb6bc16abf27d5f4b553"
 dependencies = [
  "asn1-rs 0.6.2",
  "displaydoc",
- "nom",
+ "nom 7.1.3",
  "num-bigint",
  "num-traits",
  "rusticata-macros",
@@ -1741,7 +1763,7 @@ checksum = "07da5016415d5a3c4dd39b11ed26f915f52fc4e0dc197d87908bc916e51bc1a6"
 dependencies = [
  "asn1-rs 0.7.0",
  "displaydoc",
- "nom",
+ "nom 7.1.3",
  "num-bigint",
  "num-traits",
  "rusticata-macros",
@@ -3252,6 +3274,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
+ "attestation_data",
  "axum",
  "config",
  "crypto",
@@ -3284,6 +3307,7 @@ name = "issuer_settings"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation_data",
  "chrono",
  "crypto",
  "derive_more",
@@ -3447,6 +3471,7 @@ name = "jwt"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation_data",
  "base64 0.22.1",
  "chrono",
  "crypto",
@@ -3455,7 +3480,6 @@ dependencies = [
  "indexmap 2.7.1",
  "itertools 0.14.0",
  "jsonwebtoken",
- "mdoc",
  "p256",
  "rand_core",
  "rustls-pki-types",
@@ -3650,6 +3674,7 @@ version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
+ "attestation_data",
  "base64 0.22.1",
  "chrono",
  "ciborium",
@@ -3663,10 +3688,10 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
+ "nom 8.0.0",
  "nutype",
  "p256",
  "rand_core",
- "rcgen",
  "regex",
  "ring",
  "rstest",
@@ -3686,7 +3711,6 @@ dependencies = [
  "tracing",
  "url",
  "utils",
- "x509-parser 0.17.0",
 ]
 
 [[package]]
@@ -3816,6 +3840,15 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
+]
+
+[[package]]
+name = "nom"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405"
+dependencies = [
+ "memchr",
 ]
 
 [[package]]
@@ -4011,6 +4044,7 @@ version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "async-trait",
+ "attestation_data",
  "axum",
  "base64 0.22.1",
  "biscuit",
@@ -4324,6 +4358,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "attestation_data",
  "axum",
  "chrono",
  "config",
@@ -4335,7 +4370,6 @@ dependencies = [
  "indexmap 2.7.1",
  "issuer_settings",
  "jwt",
- "mdoc",
  "openid4vc",
  "openid4vc_server",
  "p256",
@@ -4757,7 +4791,7 @@ dependencies = [
  "chrono",
  "either",
  "hashbrown 0.14.5",
- "nom",
+ "nom 7.1.3",
  "num-bigint",
  "num-integer",
  "num-traits",
@@ -5018,7 +5052,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93f9a866e2e00a7a1fb27e46e9e324a6f7c0e7edc4543cae1d38f4e4a100c610"
 dependencies = [
  "memchr",
- "nom",
+ "nom 7.1.3",
  "serde",
 ]
 
@@ -5161,7 +5195,7 @@ version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf0c4a6ece9950b9abdb62b1cfcf2a68b3b67a10ba445b3bb85be2a293d0632"
 dependencies = [
- "nom",
+ "nom 7.1.3",
 ]
 
 [[package]]
@@ -5882,6 +5916,7 @@ name = "server_utils"
 version = "0.3.0-dev"
 dependencies = [
  "anyhow",
+ "attestation_data",
  "axum",
  "base64 0.22.1",
  "chrono",
@@ -5890,7 +5925,6 @@ dependencies = [
  "hsm",
  "http",
  "http_utils",
- "mdoc",
  "openid4vc",
  "p256",
  "rustls-pki-types",
@@ -7326,6 +7360,7 @@ version = "0.3.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "attestation_data",
  "axum",
  "chrono",
  "config",
@@ -7398,6 +7433,7 @@ dependencies = [
  "aes-gcm",
  "apple_app_attest",
  "assert_matches",
+ "attestation_data",
  "base64 0.22.1",
  "cfg-if",
  "chrono",
@@ -7488,12 +7524,12 @@ dependencies = [
  "anyhow",
  "assert_cmd",
  "assert_fs",
+ "attestation_data",
  "chrono",
  "clap",
  "clio",
  "crypto",
  "itertools 0.14.0",
- "mdoc",
  "p256",
  "pem",
  "predicates",
@@ -7818,7 +7854,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "998d2c24ec099a87daf9467808859f9d82b61f1d9c9701251aea037f514eae0e"
 dependencies = [
- "nom",
+ "nom 7.1.3",
 ]
 
 [[package]]
@@ -8282,7 +8318,7 @@ dependencies = [
  "data-encoding",
  "der-parser 9.0.0",
  "lazy_static",
- "nom",
+ "nom 7.1.3",
  "oid-registry 0.7.1",
  "ring",
  "rusticata-macros",
@@ -8300,7 +8336,7 @@ dependencies = [
  "data-encoding",
  "der-parser 10.0.0",
  "lazy_static",
- "nom",
+ "nom 7.1.3",
  "oid-registry 0.8.0",
  "ring",
  "rusticata-macros",
