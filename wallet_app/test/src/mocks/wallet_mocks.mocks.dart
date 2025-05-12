@@ -4079,20 +4079,34 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<_i19.WalletInstructionResult>);
 
   @override
-  _i8.Future<List<_i19.Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String? pin}) =>
+  _i8.Future<_i19.DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String? pin}) =>
       (super.noSuchMethod(
         Invocation.method(
           #crateApiFullContinueDisclosureBasedIssuance,
           [],
           {#pin: pin},
         ),
-        returnValue: _i8.Future<List<_i19.Attestation>>.value(
-          <_i19.Attestation>[],
+        returnValue: _i8.Future<_i19.DisclosureBasedIssuanceResult>.value(
+          _i12.dummyValue<_i19.DisclosureBasedIssuanceResult>(
+            this,
+            Invocation.method(
+              #crateApiFullContinueDisclosureBasedIssuance,
+              [],
+              {#pin: pin},
+            ),
+          ),
         ),
-        returnValueForMissingStub: _i8.Future<List<_i19.Attestation>>.value(
-          <_i19.Attestation>[],
+        returnValueForMissingStub: _i8.Future<_i19.DisclosureBasedIssuanceResult>.value(
+          _i12.dummyValue<_i19.DisclosureBasedIssuanceResult>(
+            this,
+            Invocation.method(
+              #crateApiFullContinueDisclosureBasedIssuance,
+              [],
+              {#pin: pin},
+            ),
+          ),
         ),
-      ) as _i8.Future<List<_i19.Attestation>>);
+      ) as _i8.Future<_i19.DisclosureBasedIssuanceResult>);
 
   @override
   _i8.Future<List<_i19.Attestation>> crateApiFullContinuePidIssuance({
