@@ -6,6 +6,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
+import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
@@ -60,7 +61,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureLoadInProgress(),
+          DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
         ),
       );
       await screenMatchesGolden('load_in_progress.light');
@@ -459,7 +460,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureLoadInProgress(),
+          DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
         ),
       );
 
@@ -674,7 +675,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             mockDisclosureBloc,
-            DisclosureLoadInProgress(),
+            DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
           ),
         );
 
