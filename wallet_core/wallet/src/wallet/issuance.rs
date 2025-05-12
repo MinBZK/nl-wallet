@@ -13,6 +13,7 @@ use tracing::instrument;
 use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::Organization;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
@@ -23,8 +24,8 @@ use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
+use openid4vc::credential::CredentialCopies;
 use openid4vc::credential::MdocCopies;
-use openid4vc::credential_payload::CredentialPayloadError;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
@@ -32,7 +33,6 @@ use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
-use sd_jwt_vc_metadata::TypeMetadataError;
 use update_policy_model::update_policy::VersionState;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_account::NL_WALLET_CLIENT_ID;
@@ -86,6 +86,13 @@ pub enum IssuanceError {
     DigidSessionFinish(#[source] DigidSessionError),
     #[error("could not retrieve attestations from issuer: {0}")]
     IssuanceSession(#[from] IssuanceSessionError),
+    #[error("could not retrieve attestations from issuer: {error}")]
+    IssuerServer {
+        organization: Box<Organization>,
+        #[defer]
+        #[source]
+        error: IssuanceSessionError,
+    },
     #[error("error sending instruction to Wallet Provider: {0}")]
     Instruction(#[from] InstructionError),
     #[error("invalid signature received from Wallet Provider: {0}")]
@@ -116,14 +123,13 @@ pub enum IssuanceError {
     JwtCredential(#[from] JwtError),
     #[error("error fetching update policy: {0}")]
     UpdatePolicy(#[from] UpdatePolicyError),
-    #[error("type metadata verification failed: {0}")]
+    #[error("error converting credential payload to attestation: {error}")]
     #[category(critical)]
-    TypeMetadataVerification(#[from] TypeMetadataError),
-    #[error("error converting mdoc to credential payload: {0}")]
-    CredentialPayload(#[from] CredentialPayloadError),
-    #[error("error converting credential payload to attestation: {0}")]
-    #[category(critical)]
-    Attestation(#[from] AttestationError),
+    Attestation {
+        organization: Box<Organization>,
+        #[source]
+        error: AttestationError,
+    },
     #[error("certificate error: {0}")]
     Certificate(#[from] CertificateError),
 }
@@ -248,8 +254,17 @@ where
 
         let session = self.session.take().unwrap();
         if let Session::Issuance(issuance_session) = session {
+            let organization = issuance_session.protocol_state.issuer_registration()?.organization;
+
             info!("Rejecting issuance");
-            issuance_session.protocol_state.reject_issuance().await?;
+            issuance_session
+                .protocol_state
+                .reject_issuance()
+                .await
+                .map_err(|error| IssuanceError::IssuerServer {
+                    organization: Box::new(organization),
+                    error,
+                })?;
         };
 
         // In the DigiD stage of PID issuance we don't have to do anything with the DigiD session state,
@@ -339,9 +354,13 @@ where
                         let attestation = Attestation::create_for_issuance(
                             AttestationIdentity::Ephemeral,
                             metadata,
-                            issuer_registration.organization,
+                            issuer_registration.organization.clone(),
                             unsigned_mdoc.attributes.into(),
-                        )?;
+                        )
+                        .map_err(|error| IssuanceError::Attestation {
+                            organization: Box::new(issuer_registration.organization),
+                            error,
+                        })?;
 
                         Ok(attestation)
                     }
@@ -423,6 +442,8 @@ where
 
         info!("Signing nonce using Wallet Provider");
 
+        let organization = issuance_session.protocol_state.issuer_registration()?.organization;
+
         let issuance_result = issuance_session
             .protocol_state
             .accept_issuance(&config.mdoc_trust_anchors(), &remote_key_factory, wte)
@@ -440,7 +461,10 @@ where
                             RemoteEcdsaKeyError::MissingSignature => IssuanceError::MissingSignature,
                         }
                     }
-                    _ => IssuanceError::IssuanceSession(error),
+                    _ => IssuanceError::IssuerServer {
+                        organization: Box::new(organization),
+                        error,
+                    },
                 }
             });
 
@@ -459,8 +483,8 @@ where
         }
         let issued_mdocs = issuance_result?
             .into_iter()
-            .map(|mdocs| mdocs.try_into())
-            .collect::<Result<Vec<_>, _>>()?;
+            .map(CredentialCopies::from)
+            .collect::<Vec<_>>();
 
         info!("Isuance succeeded; removing issuance session state");
         self.session.take();
@@ -511,13 +535,14 @@ where
 mod tests {
     use assert_matches::assert_matches;
     use mockall::predicate::*;
-    use openid4vc::credential_formats::CredentialFormats;
     use rstest::rstest;
     use serial_test::serial;
     use url::Url;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
+    use openid4vc::credential_formats::CredentialFormats;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
@@ -539,6 +564,14 @@ mod tests {
 
     fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
         let mut client = MockIssuanceSession::new();
+        let issuer_certificate = mdoc.issuer_certificate().unwrap();
+        client.expect_issuer().return_once(move || {
+            Ok(match IssuerRegistration::from_certificate(&issuer_certificate) {
+                Ok(Some(registration)) => registration,
+                _ => IssuerRegistration::new_mock(),
+            })
+        });
+
         client.expect_accept().return_once(|| {
             Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
                 .try_into()
@@ -685,6 +718,9 @@ mod tests {
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
             client.expect_reject().return_once(|| Ok(()));
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
             client
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
@@ -868,7 +904,7 @@ mod tests {
             .await
             .expect_err("Continuing PID issuance should have resulted in error");
 
-        assert_matches!(error, IssuanceError::IssuanceSession(_));
+        assert_matches!(error, IssuanceError::IssuanceSession { .. });
     }
 
     #[tokio::test]
@@ -882,6 +918,11 @@ mod tests {
             client
                 .expect_reject()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
+
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
+
             client
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
@@ -892,7 +933,7 @@ mod tests {
             .await
             .expect_err("Rejecting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::IssuanceSession(_));
+        assert_matches!(error, IssuanceError::IssuerServer { .. });
     }
 
     const PIN: &str = "051097";
@@ -1051,6 +1092,11 @@ mod tests {
             client
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
+
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
+
             client
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
@@ -1077,7 +1123,7 @@ mod tests {
         let (wallet, error) =
             test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(instruction_error)).await;
 
-        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        // Test that this error is converted to the appropriate variant of `IssuanceError`.
         assert_matches!(error, IssuanceError::Instruction(_));
 
         // Test the state of the Wallet, based on if we expect a reset for this InstructionError.
@@ -1100,7 +1146,7 @@ mod tests {
         let (wallet, error) =
             test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(signature::Error::default())).await;
 
-        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        // Test that this error is converted to the appropriate variant of `IssuanceError`.
         assert_matches!(error, IssuanceError::Signature(_));
 
         assert!(wallet.has_registration());
@@ -1112,7 +1158,7 @@ mod tests {
         let (wallet, error) =
             test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::KeyNotFound("not found".to_string())).await;
 
-        // Test that this error is converted to the appropriate variant of `PidIssuanceError`.
+        // Test that this error is converted to the appropriate variant of `IssuanceError`.
         assert_matches!(error, IssuanceError::KeyNotFound(_));
 
         assert!(wallet.has_registration());
@@ -1130,6 +1176,11 @@ mod tests {
             client
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
+
+            client
+                .expect_issuer()
+                .return_once(|| Ok(IssuerRegistration::new_mock()));
+
             client
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
@@ -1140,7 +1191,7 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::IssuanceSession(_));
+        assert_matches!(error, IssuanceError::IssuerServer { .. });
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());

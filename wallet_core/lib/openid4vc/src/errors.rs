@@ -40,6 +40,12 @@ pub struct DisclosureErrorResponse<T> {
     pub redirect_uri: Option<BaseUrl>,
 }
 
+impl<T> DisclosureErrorResponse<T> {
+    pub fn response_error(&self) -> &T {
+        &self.error_response.error
+    }
+}
+
 pub trait ErrorStatusCode {
     fn status_code(&self) -> StatusCode;
 }

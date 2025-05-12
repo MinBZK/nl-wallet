@@ -110,9 +110,9 @@ mod tests {
     use openid4vc::mock::MockIssuanceSession;
 
     use crate::storage::StorageState;
-    use crate::wallet::issuance::IssuanceSession;
     use crate::wallet::Session;
 
+    use super::super::issuance::IssuanceSession;
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;

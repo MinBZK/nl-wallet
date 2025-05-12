@@ -19,6 +19,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
 
+use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
@@ -43,6 +44,7 @@ use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use utils::generator::TimeGenerator;
+use utils::single_unique::SingleUnique;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -198,22 +200,18 @@ impl IssuedCredentialCopies {
     }
 }
 
-impl<'a> TryFrom<&'a IssuedCredentialCopies> for &'a MdocCopies {
-    type Error = IssuanceSessionError;
-
-    fn try_from(value: &'a IssuedCredentialCopies) -> Result<Self, Self::Error> {
+impl<'a> From<&'a IssuedCredentialCopies> for &'a MdocCopies {
+    fn from(value: &'a IssuedCredentialCopies) -> Self {
         match &value {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs,
         }
     }
 }
 
-impl TryFrom<IssuedCredentialCopies> for MdocCopies {
-    type Error = IssuanceSessionError;
-
-    fn try_from(value: IssuedCredentialCopies) -> Result<Self, Self::Error> {
+impl From<IssuedCredentialCopies> for MdocCopies {
+    fn from(value: IssuedCredentialCopies) -> Self {
         match value {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => Ok(mdocs),
+            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs,
         }
     }
 }
@@ -275,6 +273,8 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         KF: PoaFactory<Key = K>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
+
+    fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError>;
 }
 
 #[derive(Debug)]
@@ -761,6 +761,30 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .await?;
 
         Ok(())
+    }
+
+    fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
+        let registrations = self
+            .session_state
+            .credential_previews
+            .iter()
+            .map(|preview| {
+                preview
+                    .0
+                    .as_ref()
+                    .first()
+                    .issuer_registration()
+                    .map(|registration| *registration)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let registration = registrations
+            .iter()
+            .single_unique()
+            .map_err(CredentialPreviewError::MultipleIssuerRegistrationInPreviews)?
+            .ok_or(CredentialPreviewError::NoIssuerRegistrationInPreviews)?;
+
+        Ok(registration)
     }
 }
 

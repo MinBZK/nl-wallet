@@ -53,6 +53,7 @@ use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
+use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationRequest;
@@ -659,7 +660,7 @@ async fn test_client_and_server_cancel_after_created() {
 
     assert_matches!(
         error,
-        VpClientError::Request(VpMessageClientError::AuthGetResponse(error))
+        VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthGetResponse(error)))
             if error.error_response.error == GetRequestErrorCode::CancelledSession
     );
 }
@@ -887,7 +888,7 @@ async fn start_disclosure_session<KF, K>(
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,
     key_factory: &KF,
-) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpClientError>
+) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpSessionError>
 where
     KF: KeyFactory<Key = K>,
 {
@@ -974,7 +975,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
                 wallet_nonce,
             )
             .await
-            .map_err(|error| VpMessageClientError::AuthGetResponse(error.into()))?;
+            .map_err(|error| VpMessageClientError::AuthGetResponse(Box::new(error.into())))?;
 
         Ok(jws)
     }
@@ -995,7 +996,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
                 &TimeGenerator,
             )
             .await
-            .map_err(|error| VpMessageClientError::AuthPostResponse(error.into()))?;
+            .map_err(|error| VpMessageClientError::AuthPostResponse(Box::new(error.into())))?;
 
         Ok(response.redirect_uri)
     }

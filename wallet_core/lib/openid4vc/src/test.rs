@@ -26,9 +26,9 @@ use mdoc::verifier::ItemsRequests;
 
 use crate::disclosure_session::DisclosureSession;
 use crate::disclosure_session::DisclosureUriSource;
-use crate::disclosure_session::VpClientError;
 use crate::disclosure_session::VpMessageClient;
 use crate::disclosure_session::VpMessageClientError;
+use crate::disclosure_session::VpSessionError;
 use crate::openid4vp::IsoVpAuthorizationRequest;
 use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
@@ -223,7 +223,7 @@ pub async fn disclosure_session_start<FS, FM, FD>(
         DisclosureSession<MockVerifierVpMessageClient<FD>, String>,
         Arc<MockVerifierSession<FD>>,
     ),
-    (VpClientError, Arc<MockVerifierSession<FD>>),
+    (VpSessionError, Arc<MockVerifierSession<FD>>),
 >
 where
     FS: FnOnce(MockVerifierSession<FD>) -> MockVerifierSession<FD>,
@@ -366,7 +366,9 @@ where
     }
 }
 
-pub async fn test_disclosure_session_start_error_http_client<F>(error_factory: F) -> (VpClientError, Vec<WalletMessage>)
+pub async fn test_disclosure_session_start_error_http_client<F>(
+    error_factory: F,
+) -> (VpSessionError, Vec<WalletMessage>)
 where
     F: Fn() -> Option<VpMessageClientError>,
 {
@@ -434,7 +436,7 @@ pub fn iso_auth_request() -> IsoVpAuthorizationRequest {
 pub async fn test_disclosure_session_terminate<H>(
     session: DisclosureSession<H, String>,
     wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
-) -> Result<Option<BaseUrl>, VpClientError>
+) -> Result<Option<BaseUrl>, VpSessionError>
 where
     H: VpMessageClient,
 {

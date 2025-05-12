@@ -6,10 +6,14 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
+use wallet::attestation_data::LocalizedStrings;
+use wallet::errors::openid4vc::AuthorizationErrorCode;
 use wallet::errors::openid4vc::IssuanceSessionError;
 use wallet::errors::openid4vc::OidcError;
 use wallet::errors::openid4vc::VpClientError;
+use wallet::errors::openid4vc::VpMessageClientError;
 use wallet::errors::openid4vc::VpMessageClientErrorType;
+use wallet::errors::openid4vc::VpVerifierError;
 use wallet::errors::reqwest;
 use wallet::errors::AccountProviderError;
 use wallet::errors::ChangePinError;
@@ -52,6 +56,12 @@ enum FlutterApiErrorType {
 
     /// The request failed, but the server did send a response.
     Server,
+
+    /// Something went wrong during issuance that's caused by the issuer.
+    Issuer,
+
+    /// Something went wrong during disclosure that's caused by the verifier.
+    Verifier,
 
     /// The wallet is in an unexpected state.
     WalletState,
@@ -194,6 +204,13 @@ fn detect_networking_error(error: &(dyn Error + 'static)) -> Option<FlutterApiEr
     None
 }
 
+#[skip_serializing_none]
+#[derive(Debug, Clone, Serialize)]
+struct IssuanceErrorData {
+    redirect_error: Option<AuthorizationErrorCode>,
+    organization_name: Option<LocalizedStrings>,
+}
+
 impl FlutterApiErrorFields for IssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
         if let Some(network_error) = detect_networking_error(self) {
@@ -217,51 +234,80 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
                 FlutterApiErrorType::Server
             }
+            IssuanceError::InvalidIssuerCertificate(_)
+            | IssuanceError::MissingIssuerRegistration
+            | IssuanceError::AttestationPreview(_)
+            | IssuanceError::Attestation { .. }
+            | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),
             _ => FlutterApiErrorType::Generic,
         }
     }
 
     fn data(&self) -> serde_json::Value {
-        match self {
-            Self::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(err))) => {
-                let auth_error_code = serde_json::to_value(err.error.clone())
-                    .expect("a value of type AuthorizationErrorCode should always serialize");
-                [("redirect_error", auth_error_code)]
-                    .into_iter()
-                    .collect::<serde_json::Value>()
+        let redirect_error =
+            if let Self::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RedirectUriError(err))) = self {
+                Some(err.error.clone())
+            } else {
+                None
+            };
+
+        let organization_name = match self {
+            IssuanceError::Attestation { organization, .. } | IssuanceError::IssuerServer { organization, .. } => {
+                Some(organization.display_name.clone())
             }
-            _ => serde_json::Value::Null,
+            _ => None,
+        };
+
+        if redirect_error.is_some() || organization_name.is_some() {
+            serde_json::to_value(IssuanceErrorData {
+                redirect_error,
+                organization_name,
+            })
+            .unwrap() // This conversion should never fail.
+        } else {
+            serde_json::Value::Null
         }
     }
 }
 
 #[skip_serializing_none]
-#[derive(Debug, Clone, Serialize)]
+#[derive(Clone, Serialize)]
 struct DisclosureErrorData<'a> {
     session_type: Option<SessionType>,
     can_retry: Option<bool>,
     return_url: Option<&'a Url>,
+    organization_name: Option<LocalizedStrings>,
+}
+
+fn type_for_vp_message_client(error: &VpMessageClientError) -> Option<FlutterApiErrorType> {
+    match error.error_type() {
+        VpMessageClientErrorType::Expired { .. } => Some(FlutterApiErrorType::ExpiredSession),
+        VpMessageClientErrorType::Cancelled => Some(FlutterApiErrorType::CancelledSession),
+        _ => detect_networking_error(error),
+    }
 }
 
 impl FlutterApiErrorFields for DisclosureError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             DisclosureError::VersionBlocked => FlutterApiErrorType::VersionBlocked,
-            DisclosureError::NotRegistered
-            | DisclosureError::Locked
-            | DisclosureError::SessionState
-            | DisclosureError::UnexpectedRedirectUriPurpose { .. } => FlutterApiErrorType::WalletState,
-            DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
+            DisclosureError::NotRegistered | DisclosureError::Locked | DisclosureError::SessionState => {
+                FlutterApiErrorType::WalletState
+            }
+            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(_, _)) => {
                 FlutterApiErrorType::DisclosureSourceMismatch
             }
-            DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
-                VpMessageClientErrorType::Expired { .. } => FlutterApiErrorType::ExpiredSession,
-                VpMessageClientErrorType::Cancelled => FlutterApiErrorType::CancelledSession,
-                _ => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
-            },
-            DisclosureError::VpDisclosureSession(error) => {
-                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic)
+            DisclosureError::VpClient(VpClientError::Request(error)) => {
+                type_for_vp_message_client(error).unwrap_or(FlutterApiErrorType::Generic)
+            }
+            DisclosureError::VpVerifierServer {
+                error: VpVerifierError::Request(error),
+                ..
+            } => type_for_vp_message_client(error).unwrap_or(FlutterApiErrorType::Verifier),
+            DisclosureError::VpClient(error) => detect_networking_error(error).unwrap_or(FlutterApiErrorType::Generic),
+            DisclosureError::VpVerifierServer { error, .. } => {
+                detect_networking_error(error).unwrap_or(FlutterApiErrorType::Verifier)
             }
             DisclosureError::Instruction(error) => FlutterApiErrorType::from(error),
             DisclosureError::UpdatePolicy(error) => FlutterApiErrorType::from(error),
@@ -271,25 +317,36 @@ impl FlutterApiErrorFields for DisclosureError {
 
     fn data(&self) -> serde_json::Value {
         let session_type = match self {
-            DisclosureError::VpDisclosureSession(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
+            DisclosureError::VpClient(VpClientError::DisclosureUriSourceMismatch(session_type, _)) => {
                 Some(*session_type)
             }
             _ => None,
         };
         let can_retry = match self {
-            DisclosureError::VpDisclosureSession(VpClientError::Request(error)) => match error.error_type() {
+            DisclosureError::VpClient(VpClientError::Request(error))
+            | DisclosureError::VpVerifierServer {
+                error: VpVerifierError::Request(error),
+                ..
+            } => match error.error_type() {
                 VpMessageClientErrorType::Expired { can_retry } => Some(can_retry),
                 VpMessageClientErrorType::Cancelled | VpMessageClientErrorType::Other => None,
             },
             _ => None,
         };
         let return_url = self.return_url();
+        let organization_name = match self {
+            DisclosureError::VpVerifierServer { organization, .. } => organization
+                .as_ref()
+                .map(|organization| organization.display_name.clone()),
+            _ => None,
+        };
 
         if session_type.is_some() || can_retry.is_some() || return_url.is_some() {
             serde_json::to_value(DisclosureErrorData {
                 session_type,
                 can_retry,
                 return_url,
+                organization_name,
             })
             .unwrap() // This conversion should never fail.
         } else {
@@ -298,12 +355,22 @@ impl FlutterApiErrorFields for DisclosureError {
     }
 }
 
+#[derive(Debug, Clone, Serialize)]
+struct DisclosureBasedIssuanceErrorData {
+    organization_name: LocalizedStrings,
+}
+
 impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
     fn typ(&self) -> FlutterApiErrorType {
         match self {
             Self::Disclosure(error) => error.typ(),
             Self::Issuance(error) => error.typ(),
-            _ => FlutterApiErrorType::Generic,
+            Self::MissingRedirectUri(_)
+            | Self::MissingRedirectUriQuery(_)
+            | Self::UrlDecoding(_, _)
+            | Self::MissingGrants(_)
+            | Self::MissingAuthorizationCode(_)
+            | Self::UnexpectedScheme(_, _) => FlutterApiErrorType::Issuer,
         }
     }
 
@@ -311,7 +378,15 @@ impl FlutterApiErrorFields for DisclosureBasedIssuanceError {
         match self {
             Self::Disclosure(error) => error.data(),
             Self::Issuance(error) => error.data(),
-            _ => serde_json::Value::Null,
+            Self::MissingRedirectUri(organization)
+            | Self::MissingRedirectUriQuery(organization)
+            | Self::UrlDecoding(_, organization)
+            | Self::MissingGrants(organization)
+            | Self::MissingAuthorizationCode(organization)
+            | Self::UnexpectedScheme(_, organization) => serde_json::to_value(DisclosureBasedIssuanceErrorData {
+                organization_name: organization.display_name.clone(),
+            })
+            .unwrap(),
         }
     }
 }

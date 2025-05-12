@@ -56,46 +56,95 @@ use crate::VpAuthorizationErrorCode;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
+pub enum VpSessionError {
+    #[error("{0}")]
+    Client(#[from] VpClientError),
+    #[error("{0}")]
+    Verifier(#[from] VpVerifierError),
+}
+
+impl From<VpMessageClientError> for VpSessionError {
+    fn from(source: VpMessageClientError) -> Self {
+        match &source {
+            VpMessageClientError::Json(_) => VpSessionError::Verifier(VpVerifierError::Request(source)),
+            _ => VpSessionError::Client(VpClientError::Request(source)),
+        }
+    }
+}
+
+impl From<AuthResponseError> for VpSessionError {
+    fn from(source: AuthResponseError) -> Self {
+        VpSessionError::Client(VpClientError::AuthResponseEncryption(source))
+    }
+}
+
+impl From<AuthRequestValidationError> for VpSessionError {
+    fn from(source: AuthRequestValidationError) -> Self {
+        VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(source))
+    }
+}
+
+impl From<ValidationError> for VpSessionError {
+    fn from(source: ValidationError) -> Self {
+        VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(source))
+    }
+}
+
+impl From<CertificateError> for VpSessionError {
+    fn from(source: CertificateError) -> Self {
+        VpSessionError::Verifier(VpVerifierError::RpCertificate(source))
+    }
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
 pub enum VpClientError {
     #[error("error sending OpenID4VP message: {0}")]
-    Request(#[from] VpMessageClientError),
+    Request(#[source] VpMessageClientError),
     #[error("error creating mdoc device response: {0}")]
     DeviceResponse(#[source] mdoc::Error),
-    #[error("error verifying Authorization Request: {0}")]
-    AuthRequestValidation(#[from] AuthRequestValidationError),
-    #[error("incorrect client_id: expected {expected}, found {found}")]
-    #[category(critical)]
-    IncorrectClientId { expected: String, found: String },
-    #[error("no reader registration in RP certificate")]
-    #[category(critical)]
-    MissingReaderRegistration,
-    #[error("error validating requested attributes: {0}")]
-    RequestedAttributesValidation(#[from] ValidationError),
     #[error("error matching requested attributes against mdocs: {0}")]
     MatchRequestedAttributes(#[source] mdoc::Error),
-    #[error("error parsing RP certificate: {0}")]
-    RpCertificate(#[from] CertificateError),
     #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
     #[category(pd)] // we don't want to leak information about what's in the wallet
     MultipleCandidates(Vec<String>),
     #[error("error encrypting Authorization Response: {0}")]
     #[category(unexpected)]
-    AuthResponseEncryption(#[from] AuthResponseError),
+    AuthResponseEncryption(#[source] AuthResponseError),
     #[error("error deserializing request_uri object: {0}")]
     #[category(pd)] // we cannot be sure that the URL is not included in the error.
     RequestUri(#[source] serde_urlencoded::de::Error),
-    #[error("missing session_type query parameter in request URI")]
-    #[category(critical)]
-    MissingSessionType,
-    #[error("malformed session_type query parameter in request URI: {0}")]
-    #[category(pd)] // we cannot be sure that the URL is not included in the error
-    MalformedSessionType(#[source] serde_urlencoded::de::Error),
     #[error("mismatch between session type and disclosure URI source: {0} not allowed from {1}")]
     #[category(critical)]
     DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
     #[error("error constructing PoA: {0}")]
     #[category(pd)]
     Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(defer)]
+pub enum VpVerifierError {
+    #[error("error verifying Authorization Request: {0}")]
+    AuthRequestValidation(#[source] AuthRequestValidationError),
+    #[error("incorrect client_id: expected {expected}, found {found}")]
+    #[category(critical)]
+    IncorrectClientId { expected: String, found: String },
+    #[error("no reader registration in RP certificate")]
+    #[category(critical)]
+    MissingReaderRegistration,
+    #[error("missing session_type query parameter in request URI")]
+    #[category(critical)]
+    MissingSessionType,
+    #[error("malformed session_type query parameter in request URI: {0}")]
+    #[category(pd)] // we cannot be sure that the URL is not included in the error
+    MalformedSessionType(#[source] serde_urlencoded::de::Error),
+    #[error("error sending OpenID4VP message: {0}")]
+    Request(#[source] VpMessageClientError),
+    #[error("error validating requested attributes: {0}")]
+    RequestedAttributesValidation(#[source] ValidationError),
+    #[error("error parsing RP certificate: {0}")]
+    RpCertificate(#[source] CertificateError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -107,9 +156,9 @@ pub enum VpMessageClientError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("auth request server error response: {0:?}")]
-    AuthGetResponse(DisclosureErrorResponse<GetRequestErrorCode>),
+    AuthGetResponse(Box<DisclosureErrorResponse<GetRequestErrorCode>>),
     #[error("auth request server error response: {0:?}")]
-    AuthPostResponse(DisclosureErrorResponse<PostAuthResponseErrorCode>),
+    AuthPostResponse(Box<DisclosureErrorResponse<PostAuthResponseErrorCode>>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,13 +170,13 @@ pub enum VpMessageClientErrorType {
 
 impl From<DisclosureErrorResponse<GetRequestErrorCode>> for VpMessageClientError {
     fn from(value: DisclosureErrorResponse<GetRequestErrorCode>) -> Self {
-        Self::AuthGetResponse(value)
+        Self::AuthGetResponse(value.into())
     }
 }
 
 impl From<DisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClientError {
     fn from(value: DisclosureErrorResponse<PostAuthResponseErrorCode>) -> Self {
-        Self::AuthPostResponse(value)
+        Self::AuthPostResponse(value.into())
     }
 }
 
@@ -135,20 +184,14 @@ impl VpMessageClientError {
     pub fn error_type(&self) -> VpMessageClientErrorType {
         match self {
             // Consider the different error codes when getting the disclosure request.
-            Self::AuthGetResponse(DisclosureErrorResponse {
-                error_response: ErrorResponse { error, .. },
-                ..
-            }) => match error {
+            Self::AuthGetResponse(error) => match error.response_error() {
                 GetRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
                 GetRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
                 GetRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
                 _ => VpMessageClientErrorType::Other,
             },
             // Consider the different error codes when posting the disclosure response.
-            Self::AuthPostResponse(DisclosureErrorResponse {
-                error_response: ErrorResponse { error, .. },
-                ..
-            }) => match error {
+            Self::AuthPostResponse(error) => match error.response_error() {
                 PostAuthResponseErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
                 PostAuthResponseErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
                 _ => VpMessageClientErrorType::Other,
@@ -409,7 +452,7 @@ where
         uri_source: DisclosureUriSource,
         mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, VpClientError>
+    ) -> Result<Self, VpSessionError>
     where
         S: MdocDataSource<MdocIdentifier = I>,
     {
@@ -424,15 +467,15 @@ where
                 .request_uri
                 .as_ref()
                 .query()
-                .ok_or(VpClientError::MissingSessionType)?,
+                .ok_or(VpVerifierError::MissingSessionType)?,
         )
-        .map_err(VpClientError::MalformedSessionType)?;
+        .map_err(VpVerifierError::MalformedSessionType)?;
 
         // Check the `SessionType` that was contained in the verifier URL against the source of the URI.
         // A same-device session is expected to come from a Universal Link,
         // while a cross-device session should come from a scanned QR code.
         if uri_source.session_type() != session_type {
-            return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source));
+            return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source).into());
         }
 
         // If the server supports it, require it to include a nonce in the Authorization Request JWT
@@ -507,14 +550,14 @@ where
     }
 
     /// Report an error back to the RP. Note: this function only reports errors that are the RP's fault.
-    async fn report_error_back<T>(error: VpClientError, client: &H, url: BaseUrl) -> Result<T, VpClientError> {
+    async fn report_error_back<T>(error: VpSessionError, client: &H, url: BaseUrl) -> Result<T, VpSessionError> {
         let error_code = match error {
-            VpClientError::IncorrectClientId { .. }
-            | VpClientError::MissingReaderRegistration
-            | VpClientError::RequestedAttributesValidation(_)
-            | VpClientError::AuthRequestValidation(_)
-            | VpClientError::Request(VpMessageClientError::Json(_))
-            | VpClientError::RpCertificate(_) => {
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(_))
+            | VpSessionError::Verifier(VpVerifierError::IncorrectClientId { .. })
+            | VpSessionError::Verifier(VpVerifierError::MissingReaderRegistration)
+            | VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
+            | VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(_))
+            | VpSessionError::Verifier(VpVerifierError::RpCertificate(_)) => {
                 VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::InvalidRequest)
             }
             _ => return Err(error), // don't report other errors
@@ -543,23 +586,24 @@ where
         session_transcript: &SessionTranscript,
         request_uri_object: &VpRequestUriObject,
         mdoc_data_source: &S,
-    ) -> Result<(VerifierSessionDataCheckResult<I>, ReaderRegistration), VpClientError>
+    ) -> Result<(VerifierSessionDataCheckResult<I>, ReaderRegistration), VpSessionError>
     where
         S: MdocDataSource<MdocIdentifier = I>,
     {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
         if auth_request.client_id != request_uri_object.client_id {
-            return Err(VpClientError::IncorrectClientId {
+            return Err(VpVerifierError::IncorrectClientId {
                 expected: request_uri_object.client_id.clone(),
                 found: auth_request.client_id.clone(),
-            });
+            }
+            .into());
         }
 
         // Extract `ReaderRegistration` from the certificate.
         let reader_registration = match CertificateType::from_certificate(certificate)? {
             CertificateType::ReaderAuth(Some(reader_registration)) => *reader_registration,
-            _ => return Err(VpClientError::MissingReaderRegistration),
+            _ => return Err(VpVerifierError::MissingReaderRegistration.into()),
         };
 
         // Verify that the requested attributes are included in the reader authentication.
@@ -592,7 +636,7 @@ where
                 .map(|(doc_type, _)| doc_type)
                 .collect();
 
-            return Err(VpClientError::MultipleCandidates(duplicate_doc_types));
+            return Err(VpClientError::MultipleCandidates(duplicate_doc_types).into());
         }
 
         // Now that we know that we have exactly one candidate for every `doc_type`,
@@ -629,7 +673,7 @@ where
         self.data().session_type
     }
 
-    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpClientError> {
+    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError> {
         let data = self.into_data();
         let return_url = data.client.terminate(data.auth_request.response_uri).await?;
 
@@ -792,6 +836,8 @@ mod tests {
     use poa::Poa;
     use utils::vec_at_least::VecAtLeastTwoUnique;
 
+    use crate::disclosure_session::VpSessionError;
+    use crate::disclosure_session::VpVerifierError;
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::VerifiablePresentation;
     use crate::openid4vp::VpAuthorizationResponse;
@@ -1080,7 +1126,7 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(error, VpClientError::RequestUri(_));
+        assert_matches!(error, VpSessionError::Client(VpClientError::RequestUri(_)));
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
@@ -1106,7 +1152,7 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(error, VpClientError::RequestUri(_));
+        assert_matches!(error, VpSessionError::Client(VpClientError::RequestUri(_)));
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
@@ -1138,7 +1184,10 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(error, VpClientError::MalformedSessionType(_));
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::MalformedSessionType(_))
+        );
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
@@ -1164,7 +1213,10 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(error, VpClientError::MalformedSessionType(_));
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::MalformedSessionType(_))
+        );
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
@@ -1191,10 +1243,10 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::DisclosureUriSourceMismatch(
+            VpSessionError::Client(VpClientError::DisclosureUriSourceMismatch(
                 typ,
                 source
-            ) if typ == session_type && source == uri_source);
+            )) if typ == session_type && source == uri_source);
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
@@ -1205,7 +1257,10 @@ mod tests {
 
         // Trying to start a session in which the transport gives a JSON error
         // should result in the error being forwarded.
-        assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
+        );
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
     }
@@ -1225,7 +1280,10 @@ mod tests {
 
         // Trying to start a session in which the transport gives a HTTP error
         // should result in the error being forwarded.
-        assert_matches!(error, VpClientError::Request(VpMessageClientError::Http(_)));
+        assert_matches!(
+            error,
+            VpSessionError::Client(VpClientError::Request(VpMessageClientError::Http(_)))
+        );
         assert_eq!(wallet_messages.len(), 1);
         _ = wallet_messages.first().unwrap().request();
     }
@@ -1250,7 +1308,7 @@ mod tests {
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
 
-        assert_matches!(error, VpClientError::MissingSessionType);
+        assert_matches!(error, VpSessionError::Verifier(VpVerifierError::MissingSessionType));
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
@@ -1274,10 +1332,10 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::IncorrectClientId {
+            VpSessionError::Verifier(VpVerifierError::IncorrectClientId {
                 expected,
                 ..
-            } if expected == *"client_id_from_request_uri_object"
+            }) if expected == *"client_id_from_request_uri_object"
         );
 
         let wallet_messages = verifier_session.wallet_messages.lock();
@@ -1311,7 +1369,9 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::AuthRequestValidation(AuthRequestValidationError::UnexpectedJwkAmount(0))
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::UnexpectedJwkAmount(0)
+            ))
         );
 
         let wallet_messages = verifier_session.wallet_messages.lock();
@@ -1343,7 +1403,9 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::AuthRequestValidation(AuthRequestValidationError::NoAttributesRequested)
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::NoAttributesRequested
+            ))
         );
 
         let wallet_messages = verifier_session.wallet_messages.lock();
@@ -1371,8 +1433,10 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::AuthRequestValidation(AuthRequestValidationError::JwtVerification(
-                JwtX5cError::CertificateValidation(CertificateError::Verification(_))
+            VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(
+                AuthRequestValidationError::JwtVerification(JwtX5cError::CertificateValidation(
+                    CertificateError::Verification(_)
+                ))
             ))
         );
 
@@ -1413,9 +1477,9 @@ mod tests {
             namespace: "org.iso.18013.5.1".to_string(),
             attribute: "foobar".to_string(),
         };
-        assert_matches!(error, VpClientError::RequestedAttributesValidation(
+        assert_matches!(error, VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(
             ValidationError::UnregisteredAttributes(ids)
-        ) if ids == vec![unregistered_attribute]);
+        )) if ids == vec![unregistered_attribute]);
 
         let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
@@ -1443,9 +1507,9 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::MatchRequestedAttributes(mdoc::Error::Holder(
+            VpSessionError::Client(VpClientError::MatchRequestedAttributes(mdoc::Error::Holder(
                 HolderError::MdocDataSource(mdoc_error)
-            )) if mdoc_error.is::<MdocDataSourceError>()
+            ))) if mdoc_error.is::<MdocDataSourceError>()
         );
     }
 
@@ -1469,7 +1533,7 @@ mod tests {
 
         assert_matches!(
             error,
-            VpClientError::MultipleCandidates(doc_types) if doc_types == vec![EXAMPLE_DOC_TYPE.to_string()]
+            VpSessionError::Client(VpClientError::MultipleCandidates(doc_types)) if doc_types == vec![EXAMPLE_DOC_TYPE.to_string()]
         );
     }
 
@@ -1487,7 +1551,10 @@ mod tests {
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
-        assert_matches!(error, VpClientError::MissingReaderRegistration);
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::MissingReaderRegistration)
+        );
 
         let wallet_messages = verifier_session.wallet_messages.lock();
         assert_eq!(wallet_messages.len(), 2);
@@ -1566,7 +1633,10 @@ mod tests {
             .await
             .expect_err("Terminating DisclosureSession with proposal should have resulted in an error");
 
-        assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
+        );
     }
 
     fn missing_attributes_session<F>(
@@ -1618,7 +1688,10 @@ mod tests {
             .await
             .expect_err("Terminating DisclosureSession with missing attributes should have resulted in an error");
 
-        assert_matches!(error, VpClientError::Request(VpMessageClientError::Json(_)));
+        assert_matches!(
+            error,
+            VpSessionError::Verifier(VpVerifierError::Request(VpMessageClientError::Json(_)))
+        );
     }
 
     async fn try_disclose<F, K, KF>(
