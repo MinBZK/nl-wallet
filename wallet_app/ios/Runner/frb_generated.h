@@ -264,6 +264,24 @@ typedef struct wire_cst_accept_disclosure_result {
   union AcceptDisclosureResultKind kind;
 } wire_cst_accept_disclosure_result;
 
+typedef struct wire_cst_DisclosureBasedIssuanceResult_Ok {
+  struct wire_cst_list_attestation *field0;
+} wire_cst_DisclosureBasedIssuanceResult_Ok;
+
+typedef struct wire_cst_DisclosureBasedIssuanceResult_InstructionError {
+  struct wire_cst_wallet_instruction_error *error;
+} wire_cst_DisclosureBasedIssuanceResult_InstructionError;
+
+typedef union DisclosureBasedIssuanceResultKind {
+  struct wire_cst_DisclosureBasedIssuanceResult_Ok Ok;
+  struct wire_cst_DisclosureBasedIssuanceResult_InstructionError InstructionError;
+} DisclosureBasedIssuanceResultKind;
+
+typedef struct wire_cst_disclosure_based_issuance_result {
+  int32_t tag;
+  union DisclosureBasedIssuanceResultKind kind;
+} wire_cst_disclosure_based_issuance_result;
+
 typedef struct wire_cst_flutter_configuration {
   uint16_t inactive_warning_timeout;
   uint16_t inactive_lock_timeout;

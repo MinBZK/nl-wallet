@@ -1185,6 +1185,28 @@ impl SseDecode for crate::models::attestation::ClaimDisplayMetadata {
     }
 }
 
+impl SseDecode for crate::models::instruction::DisclosureBasedIssuanceResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_field0 = <Vec<crate::models::attestation::Attestation>>::sse_decode(deserializer);
+                return crate::models::instruction::DisclosureBasedIssuanceResult::Ok(var_field0);
+            }
+            1 => {
+                let mut var_error = <crate::models::instruction::WalletInstructionError>::sse_decode(deserializer);
+                return crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError {
+                    error: var_error,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseDecode for crate::models::disclosure::DisclosureSessionType {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1966,6 +1988,33 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::ClaimDisplayM
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::instruction::DisclosureBasedIssuanceResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::instruction::DisclosureBasedIssuanceResult::Ok(field0) => {
+                [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError { error } => {
+                [1.into_dart(), error.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::models::instruction::DisclosureBasedIssuanceResult
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::DisclosureBasedIssuanceResult>
+    for crate::models::instruction::DisclosureBasedIssuanceResult
+{
+    fn into_into_dart(self) -> crate::models::instruction::DisclosureBasedIssuanceResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::disclosure::DisclosureSessionType {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -2590,6 +2639,25 @@ impl SseEncode for crate::models::attestation::ClaimDisplayMetadata {
         <String>::sse_encode(self.lang, serializer);
         <String>::sse_encode(self.label, serializer);
         <Option<String>>::sse_encode(self.description, serializer);
+    }
+}
+
+impl SseEncode for crate::models::instruction::DisclosureBasedIssuanceResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::instruction::DisclosureBasedIssuanceResult::Ok(field0) => {
+                <i32>::sse_encode(0, serializer);
+                <Vec<crate::models::attestation::Attestation>>::sse_encode(field0, serializer);
+            }
+            crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError { error } => {
+                <i32>::sse_encode(1, serializer);
+                <crate::models::instruction::WalletInstructionError>::sse_encode(error, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
     }
 }
 
@@ -3389,6 +3457,26 @@ mod io {
             }
         }
     }
+    impl CstDecode<crate::models::instruction::DisclosureBasedIssuanceResult>
+        for wire_cst_disclosure_based_issuance_result
+    {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::instruction::DisclosureBasedIssuanceResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Ok };
+                    crate::models::instruction::DisclosureBasedIssuanceResult::Ok(ans.field0.cst_decode())
+                }
+                1 => {
+                    let ans = unsafe { self.kind.InstructionError };
+                    crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError {
+                        error: ans.error.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
     impl CstDecode<crate::models::attestation::DisplayMetadata> for wire_cst_display_metadata {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::DisplayMetadata {
@@ -3789,6 +3877,19 @@ mod io {
         }
     }
     impl Default for wire_cst_claim_display_metadata {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_disclosure_based_issuance_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: DisclosureBasedIssuanceResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_disclosure_based_issuance_result {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -4477,6 +4578,29 @@ mod io {
         lang: *mut wire_cst_list_prim_u_8_strict,
         label: *mut wire_cst_list_prim_u_8_strict,
         description: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_disclosure_based_issuance_result {
+        tag: i32,
+        kind: DisclosureBasedIssuanceResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union DisclosureBasedIssuanceResultKind {
+        Ok: wire_cst_DisclosureBasedIssuanceResult_Ok,
+        InstructionError: wire_cst_DisclosureBasedIssuanceResult_InstructionError,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_DisclosureBasedIssuanceResult_Ok {
+        field0: *mut wire_cst_list_attestation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_DisclosureBasedIssuanceResult_InstructionError {
+        error: *mut wire_cst_wallet_instruction_error,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

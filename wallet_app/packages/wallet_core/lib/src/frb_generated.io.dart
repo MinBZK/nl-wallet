@@ -95,6 +95,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ClaimDisplayMetadata dco_decode_claim_display_metadata(dynamic raw);
 
   @protected
+  DisclosureBasedIssuanceResult dco_decode_disclosure_based_issuance_result(dynamic raw);
+
+  @protected
   DisclosureSessionType dco_decode_disclosure_session_type(dynamic raw);
 
   @protected
@@ -279,6 +282,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   ClaimDisplayMetadata sse_decode_claim_display_metadata(SseDeserializer deserializer);
+
+  @protected
+  DisclosureBasedIssuanceResult sse_decode_disclosure_based_issuance_result(SseDeserializer deserializer);
 
   @protected
   DisclosureSessionType sse_decode_disclosure_session_type(SseDeserializer deserializer);
@@ -787,6 +793,23 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_disclosure_based_issuance_result(
+      DisclosureBasedIssuanceResult apiObj, wire_cst_disclosure_based_issuance_result wireObj) {
+    if (apiObj is DisclosureBasedIssuanceResult_Ok) {
+      var pre_field0 = cst_encode_list_attestation(apiObj.field0);
+      wireObj.tag = 0;
+      wireObj.kind.Ok.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is DisclosureBasedIssuanceResult_InstructionError) {
+      var pre_error = cst_encode_box_autoadd_wallet_instruction_error(apiObj.error);
+      wireObj.tag = 1;
+      wireObj.kind.InstructionError.error = pre_error;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_display_metadata(DisplayMetadata apiObj, wire_cst_display_metadata wireObj) {
     wireObj.lang = cst_encode_String(apiObj.lang);
     wireObj.name = cst_encode_String(apiObj.name);
@@ -1122,6 +1145,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   void sse_encode_claim_display_metadata(ClaimDisplayMetadata self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_disclosure_based_issuance_result(DisclosureBasedIssuanceResult self, SseSerializer serializer);
 
   @protected
   void sse_encode_disclosure_session_type(DisclosureSessionType self, SseSerializer serializer);
@@ -2386,6 +2412,27 @@ final class wire_cst_accept_disclosure_result extends ffi.Struct {
   external int tag;
 
   external AcceptDisclosureResultKind kind;
+}
+
+final class wire_cst_DisclosureBasedIssuanceResult_Ok extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation> field0;
+}
+
+final class wire_cst_DisclosureBasedIssuanceResult_InstructionError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_wallet_instruction_error> error;
+}
+
+final class DisclosureBasedIssuanceResultKind extends ffi.Union {
+  external wire_cst_DisclosureBasedIssuanceResult_Ok Ok;
+
+  external wire_cst_DisclosureBasedIssuanceResult_InstructionError InstructionError;
+}
+
+final class wire_cst_disclosure_based_issuance_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external DisclosureBasedIssuanceResultKind kind;
 }
 
 final class wire_cst_flutter_configuration extends ffi.Struct {

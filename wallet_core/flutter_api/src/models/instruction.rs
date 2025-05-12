@@ -1,10 +1,19 @@
 use wallet::errors::ChangePinError;
+use wallet::errors::DisclosureBasedIssuanceError;
+use wallet::errors::DisclosureError;
 use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
 use wallet::errors::WalletUnlockError;
 
+use super::attestation::Attestation;
+
 pub enum WalletInstructionResult {
     Ok,
+    InstructionError { error: WalletInstructionError },
+}
+
+pub enum DisclosureBasedIssuanceResult {
+    Ok(Vec<Attestation>),
     InstructionError { error: WalletInstructionError },
 }
 
@@ -99,6 +108,39 @@ impl TryFrom<Result<(), ChangePinError>> for WalletInstructionResult {
             Err(ChangePinError::Instruction(instruction_error)) => Ok(WalletInstructionResult::InstructionError {
                 error: instruction_error.try_into().map_err(ChangePinError::Instruction)?,
             }),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// This conversion distinguishes between 3 distinct cases:
+///
+/// 1. In case of a successful result, [`DisclosureBasedIssuanceResult::Ok`] will be returned, with the attestations
+///    converted into the expected format.
+/// 2. In case of an expected and/or specific error case a different variant of [`WalletInstructionResult`] by mapping
+///    the nested [InstructionError].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`DisclosureBasedIssuanceError`] will be
+///    returned unchanged.
+impl TryFrom<Result<Vec<wallet::Attestation>, DisclosureBasedIssuanceError>> for DisclosureBasedIssuanceResult {
+    type Error = DisclosureBasedIssuanceError;
+
+    fn try_from(value: Result<Vec<wallet::Attestation>, DisclosureBasedIssuanceError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(attestations) => Ok(Self::Ok(attestations.into_iter().map(Attestation::from).collect())),
+            Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::Instruction(instruction_error))) => {
+                Ok(DisclosureBasedIssuanceResult::InstructionError {
+                    error: instruction_error.try_into().map_err(|error| {
+                        DisclosureBasedIssuanceError::Disclosure(DisclosureError::Instruction(error))
+                    })?,
+                })
+            }
+            Err(DisclosureBasedIssuanceError::Issuance(IssuanceError::Instruction(instruction_error))) => {
+                Ok(DisclosureBasedIssuanceResult::InstructionError {
+                    error: instruction_error
+                        .try_into()
+                        .map_err(|error| DisclosureBasedIssuanceError::Issuance(IssuanceError::Instruction(error)))?,
+                })
+            }
             Err(error) => Err(error),
         }
     }
