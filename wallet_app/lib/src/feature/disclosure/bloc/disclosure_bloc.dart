@@ -38,7 +38,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
     this._getMostRecentWalletEventUseCase,
-  ) : super(DisclosureLoadInProgress()) {
+  ) : super(DisclosureInitial()) {
     on<DisclosureSessionStarted>(_onSessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
     on<DisclosureBackPressed>(_onBackPressed);
@@ -116,7 +116,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   }
 
   Future<void> _onStopRequested(DisclosureStopRequested event, emit) async {
-    emit(DisclosureLoadInProgress());
+    emit(DisclosureLoadInProgress(state.stepperProgress));
     final cancelResult = await _cancelDisclosureUseCase.invoke();
 
     // Check edge case where relyingParty (needed to render stopped screen) is not available.
@@ -268,14 +268,14 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   Future<void> _onReportPressed(DisclosureReportPressed event, Emitter<DisclosureState> emit) async {
     Fimber.d('User selected reporting option ${event.option}');
-    emit(DisclosureLoadInProgress());
+    emit(DisclosureLoadInProgress(state.stepperProgress));
     final cancelResult = await _cancelDisclosureUseCase.invoke();
     if (cancelResult.hasError) Fimber.e('Failed to explicitly cancel disclosure flow', ex: cancelResult.error);
     emit(DisclosureLeftFeedback(returnUrl: cancelResult.value));
   }
 
   Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
-    emit(DisclosureLoadInProgress());
+    emit(DisclosureLoadInProgress(state.stepperProgress));
     // {event.error} is the error that was thrown when user tried to confirm the disclosure session with a PIN.
     switch (event.error) {
       case SessionError():

@@ -10,7 +10,7 @@ sealed class DisclosureState extends Equatable {
 
   bool get didGoBack => false;
 
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: 4);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps);
 
   const DisclosureState();
 
@@ -20,7 +20,7 @@ sealed class DisclosureState extends Equatable {
 
 class DisclosureInitial extends DisclosureState {
   @override
-  bool get showStopConfirmation => false;
+  bool get showStopConfirmation => true;
 
   const DisclosureInitial();
 }
@@ -28,6 +28,11 @@ class DisclosureInitial extends DisclosureState {
 class DisclosureLoadInProgress extends DisclosureState {
   @override
   bool get showStopConfirmation => true;
+
+  @override
+  final FlowProgress stepperProgress;
+
+  const DisclosureLoadInProgress(this.stepperProgress);
 }
 
 /// This [ErrorState] is emitted when the user scanned a Disclosure QR with an external app (e.g. the built-in camera)
@@ -284,8 +289,10 @@ class DisclosureSuccess extends DisclosureState {
   final bool isLoginFlow;
 
   @override
-  FlowProgress get stepperProgress =>
-      const FlowProgress(currentStep: kNormalDisclosureSteps, totalSteps: kNormalDisclosureSteps);
+  FlowProgress get stepperProgress => FlowProgress(
+        currentStep: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
+        totalSteps: isLoginFlow ? kLoginDisclosureSteps : kNormalDisclosureSteps,
+      );
 
   @override
   bool get showStopConfirmation => false;
