@@ -27,6 +27,7 @@ use url::Url;
 use demo_utils::error::Result;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use demo_utils::LANGUAGE_JS_SHA256;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
@@ -93,6 +94,7 @@ struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
+    language_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -164,6 +166,7 @@ async fn usecase(
             selected_lang: language,
             trans: &TRANSLATIONS[language],
             available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
         },
     }
     .into_response()

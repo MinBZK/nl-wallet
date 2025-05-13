@@ -32,6 +32,7 @@ use demo_utils::headers::cors_layer;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
 use demo_utils::language::LanguageParam;
+use demo_utils::LANGUAGE_JS_SHA256;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
@@ -155,6 +156,7 @@ struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
+    language_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -203,6 +205,7 @@ async fn usecase(
             selected_lang: language,
             trans: &TRANSLATIONS[language],
             available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
         },
     }
     .into_response()
@@ -245,6 +248,7 @@ async fn disclosed_attributes(
         selected_lang: language,
         trans: &TRANSLATIONS[language],
         available_languages: &Language::iter().collect_vec(),
+        language_js_sha256: &LANGUAGE_JS_SHA256,
     };
 
     match attributes {

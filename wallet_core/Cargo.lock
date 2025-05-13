@@ -1753,6 +1753,8 @@ dependencies = [
  "accept-language",
  "anyhow",
  "axum",
+ "base64 0.22.1",
+ "crypto",
  "http_utils",
  "nutype",
  "rstest",

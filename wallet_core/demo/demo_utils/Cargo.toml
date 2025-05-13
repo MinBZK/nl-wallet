@@ -11,6 +11,7 @@ workspace = true
 accept-language.workspace = true
 anyhow.workspace = true
 axum.workspace = true
+base64.workspace = true
 nutype.workspace = true
 serde = { workspace = true, features = ["derive"] }
 strum.workspace = true
@@ -18,6 +19,7 @@ serde_with = { workspace = true, features = ["macros"] }
 tower-http.workspace = true
 tracing.workspace = true
 
+crypto = { path = "../../lib/crypto" }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 
 [dev-dependencies]

@@ -18,6 +18,7 @@ use tower_http::trace::TraceLayer;
 
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use demo_utils::LANGUAGE_JS_SHA256;
 use utils::path::prefix_local_path;
 
 use crate::settings::DemoService;
@@ -57,6 +58,7 @@ struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
+    language_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -74,6 +76,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -
             selected_lang: language,
             trans: &TRANSLATIONS[language],
             available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
         },
     }
     .into_response()

@@ -42,8 +42,8 @@ pub const TRANSLATIONS: Translations = Translations {
         marketplace_index: "Inloggen webshop",
         xyz_index: "Bankrekening openen",
         monkeybike_index: "Account aanmaken",
-        university_index: "Ontvang digitaal diploma",
-        insurance_index: "Ontvang digitale verzekeringskaarten",
+        university_index: "Ontvang diploma kaarten",
+        insurance_index: "Ontvang verzekeringskaarten",
     },
 };
 
