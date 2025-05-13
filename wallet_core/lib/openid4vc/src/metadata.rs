@@ -5,15 +5,15 @@ use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_with::skip_serializing_none;
+use url::Url;
 
+use http_utils::data_uri::DataUri;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::RenderingMetadata;
-use sd_jwt_vc_metadata::UriMetadata;
-use serde_with::skip_serializing_none;
-use url::Url;
 
 /// Credential issuer metadata, as per
 /// https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#name-credential-issuer-metadata.
@@ -373,10 +373,7 @@ impl From<DisplayMetadata> for CredentialDisplay {
             name: value.name,
             locale: Some(value.lang),
             logo: logo.map(|logo| Logo {
-                uri: match logo.uri_metadata {
-                    UriMetadata::Embedded { uri } => uri.to_string().parse().unwrap(), // a data URIs is a valid `Url`
-                    UriMetadata::Remote { uri, .. } => uri.into_inner(),
-                },
+                uri: Url::from(&DataUri::from(logo.image)),
                 alt_text: Some(logo.alt_text.into_inner()),
             }),
             description: value.description,
