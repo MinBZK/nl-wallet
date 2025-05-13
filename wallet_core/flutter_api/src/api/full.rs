@@ -17,6 +17,7 @@ use crate::models::attestation::Attestation;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::StartDisclosureResult;
+use crate::models::instruction::DisclosureBasedIssuanceResult;
 use crate::models::instruction::WalletInstructionResult;
 use crate::models::pin::PinValidationResult;
 use crate::models::uri::IdentifyUriResult;
@@ -302,13 +303,12 @@ pub async fn has_active_disclosure_session() -> anyhow::Result<bool> {
 }
 
 #[flutter_api_error]
-pub async fn continue_disclosure_based_issuance(pin: String) -> anyhow::Result<Vec<Attestation>> {
+pub async fn continue_disclosure_based_issuance(pin: String) -> anyhow::Result<DisclosureBasedIssuanceResult> {
     let mut wallet = wallet().write().await;
 
-    let attestations = wallet.continue_disclosure_based_issuance(pin).await?;
-    let attestations = attestations.into_iter().map(Attestation::from).collect();
+    let result = wallet.continue_disclosure_based_issuance(pin).await.try_into()?;
 
-    Ok(attestations)
+    Ok(result)
 }
 
 #[flutter_api_error]

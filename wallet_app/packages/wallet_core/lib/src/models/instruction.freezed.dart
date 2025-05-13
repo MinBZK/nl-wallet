@@ -14,6 +14,176 @@ part of 'instruction.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$DisclosureBasedIssuanceResult {
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType && other is DisclosureBasedIssuanceResult);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  String toString() {
+    return 'DisclosureBasedIssuanceResult()';
+  }
+}
+
+/// @nodoc
+class $DisclosureBasedIssuanceResultCopyWith<$Res> {
+  $DisclosureBasedIssuanceResultCopyWith(
+      DisclosureBasedIssuanceResult _, $Res Function(DisclosureBasedIssuanceResult) __);
+}
+
+/// @nodoc
+
+class DisclosureBasedIssuanceResult_Ok extends DisclosureBasedIssuanceResult {
+  const DisclosureBasedIssuanceResult_Ok(final List<Attestation> field0)
+      : _field0 = field0,
+        super._();
+
+  final List<Attestation> _field0;
+  List<Attestation> get field0 {
+    if (_field0 is EqualUnmodifiableListView) return _field0;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_field0);
+  }
+
+  /// Create a copy of DisclosureBasedIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $DisclosureBasedIssuanceResult_OkCopyWith<DisclosureBasedIssuanceResult_Ok> get copyWith =>
+      _$DisclosureBasedIssuanceResult_OkCopyWithImpl<DisclosureBasedIssuanceResult_Ok>(this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is DisclosureBasedIssuanceResult_Ok &&
+            const DeepCollectionEquality().equals(other._field0, _field0));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, const DeepCollectionEquality().hash(_field0));
+
+  @override
+  String toString() {
+    return 'DisclosureBasedIssuanceResult.ok(field0: $field0)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $DisclosureBasedIssuanceResult_OkCopyWith<$Res>
+    implements $DisclosureBasedIssuanceResultCopyWith<$Res> {
+  factory $DisclosureBasedIssuanceResult_OkCopyWith(
+          DisclosureBasedIssuanceResult_Ok value, $Res Function(DisclosureBasedIssuanceResult_Ok) _then) =
+      _$DisclosureBasedIssuanceResult_OkCopyWithImpl;
+  @useResult
+  $Res call({List<Attestation> field0});
+}
+
+/// @nodoc
+class _$DisclosureBasedIssuanceResult_OkCopyWithImpl<$Res> implements $DisclosureBasedIssuanceResult_OkCopyWith<$Res> {
+  _$DisclosureBasedIssuanceResult_OkCopyWithImpl(this._self, this._then);
+
+  final DisclosureBasedIssuanceResult_Ok _self;
+  final $Res Function(DisclosureBasedIssuanceResult_Ok) _then;
+
+  /// Create a copy of DisclosureBasedIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? field0 = null,
+  }) {
+    return _then(DisclosureBasedIssuanceResult_Ok(
+      null == field0
+          ? _self._field0
+          : field0 // ignore: cast_nullable_to_non_nullable
+              as List<Attestation>,
+    ));
+  }
+}
+
+/// @nodoc
+
+class DisclosureBasedIssuanceResult_InstructionError extends DisclosureBasedIssuanceResult {
+  const DisclosureBasedIssuanceResult_InstructionError({required this.error}) : super._();
+
+  final WalletInstructionError error;
+
+  /// Create a copy of DisclosureBasedIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @pragma('vm:prefer-inline')
+  $DisclosureBasedIssuanceResult_InstructionErrorCopyWith<DisclosureBasedIssuanceResult_InstructionError>
+      get copyWith =>
+          _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl<DisclosureBasedIssuanceResult_InstructionError>(
+              this, _$identity);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is DisclosureBasedIssuanceResult_InstructionError &&
+            (identical(other.error, error) || other.error == error));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, error);
+
+  @override
+  String toString() {
+    return 'DisclosureBasedIssuanceResult.instructionError(error: $error)';
+  }
+}
+
+/// @nodoc
+abstract mixin class $DisclosureBasedIssuanceResult_InstructionErrorCopyWith<$Res>
+    implements $DisclosureBasedIssuanceResultCopyWith<$Res> {
+  factory $DisclosureBasedIssuanceResult_InstructionErrorCopyWith(DisclosureBasedIssuanceResult_InstructionError value,
+          $Res Function(DisclosureBasedIssuanceResult_InstructionError) _then) =
+      _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl;
+  @useResult
+  $Res call({WalletInstructionError error});
+
+  $WalletInstructionErrorCopyWith<$Res> get error;
+}
+
+/// @nodoc
+class _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl<$Res>
+    implements $DisclosureBasedIssuanceResult_InstructionErrorCopyWith<$Res> {
+  _$DisclosureBasedIssuanceResult_InstructionErrorCopyWithImpl(this._self, this._then);
+
+  final DisclosureBasedIssuanceResult_InstructionError _self;
+  final $Res Function(DisclosureBasedIssuanceResult_InstructionError) _then;
+
+  /// Create a copy of DisclosureBasedIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  $Res call({
+    Object? error = null,
+  }) {
+    return _then(DisclosureBasedIssuanceResult_InstructionError(
+      error: null == error
+          ? _self.error
+          : error // ignore: cast_nullable_to_non_nullable
+              as WalletInstructionError,
+    ));
+  }
+
+  /// Create a copy of DisclosureBasedIssuanceResult
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $WalletInstructionErrorCopyWith<$Res> get error {
+    return $WalletInstructionErrorCopyWith<$Res>(_self.error, (value) {
+      return _then(_self.copyWith(error: value));
+    });
+  }
+}
+
+/// @nodoc
 mixin _$WalletInstructionError {
   @override
   bool operator ==(Object other) {

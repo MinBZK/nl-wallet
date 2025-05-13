@@ -108,7 +108,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<WalletInstructionResult> crateApiFullContinueChangePin({required String pin});
 
-  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin});
+  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin});
 
   Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri});
 
@@ -428,14 +428,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<List<Attestation>> crateApiFullContinueDisclosureBasedIssuance({required String pin}) {
+  Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         var arg0 = cst_encode_String(pin);
         return wire.wire__crate__api__full__continue_disclosure_based_issuance(port_, arg0);
       },
       codec: DcoCodec(
-        decodeSuccessData: dco_decode_list_attestation,
+        decodeSuccessData: dco_decode_disclosure_based_issuance_result,
         decodeErrorData: dco_decode_AnyhowException,
       ),
       constMeta: kCrateApiFullContinueDisclosureBasedIssuanceConstMeta,
@@ -1191,6 +1191,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  DisclosureBasedIssuanceResult dco_decode_disclosure_based_issuance_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return DisclosureBasedIssuanceResult_Ok(
+          dco_decode_list_attestation(raw[1]),
+        );
+      case 1:
+        return DisclosureBasedIssuanceResult_InstructionError(
+          error: dco_decode_box_autoadd_wallet_instruction_error(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   DisclosureSessionType dco_decode_disclosure_session_type(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return DisclosureSessionType.values[raw as int];
@@ -1776,6 +1793,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var var_label = sse_decode_String(deserializer);
     var var_description = sse_decode_opt_String(deserializer);
     return ClaimDisplayMetadata(lang: var_lang, label: var_label, description: var_description);
+  }
+
+  @protected
+  DisclosureBasedIssuanceResult sse_decode_disclosure_based_issuance_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_list_attestation(deserializer);
+        return DisclosureBasedIssuanceResult_Ok(var_field0);
+      case 1:
+        var var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
+        return DisclosureBasedIssuanceResult_InstructionError(error: var_error);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -2538,6 +2572,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     sse_encode_String(self.lang, serializer);
     sse_encode_String(self.label, serializer);
     sse_encode_opt_String(self.description, serializer);
+  }
+
+  @protected
+  void sse_encode_disclosure_based_issuance_result(DisclosureBasedIssuanceResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case DisclosureBasedIssuanceResult_Ok(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_list_attestation(field0, serializer);
+      case DisclosureBasedIssuanceResult_InstructionError(error: final error):
+        sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_wallet_instruction_error(error, serializer);
+    }
   }
 
   @protected

@@ -4,9 +4,25 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'attestation.dart';
+import 'disclosure.dart';
+import 'image.dart';
+import 'localize.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'instruction.freezed.dart';
+
+@freezed
+sealed class DisclosureBasedIssuanceResult with _$DisclosureBasedIssuanceResult {
+  const DisclosureBasedIssuanceResult._();
+
+  const factory DisclosureBasedIssuanceResult.ok(
+    List<Attestation> field0,
+  ) = DisclosureBasedIssuanceResult_Ok;
+  const factory DisclosureBasedIssuanceResult.instructionError({
+    required WalletInstructionError error,
+  }) = DisclosureBasedIssuanceResult_InstructionError;
+}
 
 @freezed
 sealed class WalletInstructionError with _$WalletInstructionError {
