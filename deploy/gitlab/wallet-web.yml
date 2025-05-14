@@ -6,17 +6,9 @@ build-wallet-web:
   script:
     - set -euxo pipefail
     - (cd wallet_web; npm ci && npm run format-check && npm run lint && npm run type-check && npm run coverage -- --run)
-    - (cd wallet_web; CUSTOM_ELEMENT=false npm run build)
-    - (cd wallet_web; EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build)
-    # remove trailing newline at the end of the file
-    - cat wallet_web/dist/nl-wallet-web.css | tr -d "\n" > wallet_web/dist/nl-wallet-web.css.truncated
-    - mv wallet_web/dist/nl-wallet-web.css.truncated wallet_web/dist/nl-wallet-web.css
+    - (cd wallet_web; npm run build)
     # copy the built files to the demo utils assets folder
     - cp wallet_web/dist/nl-wallet-web.iife.js wallet_core/demo/demo_utils/assets/
-    - cp wallet_web/dist/nl-wallet-web.css wallet_core/demo/demo_utils/assets/
-    # take the sha256 hash of the inlined style and add it to the artefacts
-    - STYLE_INJECTED_HASH=$(echo \'sha256-`cat wallet_web/dist/nl-wallet-web.css | openssl sha256 -binary | base64`\')
-    - echo "STYLE_INJECTED_HASH=${STYLE_INJECTED_HASH}" >> wallet_web/build-env.sh
   after_script:
     - deploy/bin/store-artifact.sh wallet_web/test-results/junit.xml qt/quality-time/junit-results/web.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/web.zip wallet_web/allure-results/*
@@ -25,9 +17,8 @@ build-wallet-web:
     reports:
       junit: wallet_web/test-results/junit.xml
     paths:
-      - wallet_web/build-env.sh
       - wallet_web/dist
       - wallet_web/coverage
       - wallet_web/test-results
       - wallet_web/allure-results
-      - wallet_core/demo/demo_utils/assets/nl-wallet-web.*
+      - wallet_core/demo/demo_utils/assets/nl-wallet-web.iife.js

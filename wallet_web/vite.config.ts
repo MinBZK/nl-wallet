@@ -4,18 +4,6 @@ import { resolve } from "path"
 import { defineConfig, loadEnv } from "vite"
 import dts from "vite-plugin-dts"
 
-const parseBool = (str: String): boolean => {
-  const s = str.toLowerCase().trim()
-
-  if (s === "true") return true
-  if (s === "false") return false
-
-  throw new TypeError(`"${str}" is not a boolean, must be either "true" or "false"`)
-}
-
-const customElement: boolean = parseBool(process.env.CUSTOM_ELEMENT || "true")
-const emptyOutDir: boolean = parseBool(process.env.EMPTY_OUTPUT_DIR || "true")
-
 export default defineConfig(({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd()) }
 
@@ -34,12 +22,11 @@ export default defineConfig(({ mode }) => {
       __APP_VERSION__: JSON.stringify(process.env.npm_package_version),
     },
     plugins: [
-      vue({ customElement }),
+      vue(),
       dts({ tsconfigPath: "tsconfig.build.json", cleanVueFileName: true, rollupTypes: true }),
     ],
     build: {
       copyPublicDir: false,
-      emptyOutDir,
       lib: {
         entry: resolve(__dirname, "lib/main.ts"),
         name: "nl_wallet_web",

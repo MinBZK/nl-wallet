@@ -1758,6 +1758,7 @@ dependencies = [
  "crypto",
  "http_utils",
  "nutype",
+ "regex",
  "rstest",
  "serde",
  "serde_with",
