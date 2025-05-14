@@ -60,12 +60,9 @@ use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
 use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::verifier::DisclosureData;
-use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
-use openid4vc::verifier::VerifierUrlParameters;
-use openid4vc::ErrorResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
@@ -439,15 +436,6 @@ async fn test_http_json_error_body(
     body
 }
 
-async fn test_error_response(response: Response, status_code: StatusCode, error_type: &str) {
-    assert_eq!(response.status(), status_code);
-
-    let body = serde_json::from_slice::<ErrorResponse<String>>(&response.bytes().await.unwrap())
-        .expect("response body should deserialize to ErrorResponse");
-
-    assert_eq!(body.error, error_type);
-}
-
 #[tokio::test]
 async fn test_new_session_parameters_error() {
     let (requester_server, requester_listener) = request_server_settings_and_listener().await;
@@ -543,27 +531,6 @@ async fn test_disclosure_not_found() {
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
-    // check if a non-existent token returns a 404 on the wallet URL
-    let mut request_uri = settings
-        .server_settings
-        .public_url
-        .join("disclosure/sessions/nonexistent_session/request_uri");
-    request_uri.set_query(
-        serde_urlencoded::to_string(VerifierUrlParameters {
-            session_type: SessionType::SameDevice,
-            ephemeral_id_params: Some(EphemeralIdParameters {
-                ephemeral_id: vec![42],
-                time: Utc::now(),
-            }),
-        })
-        .unwrap()
-        .as_str()
-        .into(),
-    );
-    let response = client.get(request_uri).send().await.unwrap();
-
-    test_error_response(response, StatusCode::NOT_FOUND, "unknown_session").await;
-
     // check if a non-existent token returns a 404 on the disclosed_attributes URL
     let response = client
         .get(internal_url.join("disclosure/sessions/nonexistent_session/disclosed_attributes"))
@@ -573,6 +540,11 @@ async fn test_disclosure_not_found() {
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
+
+    // As to `request_uri` which is invoked by the wallet: this endpoint can only be invoked with a valid
+    // ephemeral ID token over the session token, which the server normally hands out at the status endpoint.
+    // But the server will not hand out such a token for a session token that does not refer to an existing session.
+    // So getting a 404 from this endpoint is not possible.
 }
 
 fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: Option<SessionType>) -> Url {

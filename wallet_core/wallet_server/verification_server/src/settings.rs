@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use config::Config;
 use config::ConfigError;
@@ -23,10 +24,12 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
+use openid4vc::verifier::DisclosureData;
+use openid4vc::verifier::DisclosureUseCase;
+use openid4vc::verifier::DisclosureUseCases;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use openid4vc::verifier::UseCase;
-use openid4vc::verifier::UseCases;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::verify_key_pairs;
 use server_utils::settings::CertificateVerificationError;
@@ -86,7 +89,15 @@ pub struct UseCaseSettings {
 }
 
 impl UseCasesSettings {
-    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCases<PrivateKeyVariant>, anyhow::Error> {
+    pub async fn parse<S>(
+        self,
+        hsm: Option<Pkcs11Hsm>,
+        ephemeral_id_secret: hmac::Key,
+        sessions: Arc<S>,
+    ) -> Result<DisclosureUseCases<PrivateKeyVariant, S>, anyhow::Error>
+    where
+        S: SessionStore<DisclosureData>,
+    {
         let iter = self
             .into_iter()
             .map(|(id, use_case)| async { Ok::<_, anyhow::Error>((id, use_case.parse(hsm.clone()).await?)) });
@@ -94,15 +105,15 @@ impl UseCasesSettings {
         let use_cases = try_join_all(iter)
             .await?
             .into_iter()
-            .collect::<HashMap<String, UseCase<_>>>();
+            .collect::<HashMap<String, DisclosureUseCase<_>>>();
 
-        Ok(use_cases.into())
+        Ok(DisclosureUseCases::new(use_cases, ephemeral_id_secret, sessions))
     }
 }
 
 impl UseCaseSettings {
-    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<UseCase<PrivateKeyVariant>, anyhow::Error> {
-        let use_case = UseCase::try_new(
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<DisclosureUseCase<PrivateKeyVariant>, anyhow::Error> {
+        let use_case = DisclosureUseCase::try_new(
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
             None,

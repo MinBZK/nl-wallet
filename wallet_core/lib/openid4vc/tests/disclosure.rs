@@ -66,12 +66,12 @@ use openid4vc::verifier::DisclosedAttributesError;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
 use openid4vc::verifier::DisclosureResultHandlerError;
+use openid4vc::verifier::DisclosureUseCase;
+use openid4vc::verifier::DisclosureUseCases;
 use openid4vc::verifier::EphemeralIdParameters;
-use openid4vc::verifier::SessionIdentifier;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
-use openid4vc::verifier::UseCase;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::verifier::VpToken;
@@ -837,7 +837,7 @@ fn setup_verifier(
     let usecases = HashMap::from([
         (
             NO_RETURN_URL_USE_CASE.to_string(),
-            UseCase::try_new(
+            DisclosureUseCase::try_new(
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::Neither,
                 None,
@@ -847,7 +847,7 @@ fn setup_verifier(
         ),
         (
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
-            UseCase::try_new(
+            DisclosureUseCase::try_new(
                 generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
                 SessionTypeReturnUrl::SameDevice,
                 None,
@@ -857,7 +857,7 @@ fn setup_verifier(
         ),
         (
             ALL_RETURN_URL_USE_CASE.to_string(),
-            UseCase::try_new(
+            DisclosureUseCase::try_new(
                 generate_reader_mock(&rp_ca, reader_registration).unwrap(),
                 SessionTypeReturnUrl::Both,
                 None,
@@ -865,14 +865,20 @@ fn setup_verifier(
             )
             .unwrap(),
         ),
-    ])
-    .into();
+    ]);
+
+    let sessions = Arc::new(MemorySessionStore::default());
+
+    let usecases = DisclosureUseCases::new(
+        usecases,
+        hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+        Arc::clone(&sessions),
+    );
 
     let verifier = Arc::new(MockVerifier::new(
         usecases,
-        Arc::new(MemorySessionStore::default()),
+        sessions,
         vec![issuer_ca.to_trust_anchor().to_owned()],
-        Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
         Some(Box::new(MockDisclosureResultHandler::new(session_result_query_param))),
         vec![MOCK_WALLET_CLIENT_ID.to_string()],
     ));
@@ -945,7 +951,8 @@ async fn request_status_endpoint(
         .unwrap()
 }
 
-type MockVerifier = Verifier<MemorySessionStore<DisclosureData>, SigningKey>;
+type MockVerifier =
+    Verifier<MemorySessionStore<DisclosureData>, DisclosureUseCases<SigningKey, MemorySessionStore<DisclosureData>>>;
 
 struct VerifierMockVpMessageClient {
     verifier: Arc<MockVerifier>,
@@ -969,7 +976,7 @@ impl VpMessageClient for VerifierMockVpMessageClient {
         let jws = self
             .verifier
             .process_get_request(
-                &SessionIdentifier::Token(session_token.clone()),
+                session_token.as_ref(),
                 &"https://example.com/verifier_base_url".parse().unwrap(),
                 url.as_ref().query(),
                 wallet_nonce,

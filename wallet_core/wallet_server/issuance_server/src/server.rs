@@ -17,9 +17,9 @@ use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use openid4vc::verifier::UseCase;
+use openid4vc::verifier::StaticUseCase;
+use openid4vc::verifier::StaticUseCases;
 use openid4vc_server::issuer::create_issuance_router;
-use openid4vc_server::verifier::RequestUriBehaviour;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::server::create_wallet_listener;
@@ -73,18 +73,19 @@ where
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| async {
         Ok::<_, anyhow::Error>((
             id,
-            UseCase::try_new(
+            StaticUseCase::try_new(
                 s.key_pair.parse(hsm.clone()).await?,
                 SessionTypeReturnUrl::Both,
-                Some(s.to_disclose),
-                Some(format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap()),
+                s.to_disclose,
+                format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://").parse().unwrap(),
             )?,
         ))
     }))
     .await?
     .into_iter()
-    .collect::<HashMap<String, UseCase<PrivateKeyVariant>>>()
-    .into();
+    .collect::<HashMap<String, StaticUseCase<PrivateKeyVariant>>>();
+
+    let use_cases = StaticUseCases::new(use_cases);
 
     let issuer = Arc::new(Issuer::new(
         issuance_sessions,
@@ -107,7 +108,6 @@ where
         issuer_settings.server_settings.public_url.join_base_url("disclosure"),
         settings.universal_link_base_url,
         use_cases,
-        None,
         issuer_settings
             .server_settings
             .issuer_trust_anchors
@@ -115,7 +115,6 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         issuer_settings.wallet_client_ids,
-        RequestUriBehaviour::ByUsecaseId,
     )
     .create_wallet_router(disclosure_sessions, Some(Box::new(result_handler)));
 

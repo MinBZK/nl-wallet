@@ -10,6 +10,7 @@ use chrono::DateTime;
 use chrono::SecondsFormat;
 use chrono::Utc;
 use derive_more::AsRef;
+use derive_more::Constructor;
 use derive_more::From;
 use indexmap::IndexMap;
 use josekit::jwk::alg::ec::EcCurve;
@@ -34,6 +35,7 @@ use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::x509::CertificateError;
+use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use jwt::Jwt;
@@ -140,8 +142,6 @@ pub enum GetAuthRequestError {
     QueryParametersMissing,
     #[error("failed to deserialize query parameters: {0}")]
     QueryParametersDeserialization(#[from] serde_urlencoded::de::Error),
-    #[error("no attributes configured to be disclosed in usecase {0}")]
-    NoAttributesToRequest(String),
 }
 
 /// Errors returned by the endpoint to which the user posts the Authorization Response.
@@ -199,7 +199,7 @@ impl<T: std::error::Error> WithRedirectUri<T> {
 /// The session progresses through the possible states using a state engine that uses the typestate pattern:
 /// for each state `S`, `Session<S>` has its own state transition method that consume the previous state.
 #[derive(Debug)]
-struct Session<S: DisclosureState> {
+pub struct Session<S: DisclosureState> {
     state: SessionState<S>,
 }
 
@@ -476,35 +476,76 @@ pub enum SessionTypeReturnUrl {
     Both,
 }
 
-#[derive(Debug, From, AsRef)]
-pub struct UseCases<K>(HashMap<String, UseCase<K>>);
-
+/// Data that is shared between both [`UseCase`] impls.
 #[derive(Debug)]
-pub struct UseCase<K> {
+pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
     pub client_id: String,
     pub session_type_return_url: SessionTypeReturnUrl,
-    pub items_requests: Option<ItemsRequests>,
-    pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
-impl<K> UseCase<K> {
+pub trait UseCase {
+    type Key: EcdsaKeySend;
+
+    fn data(&self) -> &UseCaseData<Self::Key>;
+
+    fn new_session(
+        &self,
+        id: String,
+        items_requests: Option<ItemsRequests>,
+        return_url_template: Option<ReturnUrlTemplate>,
+    ) -> Result<Session<Created>, NewSessionError>;
+}
+
+#[trait_variant::make(Send)]
+pub trait UseCases {
+    type Key;
+    type UseCase: UseCase<Key = Self::Key>;
+
+    fn get(&self, id: &str) -> Option<&Self::UseCase>;
+
+    async fn session(
+        &self,
+        session_id: &str,
+        url_params: &VerifierUrlParameters,
+    ) -> Result<Session<Created>, GetAuthRequestError>;
+
+    fn generate_ephemeral_id(
+        &self,
+        session_token: &SessionToken,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Option<EphemeralIdParameters>;
+}
+
+/// A usecase started by an RP.
+#[derive(Debug)]
+pub struct DisclosureUseCase<K> {
+    data: UseCaseData<K>,
+    items_requests: Option<ItemsRequests>,
+    return_url_template: Option<ReturnUrlTemplate>,
+}
+
+#[derive(Constructor)]
+pub struct DisclosureUseCases<K, S> {
+    disclosures: HashMap<String, DisclosureUseCase<K>>,
+    ephemeral_id_secret: hmac::Key,
+    sessions: Arc<S>,
+}
+
+impl<K> DisclosureUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
         items_requests: Option<ItemsRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, UseCaseCertificateError> {
-        let client_id = String::from(
-            key_pair
-                .certificate()
-                .san_dns_name()?
-                .ok_or(UseCaseCertificateError::MissingSAN)?,
-        );
+        let client_id = client_id_from_key_pair(&key_pair)?;
         let use_case = Self {
-            key_pair,
-            client_id,
-            session_type_return_url,
+            data: UseCaseData {
+                key_pair,
+                client_id,
+                session_type_return_url,
+            },
             items_requests,
             return_url_template,
         };
@@ -513,133 +554,81 @@ impl<K> UseCase<K> {
     }
 }
 
-pub trait ToPostAuthResponseErrorCode: std::error::Error {
-    fn to_error_code(&self) -> PostAuthResponseErrorCode;
-}
+impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
+    type Key = K;
 
-#[derive(Debug, AsRef, thiserror::Error)]
-#[error("{0}")]
-pub struct DisclosureResultHandlerError(pub Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
-
-/// Types may implement this to receive disclosed attributes after a successful disclosure session.
-/// The return value is URL-serialized and appended to the query of the redirect URI, if present,
-/// that gets sent to the wallet.
-#[async_trait] // This makes the trait object safe so we can use `dyn DisclosureResultHandler` below.
-pub trait DisclosureResultHandler {
-    async fn disclosure_result(
-        &self,
-        usecase_id: &str,
-        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
-    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
-}
-
-pub enum SessionIdentifier {
-    Token(SessionToken),
-    UseCaseId(String),
-}
-
-pub struct Verifier<S, K> {
-    use_cases: UseCases<K>,
-    sessions: Arc<S>,
-    cleanup_task: JoinHandle<()>,
-    trust_anchors: Vec<TrustAnchor<'static>>,
-    ephemeral_id_secret: Option<hmac::Key>,
-    result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
-    accepted_wallet_client_ids: Vec<String>,
-}
-
-impl<S, K> Drop for Verifier<S, K> {
-    fn drop(&mut self) {
-        // Stop the task at the next .await
-        self.cleanup_task.abort();
-    }
-}
-
-impl<S, K> Verifier<S, K>
-where
-    S: SessionStore<DisclosureData>,
-    K: EcdsaKey,
-{
-    /// Create a new [`Verifier`].
-    ///
-    /// - `use_cases` contains configuration per use case, including a certificate and corresponding private key for use
-    ///   in RP authentication.
-    /// - `sessions` will contain all sessions.
-    /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
-    ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these
-    ///   CAs.
-    /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
-    pub fn new(
-        use_cases: UseCases<K>,
-        sessions: Arc<S>,
-        trust_anchors: Vec<TrustAnchor<'static>>,
-        ephemeral_id_secret: Option<hmac::Key>,
-        result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
-        accepted_wallet_client_ids: Vec<String>,
-    ) -> Self
-    where
-        S: Send + Sync + 'static,
-    {
-        Self {
-            use_cases,
-            cleanup_task: sessions.clone().start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
-            sessions,
-            trust_anchors,
-            ephemeral_id_secret,
-            result_handler,
-            accepted_wallet_client_ids,
-        }
+    fn data(&self) -> &UseCaseData<Self::Key> {
+        &self.data
     }
 
-    /// Start a new disclosure session. Returns a [`SessionToken`] that can be used to retrieve the
-    /// session state.
-    ///
-    /// - `items_requests` contains the attributes to be requested.
-    /// - `usecase_id` should point to an existing item in the `certificates` parameter.
-    /// - `return_url_template` is the return URL the user should be returned to, if present.
-    pub async fn new_session(
+    fn new_session(
         &self,
-        items_requests: ItemsRequests,
-        usecase_id: String,
+        id: String,
+        items_requests: Option<ItemsRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<SessionToken, NewSessionError> {
-        info!("create verifier session: {usecase_id}");
-
-        if items_requests.0.is_empty() {
-            return Err(NewSessionError::NoItemsRequests);
-        }
-
-        let use_case = match self.use_cases.as_ref().get(&usecase_id) {
-            Some(use_case) => use_case,
-            None => return Err(NewSessionError::UnknownUseCase(usecase_id)),
-        };
-
+    ) -> Result<Session<Created>, NewSessionError> {
         // Check if we should or should not have received a return URL
         // template, based on the configuration for the use case.
-        if match use_case.session_type_return_url {
+        if match self.data.session_type_return_url {
             SessionTypeReturnUrl::Neither => return_url_template.is_some(),
             SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => return_url_template.is_none(),
         } {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
 
-        let session_state = Session::<Created>::new(
-            items_requests,
-            usecase_id,
-            use_case.client_id.clone(),
-            return_url_template,
+        let session = Session::<Created>::new(
+            items_requests
+                .or_else(|| self.items_requests.clone())
+                .ok_or_else(|| NewSessionError::NoItemsRequests)?,
+            id.to_string(),
+            self.data.client_id.clone(),
+            return_url_template.or_else(|| self.return_url_template.clone()),
         );
-        let session_token = session_state.state.token.clone();
 
-        self.sessions
-            .write(session_state.into(), true)
-            .await
-            .map_err(SessionError::SessionStore)?;
+        Ok(session)
+    }
+}
 
-        info!("Session({session_token}): session created");
-        Ok(session_token)
+impl<K, S> UseCases for DisclosureUseCases<K, S>
+where
+    K: EcdsaKeySend + Sync,
+    S: SessionStore<DisclosureData> + Send + Sync,
+{
+    type Key = K;
+    type UseCase = DisclosureUseCase<K>;
+
+    fn get(&self, id: &str) -> Option<&Self::UseCase> {
+        self.disclosures.get(id)
     }
 
+    async fn session(
+        &self,
+        session_id: &str,
+        url_params: &VerifierUrlParameters,
+    ) -> Result<Session<Created>, GetAuthRequestError> {
+        // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
+        // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
+        // session. This means that the QR code/UL stays on the website so that the user can try again.
+        Self::verify_ephemeral_id(&self.ephemeral_id_secret, &session_id.to_string().into(), url_params)?;
+
+        Ok(session_in_state(self.sessions.as_ref(), &SessionToken::from(session_id.to_string())).await?)
+    }
+
+    fn generate_ephemeral_id(
+        &self,
+        session_token: &SessionToken,
+        time: &impl Generator<DateTime<Utc>>,
+    ) -> Option<EphemeralIdParameters> {
+        let time = time.generate();
+
+        Some(EphemeralIdParameters {
+            ephemeral_id: Self::generate_ephemeral_id(&self.ephemeral_id_secret, session_token, &time),
+            time,
+        })
+    }
+}
+
+impl<K, S> DisclosureUseCases<K, S> {
     fn verify_ephemeral_id(
         ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
@@ -665,78 +654,255 @@ where
         Ok(())
     }
 
-    async fn get_session_state(
-        &self,
-        session_token: &SessionToken,
-    ) -> Result<SessionState<DisclosureData>, SessionError> {
-        self.sessions
-            .get(session_token)
-            .await?
-            .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))
+    // formats the payload to hash to the ephemeral ID in a consistent way
+    fn format_ephemeral_id_payload(session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
+        // default (de)serialization of DateTime is the RFC 3339 format
+        format!(
+            "{}|{}",
+            session_token,
+            time.to_rfc3339_opts(SecondsFormat::AutoSi, true)
+        )
+        .into()
     }
 
-    async fn get_session<T, E>(&self, session_token: &SessionToken) -> Result<Session<T>, WithRedirectUri<E>>
-    where
-        T: DisclosureState,
-        E: std::error::Error + From<SessionError>,
-        Session<T>: TryFrom<SessionState<DisclosureData>, Error = SessionError>,
-    {
-        let session = self
-            .get_session_state(session_token)
-            .await
-            .map_err(E::from)?
-            .try_into()
-            .map_err(E::from)?;
+    fn generate_ephemeral_id(
+        ephemeral_id_secret: &hmac::Key,
+        session_token: &SessionToken,
+        time: &DateTime<Utc>,
+    ) -> Vec<u8> {
+        let ephemeral_id = hmac::sign(
+            ephemeral_id_secret,
+            &Self::format_ephemeral_id_payload(session_token, time),
+        )
+        .as_ref()
+        .to_vec();
+        ephemeral_id
+    }
+}
+
+/// A use case which is started not by an RP but by the wallet invoking the `request_uri` endpoint.
+#[derive(Debug, Constructor)]
+pub struct StaticUseCase<K> {
+    data: UseCaseData<K>,
+    items_requests: ItemsRequests,
+    return_url_template: ReturnUrlTemplate,
+}
+
+#[derive(Constructor)]
+pub struct StaticUseCases<K> {
+    disclosures: HashMap<String, StaticUseCase<K>>,
+}
+
+impl<K> StaticUseCase<K> {
+    pub fn try_new(
+        key_pair: KeyPair<K>,
+        session_type_return_url: SessionTypeReturnUrl,
+        items_requests: ItemsRequests,
+        return_url_template: ReturnUrlTemplate,
+    ) -> Result<Self, UseCaseCertificateError> {
+        let client_id = client_id_from_key_pair(&key_pair)?;
+        let use_case = Self {
+            data: UseCaseData {
+                key_pair,
+                client_id,
+                session_type_return_url,
+            },
+            items_requests,
+            return_url_template,
+        };
+
+        Ok(use_case)
+    }
+}
+
+impl<K: EcdsaKeySend> UseCase for StaticUseCase<K> {
+    type Key = K;
+
+    fn data(&self) -> &UseCaseData<Self::Key> {
+        &self.data
+    }
+
+    fn new_session(
+        &self,
+        id: String,
+        _items_requests: Option<ItemsRequests>,
+        _return_url_template: Option<ReturnUrlTemplate>,
+    ) -> Result<Session<Created>, NewSessionError> {
+        let session = Session::<Created>::new(
+            self.items_requests.clone(),
+            id.to_string(),
+            self.data.client_id.clone(),
+            Some(self.return_url_template.clone()),
+        );
 
         Ok(session)
+    }
+}
+
+impl<K> UseCases for StaticUseCases<K>
+where
+    K: EcdsaKeySend + Sync,
+{
+    type Key = K;
+    type UseCase = StaticUseCase<K>;
+
+    fn get(&self, id: &str) -> Option<&Self::UseCase> {
+        self.disclosures.get(id)
+    }
+
+    async fn session(
+        &self,
+        id: &str,
+        _url_params: &VerifierUrlParameters,
+    ) -> Result<Session<Created>, GetAuthRequestError> {
+        let usecase = self
+            .get(id)
+            .ok_or_else(|| GetAuthRequestError::UnknownUseCase(id.to_string()))?;
+
+        Ok(usecase.new_session(id.to_string(), None, None).unwrap())
+    }
+
+    fn generate_ephemeral_id(
+        &self,
+        _session_token: &SessionToken,
+        _time: &impl Generator<DateTime<Utc>>,
+    ) -> Option<EphemeralIdParameters> {
+        None
+    }
+}
+
+fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<String, UseCaseCertificateError> {
+    Ok(String::from(
+        key_pair
+            .certificate()
+            .san_dns_name()?
+            .ok_or(UseCaseCertificateError::MissingSAN)?,
+    ))
+}
+
+pub trait ToPostAuthResponseErrorCode: std::error::Error {
+    fn to_error_code(&self) -> PostAuthResponseErrorCode;
+}
+
+#[derive(Debug, AsRef, thiserror::Error)]
+#[error("{0}")]
+pub struct DisclosureResultHandlerError(pub Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
+
+/// Types may implement this to receive disclosed attributes after a successful disclosure session.
+/// The return value is URL-serialized and appended to the query of the redirect URI, if present,
+/// that gets sent to the wallet.
+#[async_trait] // This makes the trait object safe so we can use `dyn DisclosureResultHandler` below.
+pub trait DisclosureResultHandler {
+    async fn disclosure_result(
+        &self,
+        usecase_id: &str,
+        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+    ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
+}
+
+pub struct Verifier<S, US> {
+    use_cases: US,
+    sessions: Arc<S>,
+    cleanup_task: JoinHandle<()>,
+    trust_anchors: Vec<TrustAnchor<'static>>,
+    result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
+    accepted_wallet_client_ids: Vec<String>,
+}
+
+impl<S, K> Drop for Verifier<S, K> {
+    fn drop(&mut self) {
+        // Stop the task at the next .await
+        self.cleanup_task.abort();
+    }
+}
+
+impl<S, US, UC, K> Verifier<S, US>
+where
+    S: SessionStore<DisclosureData>,
+    US: UseCases<UseCase = UC, Key = K>,
+    UC: UseCase<Key = K>,
+    K: EcdsaKey,
+{
+    /// Create a new [`Verifier`].
+    ///
+    /// - `use_cases` contains configuration per use case, including a certificate and corresponding private key for use
+    ///   in RP authentication.
+    /// - `sessions` will contain all sessions.
+    /// - `trust_anchors` contains self-signed X509 CA certificates acting as trust anchor for the mdoc verification:
+    ///   the mdoc verification function [`Document::verify()`] returns true if the mdoc verifies against one of these
+    ///   CAs.
+    /// - `ephemeral_id_secret` is used as a HMAC secret to create ephemeral session IDs.
+    pub fn new(
+        use_cases: US,
+        sessions: Arc<S>,
+        trust_anchors: Vec<TrustAnchor<'static>>,
+        result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
+        accepted_wallet_client_ids: Vec<String>,
+    ) -> Self
+    where
+        S: Send + Sync + 'static,
+    {
+        Self {
+            use_cases,
+            cleanup_task: sessions.clone().start_cleanup_task(CLEANUP_INTERVAL_SECONDS),
+            sessions,
+            trust_anchors,
+            result_handler,
+            accepted_wallet_client_ids,
+        }
+    }
+
+    /// Start a new disclosure session. Returns a [`SessionToken`] that can be used to retrieve the
+    /// session state.
+    ///
+    /// - `items_requests` contains the attributes to be requested.
+    /// - `usecase_id` should point to an existing item in the `certificates` parameter.
+    /// - `return_url_template` is the return URL the user should be returned to, if present.
+    pub async fn new_session(
+        &self,
+        items_requests: ItemsRequests,
+        usecase_id: String,
+        return_url_template: Option<ReturnUrlTemplate>,
+    ) -> Result<SessionToken, NewSessionError> {
+        info!("create verifier session: {usecase_id}");
+
+        if items_requests.0.is_empty() {
+            return Err(NewSessionError::NoItemsRequests);
+        }
+
+        let use_case = match self.use_cases.get(&usecase_id) {
+            Some(use_case) => use_case,
+            None => return Err(NewSessionError::UnknownUseCase(usecase_id)),
+        };
+        let session_state = use_case.new_session(usecase_id, Some(items_requests), return_url_template)?;
+        let session_token = session_state.state.token.clone();
+
+        self.sessions
+            .write(session_state.into(), true)
+            .await
+            .map_err(SessionError::SessionStore)?;
+
+        info!("Session({session_token}): session created");
+        Ok(session_token)
     }
 
     pub async fn process_get_request(
         &self,
-        session_identifier: &SessionIdentifier,
+        session_id: &str,
         response_uri_base: &BaseUrl,
         query: Option<&str>,
         wallet_nonce: Option<String>,
     ) -> Result<Jwt<VpAuthorizationRequest>, WithRedirectUri<GetAuthRequestError>> {
-        let session: Session<Created> = match session_identifier {
-            SessionIdentifier::Token(session_token) => self.get_session(session_token).await?,
-            SessionIdentifier::UseCaseId(usecase_id) => {
-                let usecase = self
-                    .use_cases
-                    .as_ref()
-                    .get(usecase_id)
-                    .ok_or(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()))?;
-
-                let items_requests = usecase
-                    .items_requests
-                    .as_ref()
-                    .ok_or(GetAuthRequestError::NoAttributesToRequest(usecase_id.to_string()))?
-                    .clone();
-
-                Session::<Created>::new(
-                    items_requests,
-                    usecase_id.clone(),
-                    usecase.client_id.clone(),
-                    usecase.return_url_template.clone(),
-                )
-            }
-        };
-
-        let session_token = &session.state.token;
-        let response_uri = response_uri_base.join_base_url(&format!("/{session_token}/response_uri"));
-
-        info!("Session({session_token}): get request");
-
         let url_params: VerifierUrlParameters =
             serde_urlencoded::from_str(query.ok_or(GetAuthRequestError::QueryParametersMissing)?)
                 .map_err(GetAuthRequestError::QueryParametersDeserialization)?;
 
-        if let Some(ephemeral_id_secret) = &self.ephemeral_id_secret {
-            // Verify the ephemeral ID here as opposed to inside `session.process_get_request()`, so that if the
-            // ephemeral ID is too old e.g. because the user's internet connection was very slow, then we don't fail the
-            // session. This means that the QR code/UL stays on the website so that the user can try again.
-            Self::verify_ephemeral_id(ephemeral_id_secret, session_token, &url_params)?;
-        }
+        let session: Session<Created> = self.use_cases.session(session_id, &url_params).await?;
+        let session_token = &session.state.token;
+
+        let response_uri = response_uri_base.join_base_url(&format!("/{session_token}/response_uri"));
+
+        info!("Session({session_token}): get request");
 
         let (result, redirect_uri, next) = match session
             .process_get_request(response_uri, url_params.session_type, wallet_nonce, &self.use_cases)
@@ -767,7 +933,9 @@ where
         wallet_response: WalletAuthResponse,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<VpResponse, WithRedirectUri<PostAuthResponseError>> {
-        let session: Session<WaitingForResponse> = self.get_session(session_token).await?;
+        let session: Session<WaitingForResponse> = session_in_state(self.sessions.as_ref(), session_token)
+            .await
+            .map_err(PostAuthResponseError::Session)?;
 
         let (result, next) = session
             .process_authorization_response(
@@ -800,15 +968,11 @@ where
         request_uri: BaseUrl,
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<StatusResponse, SessionStatusError> {
-        let response = match self.get_session_state(session_token).await?.data {
+        let response = match session_or_error(self.sessions.as_ref(), session_token).await?.data {
             DisclosureData::Created(Created { client_id, .. }) => {
                 let ul = session_type
                     .map(|session_type| {
-                        let time = time.generate();
-                        let ephemeral_id = self.ephemeral_id_secret.as_ref().map(|secret| EphemeralIdParameters {
-                            ephemeral_id: Self::generate_ephemeral_id(secret, session_token, &time),
-                            time,
-                        });
+                        let ephemeral_id = self.use_cases.generate_ephemeral_id(session_token, time);
                         Self::format_ul(ul_base, request_uri, ephemeral_id, session_type, client_id)
                     })
                     .transpose()?;
@@ -834,7 +998,7 @@ where
     }
 
     pub async fn cancel(&self, session_token: &SessionToken) -> Result<(), CancelSessionError> {
-        let SessionState { data, token, .. } = self.get_session_state(session_token).await?;
+        let SessionState { data, token, .. } = session_or_error(self.sessions.as_ref(), session_token).await?;
 
         // Create a new `SessionState<DisclosureData>` if the session
         // is in the `CREATED` or `WAITING_FOR_RESPONSE` state.
@@ -862,7 +1026,7 @@ where
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
     ) -> Result<DisclosedAttributes, DisclosedAttributesError> {
-        let disclosure_data = self.get_session_state(session_token).await?.data;
+        let disclosure_data = session_or_error(self.sessions.as_ref(), session_token).await?.data;
 
         match disclosure_data {
             DisclosureData::Done(Done {
@@ -882,21 +1046,7 @@ where
     }
 }
 
-impl<S, K> Verifier<S, K> {
-    fn generate_ephemeral_id(
-        ephemeral_id_secret: &hmac::Key,
-        session_token: &SessionToken,
-        time: &DateTime<Utc>,
-    ) -> Vec<u8> {
-        let ephemeral_id = hmac::sign(
-            ephemeral_id_secret,
-            &Self::format_ephemeral_id_payload(session_token, time),
-        )
-        .as_ref()
-        .to_vec();
-        ephemeral_id
-    }
-
+impl<S, US> Verifier<S, US> {
     fn format_ul(
         base_ul: &BaseUrl,
         request_uri: BaseUrl,
@@ -919,17 +1069,28 @@ impl<S, K> Verifier<S, K> {
 
         Ok(ul.try_into().unwrap()) // safe because we constructed request_uri from a BaseUrl
     }
+}
 
-    // formats the payload to hash to the ephemeral ID in a consistent way
-    fn format_ephemeral_id_payload(session_token: &SessionToken, time: &DateTime<Utc>) -> Vec<u8> {
-        // default (de)serialization of DateTime is the RFC 3339 format
-        format!(
-            "{}|{}",
-            session_token,
-            time.to_rfc3339_opts(SecondsFormat::AutoSi, true)
-        )
-        .into()
-    }
+async fn session_or_error<S>(
+    sessions: &S,
+    session_token: &SessionToken,
+) -> Result<SessionState<DisclosureData>, SessionError>
+where
+    S: SessionStore<DisclosureData>,
+{
+    sessions
+        .get(session_token)
+        .await?
+        .ok_or_else(|| SessionError::UnknownSession(session_token.clone()))
+}
+
+async fn session_in_state<T, S>(sessions: &S, session_token: &SessionToken) -> Result<Session<T>, SessionError>
+where
+    T: DisclosureState,
+    S: SessionStore<DisclosureData>,
+    Session<T>: TryFrom<SessionState<DisclosureData>, Error = SessionError>,
+{
+    session_or_error(sessions, session_token).await?.try_into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -997,18 +1158,19 @@ impl Session<Created> {
 
     /// Process the device's request for the Authorization Request,
     /// returning a response to answer the device with and the next session state.
-    async fn process_get_request<K>(
+    async fn process_get_request<K, UC>(
         self,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
-        use_cases: &UseCases<K>,
+        use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (Jwt<VpAuthorizationRequest>, Session<WaitingForResponse>),
         (WithRedirectUri<GetAuthRequestError>, Session<Done>),
     >
     where
         K: EcdsaKey,
+        UC: UseCase,
     {
         info!("Session({}): process get request", self.state.token);
 
@@ -1040,13 +1202,13 @@ impl Session<Created> {
     }
 
     // Helper function that returns ordinary errors instead of `Session<...>`
-    async fn process_get_request_inner<K>(
+    async fn process_get_request_inner<K, UC>(
         &self,
         session_token: &SessionToken,
         response_uri: BaseUrl,
         session_type: SessionType,
         wallet_nonce: Option<String>,
-        use_cases: &UseCases<K>,
+        use_cases: &impl UseCases<Key = K, UseCase = UC>,
     ) -> Result<
         (
             Jwt<VpAuthorizationRequest>,
@@ -1058,14 +1220,16 @@ impl Session<Created> {
     >
     where
         K: EcdsaKey,
+        UC: UseCase,
     {
         let usecase_id = &self.state().usecase_id;
-        let usecase = use_cases.as_ref().get(usecase_id);
+        let usecase = use_cases.get(usecase_id);
         let Some(usecase) = usecase else {
             // This should not happen except when the configuration has changed during this session.
             warn!("configuration inconsistency: existing session referenced nonexisting usecase '{usecase_id}'");
             return Err(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()).into());
         };
+        let usecase = usecase.data();
 
         // Determine if we should include a redirect URI, based on the use case configuration and session type.
         let redirect_uri = Self::redirect_uri_and_nonce(
@@ -1282,12 +1446,15 @@ mod tests {
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
     use crate::verifier::EphemeralIdParameters;
-    use crate::verifier::SessionIdentifier;
+    use crate::verifier::StaticUseCase;
+    use crate::verifier::StaticUseCases;
     use crate::verifier::VerifierUrlParameters;
 
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
+    use super::DisclosureUseCase;
+    use super::DisclosureUseCases;
     use super::Done;
     use super::ErrorResponse;
     use super::GetAuthRequestError;
@@ -1301,7 +1468,7 @@ mod tests {
     use super::SessionType;
     use super::SessionTypeReturnUrl;
     use super::StatusResponse;
-    use super::UseCase;
+    use super::UseCaseData;
     use super::Verifier;
     use super::VpAuthorizationErrorCode;
     use super::VpRequestUriObject;
@@ -1332,7 +1499,12 @@ mod tests {
         .into()
     }
 
-    fn create_verifier() -> Verifier<MemorySessionStore<DisclosureData>, SigningKey> {
+    type TestVerifier = Verifier<
+        MemorySessionStore<DisclosureData>,
+        DisclosureUseCases<SigningKey, MemorySessionStore<DisclosureData>>,
+    >;
+
+    fn create_verifier() -> TestVerifier {
         // Initialize server state
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let trust_anchors = vec![ca.to_trust_anchor().to_owned()];
@@ -1341,44 +1513,46 @@ mod tests {
         let use_cases = HashMap::from([
             (
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
-                UseCase {
-                    key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
-                    session_type_return_url: SessionTypeReturnUrl::Neither,
-                    client_id: "client_id".to_string(),
-                    items_requests: None,
-                    return_url_template: None,
-                },
+                DisclosureUseCase::try_new(
+                    generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    SessionTypeReturnUrl::Neither,
+                    None,
+                    None,
+                )
+                .unwrap(),
             ),
             (
                 DISCLOSURE_USECASE.to_string(),
-                UseCase {
-                    key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
-                    session_type_return_url: SessionTypeReturnUrl::SameDevice,
-                    client_id: "client_id".to_string(),
-                    items_requests: None,
-                    return_url_template: None,
-                },
+                DisclosureUseCase::try_new(
+                    generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    SessionTypeReturnUrl::SameDevice,
+                    None,
+                    None,
+                )
+                .unwrap(),
             ),
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
-                UseCase {
-                    key_pair: generate_reader_mock(&ca, reader_registration).unwrap(),
-                    session_type_return_url: SessionTypeReturnUrl::Both,
-                    client_id: "client_id".to_string(),
-                    items_requests: None,
-                    return_url_template: None,
-                },
+                DisclosureUseCase::try_new(
+                    generate_reader_mock(&ca, reader_registration).unwrap(),
+                    SessionTypeReturnUrl::Both,
+                    None,
+                    None,
+                )
+                .unwrap(),
             ),
-        ])
-        .into();
+        ]);
 
         let session_store = Arc::new(MemorySessionStore::default());
 
         Verifier::new(
-            use_cases,
+            DisclosureUseCases::new(
+                use_cases,
+                hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
+                Arc::clone(&session_store),
+            ),
             session_store,
             trust_anchors,
-            Some(hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap()),
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
         )
@@ -1414,11 +1588,7 @@ mod tests {
 
     async fn init_and_start_disclosure(
         time: &impl Generator<DateTime<Utc>>,
-    ) -> (
-        Verifier<MemorySessionStore<DisclosureData>, SigningKey>,
-        SessionToken,
-        VpRequestUriObject,
-    ) {
+    ) -> (TestVerifier, SessionToken, VpRequestUriObject) {
         let verifier = create_verifier();
 
         // Start session
@@ -1462,7 +1632,7 @@ mod tests {
         // Getting the Authorization Request should succeed
         verifier
             .process_get_request(
-                &SessionIdentifier::Token(session_token.clone()),
+                session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
@@ -1505,7 +1675,7 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &SessionIdentifier::Token(session_token.clone()),
+                session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
@@ -1550,7 +1720,7 @@ mod tests {
 
         let error = verifier
             .process_get_request(
-                &SessionIdentifier::Token(session_token.clone()),
+                session_token.as_ref(),
                 &"https://example.com/disclosure".to_string().parse().unwrap(),
                 request_uri_object.request_uri.as_ref().query(),
                 None,
@@ -1666,7 +1836,11 @@ mod tests {
             &"https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             Some(EphemeralIdParameters {
-                ephemeral_id: Verifier::<(), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
+                ephemeral_id: DisclosureUseCases::<(), ()>::generate_ephemeral_id(
+                    &ephemeral_id_secret,
+                    &session_token,
+                    &time,
+                ),
                 time,
             }),
             SessionType::CrossDevice,
@@ -1716,22 +1890,23 @@ mod tests {
 
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
-            UseCase {
-                key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
-                session_type_return_url: SessionTypeReturnUrl::Neither,
-                client_id: "client_id".to_string(),
-                items_requests: Some(vec![ItemsRequest::new_example()].into()),
-                return_url_template: None,
+            StaticUseCase {
+                data: UseCaseData {
+                    key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
+                    session_type_return_url: SessionTypeReturnUrl::Neither,
+                    client_id: "client_id".to_string(),
+                },
+                items_requests: vec![ItemsRequest::new_example()].into(),
+                return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);
 
         let session_store = Arc::new(MemorySessionStore::default());
 
         let verifier = Verifier::new(
-            use_cases.into(),
+            StaticUseCases::new(use_cases),
             session_store,
             trust_anchors,
-            None,
             None,
             vec![MOCK_WALLET_CLIENT_ID.to_string()],
         );
@@ -1744,7 +1919,7 @@ mod tests {
 
         verifier
             .process_get_request(
-                &SessionIdentifier::UseCaseId(DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string()),
+                DISCLOSURE_USECASE_NO_REDIRECT_URI,
                 &"https://example.com/response_uri".parse().unwrap(),
                 Some(&query_params),
                 None,
