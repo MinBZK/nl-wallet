@@ -56,10 +56,6 @@ build-wp-migrations-image:
       --dockerfile $DOCKER_FILE_TO_BUILD
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --build-arg CSP_SCRIPT_DEMO_RP="${ARG_CSP_SCRIPT_DEMO_RP}"
-      --build-arg CSP_STYLE_DEMO_RP="${ARG_CSP_STYLE_DEMO_RP}"
-      --build-arg WALLET_WEB_FILENAME="${ARG_WALLET_WEB_FILENAME}"
-      --build-arg WALLET_WEB_SHA256="${ARG_WALLET_WEB_SHA256}"
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
 
@@ -72,10 +68,6 @@ build-demo-relying-party-image:
       artifacts: true
   before_script:
     - !reference [.build-docker-image, before_script]
-    - ARG_CSP_SCRIPT_DEMO_RP="$(cat wallet_core/demo/demo_relying_party/hashes/csp_script_src.txt)"
-    - ARG_CSP_STYLE_DEMO_RP="$(cat wallet_core/demo/demo_relying_party/hashes/csp_style_src.txt)"
-    - ARG_WALLET_WEB_FILENAME="$(cat wallet_core/demo/demo_relying_party/hashes/wallet_web_filename.txt)"
-    - ARG_WALLET_WEB_SHA256="$(cat wallet_core/demo/demo_relying_party/hashes/wallet_web_sha256.txt)"
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_relying_party/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-demo-relying-party
@@ -89,10 +81,6 @@ build-demo-relying-party-image:
       --dockerfile $DOCKER_FILE_TO_BUILD
       --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
       --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --build-arg CSP_SCRIPT_DEMO_ISSUER="${ARG_CSP_SCRIPT_DEMO_ISSUER}"
-      --build-arg CSP_STYLE_DEMO_ISSUER="${ARG_CSP_STYLE_DEMO_ISSUER}"
-      --build-arg WALLET_WEB_FILENAME="${ARG_WALLET_WEB_FILENAME}"
-      --build-arg WALLET_WEB_SHA256="${ARG_WALLET_WEB_SHA256}"
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
       --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
 
@@ -105,10 +93,6 @@ build-demo-issuer-image:
       artifacts: true
   before_script:
     - !reference [.build-docker-image, before_script]
-    - ARG_CSP_SCRIPT_DEMO_ISSUER="$(cat wallet_core/demo/demo_issuer/hashes/csp_script_src.txt)"
-    - ARG_CSP_STYLE_DEMO_ISSUER="$(cat wallet_core/demo/demo_issuer/hashes/csp_style_src.txt)"
-    - ARG_WALLET_WEB_FILENAME="$(cat wallet_core/demo/demo_issuer/hashes/wallet_web_filename.txt)"
-    - ARG_WALLET_WEB_SHA256="$(cat wallet_core/demo/demo_issuer/hashes/wallet_web_sha256.txt)"
   variables:
     DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_issuer/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-demo-issuer

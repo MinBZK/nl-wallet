@@ -39,8 +39,6 @@
 | `imagePullSecrets`      | Array of secret names for private registries | `[]`     |
 | `ingress.enabled`       | Enable or disable the ingress                | `true`   |
 | `ingress.className`     | Ingress class name                           | `nginx`  |
-| `ingress.cspScriptSrc`  | Content Security Policy script source        | `'none'` |
-| `ingress.cspStyleSrc`   | Content Security Policy style source         | `'none'` |
 | `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`    |
 | `ingress.labels`        | Additional labels for the ingress            | `{}`     |
 

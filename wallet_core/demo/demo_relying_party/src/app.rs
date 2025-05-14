@@ -1,5 +1,6 @@
 use std::sync::Arc;
 use std::sync::LazyLock;
+use std::sync::OnceLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
@@ -16,6 +17,8 @@ use axum::routing::post;
 use axum::Json;
 use axum::Router;
 use base64::prelude::*;
+use http_utils::urls::ConnectSource;
+use http_utils::urls::SourceExpression;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -29,10 +32,13 @@ use url::Url;
 
 use demo_utils::error::Result;
 use demo_utils::headers::cors_layer;
+use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
 use demo_utils::language::LanguageParam;
 use demo_utils::LANGUAGE_JS_SHA256;
+use demo_utils::WALLET_WEB_CSS_SHA256;
+use demo_utils::WALLET_WEB_JS_SHA256;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DisclosedAttributes;
 use openid4vc::server_state::SessionToken;
@@ -42,7 +48,6 @@ use crate::client::WalletServerClient;
 use crate::settings::ReturnUrlMode;
 use crate::settings::Settings;
 use crate::settings::Usecase;
-use crate::settings::WalletWeb;
 use crate::translations::Words;
 use crate::translations::TRANSLATIONS;
 
@@ -55,8 +60,9 @@ struct ApplicationState {
     help_base_url: BaseUrl,
     demo_index_url: BaseUrl,
     usecases: IndexMap<String, Usecase>,
-    wallet_web: WalletWeb,
 }
+
+static CSP_HEADER: OnceLock<String> = OnceLock::new();
 
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
@@ -66,9 +72,12 @@ pub fn create_router(settings: Settings) -> Router {
         help_base_url: settings.help_base_url,
         demo_index_url: settings.demo_index_url,
         usecases: settings.usecases,
-        wallet_web: settings.wallet_web,
     });
 
+    let connect_src = settings
+        .connect_src
+        .unwrap_or(ConnectSource::List(vec![SourceExpression::SelfSource]))
+        .to_string();
     let mut app = Router::new()
         .route("/sessions", post(create_session))
         .route("/{usecase}/", get(usecase))
@@ -88,7 +97,24 @@ pub fn create_router(settings: Settings) -> Router {
                 ),
         )
         .with_state(application_state)
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(move |req, next| {
+            let csp_header = CSP_HEADER.get_or_init(|| {
+                let script_src = format!(
+                    "'sha256-{}' 'sha256-{}' 'sha256-{}'",
+                    *LANGUAGE_JS_SHA256, *USECASE_JS_SHA256, *WALLET_WEB_JS_SHA256
+                );
+                let style_src = format!("'self' 'sha256-{}'", *WALLET_WEB_CSS_SHA256);
+
+                format!(
+                    "default-src 'self'; script-src {script_src}; style-src {style_src}; img-src 'self' data:; \
+                     font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri \
+                     'none'; connect-src {connect_src};"
+                )
+            });
+
+            set_content_security_policy(req, next, csp_header)
+        }));
 
     if let Some(cors_origin) = settings.allow_origins {
         app = app.layer(cors_layer(cors_origin));
@@ -166,7 +192,6 @@ struct UsecaseTemplate<'a> {
     start_url: Url,
     help_base_url: Url,
     usecase_js_sha256: &'a str,
-    wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
     base: BaseTemplate<'a>,
 }
@@ -197,8 +222,7 @@ async fn usecase(
         start_url,
         help_base_url: state.help_base_url.clone().into_inner(),
         usecase_js_sha256: &USECASE_JS_SHA256,
-        wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
-        wallet_web_sha256: &state.wallet_web.sha256,
+        wallet_web_sha256: &WALLET_WEB_JS_SHA256,
         base: BaseTemplate {
             session_token: None,
             nonce: None,
@@ -266,8 +290,7 @@ async fn disclosed_attributes(
                 start_url,
                 help_base_url: state.help_base_url.clone().into_inner(),
                 usecase_js_sha256: &USECASE_JS_SHA256,
-                wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
-                wallet_web_sha256: &state.wallet_web.sha256,
+                wallet_web_sha256: &WALLET_WEB_JS_SHA256,
                 base,
             }
             .into_response()

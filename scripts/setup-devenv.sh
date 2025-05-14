@@ -171,20 +171,16 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
 
     cd "${WALLET_WEB_DIR}"
 
-    if [[ -n "${RM_OLD_WALLET_WEB+x}" ]]; then
-        rm ../wallet_core/demo/demo_utils/assets/*.iife.js || true
-    fi
-
     VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
     export VITE_HELP_BASE_URL
-    npm ci && npm run build
-    WALLET_WEB_SHA256=$(< dist/nl-wallet-web.iife.js openssl sha256 -binary | ${BASE64})
-    export WALLET_WEB_SHA256
-    WALLET_WEB_SHA256_FILENAME=$(< dist/nl-wallet-web.iife.js openssl sha256 -binary | base64_url_encode) # url safe to prevent '/' to appear in filename
-    export WALLET_WEB_SHA256_FILENAME
-    WALLET_WEB_FILENAME="nl-wallet-web.${WALLET_WEB_SHA256_FILENAME}.iife.js"
-    export WALLET_WEB_FILENAME
-    cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/"${WALLET_WEB_FILENAME}"
+    npm ci && CUSTOM_ELEMENT=false npm run build && EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build
+
+    # remove trailing newline at the end of the file
+    cat dist/nl-wallet-web.css | tr -d "\n" > dist/nl-wallet-web.css.truncated
+    mv dist/nl-wallet-web.css.truncated dist/nl-wallet-web.css
+
+    cp dist/nl-wallet-web.css ../wallet_core/demo/demo_utils/assets/
+    cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/
 fi
 
 
@@ -297,13 +293,7 @@ export DEMO_RELYING_PARTY_KEY_MONKEY_BIKE
 DEMO_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MONKEY_BIKE
 
-if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
-    WALLET_WEB_FILENAME="${WALLET_WEB_FILENAME:-nl-wallet-web.iife.js}"
-    export WALLET_WEB_FILENAME
-    WALLET_WEB_SHA256="${WALLET_WEB_SHA256:-$(< ../wallet_core/demo/demo_relying_party/assets/"${WALLET_WEB_FILENAME}" openssl sha256 -binary | ${BASE64})}"
-    export WALLET_WEB_SHA256
-    render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
-fi
+render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
 
 
 # Generate relying party ephemeral ID secret

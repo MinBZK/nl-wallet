@@ -10,6 +10,7 @@ workspace = true
 [dependencies]
 accept-language.workspace = true
 anyhow.workspace = true
+askama.workspace = true
 axum.workspace = true
 base64.workspace = true
 nutype.workspace = true
@@ -21,6 +22,7 @@ tracing.workspace = true
 
 crypto = { path = "../../lib/crypto" }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
+utils.path = "../../lib/utils"
 
 [dev-dependencies]
 rstest.workspace = true

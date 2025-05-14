@@ -1,5 +1,4 @@
 use std::net::IpAddr;
-use std::path::PathBuf;
 
 use config::Config;
 use config::ConfigError;
@@ -7,7 +6,6 @@ use config::Environment;
 use config::File;
 use indexmap::IndexMap;
 use serde::Deserialize;
-use serde::Serialize;
 use serde_tuple::Deserialize_tuple;
 
 use http_utils::urls::BaseUrl;
@@ -23,15 +21,7 @@ pub struct Settings {
     pub universal_link_base_url: BaseUrl,
     pub help_base_url: BaseUrl,
     pub structured_logging: bool,
-    pub wallet_web: WalletWeb,
     pub usecases: IndexMap<String, Usecase>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct WalletWeb {
-    // relative to /assets
-    pub filename: PathBuf,
-    pub sha256: String,
 }
 
 #[derive(Deserialize, Clone)]
