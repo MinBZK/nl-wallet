@@ -17,6 +17,8 @@ fn to_use_case(key_pair: KeyPair) -> UseCaseSettings {
     UseCaseSettings {
         session_type_return_url: SessionTypeReturnUrl::Both,
         key_pair: key_pair.into(),
+        items_requests: None,
+        return_url_template: None,
     }
 }
 

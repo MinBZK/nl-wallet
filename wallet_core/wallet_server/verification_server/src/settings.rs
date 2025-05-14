@@ -24,6 +24,8 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use mdoc::verifier::ItemsRequests;
+use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::DisclosureData;
@@ -86,6 +88,9 @@ pub struct UseCaseSettings {
     pub session_type_return_url: SessionTypeReturnUrl,
     #[serde(flatten)]
     pub key_pair: KeyPair,
+
+    pub items_requests: Option<ItemsRequests>,
+    pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
 impl UseCasesSettings {
@@ -116,8 +121,8 @@ impl UseCaseSettings {
         let use_case = DisclosureUseCase::try_new(
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
-            None,
-            None,
+            self.items_requests,
+            self.return_url_template,
         )?;
 
         Ok(use_case)

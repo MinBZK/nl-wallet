@@ -84,19 +84,21 @@ const USECASE_NAME: &str = "usecase";
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-    items_requests: vec![ItemsRequest {
-        doc_type: EXAMPLE_DOC_TYPE.to_string(),
-        request_info: None,
-        name_spaces: IndexMap::from([(
-            EXAMPLE_NAMESPACE.to_string(),
-            IndexMap::from_iter(
-                [(EXAMPLE_ATTR_NAME.to_string(), true)]
-                    .into_iter()
-                    .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
-            ),
-        )]),
-    }]
-    .into(),
+    items_requests: Some(
+        vec![ItemsRequest {
+            doc_type: EXAMPLE_DOC_TYPE.to_string(),
+            request_info: None,
+            name_spaces: IndexMap::from([(
+                EXAMPLE_NAMESPACE.to_string(),
+                IndexMap::from_iter(
+                    [(EXAMPLE_ATTR_NAME.to_string(), true)]
+                        .into_iter()
+                        .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
+                ),
+            )]),
+        }]
+        .into(),
+    ),
 });
 
 fn memory_storage_settings() -> Storage {
@@ -148,7 +150,7 @@ async fn wallet_server_settings_and_listener(
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = Some(reader_registration_mock_from_requests(
-        &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
+        EXAMPLE_START_DISCLOSURE_REQUEST.items_requests.as_ref().unwrap(),
     ));
 
     // Set up the use case, based on RP CA and reader registration.
@@ -158,6 +160,8 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
+            items_requests: None,
+            return_url_template: None,
         },
     )])
     .into();
@@ -467,7 +471,7 @@ async fn test_new_session_parameters_error() {
 
     let no_items_request = {
         let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
-        request.items_requests = vec![].into();
+        request.items_requests = Some(vec![].into());
         request
     };
 

@@ -522,7 +522,7 @@ async fn test_client_and_server(
 
     // Start the session
     let session_token = verifier
-        .new_session(requested_documents, use_case.to_string(), return_url_template)
+        .new_session(use_case.to_string(), Some(requested_documents), return_url_template)
         .await
         .unwrap();
 
@@ -621,8 +621,8 @@ async fn test_client_and_server_cancel_after_created() {
     // Start the session
     let session_token = verifier
         .new_session(
-            items_requests,
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            Some(items_requests),
             Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
         )
         .await
@@ -676,8 +676,8 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     // Start the session
     let session_token = verifier
         .new_session(
-            items_requests,
             DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            Some(items_requests),
             Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
         )
         .await
@@ -781,7 +781,7 @@ async fn test_disclosure_invalid_poa() {
 
     // Start the session
     let session_token = verifier
-        .new_session(items_requests, use_case.to_string(), None)
+        .new_session(use_case.to_string(), Some(items_requests), None)
         .await
         .unwrap();
 

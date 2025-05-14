@@ -294,7 +294,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
-    pub items_requests: ItemsRequests,
+    pub items_requests: Option<ItemsRequests>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -316,8 +316,8 @@ where
     let session_token = state
         .verifier
         .new_session(
-            start_request.items_requests,
             start_request.usecase,
+            start_request.items_requests,
             start_request.return_url_template,
         )
         .await

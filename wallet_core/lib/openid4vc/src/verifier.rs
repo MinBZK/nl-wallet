@@ -576,10 +576,16 @@ impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
 
+        let items_requests = items_requests
+            .or_else(|| self.items_requests.clone())
+            .ok_or_else(|| NewSessionError::NoItemsRequests)?;
+
+        if items_requests.0.is_empty() {
+            return Err(NewSessionError::NoItemsRequests);
+        }
+
         let session = Session::<Created>::new(
-            items_requests
-                .or_else(|| self.items_requests.clone())
-                .ok_or_else(|| NewSessionError::NoItemsRequests)?,
+            items_requests,
             id.to_string(),
             self.data.client_id.clone(),
             return_url_template.or_else(|| self.return_url_template.clone()),
@@ -860,21 +866,17 @@ where
     /// - `return_url_template` is the return URL the user should be returned to, if present.
     pub async fn new_session(
         &self,
-        items_requests: ItemsRequests,
         usecase_id: String,
+        items_requests: Option<ItemsRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken, NewSessionError> {
         info!("create verifier session: {usecase_id}");
-
-        if items_requests.0.is_empty() {
-            return Err(NewSessionError::NoItemsRequests);
-        }
 
         let use_case = match self.use_cases.get(&usecase_id) {
             Some(use_case) => use_case,
             None => return Err(NewSessionError::UnknownUseCase(usecase_id)),
         };
-        let session_state = use_case.new_session(usecase_id, Some(items_requests), return_url_template)?;
+        let session_state = use_case.new_session(usecase_id, items_requests, return_url_template)?;
         let session_token = session_state.state.token.clone();
 
         self.sessions
@@ -1575,7 +1577,11 @@ mod tests {
         let return_url_template = has_return_url.then(|| "https://example.com/{session_token}".parse().unwrap());
 
         let result = verifier
-            .new_session(new_disclosure_request(), usecase_id.to_string(), return_url_template)
+            .new_session(
+                usecase_id.to_string(),
+                Some(new_disclosure_request()),
+                return_url_template,
+            )
             .await;
 
         if should_succeed {
@@ -1594,8 +1600,8 @@ mod tests {
         // Start session
         let session_token = verifier
             .new_session(
-                new_disclosure_request(),
                 DISCLOSURE_USECASE.to_string(),
+                Some(new_disclosure_request()),
                 Some("https://example.com/{session_token}".parse().unwrap()),
             )
             .await
