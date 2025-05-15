@@ -9,6 +9,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../common/widget/centered_loading_indicator.dart';
 import '../bloc/qr_bloc.dart';
+import 'flashlight_button.dart';
 import 'qr_scanner_active_announcer.dart';
 
 const kAndroidCameraResolution = Size(960, 1280);
@@ -62,6 +63,7 @@ class _QrScannerState extends State<QrScanner> {
                 child: Center(
                   child: Text.rich(
                     context.l10n.errorScreenGenericHeadline.toTextSpan(context),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               );
@@ -120,46 +122,15 @@ class _QrScannerState extends State<QrScanner> {
 
   Widget _buildPositionedFlashLightButton() {
     if (cameraController.value.torchState == TorchState.unavailable) return const SizedBox.shrink();
-    final bool isOn = cameraController.value.torchState.isOn;
-    final buttonRadius = BorderRadius.circular(200);
     return Positioned(
       bottom: 32,
       left: 0,
       right: 0,
       child: Center(
-        child: Material(
-          color: Colors.white,
-          borderRadius: buttonRadius,
-          child: Semantics(
-            button: true,
-            child: InkWell(
-              borderRadius: buttonRadius,
-              onTap: () => _toggleFlashLight(context),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Semantics(
-                      attributedLabel:
-                          (isOn ? context.l10n.generalOn : context.l10n.generalOff).toAttributedString(context),
-                      excludeSemantics: true,
-                      child: Icon(
-                        isOn ? Icons.flashlight_on_outlined : Icons.flashlight_off_outlined,
-                        color: context.colorScheme.onSecondary,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text.rich(
-                      (isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta)
-                          .toTextSpan(context),
-                      style: context.textTheme.labelLarge?.copyWith(color: context.colorScheme.onSecondary),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+        child: IntrinsicWidth(
+          child: FlashlightButton(
+            isOn: cameraController.value.torchState.isOn,
+            onPressed: () => _toggleFlashLight(context),
           ),
         ),
       ),

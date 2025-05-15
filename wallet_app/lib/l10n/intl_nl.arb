@@ -404,6 +404,7 @@
     "errorScreenSessionExpiredDescriptionCloseVariant": "Deze actie is gestopt omdat er te veel tijd voorbij is gegaan. Dit is bedoeld om je gegevens veilig te houden. Sluit de app en probeer het later opnieuw.",
     "errorScreenSessionExpiredHeadline": "Sorry, de tijd is voorbij",
     "errorScreenSessionExpiredReturnUrlCta": "Ga naar website",
+    "flashlightButtonTapHint": "zaklamp te schakelen",
     "flashlightDisabledWCAGAnnouncement": "Zaklamp is uitgezet",
     "flashlightEnabledWCAGAnnouncement": "Zaklamp is aangezet",
     "forgotPinScreenCta": "Verwijder Wallet",

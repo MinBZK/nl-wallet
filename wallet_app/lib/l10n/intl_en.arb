@@ -408,6 +408,7 @@
     "errorScreenSessionExpiredDescriptionCloseVariant": "This action has stopped because too much time has passed. This is intended to keep your data secure. Close the app and try again later.",
     "errorScreenSessionExpiredHeadline": "Sorry, you're out of time",
     "errorScreenSessionExpiredReturnUrlCta": "Go to website",
+    "flashlightButtonTapHint": "toggle flashlight",
     "flashlightDisabledWCAGAnnouncement": "Flashlight turned off",
     "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Delete Wallet",
