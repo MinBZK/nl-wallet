@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use wallet::sd_jwt_vc_metadata::LogoMetadata;
 
 use crate::models::disclosure::Organization;
 use crate::models::image::Image;
@@ -75,7 +75,7 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
                 background_color,
                 text_color,
             } => RenderingMetadata::Simple {
-                logo: logo.map(ImageWithMetadata::try_from).and_then(Result::ok),
+                logo: logo.map(ImageWithMetadata::from),
                 background_color,
                 text_color,
             },
@@ -84,26 +84,15 @@ impl From<wallet::sd_jwt_vc_metadata::RenderingMetadata> for RenderingMetadata {
     }
 }
 
-impl TryFrom<wallet::sd_jwt_vc_metadata::LogoMetadata> for ImageWithMetadata {
-    type Error = anyhow::Error;
-
-    fn try_from(value: wallet::sd_jwt_vc_metadata::LogoMetadata) -> Result<Self, Self::Error> {
-        // For simplicity, we let the embedded and remote distinction bubble up to here
-        // and only convert supported embedded images.
-        // If remote images were to be supported, there should be some logic that fetches the url,
-        // most likely that concern should not be here.
-        let alt_text = value.alt_text.into_inner();
-        match value.uri_metadata {
-            wallet::sd_jwt_vc_metadata::UriMetadata::Embedded { uri } => match uri.mime_type.as_str() {
-                "image/jpeg" => Ok(Image::Jpeg { data: uri.data }),
-                "image/png" => Ok(Image::Png { data: uri.data }),
-                "image/svg+xml" => String::from_utf8(uri.data)
-                    .map(|xml| Image::Svg { xml })
-                    .map_err(anyhow::Error::from),
-                _ => Err(anyhow!("Unsupported mime type: {}", uri.mime_type)),
-            }
-            .map(|image| ImageWithMetadata { image, alt_text }),
-            wallet::sd_jwt_vc_metadata::UriMetadata::Remote { .. } => Err(anyhow!("Remote images are not supported")),
+impl From<LogoMetadata> for ImageWithMetadata {
+    fn from(value: LogoMetadata) -> Self {
+        ImageWithMetadata {
+            image: match value.image {
+                wallet::sd_jwt_vc_metadata::Image::Svg(xml) => Image::Svg { xml },
+                wallet::sd_jwt_vc_metadata::Image::Png(data) => Image::Png { data },
+                wallet::sd_jwt_vc_metadata::Image::Jpeg(data) => Image::Jpeg { data },
+            },
+            alt_text: value.alt_text.into_inner(),
         }
     }
 }

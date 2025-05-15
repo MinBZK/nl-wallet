@@ -5,6 +5,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::fmt::Write;
 use std::ops::Deref;
+use std::string::FromUtf8Error;
 use std::sync::LazyLock;
 
 use itertools::Itertools;
@@ -15,10 +16,10 @@ use nutype::nutype;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use serde_with::MapSkipError;
+use serde_with::TryFromInto;
 use ssri::Integrity;
 
 use http_utils::data_uri::DataUri;
@@ -301,7 +302,7 @@ impl From<JsonSchema> for serde_json::Value {
 impl TryFrom<serde_json::Value> for JsonSchema {
     type Error = TypeMetadataError;
 
-    fn try_from(value: Value) -> Result<Self, Self::Error> {
+    fn try_from(value: serde_json::Value) -> Result<Self, Self::Error> {
         Self::try_new(value)
     }
 }
@@ -400,25 +401,61 @@ pub enum RenderingMetadata {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum UriMetadata {
-    Embedded {
-        uri: DataUri,
-    },
-    Remote {
-        uri: BaseUrl,
-
-        /// Note that although this is optional in the specification, we consider validation using a digest mandatory
-        /// if the logo is to be fetched from an external URI, in order to check that this matches the image as
-        /// intended by the issuer.
-        #[serde(rename = "uri#integrity")]
-        uri_integrity: SpecOptional<Integrity>,
-    },
+pub enum Image {
+    Svg(String),
+    Png(Vec<u8>),
+    Jpeg(Vec<u8>),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ImageError {
+    #[error("utf8 decode error: {0}")]
+    Utf8Decode(#[from] FromUtf8Error),
+    #[error("unsupported mime type: {0}")]
+    UnsupportedMimeType(String),
+}
+
+impl TryFrom<DataUri> for Image {
+    type Error = ImageError;
+
+    fn try_from(value: DataUri) -> Result<Self, Self::Error> {
+        match value.mime_type.as_str() {
+            "image/jpeg" => Ok(Image::Jpeg(value.data)),
+            "image/png" => Ok(Image::Png(value.data)),
+            "image/svg+xml" => String::from_utf8(value.data)
+                .map(Image::Svg)
+                .map_err(ImageError::Utf8Decode),
+            _ => Err(ImageError::UnsupportedMimeType(value.mime_type)),
+        }
+    }
+}
+
+impl From<Image> for DataUri {
+    fn from(value: Image) -> Self {
+        match value {
+            Image::Jpeg(data) => DataUri {
+                mime_type: String::from("image/jpeg"),
+                data,
+            },
+            Image::Png(data) => DataUri {
+                mime_type: String::from("image/png"),
+                data,
+            },
+            Image::Svg(xml) => DataUri {
+                mime_type: String::from("image/svg+xml"),
+                data: xml.as_bytes().to_vec(),
+            },
+        }
+    }
+}
+
+#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LogoMetadata {
-    #[serde(flatten)]
-    pub uri_metadata: UriMetadata,
+    /// Explicitly reject non-embedded images and unsupported mime types
+    #[serde(rename = "uri")]
+    #[serde_as(as = "TryFromInto<DataUri>")]
+    pub image: Image,
 
     /// Note that although this is optional in the specification, it is mandatory within the context of the wallet app
     /// because of accessibility requirements.
@@ -667,8 +704,9 @@ mod example_constructors {
             serde_json::from_slice(SIMPLE_EMBEDDED_BYTES).unwrap()
         }
 
-        pub fn simple_remote_example() -> Self {
-            serde_json::from_slice(SIMPLE_REMOTE_BYTES).unwrap()
+        pub fn simple_remote_example() -> serde_json::Error {
+            // Explicitly unsupported at the moment, hence the error return
+            serde_json::from_slice::<Self>(SIMPLE_REMOTE_BYTES).unwrap_err()
         }
     }
 
@@ -723,10 +761,6 @@ mod example_constructors {
         pub fn simple_embedded_example() -> Self {
             Self::try_new(UncheckedTypeMetadata::simple_embedded_example()).unwrap()
         }
-
-        pub fn simple_remote_example() -> Self {
-            Self::try_new(UncheckedTypeMetadata::simple_remote_example()).unwrap()
-        }
     }
 
     impl JsonSchema {
@@ -761,6 +795,7 @@ mod example_constructors {
 #[cfg(test)]
 mod test {
     use std::collections::HashMap;
+    use std::str::FromStr;
 
     use assert_matches::assert_matches;
     use jsonschema::error::ValidationErrorKind;
@@ -768,7 +803,6 @@ mod test {
     use rstest::rstest;
     use serde_json::json;
 
-    use http_utils::data_uri::DataUri;
     use utils::vec_at_least::VecNonEmpty;
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
@@ -790,12 +824,7 @@ mod test {
         assert_eq!(
             Some(RenderingMetadata::Simple {
                 logo: Some(LogoMetadata {
-                    uri_metadata: UriMetadata::Embedded {
-                        uri: DataUri {
-                            mime_type: "image/png".to_string(),
-                            data: RED_DOT_BYTES.to_vec()
-                        }
-                    },
+                    image: Image::Png(RED_DOT_BYTES.to_vec()),
                     alt_text: "An example PNG logo".to_string().into(),
                 }),
                 background_color: Some("#FF8000".to_string()),
@@ -808,19 +837,26 @@ mod test {
     #[test]
     fn test_deserialize_with_simple_rendering_and_remote_logo() {
         assert_eq!(
-            Some(RenderingMetadata::Simple {
-                logo: Some(LogoMetadata {
-                    uri_metadata: UriMetadata::Remote {
-                        uri: "https://simple.example.com/red-dot.png".parse().unwrap(),
-                        uri_integrity: Integrity::from(RED_DOT_BYTES).into(),
-                    },
-                    alt_text: "An example PNG logo".to_string().into(),
-                }),
-                background_color: Some("#FF8000".to_string()),
-                text_color: Some("#0080FF".to_string()),
-            }),
-            TypeMetadata::simple_remote_example().as_ref().display[0].rendering
+            "data-url error: not a valid data url at line 14 column 59",
+            UncheckedTypeMetadata::simple_remote_example().to_string(),
         );
+    }
+
+    #[rstest]
+    #[case("data:image/png;base64,q80=")]
+    #[case("data:image/jpeg;base64,yv4=")]
+    #[case("data:image/svg+xml;utf8,<svg></svg>")]
+    fn test_try_from_into_image(#[case] uri: &str) {
+        let uri = DataUri::from_str(uri).unwrap();
+        let image: Image = Image::try_from(uri.clone()).unwrap();
+        assert_eq!(uri, image.into());
+    }
+
+    #[test]
+    fn test_image_uri_unsupported_mime_type() {
+        let uri = DataUri::from_str("data:image/webp;base64,q7o=").unwrap();
+        let error = Image::try_from(uri).expect_err("should return error");
+        assert_matches!(error, ImageError::UnsupportedMimeType(mime_type) if mime_type == "image/webp");
     }
 
     #[rstest]
