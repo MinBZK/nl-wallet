@@ -47,8 +47,8 @@ typedef PinStateInterceptor = bool Function(BuildContext context, PinState state
 typedef OnPinErrorCallback = void Function(BuildContext context, ErrorState state);
 
 /// Signature for a function that is called when the user has entered the correct pin.
-/// [returnUrl] is the url that the user should be redirected to (if not null).
-typedef OnPinValidatedCallback = void Function(String? returnUrl);
+/// Provides an optional result T, which is the result of the CheckPinUseCase call.
+typedef OnPinValidatedCallback<T> = void Function(T);
 
 /// Provides pin validation and renders any errors based on the state from the nearest [PinBloc].
 class PinPage extends StatelessWidget {
@@ -99,7 +99,7 @@ class PinPage extends StatelessWidget {
         /// Process the state change
         switch (state) {
           case PinValidateSuccess():
-            onPinValidated.call(state.returnUrl);
+            onPinValidated.call(state.result);
           case PinValidateTimeout():
             PinTimeoutScreen.show(context, state.expiryTime);
           case PinValidateBlocked():

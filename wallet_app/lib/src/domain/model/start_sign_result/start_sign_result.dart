@@ -1,8 +1,7 @@
-import '../attribute/attribute.dart';
-import '../card/wallet_card.dart';
 import '../document.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
+import '../requested_attributes.dart';
 
 sealed class StartSignResult {
   final Organization relyingParty;
@@ -19,7 +18,7 @@ sealed class StartSignResult {
 }
 
 class StartSignReadyToSign extends StartSignResult {
-  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
+  final RequestedAttributes requestedAttributes;
 
   StartSignReadyToSign({
     required super.relyingParty,

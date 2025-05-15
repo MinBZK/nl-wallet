@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../util/extension/build_context_extension.dart';
+import '../divider_side.dart';
 import 'button_content.dart';
+
+export '../divider_side.dart';
 
 const _kButtonHeight = 76.0;
 const _kLandscapeButtonHeight = 56.0;
@@ -23,7 +26,7 @@ class ListButton extends StatelessWidget {
     required this.text,
     this.icon = const Icon(Icons.arrow_forward_outlined),
     this.onPressed,
-    this.dividerSide = DividerSide.horizontal,
+    this.dividerSide = DividerSide.both,
     this.iconPosition = IconPosition.end,
     this.mainAxisAlignment = MainAxisAlignment.start,
     this.trailing,
@@ -74,12 +77,4 @@ class ListButton extends StatelessWidget {
       );
 
   Divider _buildDivider(BuildContext context) => Divider(height: context.theme.dividerTheme.thickness);
-}
-
-enum DividerSide { none, top, bottom, horizontal }
-
-extension DividerSideExtension on DividerSide {
-  bool get top => this == DividerSide.top || this == DividerSide.horizontal;
-
-  bool get bottom => this == DividerSide.bottom || this == DividerSide.horizontal;
 }

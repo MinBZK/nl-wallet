@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
@@ -12,9 +13,12 @@ import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
+import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/text_with_link.dart';
 import '../../common/widget/wallet_scrollbar.dart';
+
+const kShowDetailsButtonKey = Key('showDetailsButton');
 
 class OrganizationApprovePage extends StatelessWidget {
   /// Callback that is triggered when the user approves the request
@@ -35,7 +39,7 @@ class OrganizationApprovePage extends StatelessWidget {
   /// The url from which the user should have opened the flow. Prominently displayed for the user to check
   final String originUrl;
 
-  /// Tells the Page in which flow it's currently used, used to select the correct string resources
+  /// Tells the Page in which flow it's currently used, used to select the correct string/icon resources
   final ApprovalPurpose purpose;
 
   /// If true, the 'first interaction' banner will be shown
@@ -44,6 +48,9 @@ class OrganizationApprovePage extends StatelessWidget {
   /// If `crossDevice`, the 'fraud warning' (including `originUrl`) will be shown
   final DisclosureSessionType? sessionType;
 
+  /// Optional description, rendered between the title and (optional) fraud text.
+  final String? description;
+
   const OrganizationApprovePage({
     required this.onDeclinePressed,
     required this.onAcceptPressed,
@@ -51,6 +58,7 @@ class OrganizationApprovePage extends StatelessWidget {
     required this.organization,
     required this.originUrl,
     required this.purpose,
+    this.description,
     this.onReportIssuePressed,
     this.sharedDataWithOrganizationBefore = false,
     this.sessionType,
@@ -69,6 +77,7 @@ class OrganizationApprovePage extends StatelessWidget {
             const SliverSizedBox(height: 32),
             SliverToBoxAdapter(
               child: ListButton(
+                key: kShowDetailsButtonKey,
                 onPressed: onShowDetailsPressed,
                 text: Text.rich(_moreInfoButtonText(context).toTextSpan(context)),
               ),
@@ -106,7 +115,7 @@ class OrganizationApprovePage extends StatelessWidget {
 
   IconData _primaryIcon() {
     return switch (purpose) {
-      ApprovalPurpose.issuance => Icons.arrow_forward,
+      ApprovalPurpose.issuance => CupertinoIcons.arrow_turn_up_right,
       ApprovalPurpose.disclosure => Icons.arrow_forward,
       ApprovalPurpose.sign => Icons.arrow_forward,
       ApprovalPurpose.login => Icons.key_outlined,
@@ -120,17 +129,11 @@ class OrganizationApprovePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          OrganizationLogo(
-            image: organization.logo,
-            size: 64,
-            fixedRadius: 12,
-          ),
+          OrganizationLogo(image: organization.logo, size: 64, fixedRadius: 12),
           const SizedBox(height: 24),
           _buildHeaderTitleText(context),
-          if (sessionType == DisclosureSessionType.crossDevice) ...[
-            const SizedBox(height: 8),
-            _buildFraudInfoText(context),
-          ],
+          _buildHeaderDescriptionSection(context),
+          _buildHeaderFraudInfoSection(context),
         ],
       ),
     );
@@ -139,7 +142,7 @@ class OrganizationApprovePage extends StatelessWidget {
   Widget _buildHeaderTitleText(BuildContext context) {
     final title = switch (purpose) {
       ApprovalPurpose.issuance =>
-        context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
+        context.l10n.organizationApprovePageIssuanceTitle(organization.displayName.l10nValue(context)),
       ApprovalPurpose.disclosure =>
         context.l10n.organizationApprovePageGenericTitle(organization.displayName.l10nValue(context)),
       ApprovalPurpose.sign =>
@@ -148,6 +151,27 @@ class OrganizationApprovePage extends StatelessWidget {
         context.l10n.organizationApprovePageLoginTitle(organization.displayName.l10nValue(context)),
     };
     return TitleText(title);
+  }
+
+  Widget _buildHeaderDescriptionSection(BuildContext context) {
+    if (description?.isEmpty ?? true) return SizedBox.shrink();
+    return Column(
+      children: [
+        SizedBox(height: 8),
+        BodyText(description!),
+      ],
+    );
+  }
+
+  Widget _buildHeaderFraudInfoSection(BuildContext context) {
+    final showFraudInfo = sessionType == DisclosureSessionType.crossDevice;
+    if (!showFraudInfo) return SizedBox.shrink();
+    return Column(
+      children: [
+        SizedBox(height: 8),
+        _buildFraudInfoText(context),
+      ],
+    );
   }
 
   Widget _buildFraudInfoText(BuildContext context) {
@@ -175,6 +199,8 @@ class OrganizationApprovePage extends StatelessWidget {
 
   String _moreInfoButtonText(BuildContext context) {
     switch (purpose) {
+      case ApprovalPurpose.issuance:
+        return context.l10n.organizationApprovePageMoreInfoIssuanceCta;
       case ApprovalPurpose.login:
         return context.l10n.organizationApprovePageMoreInfoLoginCta;
       default:

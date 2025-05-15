@@ -4,102 +4,54 @@ import 'package:wallet_core/core.dart';
 
 import '../mock.dart';
 import 'data/mock/mock_attestations.dart';
-import 'data/mock/mock_disclosure_requests.dart';
+import 'disclosure_manager.dart';
 import 'log/wallet_event_log.dart';
 import 'pin/pin_manager.dart';
-import 'util/extension/string_extension.dart';
 import 'wallet/wallet.dart';
 
 class WalletCoreMock implements WalletCoreApi {
+  /// Simulate the behaviour of the real WalletCore, which requires a call to `init`
   bool _isInitialized = false;
-  StartDisclosureResult? _ongoingDisclosure;
+
+  final IssuanceManager _issuanceManager;
+  final DisclosureManager _disclosureManager;
 
   final PinManager _pinManager;
   final Wallet _wallet;
   final WalletEventLog _eventLog;
+
   bool _isBiometricsEnabled = false;
 
-  WalletCoreMock(this._pinManager, this._wallet, this._eventLog);
+  WalletCoreMock(this._pinManager, this._wallet, this._eventLog, this._issuanceManager, this._disclosureManager);
 
   @override
   Future<StartDisclosureResult> crateApiFullStartDisclosure({required String uri, required bool isQrCode, hint}) async {
-    // Look up the associated request
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
-    final disclosureId = jsonPayload['id'] as String;
-    final request = kDisclosureRequests.firstWhere((element) => element.id == disclosureId);
-    final requestOriginBaseUrl = request.relyingParty.webUrl ?? 'http://origin.org';
+    final isDisclosureBasedIssuance = jsonPayload['type'] == 'issue';
 
-    // Check if all attributes are available
-    final containsAllRequestedAttributes =
-        _wallet.containsAttributes(request.requestedAttributes.map((requestedAttribute) => requestedAttribute.key));
-    if (containsAllRequestedAttributes) {
-      final isLoginRequest =
-          request.requestedAttributes.length == 1 && request.requestedAttributes.first.key == 'mock_citizenshipNumber';
-      return _ongoingDisclosure = StartDisclosureResult.request(
-        relyingParty: request.relyingParty,
-        policy: request.policy,
-        requestedAttestations:
-            _wallet.getRequestedAttestations(request.requestedAttributes.map((attribute) => attribute.key)),
-        sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
-        sessionType: DisclosureSessionType.CrossDevice,
-        requestOriginBaseUrl: requestOriginBaseUrl,
-        requestPurpose: request.purpose.untranslated,
-        requestType: isLoginRequest ? DisclosureType.Login : DisclosureType.Regular,
-      );
-    } else {
-      final requestedAttributesNotInWallet =
-          _wallet.getMissingAttributeKeys(request.requestedAttributes.map((e) => e.key));
-      final missingAttributes = requestedAttributesNotInWallet.map((key) {
-        final associatedLabel = request.requestedAttributes.firstWhere((element) => element.key == key).label;
-        return MissingAttribute(labels: associatedLabel.untranslated);
-      });
-      return _ongoingDisclosure = StartDisclosureResult.requestAttributesMissing(
-        relyingParty: request.relyingParty,
-        sharedDataWithRelyingPartyBefore: _eventLog.includesInteractionWith(request.relyingParty),
-        sessionType: DisclosureSessionType.CrossDevice,
-        requestOriginBaseUrl: requestOriginBaseUrl,
-        requestPurpose: request.purpose.untranslated,
-        missingAttributes: missingAttributes.toList(),
-      );
-    }
+    // Detect and re-route disclosure based issuance requests
+    if (isDisclosureBasedIssuance) return _issuanceManager.startIssuance(uri);
+    // Proceed with normal disclosure
+    return _disclosureManager.startDisclosure(uri, isQrCode: isQrCode);
   }
 
   @override
   Future<String?> crateApiFullCancelDisclosure({hint}) async {
-    final disclosure = _ongoingDisclosure;
-    assert(disclosure != null, 'No ongoing disclosure to deny');
-    _ongoingDisclosure = null;
-    _eventLog.logDisclosure(disclosure!, DisclosureStatus.Cancelled);
+    await _disclosureManager.cancelDisclosure();
     return null;
   }
 
   @override
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({required String pin, hint}) async {
-    final disclosure = _ongoingDisclosure;
-    assert(disclosure != null, 'No ongoing disclosure to accept');
-    assert(disclosure is StartDisclosureResult_Request, "Can't accept disclosure with missing attributes");
-
-    // Check if correct pin was provided
-    final result = _pinManager.checkPin(pin);
-    if (result is WalletInstructionResult_InstructionError) {
-      switch (result.error) {
-        case WalletInstructionError_Timeout():
-        case WalletInstructionError_Blocked():
-          _wallet.lock();
-        case WalletInstructionError_IncorrectPin():
-      }
-      return AcceptDisclosureResult.instructionError(error: result.error);
-    }
-
-    // Log successful disclosure
-    _eventLog.logDisclosure(disclosure!, DisclosureStatus.Success);
-    _ongoingDisclosure = null;
-
-    return AcceptDisclosureResult.ok();
+    return _disclosureManager.acceptDisclosure(pin);
   }
 
   @override
   Future<WalletInstructionResult> crateApiFullAcceptIssuance({required String pin, hint}) async {
+    /// Check if the issuance manager has an active session that should be continued
+    if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.acceptIssuance(pin, []);
+
+    /// Continue with PID issuance flow
     final result = _pinManager.checkPin(pin);
     if (result is WalletInstructionResult_InstructionError && result.error is WalletInstructionError_Timeout) {
       /// PVW-1037 (criteria 6): Handle the special case where the user has forgotten her pin during initial setup.
@@ -116,9 +68,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<void> crateApiFullCancelIssuance({hint}) async {
-    // Stub only, no need to cancel it on the mock
-  }
+  Future<void> crateApiFullCancelIssuance({hint}) async => _issuanceManager.cancelIssuance();
 
   @override
   Future<void> crateApiFullClearAttestationsStream({hint}) async {
@@ -159,7 +109,7 @@ class WalletCoreMock implements WalletCoreApi {
     final jsonPayload = jsonDecode(Uri.decodeComponent(Uri.parse(uri).fragment));
     final type = jsonPayload['type'] as String;
     if (type == 'verify') return IdentifyUriResult.Disclosure;
-    if (type == 'issue') throw UnsupportedError('Issue not yet supported');
+    if (type == 'issue') return IdentifyUriResult.DisclosureBasedIssuance;
     if (type == 'sign') throw UnsupportedError('Sign not yet supported');
     throw UnsupportedError('Unsupported uri: $uri');
   }
@@ -255,10 +205,10 @@ class WalletCoreMock implements WalletCoreApi {
   Stream<List<WalletEvent>> crateApiFullSetRecentHistoryStream({hint}) => _eventLog.logStream;
 
   @override
-  Future<bool> crateApiFullHasActiveDisclosureSession({hint}) async => _ongoingDisclosure != null;
+  Future<bool> crateApiFullHasActiveDisclosureSession({hint}) async => _disclosureManager.hasActiveDisclosureSession;
 
   @override
-  Future<bool> crateApiFullHasActiveIssuanceSession({hint}) async => false;
+  Future<bool> crateApiFullHasActiveIssuanceSession({hint}) async => _issuanceManager.hasActiveIssuanceSession;
 
   @override
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin, hint}) async {

@@ -1,6 +1,9 @@
 // Animation
 const kDefaultAnimationDuration = Duration(milliseconds: 300);
 
+// UI
+const double kCardBreakPointWidth = 300; // Used to calculate columns for MasonryGrid
+
 // Security
 const kPinDigits = 6;
 const kMockPin = '123456';

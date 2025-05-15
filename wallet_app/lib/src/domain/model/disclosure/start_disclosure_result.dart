@@ -1,7 +1,7 @@
 import '../attribute/attribute.dart';
-import '../card/wallet_card.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
+import '../requested_attributes.dart';
 import 'disclosure_session_type.dart';
 import 'disclosure_type.dart';
 
@@ -12,28 +12,28 @@ sealed class StartDisclosureResult {
   final bool sharedDataWithOrganizationBefore;
   final DisclosureSessionType sessionType;
 
-  StartDisclosureResult(
-    this.relyingParty,
-    this.originUrl,
-    this.requestPurpose,
-    this.sessionType, {
+  StartDisclosureResult({
+    required this.relyingParty,
+    required this.originUrl,
+    required this.requestPurpose,
+    required this.sessionType,
     required this.sharedDataWithOrganizationBefore,
   });
 }
 
 class StartDisclosureReadyToDisclose extends StartDisclosureResult {
-  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
+  final RequestedAttributes requestedAttributes;
   final Policy policy;
   final DisclosureType type;
 
-  StartDisclosureReadyToDisclose(
-    super.relyingParty,
-    super.originUrl,
-    super.requestPurpose,
-    super.sessionType,
-    this.type,
-    this.requestedAttributes,
-    this.policy, {
+  StartDisclosureReadyToDisclose({
+    required super.relyingParty,
+    required super.originUrl,
+    required super.requestPurpose,
+    required super.sessionType,
+    required this.type,
+    required this.requestedAttributes,
+    required this.policy,
     required super.sharedDataWithOrganizationBefore,
   });
 }
@@ -41,12 +41,12 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
 class StartDisclosureMissingAttributes extends StartDisclosureResult {
   final List<MissingAttribute> missingAttributes;
 
-  StartDisclosureMissingAttributes(
-    super.relyingParty,
-    super.originUrl,
-    super.requestPurpose,
-    super.sessionType,
-    this.missingAttributes, {
+  StartDisclosureMissingAttributes({
+    required super.relyingParty,
+    required super.originUrl,
+    required super.requestPurpose,
+    required super.sessionType,
+    required this.missingAttributes,
     required super.sharedDataWithOrganizationBefore,
   });
 }

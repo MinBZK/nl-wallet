@@ -1,19 +1,14 @@
-import 'package:wallet_core/core.dart' hide StartDisclosureResult;
-
-import '../../../domain/model/issuance/continue_issuance_result.dart';
+import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 
 export '../../../domain/model/disclosure/start_disclosure_result.dart';
 
 abstract class IssuanceRepository {
-  Future<StartIssuanceResult> startIssuance(String disclosureUri);
+  Future<StartIssuanceResult> startIssuance(String disclosureUri, {required bool isQrCode});
 
-  Future<WalletInstructionResult> discloseForIssuance(String pin);
+  Future<List<WalletCard>> discloseForIssuance(String pin);
 
-  /// Will only have data if [discloseForIssuance] returned OK
-  Future<ContinueIssuanceResult> proceedIssuance();
+  Future<void> acceptIssuance(String pin, Iterable<WalletCard> cards);
 
-  Future<void> acceptIssuance(Iterable<String> cardDocTypes);
-
-  Future<void> cancelIssuance();
+  Future<String?> cancelIssuance();
 }

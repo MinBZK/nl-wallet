@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-04-10T16:26:21+02:00",
+    "@@last_modified": "2025-05-13T13:31:54+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -98,7 +98,7 @@
             }
         }
     },
-    "cardDataIncorrectScreenDescription": "Incorrect data can cause problems. Contact your municipality to have your data changed.\n\nAre you still waiting for an adjustment? It may take a while before it is available in the app.",
+    "cardDataIncorrectScreenDescription": "Incorrect data can cause problems. Contact your issuer to have your data changed.\n\nAre you still waiting for an adjustment? It may take a while before it is available in the app.",
     "cardDataIncorrectScreenSubhead": "Are your details incorrect?",
     "cardDataScreenDataPrivacyBanner": "This overview is only for you. Only share data using an invitation through the app.",
     "cardDataScreenIncorrectCta": "Are your details incorrect?",
@@ -163,6 +163,16 @@
     "cardHistorySigningSuccess": "Signed",
     "cardHistoryTimelineOperationExpired": "Card is expired",
     "cardHistoryTimelineOperationRenewed": "Card updated",
+    "cardPreviewScreenIncorrectCta": "Are your details incorrect?",
+    "cardPreviewScreenIssuedBy": "Card issued by {organization}.",
+    "@cardPreviewScreenIssuedBy": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "cardTitleSemanticsLabel": "Card",
     "cardValueFalse": "No",
     "cardValueTrue": "Yes",
@@ -233,10 +243,10 @@
     "dataIncorrectScreenDeclineTitle": "Decline card",
     "dataIncorrectScreenHeaderDescription": "Contact the providing organization to request a data update. You have two options now:",
     "dataIncorrectScreenHeaderTitle": "Are your details incorrect?",
-    "detailsIncorrectScreenDescription": "If your details is incorrect, it can cause problems. Contact your municipality to change your details.\n\nAre you still waiting for an adjustment? It can take a while before changes appear in the app.",
+    "detailsIncorrectScreenDescription": "If your details is incorrect, it can cause problems. Contact your issuer to change your details.\n\nAre you still waiting for an adjustment? It can take a while before changes appear in the app.",
     "detailsIncorrectScreenTitle": "Are your details incorrect?",
     "disclosureConfirmDataAttributesCheckConditionsCta": "Read the terms and conditions",
-    "disclosureConfirmDataAttributesDisclaimer": "Always consider if sharing is wise.",
+    "disclosureConfirmDataAttributesDisclaimer": "Only share if you trust the organization and the request.",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
     "disclosureConfirmDataAttributesPageDenyCta": "Stop",
     "disclosureConfirmDataAttributesPageNotSharedButStoredSubtitle": "{count, plural, one {{organization} will store your data for 1 month and will not share it with other organizations.} other {{organization} will store your data for {count} months and will not share it with other organizations.}}",
@@ -407,6 +417,7 @@
     "errorScreenSessionExpiredDescriptionCloseVariant": "This action has stopped because too much time has passed. This is intended to keep your data secure. Close the app and try again later.",
     "errorScreenSessionExpiredHeadline": "Sorry, you're out of time",
     "errorScreenSessionExpiredReturnUrlCta": "Go to website",
+    "flashlightButtonTapHint": "toggle flashlight",
     "flashlightDisabledWCAGAnnouncement": "Flashlight turned off",
     "flashlightEnabledWCAGAnnouncement": "Flashlight turned on",
     "forgotPinScreenCta": "Delete Wallet",
@@ -520,6 +531,14 @@
     },
     "helpSheetTitle": "Need help?",
     "historyDetailScreenAboutOrganizationCta": "About {organization}",
+    "@historyDetailScreenAboutOrganizationCta": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "historyDetailScreenDisclosureCancelledDescription": "No data has been shared with {organization}, because you stopped sharing.",
     "@historyDetailScreenDisclosureCancelledDescription": {
         "placeholders": {
@@ -654,53 +673,88 @@
     "issuanceCheckDataOfferingPagePositiveCta": "Yes, add",
     "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
-    "issuanceConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
-    "issuanceConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
-    "@issuanceConfirmPinPageErrorDescription": {
-        "placeholders": {
-            "count": {
-                "example": "3",
-                "type": "int"
-            }
-        }
-    },
-    "issuanceConfirmPinPageErrorTitle": "Invalid PIN",
-    "issuanceConfirmPinPageTitle": "Enter your PIN",
+    "issuanceConfirmPinPageTitle": "Agree with your PIN",
     "issuanceGenericErrorPageCloseCta": "Close",
     "issuanceGenericErrorPageDescription": "Something went wrong. Try again later.",
     "issuanceGenericErrorPageTitle": "Something went wrong",
-    "issuanceIdentityValidationFailedPageCloseCta": "Close",
-    "issuanceIdentityValidationFailedPageDescription": "It seems like the data you're trying to retrieve belongs to someone else.",
-    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Is something not right?",
-    "issuanceIdentityValidationFailedPageTitle": "Your identity check did not match.",
-    "issuanceProofIdentityPageIncorrectCta": "Is something not right?",
-    "issuanceProofIdentityPageNegativeCta": "No",
-    "issuanceProofIdentityPagePositiveCta": "Share",
-    "issuanceProofIdentityPageRefreshDataSubtitle": "Share your identity with {organization} to refresh your data.",
-    "@issuanceProofIdentityPageRefreshDataSubtitle": {
+    "issuanceLoadingCardsDescription": "Cards are being retrieved",
+    "issuanceLoadingCardsTitle": "Please wait",
+    "issuanceLoadingRequestDescription": "Your request is being retrieved",
+    "issuanceLoadingRequestTitle": "Please wait",
+    "issuanceNoCardsPageDescription": "No cards found at {organization}",
+    "@issuanceNoCardsPageDescription": {
         "placeholders": {
             "organization": {
-                "example": "RvIG",
+                "example": "Organisatie XYZ",
                 "type": "String"
             }
         }
     },
-    "issuanceProofIdentityPageSubtitle": "Share your identity with {organization} to retrieve your data.",
-    "@issuanceProofIdentityPageSubtitle": {
-        "placeholders": {
-            "organization": {
-                "example": "RvIG",
-                "type": "String"
-            }
-        }
-    },
-    "issuanceProofIdentityPageTitle": "Proof who you are",
+    "issuanceNoCardsPageTitle": "No cards found",
     "issuanceRelyingPartyErrorCloseCta": "Close",
     "issuanceRelyingPartyErrorDescription": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the issuer's website where you started and try again. If it still doesn’t work, contact the issuer.",
     "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
     "issuanceRelyingPartyErrorTitle": "Sorry, something went wrong",
-    "issuanceScreenRefreshTitle": "Refresh data",
-    "issuanceScreenTitle": "Retrieve data",
+    "issuanceRequestedAttributeDescription": "To receive your cards, you will share your {attribute} so {organization} can be sure it's really you.",
+    "@issuanceRequestedAttributeDescription": {
+        "placeholders": {
+            "attribute": {
+                "example": "BSN",
+                "type": "String"
+            },
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceRequestedAttributesDescription": "To receive your cards, you will share your {nrOfAttributes} details so {organization} can be sure it's really you.",
+    "@issuanceRequestedAttributesDescription": {
+        "placeholders": {
+            "nrOfAttributes": {
+                "example": "4",
+                "type": "int"
+            },
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceReviewCardsPageAcceptCta": "{cards, plural, one {Add 1 card} other {Add {cards} cards}}",
+    "@issuanceReviewCardsPageAcceptCta": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceReviewCardsPageDeclineCta": "Stop",
+    "issuanceReviewCardsPageShowDetailsCta": "Check details",
+    "issuanceReviewCardsPageSubtitle": "{cards, plural, one {This card is provided by {organization}.} other {These cards are provided by {organization}.}}",
+    "@issuanceReviewCardsPageSubtitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            },
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceReviewCardsPageTitle": "{cards, plural, one {Do you want to add this card?} other {Do you want to add these cards?}}",
+    "@issuanceReviewCardsPageTitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceReviewCardsPageToggleAddCta": "Check details",
     "issuanceSelectCardsPageAddCta": "Add",
     "issuanceSelectCardsPageDataIncorrectCta": "Is something not right?",
     "issuanceSelectCardsPageDescription": "Select the ones you would like to add",
@@ -718,12 +772,14 @@
     },
     "issuanceStopSheetNegativeCta": "No",
     "issuanceStopSheetPositiveCta": "Yes, Stop",
+    "issuanceStopSheetReportIssueCta": "Would you like to report a problem?",
     "issuanceStopSheetTitle": "Are your sure you want to stop?",
     "issuanceStoppedPageCloseCta": "Close",
     "issuanceStoppedPageDescription": "Because you stopped, no data was retrieved.",
     "issuanceStoppedPageGiveFeedbackCta": "Give feedback",
     "issuanceStoppedPageTitle": "Sharing stopped",
-    "issuanceSuccessPageCardsAddedSubtitle": "{cards, plural, one {Your card has been added.} other {Your cards have been added.}}",
+    "issuanceStoppedPageToWebsiteCta": "Go to website",
+    "issuanceSuccessPageCardsAddedSubtitle": "{cards, plural, one {Your card is now in the app overview and ready to use. } other {Your cards are now in the app overview and ready to use. }}",
     "@issuanceSuccessPageCardsAddedSubtitle": {
         "placeholders": {
             "cards": {
@@ -732,8 +788,9 @@
             }
         }
     },
-    "issuanceSuccessPageCardsUpdatedSubtitle": "{cards, plural, one {Your card has been updated.} other {Your cards have been updated.}}",
-    "@issuanceSuccessPageCardsUpdatedSubtitle": {
+    "issuanceSuccessPageCloseCta": "To my overview",
+    "issuanceSuccessPageTitle": "{cards, plural, one {Card added} other {Cards added}}",
+    "@issuanceSuccessPageTitle": {
         "placeholders": {
             "cards": {
                 "example": "2",
@@ -741,8 +798,6 @@
             }
         }
     },
-    "issuanceSuccessPageCloseCta": "To my overview",
-    "issuanceSuccessPageTitle": "Success!",
     "localAuthMessageAndroidBiometricHint": "Use fingerprint or face scan",
     "localAuthMessageAndroidBiometricHintFaceScanOnly": "Use face scan",
     "localAuthMessageAndroidBiometricHintFingerPrintOnly": "Use fingerprint",
@@ -781,6 +836,18 @@
     "menuScreenTitle": "Menu",
     "menuScreenTourCta": "App tour videos",
     "menuScreenWCAGPageAnnouncement": "Menu in list {count} items",
+    "missingAttributesPageCloseCta": "Stop request",
+    "missingAttributesPageDescription": "{organization} is requesting data which is not yet in your Wallet.",
+    "@missingAttributesPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "missingAttributesPageReportIssueCta": "Report an issue?",
+    "missingAttributesPageTitle": "You're missing data",
     "mockDigidScreenAcceptCta": "login",
     "mockDigidScreenDeclineCta": "cancel",
     "mockDigidScreenEnterPin": "Enter a random PIN to continue",
@@ -789,13 +856,22 @@
     "mockDigidScreenHeaderTitle": "Login",
     "mockDigidScreenSignInOrganization": "National Office for Identity Data (RvIG)",
     "mockDigidScreenTitle": "Securely login with DigiD",
-    "organizationApprovePageApproveCta": "Yes, next",
+    "organizationApprovePageApproveCta": "Share",
     "organizationApprovePageCancelLoginCta": "Stop",
     "organizationApprovePageDenyCta": "Stop",
     "organizationApprovePageFraudInfoPart1": "Beware of fraud. Check the web address where you scanned the QR code.",
     "organizationApprovePageFraudInfoPart2": "Only proceed if the address matches {url}.",
     "organizationApprovePageGenericTitle": "Do you recognize {organization}?",
     "@organizationApprovePageGenericTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "organizationApprovePageIssuanceTitle": "Do you want to share details with {organization} to get your cards?",
+    "@organizationApprovePageIssuanceTitle": {
         "placeholders": {
             "organization": {
                 "example": "DUO",
@@ -814,7 +890,8 @@
         }
     },
     "organizationApprovePageMoreInfoCta": "See details",
-    "organizationApprovePageMoreInfoLoginCta": "See what data you share",
+    "organizationApprovePageMoreInfoIssuanceCta": "See what data you are sharing",
+    "organizationApprovePageMoreInfoLoginCta": "Check all details",
     "organizationApprovePageShareWithApproveCta": "Yes, continue",
     "organizationApprovePageShareWithDenyCta": "Stop",
     "organizationButtonLabel": "About this organization",
@@ -966,6 +1043,24 @@
     "reportOptionUnknownOrganization": "I do not know this organization",
     "reportOptionUnreasonableTerms": "I disagree with the terms",
     "reportOptionUntrusted": "I do not trust this",
+    "requestDetailScreenAboutOrganizationCta": "About {organization}",
+    "@requestDetailScreenAboutOrganizationCta": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
+    "requestDetailScreenAltTitle": "About sharing with {organization}",
+    "@requestDetailScreenAltTitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "requestDetailScreenTitle": "Request details",
     "requestDetailsScreenAttributesSubtitle": "{count, plural, one {Only the following detail was requested.} other {Only the following {count} details were requested.}}",
     "@requestDetailsScreenAttributesSubtitle": {
@@ -1015,9 +1110,9 @@
         }
     },
     "setupSecurityCompletedPageCreateWalletCta": "Next",
-    "setupSecurityCompletedPageDescription": "Remember your PIN. You use it to open the app and share data.",
+    "setupSecurityCompletedPageDescription": "Remember your PIN. You need it to open the app and share data.",
     "setupSecurityCompletedPageTitle": "Your NL Wallet is secured",
-    "setupSecurityCompletedPageWithBiometricsDescription": "Remember your PIN. You use it to share data. {supportedBiometrics} only opens the app.",
+    "setupSecurityCompletedPageWithBiometricsDescription": "Remember your PIN. You need it to share data. {supportedBiometrics} only opens the app.",
     "@setupSecurityCompletedPageWithBiometricsDescription": {
         "placeholders": {
             "supportedBiometrics": {
@@ -1032,7 +1127,6 @@
     "setupSecurityScreenWCAGPinChosenAnnouncement": "PIN chosen. Repeat to confirm.",
     "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN",
     "sharedAttributesCardCta": "View",
-    "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "sharedAttributesCardCtaSemanticsLabel": "View {card}",
     "@sharedAttributesCardCtaSemanticsLabel": {
         "placeholders": {
@@ -1042,6 +1136,7 @@
             }
         }
     },
+    "sharedAttributesCardTitle": "{count} from {cardTitle}",
     "showDetailsCta": "View",
     "signConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
     "signConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
@@ -1137,11 +1232,15 @@
         }
     },
     "updateNotificationDialogTitle": "Update urgently needed",
+    "videoPlayerControlCaptionOffToggleButton": "Turn off subtitles",
+    "videoPlayerControlCaptionOnToggleButton": "Turn on subtitles",
+    "videoPlayerControlMuteOffToggleButton": "Turn on audio",
+    "videoPlayerControlMuteOnToggleButton": "Turn off audio",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Add",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",
-    "walletPersonalizeCheckDataOfferingPageSubtitle": "If your details are correct, you can add them as cards.",
-    "walletPersonalizeCheckDataOfferingPageTitle": "Do you want to add these details?",
+    "walletPersonalizeCheckDataOfferingPageSubtitle": "If your details are correct, you will receive a Personal data card and an Address card.",
+    "walletPersonalizeCheckDataOfferingPageTitle": "Are your details correct?",
     "walletPersonalizeConfirmPinPageTitle": "Agree with your PIN",
     "walletPersonalizeDataIncorrectScreenDescription": "If your details is incorrect, it can cause problems. Therefore, do not add these details.",
     "walletPersonalizeDataIncorrectScreenHowToResolveBulletPoints": "Contact your municipality to have your details changed.\nWait for a message from your municipality confirming the update.\nLog in again with DigiD to retrieve the correct details.",

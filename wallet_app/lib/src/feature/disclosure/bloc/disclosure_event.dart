@@ -14,7 +14,7 @@ class DisclosureSessionStarted extends DisclosureEvent {
   const DisclosureSessionStarted(this.uri, {this.isQrCode = false});
 
   @override
-  List<Object?> get props => [uri];
+  List<Object?> get props => [uri, isQrCode];
 }
 
 class DisclosureOrganizationApproved extends DisclosureEvent {
@@ -51,8 +51,7 @@ class DisclosureReportPressed extends DisclosureEvent {
   List<Object?> get props => [option];
 }
 
-class DisclosureConfirmPinFailed extends DisclosureEvent implements ErrorState {
-  @override
+class DisclosureConfirmPinFailed extends DisclosureEvent {
   final ApplicationError error;
 
   const DisclosureConfirmPinFailed({required this.error});

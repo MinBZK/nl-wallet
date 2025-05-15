@@ -13,13 +13,13 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/feature/common/page/missing_attributes_page.dart';
 import 'package:wallet/src/feature/common/widget/button/icon/close_icon_button.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
 import 'package:wallet/src/feature/disclosure/bloc/disclosure_bloc.dart';
 import 'package:wallet/src/feature/disclosure/disclosure_screen.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_data_attributes_page.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_pin_page.dart';
-import 'package:wallet/src/feature/disclosure/page/disclosure_missing_attributes_page.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_stopped_page.dart';
 import 'package:wallet/src/feature/disclosure/widget/disclosure_stop_sheet.dart';
 import 'package:wallet/src/feature/login/login_detail_screen.dart';
@@ -193,7 +193,7 @@ void main() {
             policy: WalletMockData.policy,
           ),
         ),
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         providers: [
           RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
         ],
@@ -211,6 +211,20 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
+    testGoldens('DisclosureSuccess Light - with returnUrl', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureSuccess(
+            relyingParty: WalletMockData.organization,
+            event: WalletMockData.disclosureEvent,
+            returnUrl: 'https://example.org',
+          ),
+        ),
+      );
+      await screenMatchesGolden('success.return_url.light');
+    });
+
     testGoldens('DisclosureStopped Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
@@ -219,6 +233,20 @@ void main() {
         ),
       );
       await screenMatchesGolden('stopped.light');
+    });
+
+    testGoldens('DisclosureStopped Dark - with return url', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureStopped(
+            organization: WalletMockData.organization,
+            returnUrl: 'https://example.org',
+          ),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('stopped.return_url.dark');
     });
 
     testGoldens('DisclosureLeftFeedback Light', (tester) async {
@@ -605,7 +633,7 @@ void main() {
           ),
         );
 
-        expect(find.byType(DisclosureMissingAttributesPage), findsOneWidget);
+        expect(find.byType(MissingAttributesPage), findsOneWidget);
         expect(find.text(WalletMockData.textDataAttribute.label.testValue), findsNWidgets(2));
       },
     );

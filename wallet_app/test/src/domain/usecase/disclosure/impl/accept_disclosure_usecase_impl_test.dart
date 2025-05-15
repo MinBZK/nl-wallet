@@ -24,19 +24,18 @@ void main() {
   });
 
   test('when acceptDisclosure returns instruction error, result is error', () async {
-    when(mockRepo.acceptDisclosure(any)).thenAnswer(
-      (_) async => AcceptDisclosureResult_InstructionError(
-        error: WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
-      ),
+    when(mockRepo.acceptDisclosure(any)).thenThrow(
+      WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
     );
     final result = await usecase.invoke('123123');
     expect(result.hasError, isTrue);
-    expect(result.error, isA<IncorrectPinError>());
+    expect(result.error, isA<CheckPinError>());
   });
 
   test('when acceptDisclosure succeeds, result is ok', () async {
-    when(mockRepo.acceptDisclosure(any)).thenAnswer((_) async => AcceptDisclosureResult_Ok());
+    when(mockRepo.acceptDisclosure(any)).thenAnswer((_) async => 'https://example.org');
     final result = await usecase.invoke('123123');
     expect(result.hasError, isFalse);
+    expect(result.value, 'https://example.org');
   });
 }

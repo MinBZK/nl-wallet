@@ -2,62 +2,78 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
-import 'package:wallet/src/domain/model/multiple_cards_flow.dart';
+import 'package:mockito/mockito.dart';
+import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
+import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
-import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
+import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
+import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
-import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
+import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/feature/common/screen/request_details_screen.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
-import 'package:wallet/src/feature/issuance/page/issuance_check_card_page.dart';
-import 'package:wallet/src/feature/issuance/page/issuance_check_data_offering_page.dart';
-import 'package:wallet/src/feature/issuance/page/issuance_confirm_pin_page.dart';
-import 'package:wallet/src/feature/issuance/page/issuance_identity_validation_failed_page.dart';
-import 'package:wallet/src/feature/issuance/page/issuance_proof_identity_page.dart';
-import 'package:wallet/src/feature/issuance/page/issuance_select_cards_page.dart';
-import 'package:wallet/src/feature/issuance/page/issuance_stopped_page.dart';
+import 'package:wallet/src/feature/issuance/page/issuance_review_cards_page.dart';
 import 'package:wallet/src/feature/organization/approve/organization_approve_page.dart';
-import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
+import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
+import 'package:wallet/src/util/mapper/context_mapper.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
 import '../../mocks/wallet_mocks.mocks.dart';
 import '../../test_util/golden_utils.dart';
 import '../../test_util/test_utils.dart';
-import '../pin/pin_page_test.dart';
 
 class MockIssuanceBloc extends MockBloc<IssuanceEvent, IssuanceState> implements IssuanceBloc {}
 
 void main() {
-  final MultipleCardsFlow mockMultipleCardsFlow = MultipleCardsFlow(
-    cardToOrganizations: {
-      WalletMockData.card: WalletMockData.organization,
-      WalletMockData.altCard: WalletMockData.organization,
-    },
-    selectedCardIds: {WalletMockData.card.id},
-    activeIndex: 0,
-  );
-
   group('goldens', () {
     testGoldens('IssuanceInitial Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceInitial(isRefreshFlow: false),
+          const IssuanceInitial(),
         ),
       );
       await screenMatchesGolden('initial.light');
+    });
+
+    testGoldens('IssuanceInitial Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceInitial(),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('initial.dark.landscape');
     });
 
     testGoldens('IssuanceLoadInProgress Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceLoadInProgress(isRefreshFlow: false),
+          const IssuanceLoadInProgress(step: 3),
         ),
       );
-      await screenMatchesGolden('load_in_progress.light');
+      await screenMatchesGolden('loading.light');
+    });
+
+    testGoldens('IssuanceLoadInProgress Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          const IssuanceLoadInProgress(step: 4),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('loading.dark.landscape');
     });
 
     testGoldens('IssuanceCheckOrganization Light', (tester) async {
@@ -66,151 +82,371 @@ void main() {
           MockIssuanceBloc(),
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
-            isRefreshFlow: false,
+            policy: WalletMockData.policy,
+            requestedAttributes: {
+              WalletMockData.card: [WalletMockData.textDataAttribute],
+            },
           ),
         ),
       );
       await screenMatchesGolden('check_organization.light');
     });
 
-    testGoldens('IssuanceProofIdentity Light', (tester) async {
+    testGoldens('IssuanceCheckOrganization Dark Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceProofIdentity(
+          IssuanceCheckOrganization(
             organization: WalletMockData.organization,
-            requestedAttributes: [WalletMockData.textDataAttribute],
             policy: WalletMockData.policy,
-            isRefreshFlow: false,
+            requestedAttributes: {
+              WalletMockData.card: [WalletMockData.textDataAttribute],
+            },
+          ),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('check_organization.dark.landscape');
+    });
+
+    testGoldens('IssuanceMissingAttributes Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceMissingAttributes(
+            organization: WalletMockData.organization,
+            missingAttributes: [MissingAttribute(label: 'BSN'.untranslated)],
           ),
         ),
       );
-      await screenMatchesGolden('proof_identity.light');
+      await screenMatchesGolden('missing_attributes.light');
     });
 
-    testGoldens('PinEntryInProgress Light', (tester) async {
+    testGoldens('IssuanceMissingAttributes Dark Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        RepositoryProvider<AcceptIssuanceUseCase>.value(
-          value: MockAcceptIssuanceUseCase(),
-          child: const IssuanceScreen()
-              .withState<IssuanceBloc, IssuanceState>(
-                MockIssuanceBloc(),
-                const IssuanceProvidePin(isRefreshFlow: false),
-              )
-              .withState<PinBloc, PinState>(
-                MockPinBloc(),
-                const PinEntryInProgress(0),
-              ),
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceMissingAttributes(
+            organization: WalletMockData.organization,
+            missingAttributes: [MissingAttribute(label: 'BSN'.untranslated)],
+          ),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('missing_attributes.dark.landscape');
+    });
+    testGoldens('IssuanceProvidePinForDisclosure Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceProvidePinForDisclosure(),
         ),
         providers: [
-          RepositoryProvider<DiscloseForIssuanceUseCase>(
-            create: (c) => MockDiscloseForIssuanceUseCase(),
-          ),
+          RepositoryProvider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
         ],
       );
-      await screenMatchesGolden('provide_pin.light');
+      await screenMatchesGolden('provide_pin.disclosure.light');
     });
 
-    testGoldens('IssuanceCheckDataOffering Light', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen()
-            .withState<IssuanceBloc, IssuanceState>(
-              MockIssuanceBloc(),
-              IssuanceCheckDataOffering(isRefreshFlow: false, card: WalletMockData.card),
-            )
-            .withState<PinBloc, PinState>(
-              MockPinBloc(),
-              const PinEntryInProgress(0),
-            ),
-      );
-      await screenMatchesGolden('check_data_offering.light');
-    });
-
-    testGoldens('IssuanceSelectCards Light', (tester) async {
+    testGoldens('IssuanceProvidePinForDisclosure Dark Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceSelectCards(
-            multipleCardsFlow: mockMultipleCardsFlow,
-            isRefreshFlow: false,
+          IssuanceProvidePinForDisclosure(),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+        providers: [
+          RepositoryProvider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
+        ],
+      );
+      await screenMatchesGolden('provide_pin.disclosure.dark.landscape');
+    });
+
+    testGoldens('IssuanceReviewCards Light - Single card', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewCards.init(
+            cards: [WalletMockData.card],
           ),
         ),
       );
-      await screenMatchesGolden('select_cards.light');
+      await screenMatchesGolden('review_card.light');
     });
 
-    testGoldens('IssuanceCheckCards Light', (tester) async {
+    testGoldens('IssuanceReviewCards Dark Landscape - Multi card', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceCheckCards(isRefreshFlow: false, multipleCardsFlow: mockMultipleCardsFlow),
+          IssuanceReviewCards.init(
+            cards: [WalletMockData.card, WalletMockData.altCard],
+          ),
         ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
       );
-      await screenMatchesGolden('check_cards.light');
+      await screenMatchesGolden('review_multi_cards.dark.landscape');
     });
 
-    testGoldens('IssuanceCompleted Light', (tester) async {
+    testGoldens('IssuanceProvidePinForIssuance Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceCompleted(isRefreshFlow: false, addedCards: [WalletMockData.card]),
+          IssuanceProvidePinForIssuance(
+            cards: [WalletMockData.card],
+          ),
         ),
+        providers: [
+          RepositoryProvider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
+          RepositoryProvider<IssuanceRepository>(create: (c) => MockIssuanceRepository()),
+        ],
+      );
+      await screenMatchesGolden('provide_pin.issuance.light');
+    });
+
+    testGoldens('IssuanceProvidePinForIssuance Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceProvidePinForIssuance(
+            cards: [],
+          ),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+        providers: [
+          RepositoryProvider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
+          RepositoryProvider<IssuanceRepository>(create: (c) => MockIssuanceRepository()),
+        ],
+      );
+      await screenMatchesGolden('provide_pin.issuance.dark.landscape');
+    });
+
+    testGoldens('IssuanceCompleted Light - Single card', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceCompleted(addedCards: [WalletMockData.card]),
+        ),
+        providers: [
+          RepositoryProvider<IssuanceRepository>(create: (c) => MockIssuanceRepository()),
+        ],
       );
       await screenMatchesGolden('completed.light');
+    });
+
+    testGoldens('IssuanceCompleted Dark Landscape - Multi card, No returnUrl', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceCompleted(
+            addedCards: [WalletMockData.card, WalletMockData.altCard],
+          ),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('completed.multi_card.dark.landscape');
     });
 
     testGoldens('IssuanceStopped Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceStopped(isRefreshFlow: false),
+          IssuanceStopped(),
         ),
       );
       await screenMatchesGolden('stopped.light');
+    });
+
+    testGoldens('IssuanceStopped Light - with return url', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceStopped(returnUrl: 'https://example.org'),
+        ),
+      );
+      await screenMatchesGolden('stopped.return_url.light');
+    });
+
+    testGoldens('IssuanceStopped Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceStopped(),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('stopped.dark.landscape');
     });
 
     testGoldens('IssuanceGenericError Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceGenericError(
-            isRefreshFlow: false,
-            error: GenericError('generic', sourceError: 'test'),
+          IssuanceGenericError(
+            error: GenericError('test', sourceError: CoreGenericError('test')),
           ),
         ),
       );
-      await screenMatchesGolden('generic_error.light');
+      await screenMatchesGolden('error.light');
     });
 
-    testGoldens('IssuanceIdentityValidationFailure Light', (tester) async {
+    testGoldens('IssuanceGenericError Dark Landscape', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceIdentityValidationFailure(isRefreshFlow: false),
-        ),
-      );
-      await screenMatchesGolden('identity_validation_error.light');
-    });
-
-    testGoldens('IssuanceLoadFailure Light', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          const IssuanceLoadFailure(isRefreshFlow: false),
-        ),
-      );
-      await screenMatchesGolden('load_failure.light');
-    });
-
-    testGoldens('IssuanceCompleted Dark', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          IssuanceCompleted(isRefreshFlow: false, addedCards: [WalletMockData.card, WalletMockData.altCard]),
+          IssuanceGenericError(
+            error: GenericError('test', sourceError: CoreGenericError('test')),
+          ),
         ),
         brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
       );
-      await screenMatchesGolden('completed.dark');
+      await screenMatchesGolden('error.dark.landscape');
+    });
+
+    testGoldens('IssuanceNoCardsRetrieved Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceNoCardsRetrieved(
+            organization: WalletMockData.organization,
+          ),
+        ),
+      );
+      await screenMatchesGolden('no_cards_retrieved.light');
+    });
+
+    testGoldens('IssuanceNoCardsRetrieved Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceNoCardsRetrieved(
+            organization: WalletMockData.organization,
+          ),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('no_cards_retrieved.dark.landscape');
+    });
+
+    testGoldens('IssuanceExternalScannerError Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceExternalScannerError(error: GenericError('test', sourceError: 'test')),
+        ),
+      );
+      await screenMatchesGolden('external_scanner_error.light');
+    });
+
+    testGoldens('IssuanceExternalScannerError Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceExternalScannerError(error: GenericError('test', sourceError: 'test')),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('external_scanner_error.dark.landscape');
+    });
+
+    testGoldens('IssuanceNetworkError Light - no internet', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: false),
+        ),
+      );
+      await screenMatchesGolden('network_error.light');
+    });
+
+    testGoldens('IssuanceNetworkError Dark Landscape - internet available', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: true),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('network_error.dark.landscape');
+    });
+
+    testGoldens('IssuanceSessionExpired Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceSessionExpired(
+            error: GenericError('test', sourceError: 'test'),
+            isCrossDevice: false,
+            canRetry: true,
+            returnUrl: 'https://example.org',
+          ),
+        ),
+      );
+      await screenMatchesGolden('session_expired.light');
+    });
+
+    testGoldens('IssuanceSessionExpired Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceSessionExpired(
+            error: GenericError('test', sourceError: 'test'),
+            isCrossDevice: true,
+            canRetry: false,
+            returnUrl: 'https://example.org',
+          ),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('session_expired.dark.landscape');
+    });
+
+    testGoldens('IssuanceCancelledSessionError Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
+        ),
+      );
+      await screenMatchesGolden('cancelled_session_error.light');
+    });
+
+    testGoldens('IssuanceCancelledSessionError Dark Landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
+        ),
+        brightness: Brightness.dark,
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('cancelled_session_error.dark.landscape');
+    });
+
+    testGoldens('StopSheet - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewCards.init(cards: [WalletMockData.card]),
+        ),
+      );
+
+      // Press the stop button
+      await tester.tap(find.byKey(kReviewCardsDeclineButtonKey));
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('stop_sheet.light');
     });
   });
 
@@ -219,110 +455,69 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceCompleted(isRefreshFlow: false, addedCards: [WalletMockData.card, WalletMockData.altCard]),
+          IssuanceCompleted(
+            addedCards: [WalletMockData.card, WalletMockData.altCard],
+          ),
         ),
       );
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.walletPersonalizeSuccessPageContinueCta), findsOneWidget);
     });
 
-    testWidgets('IssuanceLoadInProgress shows loader', (tester) async {
+    testWidgets('Pressing show details on check organization page opens request details screen', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceLoadInProgress(isRefreshFlow: false),
-        ),
-      );
-      expect(find.byType(CenteredLoadingIndicator), findsOneWidget);
-    });
-
-    testWidgets('IssuanceCheckOrganization shows OrganizationApprovePage', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          IssuanceCheckOrganization(isRefreshFlow: false, organization: WalletMockData.organization),
-        ),
-      );
-      expect(find.byType(OrganizationApprovePage), findsOneWidget);
-    });
-
-    testWidgets('IssuanceProofIdentity shows IssuanceProofIdentityPage', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          IssuanceProofIdentity(
-            isRefreshFlow: false,
+          IssuanceCheckOrganization(
             organization: WalletMockData.organization,
             policy: WalletMockData.policy,
-            requestedAttributes: const [],
+            requestedAttributes: {
+              WalletMockData.card: [
+                WalletMockData.textDataAttribute,
+                WalletMockData.textDataAttribute,
+              ],
+            },
           ),
         ),
-      );
-      expect(find.byType(IssuanceProofIdentityPage), findsOneWidget);
-    });
-
-    testWidgets('IssuanceProvidePin shows IssuanceConfirmPinPage', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          const IssuanceProvidePin(isRefreshFlow: false),
-        ),
         providers: [
-          Provider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
-          Provider<PinBloc>(create: (c) => MockPinBloc()),
+          RepositoryProvider<WalletRepository>(
+            create: (_) {
+              final mock = MockWalletRepository();
+              when(mock.isLockedStream).thenAnswer((_) => Stream.value(false));
+              return mock;
+            },
+          ),
+          RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
+          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+          RepositoryProvider<BiometricUnlockManager>(create: (_) => MockBiometricUnlockManager()),
+          RepositoryProvider<UnlockWalletWithPinUseCase>(create: (_) => MockUnlockWalletWithPinUseCase()),
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (_) => MockContextMapper()),
         ],
       );
-      expect(find.byType(IssuanceConfirmPinPage), findsOneWidget);
+
+      // Press the show details button
+      await tester.tap(find.byKey(kShowDetailsButtonKey));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(RequestDetailsScreen), findsOneWidget);
     });
 
-    testWidgets('IssuanceCheckDataOffering shows IssuanceCheckDataOfferingPage', (tester) async {
+    testWidgets('When user rejects cards on review page, the stop sheet is shown', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceCheckDataOffering(isRefreshFlow: false, card: WalletMockData.card),
+          IssuanceReviewCards.init(cards: [WalletMockData.card]),
         ),
       );
-      expect(find.byType(IssuanceCheckDataOfferingPage), findsOneWidget);
-    });
 
-    testWidgets('IssuanceStopped shows IssuanceCheckDataOfferingPage', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          const IssuanceStopped(isRefreshFlow: false),
-        ),
-      );
-      expect(find.byType(IssuanceStoppedPage), findsOneWidget);
-    });
+      // Press the stop button
+      await tester.tap(find.byKey(kReviewCardsDeclineButtonKey));
+      await tester.pumpAndSettle();
 
-    testWidgets('IssuanceIdentityValidationFailure shows IssuanceIdentityValidationFailedPage', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          const IssuanceIdentityValidationFailure(isRefreshFlow: false),
-        ),
-      );
-      expect(find.byType(IssuanceIdentityValidationFailedPage), findsOneWidget);
-    });
-
-    testWidgets('IssuanceSelectCards shows IssuanceSelectCardsPage', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          IssuanceSelectCards(isRefreshFlow: false, multipleCardsFlow: mockMultipleCardsFlow),
-        ),
-      );
-      expect(find.byType(IssuanceSelectCardsPage), findsOneWidget);
-    });
-
-    testWidgets('IssuanceCheckCards shows IssuanceCheckCardPage', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(
-        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
-          MockIssuanceBloc(),
-          IssuanceCheckCards(isRefreshFlow: false, multipleCardsFlow: mockMultipleCardsFlow),
-        ),
-      );
-      expect(find.byType(IssuanceCheckCardPage), findsOneWidget);
+      // Verify the expected stop sheet description text is shown
+      final l10n = await TestUtils.englishLocalizations;
+      final organizationName = l10n.organizationFallbackName;
+      expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
     });
   });
 }

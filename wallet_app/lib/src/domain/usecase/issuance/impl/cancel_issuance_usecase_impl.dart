@@ -8,7 +8,7 @@ class CancelIssuanceUseCaseImpl extends CancelIssuanceUseCase {
   CancelIssuanceUseCaseImpl(this._issuanceRepository);
 
   @override
-  Future<Result<void>> invoke() async {
+  Future<Result<String?>> invoke() async {
     return tryCatch(
       () async => _issuanceRepository.cancelIssuance(),
       'Failed to cancel issuance',

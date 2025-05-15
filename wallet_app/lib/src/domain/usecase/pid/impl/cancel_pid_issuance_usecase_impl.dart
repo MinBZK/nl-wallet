@@ -11,8 +11,8 @@ class CancelPidIssuanceUseCaseImpl extends CancelPidIssuanceUseCase {
   Future<Result<bool>> invoke() async {
     return tryCatch(
       () async {
-        final hasActiveSession = await _pidRepository.hasActivePidIssuanceSession();
-        if (hasActiveSession) await _pidRepository.cancelPidIssuance();
+        final hasActiveSession = await _pidRepository.hasActiveIssuanceSession();
+        if (hasActiveSession) await _pidRepository.cancelIssuance();
         return hasActiveSession;
       },
       'Failed to cancel pid issuance session',

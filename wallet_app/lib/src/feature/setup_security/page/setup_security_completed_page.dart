@@ -4,8 +4,8 @@ import '../../../domain/usecase/biometrics/biometrics.dart';
 import '../../../util/extension/biometrics_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_assets.dart';
-import '../../common/page/page_illustration.dart';
 import '../../common/page/terminal_page.dart';
+import '../../common/widget/page_illustration.dart';
 
 class SetupSecurityCompletedPage extends StatelessWidget {
   final VoidCallback onSetupWalletPressed;

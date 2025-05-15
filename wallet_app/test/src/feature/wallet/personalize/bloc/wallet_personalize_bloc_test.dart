@@ -26,7 +26,6 @@ void main() {
     mockContinuePidIssuanceUseCase = MockContinuePidIssuanceUseCase();
     mockIsWalletInitializedWithPidUseCase = MockIsWalletInitializedWithPidUseCase();
     provideDummy<Result<List<WalletCard>>>(const Result.success([]));
-    provideDummy<Result<String>>(const Result.success(''));
     provideDummy<Result<bool>>(const Result.success(true));
     provideDummy<Result<List<Attribute>>>(const Result.success([]));
   });

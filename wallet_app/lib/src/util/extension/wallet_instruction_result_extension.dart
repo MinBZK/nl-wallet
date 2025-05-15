@@ -9,7 +9,7 @@ extension WalletInstructionResultExtension on WalletInstructionResult {
     return switch (this) {
       WalletInstructionResult_Ok() => Result.success(null),
       WalletInstructionResult_InstructionError(:final error) => Result.error(
-          IncorrectPinError(
+          CheckPinError(
             error.asCheckPinResult(),
             sourceError: this,
           ),

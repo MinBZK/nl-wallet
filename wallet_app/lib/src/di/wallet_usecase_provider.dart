@@ -40,12 +40,8 @@ import '../domain/usecase/event/impl/get_wallet_events_for_card_usecase_impl.dar
 import '../domain/usecase/event/impl/get_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/impl/observe_recent_wallet_events_usecase_impl.dart';
 import '../domain/usecase/event/observe_recent_wallet_events_usecase.dart';
-import '../domain/usecase/issuance/accept_issuance_usecase.dart';
 import '../domain/usecase/issuance/cancel_issuance_usecase.dart';
-import '../domain/usecase/issuance/continue_issuance_usecase.dart';
-import '../domain/usecase/issuance/impl/accept_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/cancel_issuance_usecase_impl.dart';
-import '../domain/usecase/issuance/impl/continue_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/start_issuance_usecase_impl.dart';
 import '../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
@@ -204,14 +200,8 @@ class WalletUseCaseProvider extends StatelessWidget {
         RepositoryProvider<StartIssuanceUseCase>(
           create: (context) => StartIssuanceUseCaseImpl(context.read()),
         ),
-        RepositoryProvider<ContinueIssuanceUseCase>(
-          create: (context) => ContinueIssuanceUseCaseImpl(context.read()),
-        ),
         RepositoryProvider<DiscloseForIssuanceUseCase>(
           create: (context) => DiscloseForIssuanceUseCaseImpl(context.read()),
-        ),
-        RepositoryProvider<AcceptIssuanceUseCase>(
-          create: (context) => AcceptIssuanceUseCaseImpl(context.read()),
         ),
         RepositoryProvider<CancelIssuanceUseCase>(
           create: (context) => CancelIssuanceUseCaseImpl(context.read()),

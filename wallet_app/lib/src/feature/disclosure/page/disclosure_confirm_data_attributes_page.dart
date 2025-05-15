@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
-import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/requested_attributes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
@@ -29,7 +29,7 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   final VoidCallback onAcceptPressed;
 
   final Organization relyingParty;
-  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
+  final RequestedAttributes requestedAttributes;
   final Policy policy;
 
   /// Inform the user what the purpose is of this request
