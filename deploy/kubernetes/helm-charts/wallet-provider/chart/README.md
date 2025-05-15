@@ -74,12 +74,12 @@
 
 ### Resource requests and limits
 
-| Name                        | Description    | Value    |
-| --------------------------- | -------------- | -------- |
-| `resources.limits.memory`   | Memory limit   | `1024Mi` |
-| `resources.limits.cpu`      | CPU limit      | `500m`   |
-| `resources.requests.memory` | Memory request | `512Mi`  |
-| `resources.requests.cpu`    | CPU request    | `300m`   |
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `100m` |
+| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.limits.cpu`      | CPU limit      | `400m` |
+| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
 ### Volumes
 

@@ -46,12 +46,12 @@
 
 ### Resource requests and limits
 
-| Name                        | Description    | Value   |
-| --------------------------- | -------------- | ------- |
-| `resources.limits.memory`   | Memory limit   | `512Mi` |
-| `resources.limits.cpu`      | CPU limit      | `500m`  |
-| `resources.requests.memory` | Memory request | `512Mi` |
-| `resources.requests.cpu`    | CPU request    | `300m`  |
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `50m`  |
+| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.limits.cpu`      | CPU limit      | `200m` |
+| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
 ### Demo Index parameters
 

@@ -42,18 +42,18 @@ nameOverride: ""
 extraPodlabels: {}
 
 ## @section Resource requests and limits
-## @param resources.limits.memory Memory limit
-## @param resources.limits.cpu CPU limit
-## @param resources.requests.memory Memory request
 ## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
 ##
 resources:
-  limits:
-    cpu: 100m
-    memory: 512Mi
   requests:
-    cpu: 50m
-    memory: 128Mi
+    cpu: "50m"
+    memory: "64Mi"
+  limits:
+    cpu: "200m"
+    memory: "128Mi"
 
 ## @section GbaMock parameters
 ## Parameters for the GbaMock configuration
