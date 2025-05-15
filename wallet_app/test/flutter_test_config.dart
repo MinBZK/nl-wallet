@@ -50,14 +50,14 @@ void _setupMockitoDummies() {
   provideDummy<core.WalletInstructionResult>(const core.WalletInstructionResult.ok());
   provideDummy<StartDisclosureResult>(
     StartDisclosureReadyToDisclose(
-      WalletMockData.organization,
-      'http://origin.org',
-      'requestPurpose'.untranslated,
-      DisclosureSessionType.crossDevice,
-      DisclosureType.regular,
-      {},
-      WalletMockData.policy,
+      relyingParty: WalletMockData.organization,
+      originUrl: 'http://origin.org',
+      requestPurpose: 'requestPurpose'.untranslated,
+      sessionType: DisclosureSessionType.crossDevice,
+      type: DisclosureType.regular,
+      policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
+      requestedAttributes: {},
     ),
   );
   provideDummy<CoreError>(const CoreGenericError('dummy', data: {}));
@@ -65,7 +65,12 @@ void _setupMockitoDummies() {
     domain.StartIssuanceReadyToDisclose(
       relyingParty: WalletMockData.organization,
       policy: WalletMockData.policy,
+      sessionType: DisclosureSessionType.sameDevice,
       requestedAttributes: {},
+      originUrl: '',
+      requestPurpose: {},
+      type: DisclosureType.regular,
+      sharedDataWithOrganizationBefore: false,
     ),
   );
   provideDummy<StartSignResult>(
@@ -77,8 +82,11 @@ void _setupMockitoDummies() {
       requestedAttributes: {},
     ),
   );
-  // Provide a Result<void> dummy type. More specifically typed dummies can be provided in the setUp of a test class.
+  // Provide some basic [Result] dummies, anything more specific should be defined in the test itself.
+  provideDummy<Result<dynamic>>(const Result.success(null));
   provideDummy<Result<void>>(const Result.success(null));
+  provideDummy<Result<String>>(const Result.success(''));
+  provideDummy<Result<String?>>(const Result.success(null));
 }
 
 /// Overrides the default [LocalFileComparator] with our [GoldenDiffComparator] that has

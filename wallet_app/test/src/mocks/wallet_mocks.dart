@@ -7,6 +7,7 @@ import 'package:wallet/src/data/repository/biometric/biometric_repository.dart';
 import 'package:wallet/src/data/repository/card/wallet_card_repository.dart';
 import 'package:wallet/src/data/repository/configuration/configuration_repository.dart';
 import 'package:wallet/src/data/repository/event/wallet_event_repository.dart';
+import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/language/language_repository.dart';
 import 'package:wallet/src/data/repository/network/network_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
@@ -36,7 +37,6 @@ import 'package:wallet/src/domain/usecase/event/get_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/event/observe_recent_wallet_events_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/accept_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/cancel_issuance_usecase.dart';
-import 'package:wallet/src/domain/usecase/issuance/continue_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/issuance/start_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/check_navigation_prerequisites_usecase.dart';
 import 'package:wallet/src/domain/usecase/navigation/perform_pre_navigation_actions_usecase.dart';
@@ -99,6 +99,7 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<LanguageRepository>()])
 @GenerateNiceMocks([MockSpec<BiometricRepository>()])
 @GenerateNiceMocks([MockSpec<VersionStateRepository>()])
+@GenerateNiceMocks([MockSpec<IssuanceRepository>()])
 
 /// Mock services
 @GenerateNiceMocks([MockSpec<TypedWalletCore>()])
@@ -142,7 +143,6 @@ export 'wallet_mocks.mocks.dart';
 @GenerateNiceMocks([MockSpec<StartSignUseCase>()])
 @GenerateNiceMocks([MockSpec<RejectSignAgreementUseCase>()])
 @GenerateNiceMocks([MockSpec<StartIssuanceUseCase>()])
-@GenerateNiceMocks([MockSpec<ContinueIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<CancelIssuanceUseCase>()])
 @GenerateNiceMocks([MockSpec<LockWalletUseCase>()])
 @GenerateNiceMocks([MockSpec<DiscloseForIssuanceUseCase>()])
@@ -227,7 +227,6 @@ class Mocks {
     sl.registerFactory<StartSignUseCase>(MockStartSignUseCase.new);
     sl.registerFactory<RejectSignAgreementUseCase>(MockRejectSignAgreementUseCase.new);
     sl.registerFactory<StartIssuanceUseCase>(MockStartIssuanceUseCase.new);
-    sl.registerFactory<ContinueIssuanceUseCase>(MockContinueIssuanceUseCase.new);
     sl.registerFactory<CancelIssuanceUseCase>(MockCancelIssuanceUseCase.new);
     sl.registerFactory<LockWalletUseCase>(MockLockWalletUseCase.new);
     sl.registerFactory<DiscloseForIssuanceUseCase>(MockDiscloseForIssuanceUseCase.new);

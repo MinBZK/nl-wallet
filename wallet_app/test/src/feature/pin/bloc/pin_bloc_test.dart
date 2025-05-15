@@ -17,7 +17,6 @@ void main() {
 
   setUp(() {
     // Provide a fallback dummy value for mockito, required here but likely overridden.
-    provideDummy<Result<String?>>(const Result.success(null));
     provideDummy<CheckPinResult>(CheckPinResultBlocked());
     checkPinUseCase = MockCheckPinUseCase();
     networkRepository = Mocks.create();
@@ -82,7 +81,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => Result.error(IncorrectPinError(CheckPinResultIncorrect(attemptsLeftInRound: 3), sourceError: 'test')),
+        () => Result.error(CheckPinError(CheckPinResultIncorrect(attemptsLeftInRound: 3), sourceError: 'test')),
       ),
       skip: 6,
       expect: () => [const PinValidateFailure(attemptsLeftInRound: 3, isFinalRound: false)],
@@ -93,7 +92,7 @@ void main() {
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
         () => Result.error(
-          IncorrectPinError(
+          CheckPinError(
             CheckPinResultIncorrect(attemptsLeftInRound: 1, isFinalRound: true),
             sourceError: 'test',
           ),
@@ -107,7 +106,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => Result.error(IncorrectPinError(CheckPinResultBlocked(), sourceError: 'test')),
+        () => Result.error(CheckPinError(CheckPinResultBlocked(), sourceError: 'test')),
       ),
       skip: 6,
       expect: () => [const PinValidateBlocked()],
@@ -117,7 +116,7 @@ void main() {
       build: () => bloc,
       act: (bloc) => triggerValidateFromCleanBloc(
         bloc,
-        () => Result.error(IncorrectPinError(CheckPinResultTimeout(timeoutMillis: 1000), sourceError: 'test')),
+        () => Result.error(CheckPinError(CheckPinResultTimeout(timeoutMillis: 1000), sourceError: 'test')),
       ),
       skip: 6,
       expect: () => [isA<PinValidateTimeout>()],

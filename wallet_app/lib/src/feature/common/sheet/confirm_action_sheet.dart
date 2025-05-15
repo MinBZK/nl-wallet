@@ -88,13 +88,31 @@ class ConfirmActionSheet extends StatelessWidget {
     );
   }
 
+  /// Shows a modal bottom sheet with a title, description, and two buttons
+  /// (confirm and cancel).
+  ///
+  /// Returns a [Future] that resolves to `true` if the confirm button is pressed,
+  /// and `false` if the cancel button is pressed or the sheet is dismissed.
+  ///
+  /// The [context] is the `BuildContext` from which to show the sheet.
+  /// The [title] is the text displayed at the top of the sheet.
+  /// The [description] is the text displayed below the title.
+  /// The [confirmButtonText] is the text for the confirm button.
+  /// The [confirmButtonColor] (optional) is the background color for the confirm button.
+  /// The [confirmIcon] (optional) is an icon to display next to the confirm button text.
+  /// The [cancelButtonText] is the text for the cancel button.
+  /// The [cancelIcon] (optional) is an icon to display next to the cancel button text.
+  /// The [extraContent] (optional) is a widget to display between the description and the buttons,
+  /// typically used for additional options or information.
   static Future<bool> show(
     BuildContext context, {
     required String title,
     required String description,
-    required String cancelButtonText,
     required String confirmButtonText,
     Color? confirmButtonColor,
+    IconData? confirmIcon,
+    required String cancelButtonText,
+    IconData? cancelIcon,
     Widget? extraContent,
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
@@ -105,11 +123,13 @@ class ConfirmActionSheet extends StatelessWidget {
         return ConfirmActionSheet(
           title: title,
           description: description,
-          cancelButtonText: cancelButtonText,
           confirmButtonText: confirmButtonText,
-          onConfirmPressed: () => Navigator.pop(context, true),
-          onCancelPressed: () => Navigator.pop(context, false),
           confirmButtonColor: confirmButtonColor,
+          confirmIcon: confirmIcon,
+          onConfirmPressed: () => Navigator.pop(context, true),
+          cancelButtonText: cancelButtonText,
+          cancelIcon: cancelIcon,
+          onCancelPressed: () => Navigator.pop(context, false),
           extraContent: extraContent,
         );
       },

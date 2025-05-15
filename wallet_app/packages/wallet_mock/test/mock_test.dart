@@ -1,5 +1,7 @@
 import 'package:test/test.dart';
 import 'package:wallet_core/core.dart';
+import 'package:wallet_mock/mock.dart';
+import 'package:wallet_mock/src/disclosure_manager.dart';
 import 'package:wallet_mock/src/log/wallet_event_log.dart';
 import 'package:wallet_mock/src/pin/pin_manager.dart';
 import 'package:wallet_mock/src/wallet/wallet.dart';
@@ -9,7 +11,12 @@ void main() {
   late WalletCoreApi walletCore;
 
   setUp(() {
-    walletCore = WalletCoreMock(PinManager(), Wallet(), WalletEventLog());
+    final pinManager = PinManager();
+    final wallet = Wallet();
+    final walletEventLog = WalletEventLog();
+    final issuanceManager = IssuanceManager(pinManager, wallet, walletEventLog);
+    final disclosureManager = DisclosureManager(pinManager, wallet, walletEventLog);
+    walletCore = WalletCoreMock(pinManager, wallet, walletEventLog, issuanceManager, disclosureManager);
   });
 
   group('WalletCore Initialization', () {

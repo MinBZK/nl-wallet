@@ -23,10 +23,6 @@ class MockBiometricSettingsBloc extends MockBloc<BiometricSettingsEvent, Biometr
 }
 
 void main() {
-  setUp(() {
-    provideDummy<Result<String?>>(Result.success(''));
-  });
-
   group('goldens', () {
     testGoldens('Biometrics face loaded light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(

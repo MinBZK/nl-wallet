@@ -7,7 +7,7 @@ import '../../pin/bloc/pin_bloc.dart';
 import '../../pin/pin_page.dart';
 
 class DisclosureConfirmPinPage extends StatelessWidget {
-  final OnPinValidatedCallback onPinValidated;
+  final OnPinValidatedCallback<String?> onPinValidated;
   final OnPinErrorCallback onConfirmWithPinFailed;
   final String title;
 
@@ -30,7 +30,7 @@ class DisclosureConfirmPinPage extends StatelessWidget {
         headerBuilder: (context, attempts, isFinalRound) {
           return PinHeader(title: title);
         },
-        onPinValidated: onPinValidated,
+        onPinValidated: (result) => onPinValidated.call(result as String?),
         onPinError: onConfirmWithPinFailed,
       ),
     );

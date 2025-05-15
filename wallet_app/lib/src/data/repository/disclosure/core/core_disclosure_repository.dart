@@ -42,24 +42,24 @@ class CoreDisclosureRepository implements DisclosureRepository {
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
         final policy = _requestPolicyMapper.map(result.policy);
         return StartDisclosureReadyToDisclose(
-          relyingParty,
-          result.requestOriginBaseUrl,
-          _localizedStringMapper.map(result.requestPurpose),
-          _disclosureSessionTypeMapper.map(result.sessionType),
-          _disclosureTypeMapper.map(result.requestType),
-          requestedAttributes,
-          policy,
+          relyingParty: relyingParty,
+          originUrl: result.requestOriginBaseUrl,
+          requestPurpose: _localizedStringMapper.map(result.requestPurpose),
+          sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
+          type: _disclosureTypeMapper.map(result.requestType),
+          requestedAttributes: requestedAttributes,
+          policy: policy,
           sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
       case core.StartDisclosureResult_RequestAttributesMissing():
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
         final missingAttributes = _missingAttributeMapper.mapList(result.missingAttributes);
         return StartDisclosureMissingAttributes(
-          relyingParty,
-          result.requestOriginBaseUrl,
-          _localizedStringMapper.map(result.requestPurpose),
-          _disclosureSessionTypeMapper.map(result.sessionType),
-          missingAttributes,
+          relyingParty: relyingParty,
+          originUrl: result.requestOriginBaseUrl,
+          requestPurpose: _localizedStringMapper.map(result.requestPurpose),
+          sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
+          missingAttributes: missingAttributes,
           sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
     }
@@ -72,5 +72,13 @@ class CoreDisclosureRepository implements DisclosureRepository {
   Future<bool> hasActiveDisclosureSession() => _walletCore.hasActiveDisclosureSession();
 
   @override
-  Future<core.AcceptDisclosureResult> acceptDisclosure(String pin) => _walletCore.acceptDisclosure(pin);
+  Future<String?> acceptDisclosure(String pin) async {
+    final result = await _walletCore.acceptDisclosure(pin);
+    switch (result) {
+      case core.AcceptDisclosureResult_Ok():
+        return result.returnUrl;
+      case core.AcceptDisclosureResult_InstructionError():
+        throw result.error;
+    }
+  }
 }

@@ -18,7 +18,8 @@ curl --request POST \
   "plural_format": "icu",
   "compact": false,
   "original_filenames": false,
-  "bundle_structure": "lib/l10n/intl_%LANG_ISO%.%FORMAT%"
+  "bundle_structure": "lib/l10n/intl_%LANG_ISO%.%FORMAT%",
+  "exclude_tags": ["deprecated"]
 }
 ' | grep -o '"bundle_url":"[^"]*' | grep -o '[^"]*$' | xargs wget -O "$SCRIPTS_DIR"/nl-wallet-showcase-app.zip
 

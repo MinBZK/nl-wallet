@@ -52,13 +52,13 @@ class PinBloc extends Bloc<PinEvent, PinState> {
     final result = await checkPinUseCase.invoke(_currentPin);
 
     await result.process(
-      onSuccess: (returnUrl) => emit(PinValidateSuccess(returnUrl: returnUrl)),
+      onSuccess: (returnUrl) => emit(PinValidateSuccess(result: returnUrl)),
       onError: (error) {
         _currentPin = '';
         switch (error) {
           case NetworkError():
             emit(PinValidateNetworkError(error: error, hasInternet: error.hasInternet));
-          case IncorrectPinError():
+          case CheckPinError():
             _handleCheckPinErrors(emit, error.result);
           default:
             emit(PinValidateGenericError(error: error));

@@ -8,15 +8,16 @@ import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
 import '../../../../check_attributes/check_attributes_screen.dart';
+import '../../../../common/builder/request_detail_common_builders.dart';
 import '../../../../common/screen/placeholder_screen.dart';
 import '../../../../common/widget/card/shared_attributes_card.dart';
+import '../../../../common/widget/divider_side.dart';
 import '../../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../../common/widget/spacer/sliver_divider.dart';
 import '../../../../common/widget/spacer/sliver_sized_box.dart';
 import '../../../../info/info_screen.dart';
 import '../../../../organization/detail/organization_detail_screen.dart';
 import '../../../../organization/widget/organization_row.dart';
-import '../history_detail_common_builders.dart';
 import '../history_detail_timestamp.dart';
 
 class HistoryDetailIssuePage extends StatelessWidget {
@@ -38,12 +39,13 @@ class HistoryDetailIssuePage extends StatelessWidget {
           ),
         ),
         const SliverSizedBox(height: 24),
-        HistoryDetailCommonBuilders.buildStatusHeaderSliver(context, event).takeIf((_) => !event.wasSuccess),
+        RequestDetailCommonBuilders.buildStatusHeaderSliver(context, event: event, side: DividerSide.bottom)
+            .takeIf((_) => !event.wasSuccess),
         _buildIssuedCardSliver(context, event.card),
         const SliverSizedBox(height: 24),
         const SliverDivider(),
         _buildIssuerSliver(context, event.card.issuer),
-        HistoryDetailCommonBuilders.buildReportIssueSliver(context),
+        RequestDetailCommonBuilders.buildReportIssueSliver(context, side: DividerSide.bottom),
         const SliverSizedBox(height: 24),
       ].nonNulls.toList(),
     );

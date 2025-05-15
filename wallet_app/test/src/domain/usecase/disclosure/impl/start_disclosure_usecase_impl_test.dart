@@ -21,14 +21,14 @@ void main() {
 
   test('Verify ReadyToDisclose is returned when all is good', () async {
     final readyToDiscloseResult = StartDisclosureReadyToDisclose(
-      WalletMockData.organization,
-      'http://origin.org',
-      'requestPurpose'.untranslated,
-      DisclosureSessionType.crossDevice,
-      DisclosureType.login,
-      {},
-      WalletMockData.policy,
+      relyingParty: WalletMockData.organization,
+      originUrl: 'http://origin.org',
+      requestPurpose: 'requestPurpose'.untranslated,
+      sessionType: DisclosureSessionType.crossDevice,
+      type: DisclosureType.login,
+      policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
+      requestedAttributes: {},
     );
     when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
       (_) async => readyToDiscloseResult,
@@ -41,12 +41,12 @@ void main() {
 
   test('Verify MissingAttributes is returned when attributes are missing', () async {
     final missingAttributesResult = StartDisclosureMissingAttributes(
-      WalletMockData.organization,
-      'http://origin.org',
-      'requestPurpose'.untranslated,
-      DisclosureSessionType.crossDevice,
-      [],
+      relyingParty: WalletMockData.organization,
+      originUrl: 'http://origin.org',
+      requestPurpose: 'requestPurpose'.untranslated,
+      sessionType: DisclosureSessionType.crossDevice,
       sharedDataWithOrganizationBefore: false,
+      missingAttributes: [],
     );
     when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
       (_) async => missingAttributesResult,

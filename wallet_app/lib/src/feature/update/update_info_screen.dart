@@ -5,12 +5,12 @@ import 'package:store_redirect/store_redirect.dart';
 
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
-import '../common/page/page_illustration.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
+import '../common/widget/page_illustration.dart';
 import '../common/widget/paragraphed_sliver_list.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/wallet_scrollbar.dart';

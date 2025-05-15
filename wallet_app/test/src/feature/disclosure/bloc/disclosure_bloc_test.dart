@@ -28,19 +28,17 @@ void main() {
     startDisclosureUseCase = MockStartDisclosureUseCase();
     cancelDisclosureUseCase = MockCancelDisclosureUseCase();
     getMostRecentWalletEventUsecase = MockGetMostRecentWalletEventUseCase();
-    provideDummy<Result<String>>(const Result.success(''));
-    provideDummy<Result<String?>>(const Result.success(''));
     provideDummy<Result<StartDisclosureResult>>(
       Result.success(
         StartDisclosureReadyToDisclose(
-          WalletMockData.organization,
-          'http://origin.org',
-          'requestPurpose'.untranslated,
-          DisclosureSessionType.crossDevice,
-          DisclosureType.login,
-          {},
-          WalletMockData.policy,
+          relyingParty: WalletMockData.organization,
+          originUrl: 'http://origin.org',
+          requestPurpose: 'requestPurpose'.untranslated,
+          sessionType: DisclosureSessionType.crossDevice,
+          type: DisclosureType.login,
+          policy: WalletMockData.policy,
           sharedDataWithOrganizationBefore: false,
+          requestedAttributes: {},
         ),
       ),
     );
@@ -98,14 +96,14 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
+            requestedAttributes: {},
           ),
         );
       });
@@ -121,14 +119,14 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.login,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.login,
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
+            requestedAttributes: {},
           ),
         );
       });
@@ -144,12 +142,12 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureMissingAttributes(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            [],
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
             sharedDataWithOrganizationBefore: false,
+            missingAttributes: [],
           ),
         );
       });
@@ -165,13 +163,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -194,11 +192,11 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureMissingAttributes(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            [],
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            missingAttributes: [],
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -221,13 +219,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -249,13 +247,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.login,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.login,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -277,11 +275,11 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureMissingAttributes(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            [],
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            missingAttributes: [],
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -303,11 +301,11 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureMissingAttributes(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            [],
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            missingAttributes: [],
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -336,13 +334,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -367,13 +365,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -398,13 +396,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -431,13 +429,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -468,13 +466,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -500,13 +498,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.regular,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -535,13 +533,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.login,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.login,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -568,11 +566,11 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureMissingAttributes(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            [],
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            missingAttributes: [],
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -646,13 +644,13 @@ void main() {
     setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
       (_) async => Result.success(
         StartDisclosureReadyToDisclose(
-          WalletMockData.organization,
-          'originUrl',
-          ''.untranslated,
-          DisclosureSessionType.crossDevice,
-          DisclosureType.regular,
-          {},
-          WalletMockData.policy,
+          relyingParty: WalletMockData.organization,
+          originUrl: 'originUrl',
+          requestPurpose: ''.untranslated,
+          sessionType: DisclosureSessionType.crossDevice,
+          type: DisclosureType.regular,
+          requestedAttributes: {},
+          policy: WalletMockData.policy,
           sharedDataWithOrganizationBefore: false,
         ),
       ),
@@ -714,13 +712,13 @@ void main() {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
           StartDisclosureReadyToDisclose(
-            WalletMockData.organization,
-            'http://origin.org',
-            'requestPurpose'.untranslated,
-            DisclosureSessionType.crossDevice,
-            DisclosureType.login,
-            {},
-            WalletMockData.policy,
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.login,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
         );
@@ -748,13 +746,13 @@ void main() {
     setUp: () => when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
       (_) async => Result.success(
         StartDisclosureReadyToDisclose(
-          WalletMockData.organization,
-          'originUrl',
-          ''.untranslated,
-          DisclosureSessionType.crossDevice,
-          DisclosureType.regular,
-          {},
-          WalletMockData.policy,
+          relyingParty: WalletMockData.organization,
+          originUrl: 'originUrl',
+          requestPurpose: ''.untranslated,
+          sessionType: DisclosureSessionType.crossDevice,
+          type: DisclosureType.regular,
+          requestedAttributes: {},
+          policy: WalletMockData.policy,
           sharedDataWithOrganizationBefore: false,
         ),
       ),

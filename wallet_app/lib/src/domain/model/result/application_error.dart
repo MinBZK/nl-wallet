@@ -51,11 +51,11 @@ class ValidatePinError extends ApplicationError {
   List<Object?> get props => [...super.props, error];
 }
 
-/// Incorrect Pin error, provided by the server when the provided pin is incorrect
-class IncorrectPinError extends ApplicationError {
+/// Check Pin error, provided by the server when the provided pin is not accepted
+class CheckPinError extends ApplicationError {
   final CheckPinResult result;
 
-  const IncorrectPinError(this.result, {required super.sourceError});
+  const CheckPinError(this.result, {required super.sourceError});
 
   @override
   List<Object?> get props => [...super.props, result];

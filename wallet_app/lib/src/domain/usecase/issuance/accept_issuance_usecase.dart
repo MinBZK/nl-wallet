@@ -1,6 +1,8 @@
-import '../../model/result/result.dart';
-import '../wallet_usecase.dart';
+import '../pin/check_pin_usecase.dart';
 
-abstract class AcceptIssuanceUseCase extends WalletUseCase {
-  Future<Result<void>> invoke(Iterable<String> cardDocTypes);
+/// Accept issuance request (thereby adding cards to wallet), optionally
+/// providing a returnUrl to redirect the user after successful disclosure.
+abstract class AcceptIssuanceUseCase extends CheckPinUseCase {
+  @override
+  Future<Result<void>> invoke(String pin);
 }

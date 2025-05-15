@@ -170,7 +170,7 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
   final bool sharedDataWithOrganizationBefore;
   final bool afterBackPressed;
   final Policy policy;
-  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
+  final RequestedAttributes requestedAttributes;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kLoginDisclosureSteps);
@@ -228,7 +228,7 @@ class DisclosureMissingAttributes extends DisclosureState {
 
 class DisclosureConfirmDataAttributes extends DisclosureState {
   final Organization relyingParty;
-  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
+  final RequestedAttributes requestedAttributes;
   final Policy policy;
   final LocalizedText requestPurpose;
   final bool afterBackPressed;

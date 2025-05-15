@@ -5,10 +5,11 @@ import '../../../../../domain/model/event/wallet_event.dart';
 import '../../../../../util/extension/build_context_extension.dart';
 import '../../../../../util/extension/object_extension.dart';
 import '../../../../../util/extension/wallet_event_extension.dart';
+import '../../../../common/builder/request_detail_common_builders.dart';
+import '../../../../common/widget/button/list_button.dart';
 import '../../../../common/widget/sliver_wallet_app_bar.dart';
 import '../../../../common/widget/spacer/sliver_divider.dart';
 import '../../../../common/widget/spacer/sliver_sized_box.dart';
-import '../history_detail_common_builders.dart';
 import '../history_detail_timestamp.dart';
 
 class HistoryDetailDisclosePage extends StatelessWidget {
@@ -31,14 +32,26 @@ class HistoryDetailDisclosePage extends StatelessWidget {
         ),
         const SliverSizedBox(height: 24),
         const SliverDivider(),
-        HistoryDetailCommonBuilders.buildStatusHeaderSliver(context, event).takeIf((_) => !event.wasSuccess),
-        HistoryDetailCommonBuilders.buildPurposeSliver(context, event).takeIf((_) => event.wasSuccess),
-        HistoryDetailCommonBuilders.buildSharedAttributesSliver(context, event).takeIf((_) => event.wasSuccess),
-        HistoryDetailCommonBuilders.buildPolicySliver(context, event.relyingParty, event.policy)
+        RequestDetailCommonBuilders.buildStatusHeaderSliver(context, event: event, side: DividerSide.bottom)
+            .takeIf((_) => !event.wasSuccess),
+        RequestDetailCommonBuilders.buildPurposeSliver(context, purpose: event.purpose, side: DividerSide.bottom)
             .takeIf((_) => event.wasSuccess),
-        HistoryDetailCommonBuilders.buildAboutOrganizationSliver(context, event.relyingParty),
-        HistoryDetailCommonBuilders.buildShowDetailsSliver(context, event).takeIf((_) => !event.wasSuccess),
-        HistoryDetailCommonBuilders.buildReportIssueSliver(context),
+        RequestDetailCommonBuilders.buildSharedAttributesSliver(context, cards: event.cards, side: DividerSide.bottom)
+            .takeIf((_) => event.wasSuccess),
+        RequestDetailCommonBuilders.buildPolicySliver(
+          context,
+          organization: event.relyingParty,
+          policy: event.policy,
+          side: DividerSide.bottom,
+        ).takeIf((_) => event.wasSuccess),
+        RequestDetailCommonBuilders.buildAboutOrganizationSliver(
+          context,
+          organization: event.relyingParty,
+          side: DividerSide.bottom,
+        ),
+        RequestDetailCommonBuilders.buildShowDetailsSliver(context, event: event, side: DividerSide.bottom)
+            .takeIf((_) => !event.wasSuccess),
+        RequestDetailCommonBuilders.buildReportIssueSliver(context, side: DividerSide.bottom),
         const SliverSizedBox(height: 24),
       ].nonNulls.toList(),
     );

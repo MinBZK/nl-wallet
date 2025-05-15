@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/model/attribute/attribute.dart';
-import '../../domain/model/card/wallet_card.dart';
 import '../../domain/model/organization.dart';
 import '../../domain/model/policy/organization_policy.dart';
 import '../../domain/model/policy/policy.dart';
+import '../../domain/model/requested_attributes.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
@@ -31,7 +31,7 @@ import 'argument/login_detail_screen_argument.dart';
 class LoginDetailScreen extends StatelessWidget {
   final Organization organization;
   final Policy policy;
-  final Map<WalletCard, List<DataAttribute>> requestedAttributes;
+  final RequestedAttributes requestedAttributes;
   final bool sharedDataWithOrganizationBefore;
   final VoidCallback? onReportIssuePressed;
 
@@ -217,7 +217,7 @@ class LoginDetailScreen extends StatelessWidget {
     BuildContext context,
     Organization organization,
     Policy policy,
-    Map<WalletCard, List<DataAttribute>> requestedAttributes, {
+    RequestedAttributes requestedAttributes, {
     required bool sharedDataWithOrganizationBefore,
     VoidCallback? onReportIssuePressed,
   }) {

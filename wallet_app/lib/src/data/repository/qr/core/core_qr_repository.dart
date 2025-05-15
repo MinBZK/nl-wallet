@@ -52,7 +52,7 @@ class CoreQrRepository implements QrRepository {
       case IdentifyUriResult.Disclosure:
         return DisclosureNavigationRequest(rawValue, isQrCode: true);
       case IdentifyUriResult.DisclosureBasedIssuance:
-        throw UnimplementedError();
+        return IssuanceNavigationRequest(rawValue, isQrCode: true);
     }
   }
 }

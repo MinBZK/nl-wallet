@@ -9,6 +9,7 @@ void main() {
         mockSessionId: '1aef7',
         isRefreshFlow: true,
         uri: 'https://example.org',
+        isQrCode: false,
       );
       final serialized = expected.toMap();
       final result = IssuanceScreenArgument.fromMap(serialized);

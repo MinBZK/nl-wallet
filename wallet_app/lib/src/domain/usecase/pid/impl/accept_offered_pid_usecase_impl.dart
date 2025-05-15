@@ -16,7 +16,7 @@ class AcceptOfferedPidUseCaseImpl extends AcceptOfferedPidUseCase {
   @override
   Future<Result<String?>> invoke(String pin) async {
     try {
-      final result = await _pidRepository.acceptOfferedPid(pin);
+      final result = await _pidRepository.acceptIssuance(pin);
       return result.asApplicationResult();
     } on CoreError catch (ex) {
       Fimber.e('Failed to accept pid', ex: ex);

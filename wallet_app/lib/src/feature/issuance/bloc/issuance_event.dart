@@ -2,57 +2,53 @@ part of 'issuance_bloc.dart';
 
 abstract class IssuanceEvent extends Equatable {
   const IssuanceEvent();
+
+  @override
+  List<Object?> get props => [];
 }
 
 class IssuanceOrganizationApproved extends IssuanceEvent {
   const IssuanceOrganizationApproved();
-
-  @override
-  List<Object?> get props => [];
 }
 
 class IssuanceInitiated extends IssuanceEvent {
   final String issuanceUri;
+  final bool isQrCode;
 
-  const IssuanceInitiated(this.issuanceUri);
+  const IssuanceInitiated(this.issuanceUri, {this.isQrCode = false});
 
   @override
-  List<Object?> get props => [issuanceUri];
+  List<Object?> get props => [issuanceUri, isQrCode];
 }
 
 class IssuanceBackPressed extends IssuanceEvent {
   const IssuanceBackPressed();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class IssuanceShareRequestedAttributesApproved extends IssuanceEvent {
-  const IssuanceShareRequestedAttributesApproved();
-
-  @override
-  List<Object?> get props => [];
 }
 
 class IssuanceShareRequestedAttributesDeclined extends IssuanceEvent {
   const IssuanceShareRequestedAttributesDeclined();
-
-  @override
-  List<Object?> get props => [];
 }
 
-class IssuancePinConfirmed extends IssuanceEvent {
-  const IssuancePinConfirmed();
+class IssuancePinForDisclosureConfirmed extends IssuanceEvent {
+  final List<WalletCard> cards;
+
+  const IssuancePinForDisclosureConfirmed({required this.cards});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [cards];
 }
 
-class IssuanceCheckDataOfferingApproved extends IssuanceEvent {
-  const IssuanceCheckDataOfferingApproved();
+class IssuancePinForIssuanceConfirmed extends IssuanceEvent {
+  const IssuancePinForIssuanceConfirmed();
+}
+
+class IssuanceApproveCards extends IssuanceEvent {
+  final List<WalletCard> cards;
+
+  const IssuanceApproveCards({required this.cards});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [cards];
 }
 
 class IssuanceCardToggled extends IssuanceEvent {
@@ -64,43 +60,15 @@ class IssuanceCardToggled extends IssuanceEvent {
   List<Object?> get props => [card];
 }
 
-class IssuanceSelectedCardsConfirmed extends IssuanceEvent {
-  const IssuanceSelectedCardsConfirmed();
-
-  @override
-  List<Object?> get props => [];
-}
-
-class IssuanceCardDeclined extends IssuanceEvent {
-  final WalletCard card;
-
-  const IssuanceCardDeclined(this.card);
-
-  @override
-  List<Object?> get props => [card];
-}
-
-class IssuanceCardApproved extends IssuanceEvent {
-  final WalletCard card;
-
-  const IssuanceCardApproved(this.card);
-
-  @override
-  List<Object?> get props => [card];
-}
-
 class IssuanceStopRequested extends IssuanceEvent {
   const IssuanceStopRequested();
-
-  @override
-  List<Object?> get props => [];
 }
 
-class IssuanceUpdateState extends IssuanceEvent {
-  final IssuanceState state;
+class IssuanceConfirmPinFailed extends IssuanceEvent {
+  final ApplicationError error;
 
-  const IssuanceUpdateState(this.state);
+  const IssuanceConfirmPinFailed({required this.error});
 
   @override
-  List<Object?> get props => [state];
+  List<Object?> get props => [error];
 }

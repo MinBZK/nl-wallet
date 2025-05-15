@@ -13,6 +13,7 @@ import '../../navigation/secured_page_route.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
+import '../../wallet_constants.dart';
 import '../card/detail/argument/card_detail_screen_argument.dart';
 import '../card/detail/card_detail_screen.dart';
 import '../common/widget/activity_summary.dart';
@@ -31,9 +32,6 @@ import '../update/widget/update_banner.dart';
 import 'argument/dashboard_screen_argument.dart';
 import 'bloc/dashboard_bloc.dart';
 
-/// Defines the width required to render a card,
-/// used to calculate the crossAxisCount.
-const _kCardBreakPointWidth = 300.0;
 const _kMaxCrossAxisCount = 2;
 
 class DashboardScreen extends StatelessWidget {
@@ -166,7 +164,7 @@ class DashboardScreen extends StatelessWidget {
   }
 
   Widget _buildCardsSliver(BuildContext context, List<WalletCard> cards) {
-    final crossAxisCount = max(1, (context.mediaQuery.size.width / _kCardBreakPointWidth).floor());
+    final crossAxisCount = max(1, (context.mediaQuery.size.width / kCardBreakPointWidth).floor());
     return SliverMasonryGrid(
       gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: min(crossAxisCount, _kMaxCrossAxisCount),
