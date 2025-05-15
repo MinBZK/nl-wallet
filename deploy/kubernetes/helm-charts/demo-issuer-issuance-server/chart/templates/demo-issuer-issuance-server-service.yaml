@@ -6,10 +6,7 @@ metadata:
     {{- include "common.labels.standard" . | nindent 4 }}
 spec:
   selector:
-    {{- include "common.labels.selectorLabels" . | nindent 4 }}
-    {{- if .Values.extraPodlabels }}
-    {{ toYaml .Values.extraPodlabels | nindent 4 }}
-    {{- end }}
+    {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 4 }}
   ports:
     - name: demo-issuer-ws-http
       port: 3007

@@ -1,0 +1,48 @@
+{{ if .Values.migration.reset }}
+{{ $name := include "common.names.fullname" . }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $name }}-reset
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  schedule: "0 0 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 600
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            {{- include "common.labels.component" (list "reset" .) | nindent 12 }}
+            {{- with .Values.migration.labels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+        spec:
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: {{ .Values.nameOverride | default .Chart.Name }}-migrations
+              image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
+              args: ["fresh"]
+              env:
+                - name: DB_USERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      name: db-cluster-demo-issuer-app
+                      key: username
+                - name: DB_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: db-cluster-demo-issuer-app
+                      key: password
+                - name: DATABASE_URL
+                  value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-demo-issuer-rw:5432/issuance_server"
+          restartPolicy: Never
+{{- end }}
