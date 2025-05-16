@@ -1,9 +1,9 @@
-package screen.web.rp.shared
+package screen.web.demo.shared
 
 import org.openqa.selenium.By
 import util.MobileActions
 
-class RelyingPartyDemoPopup : MobileActions() {
+class DemoPopup : MobileActions() {
 
     private val sameDeviceButtonLocator = By.xpath(".//*[@data-testid='same_device_button']")
 

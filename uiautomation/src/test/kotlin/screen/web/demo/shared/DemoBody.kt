@@ -1,9 +1,9 @@
-package screen.web.rp.shared
+package screen.web.demo.shared
 
 import org.openqa.selenium.By
 import util.MobileActions
 
-class RelyingPartyDemoBody : MobileActions() {
+class DemoBody : MobileActions() {
 
     private val startButtonLocator = By.xpath("//nl-wallet-button")
 

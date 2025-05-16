@@ -29,6 +29,16 @@ class TasDataHelper {
         JSONObject(jsonContent)
     }
 
+    private val diplomaTAS: JSONObject by lazy {
+        val jsonContent = File(getDiplomaCardMetadataPath()).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
+
+    private val insuranceTAS: JSONObject by lazy {
+        val jsonContent = File(getInsuranceCardMetadataPath()).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
+
     private fun getExtendedPidCardMetadataPath() = getProjectFile("scripts/devenv/eudi:pid:nl:1.json")
 
     private fun getBasePidCardMetadataPath() = getProjectFile("scripts/devenv/eudi:pid:1.json")
@@ -36,6 +46,10 @@ class TasDataHelper {
     private fun getExtendedAddressCardMetadataPath() = getProjectFile("scripts/devenv/eudi:pid-address:nl:1.json")
 
     private fun getBaseAddressCardMetadataPath() = getProjectFile("scripts/devenv/eudi:pid-address:1.json")
+
+    private fun getDiplomaCardMetadataPath() = getProjectFile("scripts/devenv/com.example.degree.json")
+
+    private fun getInsuranceCardMetadataPath() = getProjectFile("scripts/devenv/com.example.insurance.json")
 
     fun getPidVCT(): String {
         val vct = extendedPidTAS.optString("vct")
@@ -59,10 +73,38 @@ class TasDataHelper {
         return vct
     }
 
+    fun getDiplomaVCT(): String {
+        val vct = diplomaTAS.optString("vct")
+        if (vct.isNullOrEmpty()) {
+            throw Exception("Cannot find 'vct' field in diploma TAS file")
+        }
+        return vct
+    }
+
+    fun getInsuranceVCT(): String {
+        val vct = insuranceTAS.optString("vct")
+        if (vct.isNullOrEmpty()) {
+            throw Exception("Cannot find 'vct' field in insurance TAS file")
+        }
+        return vct
+    }
+
     fun getAddressDisplayName() = findDisplayName(extendedAddressTAS, baseAddressTAS)
+
+    fun getDiplomaDisplayName() = findDisplayName(diplomaTAS)
+
+    fun getInsuranceDisplayName() = findDisplayName(insuranceTAS)
 
     fun getAddressClaimLabel(pathValue: String): String {
         return findClaimLabel(extendedAddressTAS, baseAddressTAS, pathValue = pathValue)
+    }
+
+    fun getDiplomaClaimLabel(pathValue: String): String {
+        return findClaimLabel(diplomaTAS, pathValue = pathValue)
+    }
+
+    fun getInsuranceClaimLabel(pathValue: String): String {
+        return findClaimLabel(insuranceTAS, pathValue = pathValue)
     }
 
     private fun findDisplayName(vararg tasFiles: JSONObject): String {

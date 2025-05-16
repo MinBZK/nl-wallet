@@ -13,14 +13,14 @@ class DashboardScreen : MobileActions() {
 
     private val pidIdTitleText = find.byText(cardMetadata.getPidDisplayName())
     private val pidAddressTitleText = find.byText(cardMetadata.getAddressDisplayName())
-    private val pidIdSubtitleText = find.byText("")
-    private val pidAddressSubtitleText = find.byText("")
     private val showDetailsText = find.byText(l10n.getString("showDetailsCta"))
     private val scanQRButton = find.byText(l10n.getString("menuScreenScanQrCta"))
 
     fun visible() = isElementVisible(screen, false)
 
-    fun cardsVisible() = isElementVisible(pidIdCard, false) && isElementVisible(pidAddressCard, false)
+    fun pidCardsVisible(): Boolean {
+        return cardVisible(cardMetadata.getPidVCT()) && cardVisible(cardMetadata.getAddressVCT())
+    }
 
     fun cardFaceTextsInActiveLanguage() =
         isElementVisible(pidIdTitleText, false) && isElementVisible(showDetailsText, false)
@@ -42,17 +42,14 @@ class DashboardScreen : MobileActions() {
 
     fun cardButtonsVisible() = isElementVisible(find.byDescendant(pidIdCard, showDetailsText, false, false))  && isElementVisible(find.byDescendant(pidAddressCard, showDetailsText, false, false))
 
-    fun cardBackgroundImagesVisible(): Boolean {
-        val svg = find.byType("Image")
-        return isElementVisible(find.byDescendant(pidIdCard, svg, false, false))   && isElementVisible(find.byAncestor(pidAddressCard, svg, false, false))
+    fun cardSubtitleVisible(subtitle: String): Boolean {
+        return isElementVisible(find.byText(subtitle), false)
     }
-
-    fun cardLogosVisible(): Boolean {
-        val png = find.byType("Image")
-        return isElementVisible(find.byDescendant(pidIdCard, png, false, false))  && isElementVisible(find.byDescendant(pidAddressCard, png, false, false))
-    }
-
-    fun cardSubtitlesVisible() = isElementVisible(pidIdSubtitleText, false) && isElementVisible(pidAddressSubtitleText, false)
 
     fun openQRScanner() = clickElement(scanQRButton)
+
+    fun cardVisible(vct: String): Boolean {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        return isElementVisible(find.byValueKey(vct))
+    }
 }

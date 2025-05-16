@@ -10,10 +10,9 @@ class PersonalizePidPreviewScreen : MobileActions() {
 
     fun visible() = isElementVisible(screen)
 
-    fun humanReadablePidDataVisible(pidData: String): Boolean {
-        return isElementVisible(find.byText(pidData))
+    fun humanReadableCardDataVisible(cardData: String): Boolean {
+        return isElementVisible(find.byText(cardData))
     }
-
 
     fun confirmButtonsVisible(): Boolean {
         scrollToEnd(ScrollableType.CustomScrollView)

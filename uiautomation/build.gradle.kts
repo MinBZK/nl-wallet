@@ -31,6 +31,7 @@ dependencies {
     implementation(platform("io.qameta.allure:allure-bom:2.29.1"))
     implementation("io.qameta.allure:allure-junit5")
     implementation("org.json:json:20240303")
+    implementation("org.tomlj:tomlj:1.1.1")
 }
 
 // Test config args and default/fallback values

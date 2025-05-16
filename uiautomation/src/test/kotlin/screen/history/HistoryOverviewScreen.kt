@@ -16,6 +16,7 @@ class HistoryOverviewScreen : MobileActions() {
     fun visible() = isElementVisible(screen, false)
 
     fun pidIssuanceLogEntryVisible() = isElementVisible(pidCardTitle, false)
+
     fun addressIssuanceLogEntryVisible() = isElementVisible(addressCardTitle, false)
 
     fun clickPidCardTitle() = clickElement(pidCardTitle, false)
