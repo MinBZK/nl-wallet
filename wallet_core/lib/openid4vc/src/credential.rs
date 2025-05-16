@@ -25,8 +25,6 @@ use poa::Poa;
 use utils::spec::SpecOptional;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::credential_formats::CredentialFormat;
-use crate::credential_formats::CredentialType;
 use crate::issuance_session::IssuanceSessionError;
 use crate::token::AuthorizationCode;
 use crate::Format;
@@ -65,38 +63,45 @@ pub struct CredentialRequest {
     pub poa: Option<Poa>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialRequestType {
-    MsoMdoc { doctype: String },
+    MsoMdoc {
+        doctype: String,
+    },
+
+    #[serde(rename = "dc+sd-jwt")]
+    SdJwt {
+        vct: String,
+    },
+}
+
+impl CredentialRequestType {
+    pub fn format(&self) -> Format {
+        match self {
+            CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
+            CredentialRequestType::SdJwt { .. } => Format::SdJwt,
+        }
+    }
 }
 
 impl Display for CredentialRequestType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             CredentialRequestType::MsoMdoc { doctype } => write!(f, "MsoMdoc({doctype})"),
+            CredentialRequestType::SdJwt { vct } => write!(f, "SdJwt({vct})"),
         }
     }
 }
 
 impl CredentialRequestType {
-    pub fn matches<T: CredentialType>(&self, other: &T) -> bool {
-        self.format() == other.format() && self.credential_type() == other.credential_type()
-    }
-}
-
-impl CredentialFormat for CredentialRequestType {
-    fn format(&self) -> Format {
-        match self {
-            CredentialRequestType::MsoMdoc { .. } => Format::MsoMdoc,
-        }
-    }
-}
-
-impl CredentialType for CredentialRequestType {
-    fn credential_type(&self) -> &str {
-        match self {
-            CredentialRequestType::MsoMdoc { doctype } => doctype,
+    pub fn from_format(format: Format, attestation_type: String) -> Option<Self> {
+        match format {
+            Format::MsoMdoc => Some(CredentialRequestType::MsoMdoc {
+                doctype: attestation_type,
+            }),
+            Format::SdJwt => Some(CredentialRequestType::SdJwt { vct: attestation_type }),
+            _ => None,
         }
     }
 }
@@ -118,14 +123,6 @@ pub struct CredentialResponses {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
     MsoMdoc { credential: Box<CborBase64<IssuerSigned>> },
-}
-
-impl CredentialFormat for CredentialResponse {
-    fn format(&self) -> Format {
-        match self {
-            CredentialResponse::MsoMdoc { .. } => Format::MsoMdoc,
-        }
-    }
 }
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";

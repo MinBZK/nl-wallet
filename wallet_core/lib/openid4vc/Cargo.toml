@@ -28,6 +28,8 @@ mock = ["dep:mockall", "poa/mock"]
 test = ["jwt/test", "poa/mock", "crypto/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
 integration = ["mock", "test"]
+# Credential payload examples
+example_credential_payloads = []
 
 [dependencies]
 async-trait.workspace = true

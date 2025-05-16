@@ -101,8 +101,9 @@ apple_app_attest = { path = "../lib/apple_app_attest", features = ["mock"] }
 attestation_data = { path = "../lib/attestation_data" }
 crypto = { path = "../lib/crypto", features = ["mock_secure_keys", "mock_remote_key"] }
 http_utils = { path = "../lib/http_utils", features = ["insecure_http_client"] }
+jwt = { path = "../lib/jwt", features = ["test"] }
 mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] }
-openid4vc = { path = "../lib/openid4vc", features = ["mock", "test"] }
+openid4vc = { path = "../lib/openid4vc", features = ["mock", "test", "example_credential_payloads"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }

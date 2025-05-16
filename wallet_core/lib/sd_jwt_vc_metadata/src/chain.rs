@@ -235,11 +235,27 @@ impl SortedTypeMetadataDocuments {
     }
 }
 
+impl PartialEq<SortedTypeMetadataDocuments> for TypeMetadataDocuments {
+    fn eq(&self, other: &SortedTypeMetadataDocuments) -> bool {
+        // A `TypeMetadataDocuments` is equal to a `SortedTypeMetadataDocuments` if the set of JSON documents they hold
+        // is exactly the same. This holds, as a `SortedTypeMetadataDocuments` can only be constructed when there are no
+        // excess JSON metadata documents within the set.
+        HashSet::<&[u8]>::from_iter(self.as_ref().iter().map(Vec::as_slice))
+            == HashSet::from_iter(other.as_ref().iter().map(Vec::as_slice))
+    }
+}
+
 impl From<SortedTypeMetadataDocuments> for TypeMetadataDocuments {
     fn from(value: SortedTypeMetadataDocuments) -> Self {
         let SortedTypeMetadataDocuments(documents) = value;
 
         TypeMetadataDocuments(documents)
+    }
+}
+
+impl PartialEq<TypeMetadataDocuments> for SortedTypeMetadataDocuments {
+    fn eq(&self, other: &TypeMetadataDocuments) -> bool {
+        other == self
     }
 }
 

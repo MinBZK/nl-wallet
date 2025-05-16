@@ -17,10 +17,10 @@ mock_time = ["dep:parking_lot"]
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock", "serde"] }
-derive_more = { workspace = true, features = ["as_ref", "from", "index", "into_iterator"] }
+derive_more = { workspace = true, features = ["as_ref", "from", "index", "into", "into_iterator"] }
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_with = { workspace = true, features = ["base64"] }
+serde_with = { workspace = true, features = ["base64", "chrono"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt", "parking_lot"] }
 
@@ -32,3 +32,4 @@ built = { workspace = true, features = ["chrono", "git2"] }
 [dev-dependencies]
 parking_lot.workspace = true
 rstest.workspace = true
+serde_json = { workspace = true, features = ["std"] }
