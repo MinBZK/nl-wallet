@@ -206,7 +206,6 @@ demo-relying-party-${DEPLOY_ENV}:
     - when: on_success
   needs:
     - fetch-variables
-    - read-hash-labels-image-demo-rp-${DEPLOY_ENV}
   variables:
     CHART_NAME: demo-relying-party
     RELEASE_NAME: demo-relying-party
@@ -243,7 +242,6 @@ demo-issuer-${DEPLOY_ENV}:
     - when: on_success
   needs:
     - fetch-variables
-    - read-hash-labels-image-demo-issuer-${DEPLOY_ENV}
   variables:
     CHART_NAME: demo-issuer
     RELEASE_NAME: demo-issuer
