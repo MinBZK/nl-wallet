@@ -1226,7 +1226,7 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
-            CredentialPayload::example_empty(),
+            CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key()),
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
             vec![Format::MsoMdoc],
         )
@@ -1242,7 +1242,7 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
-            CredentialPayload::example_empty(),
+            CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key()),
             TypeMetadata::pid_example(),
             vec![Format::AcVc, Format::MsoMdoc, Format::JwtVc],
         )
@@ -1512,7 +1512,11 @@ mod tests {
                 JsonSchemaPropertyType::String,
                 None,
             ),
-            CredentialPayload::example_with_attribute("family_name", AttributeValue::Integer(1)),
+            CredentialPayload::example_with_attribute(
+                "family_name",
+                AttributeValue::Integer(1),
+                SigningKey::random(&mut OsRng).verifying_key(),
+            ),
         );
         let trust_anchor = signer.trust_anchor.clone();
 
@@ -1548,7 +1552,11 @@ mod tests {
             JsonSchemaPropertyType::String,
             None,
         );
-        let credential_payload = CredentialPayload::example_with_attribute("family_name", AttributeValue::Integer(1));
+        let credential_payload = CredentialPayload::example_with_attribute(
+            "family_name",
+            AttributeValue::Integer(1),
+            SigningKey::random(&mut OsRng).verifying_key(),
+        );
 
         let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(type_metadata);
         let (normalized_metadata, raw_metadata) =
@@ -1755,10 +1763,13 @@ mod tests {
 
         // Converting a `CredentialResponse` into an `Mdoc` with different attributes
         // in the preview than are contained within the response should fail.
-        let attributes = CredentialPayload::example_with_attributes(vec![
-            ("new", AttributeValue::Bool(true)),
-            ("family_name", AttributeValue::Text(String::from("De Bruijn"))),
-        ])
+        let attributes = CredentialPayload::example_with_attributes(
+            vec![
+                ("new", AttributeValue::Bool(true)),
+                ("family_name", AttributeValue::Text(String::from("De Bruijn"))),
+            ],
+            SigningKey::random(&mut OsRng).verifying_key(),
+        )
         .previewable_payload
         .attributes;
         normalized_preview.content.credential_payload.attributes = attributes;

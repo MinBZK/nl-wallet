@@ -1,10 +1,13 @@
 use indexmap::IndexMap;
+use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 
+use crypto::server_keys::KeyPair;
+use crypto::EcdsaKeySend;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use jwt::error::JwkConversionError;
@@ -16,9 +19,12 @@ use mdoc::utils::crypto::CryptoError;
 use mdoc::AttestationQualification;
 use mdoc::MobileSecurityObject;
 use mdoc::NameSpace;
+use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::date_time_seconds::DateTimeSeconds;
 
@@ -51,10 +57,6 @@ pub enum CredentialPayloadError {
     #[category(pd)]
     Attribute(#[from] AttributeError),
 
-    #[error("error converting from SD-JWT: {0}")]
-    #[category(pd)]
-    SdJwt(#[from] sd_jwt::error::Error),
-
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     #[category(pd)]
     JwkConversion(#[from] JwkConversionError),
@@ -70,6 +72,18 @@ pub enum CredentialPayloadError {
     #[error("missing either the \"exp\" or \"nbf\" timestamp")]
     #[category(critical)]
     MissingValidityTimestamp,
+
+    #[error("error converting from SD-JWT: {0}")]
+    #[category(pd)]
+    SdJwtSerialization(#[source] sd_jwt::error::Error),
+
+    #[error("error converting to SD-JWT: {0}")]
+    #[category(pd)]
+    SdJwtCreation(#[from] sd_jwt::error::Error),
+
+    #[error("error converting claim path to JSON path: {0}")]
+    #[category(pd)]
+    ClaimPathConversion(#[source] TypeMetadataError),
 }
 
 /// This struct represents the Claims Set received from the issuer. Its JSON representation should be verifiable by the
@@ -116,7 +130,11 @@ pub struct PreviewableCredentialPayload {
 
 impl CredentialPayload {
     pub fn from_sd_jwt(sd_jwt: SdJwt, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
-        let json = serde_json::Value::Object(sd_jwt.into_disclosed_object()?);
+        let json = serde_json::Value::Object(
+            sd_jwt
+                .into_disclosed_object()
+                .map_err(CredentialPayloadError::SdJwtSerialization)?,
+        );
 
         Self::validate(&json, metadata)?;
 
@@ -127,6 +145,32 @@ impl CredentialPayload {
 
     pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
         Self::from_mdoc_parts(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso, metadata)
+    }
+
+    pub async fn into_sd_jwt(
+        self,
+        type_metadata: &NormalizedTypeMetadata,
+        holder_pubkey: &VerifyingKey,
+        issuer_key: &KeyPair<impl EcdsaKeySend>,
+    ) -> Result<SdJwt, CredentialPayloadError> {
+        let sd_jwt = type_metadata
+            .claims()
+            .iter()
+            .try_fold(SdJwtBuilder::new(self)?, |builder, claim| match claim.sd {
+                ClaimSelectiveDisclosureMetadata::Always | ClaimSelectiveDisclosureMetadata::Allowed => {
+                    let json_path = claim
+                        .to_json_path()
+                        .map_err(CredentialPayloadError::ClaimPathConversion)?;
+                    builder
+                        .make_concealable(&json_path)
+                        .map_err(CredentialPayloadError::SdJwtCreation)
+                }
+                _ => Ok(builder),
+            })?
+            .finish(Algorithm::ES256, issuer_key.private_key(), holder_pubkey)
+            .await?;
+
+        Ok(sd_jwt)
     }
 
     pub fn from_mdoc_parts(
@@ -197,6 +241,7 @@ mod examples {
     use chrono::Utc;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
+    use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
 
     use jwt::jwk::jwk_from_p256;
@@ -209,9 +254,9 @@ mod examples {
     use super::PreviewableCredentialPayload;
 
     impl CredentialPayload {
-        pub fn example_empty() -> Self {
+        pub fn example_empty(verifying_key: &VerifyingKey) -> Self {
             let now = Utc::now();
-            let confirmation_key = jwk_from_p256(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
+            let confirmation_key = jwk_from_p256(verifying_key).unwrap();
 
             Self {
                 issued_at: now.into(),
@@ -228,15 +273,19 @@ mod examples {
         }
 
         pub fn example_family_name() -> Self {
-            Self::example_with_attribute("family_name", AttributeValue::Text(String::from("De Bruijn")))
+            Self::example_with_attribute(
+                "family_name",
+                AttributeValue::Text(String::from("De Bruijn")),
+                SigningKey::random(&mut OsRng).verifying_key(),
+            )
         }
 
-        pub fn example_with_attribute(key: &str, attr_value: AttributeValue) -> Self {
-            Self::example_with_attributes(vec![(key, attr_value)])
+        pub fn example_with_attribute(key: &str, attr_value: AttributeValue, verifying_key: &VerifyingKey) -> Self {
+            Self::example_with_attributes(vec![(key, attr_value)], verifying_key)
         }
 
-        pub fn example_with_attributes(attrs: Vec<(&str, AttributeValue)>) -> Self {
-            let mut payload = CredentialPayload::example_empty();
+        pub fn example_with_attributes(attrs: Vec<(&str, AttributeValue)>, verifying_key: &VerifyingKey) -> Self {
+            let mut payload = CredentialPayload::example_empty(verifying_key);
             for (key, attr_value) in attrs {
                 payload
                     .previewable_payload
@@ -250,6 +299,8 @@ mod examples {
 
 #[cfg(test)]
 mod test {
+    use chrono::DateTime;
+    use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
@@ -260,10 +311,18 @@ mod test {
     use rand_core::OsRng;
     use serde_json::json;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::CertificateType;
+    use crypto::server_keys::generate::Ca;
+    use crypto::EcdsaKey;
     use jwt::jwk::jwk_from_p256;
+    use jwt::EcdsaDecodingKey;
     use mdoc::holder::Mdoc;
     use sd_jwt::builder::SdJwtBuilder;
+    use sd_jwt::hasher::Sha256Hasher;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
+    use sd_jwt::sd_jwt::SdJwtPresentation;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
@@ -429,5 +488,56 @@ mod test {
             payload.previewable_payload.attestation_type,
             sd_jwt.claims().properties.get("vct").and_then(|c| c.as_str()).unwrap()
         );
+    }
+
+    #[tokio::test]
+    async fn test_to_sd_jwt() {
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let cert_type = CertificateType::from(IssuerRegistration::new_mock());
+        let issuer_key_pair = ca.generate_key_pair("mycert", cert_type, Default::default()).unwrap();
+
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
+            "urn:eudi:pid:nl:1",
+            "family_name",
+            JsonSchemaPropertyType::String,
+            None,
+        ));
+
+        let credential_payload = CredentialPayload::example_with_attribute(
+            "family_name",
+            AttributeValue::Text(String::from("De Bruijn")),
+            holder_key.verifying_key(),
+        );
+
+        let sd_jwt = credential_payload
+            .into_sd_jwt(&metadata, holder_key.verifying_key(), &issuer_key_pair)
+            .await
+            .unwrap();
+
+        let hasher = Sha256Hasher::new();
+        let (presented_sd_jwt, _) = sd_jwt
+            .into_presentation(
+                &hasher,
+                DateTime::from_timestamp_millis(1458304832).unwrap(),
+                String::from("https://aud.example.com"),
+                String::from("nonce123"),
+                Algorithm::ES256,
+            )
+            .unwrap()
+            .finish(&holder_key)
+            .await
+            .unwrap();
+
+        SdJwtPresentation::parse_and_verify(
+            &presented_sd_jwt.to_string(),
+            &EcdsaDecodingKey::from(&issuer_key_pair.verifying_key().await.unwrap()),
+            &Sha256Hasher,
+            "https://aud.example.com",
+            "nonce123",
+            Duration::days(36500),
+        )
+        .unwrap();
     }
 }
