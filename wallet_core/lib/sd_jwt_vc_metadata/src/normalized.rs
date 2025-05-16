@@ -49,7 +49,7 @@ pub enum NormalizedTypeMetadataError {
 
 #[derive(Debug, thiserror::Error)]
 #[error("JSON schema validation failed for vct \"{0}\": {1}")]
-pub struct TypeMetadataValidationError(String, #[source] ValidationError<'static>);
+pub struct TypeMetadataValidationError(String, #[source] Box<ValidationError<'static>>);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NormalizedTypeMetadata {
