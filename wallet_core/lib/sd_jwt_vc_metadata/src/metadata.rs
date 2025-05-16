@@ -30,7 +30,7 @@ use utils::vec_at_least::VecNonEmpty;
 // The requirements for the svg_id according to the specification are:
 // "It MUST consist of only alphanumeric characters and underscores and MUST NOT start with a digit."
 static SVG_ID_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z_][0-9A-Za-z_]*$").unwrap());
-static TEMPLATE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{\{([A-Za-z_][0-9A-Za-z_]*)\}\}").unwrap());
+static TEMPLATE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{\{([A-Za-z_][0-9A-Za-z_]*)}}").unwrap());
 
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
@@ -58,6 +58,9 @@ pub enum TypeMetadataError {
 
     #[error("found missing `svg_id`s: {}", .0.join(", "))]
     MissingSvgIds(Vec<String>),
+
+    #[error("error converting claim path to a JSON path: {0}")]
+    JsonPathConversion(String),
 }
 
 /// SD-JWT VC type metadata document.
@@ -482,6 +485,18 @@ pub struct ClaimMetadata {
 }
 
 impl ClaimMetadata {
+    pub fn to_json_path(&self) -> Result<String, TypeMetadataError> {
+        let json_path = self.path.iter().try_fold(String::new(), |mut acc, path| match path {
+            ClaimPath::SelectByKey(_) => {
+                acc.push_str(&format!("/{path}"));
+                Ok(acc)
+            }
+            other => Err(TypeMetadataError::JsonPathConversion(other.to_string())),
+        })?;
+
+        Ok(json_path)
+    }
+
     pub(crate) fn path_to_string(path: &[ClaimPath]) -> String {
         path.iter().fold(String::new(), |mut output, path| {
             let _ = write!(output, "[{path}]");
@@ -1277,5 +1292,42 @@ mod test {
                 panic!("assertion failed\n left: ()\nright: {e:?}")
             }
         };
+    }
+
+    #[test]
+    fn test_to_json_path() {
+        fn create_claim_meta(paths: Vec<ClaimPath>) -> ClaimMetadata {
+            ClaimMetadata {
+                path: VecNonEmpty::try_from(paths).unwrap(),
+                display: vec![],
+                sd: ClaimSelectiveDisclosureMetadata::Allowed,
+                svg_id: None,
+            }
+        }
+
+        assert_eq!(
+            "/a/b/c",
+            create_claim_meta(vec![
+                ClaimPath::SelectByKey(String::from("a")),
+                ClaimPath::SelectByKey(String::from("b")),
+                ClaimPath::SelectByKey(String::from("c")),
+            ])
+            .to_json_path()
+            .unwrap()
+        );
+
+        assert_matches!(
+            create_claim_meta(vec![
+                ClaimPath::SelectByKey(String::from("a")),
+                ClaimPath::SelectByIndex(0),
+            ])
+            .to_json_path(),
+            Err(TypeMetadataError::JsonPathConversion(_))
+        );
+
+        assert_matches!(
+            create_claim_meta(vec![ClaimPath::SelectByKey(String::from("a")), ClaimPath::SelectAll,]).to_json_path(),
+            Err(TypeMetadataError::JsonPathConversion(_))
+        );
     }
 }

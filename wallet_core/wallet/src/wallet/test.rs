@@ -129,12 +129,15 @@ pub static ISSUER_KEY_UNAUTHENTICATED: LazyLock<IssuerKey> = LazyLock::new(|| {
 /// Generates a valid `CredentialPayload` along with its metadata `SortedTypeMetadataDocuments` and
 /// `NormalizedTypeMetadata`.
 pub fn create_example_credential_payload() -> (CredentialPayload, SortedTypeMetadataDocuments, NormalizedTypeMetadata) {
-    let credential_payload = CredentialPayload::example_with_attributes(vec![
-        ("family_name", AttributeValue::Text("De Bruijn".to_string())),
-        ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
-        ("birth_date", AttributeValue::Text("1997-05-10".to_string())),
-        ("age_over_18", AttributeValue::Bool(true)),
-    ]);
+    let credential_payload = CredentialPayload::example_with_attributes(
+        vec![
+            ("family_name", AttributeValue::Text("De Bruijn".to_string())),
+            ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
+            ("birth_date", AttributeValue::Text("1997-05-10".to_string())),
+            ("age_over_18", AttributeValue::Bool(true)),
+        ],
+        SigningKey::random(&mut OsRng).verifying_key(),
+    );
 
     let metadata = TypeMetadata::example_with_claim_names(
         PID_DOCTYPE,
