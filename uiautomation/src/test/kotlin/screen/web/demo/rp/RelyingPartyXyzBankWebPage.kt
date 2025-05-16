@@ -1,14 +1,14 @@
-package screen.web.rp
+package screen.web.demo.rp
 
 import org.openqa.selenium.By
-import screen.web.rp.shared.RelyingPartyDemoBody
-import screen.web.rp.shared.RelyingPartyDemoPopup
+import screen.web.demo.shared.DemoBody
+import screen.web.demo.shared.DemoPopup
 import util.MobileActions
 
 class RelyingPartyXyzBankWebPage : MobileActions() {
 
-    val body = RelyingPartyDemoBody()
-    val popup = RelyingPartyDemoPopup()
+    val body = DemoBody()
+    val popup = DemoPopup()
 
     private val accountCreatedTextLocator = By.xpath("//span[text()='Identificatie gelukt']")
 

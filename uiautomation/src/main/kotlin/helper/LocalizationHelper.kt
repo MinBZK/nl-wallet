@@ -22,6 +22,7 @@ class LocalizationHelper {
         val en: String,
     ) {
         SECONDS("seconden", "seconds"),
+        ADD_CARD("Voeg kaart toe", "Add 1 card"),
     }
 
     fun translate(translation: Translation): String {

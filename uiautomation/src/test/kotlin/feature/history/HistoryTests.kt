@@ -23,8 +23,8 @@ import screen.history.HistoryOverviewScreen
 import screen.menu.MenuScreen
 import screen.organization.OrganizationDetailScreen
 import screen.security.PinScreen
-import screen.web.rp.RelyingPartyAmsterdamWebPage
-import screen.web.rp.RelyingPartyOverviewWebPage
+import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
+import screen.web.demo.DemoIndexWebPage
 
 @TestMethodOrder(MethodOrderer.DisplayName::class)
 @DisplayName("${HistoryTests.USE_CASE} App logs PID/address issuance and disclosure events [${HistoryTests.JIRA_ID}]")
@@ -42,7 +42,7 @@ class HistoryTests : TestBase() {
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
         MenuScreen().clickBrowserTestButton()
 
-        val overviewWebPage = RelyingPartyOverviewWebPage()
+        val overviewWebPage = DemoIndexWebPage()
         val platform = overviewWebPage.platformName()
 
         overviewWebPage.clickAmsterdamButton()

@@ -25,11 +25,11 @@ import screen.disclosure.DisclosureApproveOrganizationScreen
 import screen.menu.MenuScreen
 import screen.organization.OrganizationDetailScreen
 import screen.security.PinScreen
-import screen.web.rp.RelyingPartyAmsterdamWebPage
-import screen.web.rp.RelyingPartyMarketplaceWebPage
-import screen.web.rp.RelyingPartyMonkeyBikeWebPage
-import screen.web.rp.RelyingPartyOverviewWebPage
-import screen.web.rp.RelyingPartyXyzBankWebPage
+import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
+import screen.web.demo.rp.RelyingPartyMarketplaceWebPage
+import screen.web.demo.rp.RelyingPartyMonkeyBikeWebPage
+import screen.web.demo.DemoIndexWebPage
+import screen.web.demo.rp.RelyingPartyXyzBankWebPage
 
 class DisclosureTests : TestBase() {
 
@@ -38,7 +38,7 @@ class DisclosureTests : TestBase() {
         const val JIRA_ID = "PVW-2128"
     }
 
-    private lateinit var overviewWebPage: RelyingPartyOverviewWebPage
+    private lateinit var overviewWebPage: DemoIndexWebPage
     private lateinit var xyzBankWebPage: RelyingPartyXyzBankWebPage
     private lateinit var amsterdamWebPage: RelyingPartyAmsterdamWebPage
     private lateinit var marketPlaceWebPage: RelyingPartyMarketplaceWebPage
@@ -53,7 +53,7 @@ class DisclosureTests : TestBase() {
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
-        overviewWebPage = RelyingPartyOverviewWebPage()
+        overviewWebPage = DemoIndexWebPage()
         disclosureScreen = DisclosureApproveOrganizationScreen()
         pinScreen = PinScreen()
         l10n = LocalizationHelper()

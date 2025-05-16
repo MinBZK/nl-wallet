@@ -32,6 +32,16 @@ class OrganizationAuthMetadataHelper {
         JSONObject(jsonContent)
     }
 
+    private val universityIssuerAuthJSON: JSONObject by lazy {
+        val jsonContent = File(UNIVERSITY_READER_AUTH_JSON_FILE_PATH).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
+
+    private val insuranceIssuerAuthJSON: JSONObject by lazy {
+        val jsonContent = File(INSURANCE_READER_AUTH_JSON_FILE_PATH).readText(Charsets.UTF_8)
+        JSONObject(jsonContent)
+    }
+
     fun getAttributeValueForOrganization(attributePath: String, rp: Organization): String {
         val json = when (rp) {
             Organization.AMSTERDAM -> amsterdamReaderAuthJSON
@@ -39,6 +49,8 @@ class OrganizationAuthMetadataHelper {
             Organization.MONKEYBIKE -> mokeybikeReaderAuthJSON
             Organization.MARKETPLACE -> marketplaceReaderAuthJSON
             Organization.RVIG -> rvigIssuerAuthJSON
+            Organization.INSURANCE -> insuranceIssuerAuthJSON
+            Organization.UNIVERSITY -> universityIssuerAuthJSON
         }
 
         val pathParts = attributePath.split(".")
@@ -63,7 +75,9 @@ class OrganizationAuthMetadataHelper {
         XYZ,
         MONKEYBIKE,
         MARKETPLACE,
-        RVIG
+        RVIG,
+        UNIVERSITY,
+        INSURANCE
     }
 
     companion object {
@@ -72,5 +86,7 @@ class OrganizationAuthMetadataHelper {
         val MONKEYBIKE_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/monkey_bike_reader_auth.json")
         val MARKETPLACE_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/online_marketplace_reader_auth.json")
         val RVIG_ISSUER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/rvig_issuer_auth.json")
+        val INSURANCE_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/insurance_reader_auth.json")
+        val UNIVERSITY_READER_AUTH_JSON_FILE_PATH = getProjectFile("scripts/devenv/university_issuer_auth.json")
     }
 }
