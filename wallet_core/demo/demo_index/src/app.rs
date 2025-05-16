@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
@@ -10,6 +11,7 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::routing::get;
 use axum::Router;
+use demo_utils::headers::set_content_security_policy;
 use itertools::Itertools;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
@@ -18,6 +20,7 @@ use tower_http::trace::TraceLayer;
 
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use demo_utils::LANGUAGE_JS_SHA256;
 use utils::path::prefix_local_path;
 
 use crate::settings::DemoService;
@@ -28,6 +31,15 @@ use crate::translations::TRANSLATIONS;
 struct ApplicationState {
     demo_services: Vec<DemoService>,
 }
+
+static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
+    let script_src = format!("'sha256-{}'", *LANGUAGE_JS_SHA256);
+
+    format!(
+        "default-src 'self'; script-src {script_src}; img-src 'self' data:; font-src 'self' data:; form-action \
+         'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+    )
+});
 
 pub fn create_router(settings: Settings) -> Router {
     let application_state = Arc::new(ApplicationState {
@@ -48,7 +60,10 @@ pub fn create_router(settings: Settings) -> Router {
                 ),
         )
         .with_state(Arc::clone(&application_state))
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(|req, next| {
+            set_content_security_policy(req, next, &CSP_HEADER)
+        }));
 
     app
 }
@@ -57,6 +72,7 @@ struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
+    language_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -74,6 +90,7 @@ async fn index(State(state): State<Arc<ApplicationState>>, language: Language) -
             selected_lang: language,
             trans: &TRANSLATIONS[language],
             available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
         },
     }
     .into_response()

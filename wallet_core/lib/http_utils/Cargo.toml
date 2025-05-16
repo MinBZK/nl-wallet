@@ -26,8 +26,10 @@ base64 = { workspace = true }
 data-url = { workspace = true }
 derive_more = { workspace = true, features = ["as_ref", "debug"] }
 http.workspace = true
+itertools.workspace = true
 mime.workspace = true
-nutype = { workspace = true, features = ["serde"] }
+nutype = { workspace = true, features = ["regex", "serde"] }
+regex.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 serde_with = { workspace = true, features = ["base64"] }
@@ -44,3 +46,4 @@ tower-http = { workspace = true, optional = true, features = ["cors"] }
 [dev-dependencies]
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros", "rt"] }
+toml.workspace = true

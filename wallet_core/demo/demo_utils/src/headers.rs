@@ -17,14 +17,21 @@ pub fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
 }
 
 pub async fn set_static_cache_control(request: Request, next: Next) -> Response {
-    // only cache images and fonts, not CSS and JS (except wallet_web, as that is suffixed with a hash)
-    let set_no_store = !request.uri().path().ends_with(".iife.js")
-        && [".css", ".js"].iter().any(|ext| request.uri().path().ends_with(ext));
+    // only cache images and fonts, not CSS and JS
+    let set_no_store = [".css", ".js"].iter().any(|ext| request.uri().path().ends_with(ext));
     let mut response = next.run(request).await;
     if set_no_store {
         response
             .headers_mut()
             .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
     }
+    response
+}
+
+pub async fn set_content_security_policy(request: Request, next: Next, csp_header: &'static str) -> Response {
+    let mut response = next.run(request).await;
+    response
+        .headers_mut()
+        .insert("Content-Security-Policy", HeaderValue::from_static(csp_header));
     response
 }

@@ -44,6 +44,11 @@
 .buttons button:hover:not(:disabled) > span,
 .buttons nl-wallet-button::part(button-span):hover:not(:disabled) {
   background: var(--hover-color);
+  cursor: pointer;
+}
+
+.buttons nl-wallet-button::part(button):focus {
+  outline: revert;
 }
 
 .buttons nl-wallet-button::part(button)::after {

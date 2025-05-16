@@ -1,6 +1,9 @@
+use std::fmt::Display;
+
 use cfg_if::cfg_if;
 use http::header::InvalidHeaderValue;
 use http::HeaderValue;
+use itertools::Itertools;
 use nutype::nutype;
 use serde::Deserialize;
 use url::Url;
@@ -95,6 +98,51 @@ pub enum CorsOrigin {
     Origins(Vec<Origin>),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub enum ConnectSource {
+    #[serde(rename = "'none'")]
+    None,
+    #[serde(untagged)]
+    List(Vec<SourceExpression>),
+}
+
+impl Display for ConnectSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectSource::None => f.write_str("'none'"),
+            ConnectSource::List(list) => {
+                write!(f, "{}", list.iter().join(" "))
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub enum SourceExpression {
+    #[serde(rename = "'self'")]
+    SelfSource,
+    #[serde(untagged)]
+    SchemeSource(Scheme),
+    #[serde(untagged)]
+    HostSource(Url),
+}
+
+impl Display for SourceExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SourceExpression::SelfSource => f.write_str("'self'"),
+            SourceExpression::SchemeSource(scheme) => write!(f, "{}", scheme),
+            SourceExpression::HostSource(url) => write!(f, "{}", url),
+        }
+    }
+}
+
+#[nutype(
+    derive(Clone, Debug, PartialEq, Eq, TryFrom, Deserialize, Display),
+    validate(regex = r"^([a-z][a-z0-9+\-.]*):$")
+)]
+pub struct Scheme(String);
+
 #[cfg(feature = "server")]
 mod axum {
     use tower_http::cors::AllowOrigin;
@@ -187,5 +235,35 @@ mod tests {
     #[case(r#"["data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAZABkAAD"]"#)]
     fn deserialize_origin_errors(#[case] input: &str) {
         let _ = serde_json::from_str::<CorsOrigin>(input).expect_err("invalid json");
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+    pub struct Test {
+        connect_src: ConnectSource,
+    }
+
+    #[rstest]
+    #[case(r#""'none'""#, ConnectSource::None)]
+    #[case(r#"[]"#, ConnectSource::List(vec![]))]
+    #[case(r#"["'self'"]"#, ConnectSource::List(vec![SourceExpression::SelfSource]))]
+    #[case(r#"["'self'", "wss:", "https://example.com"]"#, ConnectSource::List(vec![
+        SourceExpression::SelfSource,
+        SourceExpression::SchemeSource("wss:".to_string().try_into().unwrap()),
+        SourceExpression::HostSource(Url::parse("https://example.com").unwrap())])
+    )]
+    #[case(r#"["http://localhost:3009"]"#, ConnectSource::List(vec![
+        SourceExpression::HostSource(Url::parse("http://localhost:3009").unwrap())])
+    )]
+    fn deserialize_connect_source(#[case] input: &str, #[case] expected: ConnectSource) {
+        let actual: Test = toml::from_str(&format!("connect_src = {input}")).expect("toml");
+        assert_eq!(actual.connect_src, expected);
+    }
+
+    #[rstest]
+    #[case(r#"none"#)]
+    #[case(r#"["self"]"#)]
+    #[case(r#"["scheme/"]"#)]
+    fn deserialize_connect_source_errors(#[case] input: &str) {
+        let _ = toml::from_str::<Test>(&format!("connect_src = {input}")).expect_err("invalid toml");
     }
 }

@@ -59,10 +59,6 @@ spec:
               value: {{ .Values.helpBaseUrl }}
             - name: DEMO_ISSUER__STRUCTURED_LOGGING
               value: "true"
-            - name: DEMO_ISSUER__WALLET_WEB__FILENAME
-              value: {{ .Values.demoIssuer.walletWebFilename }}
-            - name: DEMO_ISSUER__WALLET_WEB__SHA256
-              value: {{ .Values.demoIssuer.walletWebSha256 }}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

@@ -11,6 +11,10 @@
 <link rel="stylesheet" href="../css/{{ usecase }}-return.css" />
 {% endblock %}
 
+{% block scripts %}
+<script integrity="sha256-{{ base.language_js_sha256 }}" src="../../language.js" defer></script>
+{% endblock %}
+
 {% block content %}
 {% match usecase %}
     {% when "mijn_amsterdam" %}

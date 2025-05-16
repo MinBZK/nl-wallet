@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="nl">
+<html lang="{{ base.selected_lang }}">
     <head>
         <meta charset="UTF-8" />
         <meta

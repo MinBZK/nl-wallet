@@ -2,11 +2,11 @@
 {%- import "../../demo_utils/templates/components/demo_bar.askama" as demo_bar -%}
 
 {% block styles %}
-<link rel="stylesheet" href="./css/reset.css" />
-<link rel="stylesheet" href="./css/button-reset.css" />
-<link rel="stylesheet" href="./css/fonts.css" />
-<link rel="stylesheet" href="./css/demo_bar.css" />
-<link rel="stylesheet" href="./css/nav.css" />
+<link rel="stylesheet" href="./css/index.css" />
+{% endblock %}
+
+{% block scripts %}
+<script integrity="sha256-{{ base.language_js_sha256 }}" src="../language.js" defer></script>
 {% endblock %}
 
 {% block content %}

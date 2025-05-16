@@ -9,10 +9,6 @@ port = ${DEMO_ISSUER_PORT}
 ip = '127.0.0.1'
 port = ${DEMO_ISSUER_IS_PORT}
 
-[wallet_web]
-filename = "${WALLET_WEB_FILENAME}"
-sha256 = "${WALLET_WEB_SHA256}"
-
 [usecases.university]
 client_id = "cert.issuer.example.com"
 disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]

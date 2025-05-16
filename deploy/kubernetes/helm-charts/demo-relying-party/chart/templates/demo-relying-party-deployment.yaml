@@ -57,10 +57,6 @@ spec:
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.demoIndex.hostname .Values.demoIndex.contextPath) }}
             - name: DEMO_RELYING_PARTY__STRUCTURED_LOGGING
               value: "true"
-            - name: DEMO_RELYING_PARTY__WALLET_WEB__FILENAME
-              value: {{ .Values.demoRelyingParty.walletWebFilename }}
-            - name: DEMO_RELYING_PARTY__WALLET_WEB__SHA256
-              value: {{ .Values.demoRelyingParty.walletWebSha256 }}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:
