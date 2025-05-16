@@ -437,6 +437,16 @@ run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
   script:
     - kubectl create job --from=cronjob/encrypt-gba-v-testdata gba-encrypt-test-data-$(date +%s)
 
+run-demo-issuer-issuance-server-reset-${DEPLOY_ENV}:
+  allow_failure: true
+  rules:
+    - when: manual
+  <<: *deploy-environment
+  needs:
+    - demo-issuer-issuance-server-${DEPLOY_ENV}
+  script:
+    - kubectl create job --from=cronjob/demo-issuer-issuance-server-reset demo-issuer-issuance-db-reset-$(date +%s)
+
 run-demo-rp-verification-server-reset-${DEPLOY_ENV}:
   allow_failure: true
   rules:
