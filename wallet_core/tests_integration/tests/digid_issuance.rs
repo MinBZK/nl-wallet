@@ -78,7 +78,7 @@ async fn test_pid_issuance_digid_bridge() {
     let server_url = local_pid_base_url(port);
 
     // Start issuance by exchanging the authorization code for the attestation previews
-    let (pid_issuer_client, _) = HttpIssuanceSession::start_issuance(
+    let issuance_session = HttpIssuanceSession::start_issuance(
         HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), reqwest::Client::new()),
         server_url.clone(),
         token_request,
@@ -87,7 +87,7 @@ async fn test_pid_issuance_digid_bridge() {
     .await
     .unwrap();
 
-    let mdocs = pid_issuer_client
+    let mdocs = issuance_session
         .accept_issuance(
             &wallet_config.mdoc_trust_anchors(),
             &MockRemoteKeyFactory::default(),

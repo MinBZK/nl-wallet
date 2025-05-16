@@ -1,6 +1,8 @@
+use std::num::NonZeroU8;
 use std::time::Duration;
 
 use derive_more::From;
+use indexmap::IndexMap;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
@@ -22,16 +24,14 @@ use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
-use mdoc::unsigned::UnsignedMdoc;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use utils::generator::TimeGenerator;
-use utils::single_unique::MultipleItemsFound;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
-use crate::credential::CredentialRequestType;
-use crate::credential_formats::CredentialFormats;
+use crate::credential_payload::PreviewableCredentialPayload;
 use crate::server_state::SessionToken;
+use crate::Format;
 
 #[derive(Serialize, Deserialize, Debug, Clone, From)]
 pub struct AuthorizationCode(String);
@@ -147,80 +147,69 @@ pub struct TokenResponse {
 pub struct TokenResponseWithPreviews {
     #[serde(flatten)]
     pub token_response: TokenResponse,
-    pub credential_previews: VecNonEmpty<CredentialFormats<CredentialPreview>>,
+    pub credential_previews: VecNonEmpty<CredentialPreview>,
 }
 
 #[serde_as]
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "format", rename_all = "snake_case")]
-pub enum CredentialPreview {
-    MsoMdoc {
-        unsigned_mdoc: UnsignedMdoc,
-        #[serde_as(as = "Base64")]
-        issuer_certificate: BorrowingCertificate,
-        type_metadata: TypeMetadataDocuments,
-    },
+pub struct CredentialPreviewContent {
+    /// The amount of copies of this attestation that the holder will receive per credential format.
+    pub copies_per_format: IndexMap<Format, NonZeroU8>,
+
+    pub credential_payload: PreviewableCredentialPayload,
+
+    #[serde_as(as = "Base64")]
+    pub issuer_certificate: BorrowingCertificate,
+}
+
+#[serde_as]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct CredentialPreview {
+    #[serde(flatten)]
+    pub content: CredentialPreviewContent,
+
+    pub type_metadata: TypeMetadataDocuments,
 }
 
 impl CredentialPreview {
-    pub fn copy_count(&self) -> u8 {
-        match self {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc.copy_count.into(),
-        }
-    }
-
     pub fn verify(&self, trust_anchors: &[TrustAnchor<'_>]) -> Result<(), CredentialPreviewError> {
-        match self {
-            CredentialPreview::MsoMdoc {
-                issuer_certificate,
-                unsigned_mdoc,
-                ..
-            } => {
-                // Verify the issuer certificates that the issuer presents for each credential to be issued.
-                // NB: this only proves the authenticity of the data inside the certificates (the
-                // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
-                // Anyone that has ever seen these certificates (such as other wallets that received them during
-                // issuance) could present them here in the protocol without needing the corresponding
-                // issuer private key. This is not a problem, because at the end of the issuance
-                // protocol each mdoc is verified against the corresponding certificate in the
-                // credential preview, which implicitly authenticates the issuer because only it could
-                // have produced an mdoc against that certificate.
-                issuer_certificate.verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
+        let Self { content, .. } = self;
 
-                // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
-                if !issuer_certificate
-                    .san_dns_name_or_uris()?
-                    .as_ref()
-                    .contains(&unsigned_mdoc.issuer_uri)
-                {
-                    return Err(CredentialPreviewError::IssuerUriNotFoundInSan(
-                        unsigned_mdoc.issuer_uri.clone(),
-                        issuer_certificate.san_dns_name_or_uris()?,
-                    ));
-                }
+        // Verify the issuer certificates that the issuer presents for each credential to be issued.
+        // NB: this only proves the authenticity of the data inside the certificates (the
+        // [`IssuerRegistration`]s), but does not authenticate the issuer that presents them.
+        // Anyone that has ever seen these certificates (such as other wallets that received them during
+        // issuance) could present them here in the protocol without needing the corresponding
+        // issuer private key. This is not a problem, because at the end of the issuance
+        // protocol each mdoc is verified against the corresponding certificate in the
+        // credential preview, which implicitly authenticates the issuer because only it could
+        // have produced an mdoc against that certificate.
+        content
+            .issuer_certificate
+            .verify(CertificateUsage::Mdl, &[], &TimeGenerator, trust_anchors)?;
 
-                Ok(())
-            }
+        // Verify that the issuer_uri is among the SAN DNS names or URIs in the issuer_certificate
+        if !content
+            .issuer_certificate
+            .san_dns_name_or_uris()?
+            .as_ref()
+            .contains(&content.credential_payload.issuer)
+        {
+            return Err(CredentialPreviewError::IssuerUriNotFoundInSan(
+                content.credential_payload.issuer.clone(),
+                content.issuer_certificate.san_dns_name_or_uris()?,
+            ));
         }
+
+        Ok(())
     }
 
-    pub fn credential_request_type(self) -> CredentialRequestType {
-        match self {
-            CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => CredentialRequestType::MsoMdoc {
-                doctype: unsigned_mdoc.doc_type,
-            },
-        }
-    }
-
-    pub fn issuer_registration(&self) -> Result<Box<IssuerRegistration>, CredentialPreviewError> {
-        match self {
-            CredentialPreview::MsoMdoc { issuer_certificate, .. } => {
-                let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(issuer_certificate)? else {
-                    Err(CredentialPreviewError::NoIssuerRegistration)?
-                };
-                Ok(issuer)
-            }
-        }
+    pub fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
+        let CertificateType::Mdl(Some(issuer)) = CertificateType::from_certificate(&self.content.issuer_certificate)?
+        else {
+            Err(CredentialPreviewError::NoIssuerRegistration)?
+        };
+        Ok(*issuer)
     }
 }
 
@@ -229,15 +218,11 @@ pub enum CredentialPreviewError {
     #[error("certificate error: {0}")]
     #[category(defer)]
     Certificate(#[from] CertificateError),
+
     #[error("issuer registration not found in certificate")]
     #[category(critical)]
     NoIssuerRegistration,
-    #[error("issuer registration not found in credential previews")]
-    #[category(critical)]
-    NoIssuerRegistrationInPreviews,
-    #[error("multiple issuer registrations found in credential previews")]
-    #[category(critical)]
-    MultipleIssuerRegistrationInPreviews(#[source] MultipleItemsFound),
+
     #[error("issuer URI {0} not found in SAN {1:?}")]
     #[category(pd)]
     IssuerUriNotFoundInSan(HttpsUri, VecNonEmpty<HttpsUri>),

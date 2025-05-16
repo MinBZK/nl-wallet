@@ -28,9 +28,9 @@ mod test {
     use assert_matches::assert_matches;
     use chrono::NaiveDate;
     use indexmap::IndexMap;
-    use mdoc::unsigned::Entry;
 
     use attestation_data::auth::Organization;
+    use mdoc::unsigned::Entry;
     use openid4vc::attributes::AttributeError;
     use openid4vc::attributes::AttributeValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;

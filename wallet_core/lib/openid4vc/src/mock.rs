@@ -11,16 +11,15 @@ use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
 use poa::factory::PoaFactory;
 
-use crate::issuance_session::CredentialPreviewsNormalizedMetadata;
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
 use crate::issuance_session::IssuedCredentialCopies;
+use crate::issuance_session::NormalizedCredentialPreview;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
 use crate::metadata::IssuerMetadata;
 use crate::oidc::Config;
-use crate::token::CredentialPreviewError;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
@@ -32,7 +31,7 @@ pub use poa::factory::mock::MOCK_WALLET_CLIENT_ID;
 
 mockall::mock! {
     pub IssuanceSession {
-        pub fn start() -> Result<(Self, CredentialPreviewsNormalizedMetadata), IssuanceSessionError>
+        pub fn start() -> Result<Self, IssuanceSessionError>
         where
             Self: Sized;
 
@@ -42,7 +41,9 @@ mockall::mock! {
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
 
-        pub fn issuer(&self) -> Result<IssuerRegistration, CredentialPreviewError>;
+        pub fn credential_preview_data(&self) -> &[NormalizedCredentialPreview];
+
+        pub fn issuer(&self) -> Result<IssuerRegistration, IssuanceSessionError>;
     }
 }
 
@@ -52,7 +53,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: BaseUrl,
         _: TokenRequest,
         _: &[TrustAnchor<'_>],
-    ) -> Result<(Self, CredentialPreviewsNormalizedMetadata), IssuanceSessionError>
+    ) -> Result<Self, IssuanceSessionError>
     where
         Self: Sized,
     {
@@ -77,7 +78,11 @@ impl IssuanceSession for MockIssuanceSession {
         self.reject()
     }
 
-    fn issuer_registration(&self) -> Result<IssuerRegistration, CredentialPreviewError> {
+    fn credential_preview_data(&self) -> &[NormalizedCredentialPreview] {
+        self.credential_preview_data()
+    }
+
+    fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError> {
         self.issuer()
     }
 }

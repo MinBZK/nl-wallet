@@ -187,11 +187,11 @@ mod tests {
     use std::convert::Infallible;
     use std::sync::Arc;
 
+    use chrono::Utc;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
 
     use mdoc::verifier::DocumentDisclosedAttributes;
-    use mdoc::Tdate;
     use mdoc::ValidityInfo;
     use openid4vc::attributes::Attribute;
     use openid4vc::attributes::AttributeValue;
@@ -223,9 +223,9 @@ mod tests {
                 issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "ca".to_string(),
                 validity_info: ValidityInfo {
-                    signed: Tdate::now(),
-                    valid_from: Tdate::now(),
-                    valid_until: Tdate::now(),
+                    signed: Utc::now().into(),
+                    valid_from: Utc::now().into(),
+                    valid_until: Utc::now().into(),
                     expected_update: None,
                 },
             },

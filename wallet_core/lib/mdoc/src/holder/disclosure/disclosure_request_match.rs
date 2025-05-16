@@ -192,8 +192,6 @@ impl<I> DisclosureRequestMatch<I> {
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU8;
-
     use futures::future;
     use rstest::rstest;
 
@@ -249,7 +247,7 @@ mod tests {
             future::join_all(
                 stored_documents
                     .into_iter()
-                    .map(|document| document.sign(&ca, &key_factory, NonZeroU8::new(1).unwrap())),
+                    .map(|document| document.sign(&ca, &key_factory)),
             )
             .await,
         );

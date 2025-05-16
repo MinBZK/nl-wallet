@@ -819,7 +819,6 @@ pub struct VpResponse {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
-    use std::num::NonZeroU8;
 
     use chrono::DateTime;
     use chrono::Utc;
@@ -1278,7 +1277,7 @@ mod tests {
         let issuer_signed_and_keys = join_all(
             stored_documents
                 .into_iter()
-                .map(|doc| doc.issuer_signed(ca, &key_factory, NonZeroU8::new(10).unwrap())),
+                .map(|doc| doc.issuer_signed(ca, &key_factory)),
         )
         .await;
 

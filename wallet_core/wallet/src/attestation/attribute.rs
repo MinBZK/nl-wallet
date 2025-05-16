@@ -24,7 +24,7 @@ use super::AttestationIdentity;
 impl Attestation {
     // Construct a new `Attestation` from a combination of metadata and nested attributes.
     // This method has different behaviour depending on the `selection_mode` parameter.
-    pub(super) fn create_from_attributes(
+    pub fn create_from_attributes(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer: Organization,

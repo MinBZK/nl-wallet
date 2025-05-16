@@ -1,5 +1,3 @@
-use std::num::NonZeroU8;
-
 use chrono::Days;
 use chrono::Utc;
 use indexmap::IndexMap;
@@ -19,7 +17,6 @@ fn create_empty_unsigned_mdoc() -> UnsignedMdoc {
 
     UnsignedMdoc {
         doc_type: PID_DOCTYPE.to_string(),
-        copy_count: NonZeroU8::new(1).unwrap(),
         valid_from: now.into(),
         valid_until: (now + Days::new(365)).into(),
         attributes: IndexMap::from([(

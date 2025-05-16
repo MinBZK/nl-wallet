@@ -2,11 +2,11 @@ use std::collections::VecDeque;
 use std::num::TryFromIntError;
 
 use indexmap::IndexMap;
+use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
 use mdoc::unsigned::Entry;
-use mdoc::DataElementValue;
 use mdoc::NameSpace;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
@@ -21,8 +21,8 @@ pub enum AttributeValue {
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttributeError {
-    #[error("unable to convert mdoc value: {0:?}")]
-    FromCborConversion(DataElementValue),
+    #[error("unable to convert mdoc cbor value: {0:?}")]
+    FromCborConversion(ciborium::Value),
 
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
@@ -31,31 +31,34 @@ pub enum AttributeError {
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
 }
 
-impl From<&AttributeValue> for ciborium::Value {
-    fn from(value: &AttributeValue) -> Self {
+impl From<AttributeValue> for ciborium::Value {
+    fn from(value: AttributeValue) -> Self {
         match value {
-            AttributeValue::Integer(number) => ciborium::Value::Integer((*number).into()),
-            AttributeValue::Bool(boolean) => ciborium::Value::Bool(*boolean),
-            AttributeValue::Text(text) => ciborium::Value::Text(text.to_owned()),
-            AttributeValue::Array(elements) => ciborium::Value::Array(elements.iter().map(Into::into).collect()),
+            AttributeValue::Integer(number) => ciborium::Value::Integer(number.into()),
+            AttributeValue::Bool(boolean) => ciborium::Value::Bool(boolean),
+            AttributeValue::Text(text) => ciborium::Value::Text(text),
+            AttributeValue::Array(elements) => ciborium::Value::Array(elements.into_iter().map(Self::from).collect()),
         }
     }
 }
 
-impl TryFrom<DataElementValue> for AttributeValue {
+impl TryFrom<ciborium::Value> for AttributeValue {
     type Error = AttributeError;
 
-    fn try_from(value: DataElementValue) -> Result<Self, Self::Error> {
+    fn try_from(value: ciborium::Value) -> Result<Self, Self::Error> {
         match value {
-            DataElementValue::Text(text) => Ok(AttributeValue::Text(text)),
-            DataElementValue::Bool(bool) => Ok(AttributeValue::Bool(bool)),
-            DataElementValue::Integer(integer) => Ok(AttributeValue::Integer(integer.try_into()?)),
+            ciborium::Value::Text(text) => Ok(AttributeValue::Text(text)),
+            ciborium::Value::Bool(bool) => Ok(AttributeValue::Bool(bool)),
+            ciborium::Value::Integer(integer) => Ok(AttributeValue::Integer(integer.try_into()?)),
+            ciborium::Value::Array(elements) => Ok(AttributeValue::Array(
+                elements.into_iter().map(Self::try_from).try_collect()?,
+            )),
             _ => Err(AttributeError::FromCborConversion(value)),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum Attribute {
     Single(AttributeValue),
@@ -144,7 +147,7 @@ impl Attribute {
                     }
                 }
             } else {
-                let prefixed_key = [prefix, key].join(".");
+                let prefixed_key = format!("{}.{}", prefix, key);
 
                 if let Attribute::Nested(result) = result
                     .entry(String::from(key))
@@ -170,6 +173,70 @@ impl Attribute {
 
         Ok(())
     }
+
+    /// Convert a (nested) map of keyed `Attribute`s into a map of namespaced entries. This is done by
+    /// walking down the tree of attributes and using their keys as namespaces. For example, these
+    /// nested attributes:
+    /// ```json
+    /// {
+    ///     "attestation_type": "com.example.address",
+    ///     "attributes": {
+    ///         "city": "The Capital",
+    ///         "street": "Main St.",
+    ///         "house": {
+    ///             "number": 1,
+    ///             "letter": "A"
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    /// Turns into a flattened namespaced map of `Entry` with the following structure:
+    /// ```json
+    /// {
+    ///     "com.example.address": {
+    ///         "city": "The Capital",
+    ///         "street": "Main St."
+    ///     },
+    ///     "com.example.address.house": {
+    ///         "number": 1,
+    ///         "letter": "A"
+    ///     }
+    /// }
+    /// ```
+    pub fn from_attributes(
+        attestation_type: &str,
+        attributes: IndexMap<String, Self>,
+    ) -> IndexMap<NameSpace, Vec<Entry>> {
+        let mut flattened = IndexMap::new();
+        Self::walk_attributes_recursive(attestation_type, attributes, &mut flattened);
+        flattened
+    }
+
+    fn walk_attributes_recursive(
+        namespace: &str,
+        attributes: IndexMap<String, Attribute>,
+        result: &mut IndexMap<NameSpace, Vec<Entry>>,
+    ) {
+        let mut entries = vec![];
+        for (key, value) in attributes {
+            match value {
+                Attribute::Single(single) => {
+                    entries.push(Entry {
+                        name: key,
+                        value: single.into(),
+                    });
+                }
+                Attribute::Nested(nested) => {
+                    let key = format!("{}.{}", namespace, key);
+                    Self::walk_attributes_recursive(key.as_str(), nested, result);
+                }
+            }
+        }
+
+        if !entries.is_empty() {
+            result.insert(String::from(namespace), entries);
+        }
+    }
 }
 
 #[cfg(test)]
@@ -180,11 +247,12 @@ mod test {
     use serde_valid::json::ToJsonString;
 
     use mdoc::unsigned::Entry;
-    use mdoc::DataElementValue;
+    use mdoc::NameSpace;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
+    use crate::attributes::AttributeValue;
 
     #[test]
     fn test_traverse_groups() {
@@ -219,14 +287,14 @@ mod test {
                 String::from("com.example.pid"),
                 vec![Entry {
                     name: String::from("birthdate"),
-                    value: DataElementValue::Text(String::from("1963-08-12")),
+                    value: ciborium::Value::Text(String::from("1963-08-12")),
                 }],
             ),
             (
                 String::from("com.example.pid.place_of_birth"),
                 vec![Entry {
                     name: String::from("locality"),
-                    value: DataElementValue::Text(String::from("The Hague")),
+                    value: ciborium::Value::Text(String::from("The Hague")),
                 }],
             ),
             (
@@ -234,11 +302,11 @@ mod test {
                 vec![
                     Entry {
                         name: String::from("name"),
-                        value: DataElementValue::Text(String::from("The Netherlands")),
+                        value: ciborium::Value::Text(String::from("The Netherlands")),
                     },
                     Entry {
                         name: String::from("area_code"),
-                        value: DataElementValue::Integer(31.into()),
+                        value: ciborium::Value::Integer(31.into()),
                     },
                 ],
             ),
@@ -246,14 +314,14 @@ mod test {
                 String::from("com.example.pid.a.b.c.d"),
                 vec![Entry {
                     name: String::from("e"),
-                    value: DataElementValue::Text(String::from("abcd")),
+                    value: ciborium::Value::Text(String::from("abcd")),
                 }],
             ),
             (
                 String::from("com.example.pid.a.b"),
                 vec![Entry {
                     name: String::from("c1"),
-                    value: DataElementValue::Text(String::from("abc")),
+                    value: ciborium::Value::Text(String::from("abc")),
                 }],
             ),
         ]);
@@ -304,7 +372,7 @@ mod test {
             String::from("com.example.pid.nest.ed"),
             vec![Entry {
                 name: String::from("birth.date"),
-                value: DataElementValue::Text(String::from("1963-08-12")),
+                value: ciborium::Value::Text(String::from("1963-08-12")),
             }],
         )]);
 
@@ -341,15 +409,15 @@ mod test {
             vec![
                 Entry {
                     name: String::from("a1"),
-                    value: DataElementValue::Text(String::from("1")),
+                    value: ciborium::Value::Text(String::from("1")),
                 },
                 Entry {
                     name: String::from("a2"),
-                    value: DataElementValue::Text(String::from("2")),
+                    value: ciborium::Value::Text(String::from("2")),
                 },
                 Entry {
                     name: String::from("a3"),
-                    value: DataElementValue::Text(String::from("3")),
+                    value: ciborium::Value::Text(String::from("3")),
                 },
             ],
         )]);
@@ -358,7 +426,7 @@ mod test {
         assert_matches!(result, Err(AttributeError::SomeAttributesNotProcessed(attrs))
         if attrs == IndexMap::from([(
             String::from("com.example.pid.a"),
-            vec![Entry { name: String::from("a3"), value: DataElementValue::Text(String::from("3")) }]
+            vec![Entry { name: String::from("a3"), value: ciborium::Value::Text(String::from("3")) }]
         )]));
     }
 
@@ -390,15 +458,15 @@ mod test {
             vec![
                 Entry {
                     name: String::from("b1"),
-                    value: DataElementValue::Text(String::from("1")),
+                    value: ciborium::Value::Text(String::from("1")),
                 },
                 Entry {
                     name: String::from("b2"),
-                    value: DataElementValue::Text(String::from("2")),
+                    value: ciborium::Value::Text(String::from("2")),
                 },
                 Entry {
                     name: String::from("b3"),
-                    value: DataElementValue::Text(String::from("3")),
+                    value: ciborium::Value::Text(String::from("3")),
                 },
             ],
         )]);
@@ -408,6 +476,101 @@ mod test {
         assert_eq!(
             serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
             expected_json.to_json_string_pretty().unwrap(),
+        );
+    }
+
+    fn setup_issuable_attributes() -> IndexMap<String, Attribute> {
+        IndexMap::from_iter(vec![
+            (
+                "city".to_string(),
+                Attribute::Single(AttributeValue::Text("The Capital".to_string())),
+            ),
+            (
+                "street".to_string(),
+                Attribute::Single(AttributeValue::Text("Main St.".to_string())),
+            ),
+            (
+                "house".to_string(),
+                Attribute::Nested(IndexMap::from_iter(vec![
+                    ("number".to_string(), Attribute::Single(AttributeValue::Integer(1))),
+                    (
+                        "letter".to_string(),
+                        Attribute::Single(AttributeValue::Text("A".to_string())),
+                    ),
+                ])),
+            ),
+        ])
+    }
+
+    #[test]
+    fn test_serialize_attributes() {
+        let attributes = setup_issuable_attributes();
+        assert_eq!(
+            serde_json::to_value(attributes).unwrap(),
+            json!({
+                "city": "The Capital",
+                "street": "Main St.",
+                "house": {
+                    "number": 1,
+                    "letter": "A"
+                }
+            })
+        );
+    }
+
+    fn readable_mdoc_attributes(
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
+    ) -> IndexMap<String, IndexMap<String, ciborium::Value>> {
+        attributes
+            .into_iter()
+            .map(|(namespace, entries)| {
+                (
+                    namespace,
+                    entries.into_iter().map(|entry| (entry.name, entry.value)).collect(),
+                )
+            })
+            .collect()
+    }
+
+    #[test]
+    fn test_attribute_from_attributes() {
+        let attributes = Attribute::from_attributes("com.example.address", setup_issuable_attributes());
+
+        assert_eq!(
+            serde_json::to_value(readable_mdoc_attributes(attributes)).unwrap(),
+            json!({
+                "com.example.address": {
+                    "city": "The Capital",
+                    "street": "Main St.",
+                },
+                "com.example.address.house": {
+                    "number": 1,
+                    "letter": "A",
+                },
+            })
+        );
+    }
+
+    #[test]
+    fn test_attribute_from_attributes_empty_root() {
+        let attestation_type = "com.example.address";
+        let nested_attributes = IndexMap::from_iter(vec![(
+            "house".to_string(),
+            Attribute::Nested(IndexMap::from_iter(vec![(
+                "number".to_string(),
+                Attribute::Single(AttributeValue::Integer(1)),
+            )])),
+        )]);
+
+        let attributes = Attribute::from_attributes(attestation_type, nested_attributes);
+
+        assert_eq!(
+            serde_json::to_value(readable_mdoc_attributes(attributes)).unwrap(),
+            json!({
+                "com.example.address.house": {
+                    "number": 1
+                }
+            })
         );
     }
 }
