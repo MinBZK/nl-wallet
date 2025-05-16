@@ -47,20 +47,8 @@ build-wp-migrations-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_provider/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-provider-migrations
 
-.build-docker-image-demo-rp:
-  extends: .build-docker-image
-  script:
-    - TAG=${CI_COMMIT_TAG:-latest}
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile $DOCKER_FILE_TO_BUILD
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
-
 build-demo-relying-party-image:
-  extends: .build-docker-image-demo-rp
+  extends: .build-docker-image
   needs:
     - job: build-wallet-web
       artifacts: true
@@ -72,20 +60,8 @@ build-demo-relying-party-image:
     DOCKER_FILE_TO_BUILD: wallet_core/demo/demo_relying_party/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-demo-relying-party
 
-.build-docker-image-demo-issuer:
-  extends: .build-docker-image
-  script:
-    - TAG=${CI_COMMIT_TAG:-latest}
-    - /kaniko/executor
-      --context wallet_core
-      --dockerfile $DOCKER_FILE_TO_BUILD
-      --build-arg HARBOR_REGISTRY=$HARBOR_REGISTRY
-      --build-arg HARBOR_NLW_PROJECT=$HARBOR_NLW_PROJECT
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$CI_COMMIT_SHORT_SHA
-      --destination $HARBOR_REGISTRY/$HARBOR_NLW_PROJECT/$DOCKER_IMAGE_NAME:$TAG
-
 build-demo-issuer-image:
-  extends: .build-docker-image-demo-issuer
+  extends: .build-docker-image
   needs:
     - job: build-wallet-web
       artifacts: true
