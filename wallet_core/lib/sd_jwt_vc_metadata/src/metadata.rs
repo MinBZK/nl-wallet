@@ -35,7 +35,7 @@ static TEMPLATE_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\{\{([A-Z
 #[derive(Debug, thiserror::Error)]
 pub enum TypeMetadataError {
     #[error("json schema validation failed: {0}")]
-    JsonSchemaValidation(#[from] ValidationError<'static>),
+    JsonSchemaValidation(#[from] Box<ValidationError<'static>>),
 
     #[error("could not deserialize JSON schema: {0}")]
     JsonSchema(#[from] serde_json::Error),
@@ -274,22 +274,22 @@ impl JsonSchema {
     }
 
     // Building the validator for the 202012 draft also validates the JSON Schema itself.
-    fn build_validator(raw_schema: &serde_json::Value) -> Result<Validator, ValidationError<'static>> {
+    fn build_validator(raw_schema: &serde_json::Value) -> Result<Validator, Box<ValidationError<'static>>> {
         jsonschema::options()
             .should_validate_formats(true)
             .with_draft(Draft::Draft202012)
             .build(raw_schema)
-            .map_err(ValidationError::to_owned)
+            .map_err(Box::new)
     }
 
     pub fn into_properties(self) -> JsonSchemaProperties {
         self.properties
     }
 
-    pub(crate) fn validate(&self, attestation_json: &serde_json::Value) -> Result<(), ValidationError<'static>> {
+    pub(crate) fn validate(&self, attestation_json: &serde_json::Value) -> Result<(), Box<ValidationError<'static>>> {
         self.validator
             .validate(attestation_json)
-            .map_err(ValidationError::to_owned)
+            .map_err(|e| Box::new(e.to_owned()))
     }
 }
 
@@ -1028,7 +1028,7 @@ mod test {
             .expect_err("JSON schema should fail validation");
 
         assert_matches!(
-            error,
+            *error,
             ValidationError {
                 instance,
                 kind: ValidationErrorKind::Format { format },
