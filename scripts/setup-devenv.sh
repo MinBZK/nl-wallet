@@ -173,14 +173,13 @@ if [[ -z "${SKIP_WALLET_WEB:-}" ]]; then
 
     VITE_HELP_BASE_URL=${VITE_HELP_BASE_URL:-http://$SERVICES_HOST}
     export VITE_HELP_BASE_URL
-    npm ci && CUSTOM_ELEMENT=false npm run build && EMPTY_OUTPUT_DIR=false CUSTOM_ELEMENT=true npm run build
+    npm ci && npm run build
 
-    # remove trailing newline at the end of the file
-    cat dist/nl-wallet-web.css | tr -d "\n" > dist/nl-wallet-web.css.truncated
-    mv dist/nl-wallet-web.css.truncated dist/nl-wallet-web.css
-
-    cp dist/nl-wallet-web.css ../wallet_core/demo/demo_utils/assets/
     cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_utils/assets/
+
+    # only do this locally
+    cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_relying_party/assets/
+    cp dist/nl-wallet-web.iife.js ../wallet_core/demo/demo_issuer/assets/
 fi
 
 
