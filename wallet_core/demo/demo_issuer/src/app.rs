@@ -17,8 +17,6 @@ use axum::Json;
 use axum::Router;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use serde::Deserialize;
-use serde::Serialize;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
@@ -97,11 +95,6 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         .layer(TraceLayer::new_for_http());
 
     (app, attestation_router)
-}
-
-#[derive(Serialize, Deserialize)]
-struct SessionOptions {
-    usecase: String,
 }
 
 struct BaseTemplate<'a> {
