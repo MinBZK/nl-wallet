@@ -137,15 +137,13 @@ where
             .attributes_fetcher
             .attributes(usecase_id, disclosed)
             .await
-            .map_err(|e| {
-                DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::AttributesFetching(e.into())))
-            })?;
+            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttributesFetching(e.into())))?;
 
         // Return a specific error code if there are no attestations to be issued so the wallet
         // can distinguish this case from other (error) cases.
         let to_issue: VecNonEmpty<_> = to_issue
             .try_into()
-            .map_err(|_| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::NoIssuableAttestations)))?;
+            .map_err(|_| DisclosureResultHandlerError::new(IssuanceResultHandlerError::NoIssuableAttestations))?;
 
         let credential_configuration_ids = to_issue
             .iter()
@@ -157,7 +155,7 @@ where
             .issuer
             .new_session(to_issue)
             .await
-            .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::SessionStore(err))))?;
+            .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::SessionStore(err)))?;
 
         let credential_offer = CredentialOfferContainer {
             credential_offer: CredentialOffer {
@@ -173,9 +171,9 @@ where
         // then this would be a lot less awkward.
         let query_params = serde_urlencoded::from_str(
             &serde_urlencoded::to_string(credential_offer)
-                .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::UrlEncoding(err))))?,
+                .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlEncoding(err)))?,
         )
-        .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::UrlDecoding(err))))?;
+        .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlDecoding(err)))?;
 
         Ok(query_params)
     }

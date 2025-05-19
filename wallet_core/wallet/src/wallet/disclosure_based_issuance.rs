@@ -267,7 +267,7 @@ mod tests {
                         VpClientError::Request(
                             DisclosureErrorResponse {
                                 error_response: PostAuthResponseError::HandlingDisclosureResult(
-                                    DisclosureResultHandlerError(Box::new(MockError)),
+                                    DisclosureResultHandlerError::new(MockError),
                                 )
                                 .into(),
                                 redirect_uri: None,
