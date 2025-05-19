@@ -13,6 +13,8 @@ doctest = false
 [features]
 # Allow the disclosure return URL and its prefix to use http://
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
+# Generate typescript bindings for wallet_web
+ts_rs = []
 
 [dependencies]
 anyhow.workspace = true
@@ -55,3 +57,4 @@ openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosur
 utils = { path = "../../lib/utils" }
 
 [dev-dependencies]
+ts-rs.workspace = true

@@ -1,4 +1,4 @@
-import { type SessionType } from "./status"
+import { type SessionType } from "./openid4vc"
 
 const errors = ["failed", "cancelled", "expired", "network"] as const
 export type ErrorType = (typeof errors)[number]

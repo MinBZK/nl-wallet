@@ -1,5 +1,6 @@
+import { type SessionType } from "@/models/openid4vc"
 <script setup lang="ts">
-import { type SessionType } from "@/models/status"
+import { type SessionType } from "@/models/openid4vc"
 import { injectStrict, translationsKey } from "@/util/translations"
 
 defineProps<{

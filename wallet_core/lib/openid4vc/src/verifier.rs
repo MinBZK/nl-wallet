@@ -23,8 +23,6 @@ use serde::Serialize;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use tokio::task::JoinHandle;
 use tracing::debug;
 use tracing::info;
@@ -406,9 +404,17 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
 /// plus a potential universal link that the wallet app can use to start disclosure.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(
+    all(test, feature = "ts_rs"),
+    derive(ts_rs::TS),
+    ts(export, export_to = "openid4vc.ts")
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
 pub enum StatusResponse {
-    Created { ul: Option<BaseUrl> },
+    Created {
+        #[cfg_attr(all(test, feature = "ts_rs"), ts(type = "URL", optional))]
+        ul: Option<BaseUrl>,
+    },
     WaitingForResponse,
     Done,
     Failed,
@@ -447,19 +453,15 @@ impl From<DisclosureData> for SessionStatus {
 }
 
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    Hash,
-    SerializeDisplay,
-    DeserializeFromStr,
-    strum::EnumString,
-    strum::Display,
-    strum::EnumIter,
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, strum::EnumString, strum::Display, strum::EnumIter,
 )]
 #[strum(serialize_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(
+    all(test, feature = "ts_rs"),
+    derive(ts_rs::TS),
+    ts(export, export_to = "openid4vc.ts")
+)]
 pub enum SessionType {
     // Using Universal Link
     SameDevice,
@@ -809,7 +811,7 @@ where
                             ephemeral_id: Self::generate_ephemeral_id(secret, session_token, &time),
                             time,
                         });
-                        Self::format_ul(ul_base, request_uri, ephemeral_id, session_type, client_id)
+                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, client_id)
                     })
                     .transpose()?;
 
@@ -898,7 +900,7 @@ impl<S, K> Verifier<S, K> {
     }
 
     fn format_ul(
-        base_ul: &BaseUrl,
+        base_ul: BaseUrl,
         request_uri: BaseUrl,
         ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
@@ -910,14 +912,14 @@ impl<S, K> Verifier<S, K> {
             ephemeral_id_params,
         })?));
 
-        let mut ul = base_ul.clone().into_inner();
+        let mut ul = base_ul.into_inner();
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUriObject {
             request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
             client_id,
             request_uri_method: Some(RequestUriMethod::POST),
         })?));
 
-        Ok(ul.try_into().unwrap()) // safe because we constructed request_uri from a BaseUrl
+        Ok(ul.try_into().unwrap()) // safe because we constructed ul from a BaseUrl
     }
 
     // formats the payload to hash to the ephemeral ID in a consistent way
@@ -1445,12 +1447,12 @@ mod tests {
             .await
             .expect("should result in status response for session");
 
-        let StatusResponse::Created { ul } = response else {
-            panic!("should match DisclosureData::Created")
+        let StatusResponse::Created { ul: Some(ul) } = response else {
+            panic!("should match DisclosureData::Created with Some(ul)")
         };
 
         let request_query_object: VpRequestUriObject =
-            serde_urlencoded::from_str(ul.unwrap().as_ref().query().unwrap()).unwrap();
+            serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap();
 
         (verifier, session_token, request_query_object)
     }
@@ -1663,7 +1665,7 @@ mod tests {
 
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), ()>::format_ul(
-            &"https://app-ul.example.com".parse().unwrap(),
+            "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             Some(EphemeralIdParameters {
                 ephemeral_id: Verifier::<(), ()>::generate_ephemeral_id(&ephemeral_id_secret, &session_token, &time),
@@ -1692,7 +1694,7 @@ mod tests {
     fn test_verifier_url_without_ephemeral_id() {
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), ()>::format_ul(
-            &"https://app-ul.example.com".parse().unwrap(),
+            "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             None,
             SessionType::CrossDevice,
