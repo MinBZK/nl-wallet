@@ -519,7 +519,13 @@ pub trait ToPostAuthResponseErrorCode: std::error::Error {
 
 #[derive(Debug, AsRef, thiserror::Error)]
 #[error("{0}")]
-pub struct DisclosureResultHandlerError(pub Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
+pub struct DisclosureResultHandlerError(Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
+
+impl DisclosureResultHandlerError {
+    pub fn new(error: impl ToPostAuthResponseErrorCode + Send + Sync + 'static) -> Self {
+        Self(Box::new(error))
+    }
+}
 
 /// Types may implement this to receive disclosed attributes after a successful disclosure session.
 /// The return value is URL-serialized and appended to the query of the redirect URI, if present,
