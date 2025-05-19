@@ -6,12 +6,12 @@ Subject: [PATCH 2/5] Add Docker and docker-compose files
 ---
  .dockerignore      |  1 +
  Dockerfile         | 30 ++++++++++++++++++++++++++++++
- Dockerfile.local   | 26 ++++++++++++++++++++++++++
+ local.Dockerfile   | 26 ++++++++++++++++++++++++++
  docker-compose.yml | 35 +++++++++++++++++++++++++++++++++++
  4 files changed, 92 insertions(+)
  create mode 100644 .dockerignore
  create mode 100644 Dockerfile
- create mode 100644 Dockerfile.local
+ create mode 100644 local.Dockerfile
 
 diff --git a/.dockerignore b/.dockerignore
 new file mode 100644
@@ -56,11 +56,11 @@ index 0000000..b94bc22
 +RUN rm -r /app/saml/tvs
 +
 +CMD . .venv/bin/activate && ${env} python -m app.main
-diff --git a/Dockerfile.local b/Dockerfile.local
+diff --git a/local.Dockerfile b/local.Dockerfile
 new file mode 100644
 index 0000000..98ebbfb
 --- /dev/null
-+++ b/Dockerfile.local
++++ b/local.Dockerfile
 @@ -0,0 +1,26 @@
 +FROM node:lts-bullseye-slim
 +RUN apt-get update && apt-get install -y build-essential
@@ -122,7 +122,7 @@ index fd6c212..832e797 100644
 +    image: rdo-max
 +    build:
 +      context: .
-+      dockerfile: Dockerfile.local
++      dockerfile: local.Dockerfile
 +    ports:
 +      - '8006:8006'
 +    #network_mode: bridge
@@ -139,6 +139,5 @@ index fd6c212..832e797 100644
 +volumes:
 +  redis:
 +    name: redis
--- 
+--
 2.43.0
-
