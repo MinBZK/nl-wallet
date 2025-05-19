@@ -123,6 +123,7 @@ pub struct CredentialResponses {
 #[serde(tag = "format", rename_all = "snake_case")]
 pub enum CredentialResponse {
     MsoMdoc { credential: Box<CborBase64<IssuerSigned>> },
+    SdJwt { credential: String },
 }
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";

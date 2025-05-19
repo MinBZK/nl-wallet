@@ -1020,6 +1020,7 @@ impl CredentialResponse {
 
                 Ok(IssuedCredential::MsoMdoc(Box::new(mdoc)))
             }
+            CredentialResponse::SdJwt { credential: _ } => todo!("will be implemented in PVW-4108"),
         }
     }
 }
@@ -1670,6 +1671,7 @@ mod tests {
 
                 CredentialResponse::MsoMdoc { credential }
             }
+            CredentialResponse::SdJwt { .. } => panic!("unsupported credential request format"),
         };
 
         let error = credential_response
