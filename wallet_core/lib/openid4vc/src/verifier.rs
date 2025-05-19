@@ -1,6 +1,7 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
@@ -171,25 +172,25 @@ pub enum UseCaseCertificateError {
 pub struct UserError(ErrorResponse<VpAuthorizationErrorCode>);
 
 #[derive(thiserror::Error, Debug)]
-pub struct WithRedirectUri<T: std::error::Error> {
+pub struct WithRedirectUri<T: Error> {
     #[source]
     pub error: T,
     pub redirect_uri: Option<BaseUrl>,
 }
 
-impl<T: std::error::Error> Display for WithRedirectUri<T> {
+impl<T: Error> Display for WithRedirectUri<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "error: {}, redirect_uri: {:?}", self.error, self.redirect_uri)
     }
 }
 
-impl<T: std::error::Error> From<T> for WithRedirectUri<T> {
+impl<T: Error> From<T> for WithRedirectUri<T> {
     fn from(error: T) -> Self {
         Self::new(error, None)
     }
 }
 
-impl<T: std::error::Error> WithRedirectUri<T> {
+impl<T: Error> WithRedirectUri<T> {
     fn new(error: T, redirect_uri: Option<BaseUrl>) -> Self {
         Self { error, redirect_uri }
     }
@@ -513,7 +514,7 @@ impl<K> UseCase<K> {
     }
 }
 
-pub trait ToPostAuthResponseErrorCode: std::error::Error {
+pub trait ToPostAuthResponseErrorCode: Error {
     fn to_error_code(&self) -> PostAuthResponseErrorCode;
 }
 
@@ -684,7 +685,7 @@ where
     async fn get_session<T, E>(&self, session_token: &SessionToken) -> Result<Session<T>, WithRedirectUri<E>>
     where
         T: DisclosureState,
-        E: std::error::Error + From<SessionError>,
+        E: Error + From<SessionError>,
         Session<T>: TryFrom<SessionState<DisclosureData>, Error = SessionError>,
     {
         let session = self
