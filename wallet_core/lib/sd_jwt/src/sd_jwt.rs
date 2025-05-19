@@ -14,8 +14,6 @@ use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Map;
-use serde_json::Value;
 use serde_with::skip_serializing_none;
 
 use crypto::EcdsaKeySend;
@@ -47,7 +45,7 @@ pub struct SdJwtClaims {
     pub cnf: Option<RequiredKeyBinding>,
 
     #[serde(flatten)]
-    pub properties: Map<String, Value>,
+    pub properties: serde_json::Map<String, serde_json::Value>,
 }
 
 /// Representation of an SD-JWT of the format
@@ -219,7 +217,7 @@ impl SdJwt {
 
     /// Returns the JSON object obtained by replacing all disclosures into their
     /// corresponding JWT concealable claims.
-    pub fn into_disclosed_object(self) -> Result<Map<String, Value>> {
+    pub fn into_disclosed_object(self) -> Result<serde_json::Map<String, serde_json::Value>> {
         let decoder = SdObjectDecoder;
         let object = serde_json::to_value(self.claims())?;
 

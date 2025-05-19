@@ -24,14 +24,15 @@ use ssri::Integrity;
 use tokio::task::JoinHandle;
 use tracing::info;
 
-use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
+use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::HttpsUri;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
+use jwt::jwk::jwk_from_p256;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::validations;
@@ -42,6 +43,7 @@ use mdoc::AttestationQualification;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
+use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -411,7 +413,7 @@ impl<A, K, S, W> Drop for Issuer<A, K, S, W> {
 impl<A, K, S, W> Issuer<A, K, S, W>
 where
     A: AttributeService,
-    K: EcdsaKey,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     W: WteTracker + Send + Sync + 'static,
 {
@@ -508,7 +510,7 @@ where
 impl<A, K, S, W> Issuer<A, K, S, W>
 where
     A: AttributeService,
-    K: EcdsaKey,
+    K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     W: WteTracker,
 {
@@ -689,7 +691,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        attestation_settings: &AttestationTypesConfig<impl EcdsaKey>,
+        attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
     ) -> Result<(TokenResponseWithPreviews, String, Session<WaitingForResponse>), (TokenRequestError, Session<Done>)>
     {
         let result = self
@@ -721,7 +723,7 @@ impl Session<Created> {
         dpop: Dpop,
         attr_service: &impl AttributeService,
         server_url: &BaseUrl,
-        attestation_settings: &AttestationTypesConfig<impl EcdsaKey>,
+        attestation_settings: &AttestationTypesConfig<impl EcdsaKeySend>,
     ) -> Result<(TokenResponseWithPreviews, VerifyingKey, String), TokenRequestError> {
         if !matches!(
             token_request.grant_type,
@@ -841,7 +843,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> (Result<CredentialResponse, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_credential_inner(credential_request, access_token, dpop, issuer_data)
@@ -865,7 +867,7 @@ impl Session<WaitingForResponse> {
         access_token: &AccessToken,
         dpop: &Dpop,
         endpoint: &str,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -920,7 +922,7 @@ impl Session<WaitingForResponse> {
         attestations: Option<WteDisclosure>,
         poa: Option<Poa>,
         attestation_keys: impl Iterator<Item = VerifyingKey>,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<(), CredentialRequestError> {
         let issuer_identifier = issuer_data.credential_issuer_identifier.as_ref().as_str();
 
@@ -947,7 +949,7 @@ impl Session<WaitingForResponse> {
         credential_request: CredentialRequest,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -983,7 +985,8 @@ impl Session<WaitingForResponse> {
         )
         .await?;
 
-        let credential_response = CredentialResponse::new(preview.clone(), holder_pubkey, issuer_data).await?;
+        let credential_response =
+            CredentialResponse::new(requested_format, preview.clone(), holder_pubkey, issuer_data).await?;
 
         Ok(credential_response)
     }
@@ -993,7 +996,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> (Result<CredentialResponses, CredentialRequestError>, Session<Done>) {
         let result = self
             .process_batch_credential_inner(credential_requests, access_token, dpop, issuer_data)
@@ -1017,7 +1020,7 @@ impl Session<WaitingForResponse> {
         credential_requests: CredentialRequests,
         access_token: AccessToken,
         dpop: Dpop,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<CredentialResponses, CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1037,7 +1040,7 @@ impl Session<WaitingForResponse> {
                 .map(|(cred_req, preview)| async move {
                     let key = cred_req.verify(&session_data.c_nonce, &preview, issuer_data)?;
 
-                    Ok::<_, CredentialRequestError>((preview, key))
+                    Ok::<_, CredentialRequestError>((preview, cred_req.credential_type.as_ref().format(), key))
                 }),
         )
         .await?;
@@ -1045,7 +1048,7 @@ impl Session<WaitingForResponse> {
         self.verify_wte_and_poa(
             credential_requests.attestations,
             credential_requests.poa,
-            previews_and_holder_pubkeys.iter().map(|(_, key)| *key),
+            previews_and_holder_pubkeys.iter().map(|(_, _, key)| *key),
             issuer_data,
         )
         .await?;
@@ -1053,7 +1056,7 @@ impl Session<WaitingForResponse> {
         let credential_responses = try_join_all(
             previews_and_holder_pubkeys
                 .into_iter()
-                .map(|(preview, key)| CredentialResponse::new(preview, key, issuer_data)),
+                .map(|(preview, format, key)| CredentialResponse::new(format, preview, key, issuer_data)),
         )
         .await?;
 
@@ -1106,7 +1109,7 @@ impl CredentialRequest {
         &self,
         c_nonce: &str,
         credential_preview: &CredentialPreview,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
         if !credential_preview
             .content
@@ -1132,9 +1135,10 @@ impl CredentialRequest {
 
 impl CredentialResponse {
     async fn new(
+        credential_format: Format,
         preview: CredentialPreview,
         holder_pubkey: VerifyingKey,
-        issuer_data: &IssuerData<impl EcdsaKey, impl WteTracker>,
+        issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Get the correct `AttestationTypeConfig` for this attestation type.
         let key_id = preview.issuer_key_identifier();
@@ -1144,6 +1148,18 @@ impl CredentialResponse {
             .get(key_id)
             .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
+        match credential_format {
+            Format::MsoMdoc => Self::new_for_mdoc(preview, holder_pubkey, attestation_config).await,
+            Format::SdJwt => Self::new_for_sd_jwt(preview, holder_pubkey, attestation_config).await,
+            other => Err(CredentialRequestError::CredentialTypeNotOffered(other.to_string())),
+        }
+    }
+
+    async fn new_for_mdoc(
+        preview: CredentialPreview,
+        holder_pubkey: VerifyingKey,
+        attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
+    ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
         let unsigned_mdoc = preview.content.credential_payload.into_unsigned_mdoc()?;
@@ -1165,6 +1181,30 @@ impl CredentialResponse {
 
         Ok(CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed.into()),
+        })
+    }
+
+    async fn new_for_sd_jwt(
+        preview: CredentialPreview,
+        holder_pubkey: VerifyingKey,
+        attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
+    ) -> Result<CredentialResponse, CredentialRequestError> {
+        let payload = CredentialPayload {
+            issued_at: Utc::now().into(),
+            confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_pubkey)?),
+            previewable_payload: preview.content.credential_payload,
+        };
+
+        let sd_jwt = payload
+            .into_sd_jwt(
+                &attestation_config.metadata,
+                &holder_pubkey,
+                &attestation_config.key_pair,
+            )
+            .await?;
+
+        Ok(CredentialResponse::SdJwt {
+            credential: sd_jwt.to_string(),
         })
     }
 }
