@@ -22,3 +22,12 @@ build-wallet-web:
       - wallet_web/test-results
       - wallet_web/allure-results
       - wallet_core/demo/demo_utils/assets/nl-wallet-web.iife.js
+
+test-bindings:
+  extends: .rust
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  script:
+    - cargo test --manifest-path wallet_core/Cargo.toml --locked export_bindings --features ts_rs
+    - npx prettier --write wallet_web/lib/models/*.ts
+    - git diff
+    - if [[ $(git diff --shortstat | wc -l) -gt 0 ]]; then echo "Bindings generation results in different files!"; exit 1; fi
