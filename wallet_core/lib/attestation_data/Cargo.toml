@@ -9,8 +9,8 @@ workspace = true
 
 [features]
 examples = []
-generate = [ "dep:rcgen", "crypto/generate" ]
-mock = [ "crypto/mock" ]
+generate = ["dep:rcgen", "crypto/generate"]
+mock = ["crypto/mock", "crypto/generate"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["debug", "display"] }
@@ -34,3 +34,5 @@ rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
 rstest.workspace = true
 serde_json.workspace = true
 time = { workspace = true, features = ["macros"] }
+
+crypto = { path = "../crypto", features = ["generate", "mock"] }
