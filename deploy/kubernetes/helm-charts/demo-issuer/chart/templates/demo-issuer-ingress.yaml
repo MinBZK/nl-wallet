@@ -18,7 +18,8 @@ spec:
                 name: {{ include "common.names.fullname" . }}
                 port:
                   number: 3006
-            pathType: ImplementationSpecific
+            path: /
+            pathType: Prefix
   tls:
     - hosts:
         - {{ .Values.ingressVpn.hostname | quote }}
@@ -59,7 +60,7 @@ spec:
                 port:
                   number: 3005
             path: /{{ .Values.demoIssuer.contextPath }}/(.*)
-            pathType: Prefix
+            pathType: ImplementationSpecific
   tls:
     - hosts:
         - {{ .Values.demoIssuer.hostname }}

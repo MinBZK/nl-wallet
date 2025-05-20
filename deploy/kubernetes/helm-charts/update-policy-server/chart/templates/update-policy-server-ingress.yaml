@@ -26,7 +26,7 @@ spec:
                 port:
                   number: 3002
             path: /{{ .Values.ingress.contextPath }}/(.*)
-            pathType: Prefix
+            pathType: ImplementationSpecific
   tls:
     - hosts:
         - {{ .Values.ingress.hostname }}
