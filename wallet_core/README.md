@@ -53,7 +53,7 @@ flutter_rust_bridge_codegen generate --config-file wallet_app/flutter_rust_bridg
 To regenerate the bindings used by `wallet_web`, run the following command from the root:
 
 ```
-cargo test --manifest-path wallet_core/Cargo.toml --locked export_bindings --features ts_rs && prettier --write wallet_web/lib/models/*.ts
+cargo test --manifest-path wallet_core/Cargo.toml --locked export_bindings --features ts_rs && npx prettier --write wallet_web/lib/models/*.ts
 ```
 
 ## Code Conventions
