@@ -455,6 +455,44 @@ mod test {
     }
 
     #[test]
+    fn test_from_mdoc_parts() {
+        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::pid_example());
+
+        let payload =
+            CredentialPayload::from_mdoc_parts(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso, &metadata)
+                .expect("creating and validating CredentialPayload from Mdoc should succeed");
+
+        assert_eq!(
+            payload.previewable_payload.attributes.into_values().collect_vec(),
+            vec![
+                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
+                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
+                Attribute::Single(AttributeValue::Text("999999999".to_string()))
+            ]
+        );
+    }
+
+    #[test]
+    fn test_from_mdoc_parts_invalid() {
+        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
+            "urn:eudi:pid:nl:1",
+            &[
+                ("family_name", JsonSchemaPropertyType::Number, None),
+                ("bsn", JsonSchemaPropertyType::String, None),
+                ("given_name", JsonSchemaPropertyType::String, None),
+            ],
+        ));
+
+        let error =
+            CredentialPayload::from_mdoc_parts(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso, &metadata)
+                .expect_err("wrong family_name type should fail validation");
+
+        assert_matches!(error, CredentialPayloadError::MetadataValidation(_));
+    }
+
+    #[test]
     fn test_from_previewable_credential_payload() {
         let holder_key = SigningKey::random(&mut OsRng);
 
