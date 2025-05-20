@@ -5,8 +5,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "common.names.fullname" . }}
-  annotations:
-    checksum/config: "{{ $configMapChecksum }}"
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 spec:
@@ -23,6 +21,8 @@ spec:
   progressDeadlineSeconds: 300
   template:
     metadata:
+      annotations:
+        checksum/config: "{{ $configMapChecksum }}"
       labels:
         {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 8 }}
         {{- if .Values.extraPodlabels }}
