@@ -33,6 +33,17 @@ void main() {
       await screenMatchesGolden('in_progress.light');
     });
 
+    testGoldens('SetupSecuritySelectPinInProgress light - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecuritySelectPinInProgress(3),
+        ),
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('in_progress.light.landscape');
+    });
+
     testGoldens('SetupSecuritySelectPinFailed (sequentialDigits) light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
@@ -102,6 +113,16 @@ void main() {
         ),
       );
       await screenMatchesGolden('completed.light');
+    });
+
+    testGoldens('SetupSecurityCompleted dark - some biometrics', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+          MockSetupSecurityBloc(),
+          const SetupSecurityCompleted(enabledBiometrics: Biometrics.face),
+        ),
+      );
+      await screenMatchesGolden('completed.dark');
     });
 
     testGoldens('SetupSecurityPinConfirmationFailed retry NOT allowed dark', (tester) async {

@@ -1,14 +1,16 @@
-import 'dart:ui';
-
 import 'package:bloc_test/bloc_test.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:semantic_announcement_tester/semantic_announcement_tester.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pin/check_pin_usecase.dart';
 import 'package:wallet/src/feature/change_pin/bloc/change_pin_bloc.dart';
 import 'package:wallet/src/feature/change_pin/change_pin_screen.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
+import 'package:wallet/src/wallet_constants.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mocks.mocks.dart';
@@ -319,6 +321,85 @@ void main() {
           final descriptionFinder = find.text(l10n.changePinScreenSuccessDescription);
           expect(titleFinder, findsOneWidget);
           expect(descriptionFinder, findsOneWidget);
+        },
+      );
+
+      testWidgets(
+        'verify announcements of entered digits when selecting new pin',
+        (tester) async {
+          final mock = MockSemanticAnnouncements(tester);
+          await tester.pumpWidgetWithAppWrapper(
+            const ChangePinScreen(
+              forceAnnouncements: true,
+            ).withState<ChangePinBloc, ChangePinState>(
+              MockChangePinBloc(),
+              ChangePinSelectNewPinInProgress(2),
+              streamStates: [
+                ChangePinSelectNewPinInProgress(3),
+                ChangePinSelectNewPinInProgress(2, afterBackspacePressed: true),
+              ],
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final l10n = await TestUtils.englishLocalizations;
+          expect(
+            mock.announcements,
+            hasNAnnouncements(
+              [
+                AnnounceSemanticsEvent(
+                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 3),
+                  TextDirection.ltr,
+                ),
+                AnnounceSemanticsEvent(
+                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 2),
+                  TextDirection.ltr,
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+      testWidgets(
+        'verify announcements of entered digits when confirming new pin',
+        (tester) async {
+          final mock = MockSemanticAnnouncements(tester);
+          await tester.pumpWidgetWithAppWrapper(
+            const ChangePinScreen(
+              forceAnnouncements: true,
+            ).withState<ChangePinBloc, ChangePinState>(
+              MockChangePinBloc(),
+              ChangePinConfirmNewPinInProgress(1),
+              streamStates: [
+                ChangePinConfirmNewPinInProgress(2),
+                ChangePinConfirmNewPinInProgress(1, afterBackspacePressed: true),
+                ChangePinConfirmNewPinInProgress(0),
+              ],
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final l10n = await TestUtils.englishLocalizations;
+          expect(
+            mock.announcements,
+            hasNAnnouncements(
+              [
+                AnnounceSemanticsEvent(
+                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 2),
+                  TextDirection.ltr,
+                ),
+                AnnounceSemanticsEvent(
+                  l10n.pinEnteredDigitsAnnouncement(kPinDigits - 1),
+                  TextDirection.ltr,
+                ),
+                AnnounceSemanticsEvent(
+                  l10n.setupSecurityScreenWCAGPinChosenAnnouncement,
+                  TextDirection.ltr,
+                ),
+              ],
+            ),
+          );
         },
       );
     },

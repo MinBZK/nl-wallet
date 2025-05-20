@@ -33,8 +33,13 @@ class PinTimeoutScreen extends StatelessWidget {
 
   final DateTime expiryTime;
 
+  /// Provide custom handler for when timeout expires.
+  /// By default the app pops to the splash screen.
+  final VoidCallback? onExpire;
+
   const PinTimeoutScreen({
     required this.expiryTime,
+    this.onExpire,
     super.key,
   });
 
@@ -58,7 +63,7 @@ class PinTimeoutScreen extends StatelessWidget {
                       sliver: SliverToBoxAdapter(
                         child: PinTimeoutDescription(
                           expiryTime: expiryTime,
-                          onExpire: () => _onTimeoutExpired(context),
+                          onExpire: onExpire ?? () => _onTimeoutExpired(context),
                         ),
                       ),
                     ),

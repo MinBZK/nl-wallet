@@ -1,7 +1,8 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
 @immutable
-class PinTimeoutScreenArgument {
+class PinTimeoutScreenArgument extends Equatable {
   static const _kExpiryTimeKey = 'expiryTime';
 
   final DateTime expiryTime;
@@ -19,13 +20,5 @@ class PinTimeoutScreenArgument {
   PinTimeoutScreenArgument.fromMap(Map<String, dynamic> map) : expiryTime = DateTime.parse(map[_kExpiryTimeKey]);
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is PinTimeoutScreenArgument && runtimeType == other.runtimeType && expiryTime == other.expiryTime;
-
-  @override
-  int get hashCode => Object.hash(
-        runtimeType,
-        expiryTime,
-      );
+  List<Object?> get props => [expiryTime];
 }

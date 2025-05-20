@@ -107,5 +107,19 @@ void main() {
         CoreRedirectUriError(defaultDescription, redirectError: RedirectError.serverError, data: error.data),
       );
     });
+
+    test(
+        'mapping a FlutterApiErrorType.expiredSession with canRetry data set to true results in CoreExpiredSessionError with canRetry=true',
+        () {
+      final Map<String, dynamic> data = {'can_retry': true};
+      final error = FlutterApiError(
+        type: FlutterApiErrorType.expiredSession,
+        description: defaultDescription,
+        data: data,
+      );
+      final errorJson = jsonEncode(error);
+      final result = errorMapper.map(errorJson);
+      expect(result, CoreExpiredSessionError(defaultDescription, canRetry: true, data: data));
+    });
   });
 }

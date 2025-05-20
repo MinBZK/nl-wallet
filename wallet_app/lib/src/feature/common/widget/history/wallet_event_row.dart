@@ -137,6 +137,7 @@ class _WalletEventRowState extends State<WalletEventRow> {
           context,
           event.card,
           scaleText: false,
+          showText: false,
         ),
       );
     }

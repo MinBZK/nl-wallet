@@ -1,9 +1,10 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../../domain/model/organization.dart';
 
 @immutable
-class OrganizationDetailScreenArgument {
+class OrganizationDetailScreenArgument extends Equatable {
   static const _kOrganizationKey = 'organization';
   static const _kSharedDataBeforeKey = 'shared_data_before';
 
@@ -27,17 +28,5 @@ class OrganizationDetailScreenArgument {
         sharedDataWithOrganizationBefore = map[_kSharedDataBeforeKey];
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is OrganizationDetailScreenArgument &&
-          runtimeType == other.runtimeType &&
-          sharedDataWithOrganizationBefore == other.sharedDataWithOrganizationBefore &&
-          organization == other.organization;
-
-  @override
-  int get hashCode => Object.hash(
-        runtimeType,
-        sharedDataWithOrganizationBefore,
-        organization,
-      );
+  List<Object?> get props => [organization, sharedDataWithOrganizationBefore];
 }
