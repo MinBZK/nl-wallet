@@ -1,6 +1,6 @@
 public_url = 'http://${SERVICES_HOST}:${VERIFICATION_SERVER_WS_PORT}/'
-issuer_trust_anchors = ["${PID_CA_CRT}"]
-reader_trust_anchors = ["${RP_CA_CRT}"]
+issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
+reader_trust_anchors = ["${READER_CA_CRT}"]
 
 ephemeral_id_secret = "${DEMO_RP_VERIFICATION_SERVER_EPHEMERAL_ID_SECRET}"
 allow_origins = ["http://${SERVICES_HOST}:${DEMO_RP_PORT}"]
