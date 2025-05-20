@@ -4,12 +4,9 @@ use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
-use crypto::factory::KeyFactory;
-use crypto::keys::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
-use poa::factory::PoaFactory;
 
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
@@ -65,12 +62,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: &[TrustAnchor<'_>],
         _: &KF,
         _: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
-    where
-        K: CredentialEcdsaKey,
-        KF: KeyFactory<Key = K>,
-        KF: PoaFactory<Key = K>,
-    {
+    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
         self.accept()
     }
 
