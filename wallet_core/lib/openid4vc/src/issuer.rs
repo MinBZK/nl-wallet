@@ -1189,6 +1189,7 @@ impl CredentialResponse {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let payload = CredentialPayload::from_previewable_credential_payload(
             preview.content.credential_payload,
+            Utc::now().into(),
             holder_pubkey,
             &attestation_config.metadata,
         )?;

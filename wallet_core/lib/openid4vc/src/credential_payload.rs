@@ -1,4 +1,3 @@
-use chrono::Utc;
 use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
@@ -163,11 +162,12 @@ impl CredentialPayload {
 
     pub fn from_previewable_credential_payload(
         previewable_payload: PreviewableCredentialPayload,
+        issued_at: DateTimeSeconds,
         holder_pubkey: &VerifyingKey,
         metadata: &NormalizedTypeMetadata,
     ) -> Result<Self, CredentialPayloadError> {
         let payload = CredentialPayload {
-            issued_at: Utc::now().into(),
+            issued_at,
             confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
             previewable_payload,
         };
@@ -469,6 +469,7 @@ mod test {
 
         let payload = CredentialPayload::from_previewable_credential_payload(
             example_payload.previewable_payload.clone(),
+            Utc::now().into(),
             holder_key.verifying_key(),
             &metadata,
         )
@@ -495,6 +496,7 @@ mod test {
 
         let error = CredentialPayload::from_previewable_credential_payload(
             example_payload.previewable_payload.clone(),
+            Utc::now().into(),
             holder_key.verifying_key(),
             &metadata,
         )
