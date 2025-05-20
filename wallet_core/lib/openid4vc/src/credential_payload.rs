@@ -1,3 +1,4 @@
+use chrono::Utc;
 use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
@@ -129,6 +130,53 @@ pub struct PreviewableCredentialPayload {
 }
 
 impl CredentialPayload {
+    pub fn from_mdoc_parts(
+        attributes: IndexMap<NameSpace, Vec<Entry>>,
+        mso: MobileSecurityObject,
+        metadata: &NormalizedTypeMetadata,
+    ) -> Result<Self, CredentialPayloadError> {
+        let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
+
+        let payload = Self {
+            issued_at: (&mso.validity_info.signed).try_into()?,
+            confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
+            previewable_payload: PreviewableCredentialPayload {
+                attestation_type: mso.doc_type,
+                issuer: mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
+                expires: Some((&mso.validity_info.valid_until).try_into()?),
+                not_before: Some((&mso.validity_info.valid_from).try_into()?),
+                attestation_qualification: mso
+                    .attestation_qualification
+                    .ok_or(CredentialPayloadError::MissingAttestationQualification)?,
+                attributes: Attribute::from_mdoc_attributes(metadata, attributes)?,
+            },
+        };
+
+        Self::validate(&serde_json::to_value(&payload)?, metadata)?;
+
+        Ok(payload)
+    }
+
+    pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
+        Self::from_mdoc_parts(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso, metadata)
+    }
+
+    pub fn from_previewable_credential_payload(
+        previewable_payload: PreviewableCredentialPayload,
+        holder_pubkey: &VerifyingKey,
+        metadata: &NormalizedTypeMetadata,
+    ) -> Result<Self, CredentialPayloadError> {
+        let payload = CredentialPayload {
+            issued_at: Utc::now().into(),
+            confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
+            previewable_payload,
+        };
+
+        Self::validate(&serde_json::to_value(&payload)?, metadata)?;
+
+        Ok(payload)
+    }
+
     pub fn from_sd_jwt(sd_jwt: SdJwt, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
         let json = serde_json::Value::Object(
             sd_jwt
@@ -141,10 +189,6 @@ impl CredentialPayload {
         let payload = serde_json::from_value(json)?;
 
         Ok(payload)
-    }
-
-    pub fn from_mdoc(mdoc: Mdoc, metadata: &NormalizedTypeMetadata) -> Result<Self, CredentialPayloadError> {
-        Self::from_mdoc_parts(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso, metadata)
     }
 
     pub async fn into_sd_jwt(
@@ -171,33 +215,6 @@ impl CredentialPayload {
             .await?;
 
         Ok(sd_jwt)
-    }
-
-    pub fn from_mdoc_parts(
-        attributes: IndexMap<NameSpace, Vec<Entry>>,
-        mso: MobileSecurityObject,
-        metadata: &NormalizedTypeMetadata,
-    ) -> Result<Self, CredentialPayloadError> {
-        let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
-
-        let payload = Self {
-            issued_at: (&mso.validity_info.signed).try_into()?,
-            confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
-            previewable_payload: PreviewableCredentialPayload {
-                attestation_type: mso.doc_type,
-                issuer: mso.issuer_uri.ok_or(CredentialPayloadError::MissingIssuerUri)?,
-                expires: Some((&mso.validity_info.valid_until).try_into()?),
-                not_before: Some((&mso.validity_info.valid_from).try_into()?),
-                attestation_qualification: mso
-                    .attestation_qualification
-                    .ok_or(CredentialPayloadError::MissingAttestationQualification)?,
-                attributes: Attribute::from_mdoc_attributes(metadata, attributes)?,
-            },
-        };
-
-        Self::validate(&serde_json::to_value(&payload)?, metadata)?;
-
-        Ok(payload)
     }
 
     fn validate(
@@ -299,6 +316,7 @@ mod examples {
 
 #[cfg(test)]
 mod test {
+    use assert_matches::assert_matches;
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::TimeZone;
@@ -328,6 +346,7 @@ mod test {
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
+    use crate::credential_payload::CredentialPayloadError;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -433,6 +452,55 @@ mod test {
                 Attribute::Single(AttributeValue::Text("999999999".to_string()))
             ]
         );
+    }
+
+    #[test]
+    fn test_from_previewable_credential_payload() {
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
+            "urn:eudi:pid:nl:1",
+            "family_name",
+            JsonSchemaPropertyType::String,
+            None,
+        ));
+
+        let example_payload = CredentialPayload::example_family_name();
+
+        let payload = CredentialPayload::from_previewable_credential_payload(
+            example_payload.previewable_payload.clone(),
+            holder_key.verifying_key(),
+            &metadata,
+        )
+        .unwrap();
+
+        assert_eq!(
+            payload.previewable_payload.attestation_type,
+            example_payload.previewable_payload.attestation_type,
+        );
+    }
+
+    #[test]
+    fn test_from_previewable_credential_payload_invalid() {
+        let holder_key = SigningKey::random(&mut OsRng);
+
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
+            "urn:eudi:pid:nl:1",
+            "family_name",
+            JsonSchemaPropertyType::Number,
+            None,
+        ));
+
+        let example_payload = CredentialPayload::example_family_name();
+
+        let error = CredentialPayload::from_previewable_credential_payload(
+            example_payload.previewable_payload.clone(),
+            holder_key.verifying_key(),
+            &metadata,
+        )
+        .expect_err("wrong family_name type should fail validation");
+
+        assert_matches!(error, CredentialPayloadError::MetadataValidation(_));
     }
 
     #[test]
