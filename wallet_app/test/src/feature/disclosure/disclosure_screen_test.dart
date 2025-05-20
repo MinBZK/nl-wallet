@@ -30,6 +30,7 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/util/manager/biometric_unlock_manager.dart';
 import 'package:wallet/src/util/mapper/context_mapper.dart';
 import 'package:wallet/src/util/mapper/policy/policy_body_text_mapper.dart';
+import 'package:wallet/src/wallet_core/error/core_error.dart';
 
 import '../../../wallet_app_test_widget.dart';
 import '../../mocks/wallet_mock_data.dart';
@@ -80,6 +81,28 @@ void main() {
         ),
       );
       await screenMatchesGolden('check_organization.light');
+    });
+
+    testGoldens('Stop Sheet Dark (on top of check organization for login)', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureCheckOrganizationForLogin(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            sharedDataWithOrganizationBefore: true,
+            sessionType: DisclosureSessionType.crossDevice,
+            policy: WalletMockData.policy,
+            requestedAttributes: {},
+          ),
+        ),
+        brightness: Brightness.dark,
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.tap(find.text(l10n.organizationApprovePageDenyCta));
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('stop_sheet.login.dark');
     });
 
     testGoldens('DisclosureCheckOrganization Light - landscape', (tester) async {
@@ -259,6 +282,24 @@ void main() {
       await screenMatchesGolden('left_feedback.light');
     });
 
+    testGoldens('DisclosureCancelledSessionError Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureCancelledSessionError(
+            relyingParty: WalletMockData.organization,
+            returnUrl: 'https://example.com',
+            error: SessionError(
+              state: SessionState.cancelled,
+              returnUrl: 'https://example.com',
+              sourceError: CoreCancelledSessionError('test'),
+            ),
+          ),
+        ),
+      );
+      await screenMatchesGolden('cancelled_session_error.light');
+    });
+
     testGoldens('Disclosure Stop Sheet Light', (tester) async {
       // Inflate a state with showStopConfirmation = true.
       await tester.pumpWidgetWithAppWrapper(
@@ -278,6 +319,46 @@ void main() {
       await tester.pumpAndSettle();
 
       await screenMatchesGolden('stop_sheet.light');
+    });
+
+    testGoldens('Report Issue Page Light', (tester) async {
+      // Inflate a state with showStopConfirmation = true.
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureCheckOrganization(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            sharedDataWithOrganizationBefore: true,
+            sessionType: DisclosureSessionType.crossDevice,
+          ),
+        ),
+        providers: [
+          RepositoryProvider<WalletRepository>(
+            create: (c) {
+              final repo = MockWalletRepository();
+              when(repo.isLockedStream).thenAnswer((_) => Stream.value(false));
+              return repo;
+            },
+          ),
+          RepositoryProvider<IsWalletInitializedUseCase>(create: (c) => MockIsWalletInitializedUseCase()),
+          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (c) => MockIsBiometricLoginEnabledUseCase()),
+          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+          RepositoryProvider<UnlockWalletWithPinUseCase>(create: (c) => MockUnlockWalletWithPinUseCase()),
+        ],
+      );
+
+      // Find and press the close button
+      final closeButtonFinder = find.byKey(kCloseIconButtonKey);
+      await tester.tap(closeButtonFinder);
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+      final reportIssueButtonFinder = find.text(l10n.disclosureStopSheetReportIssueCta);
+      await tester.tap(reportIssueButtonFinder);
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('report_issue.light');
     });
   });
 

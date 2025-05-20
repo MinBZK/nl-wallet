@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
+import 'package:wallet/src/feature/pin_timeout/argument/pin_timeout_screen_argument.dart';
 import 'package:wallet/src/feature/pin_timeout/pin_timeout_screen.dart';
 
 import '../../../wallet_app_test_widget.dart';
@@ -64,6 +65,38 @@ void main() {
 
       expect(headlineFinder, findsNWidgets(2) /*In content and appbar*/);
       expect(ctaFinder, findsOneWidget);
+    });
+
+    testWidgets('verify onExpire is called', (tester) async {
+      bool isCalled = false;
+
+      // Provide an expiryTime in the past, causing the callback to trigger asap
+      await tester.pumpWidgetWithAppWrapper(
+        PinTimeoutScreen(
+          expiryTime: DateTime.now().subtract(const Duration(seconds: 1)),
+          onExpire: () => isCalled = true,
+        ),
+      );
+
+      // Advance the timer so that expiry will be checked
+      await tester.pump(Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      // Verify callback is executed
+      expect(isCalled, isTrue);
+    });
+  });
+
+  group('PinTimeoutScreenArgument', () {
+    test('getArgument is (de)serializable through the getArgument method', () {
+      final expiry = DateTime(2020);
+      final input = PinTimeoutScreenArgument(expiryTime: expiry);
+      final result = PinTimeoutScreen.getArgument(RouteSettings(arguments: input.toMap()));
+      expect(result, input);
+    });
+
+    test('getArgument throws for invalid input', () {
+      expect(() => PinTimeoutScreen.getArgument(RouteSettings(arguments: 1)), throwsA(isA<UnsupportedError>()));
     });
   });
 }

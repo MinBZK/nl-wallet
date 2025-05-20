@@ -24,4 +24,16 @@ void main() {
     act: (bloc) => bloc.add(MenuLockWalletPressed()),
     verify: (bloc) => verify(lockUsecase.invoke()).called(1),
   );
+
+  test('MenuState equals works', () {
+    final a = MenuInitial();
+    final b = MenuInitial();
+    expect(a, b, reason: 'MenuInitial instances should be equal');
+  });
+
+  test('MenuEvent equals works', () {
+    final a = MenuLockWalletPressed();
+    final b = MenuLockWalletPressed();
+    expect(a, b, reason: 'MenuLockWalletPressed instances should be equal');
+  });
 }

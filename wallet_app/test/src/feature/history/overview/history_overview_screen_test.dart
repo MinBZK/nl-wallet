@@ -76,8 +76,7 @@ void main() {
         ),
       );
 
-      // Operation renders the title of the card twice, once as the row title, and once inside the card thumbnail
-      expect(find.text(WalletMockData.issuanceEvent.card.title.testValue), findsNWidgets(2));
+      expect(find.text(WalletMockData.issuanceEvent.card.title.testValue), findsOneWidget);
     });
 
     testWidgets('SignAttribute renders the organization title', (tester) async {

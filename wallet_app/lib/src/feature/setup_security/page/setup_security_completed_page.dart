@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../domain/usecase/biometrics/biometrics.dart';
 import '../../../util/extension/biometrics_extension.dart';
 import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/string_extension.dart';
 import '../../../wallet_assets.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/widget/page_illustration.dart';
@@ -30,7 +31,7 @@ class SetupSecurityCompletedPage extends StatelessWidget {
 
   String _resolveDescription(BuildContext context) {
     if (enabledBiometrics == Biometrics.none) return context.l10n.setupSecurityCompletedPageDescription;
-    final biometrics = enabledBiometrics.prettyPrint(context);
+    final biometrics = enabledBiometrics.prettyPrint(context).capitalize;
     return context.l10n.setupSecurityCompletedPageWithBiometricsDescription(biometrics);
   }
 }

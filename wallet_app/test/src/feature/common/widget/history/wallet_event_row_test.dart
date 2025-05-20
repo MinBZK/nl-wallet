@@ -179,8 +179,7 @@ void main() {
 
       // Validate that the widget exists
       final titleFinder = find.text(WalletMockData.issuanceEvent.card.title.testValue);
-      // Finds both the row title and the title in the card thumbnail
-      expect(titleFinder, findsNWidgets(2));
+      expect(titleFinder, findsOneWidget);
 
       // Tap any title, as the whole row should be clickable
       await tester.tap(titleFinder.last);

@@ -31,7 +31,10 @@ const _kSelectNewPinPageKey = ValueKey('select_new_pin_page');
 const _kConfirmNewPinPageKey = ValueKey('confirm_new_pin_page');
 
 class ChangePinScreen extends StatelessWidget {
-  const ChangePinScreen({super.key});
+  @visibleForTesting
+  final bool forceAnnouncements;
+
+  const ChangePinScreen({this.forceAnnouncements = false, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +200,7 @@ class ChangePinScreen extends StatelessWidget {
   }
 
   Future<void> _runAnnouncements(BuildContext context, ChangePinState state) async {
-    if (!context.isScreenReaderEnabled) return;
+    if (!context.isScreenReaderEnabled && !forceAnnouncements) return;
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
 
