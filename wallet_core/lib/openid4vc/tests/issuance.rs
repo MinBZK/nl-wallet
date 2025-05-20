@@ -50,6 +50,7 @@ use openid4vc::token::AccessToken;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
+use openid4vc::Format;
 use poa::Poa;
 use poa::PoaPayload;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
@@ -102,7 +103,7 @@ fn setup(
                     )
                     .unwrap(),
                     Days::new(365),
-                    4.try_into().unwrap(),
+                    IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
                     issuance_keypair
                         .certificate()
                         .san_dns_name_or_uris()

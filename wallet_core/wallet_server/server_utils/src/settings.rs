@@ -135,7 +135,7 @@ impl KeyPair {
     }
 }
 
-#[cfg(feature = "integration_test")]
+#[cfg(feature = "parsed_key_pair_conversion")]
 impl From<ParsedKeyPair> for KeyPair {
     fn from(value: ParsedKeyPair) -> Self {
         Self {

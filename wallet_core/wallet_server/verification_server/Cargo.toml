@@ -35,7 +35,7 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "http_utils/allow_insecure
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres"]
 # Enable integration tests
-integration_test = ["allow_insecure_url", "openid4vc/test", "openid4vc/mock", "server_utils/integration_test"]
+integration_test = ["allow_insecure_url", "openid4vc/test", "openid4vc/mock", "server_utils/parsed_key_pair_conversion"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["integration_test", "postgres", "futures/std", "futures/async-await", "dep:serial_test", "tokio/sync"]
 

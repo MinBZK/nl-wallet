@@ -322,7 +322,7 @@ pub struct AttestationTypeConfig<K> {
     #[debug(skip)]
     pub key_pair: KeyPair<K>,
     pub valid_days: Days,
-    pub copy_count: NonZeroU8,
+    pub copies_per_format: IndexMap<Format, NonZeroU8>,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
     pub metadata_documents: TypeMetadataDocuments,
@@ -337,7 +337,7 @@ impl<K> AttestationTypeConfig<K> {
         attestation_type: &str,
         key_pair: KeyPair<K>,
         valid_days: Days,
-        copy_count: NonZeroU8,
+        copies_per_format: IndexMap<Format, NonZeroU8>,
         issuer_uri: HttpsUri,
         attestation_qualification: AttestationQualification,
         metadata_documents: TypeMetadataDocuments,
@@ -349,7 +349,7 @@ impl<K> AttestationTypeConfig<K> {
         let config = Self {
             key_pair,
             valid_days,
-            copy_count,
+            copies_per_format,
             issuer_uri,
             attestation_qualification,
             metadata_documents: sorted_documents.into(),
@@ -765,10 +765,9 @@ impl Session<Created> {
                     attestation_data.attestation_qualification,
                 );
 
-                // TODO (PVW-4107): Include all formats that we want to issue.
                 let preview = CredentialPreview {
                     content: CredentialPreviewContent {
-                        copies_per_format: IndexMap::from([(Format::MsoMdoc, attestation_data.copy_count)]),
+                        copies_per_format: attestation_data.copies_per_format.clone(),
                         credential_payload,
                         issuer_certificate: attestation_data.key_pair.certificate().to_owned(),
                     },
