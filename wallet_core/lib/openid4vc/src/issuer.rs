@@ -32,7 +32,6 @@ use http_utils::urls::HttpsUri;
 use jwt::credential::JwtCredentialClaims;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
-use jwt::jwk::jwk_from_p256;
 use jwt::jwk::jwk_to_p256;
 use jwt::pop::JwtPopClaims;
 use jwt::validations;
@@ -43,7 +42,6 @@ use mdoc::AttestationQualification;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
-use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -1149,15 +1147,15 @@ impl CredentialResponse {
             .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
         match credential_format {
-            Format::MsoMdoc => Self::new_for_mdoc(preview, holder_pubkey, attestation_config).await,
-            Format::SdJwt => Self::new_for_sd_jwt(preview, holder_pubkey, attestation_config).await,
+            Format::MsoMdoc => Self::new_for_mdoc(preview, &holder_pubkey, attestation_config).await,
+            Format::SdJwt => Self::new_for_sd_jwt(preview, &holder_pubkey, attestation_config).await,
             other => Err(CredentialRequestError::CredentialTypeNotOffered(other.to_string())),
         }
     }
 
     async fn new_for_mdoc(
         preview: CredentialPreview,
-        holder_pubkey: VerifyingKey,
+        holder_pubkey: &VerifyingKey,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
@@ -1169,7 +1167,7 @@ impl CredentialResponse {
             unsigned_mdoc,
             attestation_config.first_metadata_integrity.clone(),
             &preview.type_metadata,
-            &holder_pubkey,
+            holder_pubkey,
             &attestation_config.key_pair,
         )
         .await
@@ -1186,19 +1184,20 @@ impl CredentialResponse {
 
     async fn new_for_sd_jwt(
         preview: CredentialPreview,
-        holder_pubkey: VerifyingKey,
+        holder_pubkey: &VerifyingKey,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
-        let payload = CredentialPayload {
-            issued_at: Utc::now().into(),
-            confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(&holder_pubkey)?),
-            previewable_payload: preview.content.credential_payload,
-        };
+        let payload = CredentialPayload::from_previewable_credential_payload(
+            preview.content.credential_payload,
+            Utc::now().into(),
+            holder_pubkey,
+            &attestation_config.metadata,
+        )?;
 
         let sd_jwt = payload
             .into_sd_jwt(
                 &attestation_config.metadata,
-                &holder_pubkey,
+                holder_pubkey,
                 &attestation_config.key_pair,
             )
             .await?;
