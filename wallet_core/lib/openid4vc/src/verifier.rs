@@ -23,6 +23,8 @@ use serde::Serialize;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 use tokio::task::JoinHandle;
 use tracing::debug;
 use tracing::info;
@@ -453,17 +455,26 @@ impl From<DisclosureData> for SessionStatus {
 }
 
 #[derive(
-    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, strum::EnumString, strum::Display, strum::EnumIter,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    SerializeDisplay,
+    DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
+    strum::EnumIter,
 )]
 #[strum(serialize_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
 #[cfg_attr(
     all(test, feature = "ts_rs"),
     derive(ts_rs::TS),
-    ts(export, export_to = "openid4vc.ts")
+    ts(export, export_to = "openid4vc.ts", rename_all = "snake_case")
 )]
 pub enum SessionType {
-    // Using Universal Link
+    /// Using Universal Link
     SameDevice,
     /// Using QR code
     CrossDevice,
