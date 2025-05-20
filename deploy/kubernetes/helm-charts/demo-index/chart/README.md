@@ -34,13 +34,13 @@
 
 ### Image pull secrets
 
-| Name                    | Description                                  | Value    |
-| ----------------------- | -------------------------------------------- | -------- |
-| `imagePullSecrets`      | Array of secret names for private registries | `[]`     |
-| `ingress.enabled`       | Enable or disable the ingress                | `true`   |
-| `ingress.className`     | Ingress class name                           | `nginx`  |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`    |
-| `ingress.labels`        | Additional labels for the ingress            | `{}`     |
+| Name                    | Description                                  | Value   |
+| ----------------------- | -------------------------------------------- | ------- |
+| `imagePullSecrets`      | Array of secret names for private registries | `[]`    |
+| `ingress.enabled`       | Enable or disable the ingress                | `true`  |
+| `ingress.className`     | Ingress class name                           | `nginx` |
+| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress            | `{}`    |
 
 ### Resource requests and limits
 
