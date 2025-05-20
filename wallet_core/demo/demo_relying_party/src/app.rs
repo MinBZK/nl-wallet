@@ -124,13 +124,25 @@ pub fn create_router(settings: Settings) -> Router {
 }
 
 #[derive(Serialize, Deserialize)]
+#[cfg_attr(
+    all(test, feature = "ts_rs"),
+    derive(ts_rs::TS),
+    ts(export, export_to = "relying_party.ts")
+)]
 struct SessionOptions {
     usecase: String,
 }
 
 #[derive(Serialize)]
+#[cfg_attr(
+    all(test, feature = "ts_rs"),
+    derive(ts_rs::TS),
+    ts(export, export_to = "relying_party.ts")
+)]
 struct SessionResponse {
+    #[cfg_attr(all(test, feature = "ts_rs"), ts(type = "URL"))]
     status_url: Url,
+    #[cfg_attr(all(test, feature = "ts_rs"), ts(type = "string"))]
     session_token: SessionToken,
 }
 

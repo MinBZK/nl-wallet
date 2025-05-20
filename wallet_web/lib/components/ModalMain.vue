@@ -6,8 +6,8 @@ import HelpSection from "@/components/HelpSection.vue"
 import InProgressSection from "@/components/InProgressSection.vue"
 import LoadingSection from "@/components/LoadingSection.vue"
 import SuccessSection from "@/components/SuccessSection.vue"
+import { type SessionType } from "@/models/openid4vc"
 import { type ModalState } from "@/models/state"
-import { type SessionType } from "@/models/status"
 import { onMounted, ref } from "vue"
 
 defineProps<{

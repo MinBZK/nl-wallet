@@ -246,6 +246,64 @@ describe("DynamicWalletModal", () => {
     expect(sameDeviceButton.attributes("href")).toEqual("example://app.example.com/-/")
   })
 
+  it("should show same_device success screen on status", async () => {
+    const wrapper = mount(DynamicWalletModal, {
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
+      global: {
+        provide: { [isMobileKey as symbol]: true, [translationsKey as symbol]: translations("nl") },
+      },
+    })
+
+    await vi.mocked(getStatus).withImplementation(
+      async () => {
+        await new Promise((r) => setTimeout(r, 10000))
+        return {
+          status: "DONE",
+          ul: new URL("example://app.example.com/-/"),
+        }
+      },
+      async () => {
+        await vi.advanceTimersToNextTimerAsync()
+        await vi.advanceTimersToNextTimerAsync()
+        expect(wrapper.find("[data-testid=success_same_device]").exists()).toBe(true)
+        expect(wrapper.find("[data-testid=success_cross_device]").exists()).toBe(false)
+      },
+    )
+  })
+
+  it("should show cross_device success screen on status", async () => {
+    const wrapper = mount(DynamicWalletModal, {
+      props: {
+        startUrl: new URL("http://localhost/sessions"),
+        usecase: "test123",
+        helpBaseUrl: new URL("https://example.com"),
+      },
+      global: {
+        provide: { [isMobileKey as symbol]: false, [translationsKey as symbol]: translations("nl") },
+      },
+    })
+
+    await vi.mocked(getStatus).withImplementation(
+      async () => {
+        await new Promise((r) => setTimeout(r, 10000))
+        return {
+          status: "DONE",
+          ul: new URL("example://app.example.com/-/"),
+        }
+      },
+      async () => {
+        await vi.advanceTimersToNextTimerAsync()
+        await vi.advanceTimersToNextTimerAsync()
+        expect(wrapper.find("[data-testid=success_same_device]").exists()).toBe(false)
+        expect(wrapper.find("[data-testid=success_cross_device]").exists()).toBe(true)
+      },
+    )
+  })
+
   describe("error screens for status", () => {
     let wrapper: VueWrapper
 
@@ -260,6 +318,14 @@ describe("DynamicWalletModal", () => {
       })
       await flushPromises()
       expect(wrapper.find("[data-testid=qr]").exists()).toBe(true)
+    })
+
+    it("should show error for expired state", async () => {
+      vi.mocked(getStatus).mockResolvedValueOnce({ status: "CREATED" })
+      // twice needed because of "focus-hack"
+      await vi.advanceTimersToNextTimerAsync()
+      await vi.advanceTimersToNextTimerAsync()
+      expect(wrapper.find("[data-testid=failed_header]").exists()).toBe(true)
     })
 
     it("should show error for expired state", async () => {

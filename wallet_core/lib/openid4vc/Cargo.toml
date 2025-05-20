@@ -30,6 +30,8 @@ test = ["jwt/test", "poa/mock", "crypto/mock_remote_key", "dep:assert_matches", 
 integration = ["mock", "test"]
 # Credential payload examples
 example_credential_payloads = []
+# Generate typescript bindings for wallet_web
+ts_rs = []
 
 [dependencies]
 async-trait.workspace = true
@@ -102,6 +104,7 @@ rstest.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
 serde_json = { workspace = true, features = ["preserve_order"] }
 tracing-test.workspace = true
+ts-rs.workspace = true
 wiremock.workspace = true
 
 attestation_data = { path = "../attestation_data", features = ["mock"] }
