@@ -586,7 +586,7 @@ impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
 
         let session = Session::<Created>::new(
             items_requests,
-            id.to_string(),
+            id,
             self.data.client_id.clone(),
             return_url_template.or_else(|| self.return_url_template.clone()),
         );
@@ -736,7 +736,7 @@ impl<K: EcdsaKeySend> UseCase for StaticUseCase<K> {
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
             self.items_requests.clone(),
-            id.to_string(),
+            id,
             self.data.client_id.clone(),
             Some(self.return_url_template.clone()),
         );
