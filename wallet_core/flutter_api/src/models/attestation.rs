@@ -1,3 +1,4 @@
+use wallet::attestation_data;
 use wallet::sd_jwt_vc_metadata::LogoMetadata;
 
 use crate::models::disclosure::Organization;
@@ -149,13 +150,13 @@ impl From<wallet::AttestationAttributeValue> for AttributeValue {
     }
 }
 
-impl From<wallet::openid4vc::AttributeValue> for AttributeValue {
-    fn from(value: wallet::openid4vc::AttributeValue) -> Self {
+impl From<attestation_data::AttributeValue> for AttributeValue {
+    fn from(value: attestation_data::AttributeValue) -> Self {
         match value {
-            wallet::openid4vc::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
-            wallet::openid4vc::AttributeValue::Integer(value) => AttributeValue::Number { value },
-            wallet::openid4vc::AttributeValue::Text(value) => AttributeValue::String { value },
-            wallet::openid4vc::AttributeValue::Array(_) => todo!("implement in PVW-4001"),
+            attestation_data::AttributeValue::Bool(value) => AttributeValue::Boolean { value },
+            attestation_data::AttributeValue::Integer(value) => AttributeValue::Number { value },
+            attestation_data::AttributeValue::Text(value) => AttributeValue::String { value },
+            attestation_data::AttributeValue::Array(_) => todo!("implement in PVW-4001"),
         }
     }
 }

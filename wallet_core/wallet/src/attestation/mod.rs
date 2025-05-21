@@ -8,10 +8,10 @@ use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation_data::attributes::AttributeError;
+use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
-use openid4vc::attributes::AttributeError;
-use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
 use sd_jwt_vc_metadata::JsonSchemaProperty;

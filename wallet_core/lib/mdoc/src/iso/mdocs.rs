@@ -20,15 +20,14 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use ssri::Integrity;
 
+use attestation_data::attributes::Entry;
+use attestation_data::qualification::AttestationQualification;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
 use utils::date_time_seconds::DateTimeSeconds;
 
-use crate::unsigned::Entry;
 use crate::unsigned::UnsignedAttributes;
 use crate::utils::cose::CoseKey;
 use crate::utils::crypto::cbor_digest;
@@ -152,24 +151,6 @@ impl From<CoseKey> for DeviceKeyInfo {
 
 /// Public key of an mdoc, contained in [`DeviceKeyInfo`] which is contained in [`MobileSecurityObject`].
 pub type DeviceKey = CoseKey;
-
-// TODO move to separate crate (PVW-4241)
-#[derive(
-    Debug, Clone, Copy, Default, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
-)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub enum AttestationQualification {
-    /// Qualified Electronic Attestation of Attributes
-    QEAA,
-
-    /// Electronic attestation of attributes issued by or on behalf of a public sector body
-    #[strum(to_string = "PuB-EAA")]
-    PubEAA,
-
-    /// Electronic attestation of attributes (non-qualified)
-    #[default]
-    EAA,
-}
 
 /// Data signed by the issuer, containing a.o.
 /// - The public key of the mdoc (in [`DeviceKeyInfo`])
@@ -311,6 +292,18 @@ impl TryFrom<Vec<Entry>> for Attributes {
                 .map(|entry| (entry.name, entry.value))
                 .collect::<IndexMap<DataElementIdentifier, DataElementValue>>(),
         )
+    }
+}
+
+impl From<Attributes> for Vec<Entry> {
+    fn from(attributes: Attributes) -> Self {
+        attributes
+            .into_iter()
+            .map(|TaggedBytes(item)| Entry {
+                name: item.element_identifier,
+                value: item.element_value,
+            })
+            .collect()
     }
 }
 

@@ -6,9 +6,22 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
-use mdoc::unsigned::Entry;
-use mdoc::NameSpace;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+
+use crate::identifiers::DataElementIdentifier;
+use crate::identifiers::NameSpace;
+
+pub type DataElementValue = ciborium::Value;
+
+/// An attribute name and value.
+///
+/// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
+/// `digestID`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Entry {
+    pub name: DataElementIdentifier,
+    pub value: DataElementValue,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -246,13 +259,14 @@ mod test {
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
-    use mdoc::unsigned::Entry;
-    use mdoc::NameSpace;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
     use crate::attributes::AttributeValue;
+    use crate::identifiers::NameSpace;
+
+    use super::Entry;
 
     #[test]
     fn test_traverse_groups() {

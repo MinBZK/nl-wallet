@@ -11,7 +11,9 @@ use rand_core::OsRng;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
+use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
@@ -21,8 +23,6 @@ use crypto::trust_anchor::BorrowingTrustAnchor;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
 use mdoc::unsigned::UnsignedMdoc;
-use openid4vc::attributes::AttributeValue;
-use openid4vc::credential_payload::CredentialPayload;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;

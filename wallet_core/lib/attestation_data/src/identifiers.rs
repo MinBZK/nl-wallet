@@ -1,8 +1,8 @@
 use derive_more::Display;
 use indexmap::IndexSet;
 
-type NameSpace = String;
-type DataElementIdentifier = String;
+pub type NameSpace = String;
+pub type DataElementIdentifier = String;
 
 #[derive(Debug, Display, PartialEq, Eq, Hash, Clone)]
 #[display("{credential_type}/{namespace}/{attribute}")]

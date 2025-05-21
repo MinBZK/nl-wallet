@@ -1,9 +1,9 @@
 use indexmap::IndexMap;
 
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::Entry;
 use attestation_data::auth::Organization;
-use mdoc::unsigned::Entry;
 use mdoc::NameSpace;
-use openid4vc::attributes::Attribute;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use super::Attestation;
@@ -32,11 +32,11 @@ mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
 
+    use attestation_data::attributes::AttributeError;
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Entry;
     use attestation_data::auth::Organization;
-    use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
-    use openid4vc::attributes::AttributeError;
-    use openid4vc::attributes::AttributeValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;

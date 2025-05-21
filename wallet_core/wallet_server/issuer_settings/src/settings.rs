@@ -12,13 +12,13 @@ use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
 
+use attestation_data::qualification::AttestationQualification;
 use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::HttpsUri;
-use mdoc::AttestationQualification;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
 use openid4vc::Format;
@@ -226,11 +226,11 @@ mod tests {
     use indexmap::IndexMap;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::qualification::AttestationQualification;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;
-    use mdoc::AttestationQualification;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
     use openid4vc::Format;
     use sd_jwt_vc_metadata::TypeMetadata;

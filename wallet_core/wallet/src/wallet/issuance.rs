@@ -532,10 +532,10 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
-    use openid4vc::attributes::AttributeValue;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;

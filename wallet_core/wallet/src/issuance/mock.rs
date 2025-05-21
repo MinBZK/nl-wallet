@@ -2,8 +2,8 @@ use chrono::Days;
 use chrono::Utc;
 use indexmap::IndexMap;
 
+use attestation_data::attributes::Entry;
 use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
-use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::DataElementValue;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;

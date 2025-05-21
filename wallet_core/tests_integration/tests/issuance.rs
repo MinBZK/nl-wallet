@@ -10,7 +10,7 @@ use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::VerifierUrlParameters;
 use tests_integration::common::*;
-use wallet::openid4vc::AttributeValue;
+use wallet::attestation_data::AttributeValue;
 use wallet::openid4vc::SessionType;
 use wallet::utils::BaseUrl;
 use wallet::Attestation;

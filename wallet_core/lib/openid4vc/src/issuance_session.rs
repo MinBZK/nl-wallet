@@ -21,6 +21,8 @@ use serde::Serialize;
 use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use error_category::ErrorCategory;
@@ -32,6 +34,7 @@ use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
+use mdoc::holder::MdocCredentialPayloadError;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::TaggedBytes;
@@ -56,9 +59,6 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential::MdocCopies;
 use crate::credential::WteDisclosure;
-use crate::credential_payload::CredentialPayload;
-use crate::credential_payload::CredentialPayloadError;
-use crate::credential_payload::PreviewableCredentialPayload;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
 use crate::dpop::DPOP_HEADER_NAME;
@@ -187,7 +187,7 @@ pub enum IssuanceSessionError {
     Poa(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
     #[error("error converting to a CredentialPayload: {0}")]
-    CredentialPayload(#[from] CredentialPayloadError),
+    CredentialPayload(#[from] MdocCredentialPayloadError),
 
     #[error("unsupported credential format(s) proposed for credential \"{}\": {}", .0, .1.iter().join(", "))]
     #[category(pd)]
@@ -1006,7 +1006,7 @@ impl CredentialResponse {
                 let mdoc = Mdoc::new::<K>(key_id, issuer_signed, &TimeGenerator, trust_anchors)
                     .map_err(IssuanceSessionError::MdocVerification)?;
 
-                let issued_credential_payload = CredentialPayload::from_mdoc(mdoc.clone(), normalized_metadata)?;
+                let issued_credential_payload = mdoc.clone().into_credential_payload(normalized_metadata)?;
 
                 // Check that our mdoc contains exactly the attributes the issuer said it would have.
                 // Note that this also means that the mdoc's attributes must match the received metadata,
@@ -1079,7 +1079,11 @@ mod tests {
     use serde_bytes::ByteBuf;
     use ssri::Integrity;
 
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::credential_payload::CredentialPayload;
+    use attestation_data::qualification::AttestationQualification;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
@@ -1089,15 +1093,11 @@ mod tests {
     use jwt::jwk;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
-    use mdoc::AttestationQualification;
     use mdoc::IssuerSigned;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
-    use crate::attributes::Attribute;
-    use crate::attributes::AttributeValue;
-    use crate::credential_payload::CredentialPayload;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::token::CredentialPreview;
     use crate::token::TokenResponse;
@@ -1343,7 +1343,7 @@ mod tests {
 
         pub fn into_response_from_holder_public_key(self, holder_public_key: &VerifyingKey) -> CredentialResponse {
             let (issuer_signed, _) = IssuerSigned::sign(
-                self.previewable_payload.into_unsigned_mdoc().unwrap(),
+                self.previewable_payload.try_into().unwrap(),
                 self.metadata_integrity,
                 &self.metadata_documents,
                 holder_public_key,

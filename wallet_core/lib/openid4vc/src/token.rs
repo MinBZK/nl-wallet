@@ -16,6 +16,7 @@ use serde_with::StringWithSeparator;
 use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::CertificateType;
 use crypto::utils::random_string;
 use crypto::utils::sha256;
@@ -29,7 +30,6 @@ use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::authorization::AuthorizationDetails;
-use crate::credential_payload::PreviewableCredentialPayload;
 use crate::server_state::SessionToken;
 use crate::Format;
 

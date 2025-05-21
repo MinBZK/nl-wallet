@@ -79,7 +79,6 @@ test_common = [
     "dep:pid_issuer",
     "dep:platform_support",
     "dep:reqwest",
-    "dep:sd_jwt_vc_metadata",
     "dep:sea-orm",
     "dep:semver",
     "dep:serde_json",
@@ -221,6 +220,7 @@ wiremock = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }
+attestation_data.path = "../lib/attestation_data"
 configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
@@ -233,7 +233,6 @@ openid4vc = { path = "../lib/openid4vc", optional = true }
 openid4vc_server = { path = "../lib/openid4vc_server", optional = true, features = ["issuance", "disclosure"] }
 pid_issuer = { path = "../wallet_server/pid_issuer", optional = true, features = ["mock"] }
 platform_support = { path = "../wallet/platform_support", optional = true, features = ["mock"] }
-sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", optional = true, features = ["example_constructors"] }
 server_utils = { path = "../wallet_server/server_utils", optional = true, features = [] }
 update_policy_server = { path = "../update_policy/server", optional = true }
 verification_server = { path = "../wallet_server/verification_server", optional = true, features = [] }

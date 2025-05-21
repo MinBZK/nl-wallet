@@ -25,6 +25,7 @@ use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
+use attestation_data::attributes::Entry;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -42,7 +43,6 @@ use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::holder::Mdoc;
-use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::utils::serialization::TaggedBytes;

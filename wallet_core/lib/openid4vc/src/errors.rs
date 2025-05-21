@@ -79,7 +79,8 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
             error: match err {
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | CredentialRequestError::MissingPrivateKey(_)
-                | CredentialRequestError::CredentialPayloadConversion(_)
+                | CredentialRequestError::MdocConversion(_)
+                | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::CredentialSigning(_)
                 | CredentialRequestError::Jwt(_)
                 | CredentialRequestError::WteTracking(_) => CredentialErrorCode::ServerError,

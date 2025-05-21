@@ -2,8 +2,8 @@ use chrono::NaiveDate;
 use indexmap::IndexMap;
 use serde::Deserialize;
 
-use openid4vc::attributes::Attribute;
-use openid4vc::attributes::AttributeValue;
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::pid::constants::*;

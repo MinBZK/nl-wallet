@@ -195,6 +195,7 @@ mod tests {
     use futures::future;
     use rstest::rstest;
 
+    use attestation_data::attributes::Entry;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
 
@@ -202,7 +203,6 @@ mod tests {
     use crate::iso::mdocs::Attributes;
     use crate::iso::mdocs::IssuerNameSpaces;
     use crate::iso::mdocs::IssuerSignedItem;
-    use crate::iso::unsigned::Entry;
     use crate::test::data::addr_street;
     use crate::test::data::empty;
     use crate::test::data::pid_family_name;

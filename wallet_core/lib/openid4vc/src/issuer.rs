@@ -24,6 +24,12 @@ use ssri::Integrity;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::SdJwtCredentialPayloadError;
+use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::issuable_document::IssuableDocuments;
+use attestation_data::qualification::AttestationQualification;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::EcdsaKeySend;
@@ -38,7 +44,9 @@ use jwt::validations;
 use jwt::wte::WteClaims;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
-use mdoc::AttestationQualification;
+use mdoc::holder::MdocCredentialPayloadError;
+use mdoc::holder::MdocParts;
+use mdoc::unsigned::UnsignedMdoc;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
@@ -54,12 +62,8 @@ use crate::credential::CredentialResponse;
 use crate::credential::CredentialResponses;
 use crate::credential::WteDisclosure;
 use crate::credential::OPENID4VCI_VC_POP_JWT_TYPE;
-use crate::credential_payload::CredentialPayload;
-use crate::credential_payload::CredentialPayloadError;
 use crate::dpop::Dpop;
 use crate::dpop::DpopError;
-use crate::issuable_document::IssuableDocument;
-use crate::issuable_document::IssuableDocuments;
 use crate::metadata;
 use crate::metadata::CredentialMetadata;
 use crate::metadata::CredentialResponseEncryption;
@@ -192,8 +196,11 @@ pub enum CredentialRequestError {
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
 
-    #[error("error converting CredentialPayload to Mdoc")]
-    CredentialPayloadConversion(#[from] CredentialPayloadError),
+    #[error("error converting CredentialPayload to Mdoc: {0}")]
+    MdocConversion(#[from] MdocCredentialPayloadError),
+
+    #[error("error converting CredentialPayload to SD-JWT: {0}")]
+    SdJwtConversion(#[from] SdJwtCredentialPayloadError),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -1159,7 +1166,7 @@ impl CredentialResponse {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let unsigned_mdoc = preview.content.credential_payload.into_unsigned_mdoc()?;
+        let unsigned_mdoc: UnsignedMdoc = preview.content.credential_payload.try_into()?;
         let attributes = unsigned_mdoc.attributes.clone().into_inner();
 
         let (issuer_signed, mso) = IssuerSigned::sign(
@@ -1174,7 +1181,7 @@ impl CredentialResponse {
 
         // As a last check, convert the `IssuerSigned` back to a full `CredentialPayload`
         // and validate it against the normalized metadata for this attestation.
-        let _ = CredentialPayload::from_mdoc_parts(attributes, mso, &attestation_config.metadata)?;
+        let _ = MdocParts::new(attributes, mso).into_credential_payload(&attestation_config.metadata)?;
 
         Ok(CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed.into()),

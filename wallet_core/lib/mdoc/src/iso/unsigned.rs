@@ -1,19 +1,16 @@
 use indexmap::IndexMap;
 use nutype::nutype;
-use serde::Deserialize;
-use serde::Serialize;
 
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::Entry;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::qualification::AttestationQualification;
 use http_utils::urls::HttpsUri;
 
-use crate::utils::serialization::TaggedBytes;
-use crate::Attributes;
-use crate::DataElementIdentifier;
-use crate::DataElementValue;
+use crate::holder::MdocCredentialPayloadError;
 use crate::DocType;
 use crate::NameSpace;
 use crate::Tdate;
-
-use super::AttestationQualification;
 
 #[nutype(
     derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, Serialize, Deserialize),
@@ -36,24 +33,29 @@ pub struct UnsignedMdoc {
     pub attestation_qualification: AttestationQualification,
 }
 
-/// An attribute name and value.
-///
-/// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
-/// `digestID`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Entry {
-    pub name: DataElementIdentifier,
-    pub value: DataElementValue,
-}
+impl TryFrom<PreviewableCredentialPayload> for UnsignedMdoc {
+    type Error = MdocCredentialPayloadError;
 
-impl From<Attributes> for Vec<Entry> {
-    fn from(attributes: Attributes) -> Self {
-        attributes
-            .into_iter()
-            .map(|TaggedBytes(item)| Entry {
-                name: item.element_identifier,
-                value: item.element_value,
-            })
-            .collect()
+    fn try_from(source: PreviewableCredentialPayload) -> Result<Self, Self::Error> {
+        let attributes = Attribute::from_attributes(&source.attestation_type, source.attributes);
+
+        let unsigned_mdoc = Self {
+            doc_type: source.attestation_type,
+            attributes: attributes
+                .try_into()
+                .map_err(|_| MdocCredentialPayloadError::NoAttributes)?,
+            valid_from: source
+                .not_before
+                .ok_or(MdocCredentialPayloadError::MissingValidityTimestamp)?
+                .into(),
+            valid_until: source
+                .expires
+                .ok_or(MdocCredentialPayloadError::MissingValidityTimestamp)?
+                .into(),
+            issuer_uri: source.issuer,
+            attestation_qualification: source.attestation_qualification,
+        };
+
+        Ok(unsigned_mdoc)
     }
 }
