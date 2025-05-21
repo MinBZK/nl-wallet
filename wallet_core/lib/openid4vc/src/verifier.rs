@@ -1225,13 +1225,14 @@ impl Session<Created> {
         UC: UseCase,
     {
         let usecase_id = &self.state().usecase_id;
-        let usecase = use_cases.get(usecase_id);
-        let Some(usecase) = usecase else {
-            // This should not happen except when the configuration has changed during this session.
-            warn!("configuration inconsistency: existing session referenced nonexisting usecase '{usecase_id}'");
-            return Err(GetAuthRequestError::UnknownUseCase(usecase_id.to_string()).into());
-        };
-        let usecase = usecase.data();
+        let usecase = use_cases
+            .get(usecase_id)
+            .ok_or_else(|| {
+                // This should not happen except when the configuration has changed during this session.
+                warn!("configuration inconsistency: existing session referenced nonexisting usecase '{usecase_id}'");
+                GetAuthRequestError::UnknownUseCase(usecase_id.to_string())
+            })?
+            .data();
 
         // Determine if we should include a redirect URI, based on the use case configuration and session type.
         let redirect_uri = Self::redirect_uri_and_nonce(
