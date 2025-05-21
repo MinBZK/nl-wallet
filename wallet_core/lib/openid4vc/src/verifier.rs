@@ -1448,10 +1448,6 @@ mod tests {
     use crate::server_state::MemorySessionStore;
     use crate::server_state::SessionStore;
     use crate::server_state::SessionToken;
-    use crate::verifier::EphemeralIdParameters;
-    use crate::verifier::StaticUseCase;
-    use crate::verifier::StaticUseCases;
-    use crate::verifier::VerifierUrlParameters;
 
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
@@ -1459,6 +1455,7 @@ mod tests {
     use super::DisclosureUseCase;
     use super::DisclosureUseCases;
     use super::Done;
+    use super::EphemeralIdParameters;
     use super::ErrorResponse;
     use super::GetAuthRequestError;
     use super::HashMap;
@@ -1470,9 +1467,12 @@ mod tests {
     use super::SessionStatus;
     use super::SessionType;
     use super::SessionTypeReturnUrl;
+    use super::StaticUseCase;
+    use super::StaticUseCases;
     use super::StatusResponse;
     use super::UseCaseData;
     use super::Verifier;
+    use super::VerifierUrlParameters;
     use super::VpAuthorizationErrorCode;
     use super::VpRequestUriObject;
     use super::WalletAuthResponse;
