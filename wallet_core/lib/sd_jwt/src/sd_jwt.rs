@@ -348,7 +348,7 @@ mod test {
             "exp": (Utc::now() - Duration::days(1)).timestamp(),
         }))
         .unwrap()
-        .finish(Algorithm::ES256, &signing_key, holder_privkey.verifying_key())
+        .finish(Algorithm::ES256, &signing_key, &[], holder_privkey.verifying_key())
         .await
         .unwrap()
         .to_string();
