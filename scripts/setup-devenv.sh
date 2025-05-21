@@ -216,16 +216,14 @@ echo -e "${SECTION}Configure verification_server and demo_relying_party${NC}"
 
 cd "${BASE_DIR}"
 
-# Generate root CA for cose signing
-if [ ! -f "${TARGET_DIR}/pid_issuer/ca.key.pem" ]; then
-    generate_pid_issuer_root_ca
+# Generate root CA for issuer
+if [ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]; then
+    generate_issuer_root_ca
 else
-    echo -e "${INFO}Target file '${TARGET_DIR}/pid_issuer/ca.key.pem' already exists, not (re-)generating PID root CA"
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.issuer.key.pem' already exists, not (re-)generating issuer root CA"
 fi
-openssl x509 -in "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
-        -outform der -out "${TARGET_DIR}/pid_issuer/ca_cert.der"
-
-render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_issuer.toml"
+ISSUER_CA_CRT=$(< "${TARGET_DIR}/ca.issuer.crt.der" ${BASE64})
+export ISSUER_CA_CRT
 
 # Generate key for WTE signing
 generate_wp_signing_key wte_signing
@@ -237,32 +235,21 @@ export WP_WTE_PUBLIC_KEY
 # Generate pid issuer key and cert
 generate_pid_issuer_key_pair
 
-PID_CA_CRT=$(< "${TARGET_DIR}/pid_issuer/ca_cert.der" ${BASE64})
-export PID_CA_CRT
 PID_ISSUER_KEY=pid_issuer_key
 export PID_ISSUER_KEY
 PID_ISSUER_CRT=$(< "${TARGET_DIR}/pid_issuer/issuer.crt.der" ${BASE64})
 export PID_ISSUER_CRT
 
-# Generate demo RP root CA
-if [ ! -f "${TARGET_DIR}/demo_relying_party/ca.key.pem" ]; then
-    generate_demo_relying_party_root_ca
+# Generate root CA for reader
+if [ ! -f "${TARGET_DIR}/ca.reader.key.pem" ]; then
+    generate_reader_root_ca
 else
-    echo -e "${INFO}Target file '${TARGET_DIR}/demo_relying_party/ca.key.pem' already exists, not (re-)generating root CA"
+    echo -e "${INFO}Target file '${TARGET_DIR}/ca.reader.key.pem' already exists, not (re-)generating reader root CA"
 fi
-openssl x509 -in "${TARGET_DIR}/demo_relying_party/ca.crt.pem" \
-        -outform der -out "${TARGET_DIR}/demo_relying_party/ca.crt.der"
 
 # Generate CA for RPs
-RP_CA_CRT=$(< "${TARGET_DIR}/demo_relying_party/ca.crt.der" ${BASE64})
-export RP_CA_CRT
-
-# Generate key and cert for the issuance_server
-generate_relying_party_hsm_key_pair disclosure_based_issuance issuance_server
-ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE=disclosure_based_issuance_key
-export ISSUANCE_SERVER_KEY_DISCLOSURE_BASED_ISSUANCE
-ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE=$(< "${TARGET_DIR}/issuance_server/disclosure_based_issuance.crt.der" ${BASE64})
-export ISSUANCE_SERVER_CRT_DISCLOSURE_BASED_ISSUANCE
+READER_CA_CRT=$(< "${TARGET_DIR}/ca.reader.crt.der" ${BASE64})
+export READER_CA_CRT
 
 # Generate relying party key and cert
 generate_relying_party_hsm_key_pair mijn_amsterdam demo_relying_party
@@ -293,6 +280,30 @@ DEMO_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_
 export DEMO_RELYING_PARTY_CRT_MONKEY_BIKE
 
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
+
+
+# Generate issuer key and cert
+generate_demo_issuer_key_pairs university
+DEMO_ISSUER_KEY_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.reader.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_UNIVERSITY_READER
+DEMO_ISSUER_CRT_UNIVERSITY_READER=$(< "${TARGET_DIR}/demo_issuer/university.reader.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_UNIVERSITY_READER
+DEMO_ISSUER_KEY_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_UNIVERSITY_ISSUER
+DEMO_ISSUER_CRT_UNIVERSITY_ISSUER=$(< "${TARGET_DIR}/demo_issuer/university.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_UNIVERSITY_ISSUER
+
+generate_demo_issuer_key_pairs insurance
+DEMO_ISSUER_KEY_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_INSURANCE_READER
+DEMO_ISSUER_CRT_INSURANCE_READER=$(< "${TARGET_DIR}/demo_issuer/insurance.reader.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_INSURANCE_READER
+DEMO_ISSUER_KEY_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.key.der" ${BASE64})
+export DEMO_ISSUER_KEY_INSURANCE_ISSUER
+DEMO_ISSUER_CRT_INSURANCE_ISSUER=$(< "${TARGET_DIR}/demo_issuer/insurance.issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_CRT_INSURANCE_ISSUER
+
+render_template "${DEVENV}/demo_issuer.toml.template" "${DEMO_ISSUER_DIR}/demo_issuer.toml"
 
 
 # Generate relying party ephemeral ID secret

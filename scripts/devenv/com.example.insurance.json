@@ -6,12 +6,26 @@
     {
       "lang": "en-US",
       "name": "Insurance",
-      "description": "An insurance credential"
+      "description": "An insurance credential",
+      "summary": "{{coverage}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#b2e1ea",
+          "text_color": "#152a62"
+        }
+      }
     },
     {
       "lang": "nl-NL",
       "name": "Verzekering",
-      "description": "Een verzekering attestatie"
+      "description": "Een verzekering attestatie",
+      "summary": "{{coverage}}",
+      "rendering": {
+        "simple": {
+          "background_color": "#b2e1ea",
+          "text_color": "#152a62"
+        }
+      }
     }
   ],
   "claims": [
@@ -45,7 +59,8 @@
           "description": "Coverage of the insurance"
         }
       ],
-      "sd": "always"
+      "sd": "always",
+      "svg_id": "coverage"
     },
     {
       "path": ["start_date"],
@@ -102,6 +117,36 @@
     "description": "The JSON schema that defines a insurance VCT",
     "type": "object",
     "properties": {
+      "vct": {
+        "type": "string"
+      },
+      "vct#integrity": {
+        "type": "string"
+      },
+      "iss": {
+        "type": "string"
+      },
+      "nbf": {
+        "type": "number"
+      },
+      "exp": {
+        "type": "number"
+      },
+      "cnf": {
+        "type": "object"
+      },
+      "status": {
+        "type": "object"
+      },
+      "sub": {
+        "type": "string"
+      },
+      "iat": {
+        "type": "number"
+      },
+      "attestation_qualification": {
+        "type": "string"
+      },
       "product": {
         "type": "string"
       },
@@ -117,29 +162,8 @@
       },
       "customer_number": {
         "type": "string"
-      },
-      "vct": {
-        "type": "string"
-      },
-      "vct#integrity": {
-        "type": "string"
-      },
-      "iss": {
-        "type": "string"
-      },
-      "iat": {
-        "type": "number"
-      },
-      "exp": {
-        "type": "number"
-      },
-      "nbf": {
-        "type": "number"
-      },
-      "attestation_qualification": {
-        "type": "string"
       }
     },
-    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
+    "required": ["vct", "iss", "attestation_qualification", "product", "coverage"]
   }
 }

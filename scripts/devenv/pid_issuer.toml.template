@@ -1,5 +1,5 @@
 public_url = 'http://${SERVICES_HOST}:${PID_ISSUER_WS_PORT}/'
-issuer_trust_anchors = ["${PID_CA_CRT}"]
+issuer_trust_anchors = ["${ISSUER_CA_CRT}"]
 
 wte_issuer_pubkey = "${WP_WTE_PUBLIC_KEY}"
 metadata = [

@@ -71,14 +71,14 @@ fn universal_link(issuance_server_url: &BaseUrl) -> Url {
     .unwrap();
 
     let mut issuance_server_url = issuance_server_url
-        .join_base_url("/disclosure/disclosure_based_issuance/request_uri")
+        .join_base_url("/disclosure/university/request_uri")
         .into_inner();
     issuance_server_url.set_query(Some(&params));
 
     let query = serde_urlencoded::to_string(VpRequestUriObject {
         request_uri: issuance_server_url.try_into().unwrap(),
         request_uri_method: Some(RequestUriMethod::POST),
-        client_id: "disclosure_based_issuance.example.com".to_string(),
+        client_id: "university.example.com".to_string(),
     })
     .unwrap();
 
