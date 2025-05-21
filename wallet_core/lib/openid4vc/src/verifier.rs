@@ -476,7 +476,7 @@ pub enum SessionTypeReturnUrl {
     Both,
 }
 
-/// Data that is shared between both [`UseCase`] impls.
+/// Data that is shared between [`UseCase`] impls.
 #[derive(Debug)]
 pub struct UseCaseData<K> {
     pub key_pair: KeyPair<K>,
