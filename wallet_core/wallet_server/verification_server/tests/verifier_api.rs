@@ -548,7 +548,8 @@ async fn test_disclosure_not_found() {
     // As to `request_uri` which is invoked by the wallet: this endpoint can only be invoked with a valid
     // ephemeral ID token over the session token, which the server normally hands out at the status endpoint.
     // But the server will not hand out such a token for a session token that does not refer to an existing session.
-    // So getting a 404 from this endpoint is not possible.
+    // So getting a 404 from this endpoint is not possible, i.e. will not be happening in production scenarios,
+    // so there is no need to test this case here.
 }
 
 fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: Option<SessionType>) -> Url {
