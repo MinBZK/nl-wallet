@@ -46,15 +46,13 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: wp-port
+            - name: http
               containerPort: 3000
           {{- with .Values.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
-            - name: WALLET_PROVIDER__WEBSERVER__PORT
-              value: "3000"
             - name: WALLET_PROVIDER__DATABASE__NAME
               valueFrom:
                 secretKeyRef:

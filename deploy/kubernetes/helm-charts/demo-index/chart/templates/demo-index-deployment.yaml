@@ -36,15 +36,13 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: demo-index-port
+            - name: http
               containerPort: 3004
           volumeMounts:
             - name: config-volume
               mountPath: /demo_index.toml
               subPath: config.toml
           env:
-            - name: DEMO_INDEX__WEBSERVER__PORT
-              value: "3004"
             - name: DEMO_INDEX__STRUCTURED_LOGGING
               value: "true"
             - name: RUST_LOG

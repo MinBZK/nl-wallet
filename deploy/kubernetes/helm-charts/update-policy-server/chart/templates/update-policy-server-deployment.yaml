@@ -37,15 +37,13 @@ spec:
         - name: {{ .Values.nameOverride | default .Chart.Name }}
           image: {{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           ports:
-            - name: ups-port
+            - name: http
               containerPort: 3002
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
-            - name: UPDATE_POLICY_SERVER__PORT
-              value: "3002"
             - name: UPDATE_POLICY_SERVER__STRUCTURED_LOGGING
               value: "true"
             - name: RUST_LOG

@@ -70,4 +70,4 @@ env:
   - name: Routes__0__DownstreamHostAndPorts__0__Host
     value: "gba-hc-converter"
   - name: Routes__0__DownstreamHostAndPorts__0__Port
-    value: "3006"
+    value: "80"

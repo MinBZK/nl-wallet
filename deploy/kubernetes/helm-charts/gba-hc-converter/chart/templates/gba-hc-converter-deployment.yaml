@@ -48,6 +48,9 @@ spec:
             - mountPath: /resources/remote/bsn_zoeken_template.xml
               name: zoek-xml-volume
               subPath: bsn_zoeken_template.xml
+          ports:
+            - name: http
+              containerPort: 3012
           env:
             - name: RUST_BACKTRACE
               value: "1"
@@ -55,8 +58,6 @@ spec:
               value: "debug,hyper=warn"
             - name: GBA_HC_CONVERTER__STRUCTURED_LOGGING
               value: "true"
-            - name: GBA_HC_CONVERTER__PORT
-              value: "3006"
             {{ if or (eq .Values.gbaHcConverter.runMode "PRELOADED") (eq .Values.gbaHcConverter.runMode "ALL") }}
             - name: GBA_HC_CONVERTER__RUN_MODE__{{ .Values.gbaHcConverter.envVarNamePreloaded }}__XML_PATH
               value: {{ .Values.gbaHcConverter.preloadedXmlPath }}

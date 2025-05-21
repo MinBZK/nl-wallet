@@ -8,7 +8,6 @@ spec:
   selector:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}
   ports:
-    - name: demo-relying-party-http
-      port: 3008
-      targetPort: demo-rp-port
-      protocol: TCP
+    - name: http
+      port: 80
+      targetPort: http

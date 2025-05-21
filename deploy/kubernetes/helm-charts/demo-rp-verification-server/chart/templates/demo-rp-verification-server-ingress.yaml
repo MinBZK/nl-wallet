@@ -4,7 +4,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ $name }}-vpn
+  name: nl-{{ $name }}-internal
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
 spec:
@@ -17,7 +17,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3010
+                  name: http-internal
             path: /
             pathType: Prefix
   tls:
@@ -28,7 +28,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ $name }}-public
+  name: nl-{{ $name }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}
@@ -53,7 +53,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3009
+                  name: http
             path: /{{ .Values.verificationServer.contextPath }}/(.*)
             pathType: ImplementationSpecific
   tls:

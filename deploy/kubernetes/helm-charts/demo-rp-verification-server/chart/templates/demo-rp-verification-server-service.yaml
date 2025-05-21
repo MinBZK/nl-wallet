@@ -8,11 +8,9 @@ spec:
   selector:
     {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 4 }}
   ports:
-    - name: demo-rp-ws-http
-      port: 3009
-      targetPort: wallet-port
-      protocol: TCP
-    - name: demo-rp-ws-req-http
-      port: 3010
-      targetPort: requester-port
-      protocol: TCP
+    - name: http
+      port: 80
+      targetPort: http
+    - name: http-internal
+      port: 8080
+      targetPort: http-internal

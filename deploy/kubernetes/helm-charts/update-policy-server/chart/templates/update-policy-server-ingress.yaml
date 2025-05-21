@@ -24,7 +24,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3002
+                  name: http
             path: /{{ .Values.ingress.contextPath }}/(.*)
             pathType: ImplementationSpecific
   tls:

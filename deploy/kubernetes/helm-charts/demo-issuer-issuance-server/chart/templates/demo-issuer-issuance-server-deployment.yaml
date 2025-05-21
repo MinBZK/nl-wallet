@@ -36,7 +36,7 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: wallet-port
+            - name: http
               containerPort: 3007
           volumeMounts:
             - name: issuance-server-settings
@@ -49,8 +49,6 @@ spec:
               mountPath: /com.example.insurance.json
               subPath: com.example.insurance.json
           env:
-            - name: ISSUANCE_SERVER__WALLET_SERVER__PORT
-              value: "3007"
             - name: ISSUANCE_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.issuanceServer.hostname .Values.issuanceServer.contextPath) }}
             - name: ISSUANCE_SERVER__UNIVERSAL_LINK_BASE_URL

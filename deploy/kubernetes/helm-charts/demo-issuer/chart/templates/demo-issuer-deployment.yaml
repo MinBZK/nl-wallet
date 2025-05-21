@@ -36,21 +36,17 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: demo-iw-port
+            - name: http
               containerPort: 3005
-            - name: demo-ii-port
+            - name: http-internal
               containerPort: 3006
           volumeMounts:
             - name: config-volume
               mountPath: /demo_issuer.toml
               subPath: config.toml
           env:
-            - name: DEMO_ISSUER__WEBSERVER__PORT
-              value: "3005"
             - name: DEMO_ISSUER__ISSUANCE_SERVER__IP
               value: "0.0.0.0"
-            - name: DEMO_ISSUER__ISSUANCE_SERVER__PORT
-              value: "3006"
             - name: DEMO_ISSUER__ISSUANCE_SERVER_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.issuanceServer.hostname .Values.issuanceServer.contextPath) }}
             - name: DEMO_ISSUER__UNIVERSAL_LINK_BASE_URL

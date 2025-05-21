@@ -40,8 +40,6 @@ spec:
           value: "1"
         - name: RUST_LOG
           value: "debug,hyper=warn"
-        - name: GBA_HC_CONVERTER__PORT
-          value: "3006"
         - name: GBA_HC_CONVERTER__RUN_MODE__ALL__PRELOADED__XML_PATH
           value: "/data"
         - name: GBA_HC_CONVERTER__RUN_MODE__ALL__PRELOADED__ENCRYPTION_KEY

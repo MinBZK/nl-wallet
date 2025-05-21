@@ -37,8 +37,8 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: {{ .Values.nameOverride | default .Chart.Name }}-port
-              containerPort: 3003
+            - name: http
+              containerPort: 3000
           volumeMounts:
             - name: pid-issuer-private-keys
               mountPath: /pid_issuer.toml
@@ -56,8 +56,6 @@ spec:
               mountPath: /eudi:pid-address:nl:1.json
               subPath: eudi_pid-address_nl_1.json
           env:
-            - name: PID_ISSUER__WALLET_SERVER__PORT
-              value: "3003"
             - name: PID_ISSUER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: PID_ISSUER__STRUCTURED_LOGGING
@@ -80,7 +78,7 @@ spec:
                   name: nl-wallet-pid-issuer-digid-http-trust-anchors
                   key: trust_anchors
             - name: PID_ISSUER__BRP_SERVER
-              value: "http://brpproxy:5001/"
+              value: "http://brpproxy/"
             - name: PID_ISSUER__WTE_ISSUER_PUBKEY
               valueFrom:
                 configMapKeyRef:

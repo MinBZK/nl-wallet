@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ .Values.nameOverride | default .Chart.Name }}-public
+  name: nl-{{ .Values.nameOverride | default .Chart.Name }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}
@@ -27,7 +27,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3000
+                  name: http
             path: /{{ .Values.ingress.contextPath }}/api/v1/(.*)
             pathType: ImplementationSpecific
   tls:

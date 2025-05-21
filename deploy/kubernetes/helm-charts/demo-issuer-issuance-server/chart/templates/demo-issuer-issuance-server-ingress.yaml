@@ -4,7 +4,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ $name }}-public
+  name: nl-{{ $name }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}
@@ -29,7 +29,7 @@ spec:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3007
+                  name: http
             path: /{{ .Values.issuanceServer.contextPath }}/(.*)
             pathType: ImplementationSpecific
   tls:
