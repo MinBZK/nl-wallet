@@ -567,6 +567,10 @@ impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
         items_requests: Option<ItemsRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
+        // If the caller passes a `return_url_template` then we use that,
+        // if not then we use the one configured in `self` (if any).
+        let return_url_template = return_url_template.or_else(|| self.return_url_template.clone());
+
         // Check if we should or should not have received a return URL
         // template, based on the configuration for the use case.
         if match self.data.session_type_return_url {
@@ -584,12 +588,7 @@ impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
             return Err(NewSessionError::NoItemsRequests);
         }
 
-        let session = Session::<Created>::new(
-            items_requests,
-            id,
-            self.data.client_id.clone(),
-            return_url_template.or_else(|| self.return_url_template.clone()),
-        );
+        let session = Session::<Created>::new(items_requests, id, self.data.client_id.clone(), return_url_template);
 
         Ok(session)
     }
