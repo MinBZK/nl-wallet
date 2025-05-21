@@ -584,6 +584,7 @@ impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
             .or_else(|| self.items_requests.clone())
             .ok_or_else(|| NewSessionError::NoItemsRequests)?;
 
+        // Now that we determined which `items_requests` to use, check that it actually containes items requests.
         if items_requests.0.is_empty() {
             return Err(NewSessionError::NoItemsRequests);
         }
