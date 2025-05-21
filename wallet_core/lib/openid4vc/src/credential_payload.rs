@@ -214,7 +214,7 @@ impl CredentialPayload {
             .finish(
                 Algorithm::ES256,
                 issuer_key.private_key(),
-                issuer_key.certificate().to_vec(),
+                &[issuer_key.certificate()],
                 holder_pubkey,
             )
             .await?;
@@ -587,12 +587,7 @@ mod test {
             .unwrap()
             .add_decoys("", 2)
             .unwrap()
-            .finish(
-                Algorithm::ES256,
-                &issuer_key,
-                String::from("x5c").into_bytes(),
-                holder_key.verifying_key(),
-            )
+            .finish(Algorithm::ES256, &issuer_key, &[], holder_key.verifying_key())
             .now_or_never()
             .unwrap()
             .unwrap();

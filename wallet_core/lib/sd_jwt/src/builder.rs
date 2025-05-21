@@ -4,11 +4,13 @@
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use base64::Engine;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
 
+use crypto::x509::BorrowingCertificate;
 use crypto::EcdsaKeySend;
 use jwt::jwk::jwk_from_p256;
 use jwt::VerifiedJwt;
@@ -115,7 +117,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         self,
         alg: Algorithm,
         issuer_signing_key: &impl EcdsaKeySend,
-        issuer_certificate: Vec<u8>,
+        issuer_certificates: &[&BorrowingCertificate],
         holder_pubkey: &VerifyingKey,
     ) -> Result<SdJwt> {
         let SdJwtBuilder {
@@ -136,7 +138,12 @@ impl<H: Hasher> SdJwtBuilder<H> {
             );
 
         header.alg = alg;
-        header.x5c = Some(vec![BASE64_URL_SAFE_NO_PAD.encode(&issuer_certificate)]);
+        header.x5c = Some(
+            issuer_certificates
+                .iter()
+                .map(|cert| BASE64_URL_SAFE_NO_PAD.encode(cert.to_vec()))
+                .collect_vec(),
+        );
 
         let claims = serde_json::from_value::<SdJwtClaims>(object)?;
 
