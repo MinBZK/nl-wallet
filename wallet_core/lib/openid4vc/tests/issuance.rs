@@ -11,7 +11,12 @@ use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::qualification::AttestationQualification;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
@@ -19,17 +24,12 @@ use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use mdoc::AttestationQualification;
-use openid4vc::attributes::Attribute;
-use openid4vc::attributes::AttributeValue;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequestProof;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::CredentialResponses;
-use openid4vc::credential_payload::CredentialPayload;
 use openid4vc::dpop::Dpop;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuance_session::mock_wte;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
@@ -174,7 +174,7 @@ async fn accept_issuance(
         .for_each(|(copies, preview_data)| match copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => {
                 let mdoc = mdocs.first().clone();
-                let payload = CredentialPayload::from_mdoc(mdoc, &preview_data.normalized_metadata).unwrap();
+                let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();
 
                 assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
             }

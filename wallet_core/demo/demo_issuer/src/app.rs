@@ -23,6 +23,7 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use url::Url;
 
+use attestation_data::issuable_document::IssuableDocument;
 use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
@@ -33,7 +34,6 @@ use demo_utils::WALLET_WEB_JS_SHA256;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;

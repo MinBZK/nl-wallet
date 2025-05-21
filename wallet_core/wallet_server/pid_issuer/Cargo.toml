@@ -63,6 +63,7 @@ sea-orm = { workspace = true, optional = true, features = [
     "with-json",
 ] }
 
+attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
 issuer_settings.path = "../issuer_settings"
 hsm = { path = "../../lib/hsm", features = ["settings"] }

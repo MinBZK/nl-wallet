@@ -35,6 +35,7 @@ tracing-subscriber = { workspace = true, features = [
 ] }
 url.workspace = true
 
+attestation_data.path = "../../lib/attestation_data"
 demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 mdoc.path = "../../lib/mdoc"

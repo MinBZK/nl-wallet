@@ -214,12 +214,12 @@ mod test {
     use indexmap::IndexMap;
     use rstest::rstest;
 
+    use attestation_data::attributes::Entry;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
     use mdoc::holder::ProposedDocumentAttributes;
-    use mdoc::unsigned::Entry;
     use mdoc::unsigned::UnsignedMdoc;
     use mdoc::DataElementValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;

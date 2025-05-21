@@ -6,7 +6,6 @@ use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
-use openid4vc::credential_payload::CredentialPayloadError;
 use platform_support::attested_key::AttestedKeyHolder;
 
 use crate::attestation::Attestation;
@@ -33,10 +32,6 @@ pub enum AttestationsError {
     #[error("X.509 certificate does not contain IssuerRegistration")]
     #[category(critical)]
     MissingIssuerRegistration,
-
-    #[error("error converting mdoc to credential payload: {0}")]
-    #[category(defer)]
-    CredentialPayload(#[from] CredentialPayloadError),
 
     #[error("could not extract type metadata from mdoc: {0}")]
     #[category(defer)]

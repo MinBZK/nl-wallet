@@ -4,6 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use indexmap::IndexMap;
 
+use attestation_data::issuable_document::IssuableDocument;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
@@ -11,7 +12,6 @@ use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -189,12 +189,12 @@ mod tests {
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
 
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::issuable_document::IssuableDocument;
     use mdoc::verifier::DocumentDisclosedAttributes;
     use mdoc::ValidityInfo;
-    use openid4vc::attributes::Attribute;
-    use openid4vc::attributes::AttributeValue;
     use openid4vc::credential::CredentialOffer;
-    use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::AttestationTypeConfig;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;

@@ -15,10 +15,10 @@ use serde_repr::Serialize_repr;
 use serde_with::skip_serializing_none;
 use std::fmt::Debug;
 
+use attestation_data::attributes::Entry;
 use attestation_data::identifiers::AttributeIdentifier;
 
 use crate::iso::mdocs::*;
-use crate::unsigned::Entry;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::NullCborValue;
 use crate::utils::serialization::RequiredValue;

@@ -123,6 +123,7 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_data::attributes::Entry;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
@@ -130,7 +131,6 @@ mod tests {
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::TimeGenerator;
 
-    use crate::unsigned::Entry;
     use crate::unsigned::UnsignedMdoc;
     use crate::utils::serialization::TaggedBytes;
     use crate::verifier::ValidityRequirement;

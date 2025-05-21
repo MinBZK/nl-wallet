@@ -6,11 +6,11 @@ use serde::Serialize;
 use serde_valid::Validate;
 
 use http_utils::urls::HttpsUri;
-use mdoc::AttestationQualification;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::Attribute;
 use crate::credential_payload::PreviewableCredentialPayload;
+use crate::qualification::AttestationQualification;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet. For now, this will only be

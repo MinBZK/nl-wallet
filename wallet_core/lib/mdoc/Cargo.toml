@@ -43,10 +43,10 @@ rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde-aux.workspace = true
 serde_bytes = { workspace = true, features = ["std"] }
+serde_json.workspace = true
 serde_repr.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2", "macros"] }
 ssri.workspace = true
-strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["parking_lot"] }
 tracing.workspace = true
@@ -61,6 +61,8 @@ attestation_data.path = "../attestation_data"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
+jwt.path = "../jwt"
+sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 utils.path = "../utils"
 
@@ -70,10 +72,8 @@ hex-literal.workspace = true
 regex.workspace = true
 rstest.workspace = true
 serde_json.workspace = true
-time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
 attestation_data = { path = "../attestation_data", features = ["generate", "mock"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
-utils = { path = "../utils", features = ["mock_time"] }
