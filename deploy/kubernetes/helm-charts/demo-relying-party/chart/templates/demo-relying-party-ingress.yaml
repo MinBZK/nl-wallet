@@ -36,7 +36,7 @@ spec:
                 port:
                   number: 3008
             path: /{{ .Values.demoRelyingParty.contextPath }}/(.*)
-            pathType: Prefix
+            pathType: ImplementationSpecific
   tls:
     - hosts:
         - {{ .Values.demoRelyingParty.hostname }}

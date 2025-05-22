@@ -81,14 +81,10 @@ issuanceServer:
 ## Parameters for the demo issuer configuration
 ## @param demoIssuer.hostname Hostname for the demo issuer
 ## @param demoIssuer.contextPath Context path for the demo issuer
-## @param demoIssuer.walletWebFilename Filename for the wallet web
-## @param demoIssuer.walletWebSha256 SHA-256 checksum for the wallet web file
 ##
 demoIssuer:
   hostname: null
   contextPath: null
-  walletWebFilename: null
-  walletWebSha256: null
 
 ## @param universalLinkBaseUrl Base URL for universal links
 universalLinkBaseUrl: null

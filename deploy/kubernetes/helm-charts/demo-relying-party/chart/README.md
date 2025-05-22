@@ -34,13 +34,13 @@
 
 ### Image pull secrets
 
-| Name                    | Description                                  | Value    |
-| ----------------------- | -------------------------------------------- | -------- |
-| `imagePullSecrets`      | Array of secret names for private registries | `[]`     |
-| `ingress.enabled`       | Enable or disable the ingress                | `true`   |
-| `ingress.className`     | Ingress class name                           | `nginx`  |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`    |
-| `ingress.labels`        | Additional labels for the ingress            | `{}`     |
+| Name                    | Description                                  | Value   |
+| ----------------------- | -------------------------------------------- | ------- |
+| `imagePullSecrets`      | Array of secret names for private registries | `[]`    |
+| `ingress.enabled`       | Enable or disable the ingress                | `true`  |
+| `ingress.className`     | Ingress class name                           | `nginx` |
+| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress            | `{}`    |
 
 ### Resource requests and limits
 
@@ -60,13 +60,11 @@
 
 ### Demo Relying Party parameters
 
-| Name                                 | Description                              | Value |
-| ------------------------------------ | ---------------------------------------- | ----- |
-| `demoRelyingParty.hostname`          | Hostname for the demo Relying Party      | `nil` |
-| `demoRelyingParty.contextPath`       | Context path for the demo Relying Party  | `nil` |
-| `demoRelyingParty.walletWebFilename` | Filename for the wallet web              | `nil` |
-| `demoRelyingParty.walletWebSha256`   | SHA-256 checksum for the wallet web file | `nil` |
-| `helpBaseUrl`                        | Base URL for the help link in wallet web | `nil` |
+| Name                           | Description                              | Value |
+| ------------------------------ | ---------------------------------------- | ----- |
+| `demoRelyingParty.hostname`    | Hostname for the demo Relying Party      | `nil` |
+| `demoRelyingParty.contextPath` | Context path for the demo Relying Party  | `nil` |
+| `helpBaseUrl`                  | Base URL for the help link in wallet web | `nil` |
 
 ### Demo Index parameters
 
