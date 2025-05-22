@@ -117,7 +117,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         self,
         alg: Algorithm,
         issuer_signing_key: &impl EcdsaKeySend,
-        issuer_certificates: &[&BorrowingCertificate],
+        issuer_certificates: Vec<BorrowingCertificate>,
         holder_pubkey: &VerifyingKey,
     ) -> Result<SdJwt> {
         let SdJwtBuilder {
@@ -149,7 +149,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
         let verified_jwt = VerifiedJwt::sign(claims, header, issuer_signing_key).await?;
 
-        Ok(SdJwt::new(verified_jwt, disclosures))
+        Ok(SdJwt::new(verified_jwt, issuer_certificates, disclosures))
     }
 }
 

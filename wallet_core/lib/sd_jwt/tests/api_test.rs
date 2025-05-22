@@ -10,6 +10,8 @@ use rand_core::OsRng;
 use serde_json::json;
 use serde_json::Value;
 
+use crypto::server_keys::generate::Ca;
+use crypto::x509::BorrowingCertificate;
 use jwt::jwk::jwk_from_p256;
 use jwt::EcdsaDecodingKey;
 use sd_jwt::builder::SdJwtBuilder;
@@ -31,7 +33,7 @@ async fn make_sd_jwt(
         .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
             builder.make_concealable(path).unwrap()
         })
-        .finish(Algorithm::ES256, &signing_key, &[], holder_pubkey)
+        .finish(Algorithm::ES256, &signing_key, vec![], holder_pubkey)
         .await
         .unwrap();
 
@@ -225,6 +227,9 @@ async fn test_presentation() -> anyhow::Result<()> {
       ]
     });
 
+    let ca = Ca::generate("myca", Default::default()).unwrap();
+    let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone()).unwrap();
+
     let issuer_privkey = SigningKey::random(&mut OsRng);
     println!(
         "issuer_privkey pubkey: {0}",
@@ -245,8 +250,15 @@ async fn test_presentation() -> anyhow::Result<()> {
         .make_concealable("/nationalities/0")?
         .add_decoys("/nationalities", 1)?
         .add_decoys("", 2)?
-        .finish(Algorithm::ES256, &issuer_privkey, &[], holder_privkey.verifying_key())
+        .finish(
+            Algorithm::ES256,
+            &issuer_privkey,
+            vec![certificate.clone()],
+            holder_privkey.verifying_key(),
+        )
         .await?;
+
+    assert_eq!(sd_jwt.issuer_certificates(), &vec![certificate]);
 
     let hasher = Sha256Hasher::new();
 
