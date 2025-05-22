@@ -303,10 +303,8 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         wte: Option<JwtCredential<WteClaims>>,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
-        K: CredentialEcdsaKey,
-        K: Eq + Hash,
-        KF: KeyFactory<Key = K>,
-        KF: PoaFactory<Key = K>;
+        K: CredentialEcdsaKey + Eq + Hash,
+        KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 
@@ -701,10 +699,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         wte: Option<JwtCredential<WteClaims>>,
     ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
     where
-        K: CredentialEcdsaKey,
-        K: Eq + Hash,
-        KF: KeyFactory<Key = K>,
-        KF: PoaFactory<Key = K>,
+        K: CredentialEcdsaKey + Eq + Hash,
+        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
     {
         // Generate the PoPs to be sent to the issuer, and the private keys with which they were generated
         // (i.e., the private key of the future mdoc).

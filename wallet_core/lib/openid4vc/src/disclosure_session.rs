@@ -710,10 +710,8 @@ where
 
     pub async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
     where
-        K: CredentialEcdsaKey,
-        K: Eq + Hash,
-        KF: KeyFactory<Key = K>,
-        KF: PoaFactory<Key = K>,
+        K: CredentialEcdsaKey + Eq + Hash,
+        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
     {
         info!("disclose proposed documents");
 
@@ -1702,10 +1700,8 @@ mod tests {
     ) -> DisclosureError<VpClientError>
     where
         F: Fn() -> Option<VpMessageClientError>,
-        K: CredentialEcdsaKey,
-        K: Eq + Hash,
-        KF: KeyFactory<Key = K>,
-        KF: PoaFactory<Key = K>,
+        K: CredentialEcdsaKey + Eq + Hash,
+        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
     {
         // Disclosing the session should result in the payload being sent while returning an error.
         let error = match proposal_session {
