@@ -42,6 +42,11 @@ certificate = "${DEMO_RELYING_PARTY_CRT_MONKEY_BIKE}"
 private_key = "${DEMO_RELYING_PARTY_KEY_MONKEY_BIKE}"
 private_key_type = "software"
 
+[usecases.job_finder]
+certificate = "${DEMO_RELYING_PARTY_CRT_JOB_FINDER}"
+private_key = "${DEMO_RELYING_PARTY_KEY_JOB_FINDER}"
+private_key_type = "software"
+
 # Integration test cases
 [usecases.multiple_cards]
 session_type_return_url = "neither"

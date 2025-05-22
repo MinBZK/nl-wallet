@@ -29,6 +29,7 @@ pub const TRANSLATIONS: Translations = Translations {
         marketplace_index: "Log in webshop",
         xyz_index: "Open bank account",
         monkeybike_index: "Create account",
+        job_index: "apply for a job",
         university_index: "Get diploma cards",
         insurance_index: "Get insurance cards",
     },
@@ -42,6 +43,7 @@ pub const TRANSLATIONS: Translations = Translations {
         marketplace_index: "Inloggen webshop",
         xyz_index: "Bankrekening openen",
         monkeybike_index: "Account aanmaken",
+        job_index: "Reageer op vacature",
         university_index: "Ontvang diploma kaarten",
         insurance_index: "Ontvang verzekeringskaarten",
     },
@@ -57,6 +59,7 @@ pub struct Words<'a> {
     pub marketplace_index: &'a str,
     pub xyz_index: &'a str,
     pub monkeybike_index: &'a str,
+    pub job_index: &'a str,
     pub university_index: &'a str,
     pub insurance_index: &'a str,
 }

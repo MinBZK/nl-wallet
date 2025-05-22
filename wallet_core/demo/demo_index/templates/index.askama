@@ -38,6 +38,8 @@
                                 {{ base.trans.university_index }}
                             {% when "insurance" %}
                                 {{ base.trans.insurance_index }}
+                            {% when "job_finder" %}
+                                {{ base.trans.job_index }}
                             {% else %}
                                 {{ usecase_id }}
                         {% endmatch %}

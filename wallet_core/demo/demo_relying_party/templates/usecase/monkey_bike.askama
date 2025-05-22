@@ -1,4 +1,4 @@
-{% call header::header(base.trans.monkeybike_title, demo_utils::OPTION_STR_NONE) %}
+{% call header::header(base.trans.monkeybike_title, demo_utils::OPTION_STR_NONE, demo_utils::OPTION_STR_NONE) %}
 <main>
     <section>
         <h2>{{ base.trans.monkeybike_login }}</h2>

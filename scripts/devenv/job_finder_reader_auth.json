@@ -1,0 +1,56 @@
+{
+  "purposeStatement": {
+    "nl": "Solliciteren",
+    "en": "Apply for a job"
+  },
+  "retentionPolicy": {
+    "intentToRetain": true,
+    "maxDurationInMinutes": 525600
+  },
+  "sharingPolicy": {
+    "intentToShare": false
+  },
+  "deletionPolicy": {
+    "deleteable": false
+  },
+  "organization": {
+    "displayName": {
+      "nl": "BaanVinder",
+      "en": "JobFinder"
+    },
+    "legalName": {
+      "nl": "BaanVinder B.V.",
+      "en": "BaanVinder B.V."
+    },
+    "description": {
+      "nl": "BaanVinder is een platform dat het voor werkgevers en werkzoekenden makkelijker maakt om elkaar te vinden.",
+      "en": "JobFinder is a platform that makes it easier for employers and job seekers to find each other."
+    },
+    "webUrl": "https://www.baanvinder.nl",
+    "city": {
+      "nl": "Utrecht",
+      "en": "Utrecht"
+    },
+    "category": {
+      "nl": "Vacaturesite",
+      "en": "Jobs site"
+    },
+    "logo": {
+      "mimeType": "image/svg+xml",
+      "imageData": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120\" height=\"120\" fill=\"none\"><path fill=\"#000\" d=\"M0 0h120v120H0z\"/><path fill=\"#0BBB52\" d=\"M65.39 80.456 81.013 13.11h20.919l-26.786 92.857H55.63L29.038 13.109h20.79z\"/><path fill=\"#fff\" d=\"M18.15 105.966V13.109h28.7q14.54 0 22.066 6.505 7.59 6.442 7.589 18.942 0 7.08-3.125 12.18-3.125 5.103-8.546 7.463 6.25 1.785 9.63 7.206 3.38 5.357 3.38 13.266 0 13.52-7.462 20.408-7.397 6.887-21.492 6.887zm18.75-40.37v24.81h11.99q5.039 0 7.653-3.126 2.615-3.124 2.615-8.865 0-12.5-9.056-12.818zm0-13.647h9.758q11.033 0 11.033-11.416 0-6.315-2.55-9.056-2.551-2.743-8.292-2.743H36.9z\"/><path fill=\"#0BBB52\" fill-rule=\"evenodd\" d=\"M46.852 13.11H29.037l7.866 27.463V28.734h9.949q4.433 0 6.964 1.636l-3.971-17.188a60 60 0 0 0-2.993-.073m24.902 39.913 4.454-19.196q.3 2.245.3 4.729 0 7.08-3.126 12.18a20 20 0 0 1-1.628 2.287\" clip-rule=\"evenodd\"/></svg>"
+    },
+    "countryCode": "nl",
+    "kvk": "98765432",
+    "privacyPolicyUrl": "https://www.baanvinder.nl/privacy"
+  },
+  "requestOriginBaseUrl": "https://www.baanvinder.nl",
+  "attributes": {
+    "com.example.degree": {
+      "com.example.degree": {
+        "education": {},
+        "university": {},
+        "cum_laude": {}
+      }
+    }
+  }
+}
