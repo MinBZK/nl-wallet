@@ -45,6 +45,12 @@
   },
   "requestOriginBaseUrl": "https://www.baanvinder.nl",
   "attributes": {
+    "urn:eudi:pid:nl:1": {
+      "urn:eudi:pid:nl:1": {
+        "given_name": {},
+        "family_name": {}
+      }
+    },
     "com.example.degree": {
       "com.example.degree": {
         "education": {},

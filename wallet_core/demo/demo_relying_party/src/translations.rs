@@ -69,6 +69,18 @@ pub const TRANSLATIONS: Translations = Translations {
         search_product: "Search product...",
         search_by_topic: "Search by topic...",
         next: "Next",
+        bsn: "BSN",
+        given_name: "First name",
+        family_name: "Last name",
+        birthdate: "Date of birth",
+        postal_code: "Postal code",
+        street_address: "Street",
+        house_number: "House number",
+        education: "Education",
+        university: "University",
+        cum_laude: "Cum laude",
+        r#true: "Yes",
+        r#false: "No",
     },
     nl: Words {
         en: "English",
@@ -120,6 +132,18 @@ pub const TRANSLATIONS: Translations = Translations {
         search_product: "Zoek product...",
         search_by_topic: "Zoek op onderwerp...",
         next: "Volgende",
+        bsn: "BSN",
+        given_name: "Voornaam",
+        family_name: "Achternaam",
+        birthdate: "Geboortedatum",
+        postal_code: "Postcode",
+        street_address: "Straat",
+        house_number: "Huisnummer",
+        education: "Opleiding",
+        university: "Universiteit",
+        cum_laude: "Cum laude",
+        r#true: "Ja",
+        r#false: "Nee",
     },
 };
 
@@ -173,6 +197,18 @@ pub struct Words<'a> {
     pub search_product: &'a str,
     pub search_by_topic: &'a str,
     pub next: &'a str,
+    pub bsn: &'a str,
+    pub given_name: &'a str,
+    pub family_name: &'a str,
+    pub birthdate: &'a str,
+    pub postal_code: &'a str,
+    pub street_address: &'a str,
+    pub house_number: &'a str,
+    pub education: &'a str,
+    pub university: &'a str,
+    pub cum_laude: &'a str,
+    pub r#true: &'a str,
+    pub r#false: &'a str,
 }
 
 impl<'a> Index<Language> for Words<'a> {
@@ -182,6 +218,28 @@ impl<'a> Index<Language> for Words<'a> {
         match lang {
             Language::Nl => &self.nl,
             Language::En => &self.en,
+        }
+    }
+}
+
+impl<'a> Index<&str> for Words<'a> {
+    type Output = &'a str;
+
+    fn index(&self, index: &str) -> &Self::Output {
+        match index {
+            "bsn" => &self.bsn,
+            "given_name" => &self.given_name,
+            "family_name" => &self.family_name,
+            "birthdate" => &self.birthdate,
+            "postal_code" => &self.postal_code,
+            "street_address" => &self.street_address,
+            "house_number" => &self.house_number,
+            "education" => &self.education,
+            "university" => &self.university,
+            "cum_laude" => &self.cum_laude,
+            "true" => &self.r#true,
+            "false" => &self.r#false,
+            _ => panic!("no translation for: {}", index),
         }
     }
 }

@@ -16,19 +16,19 @@
 
 {% block content %}
 {% match usecase %}
-    {% when "mijn_amsterdam" %}
-        {% include "mijn_amsterdam.askama" %}
-    {% when "monkey_bike" %}
-        {% include "monkey_bike.askama" %}
-    {% when "online_marketplace" %}
-        {% include "online_marketplace.askama" %}
-    {% when "xyz_bank" %}
-        {% include "xyz_bank.askama" %}
-    {% when "job_finder" %}
+{% when "mijn_amsterdam" %}
+    {% include "mijn_amsterdam.askama" %}
+{% when "monkey_bike" %}
+    {% include "monkey_bike.askama" %}
+{% when "online_marketplace" %}
+    {% include "online_marketplace.askama" %}
+{% when "xyz_bank" %}
+    {% include "xyz_bank.askama" %}
+{% when "job_finder" %}
     {% include "job_finder.askama" %}
-    {% else %}
-    <main>
-      <section class="buttons">
+{% else %}
+<main>
+    <section class="buttons">
         <nl-wallet-button
             text={{ base.trans.continue_with_nl_wallet }}
             usecase="{{ usecase }}"
@@ -36,8 +36,8 @@
             help-base-url="{{ help_base_url }}"
             lang="{{ base.selected_lang }}">
         </nl-wallet-button>
-      </section>
-    </main>
+    </section>
+</main>
 {% endmatch %}
 
 {# should be last for accessibility purposes #}

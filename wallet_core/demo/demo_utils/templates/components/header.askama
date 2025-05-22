@@ -3,12 +3,12 @@
     <div>
         <h1 aria-label="{{ title }}">
           <span>
-            {{- title -}}
+            {{ title -}}
             {%- match title_span -%}
             {%- when Some with (part) -%}
             <span class="part">{{- part -}}</span>
-            {%- else -%}
-            {%- endmatch -%}
+            {% else %}
+            {% endmatch %}
           </span>
         </h1>
         {% match username %}

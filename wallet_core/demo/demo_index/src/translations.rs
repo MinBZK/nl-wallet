@@ -29,7 +29,7 @@ pub const TRANSLATIONS: Translations = Translations {
         marketplace_index: "Log in webshop",
         xyz_index: "Open bank account",
         monkeybike_index: "Create account",
-        job_index: "apply for a job",
+        job_index: "Apply for a job",
         university_index: "Get diploma cards",
         insurance_index: "Get insurance cards",
     },
