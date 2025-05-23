@@ -9,6 +9,7 @@ export class DemoPage {
     this.marketplaceButton = "#online_marketplace"
     this.monkeyBikeButton = "#monkey_bike"
 
+    this.walletModal = 'aside[data-testid="wallet_modal"]'
     this.nlWalletButtonTag = "nl-wallet-button"
     this.nlWalletButton = ".nl-wallet-button"
     this.modalMessageHeader = ".modal h2"
@@ -50,6 +51,10 @@ export class DemoPage {
 
   async openWalletLogin() {
     await this.page.locator(this.nlWalletButtonTag).locator(this.nlWalletButton).click()
+  }
+
+  async getWalletModal() {
+    return this.page.locator(this.walletModal)
   }
 
   async getModalMessageHeaderText() {
