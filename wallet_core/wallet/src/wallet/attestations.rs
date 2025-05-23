@@ -108,7 +108,7 @@ mod tests {
 
     use assert_matches::assert_matches;
 
-    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -153,10 +153,7 @@ mod tests {
         let mdoc_doc_type = mdoc.doc_type().clone();
         wallet.storage.write().await.mdocs.insert(
             mdoc.doc_type().clone(),
-            vec![(
-                vec![mdoc].try_into().unwrap(),
-                VerifiedTypeMetadataDocuments::pid_example(),
-            )],
+            vec![(vec![mdoc].try_into().unwrap(), NormalizedTypeMetadata::pid_example())],
         );
 
         // Register mock document_callback
@@ -196,10 +193,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
         wallet.storage.write().await.mdocs.insert(
             mdoc.doc_type().clone(),
-            vec![(
-                vec![mdoc].try_into().unwrap(),
-                VerifiedTypeMetadataDocuments::pid_example(),
-            )],
+            vec![(vec![mdoc].try_into().unwrap(), NormalizedTypeMetadata::pid_example())],
         );
 
         // Register mock attestation_callback

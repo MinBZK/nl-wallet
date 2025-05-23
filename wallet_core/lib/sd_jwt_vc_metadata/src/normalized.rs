@@ -365,6 +365,10 @@ mod example_constructors {
         pub fn example() -> Self {
             Self::from_single_example(UncheckedTypeMetadata::example())
         }
+
+        pub fn pid_example() -> Self {
+            Self::from_single_example(UncheckedTypeMetadata::pid_example())
+        }
     }
 }
 

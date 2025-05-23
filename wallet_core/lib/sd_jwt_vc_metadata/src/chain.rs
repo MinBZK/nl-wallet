@@ -250,8 +250,27 @@ impl PartialEq<TypeMetadataDocuments> for SortedTypeMetadataDocuments {
 }
 
 /// Contains a sorted JSON-encoded chain of SD-JWT VC Type Metadata documents that has been fully verified.
-#[derive(Debug, Clone, PartialEq, Eq, AsRef, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, AsRef, Serialize, Deserialize)]
 pub struct VerifiedTypeMetadataDocuments(VecNonEmpty<Vec<u8>>);
+
+impl VerifiedTypeMetadataDocuments {
+    /// Parse and normalize the chain of SD-JWT VC Type Metadata documents. This method can be called e.g. after
+    /// deserializing the JSON documents from persistent storage. Note that this could fail if the validation rules
+    /// for [`TypeMetadata`] or the normalization rules for [`NormalizedTypeMetadata`] have changed since storing the
+    /// JSON documents.
+    pub fn to_normalized(&self) -> Result<NormalizedTypeMetadata, TypeMetadataChainError> {
+        let Self(documents) = self;
+        let metadata_chain = documents
+            .iter()
+            .map(|json| serde_json::from_slice(json))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap();
+        let normalized = NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata(metadata_chain))?;
+
+        Ok(normalized)
+    }
+}
 
 impl From<VerifiedTypeMetadataDocuments> for TypeMetadataDocuments {
     fn from(value: VerifiedTypeMetadataDocuments) -> Self {

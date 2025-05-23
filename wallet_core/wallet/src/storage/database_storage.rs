@@ -227,30 +227,35 @@ impl<K> DatabaseStorage<K> {
         // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
         let select = mdoc_copy::Entity::find()
             .select_only()
-            .columns([
-                mdoc_copy::Column::Id,
-                mdoc_copy::Column::MdocId,
-                mdoc_copy::Column::Mdoc,
-            ])
+            .inner_join(entity::mdoc::Entity)
+            .column(mdoc_copy::Column::Id)
+            .column(mdoc_copy::Column::MdocId)
+            .column(mdoc_copy::Column::Mdoc)
+            .column(entity::mdoc::Column::TypeMetadata)
             .column_as(mdoc_copy::Column::DisclosureCount.min(), "disclosure_count")
             .group_by(mdoc_copy::Column::MdocId)
             .order_by(mdoc_copy::Column::Id, Order::Asc);
 
-        let mdoc_copies = transform_select(select).all(database.connection()).await?;
+        let mdoc_copies: Vec<(Uuid, Uuid, Vec<u8>, serde_json::Value)> =
+            transform_select(select).into_tuple().all(database.connection()).await?;
 
         let mdocs = mdoc_copies
             .into_iter()
-            .map(|model| {
-                let mdoc = cbor_deserialize(model.mdoc.as_slice())?;
+            .map(|(mdoc_copy_id, mdoc_id, mdoc_bytes, metadata_json)| {
+                let mdoc = cbor_deserialize(mdoc_bytes.as_slice())?;
+                let metadata = serde_json::from_value::<VerifiedTypeMetadataDocuments>(metadata_json)?;
+                let normalized_metadata = metadata.to_normalized()?;
+
                 let stored_mdoc_copy = StoredMdocCopy {
-                    mdoc_id: model.mdoc_id,
-                    mdoc_copy_id: model.id,
+                    mdoc_id,
+                    mdoc_copy_id,
                     mdoc,
+                    normalized_metadata,
                 };
 
                 Ok(stored_mdoc_copy)
             })
-            .collect::<Result<_, CborError>>()?;
+            .collect::<Result<_, StorageError>>()?;
 
         Ok(mdocs)
     }
@@ -566,12 +571,8 @@ where
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
         let doc_types_iter = doc_types.iter().copied();
 
-        self.query_unique_mdocs(move |select| {
-            select
-                .inner_join(entity::mdoc::Entity)
-                .filter(entity::mdoc::Column::DocType.is_in(doc_types_iter))
-        })
-        .await
+        self.query_unique_mdocs(move |select| select.filter(entity::mdoc::Column::DocType.is_in(doc_types_iter)))
+            .await
     }
 
     async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool> {
@@ -730,6 +731,7 @@ pub(crate) mod tests {
 
     use chrono::TimeZone;
     use chrono::Utc;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use tokio::fs;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -991,7 +993,8 @@ pub(crate) mod tests {
         // Only one unique `Mdoc` should be returned and it should match all copies.
         assert_eq!(fetched_unique.len(), 1);
         let mdoc_copy1 = fetched_unique.first().unwrap();
-        assert_eq!(&mdoc_copy1.mdoc, mdoc_copies.first());
+        assert_eq!(mdoc_copy1.mdoc, *mdoc_copies.first());
+        assert_eq!(mdoc_copy1.normalized_metadata, NormalizedTypeMetadata::example());
 
         // Increment the usage count for this mdoc.
         storage
@@ -1008,7 +1011,8 @@ pub(crate) mod tests {
         // One matching `Mdoc` should be returned and it should be a different copy than the fist one.
         assert_eq!(fetched_unique_doctype.len(), 1);
         let mdoc_copy2 = fetched_unique_doctype.first().unwrap();
-        assert_eq!(&mdoc_copy2.mdoc, mdoc_copies.first());
+        assert_eq!(mdoc_copy2.mdoc, *mdoc_copies.first());
+        assert_eq!(mdoc_copy2.normalized_metadata, NormalizedTypeMetadata::example());
         assert_ne!(mdoc_copy1.mdoc_copy_id, mdoc_copy2.mdoc_copy_id);
 
         // Increment the usage count for this mdoc.

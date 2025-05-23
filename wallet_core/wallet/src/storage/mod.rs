@@ -23,6 +23,8 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
 use openid4vc::credential::MdocCopies;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 pub use self::data::ChangePinData;
@@ -72,6 +74,9 @@ pub enum StorageError {
     #[error("storage database JSON error: {0}")]
     #[category(pd)]
     Json(#[from] serde_json::Error),
+    #[error("could not decode stored metadata chain: {0}")]
+    #[category(pd)]
+    MetadataChain(#[from] TypeMetadataChainError),
     #[error("storage database CBOR error: {0}")]
     Cbor(#[from] CborError),
     #[error("storage database SQLCipher key error: {0}")]
@@ -88,6 +93,7 @@ pub struct StoredMdocCopy {
     pub mdoc_id: Uuid,
     pub mdoc_copy_id: Uuid,
     pub mdoc: Mdoc,
+    pub normalized_metadata: NormalizedTypeMetadata,
 }
 
 /// This trait abstracts the persistent storage for the wallet.
