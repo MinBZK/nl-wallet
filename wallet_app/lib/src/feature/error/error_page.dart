@@ -137,6 +137,28 @@ class ErrorPage extends StatelessWidget {
     );
   }
 
+  factory ErrorPage.relyingParty(
+    BuildContext context, {
+    String? organizationName,
+    VoidCallback? onPrimaryActionPressed,
+    ErrorCtaStyle style = ErrorCtaStyle.retry,
+  }) {
+    final description = organizationName == null
+        ? context.l10n.genericRelyingPartyErrorDescription
+        : context.l10n.genericRelyingPartyErrorDescriptionWithOrganizationName(organizationName);
+    return ErrorPage(
+      headline: context.l10n.genericRelyingPartyErrorTitle,
+      description: description,
+      illustration: WalletAssets.svg_error_card_blocked,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
+        onPressed: onPrimaryActionPressed,
+      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(

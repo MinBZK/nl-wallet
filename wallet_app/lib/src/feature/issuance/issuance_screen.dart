@@ -34,6 +34,7 @@ import 'issuance_stop_sheet.dart';
 import 'page/issuance_confirm_pin_for_disclosure_page.dart';
 import 'page/issuance_confirm_pin_for_issuance_page.dart';
 import 'page/issuance_generic_error_page.dart';
+import 'page/issuance_relying_party_error_page.dart';
 import 'page/issuance_review_cards_page.dart';
 import 'page/issuance_stopped_page.dart';
 import 'page/issuance_success_page.dart';
@@ -108,6 +109,7 @@ class IssuanceScreen extends StatelessWidget {
           IssuanceNetworkError() => _buildNetworkErrorPage(context, state),
           IssuanceSessionExpired() => _buildSessionExpiredPage(context, state),
           IssuanceSessionCancelled() => _buildCancelledSessionPage(context, state),
+          IssuanceRelyingPartyError() => _buildRelyingPartyErrorPage(context, state),
         };
 
         final skipAnim = !state.didGoBack && state is IssuanceCheckOrganization;
@@ -309,6 +311,13 @@ class IssuanceScreen extends StatelessWidget {
         Navigator.pop(context);
         state.returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
       },
+    );
+  }
+
+  Widget _buildRelyingPartyErrorPage(BuildContext context, IssuanceRelyingPartyError state) {
+    return IssuanceRelyingPartyErrorPage(
+      organizationName: state.organizationName?.l10nValue(context),
+      onClosePressed: () => Navigator.pop(context),
     );
   }
 }

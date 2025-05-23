@@ -28,4 +28,6 @@ const _$FlutterApiErrorTypeEnumMap = {
   FlutterApiErrorType.disclosureSourceMismatch: 'DisclosureSourceMismatch',
   FlutterApiErrorType.expiredSession: 'ExpiredSession',
   FlutterApiErrorType.cancelledSession: 'CancelledSession',
+  FlutterApiErrorType.issuer: 'Issuer',
+  FlutterApiErrorType.verifier: 'Verifier',
 };

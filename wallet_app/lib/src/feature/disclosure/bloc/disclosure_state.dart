@@ -64,6 +64,21 @@ class DisclosureGenericError extends DisclosureState implements ErrorState {
   List<Object?> get props => [error, ...super.props];
 }
 
+class DisclosureRelyingPartyError extends DisclosureState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  final LocalizedText? organizationName;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const DisclosureRelyingPartyError({required this.error, this.organizationName});
+
+  @override
+  List<Object?> get props => [error, organizationName, ...super.props];
+}
+
 class DisclosureSessionExpired extends DisclosureState implements ErrorState {
   @override
   final ApplicationError error;

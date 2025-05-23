@@ -7,7 +7,7 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../widget/button/primary_button.dart';
 import '../widget/button/tertiary_button.dart';
-import '../widget/text/body_text.dart';
+import '../widget/paragraphed_list.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
 
@@ -21,6 +21,7 @@ class TerminalPage extends StatelessWidget {
   final VoidCallback? onSecondaryButtonPressed;
   final Widget? secondaryButtonIcon;
   final Widget? illustration;
+  final bool flipButtonOrder;
 
   bool get hasSecondaryButton => secondaryButtonCta != null;
 
@@ -34,8 +35,12 @@ class TerminalPage extends StatelessWidget {
     this.secondaryButtonCta,
     this.onSecondaryButtonPressed,
     this.illustration,
+    this.flipButtonOrder = false,
     super.key,
-  });
+  }) : assert(
+          !flipButtonOrder || secondaryButtonCta != null,
+          'buttons are only flippable when secondary button is available',
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +69,7 @@ class TerminalPage extends StatelessWidget {
                 children: [
                   TitleText(title),
                   const SizedBox(height: 8),
-                  BodyText(description),
+                  ParagraphedList.splitContent(description),
                 ],
               ),
             ),
@@ -88,14 +93,18 @@ class TerminalPage extends StatelessWidget {
   }
 
   Widget _buildBottomSection(BuildContext context) {
+    List<Widget> buttons = [
+      _buildPrimaryButton(context),
+      SizedBox(height: hasSecondaryButton ? 16 : 0),
+      if (hasSecondaryButton) _buildSecondaryButton(context),
+    ];
+    if (flipButtonOrder) buttons = buttons.reversed.toList();
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         const Divider(),
         const SizedBox(height: 24),
-        _buildPrimaryButton(context),
-        SizedBox(height: hasSecondaryButton ? 16 : 0),
-        if (hasSecondaryButton) _buildSecondaryButton(context),
+        ...buttons,
         SizedBox(height: max(24, context.mediaQuery.viewPadding.bottom)),
       ],
     );
