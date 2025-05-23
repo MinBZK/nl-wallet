@@ -237,7 +237,7 @@ and can be found [here](../demo/qrs.md).
 | Diploma                  | {"id":"DIPLOMA_1","type":"issue"}               | [Issue diploma](walletdebuginteraction://deeplink#%7B%22id%22%3A%22DIPLOMA_1%22%2C%22type%22%3A%22issue%22%7D)                                |
 | Health Insurance         | {"id":"HEALTH_INSURANCE","type":"issue"}        | [Issue health insurance](walletdebuginteraction://deeplink#%7B%22id%22%3A%22HEALTH_INSURANCE%22%2C%22type%22%3A%22issue%22%7D)                |
 | VOG                      | {"id":"VOG","type":"issue"}                     | [Issue VOG](walletdebuginteraction://deeplink#%7B%22id%22%3A%22VOG%22%2C%22type%22%3A%22issue%22%7D)                                          |
-| Multiple Diplomas        | {"id":"MULTI_DIPLOMA","type":"issue"}           | [Issue mutiple diplomas](walletdebuginteraction://deeplink#%7B%22id%22%3A%22MULTI_DIPLOMA%22%2C%22type%22%3A%22issue%22%7D)                   |
+| Multiple Diplomas        | {"id":"MULTI_DIPLOMA","type":"issue"}           | [Issue multiple diplomas](walletdebuginteraction://deeplink#%7B%22id%22%3A%22MULTI_DIPLOMA%22%2C%22type%22%3A%22issue%22%7D)                  |
 
 #### Disclosure Scenarios
 
