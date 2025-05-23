@@ -273,3 +273,18 @@ class IssuanceSessionCancelled extends IssuanceState implements ErrorState {
   @override
   List<Object?> get props => [error, relyingParty, returnUrl, ...super.props];
 }
+
+class IssuanceRelyingPartyError extends IssuanceState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  final LocalizedText? organizationName;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const IssuanceRelyingPartyError({required this.error, this.organizationName});
+
+  @override
+  List<Object?> get props => [error, organizationName, ...super.props];
+}

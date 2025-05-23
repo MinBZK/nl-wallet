@@ -34,6 +34,7 @@ import 'bloc/disclosure_bloc.dart';
 import 'page/disclosure_confirm_data_attributes_page.dart';
 import 'page/disclosure_confirm_pin_page.dart';
 import 'page/disclosure_generic_error_page.dart';
+import 'page/disclosure_relying_party_error_page.dart';
 import 'page/disclosure_report_submitted_page.dart';
 import 'page/disclosure_stopped_page.dart';
 import 'page/disclosure_success_page.dart';
@@ -127,6 +128,7 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureSessionExpired() => _buildSessionExpiredPage(context, state),
           DisclosureExternalScannerError() => _buildGenericErrorPage(context),
           DisclosureCancelledSessionError() => _buildCancelledSessionPage(context, state),
+          DisclosureRelyingPartyError() => _buildRelyingPartyErrorPage(context, state),
         };
 
         final skipAnim = !state.didGoBack && state is DisclosureCheckOrganization;
@@ -420,6 +422,7 @@ class DisclosureScreen extends StatelessWidget {
               visibleOffset: 70,
               child: Text.rich(context.l10n.errorScreenCancelledSessionHeadline.toTextSpan(context)),
             ),
+          DisclosureRelyingPartyError() => null,
         };
 
         return result ?? const SizedBox.shrink();
@@ -463,6 +466,13 @@ class DisclosureScreen extends StatelessWidget {
         Navigator.pop(context);
         state.returnUrl?.let((url) => launchUrlStringCatching(url, mode: LaunchMode.externalApplication));
       },
+    );
+  }
+
+  Widget _buildRelyingPartyErrorPage(BuildContext context, DisclosureRelyingPartyError state) {
+    return DisclosureRelyingPartyErrorPage(
+      organizationName: state.organizationName?.l10nValue(context),
+      onClosePressed: () => Navigator.pop(context),
     );
   }
 }

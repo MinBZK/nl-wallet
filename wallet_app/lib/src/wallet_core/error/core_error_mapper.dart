@@ -1,5 +1,9 @@
 import 'dart:convert';
 
+import 'package:wallet_core/core.dart';
+
+import '../../util/cast_util.dart';
+import '../../util/extension/object_extension.dart';
 import '../../util/mapper/mapper.dart';
 import 'core_error.dart';
 import 'flutter_api_error.dart';
@@ -42,6 +46,16 @@ class CoreErrorMapper extends Mapper<String, CoreError> {
         );
       case FlutterApiErrorType.cancelledSession:
         return CoreCancelledSessionError(flutterApiError.description, data: flutterApiError.data);
+      case FlutterApiErrorType.issuer:
+      case FlutterApiErrorType.verifier:
+        final organizationName = tryCast<Map<String, dynamic>>(flutterApiError.data?['organization_name']);
+        final List<LocalizedString> localizedStrings = [];
+        organizationName?.forEach((key, value) => localizedStrings.add(LocalizedString(language: key, value: value)));
+        return CoreRelyingPartyError(
+          flutterApiError.description,
+          data: flutterApiError.data,
+          organizationName: localizedStrings.takeIf((it) => it.isNotEmpty),
+        );
     }
   }
 

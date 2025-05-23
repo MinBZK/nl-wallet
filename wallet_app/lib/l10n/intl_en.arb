@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-05-13T13:31:54+02:00",
+    "@@last_modified": "2025-05-23T10:25:50+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -509,6 +509,9 @@
     "generalWCAGQr": "Scan QR code",
     "generalWCAGSeeAllActivities": "See all activities",
     "generalWCAGStepper": "Step {current} out of {total}.",
+    "genericRelyingPartyErrorDescription": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
+    "genericRelyingPartyErrorDescriptionWithOrganizationName": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
+    "genericRelyingPartyErrorTitle": "Sorry, something went wrong",
     "helpSheetDescription": "Contact support. The following data could be required.",
     "helpSheetErrorCode": "Error code: {code}",
     "@helpSheetErrorCode": {
@@ -692,7 +695,7 @@
     },
     "issuanceNoCardsPageTitle": "No cards found",
     "issuanceRelyingPartyErrorCloseCta": "Close",
-    "issuanceRelyingPartyErrorDescription": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the issuer's website where you started and try again. If it still doesn’t work, contact the issuer.",
+    "issuanceRelyingPartyErrorDescription": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
     "issuanceRelyingPartyErrorTitle": "Sorry, something went wrong",
     "issuanceRequestedAttributeDescription": "To receive your cards, you will share your {attribute} so {organization} can be sure it's really you.",
@@ -1232,10 +1235,10 @@
         }
     },
     "updateNotificationDialogTitle": "Update urgently needed",
+    "videoPlayerControlAudioOffToggleButton": "Turn off audio",
+    "videoPlayerControlAudioOnToggleButton": "Turn on audio",
     "videoPlayerControlCaptionOffToggleButton": "Turn off subtitles",
     "videoPlayerControlCaptionOnToggleButton": "Turn on subtitles",
-    "videoPlayerControlMuteOffToggleButton": "Turn on audio",
-    "videoPlayerControlMuteOnToggleButton": "Turn off audio",
     "walletPersonalizeCheckDataOfferingPageAcceptCta": "Add",
     "walletPersonalizeCheckDataOfferingPageDeclineCta": "No",
     "walletPersonalizeCheckDataOfferingPageDeclineCtaSemanticsLabel": "No, something is not right",

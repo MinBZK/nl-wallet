@@ -112,9 +112,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
           WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
           WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
-          WalletPersonalizeGenericError() => _buildGenericError(context),
+          WalletPersonalizeGenericError() => _buildGenericError(context, state),
           WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
           WalletPersonalizeAddingCards() => _buildAddingCards(context, progress: state.stepperProgress),
+          WalletPersonalizeRelyingPartyError() => _buildRelyingPartyError(context, state),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -408,15 +409,29 @@ class WalletPersonalizeScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildGenericError(BuildContext context) {
+  Widget _buildGenericError(BuildContext context, WalletPersonalizeGenericError state) {
     return Scaffold(
       appBar: WalletAppBar(
-        progress: const FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
+        progress: state.stepperProgress,
         title: _buildFadeInTitle(context.l10n.errorScreenGenericHeadline),
       ),
       body: ErrorPage.generic(
         context,
         style: ErrorCtaStyle.retry,
+        onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      ),
+    );
+  }
+
+  Widget _buildRelyingPartyError(BuildContext context, WalletPersonalizeRelyingPartyError state) {
+    return Scaffold(
+      appBar: WalletAppBar(
+        progress: state.stepperProgress,
+        title: _buildFadeInTitle(context.l10n.genericRelyingPartyErrorTitle),
+      ),
+      body: ErrorPage.relyingParty(
+        context,
+        organizationName: state.organizationName?.l10nValue(context),
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       ),
     );
