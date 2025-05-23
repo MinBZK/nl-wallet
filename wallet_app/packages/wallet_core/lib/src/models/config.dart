@@ -10,12 +10,14 @@ class FlutterConfiguration {
   final int inactiveWarningTimeout;
   final int inactiveLockTimeout;
   final int backgroundLockTimeout;
+  final String staticAssetsBaseUrl;
   final BigInt version;
 
   const FlutterConfiguration({
     required this.inactiveWarningTimeout,
     required this.inactiveLockTimeout,
     required this.backgroundLockTimeout,
+    required this.staticAssetsBaseUrl,
     required this.version,
   });
 
@@ -24,6 +26,7 @@ class FlutterConfiguration {
       inactiveWarningTimeout.hashCode ^
       inactiveLockTimeout.hashCode ^
       backgroundLockTimeout.hashCode ^
+      staticAssetsBaseUrl.hashCode ^
       version.hashCode;
 
   @override
@@ -34,5 +37,6 @@ class FlutterConfiguration {
           inactiveWarningTimeout == other.inactiveWarningTimeout &&
           inactiveLockTimeout == other.inactiveLockTimeout &&
           backgroundLockTimeout == other.backgroundLockTimeout &&
+          staticAssetsBaseUrl == other.staticAssetsBaseUrl &&
           version == other.version;
 }

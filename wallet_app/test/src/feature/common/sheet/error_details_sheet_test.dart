@@ -30,6 +30,7 @@ void main() {
           idleLockTimeout: Duration(),
           idleWarningTimeout: Duration(),
           backgroundLockTimeout: Duration(),
+          staticAssetsBaseUrl: 'https://example.com/',
           version: 1337,
         ),
       ),
