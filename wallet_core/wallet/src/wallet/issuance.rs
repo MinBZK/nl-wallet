@@ -24,7 +24,6 @@ use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
 use openid4vc::credential::CredentialCopies;
-use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
@@ -474,10 +473,10 @@ where
         ) {
             self.reset_to_initial_state().await;
         }
-        let issued_mdocs = issuance_result?
+        let mdocs_with_metadata = issuance_result?
             .into_iter()
-            .map(CredentialCopies::from)
-            .collect::<Vec<_>>();
+            .map(|(issued_copies, type_metadata)| (CredentialCopies::from(issued_copies), type_metadata))
+            .collect_vec();
 
         info!("Isuance succeeded; removing issuance session state");
         self.session.take();
@@ -485,9 +484,9 @@ where
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
             // Extract first copy from each issued mdoc
-            let mdocs: VecNonEmpty<_> = issued_mdocs
+            let mdocs: VecNonEmpty<_> = mdocs_with_metadata
                 .iter()
-                .map(|mdoc: &MdocCopies| mdoc.first().clone())
+                .map(|(mdoc_copies, _type_metadata)| mdoc_copies.first().clone())
                 .collect_vec()
                 .try_into()
                 .expect("should have received at least one issued mdoc");
@@ -510,7 +509,7 @@ where
         self.storage
             .write()
             .await
-            .insert_mdocs(issued_mdocs)
+            .insert_mdocs(mdocs_with_metadata)
             .await
             .map_err(IssuanceError::MdocStorage)?;
 
@@ -541,6 +540,7 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
+    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::issuance::MockDigidSession;
@@ -552,7 +552,7 @@ mod tests {
     use super::super::test::WalletWithMocks;
     use super::*;
 
-    fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
+    fn mock_issuance_session(mdoc: Mdoc, type_metadata: VerifiedTypeMetadataDocuments) -> MockIssuanceSession {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = mdoc.issuer_certificate().unwrap();
         client.expect_issuer().return_once(move || {
@@ -563,9 +563,10 @@ mod tests {
         });
 
         client.expect_accept().return_once(|| {
-            Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                .try_into()
-                .unwrap()])
+            Ok(vec![(
+                vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap(),
+                type_metadata,
+            )])
         });
         client
     }
@@ -938,7 +939,7 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
-        let pid_issuer = mock_issuance_session(mdoc);
+        let pid_issuer = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Accept the PID issuance with the PIN.
@@ -996,7 +997,7 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single instance of `MdocCopies`, which contains
         // a single valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
-        let pid_issuer = mock_issuance_session(mdoc);
+        let pid_issuer = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Accept the PID issuance with the PIN.
@@ -1190,7 +1191,7 @@ mod tests {
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let mdoc = test::create_example_pid_mdoc();
-        let pid_issuer = mock_issuance_session(mdoc);
+        let pid_issuer = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
 
         // Have the mdoc storage return an error on query.

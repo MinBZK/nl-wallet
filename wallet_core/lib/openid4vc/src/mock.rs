@@ -7,6 +7,7 @@ use attestation_data::auth::issuer_auth::IssuerRegistration;
 use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
@@ -34,7 +35,7 @@ mockall::mock! {
 
         pub fn accept(
             &self,
-        ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
+        ) -> Result<Vec<(IssuedCredentialCopies, VerifiedTypeMetadataDocuments)>, IssuanceSessionError>;
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
 
@@ -62,7 +63,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: &[TrustAnchor<'_>],
         _: &KF,
         _: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<(IssuedCredentialCopies, VerifiedTypeMetadataDocuments)>, IssuanceSessionError> {
         self.accept()
     }
 

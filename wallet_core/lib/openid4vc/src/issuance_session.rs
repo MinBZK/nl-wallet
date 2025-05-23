@@ -44,6 +44,7 @@ use poa::Poa;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::generator::TimeGenerator;
 use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
@@ -301,7 +302,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    ) -> Result<Vec<(IssuedCredentialCopies, VerifiedTypeMetadataDocuments)>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
@@ -697,7 +698,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    ) -> Result<Vec<(IssuedCredentialCopies, VerifiedTypeMetadataDocuments)>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
@@ -829,11 +830,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
                         // Check that the integrity hash received in the MSO matches
                         // that of encoded JSON of the first metadata document.
-                        preview.raw_metadata.verify(integrity.clone())?;
+                        let verified_metadata = preview.raw_metadata.clone().into_verified(integrity.clone())?;
 
-                        cred_copies.try_into()
+                        let issued_copies = cred_copies.try_into()?;
+
+                        Ok((issued_copies, verified_metadata))
                     })
-                    .collect::<Result<Vec<IssuedCredentialCopies>, _>>()
+                    .collect::<Result<Vec<_>, IssuanceSessionError>>()
             })
             // Flatten the results, s.t. we're left with a mixed vector of IssuedCredentialCopies
             .process_results(|i| i.flatten().collect())?;

@@ -14,6 +14,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(ColumnDef::new(Mdoc::Id).uuid().not_null().primary_key())
                     .col(ColumnDef::new(Mdoc::DocType).text().not_null())
+                    .col(ColumnDef::new(Mdoc::TypeMetadata).not_null())
                     .to_owned(),
             )
             .await?;
@@ -63,6 +64,7 @@ pub enum Mdoc {
     Table,
     Id,
     DocType,
+    TypeMetadata,
 }
 
 #[derive(Iden)]

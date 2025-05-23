@@ -694,6 +694,7 @@ mod tests {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
@@ -1785,8 +1786,16 @@ mod tests {
             .write()
             .await
             .insert_mdocs(vec![
-                vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
-                vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                (
+                    vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
+                    VerifiedTypeMetadataDocuments::pid_example(),
+                ),
+                (
+                    vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                    // Note that the attestation type of this metadata does not match the mdoc doc_type,
+                    // which is not relevant for this particular test.
+                    VerifiedTypeMetadataDocuments::pid_example(),
+                ),
             ])
             .await
             .unwrap();

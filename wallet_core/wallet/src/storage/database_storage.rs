@@ -49,6 +49,7 @@ use mdoc::utils::serialization::cbor_serialize;
 use mdoc::utils::serialization::CborError;
 use openid4vc::credential::MdocCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 use super::data::KeyedData;
 use super::database::Database;
@@ -490,12 +491,15 @@ where
         Ok(())
     }
 
-    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+    async fn insert_mdocs(
+        &mut self,
+        mdocs_with_metadata: Vec<(MdocCopies, VerifiedTypeMetadataDocuments)>,
+    ) -> StorageResult<()> {
         // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
         // based on the unique `MdocCopies`, to be inserted into the database.
-        let mdoc_models = mdocs
+        let mdoc_models = mdocs_with_metadata
             .into_iter()
-            .map(|mdoc_copies| {
+            .map(|(mdoc_copies, type_metadata)| {
                 let mdoc_id = Uuid::now_v7();
 
                 let copy_models = mdoc_copies
@@ -518,11 +522,12 @@ where
                 let mdoc_model = entity::mdoc::ActiveModel {
                     id: Set(mdoc_id),
                     doc_type: Set(doc_type),
+                    type_metadata: Set(serde_json::to_value(type_metadata)?),
                 };
 
                 Ok((mdoc_model, copy_models))
             })
-            .collect::<Result<Vec<_>, CborError>>()?;
+            .collect::<Result<Vec<_>, StorageError>>()?;
 
         // Make two separate vecs out of the vec of tuples.
         let (mdoc_models, copy_models): (Vec<_>, Vec<_>) = mdoc_models.into_iter().unzip();
@@ -973,7 +978,7 @@ pub(crate) mod tests {
 
         // Insert mdocs
         storage
-            .insert_mdocs(vec![mdoc_copies.clone()])
+            .insert_mdocs(vec![(mdoc_copies.clone(), VerifiedTypeMetadataDocuments::example())])
             .await
             .expect("Could not insert mdocs");
 

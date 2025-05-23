@@ -10,6 +10,7 @@ use uuid::Uuid;
 use crypto::x509::BorrowingCertificate;
 use mdoc::DocType;
 use openid4vc::credential::MdocCopies;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;
@@ -30,7 +31,7 @@ pub enum KeyedDataResult {
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
-    pub mdocs: IndexMap<DocType, Vec<MdocCopies>>,
+    pub mdocs: IndexMap<DocType, Vec<(MdocCopies, VerifiedTypeMetadataDocuments)>>,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
@@ -132,14 +133,17 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+    async fn insert_mdocs(
+        &mut self,
+        mdocs_with_metadata: Vec<(MdocCopies, VerifiedTypeMetadataDocuments)>,
+    ) -> StorageResult<()> {
         self.check_query_error()?;
 
-        for mdoc_copies in mdocs {
+        for (mdoc_copies, type_metadata) in mdocs_with_metadata {
             self.mdocs
                 .entry(mdoc_copies.first().doc_type().clone())
                 .or_default()
-                .push(mdoc_copies);
+                .push((mdoc_copies, type_metadata));
         }
 
         Ok(())
@@ -164,7 +168,7 @@ impl Storage for MockStorage {
             .mdocs
             .values()
             .flatten()
-            .map(|mdoc_copies| StoredMdocCopy {
+            .map(|(mdoc_copies, _type_metadata)| StoredMdocCopy {
                 mdoc_id: Uuid::now_v7(),
                 mdoc_copy_id: Uuid::now_v7(),
                 mdoc: mdoc_copies.first().clone(),
