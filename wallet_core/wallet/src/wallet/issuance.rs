@@ -11,9 +11,7 @@ use tracing::info;
 use tracing::instrument;
 use url::Url;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::Organization;
-use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
@@ -22,7 +20,6 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
-use mdoc::utils::cose::CoseError;
 use openid4vc::credential::CredentialCopies;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
@@ -105,11 +102,6 @@ pub enum IssuanceError {
     #[error("key '{0}' not found in Wallet Provider")]
     #[category(pd)]
     KeyNotFound(String),
-    #[error("invalid issuer certificate: {0}")]
-    InvalidIssuerCertificate(#[source] CoseError),
-    #[error("issuer not authenticated")]
-    #[category(critical)]
-    MissingIssuerRegistration,
     #[error("could not read attestations from storage: {0}")]
     Attestations(#[source] AttestationsError),
     #[error("failed to read issuer registration from issuer certificate: {0}")]
@@ -491,17 +483,6 @@ where
                 .try_into()
                 .expect("should have received at least one issued mdoc");
 
-            // Validate all issuer_certificates
-            for mdoc in mdocs.as_ref() {
-                let certificate = mdoc
-                    .issuer_certificate()
-                    .map_err(IssuanceError::InvalidIssuerCertificate)?;
-
-                // Verify that the certificate contains IssuerRegistration
-                if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
-                    return Err(IssuanceError::MissingIssuerRegistration);
-                }
-            }
             WalletEvent::new_issuance(mdocs)
         };
 
@@ -533,6 +514,7 @@ mod tests {
 
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use crypto::x509::BorrowingCertificateExtension;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::IssuedCredential;
@@ -987,33 +969,6 @@ mod tests {
             .await
             .expect_err("creating new PID issuance auth URL when there already is a PID should fail");
         assert_matches!(err, IssuanceError::PidAlreadyPresent);
-    }
-
-    #[tokio::test]
-    async fn test_accept_pid_issuance_missing_issuer_registration() {
-        // Prepare a registered and unlocked wallet.
-        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-
-        // Create a mock OpenID4VCI session that accepts the PID with a single instance of `MdocCopies`, which contains
-        // a single valid `Mdoc`, but signed with a Certificate that is missing IssuerRegistration
-        let mdoc = test::create_example_pid_mdoc_unauthenticated();
-        let pid_issuer = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
-
-        // Accept the PID issuance with the PIN.
-        let error = wallet
-            .accept_issuance(PIN.to_owned())
-            .await
-            .expect_err("Accepting PID issuance should have resulted in an error");
-
-        assert_matches!(error, IssuanceError::MissingIssuerRegistration);
-
-        // No issuance event is logged
-        let events = wallet.storage.read().await.fetch_wallet_events().await.unwrap();
-        assert!(events.is_empty());
-
-        assert!(wallet.has_registration());
-        assert!(!wallet.is_locked());
     }
 
     #[tokio::test]
