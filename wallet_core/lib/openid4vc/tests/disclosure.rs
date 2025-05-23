@@ -20,12 +20,14 @@ use ring::hmac;
 use ring::rand;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
+use url::Url;
 
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::factory::KeyFactory;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::mock_remote::MockRemoteKeyFactoryError;
+use crypto::server_keys::generate::mock::RP_CERT_CN;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
@@ -56,6 +58,7 @@ use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
+use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpAuthorizationRequest;
 use openid4vc::openid4vp::VpAuthorizationResponse;
 use openid4vc::openid4vp::VpRequestUriObject;
@@ -71,7 +74,11 @@ use openid4vc::verifier::DisclosureUseCases;
 use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
+use openid4vc::verifier::StaticUseCase;
+use openid4vc::verifier::StaticUseCases;
 use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::UseCase;
+use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::VerifierUrlParameters;
 use openid4vc::verifier::VpToken;
@@ -334,6 +341,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
 const NO_RETURN_URL_USE_CASE: &str = "no_return_url";
 const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
+const STATIC_RETURN_URL_USE_CASE: &str = "static_return_url";
 
 struct MockMdocDataSource(HashMap<DocType, MdocCopies>);
 
@@ -824,10 +832,83 @@ async fn test_disclosure_invalid_poa() {
     );
 }
 
+#[tokio::test]
+async fn test_static_verifier() {
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_static_verifier();
+
+    let mut request_uri: Url = format!("https://example.com/{STATIC_RETURN_URL_USE_CASE}/request_uri")
+        .parse()
+        .unwrap();
+    request_uri.set_query(Some(
+        &serde_urlencoded::to_string(VerifierUrlParameters {
+            session_type: SessionType::SameDevice,
+            ephemeral_id_params: None,
+        })
+        .unwrap(),
+    ));
+
+    let universal_link_query = serde_urlencoded::to_string(VpRequestUriObject {
+        request_uri: request_uri.try_into().unwrap(),
+        request_uri_method: Some(RequestUriMethod::POST),
+        client_id: RP_CERT_CN.to_string(),
+    })
+    .unwrap();
+
+    let key_factory = MockRemoteKeyFactory::default();
+
+    let session = start_disclosure_session(
+        verifier,
+        pid_full_name(),
+        &issuer_ca,
+        DisclosureUriSource::Link,
+        &universal_link_query,
+        rp_trust_anchor,
+        &key_factory,
+    )
+    .await
+    .unwrap();
+
+    let DisclosureSession::Proposal(proposal) = session else {
+        panic!("should have requested attributes")
+    };
+
+    // Do the disclosure
+    proposal.disclose(&key_factory).await.unwrap().unwrap();
+}
+
+fn setup_static_verifier() -> (Arc<MockStaticVerifier>, TrustAnchor<'static>, Ca) {
+    let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
+    let rp_ca = Ca::generate_reader_mock_ca().unwrap();
+
+    // Initialize the verifier
+    let items_requests: ItemsRequests = pid_full_name().into();
+    let reader_registration = Some(reader_registration_mock_from_requests(&items_requests));
+    let usecases = HashMap::from([(
+        STATIC_RETURN_URL_USE_CASE.to_string(),
+        StaticUseCase::try_new(
+            generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
+            SessionTypeReturnUrl::SameDevice,
+            items_requests,
+            "https://example.com/redirect_uri".parse().unwrap(),
+        )
+        .unwrap(),
+    )]);
+
+    let verifier = Arc::new(MockStaticVerifier::new(
+        StaticUseCases::new(usecases),
+        Arc::new(MemorySessionStore::default()),
+        vec![issuer_ca.to_trust_anchor().to_owned()],
+        Some(Box::new(MockDisclosureResultHandler::new(None))),
+        vec![MOCK_WALLET_CLIENT_ID.to_string()],
+    ));
+
+    (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
+}
+
 fn setup_verifier(
     items_requests: &ItemsRequests,
     session_result_query_param: Option<String>,
-) -> (Arc<MockVerifier>, TrustAnchor<'static>, Ca) {
+) -> (Arc<MockDisclosureVerifier>, TrustAnchor<'static>, Ca) {
     // Initialize key material
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
@@ -875,7 +956,7 @@ fn setup_verifier(
         Arc::clone(&sessions),
     );
 
-    let verifier = Arc::new(MockVerifier::new(
+    let verifier = Arc::new(MockDisclosureVerifier::new(
         usecases,
         sessions,
         vec![issuer_ca.to_trust_anchor().to_owned()],
@@ -886,17 +967,19 @@ fn setup_verifier(
     (verifier, rp_ca.to_trust_anchor().to_owned(), issuer_ca)
 }
 
-async fn start_disclosure_session<KF, K>(
-    verifier: Arc<MockVerifier>,
+async fn start_disclosure_session<KF, K, US, UC>(
+    verifier: Arc<MockVerifier<US>>,
     stored_documents: TestDocuments,
     issuer_ca: &Ca,
     uri_source: DisclosureUriSource,
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,
     key_factory: &KF,
-) -> Result<DisclosureSession<VerifierMockVpMessageClient, String>, VpSessionError>
+) -> Result<DisclosureSession<VerifierMockVpMessageClient<MockVerifier<US>>, String>, VpSessionError>
 where
     KF: KeyFactory<Key = K>,
+    US: UseCases<UseCase = UC, Key = SigningKey>,
+    UC: UseCase<Key = SigningKey>,
 {
     // Populate the wallet with the specified test documents
     let mdocs = future::join_all(
@@ -919,7 +1002,7 @@ where
 }
 
 async fn request_uri_from_status_endpoint(
-    verifier: &MockVerifier,
+    verifier: &MockDisclosureVerifier,
     session_token: &SessionToken,
     session_type: SessionType,
 ) -> String {
@@ -933,7 +1016,7 @@ async fn request_uri_from_status_endpoint(
 }
 
 async fn request_status_endpoint(
-    verifier: &MockVerifier,
+    verifier: &MockDisclosureVerifier,
     session_token: &SessionToken,
     session_type: Option<SessionType>,
 ) -> StatusResponse {
@@ -951,20 +1034,25 @@ async fn request_status_endpoint(
         .unwrap()
 }
 
-type MockVerifier =
-    Verifier<MemorySessionStore<DisclosureData>, DisclosureUseCases<SigningKey, MemorySessionStore<DisclosureData>>>;
+type MockDisclosureVerifier = MockVerifier<DisclosureUseCases<SigningKey, MemorySessionStore<DisclosureData>>>;
+type MockStaticVerifier = MockVerifier<StaticUseCases<SigningKey>>;
+type MockVerifier<T> = Verifier<MemorySessionStore<DisclosureData>, T>;
 
-struct VerifierMockVpMessageClient {
-    verifier: Arc<MockVerifier>,
+struct VerifierMockVpMessageClient<T> {
+    verifier: Arc<T>,
 }
 
-impl VerifierMockVpMessageClient {
-    pub fn new(verifier: Arc<MockVerifier>) -> Self {
+impl<T> VerifierMockVpMessageClient<T> {
+    pub fn new(verifier: Arc<T>) -> Self {
         VerifierMockVpMessageClient { verifier }
     }
 }
 
-impl VpMessageClient for VerifierMockVpMessageClient {
+impl<US, UC> VpMessageClient for VerifierMockVpMessageClient<MockVerifier<US>>
+where
+    US: UseCases<UseCase = UC, Key = SigningKey>,
+    UC: UseCase<Key = SigningKey>,
+{
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
