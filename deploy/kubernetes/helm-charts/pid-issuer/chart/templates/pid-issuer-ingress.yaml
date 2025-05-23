@@ -8,8 +8,12 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
   annotations:
-    odcn.rijksapps.nl/inet-loadbalancer-hostnames: {{ .Values.ingress.hostname | quote }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{ if .Values.ingress.contextPath }}
     nginx.ingress.kubernetes.io/rewrite-target: /$1
+{{ end }}
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains"
       more_set_headers "X-Content-Type-Options: nosniff";
@@ -27,8 +31,13 @@ spec:
                 name: {{ include "common.names.fullname" . }}
                 port:
                   name: http
+{{ if .Values.ingress.contextPath }}
             path: /{{ .Values.ingress.contextPath }}/(.*)
             pathType: ImplementationSpecific
+{{ else }}
+            path: /
+            pathType: Prefix
+{{ end }}
   tls:
     - hosts:
         - {{ .Values.ingress.hostname }}

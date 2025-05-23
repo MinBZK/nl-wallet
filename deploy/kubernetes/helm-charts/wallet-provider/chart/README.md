@@ -57,20 +57,16 @@
 | ----------------- | ----------------------------------- | ----- |
 | `securityContext` | Security context for the containers | `{}`  |
 
-### Ingress VPN parameters
-
-| Name                  | Description                  | Value |
-| --------------------- | ---------------------------- | ----- |
-| `ingressVpn.hostname` | Hostname for the VPN ingress | `nil` |
-
 ### Ingress parameters
 
-| Name                  | Description                       | Value   |
-| --------------------- | --------------------------------- | ------- |
-| `ingress.className`   | Ingress class name                | `nginx` |
-| `ingress.hostname`    | Hostname for the ingress          | `nil`   |
-| `ingress.contextPath` | Context path for the ingress      | `nil`   |
-| `ingress.labels`      | Additional labels for the ingress | `{}`    |
+| Name                    | Description                            | Value   |
+| ----------------------- | -------------------------------------- | ------- |
+| `ingress.className`     | Ingress class name                     | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
+| `ingress.tlsSecretName` | TLS secret name for the ingress        | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 
@@ -140,3 +136,9 @@
 | ------------------ | --------------------------------------- | ------ |
 | `migration.labels` | Additional labels for the migration job | `{}`   |
 | `migration.reset`  | Enable reset cron job                   | `true` |
+
+### Service monitor
+
+| Name                     | Description            | Value  |
+| ------------------------ | ---------------------- | ------ |
+| `serviceMonitor.enabled` | Enable service monitor | `true` |

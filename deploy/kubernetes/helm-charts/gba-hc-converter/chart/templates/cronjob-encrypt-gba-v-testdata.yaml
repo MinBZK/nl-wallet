@@ -32,7 +32,7 @@ spec:
             runAsUser: 65532
           containers:
             - name: {{ .Values.gbaEncryptTestData.name }}
-              image: {{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}{{- if (.Values.image).tag }}:{{ .Values.image.tag }}{{- end }}
+              image: {{ .Values.global.imageRegistry }}/{{ .Values.imagePreload.repository }}:{{ .Values.image.tag }}
               imagePullPolicy: {{ .Values.imagePreload.pullPolicy }}
               command: ["sh", "-c", "--"]
               args:

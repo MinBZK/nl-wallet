@@ -34,13 +34,21 @@
 
 ### Image pull secrets
 
-| Name                    | Description                                  | Value   |
-| ----------------------- | -------------------------------------------- | ------- |
-| `imagePullSecrets`      | Array of secret names for private registries | `[]`    |
-| `ingress.enabled`       | Enable or disable the ingress                | `true`  |
-| `ingress.className`     | Ingress class name                           | `nginx` |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`   |
-| `ingress.labels`        | Additional labels for the ingress            | `{}`    |
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
+
+### Ingress parameters
+
+| Name                    | Description                            | Value   |
+| ----------------------- | -------------------------------------- | ------- |
+| `ingress.enabled`       | Enable or disable the ingress          | `true`  |
+| `ingress.className`     | Ingress class name                     | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
+| `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 
@@ -51,18 +59,10 @@
 | `resources.limits.cpu`      | CPU limit      | `200m` |
 | `resources.limits.memory`   | Memory limit   | `64Mi` |
 
-### Issuance Server parameters
+### Urls
 
-| Name                         | Description                          | Value |
-| ---------------------------- | ------------------------------------ | ----- |
-| `issuanceServer.hostname`    | Hostname for the issuance server     | `nil` |
-| `issuanceServer.contextPath` | Context path for the issuance server | `nil` |
-
-### Demo Issuer parameters
-
-| Name                     | Description                              | Value |
-| ------------------------ | ---------------------------------------- | ----- |
-| `demoIssuer.hostname`    | Hostname for the demo issuer             | `nil` |
-| `demoIssuer.contextPath` | Context path for the demo issuer         | `nil` |
-| `universalLinkBaseUrl`   | Base URL for universal links             | `nil` |
-| `helpBaseUrl`            | Base URL for the help link in wallet web | `nil` |
+| Name                    | Description                              | Value |
+| ----------------------- | ---------------------------------------- | ----- |
+| `issuanceServerBaseUrl` | Base URL of the issuance server          | `nil` |
+| `universalLinkBaseUrl`  | Base URL for universal links             | `nil` |
+| `helpBaseUrl`           | Base URL for the help link in wallet web | `nil` |

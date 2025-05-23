@@ -45,11 +45,16 @@
 | ------------------ | -------------------------------------------- | ----- |
 | `imagePullSecrets` | Array of secret names for private registries | `[]`  |
 
-### Ingress VPN parameters
+### Ingress internal parameters
 
-| Name                  | Description                  | Value |
-| --------------------- | ---------------------------- | ----- |
-| `ingressVpn.hostname` | Hostname for the VPN ingress | `nil` |
+| Name                            | Description                                     | Value   |
+| ------------------------------- | ----------------------------------------------- | ------- |
+| `ingressInternal.enabled`       | Enable or disable the internal ingress          | `false` |
+| `ingressInternal.className`     | Ingress class name                              | `nginx` |
+| `ingressInternal.hostname`      | Hostname for the internal ingress               | `nil`   |
+| `ingressInternal.tlsSecretName` | Name of the TLS secret for the internal ingress | `nil`   |
+| `ingressInternal.labels`        | Additional labels for the internal ingress      | `{}`    |
+| `ingressInternal.annotations`   | Additional annotations for the internal ingress | `{}`    |
 
 ### Ingress parameters
 
@@ -57,8 +62,11 @@
 | ----------------------- | -------------------------------------- | ------- |
 | `ingress.enabled`       | Enable or disable the ingress          | `true`  |
 | `ingress.className`     | Ingress class name                     | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
 | `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
 | `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 
@@ -69,13 +77,11 @@
 | `resources.limits.cpu`      | CPU limit      | `200m`  |
 | `resources.limits.memory`   | Memory limit   | `128Mi` |
 
-### Verification Server parameters
+### Urls
 
-| Name                             | Description                              | Value |
-| -------------------------------- | ---------------------------------------- | ----- |
-| `verificationServer.hostname`    | Hostname for the verification server     | `nil` |
-| `verificationServer.contextPath` | Context path for the verification server | `nil` |
-| `universalLinkBaseUrl`           | Base URL for universal links             | `nil` |
+| Name                   | Description                  | Value |
+| ---------------------- | ---------------------------- | ----- |
+| `universalLinkBaseUrl` | Base URL for universal links | `nil` |
 
 ### Migration parameters
 

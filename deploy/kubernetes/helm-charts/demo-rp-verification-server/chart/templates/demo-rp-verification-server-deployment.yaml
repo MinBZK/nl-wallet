@@ -41,10 +41,10 @@ spec:
             - name: http-internal
               containerPort: 8002
           env:
-            - name: VERIFICATION_SERVER__REQUESTER_SERVER
+            - name: VERIFICATION_SERVER__REQUESTER_SERVER__IP
               value: "0.0.0.0"
             - name: VERIFICATION_SERVER__PUBLIC_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.verificationServer.hostname .Values.verificationServer.contextPath) }}
+              value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: VERIFICATION_SERVER__UNIVERSAL_LINK_BASE_URL
               value: {{ .Values.universalLinkBaseUrl }}
             - name: VERIFICATION_SERVER__STRUCTURED_LOGGING

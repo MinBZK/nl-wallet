@@ -512,9 +512,8 @@ BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
 DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
   | openssl dgst -sha256 -sign "${TARGET_DIR}/wallet_provider/config_signing.pem" -keyform PEM -binary \
   | openssl asn1parse -inform DER)
-R=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${SED} -n '1s/.*: //p' | ${SED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
-S=$(echo -n "${DER_SIGNATURE}" | grep 'INTEGER' | ${SED} -n '2s/.*: //p' | ${SED} -e 's/^INTEGER[[:space:]]*:\([[:alnum:]]*\)/\1/g')
-BASE64_JWS_SIGNATURE=$(echo -n "${R}${S}" | xxd -p -r | base64_url_encode)
+RS=$(echo "${DER_SIGNATURE}" | awk -v len=64 'BEGIN { FS=":"; ORS=""; } /INTEGER/ { printf "%0" len "s", $4; }')
+BASE64_JWS_SIGNATURE=$(echo -n "${RS}" | xxd -p -r | base64_url_encode)
 
 echo -n "${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}.${BASE64_JWS_SIGNATURE}" > "${TARGET_DIR}/wallet-config-jws-compact.txt"
 cp "${TARGET_DIR}/wallet-config.json" "${BASE_DIR}/wallet_core/tests_integration/wallet-config.json"

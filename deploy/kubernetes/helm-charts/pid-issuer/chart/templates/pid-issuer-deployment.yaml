@@ -71,7 +71,7 @@ spec:
                   name: nl-wallet-pid-issuer-digid-bsn-privkey
                   key: bsn_privkey
             - name: PID_ISSUER__DIGID__HTTP_CONFIG__BASE_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.digid.hostname .Values.digid.contextPath) }}
+              value: {{ .Values.digidBaseUrl }}
             - name: PID_ISSUER__DIGID__HTTP_CONFIG__TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:

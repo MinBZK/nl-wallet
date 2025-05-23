@@ -30,7 +30,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ include "common.names.fullname" . }}
-          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}{{- if (.Values.image).tag }}:{{ .Values.image.tag }}{{- end }}"
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -48,7 +48,7 @@ spec:
             - name: DEMO_ISSUER__ISSUANCE_SERVER__IP
               value: "0.0.0.0"
             - name: DEMO_ISSUER__ISSUANCE_SERVER_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.issuanceServer.hostname .Values.issuanceServer.contextPath) }}
+              value: {{ .Values.issuanceServerBaseUrl }}
             - name: DEMO_ISSUER__UNIVERSAL_LINK_BASE_URL
               value: {{ .Values.universalLinkBaseUrl }}
             - name: DEMO_ISSUER__HELP_BASE_URL

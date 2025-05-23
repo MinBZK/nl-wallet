@@ -80,13 +80,6 @@ gbaHcConverter:
       cpu: "200m"
       memory: "128Mi"
 
-## @section GBA Fetch parameters
-## Parameters for the GBA Fetch configuration
-## @param gbaFetch.frontendUrl URL for the GBA Fetch frontend
-##
-gbaFetch:
-  frontendUrl: null
-
 ## @section GBA CLI Tool parameters
 ## Parameters for the GBA CLI Tool configuration
 ## @param gbaCliTool.enabled Enable or disable the GBA CLI Tool
@@ -119,7 +112,8 @@ hostAliases: []
 ## @param frontend.name Name of the GBA Fetch frontend application
 ## @param frontend.extraPodlabels Additional labels for the frontend pods
 ## @param frontend.ingress.className Ingress class name for the frontend
-## @param frontend.ingress.secretName Secret name for the ingress TLS configuration
+## @param frontend.ingress.hostname Ingress hostname for the frontend
+## @param frontend.ingress.tlsSecretName Secret name for the ingress TLS configuration
 ## @param frontend.resources.requests.cpu CPU request for the frontend container
 ## @param frontend.resources.requests.memory Memory request for the frontend container
 ## @param frontend.resources.limits.cpu CPU limit for the frontend container
@@ -130,7 +124,8 @@ frontend:
   extraPodlabels: {}
   ingress:
     className: nginx
-    secretName: null
+    hostname: null
+    tlsSecretName: null
   resources:
     requests:
       cpu: "50m"

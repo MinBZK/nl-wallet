@@ -35,7 +35,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ include "common.names.fullname" . }}
-          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}{{- if (.Values.image).tag }}:{{ .Values.image.tag }}{{- end }}"
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{ with .Values.gbaHcConverter.resources }}
           resources:
