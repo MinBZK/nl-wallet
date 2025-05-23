@@ -112,6 +112,7 @@ void main() {
             inactiveWarningTimeout: 0,
             inactiveLockTimeout: 0,
             backgroundLockTimeout: 0,
+            staticAssetsBaseUrl: '',
             version: BigInt.zero,
           ),
         ),

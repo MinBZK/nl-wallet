@@ -8,6 +8,7 @@ void main() {
     idleWarningTimeout: Duration(seconds: 7),
     idleLockTimeout: Duration(seconds: 10),
     backgroundLockTimeout: Duration(seconds: 20),
+    staticAssetsBaseUrl: 'https://example.com/',
     version: 0,
   );
 
@@ -17,6 +18,7 @@ void main() {
         idleWarningTimeout: Duration(seconds: 7),
         idleLockTimeout: Duration(seconds: 10),
         backgroundLockTimeout: Duration(seconds: 20),
+        staticAssetsBaseUrl: 'https://example.com/',
         version: 0,
       );
 
@@ -28,30 +30,42 @@ void main() {
         idleWarningTimeout: Duration(hours: 1337),
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
+        staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         version: defaultMockConfig.version,
       );
       final otherIdle = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
         idleLockTimeout: Duration(hours: 1337),
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
+        staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         version: defaultMockConfig.version,
       );
       final otherBackground = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: Duration(hours: 1337),
+        staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
+        version: defaultMockConfig.version,
+      );
+      final otherStaticAssetsBaseUrlPrefix = FlutterAppConfiguration(
+        idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
+        idleLockTimeout: defaultMockConfig.idleLockTimeout,
+        backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
+        staticAssetsBaseUrl: 'https://other.example.com/',
         version: defaultMockConfig.version,
       );
       final otherVersion = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
+        staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         version: 1337,
       );
 
       expect(defaultMockConfig.hashCode == otherWarning.hashCode, isFalse);
       expect(defaultMockConfig.hashCode == otherIdle.hashCode, isFalse);
       expect(defaultMockConfig.hashCode == otherBackground.hashCode, isFalse);
+      expect(defaultMockConfig.hashCode == otherStaticAssetsBaseUrlPrefix.hashCode, isFalse);
       expect(defaultMockConfig.hashCode == otherVersion.hashCode, isFalse);
     });
   });
@@ -80,6 +94,7 @@ void main() {
       idleWarningTimeout: Duration(seconds: 7),
       idleLockTimeout: Duration(seconds: 8),
       backgroundLockTimeout: Duration(seconds: 5),
+      staticAssetsBaseUrl: 'https://example.com/',
       version: 0,
     );
     late FlutterAppConfiguration receivedConfig;
