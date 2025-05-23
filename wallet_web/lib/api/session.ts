@@ -1,4 +1,4 @@
-import { type SessionOptions, type SessionResponse } from "@/models/session"
+import { type SessionOptions, type SessionResponse } from "@/models/relying_party"
 import axios, { AxiosError } from "axios"
 import { catch_axios_error, REQUEST_TIMEOUT } from "./base"
 

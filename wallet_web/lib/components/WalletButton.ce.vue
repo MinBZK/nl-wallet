@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import WalletModal from "@/components/WalletModal.vue"
-import type { ModalType } from "@/models/state"
+import { type ModalType } from "@/models/state"
 import { RO_SANS_BOLD, RO_SANS_REGULAR } from "@/non-free/fonts"
 import { type Language, translations, translationsKey } from "@/util/translations"
 import { isDesktop, isMobileKey } from "@/util/useragent"

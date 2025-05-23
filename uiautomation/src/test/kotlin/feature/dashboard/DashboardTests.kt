@@ -1,5 +1,6 @@
 package feature.dashboard
 
+import helper.GbaDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
@@ -25,12 +26,14 @@ class DashboardTests : TestBase() {
     }
 
     private lateinit var dashboardScreen: DashboardScreen
+    private lateinit var gbaData: GbaDataHelper
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.Dashboard)
 
         dashboardScreen = DashboardScreen()
+        gbaData = GbaDataHelper()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -39,13 +42,11 @@ class DashboardTests : TestBase() {
     fun verifyIssuedCardsVisible(testInfo: TestInfo) {
         setUp(testInfo)
         assertAll(
-            { assertTrue(dashboardScreen.cardsVisible(), "Expected cards are not visible") },
+            { assertTrue(dashboardScreen.pidCardsVisible(), "Expected cards are not visible") },
             { assertTrue(dashboardScreen.cardTitlesVisible(), "card title are not visible") },
             { assertTrue(dashboardScreen.cardButtonsVisible(), "card buttons are not visible") },
-// TODO: enable asserts when available in pid
-//            { assertTrue(dashboardScreen.cardLogosVisible(), "card logos are not visible") },
-//            { assertTrue(dashboardScreen.cardSubtitlesVisible(), "card subtitle are not visible") },
-//            { assertTrue(dashboardScreen.cardBackgroundImagesVisible(), "card background images are not visible") },
+            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.FIRST_NAME,"999991772")), "pid card subtitle is not visible") },
+            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.CITY,"999991772")), "adress card subtitle is not visible") },
         )
     }
 

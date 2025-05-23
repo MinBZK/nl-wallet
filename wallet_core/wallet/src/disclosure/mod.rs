@@ -93,10 +93,8 @@ pub trait MdocDisclosureProposal {
 
     async fn disclose<K, KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
-        K: CredentialEcdsaKey,
-        K: Eq + Hash,
-        KF: KeyFactory<Key = K>,
-        KF: PoaFactory<Key = K>;
+        K: CredentialEcdsaKey + Eq + Hash,
+        KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
 }
 
 type VpDisclosureSession = openid4vc::disclosure_session::DisclosureSession<HttpVpMessageClient, Uuid>;
@@ -183,10 +181,8 @@ impl MdocDisclosureProposal for VpDisclosureProposal {
 
     async fn disclose<K, KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
     where
-        K: CredentialEcdsaKey,
-        K: Eq + Hash,
-        KF: KeyFactory<Key = K>,
-        KF: PoaFactory<Key = K>,
+        K: CredentialEcdsaKey + Eq + Hash,
+        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
     {
         let redirect_uri = self
             .disclose(key_factory)

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::convert::Infallible;
-use std::num::NonZeroU8;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -985,7 +984,7 @@ where
     let mdocs = future::join_all(
         stored_documents
             .into_iter()
-            .map(|doc| async { doc.sign(issuer_ca, key_factory, NonZeroU8::new(1).unwrap()).await }),
+            .map(|doc| async { doc.sign(issuer_ca, key_factory).await }),
     )
     .await;
     let mdocs = MockMdocDataSource::from(mdocs);

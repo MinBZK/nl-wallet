@@ -4,26 +4,34 @@ use chrono::DateTime;
 use chrono::Utc;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
-use itertools::Itertools;
+use p256::ecdsa::VerifyingKey;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use ssri::Integrity;
 
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeError;
+use attestation_data::attributes::Entry;
+use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::identifiers::AttributeIdentifier;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::keys::CredentialKeyType;
 use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
-use http_utils::urls::HttpsUri;
+use jwt::error::JwkConversionError;
+use jwt::jwk::jwk_from_p256;
+use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::generator::Generator;
 
 use crate::errors::Error;
 use crate::iso::*;
-use crate::unsigned::Entry;
-use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
+use crate::utils::crypto::CryptoError;
 use crate::verifier::ValidityRequirement;
 
 use super::HolderError;
@@ -42,7 +50,7 @@ pub struct Mdoc {
     // mdoc after deserialization.
     pub private_key_id: String,
     pub issuer_signed: IssuerSigned,
-    pub key_type: CredentialKeyType,
+    key_type: CredentialKeyType,
 }
 
 impl Mdoc {
@@ -75,10 +83,6 @@ impl Mdoc {
         &self.mso.doc_type
     }
 
-    pub fn validity_info(&self) -> &ValidityInfo {
-        &self.mso.validity_info
-    }
-
     pub fn type_metadata_integrity(&self) -> Result<&Integrity, Error> {
         let integrity = self
             .mso
@@ -101,131 +105,139 @@ impl Mdoc {
 
         Ok(metadata)
     }
-
-    /// Check that the doc_type, issuer, validity_info, attestation_qualification, namespaces, attribute names and
-    /// attribute values of this instance are equal to to the provided unsigned value.
-    pub fn compare_unsigned(&self, unsigned: &UnsignedMdoc) -> Result<(), IssuedDocumentMismatchError> {
-        if self.mso.doc_type != unsigned.doc_type {
-            return Err(IssuedDocumentMismatchError::IssuedDoctypeMismatch(
-                unsigned.doc_type.clone(),
-                self.mso.doc_type.clone(),
-            ));
-        }
-
-        match self.mso.issuer_uri.as_ref() {
-            None => Err(IssuedDocumentMismatchError::IssuedIssuerMissing),
-            Some(issuer_uri) if *issuer_uri != unsigned.issuer_uri => {
-                Err(IssuedDocumentMismatchError::IssuedIssuerMismatch(
-                    Box::new(unsigned.issuer_uri.clone()),
-                    Box::new(issuer_uri.clone()),
-                ))
-            }
-            Some(_) => Ok(()),
-        }?;
-
-        if self.mso.validity_info.valid_from != unsigned.valid_from
-            || self.mso.validity_info.valid_until != unsigned.valid_until
-        {
-            return Err(IssuedDocumentMismatchError::IssuedValidityInfoMismatch(
-                (unsigned.valid_from.clone(), unsigned.valid_until.clone()),
-                (
-                    self.mso.validity_info.valid_from.clone(),
-                    self.mso.validity_info.valid_until.clone(),
-                ),
-            ));
-        }
-
-        match self.mso.attestation_qualification.as_ref() {
-            None => Err(IssuedDocumentMismatchError::IssuedAttestationQualificationMissing),
-            Some(attestation_qualification) if *attestation_qualification != unsigned.attestation_qualification => {
-                Err(IssuedDocumentMismatchError::IssuedAttestationQualificationMismatch(
-                    unsigned.attestation_qualification,
-                    *attestation_qualification,
-                ))
-            }
-            Some(_) => Ok(()),
-        }?;
-
-        let our_attrs = self.issuer_signed.clone().into_entries_by_namespace();
-        let our_attrs = &flatten_attributes(self.doc_type(), &our_attrs);
-        let expected_attrs = &flatten_attributes(&unsigned.doc_type, unsigned.attributes.as_ref());
-
-        let missing = map_difference(expected_attrs, our_attrs);
-        let unexpected = map_difference(our_attrs, expected_attrs);
-
-        if !missing.is_empty() || !unexpected.is_empty() {
-            return Err(IssuedDocumentMismatchError::IssuedAttributesMismatch(
-                missing, unexpected,
-            ));
-        }
-
-        Ok(())
-    }
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum IssuedDocumentMismatchError<T = AttributeIdentifier> {
-    #[error("issued doc_type mismatch: expected {0}, found {1}")]
+pub enum MdocCredentialPayloadError {
+    #[error("error converting to / from JSON: {0}")]
     #[category(pd)]
-    IssuedDoctypeMismatch(String, String),
-    #[error("issued issuer common name missing")]
-    #[category(critical)]
-    IssuedIssuerMissing,
-    #[error("issued issuer mismatch: expected {0:?}, found {0:?}")]
+    JsonConversion(#[from] serde_json::Error),
+
+    #[error("metadata validation error: {0}")]
     #[category(pd)]
-    IssuedIssuerMismatch(Box<HttpsUri>, Box<HttpsUri>),
-    #[error("issued validity info mismatch: expected {0:?}, found {1:?}")]
+    MetadataValidation(#[from] TypeMetadataValidationError),
+
+    #[error("unable to convert mdoc TDate to DateTime<Utc>")]
     #[category(critical)]
-    IssuedValidityInfoMismatch((Tdate, Tdate), (Tdate, Tdate)),
-    #[error("issued attributes mismatch: missing {0}, unexpected {1}")]
+    DateConversion(#[from] chrono::ParseError),
+
+    #[error("mdoc is missing issuer URI")]
+    #[category(critical)]
+    MissingIssuerUri,
+
+    #[error("mdoc is missing attestation qualification")]
+    #[category(critical)]
+    MissingAttestationQualification,
+
+    #[error("attribute error: {0}")]
     #[category(pd)]
-    IssuedAttributesMismatch(Vec<T>, Vec<T>),
-    #[error("issued attestation qualification missing")]
+    Attribute(#[from] AttributeError),
+
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    #[category(pd)]
+    JwkConversion(#[from] JwkConversionError),
+
+    #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
+    #[category(pd)]
+    CoseKeyConversion(#[from] CryptoError),
+
+    #[error("no attributes present in PreviewableCredentialPayload")]
     #[category(critical)]
-    IssuedAttestationQualificationMissing,
-    #[error("issued attestation qualification mismatch: expected {0}, found {1}")]
+    NoAttributes,
+
+    #[error("missing either the \"exp\" or \"nbf\" timestamp")]
     #[category(critical)]
-    IssuedAttestationQualificationMismatch(AttestationQualification, AttestationQualification),
+    MissingValidityTimestamp,
 }
 
-pub fn map_difference<K, T>(left: &IndexMap<K, T>, right: &IndexMap<K, T>) -> Vec<K>
-where
-    K: Clone + std::hash::Hash + Eq,
-    T: PartialEq,
-{
-    left.iter()
-        .filter_map(|(id, value)| (!right.contains_key(id) || right[id] != *value).then_some(id.clone()))
-        .collect_vec()
+impl IntoCredentialPayload for Mdoc {
+    type Error = MdocCredentialPayloadError;
+
+    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
+        MdocParts::new(self.issuer_signed.into_entries_by_namespace(), self.mso).into_credential_payload(metadata)
+    }
 }
 
-fn flatten_attributes<'a>(
-    doctype: &'a DocType,
-    attrs: &'a IndexMap<NameSpace, Vec<Entry>>,
-) -> IndexMap<AttributeIdentifier, &'a ciborium::Value> {
-    attrs
-        .iter()
-        .flat_map(|(namespace, entries)| {
-            entries.iter().map(|entry| {
-                (
-                    AttributeIdentifier {
-                        credential_type: doctype.clone(),
-                        namespace: namespace.clone(),
-                        attribute: entry.name.clone(),
-                    },
-                    &entry.value,
-                )
-            })
-        })
-        .collect()
+#[derive(derive_more::Constructor)]
+pub struct MdocParts {
+    attributes: IndexMap<NameSpace, Vec<Entry>>,
+    mso: MobileSecurityObject,
+}
+
+impl IntoCredentialPayload for MdocParts {
+    type Error = MdocCredentialPayloadError;
+
+    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
+        let MdocParts { attributes, mso } = self;
+
+        let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
+
+        let payload = CredentialPayload {
+            issued_at: (&mso.validity_info.signed).try_into()?,
+            confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
+            previewable_payload: PreviewableCredentialPayload {
+                attestation_type: mso.doc_type,
+                issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
+                expires: Some((&mso.validity_info.valid_until).try_into()?),
+                not_before: Some((&mso.validity_info.valid_from).try_into()?),
+                attestation_qualification: mso
+                    .attestation_qualification
+                    .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
+                attributes: Attribute::from_mdoc_attributes(metadata, attributes)?,
+            },
+        };
+
+        CredentialPayload::validate(&serde_json::to_value(&payload)?, metadata)?;
+
+        Ok(payload)
+    }
 }
 
 #[cfg(any(test, feature = "test"))]
 mod test {
-    use crate::IssuerSignedItemBytes;
+    use p256::ecdsa::VerifyingKey;
+    use ssri::Integrity;
+
+    use crypto::server_keys::KeyPair;
+    use crypto::CredentialEcdsaKey;
+    use crypto::EcdsaKey;
+    use sd_jwt_vc_metadata::TypeMetadataDocuments;
+
+    use crate::iso::disclosure::IssuerSigned;
+    use crate::iso::mdocs::IssuerSignedItemBytes;
+    use crate::iso::unsigned::UnsignedMdoc;
 
     use super::Mdoc;
 
     impl Mdoc {
+        /// Construct an [`Mdoc`] directly by signing, skipping validation.
+        pub async fn sign<K: CredentialEcdsaKey>(
+            unsigned_mdoc: UnsignedMdoc,
+            metadata_integrity: Integrity,
+            metadata_documents: &TypeMetadataDocuments,
+            private_key_id: String,
+            public_key: &VerifyingKey,
+            issuer_keypair: &KeyPair<impl EcdsaKey>,
+        ) -> crate::Result<Mdoc> {
+            let (issuer_signed, mso) = IssuerSigned::sign(
+                unsigned_mdoc,
+                metadata_integrity,
+                metadata_documents,
+                public_key,
+                issuer_keypair,
+            )
+            .await?;
+
+            let mdoc = Self {
+                mso,
+                private_key_id,
+                issuer_signed,
+                key_type: K::KEY_TYPE,
+            };
+
+            Ok(mdoc)
+        }
+
         pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
         where
             F: FnOnce(&mut Vec<IssuerSignedItemBytes>),
@@ -233,5 +245,81 @@ mod test {
             let name_spaces = self.issuer_signed.name_spaces.as_mut().unwrap();
             name_spaces.modify_attributes(name_space, modify_func);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use assert_matches::assert_matches;
+    use futures::FutureExt;
+    use itertools::Itertools;
+
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::credential_payload::IntoCredentialPayload;
+    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+
+    use crate::holder::MdocCredentialPayloadError;
+    use crate::holder::MdocParts;
+
+    use super::Mdoc;
+
+    #[test]
+    fn test_from_mdoc() {
+        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::pid_example());
+
+        let payload = mdoc
+            .into_credential_payload(&metadata)
+            .expect("creating and validating CredentialPayload from Mdoc should succeed");
+
+        assert_eq!(
+            payload.previewable_payload.attributes.into_values().collect_vec(),
+            vec![
+                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
+                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
+                Attribute::Single(AttributeValue::Text("999999999".to_string()))
+            ]
+        );
+    }
+
+    #[test]
+    fn test_from_mdoc_parts() {
+        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::pid_example());
+
+        let payload = MdocParts::new(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso)
+            .into_credential_payload(&metadata)
+            .expect("creating and validating CredentialPayload from Mdoc should succeed");
+
+        assert_eq!(
+            payload.previewable_payload.attributes.into_values().collect_vec(),
+            vec![
+                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
+                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
+                Attribute::Single(AttributeValue::Text("999999999".to_string()))
+            ]
+        );
+    }
+
+    #[test]
+    fn test_from_mdoc_parts_invalid() {
+        let mdoc = Mdoc::new_mock().now_or_never().unwrap();
+        let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
+            "urn:eudi:pid:nl:1",
+            &[
+                ("family_name", JsonSchemaPropertyType::Number, None),
+                ("bsn", JsonSchemaPropertyType::String, None),
+                ("given_name", JsonSchemaPropertyType::String, None),
+            ],
+        ));
+
+        let error = MdocParts::new(mdoc.issuer_signed.into_entries_by_namespace(), mdoc.mso)
+            .into_credential_payload(&metadata)
+            .expect_err("wrong family_name type should fail validation");
+
+        assert_matches!(error, MdocCredentialPayloadError::MetadataValidation(_));
     }
 }

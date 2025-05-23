@@ -4,6 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use indexmap::IndexMap;
 
+use attestation_data::issuable_document::IssuableDocument;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
@@ -11,7 +12,6 @@ use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
 use openid4vc::credential::Grants;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
@@ -137,15 +137,13 @@ where
             .attributes_fetcher
             .attributes(usecase_id, disclosed)
             .await
-            .map_err(|e| {
-                DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::AttributesFetching(e.into())))
-            })?;
+            .map_err(|e| DisclosureResultHandlerError::new(IssuanceResultHandlerError::AttributesFetching(e.into())))?;
 
         // Return a specific error code if there are no attestations to be issued so the wallet
         // can distinguish this case from other (error) cases.
         let to_issue: VecNonEmpty<_> = to_issue
             .try_into()
-            .map_err(|_| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::NoIssuableAttestations)))?;
+            .map_err(|_| DisclosureResultHandlerError::new(IssuanceResultHandlerError::NoIssuableAttestations))?;
 
         let credential_configuration_ids = to_issue
             .iter()
@@ -157,7 +155,7 @@ where
             .issuer
             .new_session(to_issue)
             .await
-            .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::SessionStore(err))))?;
+            .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::SessionStore(err)))?;
 
         let credential_offer = CredentialOfferContainer {
             credential_offer: CredentialOffer {
@@ -173,9 +171,9 @@ where
         // then this would be a lot less awkward.
         let query_params = serde_urlencoded::from_str(
             &serde_urlencoded::to_string(credential_offer)
-                .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::UrlEncoding(err))))?,
+                .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlEncoding(err)))?,
         )
-        .map_err(|err| DisclosureResultHandlerError(Box::new(IssuanceResultHandlerError::UrlDecoding(err))))?;
+        .map_err(|err| DisclosureResultHandlerError::new(IssuanceResultHandlerError::UrlDecoding(err)))?;
 
         Ok(query_params)
     }
@@ -187,16 +185,16 @@ mod tests {
     use std::convert::Infallible;
     use std::sync::Arc;
 
+    use chrono::Utc;
     use indexmap::IndexMap;
     use p256::ecdsa::SigningKey;
 
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::issuable_document::IssuableDocument;
     use mdoc::verifier::DocumentDisclosedAttributes;
-    use mdoc::Tdate;
     use mdoc::ValidityInfo;
-    use openid4vc::attributes::Attribute;
-    use openid4vc::attributes::AttributeValue;
     use openid4vc::credential::CredentialOffer;
-    use openid4vc::issuable_document::IssuableDocument;
     use openid4vc::issuer::AttestationTypeConfig;
     use openid4vc::issuer::IssuanceData;
     use openid4vc::issuer::Issuer;
@@ -223,9 +221,9 @@ mod tests {
                 issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "ca".to_string(),
                 validity_info: ValidityInfo {
-                    signed: Tdate::now(),
-                    valid_from: Tdate::now(),
-                    valid_until: Tdate::now(),
+                    signed: Utc::now().into(),
+                    valid_from: Utc::now().into(),
+                    valid_until: Utc::now().into(),
                     expected_update: None,
                 },
             },

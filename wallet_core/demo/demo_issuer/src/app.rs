@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::LazyLock;
 
 use askama::Template;
 use askama_web::WebTemplate;
@@ -16,21 +17,23 @@ use axum::Json;
 use axum::Router;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use serde::Deserialize;
-use serde::Serialize;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 use url::Url;
 
+use attestation_data::issuable_document::IssuableDocument;
 use demo_utils::error::Result;
+use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
 use demo_utils::language::Language;
+use demo_utils::LANGUAGE_JS_SHA256;
+use demo_utils::WALLET_WEB_CSS_SHA256;
+use demo_utils::WALLET_WEB_JS_SHA256;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;
@@ -39,7 +42,6 @@ use utils::path::prefix_local_path;
 
 use crate::settings::Settings;
 use crate::settings::Usecase;
-use crate::settings::WalletWeb;
 use crate::translations::Words;
 use crate::translations::TRANSLATIONS;
 
@@ -48,8 +50,17 @@ struct ApplicationState {
     issuance_server_url: BaseUrl,
     universal_link_base_url: BaseUrl,
     help_base_url: BaseUrl,
-    wallet_web: WalletWeb,
 }
+
+static CSP_HEADER: LazyLock<String> = LazyLock::new(|| {
+    let script_src = format!("'sha256-{}' 'sha256-{}'", *LANGUAGE_JS_SHA256, *WALLET_WEB_JS_SHA256);
+    let style_src = format!("'self' 'sha256-{}'", *WALLET_WEB_CSS_SHA256);
+
+    format!(
+        "default-src 'self'; script-src {script_src}; style-src {style_src}; img-src 'self' data:; font-src 'self' \
+         data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';"
+    )
+});
 
 pub fn create_routers(settings: Settings) -> (Router, Router) {
     let application_state = Arc::new(ApplicationState {
@@ -57,7 +68,6 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         issuance_server_url: settings.issuance_server_url,
         universal_link_base_url: settings.universal_link_base_url,
         help_base_url: settings.help_base_url,
-        wallet_web: settings.wallet_web,
     });
 
     let app = Router::new()
@@ -74,7 +84,10 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
                 ),
         )
         .with_state(Arc::clone(&application_state))
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(|req, next| {
+            set_content_security_policy(req, next, &CSP_HEADER)
+        }));
 
     let attestation_router = Router::new()
         .route("/{usecase}/", post(attestation))
@@ -84,15 +97,11 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
     (app, attestation_router)
 }
 
-#[derive(Serialize, Deserialize)]
-struct SessionOptions {
-    usecase: String,
-}
-
 struct BaseTemplate<'a> {
     selected_lang: Language,
     trans: &'a Words<'a>,
     available_languages: &'a [Language],
+    language_js_sha256: &'a str,
 }
 
 #[derive(Template, WebTemplate)]
@@ -102,7 +111,6 @@ struct UsecaseTemplate<'a> {
     same_device_ul: Url,
     cross_device_ul: Url,
     help_base_url: Url,
-    wallet_web_filename: &'a str,
     wallet_web_sha256: &'a str,
     base: BaseTemplate<'a>,
 }
@@ -158,12 +166,12 @@ async fn usecase(
         same_device_ul: universal_links.get(&SessionType::SameDevice).unwrap().to_owned(),
         cross_device_ul: universal_links.get(&SessionType::CrossDevice).unwrap().to_owned(),
         help_base_url: state.help_base_url.clone().into_inner(),
-        wallet_web_filename: &state.wallet_web.filename.to_string_lossy(),
-        wallet_web_sha256: &state.wallet_web.sha256,
+        wallet_web_sha256: &WALLET_WEB_JS_SHA256,
         base: BaseTemplate {
             selected_lang: language,
             trans: &TRANSLATIONS[language],
             available_languages: &Language::iter().collect_vec(),
+            language_js_sha256: &LANGUAGE_JS_SHA256,
         },
     }
     .into_response()

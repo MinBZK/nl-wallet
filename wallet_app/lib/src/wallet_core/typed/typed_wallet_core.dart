@@ -92,13 +92,19 @@ class TypedWalletCore {
 
   Future<core.IdentifyUriResult> identifyUri(String uri) => call(() => core.identifyUri(uri: uri));
 
-  Future<void> cancelPidIssuance() => call(core.cancelIssuance);
+  /// Cancel ongoing issuance session (includes PID issuance)
+  Future<void> cancelIssuance() => call(core.cancelIssuance);
 
   Future<List<core.Attestation>> continuePidIssuance(String uri) => call(() => core.continuePidIssuance(uri: uri));
 
-  Future<core.WalletInstructionResult> acceptOfferedPid(String pin) => call(() => core.acceptIssuance(pin: pin));
+  Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin) =>
+      call(() => core.continueDisclosureBasedIssuance(pin: pin));
 
-  Future<bool> hasActivePidIssuanceSession() => call(core.hasActiveIssuanceSession);
+  /// Accept offered attestations (includes PID)
+  Future<core.WalletInstructionResult> acceptIssuance(String pin) => call(() => core.acceptIssuance(pin: pin));
+
+  /// Check if there is an active issuance session (includes PID issuance)
+  Future<bool> hasActiveIssuanceSession() => call(core.hasActiveIssuanceSession);
 
   Future<core.StartDisclosureResult> startDisclosure(
     String uri, {

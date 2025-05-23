@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import DynamicWalletModal from "@/components/DynamicWalletModal.vue"
 import StaticWalletModal from "@/components/StaticWalletModal.vue"
+import { type SessionType } from "@/models/openid4vc"
 import { type ModalType } from "@/models/state"
-import { type SessionType } from "@/models/status"
 
 defineProps<{
   modalType: ModalType

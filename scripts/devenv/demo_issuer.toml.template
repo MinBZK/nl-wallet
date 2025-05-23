@@ -9,12 +9,8 @@ port = ${DEMO_ISSUER_PORT}
 ip = '127.0.0.1'
 port = ${DEMO_ISSUER_IS_PORT}
 
-[wallet_web]
-filename = "${WALLET_WEB_FILENAME}"
-sha256 = "${WALLET_WEB_SHA256}"
-
 [usecases.university]
-client_id = "cert.issuer.example.com"
+client_id = "university.example.com"
 disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]
 
 [[usecases.university.999991772]]
@@ -24,11 +20,11 @@ attestation_type = "com.example.degree"
 university = "Holland University"
 education = "MSc Economics"
 graduation_date = "1970-01-01"
-grade = 7
+grade = "7"
 cum_laude = false
 
 [usecases.insurance]
-client_id = "cert.issuer.example.com"
+client_id = "insurance.example.com"
 disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]
 
 [[usecases.insurance.999991772]]
@@ -38,5 +34,5 @@ attestation_type = "com.example.insurance"
 product = "Health Insurance"
 coverage = "Basic"
 start_date = "2025-01-01"
-duration = 365
+duration = "365"
 customer_number = "283728"

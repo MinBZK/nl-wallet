@@ -9,9 +9,9 @@ class StartIssuanceUseCaseImpl extends StartIssuanceUseCase {
   StartIssuanceUseCaseImpl(this._issuanceRepository);
 
   @override
-  Future<Result<StartIssuanceResult>> invoke(String issuanceUri) async {
+  Future<Result<StartIssuanceResult>> invoke(String issuanceUri, {bool isQrCode = false}) async {
     return tryCatch(
-      () async => _issuanceRepository.startIssuance(issuanceUri),
+      () async => _issuanceRepository.startIssuance(issuanceUri, isQrCode: isQrCode),
       'Failed to start issuance',
     );
   }

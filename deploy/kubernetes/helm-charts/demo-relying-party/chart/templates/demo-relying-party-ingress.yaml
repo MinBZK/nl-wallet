@@ -13,13 +13,13 @@ metadata:
   annotations:
     odcn.rijksapps.nl/inet-loadbalancer-hostnames: {{ .Values.demoRelyingParty.hostname | quote }}
     nginx.ingress.kubernetes.io/rewrite-target: /$1
+    # CSP header is set in the application
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
       more_set_headers "Referrer-Policy: no-referrer";
       more_set_headers "X-Content-Type-Options: nosniff";
       more_set_headers "X-Frame-Options: deny";
       more_set_headers "Permissions-Policy: camera=(), microphone=()";
-      more_set_headers "Content-Security-Policy: default-src 'self'; script-src {{ .Values.ingress.cspScriptSrc }}; style-src {{ .Values.ingress.cspStyleSrc }}; img-src 'self' data:; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'none';";
       more_set_headers "X-Permitted-Cross-Domain-Policies: none";
       more_set_headers "Cross-Origin-Resource-Policy: same-origin";
       more_set_headers "Cross-Origin-Embedder-Policy: require-corp";
@@ -36,7 +36,7 @@ spec:
                 port:
                   number: 3008
             path: /{{ .Values.demoRelyingParty.contextPath }}/(.*)
-            pathType: Prefix
+            pathType: ImplementationSpecific
   tls:
     - hosts:
         - {{ .Values.demoRelyingParty.hostname }}

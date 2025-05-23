@@ -77,10 +77,10 @@ class DisclosureNavigationRequest extends NavigationRequest {
 }
 
 class IssuanceNavigationRequest extends NavigationRequest {
-  IssuanceNavigationRequest(String uri, {bool isRefreshFlow = false})
+  IssuanceNavigationRequest(String uri, {bool isQrCode = false, bool isRefreshFlow = false})
       : super(
           WalletRoutes.issuanceRoute,
-          argument: IssuanceScreenArgument(uri: uri, isRefreshFlow: isRefreshFlow),
+          argument: IssuanceScreenArgument(uri: uri, isQrCode: isQrCode, isRefreshFlow: isRefreshFlow),
           navigatePrerequisites: [
             NavigationPrerequisite.walletUnlocked,
             NavigationPrerequisite.walletInitialized,

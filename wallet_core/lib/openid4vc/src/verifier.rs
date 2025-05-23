@@ -1,6 +1,7 @@
 //! RP software, for verifying mdoc disclosures, see [`DeviceResponse::verify()`].
 
 use std::collections::HashMap;
+use std::error::Error;
 use std::fmt::Display;
 use std::sync::Arc;
 use std::time::Duration;
@@ -171,25 +172,25 @@ pub enum UseCaseCertificateError {
 pub struct UserError(ErrorResponse<VpAuthorizationErrorCode>);
 
 #[derive(thiserror::Error, Debug)]
-pub struct WithRedirectUri<T: std::error::Error> {
+pub struct WithRedirectUri<T: Error> {
     #[source]
     pub error: T,
     pub redirect_uri: Option<BaseUrl>,
 }
 
-impl<T: std::error::Error> Display for WithRedirectUri<T> {
+impl<T: Error> Display for WithRedirectUri<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "error: {}, redirect_uri: {:?}", self.error, self.redirect_uri)
     }
 }
 
-impl<T: std::error::Error> From<T> for WithRedirectUri<T> {
+impl<T: Error> From<T> for WithRedirectUri<T> {
     fn from(error: T) -> Self {
         Self::new(error, None)
     }
 }
 
-impl<T: std::error::Error> WithRedirectUri<T> {
+impl<T: Error> WithRedirectUri<T> {
     fn new(error: T, redirect_uri: Option<BaseUrl>) -> Self {
         Self { error, redirect_uri }
     }
@@ -406,9 +407,17 @@ impl From<Session<Done>> for SessionState<DisclosureData> {
 /// plus a potential universal link that the wallet app can use to start disclosure.
 #[skip_serializing_none]
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[cfg_attr(
+    all(test, feature = "ts_rs"),
+    derive(ts_rs::TS),
+    ts(export, export_to = "openid4vc.ts")
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "status")]
 pub enum StatusResponse {
-    Created { ul: Option<BaseUrl> },
+    Created {
+        #[cfg_attr(all(test, feature = "ts_rs"), ts(type = "URL", optional))]
+        ul: Option<BaseUrl>,
+    },
     WaitingForResponse,
     Done,
     Failed,
@@ -460,8 +469,13 @@ impl From<DisclosureData> for SessionStatus {
     strum::EnumIter,
 )]
 #[strum(serialize_all = "snake_case")]
+#[cfg_attr(
+    all(test, feature = "ts_rs"),
+    derive(ts_rs::TS),
+    ts(export, export_to = "openid4vc.ts", rename_all = "snake_case")
+)]
 pub enum SessionType {
-    // Using Universal Link
+    /// Using Universal Link
     SameDevice,
     /// Using QR code
     CrossDevice,
@@ -807,13 +821,19 @@ fn client_id_from_key_pair<K>(key_pair: &KeyPair<K>) -> Result<String, UseCaseCe
     ))
 }
 
-pub trait ToPostAuthResponseErrorCode: std::error::Error {
+pub trait ToPostAuthResponseErrorCode: Error {
     fn to_error_code(&self) -> PostAuthResponseErrorCode;
 }
 
 #[derive(Debug, AsRef, thiserror::Error)]
 #[error("{0}")]
-pub struct DisclosureResultHandlerError(pub Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
+pub struct DisclosureResultHandlerError(Box<dyn ToPostAuthResponseErrorCode + Send + Sync + 'static>);
+
+impl DisclosureResultHandlerError {
+    pub fn new(error: impl ToPostAuthResponseErrorCode + Send + Sync + 'static) -> Self {
+        Self(Box::new(error))
+    }
+}
 
 /// Types may implement this to receive disclosed attributes after a successful disclosure session.
 /// The return value is URL-serialized and appended to the query of the redirect URI, if present,
@@ -996,7 +1016,7 @@ where
                 let ul = session_type
                     .map(|session_type| {
                         let ephemeral_id = self.use_cases.generate_ephemeral_id(session_token, time);
-                        Self::format_ul(ul_base, request_uri, ephemeral_id, session_type, client_id)
+                        Self::format_ul(ul_base.clone(), request_uri, ephemeral_id, session_type, client_id)
                     })
                     .transpose()?;
 
@@ -1071,7 +1091,7 @@ where
 
 impl<S, US> Verifier<S, US> {
     fn format_ul(
-        base_ul: &BaseUrl,
+        base_ul: BaseUrl,
         request_uri: BaseUrl,
         ephemeral_id_params: Option<EphemeralIdParameters>,
         session_type: SessionType,
@@ -1083,14 +1103,14 @@ impl<S, US> Verifier<S, US> {
             ephemeral_id_params,
         })?));
 
-        let mut ul = base_ul.clone().into_inner();
+        let mut ul = base_ul.into_inner();
         ul.set_query(Some(&serde_urlencoded::to_string(VpRequestUriObject {
             request_uri: request_uri.try_into().unwrap(), // safe because we constructed request_uri from a BaseUrl
             client_id,
             request_uri_method: Some(RequestUriMethod::POST),
         })?));
 
-        Ok(ul.try_into().unwrap()) // safe because we constructed request_uri from a BaseUrl
+        Ok(ul.try_into().unwrap()) // safe because we constructed ul from a BaseUrl
     }
 }
 
@@ -1643,12 +1663,12 @@ mod tests {
             .await
             .expect("should result in status response for session");
 
-        let StatusResponse::Created { ul } = response else {
-            panic!("should match DisclosureData::Created")
+        let StatusResponse::Created { ul: Some(ul) } = response else {
+            panic!("should match DisclosureData::Created with Some(ul)")
         };
 
         let request_query_object: VpRequestUriObject =
-            serde_urlencoded::from_str(ul.unwrap().as_ref().query().unwrap()).unwrap();
+            serde_urlencoded::from_str(ul.as_ref().query().unwrap()).unwrap();
 
         (verifier, session_token, request_query_object)
     }
@@ -1861,7 +1881,7 @@ mod tests {
 
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), ()>::format_ul(
-            &"https://app-ul.example.com".parse().unwrap(),
+            "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             Some(EphemeralIdParameters {
                 ephemeral_id: DisclosureUseCases::<(), ()>::generate_ephemeral_id(
@@ -1894,7 +1914,7 @@ mod tests {
     fn test_verifier_url_without_ephemeral_id() {
         // Create a UL for the wallet, given the provided parameters.
         let verifier_url = Verifier::<(), ()>::format_ul(
-            &"https://app-ul.example.com".parse().unwrap(),
+            "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             None,
             SessionType::CrossDevice,

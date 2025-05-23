@@ -5,9 +5,9 @@ import '../../../environment.dart';
 import '../../domain/model/localized_text.dart';
 import 'build_context_extension.dart';
 
-extension LocalizedLabelsExtension on LocalizedText {
+extension LocalizedTextExtension on LocalizedText {
   /// Retrieve the most relevant translation based on the active locale
-  String l10nValue(BuildContext context) => l10nValueForLocale(context.activeLocale);
+  String l10nValue(BuildContext context) => Environment.isTest ? testValue : l10nValueForLocale(context.activeLocale);
 
   TextSpan l10nSpan(BuildContext context) =>
       TextSpan(text: l10nValueForLocale(context.activeLocale), locale: context.activeLocale);

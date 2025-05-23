@@ -1,4 +1,4 @@
-import { type SessionResponse } from "@/models/session"
+import { type SessionResponse } from "@/models/relying_party"
 import { vi } from "vitest"
 
 const sessionResponse: SessionResponse = {

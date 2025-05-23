@@ -591,17 +591,30 @@ version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "chrono",
+ "ciborium",
  "crypto",
  "derive_more",
  "error_category",
+ "futures",
+ "http_utils",
  "indexmap 2.7.1",
+ "itertools 0.14.0",
+ "jsonwebtoken",
+ "jwt",
+ "p256",
+ "rand_core",
  "rcgen",
  "rstest",
+ "sd_jwt",
+ "sd_jwt_vc_metadata",
  "serde",
  "serde_json",
+ "serde_valid",
  "serde_with",
+ "strum 0.26.3",
  "thiserror 2.0.11",
  "time",
+ "tokio",
  "url",
  "utils",
  "x509-parser 0.17.0",
@@ -1241,7 +1254,7 @@ dependencies = [
  "ron 0.8.1",
  "serde",
  "serde_json",
- "toml 0.8.19",
+ "toml 0.8.22",
  "winnow",
 ]
 
@@ -1691,6 +1704,7 @@ dependencies = [
  "anyhow",
  "askama",
  "askama_web",
+ "attestation_data",
  "axum",
  "config",
  "demo_utils",
@@ -1742,6 +1756,7 @@ dependencies = [
  "tower-http",
  "tracing",
  "tracing-subscriber",
+ "ts-rs",
  "url",
  "utils",
 ]
@@ -1752,15 +1767,20 @@ version = "0.3.0-dev"
 dependencies = [
  "accept-language",
  "anyhow",
+ "askama",
  "axum",
+ "base64 0.22.1",
+ "crypto",
  "http_utils",
  "nutype",
+ "regex",
  "rstest",
  "serde",
  "serde_with",
  "strum 0.26.3",
  "tower-http",
  "tracing",
+ "utils",
 ]
 
 [[package]]
@@ -2942,8 +2962,10 @@ dependencies = [
  "data-url",
  "derive_more",
  "http",
+ "itertools 0.14.0",
  "mime",
  "nutype",
+ "regex",
  "reqwest",
  "rstest",
  "serde",
@@ -2952,6 +2974,7 @@ dependencies = [
  "strum 0.26.3",
  "thiserror 2.0.11",
  "tokio",
+ "toml 0.8.22",
  "tower-http",
  "trait-variant",
  "url",
@@ -3311,6 +3334,7 @@ dependencies = [
  "async-trait",
  "attestation_data",
  "axum",
+ "chrono",
  "config",
  "crypto",
  "futures",
@@ -3332,7 +3356,6 @@ dependencies = [
  "server_utils",
  "thiserror 2.0.11",
  "tokio",
- "tracing",
  "trait-variant",
  "utils",
 ]
@@ -3723,6 +3746,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.7.1",
  "itertools 0.14.0",
+ "jwt",
  "nom 8.0.0",
  "nutype",
  "p256",
@@ -3731,6 +3755,7 @@ dependencies = [
  "ring",
  "rstest",
  "rustls-pki-types",
+ "sd_jwt",
  "sd_jwt_vc_metadata",
  "serde",
  "serde-aux",
@@ -3739,9 +3764,7 @@ dependencies = [
  "serde_repr",
  "serde_with",
  "ssri",
- "strum 0.26.3",
  "thiserror 2.0.11",
- "time",
  "tokio",
  "tracing",
  "url",
@@ -4085,7 +4108,6 @@ dependencies = [
  "biscuit",
  "cfg-if",
  "chrono",
- "ciborium",
  "crypto",
  "dashmap 6.1.0",
  "derive_more",
@@ -4118,7 +4140,6 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "serde_urlencoded",
- "serde_valid",
  "serde_with",
  "ssri",
  "strfmt",
@@ -4128,6 +4149,7 @@ dependencies = [
  "tracing",
  "tracing-test",
  "trait-variant",
+ "ts-rs",
  "url",
  "utils",
  "wiremock",
@@ -4146,7 +4168,6 @@ dependencies = [
  "openid4vc",
  "ring",
  "rustls-pki-types",
- "sd_jwt_vc_metadata",
  "serde",
  "tower-http",
  "tracing",
@@ -5403,7 +5424,6 @@ dependencies = [
  "assert_matches",
  "crypto",
  "derive_more",
- "http",
  "http_utils",
  "itertools 0.14.0",
  "jsonschema",
@@ -6536,6 +6556,7 @@ dependencies = [
  "android_attest",
  "apple_app_attest",
  "assert_matches",
+ "attestation_data",
  "axum",
  "chrono",
  "configuration_server",
@@ -6563,7 +6584,6 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "sd_jwt",
- "sd_jwt_vc_metadata",
  "sea-orm",
  "semver",
  "serde_json",
@@ -6805,9 +6825,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.19"
+version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1ed1f98e3fdc28d6d910e6737ae6ab1a93bf1985935a1193e68f93eeb68d24e"
+checksum = "05ae329d1f08c4d17a59bed7ff5b5a769d062e64a62d34a3261b219e62cd5aae"
 dependencies = [
  "indexmap 2.7.1",
  "serde",
@@ -6818,25 +6838,32 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.8"
+version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
+checksum = "3da5db5a963e24bc68be8b17b6fa82814bb22ee8660f192bb182771d498f09a3"
 dependencies = [
  "serde",
 ]
 
 [[package]]
 name = "toml_edit"
-version = "0.22.24"
+version = "0.22.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17b4795ff5edd201c7cd6dca065ae59972ce77d1b80fa0a84d94950ece7d1474"
+checksum = "310068873db2c5b3e7659d2cc35d21855dbafa50d1ce336397c666e3cb08137e"
 dependencies = [
  "indexmap 2.7.1",
  "serde",
  "serde_spanned",
  "toml_datetime",
+ "toml_write",
  "winnow",
 ]
+
+[[package]]
+name = "toml_write"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfb942dfe1d8e29a7ee7fcbde5bd2b9a25fb89aa70caea2eba3bee836ff41076"
 
 [[package]]
 name = "tower"
@@ -7033,7 +7060,30 @@ dependencies = [
  "serde_json",
  "target-triple",
  "termcolor",
- "toml 0.8.19",
+ "toml 0.8.22",
+]
+
+[[package]]
+name = "ts-rs"
+version = "10.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e640d9b0964e9d39df633548591090ab92f7a4567bc31d3891af23471a3365c6"
+dependencies = [
+ "lazy_static",
+ "thiserror 2.0.11",
+ "ts-rs-macros",
+]
+
+[[package]]
+name = "ts-rs-macros"
+version = "10.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e9d8656589772eeec2cf7a8264d9cda40fb28b9bc53118ceb9e8c07f8f38730"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+ "termcolor",
 ]
 
 [[package]]
@@ -7351,6 +7401,7 @@ dependencies = [
  "parking_lot",
  "rstest",
  "serde",
+ "serde_json",
  "serde_with",
  "thiserror 2.0.11",
  "tokio",
@@ -8270,9 +8321,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.7.2"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59690dea168f2198d1a3b0cac23b8063efcd11012f10ae4698f284808c8ef603"
+checksum = "c06928c8748d81b05c9be96aad92e1b6ff01833332f281e8cfca3be4b35fc9ec"
 dependencies = [
  "memchr",
 ]

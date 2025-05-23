@@ -1,10 +1,12 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/feature/card/history/bloc/card_history_bloc.dart';
 import 'package:wallet/src/feature/card/history/card_history_screen.dart';
 import 'package:wallet/src/feature/common/widget/centered_loading_indicator.dart';
+import 'package:wallet/src/navigation/wallet_routes.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -139,6 +141,31 @@ void main() {
       final descriptionFinder = find.text(l10n.errorScreenGenericDescription);
       expect(retryCtaFinder, findsOneWidget);
       expect(descriptionFinder, findsOneWidget);
+    });
+
+    testWidgets('onRowPressed triggers navigation event', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const CardHistoryScreen().withState<CardHistoryBloc, CardHistoryState>(
+          MockCardHistoryBloc(),
+          CardHistoryLoadSuccess(WalletMockData.card, [
+            WalletEvent.issuance(
+              dateTime: DateTime(2023, 1, 1),
+              status: EventStatus.success,
+              card: WalletMockData.card,
+            ),
+          ]),
+        ),
+      );
+
+      // Tap the card row
+      final rowFinder = find.text(WalletMockData.card.title.testValue);
+      expect(rowFinder, findsOneWidget);
+      await tester.tap(rowFinder);
+      await tester.pumpAndSettle();
+
+      // Verify navigation occurred
+      final newPageFinder = find.text(WalletRoutes.historyDetailRoute);
+      expect(newPageFinder, findsOneWidget);
     });
   });
 }

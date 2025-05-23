@@ -5,8 +5,8 @@ import { getStatus } from "@/api/status"
 import ModalFooter from "@/components/ModalFooter.vue"
 import ModalHeader from "@/components/ModalHeader.vue"
 import ModalMain from "@/components/ModalMain.vue"
+import { type SessionType } from "@/models/openid4vc"
 import { type ModalState, type Session } from "@/models/state"
-import { type SessionType } from "@/models/status"
 import { errorTypeOrDefault } from "@/util/error_type"
 import { isMobileKey } from "@/util/useragent"
 import { inject, onMounted, onUnmounted, ref, watch } from "vue"
@@ -94,11 +94,18 @@ const checkStatus = async (session: Session) => {
 
     switch (statusResponse.status) {
       case "CREATED":
-        modalState.value = {
-          kind: "created",
-          sameDeviceUl: statusResponse.ul,
-          crossDeviceUl: statusResponse.ul,
-          session,
+        if (statusResponse.ul !== undefined) {
+          modalState.value = {
+            kind: "created",
+            sameDeviceUl: statusResponse.ul,
+            crossDeviceUl: statusResponse.ul,
+            session,
+          }
+        } else {
+          modalState.value = {
+            kind: "error",
+            errorType: "failed",
+          }
         }
         break
       case "WAITING_FOR_RESPONSE":

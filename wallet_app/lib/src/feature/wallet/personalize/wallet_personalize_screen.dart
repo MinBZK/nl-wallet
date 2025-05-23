@@ -21,13 +21,13 @@ import '../../../wallet_assets.dart';
 import '../../../wallet_constants.dart';
 import '../../../wallet_core/typed/typed_wallet_core.dart';
 import '../../common/page/generic_loading_page.dart';
-import '../../common/page/page_illustration.dart';
 import '../../common/page/terminal_page.dart';
 import '../../common/sheet/confirm_action_sheet.dart';
 import '../../common/widget/button/animated_visibility_back_button.dart';
 import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/fake_paging_animated_switcher.dart';
 import '../../common/widget/loading_indicator.dart';
+import '../../common/widget/page_illustration.dart';
 import '../../common/widget/svg_or_image.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_app_bar.dart';
@@ -112,9 +112,10 @@ class WalletPersonalizeScreen extends StatelessWidget {
           WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
           WalletPersonalizeDigidFailure() => _buildDigidErrorPage(context),
           WalletPersonalizeNetworkError() => _buildNetworkError(context, state),
-          WalletPersonalizeGenericError() => _buildGenericError(context),
+          WalletPersonalizeGenericError() => _buildGenericError(context, state),
           WalletPersonalizeSessionExpired() => _buildSessionExpired(context),
           WalletPersonalizeAddingCards() => _buildAddingCards(context, progress: state.stepperProgress),
+          WalletPersonalizeRelyingPartyError() => _buildRelyingPartyError(context, state),
         };
         return FakePagingAnimatedSwitcher(animateBackwards: state.didGoBack, child: result);
       },
@@ -408,15 +409,29 @@ class WalletPersonalizeScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildGenericError(BuildContext context) {
+  Widget _buildGenericError(BuildContext context, WalletPersonalizeGenericError state) {
     return Scaffold(
       appBar: WalletAppBar(
-        progress: const FlowProgress(currentStep: 0, totalSteps: kSetupSteps),
+        progress: state.stepperProgress,
         title: _buildFadeInTitle(context.l10n.errorScreenGenericHeadline),
       ),
       body: ErrorPage.generic(
         context,
         style: ErrorCtaStyle.retry,
+        onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
+      ),
+    );
+  }
+
+  Widget _buildRelyingPartyError(BuildContext context, WalletPersonalizeRelyingPartyError state) {
+    return Scaffold(
+      appBar: WalletAppBar(
+        progress: state.stepperProgress,
+        title: _buildFadeInTitle(context.l10n.genericRelyingPartyErrorTitle),
+      ),
+      body: ErrorPage.relyingParty(
+        context,
+        organizationName: state.organizationName?.l10nValue(context),
         onPrimaryActionPressed: () => context.bloc.add(WalletPersonalizeRetryPressed()),
       ),
     );

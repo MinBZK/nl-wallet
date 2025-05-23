@@ -1,4 +1,3 @@
-use std::mem;
 use std::sync::Arc;
 
 use derive_more::Constructor;
@@ -29,7 +28,6 @@ use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
-use openid4vc::token::CredentialPreview;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -335,7 +333,7 @@ where
             .build()
             .expect("Could not build reqwest HTTP client");
 
-        let (issuer, attestation_previews) = IS::start_issuance(
+        let issuance_session = IS::start_issuance(
             HttpVcMessageClient::new(NL_WALLET_CLIENT_ID.to_string(), http_client),
             issuer_url,
             token_request,
@@ -344,32 +342,27 @@ where
         .await?;
 
         info!("successfully received token and previews from issuer");
-        let attestations = attestation_previews
-            .into_iter()
-            .flat_map(|(formats, metadata)| formats.into_iter().zip(metadata))
-            .map(|(preview, metadata)| {
-                let issuer_registration = preview.issuer_registration()?;
-                match preview {
-                    CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => {
-                        let attestation = Attestation::create_for_issuance(
-                            AttestationIdentity::Ephemeral,
-                            metadata,
-                            issuer_registration.organization.clone(),
-                            unsigned_mdoc.attributes.into(),
-                        )
-                        .map_err(|error| IssuanceError::Attestation {
-                            organization: Box::new(issuer_registration.organization),
-                            error,
-                        })?;
+        let attestations = issuance_session
+            .credential_preview_data()
+            .iter()
+            .map(|preview_data| {
+                let attestation = Attestation::create_from_attributes(
+                    AttestationIdentity::Ephemeral,
+                    preview_data.normalized_metadata.clone(),
+                    preview_data.issuer_registration.organization.clone(),
+                    preview_data.content.credential_payload.attributes.clone(),
+                )
+                .map_err(|error| IssuanceError::Attestation {
+                    organization: Box::new(preview_data.issuer_registration.organization.clone()),
+                    error,
+                })?;
 
-                        Ok(attestation)
-                    }
-                }
+                Ok(attestation)
             })
             .collect::<Result<Vec<_>, IssuanceError>>()?;
 
         self.session
-            .replace(Session::Issuance(IssuanceSession::new(is_pid, issuer)));
+            .replace(Session::Issuance(IssuanceSession::new(is_pid, issuance_session)));
 
         Ok(attestations)
     }
@@ -469,7 +462,7 @@ where
             });
 
         // Make sure there are no remaining references to the `AttestedKey` value.
-        mem::drop(remote_key_factory);
+        drop(remote_key_factory);
 
         // If the Wallet Provider returns either a PIN timeout or a permanent block,
         // wipe the contents of the wallet and return it to its initial state.
@@ -539,27 +532,24 @@ mod tests {
     use serial_test::serial;
     use url::Url;
 
+    use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
-    use openid4vc::credential_formats::CredentialFormats;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
-    use openid4vc::token::CredentialPreview;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
-    use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use utils::vec_at_least::VecNonEmpty;
 
-    use crate::issuance;
+    use crate::attestation::AttestationAttributeValue;
     use crate::issuance::MockDigidSession;
     use crate::storage::StorageState;
+    use crate::wallet::test::create_example_preview_data;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
-    use super::super::test::ISSUER_KEY;
     use super::*;
 
     fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
@@ -783,38 +773,34 @@ mod tests {
     async fn test_continue_pid_issuance() {
         let mut wallet = setup_wallet_with_digid_session();
 
-        let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
-        let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-        let (normalized_metadata, _) = metadata_documents
-            .clone()
-            .into_normalized(&unsigned_mdoc.doc_type)
-            .unwrap();
-        let credential_formats = CredentialFormats::try_new(
-            VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
-                unsigned_mdoc,
-                issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
-                type_metadata: metadata_documents.clone(),
-            }])
-            .unwrap(),
-        )
-        .unwrap();
-        // Set up the `MockIssuanceSession` to return one `AttestationPreview`.
+        let preview_data = create_example_preview_data();
+
+        // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
-            Ok((
-                MockIssuanceSession::new(),
-                vec![(credential_formats, vec![normalized_metadata])],
-            ))
+            let mut client = MockIssuanceSession::new();
+
+            client.expect_credential_preview_data().return_const(vec![preview_data]);
+
+            Ok(client)
         });
 
-        // Continuing PID issuance should result in one preview `Document`.
+        // Continuing PID issuance should result in one preview `Attestation`.
         let attestations = wallet
             .continue_pid_issuance(Url::parse(REDIRECT_URI).unwrap())
             .await
             .expect("Could not continue PID issuance");
 
         assert_eq!(attestations.len(), 1);
-        assert_matches!(attestations[0].identity, AttestationIdentity::Ephemeral);
+
+        let attestation = attestations.into_iter().next().unwrap();
+        assert_matches!(attestation.identity, AttestationIdentity::Ephemeral);
+        assert_eq!(attestation.attributes.len(), 4);
+        assert_eq!(attestation.attributes[0].key, vec!["family_name".to_string()]);
+        assert_matches!(
+            &attestation.attributes[0].value,
+            AttestationAttributeValue::Basic(AttributeValue::Text(string)) if string == "De Bruijn"
+        );
     }
 
     #[tokio::test]

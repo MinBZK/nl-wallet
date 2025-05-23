@@ -12,7 +12,6 @@ example_constructors = []
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref"] }
-http.workspace = true
 itertools.workspace = true
 jsonschema.workspace = true
 nutype = { workspace = true, features = ["regex"] }

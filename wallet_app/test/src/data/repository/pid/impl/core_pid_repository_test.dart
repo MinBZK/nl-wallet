@@ -56,14 +56,14 @@ void main() {
     });
 
     test('cancel pid issuance should be propagated to the core', () async {
-      await pidRepository.cancelPidIssuance();
-      verify(core.cancelPidIssuance());
+      await pidRepository.cancelIssuance();
+      verify(core.cancelIssuance());
     });
 
     test('accept offered pid should be propagated to the core', () async {
       const samplePin = '000000';
-      await pidRepository.acceptOfferedPid(samplePin);
-      verify(core.acceptOfferedPid(samplePin));
+      await pidRepository.acceptIssuance(samplePin);
+      verify(core.acceptIssuance(samplePin));
     });
   });
 }

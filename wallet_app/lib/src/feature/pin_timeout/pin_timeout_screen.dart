@@ -6,11 +6,11 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../common/dialog/reset_wallet_dialog.dart';
-import '../common/page/page_illustration.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/icon/help_icon_button.dart';
 import '../common/widget/button/primary_button.dart';
 import '../common/widget/button/tertiary_button.dart';
+import '../common/widget/page_illustration.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -33,8 +33,13 @@ class PinTimeoutScreen extends StatelessWidget {
 
   final DateTime expiryTime;
 
+  /// Provide custom handler for when timeout expires.
+  /// By default the app pops to the splash screen.
+  final VoidCallback? onExpire;
+
   const PinTimeoutScreen({
     required this.expiryTime,
+    this.onExpire,
     super.key,
   });
 
@@ -58,7 +63,7 @@ class PinTimeoutScreen extends StatelessWidget {
                       sliver: SliverToBoxAdapter(
                         child: PinTimeoutDescription(
                           expiryTime: expiryTime,
-                          onExpire: () => _onTimeoutExpired(context),
+                          onExpire: onExpire ?? () => _onTimeoutExpired(context),
                         ),
                       ),
                     ),

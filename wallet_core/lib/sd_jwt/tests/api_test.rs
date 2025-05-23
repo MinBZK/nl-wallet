@@ -31,7 +31,7 @@ async fn make_sd_jwt(
         .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
             builder.make_concealable(path).unwrap()
         })
-        .finish(Algorithm::ES256, &signing_key, holder_pubkey)
+        .finish(Algorithm::ES256, &signing_key, &[], holder_pubkey)
         .await
         .unwrap();
 
@@ -245,7 +245,7 @@ async fn test_presentation() -> anyhow::Result<()> {
         .make_concealable("/nationalities/0")?
         .add_decoys("/nationalities", 1)?
         .add_decoys("", 2)?
-        .finish(Algorithm::ES256, &issuer_privkey, holder_privkey.verifying_key())
+        .finish(Algorithm::ES256, &issuer_privkey, &[], holder_privkey.verifying_key())
         .await?;
 
     let hasher = Sha256Hasher::new();

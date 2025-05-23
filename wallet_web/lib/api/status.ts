@@ -1,4 +1,4 @@
-import { type SessionType, type StatusResponse } from "@/models/status"
+import { type SessionType, type StatusResponse } from "@/models/openid4vc"
 import axios, { AxiosError } from "axios"
 import { catch_axios_error, REQUEST_TIMEOUT } from "./base"
 

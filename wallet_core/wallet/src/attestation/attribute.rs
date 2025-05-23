@@ -5,9 +5,9 @@ use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
 
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::Organization;
-use openid4vc::attributes::Attribute;
-use openid4vc::attributes::AttributeValue;
 use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
@@ -24,7 +24,7 @@ use super::AttestationIdentity;
 impl Attestation {
     // Construct a new `Attestation` from a combination of metadata and nested attributes.
     // This method has different behaviour depending on the `selection_mode` parameter.
-    pub(super) fn create_from_attributes(
+    pub fn create_from_attributes(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer: Organization,
@@ -199,8 +199,8 @@ pub mod test {
     use rstest::rstest;
     use serde_json::json;
 
-    use openid4vc::attributes::Attribute;
-    use openid4vc::attributes::AttributeValue;
+    use attestation_data::attributes::Attribute;
+    use attestation_data::attributes::AttributeValue;
     use sd_jwt_vc_metadata::ClaimMetadata;
     use sd_jwt_vc_metadata::ClaimPath;
     use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;

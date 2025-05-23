@@ -1,9 +1,9 @@
 use std::num::NonZero;
 
+use attestation_data::issuable_document::IssuableDocument;
 use crypto::x509::CertificateError;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AttributeService;
 use openid4vc::oidc;
 use openid4vc::token::TokenRequest;

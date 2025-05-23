@@ -1,24 +1,33 @@
 use std::fmt::Debug;
-use std::num::NonZeroU8;
 
+use chrono::Duration;
+use chrono::Utc;
 use ciborium::Value;
 use coset::CoseSign1;
-use crypto::server_keys::generate::Ca;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
+use ssri::Integrity;
 
+use attestation_data::attributes::Entry;
+use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::identifiers::AttributeIdentifier;
 use attestation_data::identifiers::AttributeIdentifierHolder;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
+use crypto::factory::KeyFactory;
+use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
+use crypto::EcdsaKey;
+use crypto::WithIdentifier;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
+use crate::holder::Mdoc;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::DocRequest;
 use crate::iso::device_retrieval::ItemsRequest;
+use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DataElementValue;
-use crate::unsigned::Entry;
 use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::MdocCose;
@@ -166,61 +175,59 @@ impl TestDocument {
         }
     }
 
-    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
-    pub async fn sign<KF>(self, ca: &Ca, key_factory: &KF, copy_count: NonZeroU8) -> crate::holder::Mdoc
-    where
-        KF: crypto::factory::KeyFactory,
-    {
-        use crypto::keys::WithIdentifier;
-        use utils::generator::TimeGenerator;
-
-        use crate::holder::Mdoc;
-
-        let (issuer_signed, mdoc_key) = self.issuer_signed(ca, key_factory, copy_count).await;
-
-        let trust_anchor = ca.to_trust_anchor();
-        Mdoc::new::<KF::Key>(
-            mdoc_key.identifier().to_string(),
-            issuer_signed,
-            &TimeGenerator,
-            &[trust_anchor],
-        )
-        .unwrap()
-    }
-
-    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
-    pub async fn issuer_signed<KF>(
+    async fn prepare_unsigned<KF>(
         self,
         ca: &Ca,
         key_factory: &KF,
-        copy_count: NonZeroU8,
-    ) -> (crate::IssuerSigned, KF::Key)
+    ) -> (UnsignedMdoc, TypeMetadataDocuments, Integrity, KeyPair, KF::Key)
     where
-        KF: crypto::factory::KeyFactory,
+        KF: KeyFactory,
     {
-        use attestation_data::auth::issuer_auth::IssuerRegistration;
-        use crypto::keys::EcdsaKey;
+        let unsigned = UnsignedMdoc::from(self);
 
-        use crate::iso::disclosure::IssuerSigned;
-
-        let unsigned = {
-            let mut unsigned = UnsignedMdoc::from(self);
-            unsigned.copy_count = copy_count;
-            unsigned
-        };
         // NOTE: This metadata does not match the attributes.
         let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(
             TypeMetadata::empty_example_with_attestation_type(&unsigned.doc_type),
         );
         let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
-
         let mdoc_key = key_factory.generate_new().await.unwrap();
-        let mdoc_public_key = (&mdoc_key.verifying_key().await.unwrap()).try_into().unwrap();
-        let issuer_signed = IssuerSigned::sign(
+
+        (unsigned, metadata_documents, metadata_integrity, issuance_key, mdoc_key)
+    }
+
+    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
+    pub async fn sign<KF>(self, ca: &Ca, key_factory: &KF) -> Mdoc
+    where
+        KF: KeyFactory,
+    {
+        let (unsigned, metadata_documents, metadata_integrity, issuance_key, mdoc_key) =
+            self.prepare_unsigned(ca, key_factory).await;
+
+        Mdoc::sign::<KF::Key>(
             unsigned,
             metadata_integrity,
             &metadata_documents,
-            mdoc_public_key,
+            mdoc_key.identifier().to_string(),
+            &mdoc_key.verifying_key().await.unwrap(),
+            &issuance_key,
+        )
+        .await
+        .unwrap()
+    }
+
+    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`IssuerSigned`] using `ca` and `key_factory`.
+    pub async fn issuer_signed<KF>(self, ca: &Ca, key_factory: &KF) -> (IssuerSigned, KF::Key)
+    where
+        KF: KeyFactory,
+    {
+        let (unsigned, metadata_documents, metadata_integrity, issuance_key, mdoc_key) =
+            self.prepare_unsigned(ca, key_factory).await;
+
+        let (issuer_signed, _) = IssuerSigned::sign(
+            unsigned,
+            metadata_integrity,
+            &metadata_documents,
+            &mdoc_key.verifying_key().await.unwrap(),
             &issuance_key,
         )
         .await
@@ -232,12 +239,11 @@ impl TestDocument {
 
 impl From<TestDocument> for UnsignedMdoc {
     fn from(value: TestDocument) -> Self {
-        let now = chrono::Utc::now();
+        let now = Utc::now();
         Self {
             doc_type: value.doc_type,
-            copy_count: NonZeroU8::new(1).unwrap(),
             valid_from: now.into(),
-            valid_until: (now + chrono::Duration::days(365)).into(),
+            valid_until: (now + Duration::days(365)).into(),
             attributes: value.namespaces.try_into().unwrap(),
             issuer_uri: value.issuer_uri,
             attestation_qualification: Default::default(),

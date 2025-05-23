@@ -257,8 +257,6 @@ pub mod mock {
 
     use crate::holder::Mdoc;
     use crate::test::data::pid_example;
-    use crate::utils::cose::CoseKey;
-    use crate::IssuerSigned;
 
     use super::*;
 
@@ -312,27 +310,20 @@ pub mod mock {
         }
 
         async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
-            let device_key = CoseKey::try_from(key.verifying_key()).unwrap();
             let issuer_keypair = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
             let unsigned_mdoc = pid_example().0.remove(0).into();
             let (_, metadata_integrity, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example());
-            let issuer_signed = IssuerSigned::sign(
+
+            Mdoc::sign::<MockRemoteEcdsaKey>(
                 unsigned_mdoc,
                 metadata_integrity,
                 &metadata_documents,
-                device_key,
+                key.identifier().to_string(),
+                key.verifying_key(),
                 &issuer_keypair,
             )
             .await
-            .unwrap();
-
-            Mdoc::new::<MockRemoteEcdsaKey>(
-                key.identifier().to_owned(),
-                issuer_signed,
-                &IsoCertTimeGenerator,
-                &[ca.to_trust_anchor()],
-            )
             .unwrap()
         }
     }

@@ -45,32 +45,28 @@ imagePullSecrets: []
 ## Parameters for the ingress configuration
 ## @param ingress.enabled Enable or disable the ingress
 ## @param ingress.className Ingress class name
-## @param ingress.cspScriptSrc Content Security Policy script source
-## @param ingress.cspStyleSrc Content Security Policy style source
 ## @param ingress.tlsSecretName Name of the TLS secret for the ingress
 ## @param ingress.labels Additional labels for the ingress
 ##
 ingress:
   enabled: true
   className: "nginx"
-  cspScriptSrc: "'none'"
-  cspStyleSrc: "'none'"
   tlsSecretName: null
   labels: {}
 
 ## @section Resource requests and limits
-## @param resources.limits.memory Memory limit
-## @param resources.limits.cpu CPU limit
-## @param resources.requests.memory Memory request
 ## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
 ##
 resources:
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
   requests:
-    memory: "512Mi"
-    cpu: "300m"
+    memory: "64Mi"
+    cpu: "50m"
+  limits:
+    memory: "128Mi"
+    cpu: "200m"
 
 ## @section Wallet Server parameters
 ## Parameters for the wallet server configuration
@@ -85,14 +81,10 @@ walletServer:
 ## Parameters for the demo Relying Party configuration
 ## @param demoRelyingParty.hostname Hostname for the demo Relying Party
 ## @param demoRelyingParty.contextPath Context path for the demo Relying Party
-## @param demoRelyingParty.walletWebFilename Filename for the wallet web
-## @param demoRelyingParty.walletWebSha256 SHA-256 checksum for the wallet web file
 ##
 demoRelyingParty:
   hostname: null
   contextPath: null
-  walletWebFilename: null
-  walletWebSha256: null
 
 ## @param helpBaseUrl Base URL for the help link in wallet web
 helpBaseUrl: null

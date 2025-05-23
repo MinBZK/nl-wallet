@@ -2,8 +2,8 @@
 import ModalFooter from "@/components/ModalFooter.vue"
 import ModalHeader from "@/components/ModalHeader.vue"
 import ModalMain from "@/components/ModalMain.vue"
+import { type SessionType } from "@/models/openid4vc"
 import { type ModalState } from "@/models/state"
-import type { SessionType } from "@/models/status"
 import { isMobileKey } from "@/util/useragent"
 import { ref, inject } from "vue"
 

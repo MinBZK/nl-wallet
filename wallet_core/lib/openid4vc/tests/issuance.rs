@@ -5,14 +5,18 @@ use std::sync::Arc;
 use assert_matches::assert_matches;
 use chrono::Days;
 use indexmap::IndexMap;
-use itertools::Itertools;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 
+use attestation_data::attributes::Attribute;
+use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::issuable_document::IssuableDocument;
+use attestation_data::qualification::AttestationQualification;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteKeyFactory;
 use crypto::server_keys::generate::Ca;
@@ -20,16 +24,12 @@ use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use jwt::JsonJwt;
 use jwt::Jwt;
-use mdoc::AttestationQualification;
-use openid4vc::attributes::Attribute;
-use openid4vc::attributes::AttributeValue;
 use openid4vc::credential::CredentialRequest;
 use openid4vc::credential::CredentialRequestProof;
 use openid4vc::credential::CredentialRequests;
 use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::CredentialResponses;
 use openid4vc::dpop::Dpop;
-use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuance_session::mock_wte;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
@@ -47,10 +47,10 @@ use openid4vc::oidc;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::token::AccessToken;
-use openid4vc::token::CredentialPreview;
 use openid4vc::token::TokenRequest;
 use openid4vc::token::TokenResponseWithPreviews;
 use openid4vc::CredentialErrorCode;
+use openid4vc::Format;
 use poa::Poa;
 use poa::PoaPayload;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
@@ -86,15 +86,16 @@ fn setup(
     let wte_issuer_privkey = SigningKey::random(&mut OsRng);
     let trust_anchor = ca.to_trust_anchor().to_owned();
 
-    let attestation_config = MOCK_DOCTYPES
+    let attestation_config = MOCK_ATTESTATION_TYPES
         .iter()
-        .map(|doctype| {
-            let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(mock_type_metadata(doctype));
+        .map(|attestation_type| {
+            let (_, _, metadata_documents) =
+                TypeMetadataDocuments::from_single_example(mock_type_metadata(attestation_type));
 
             (
-                doctype.to_string(),
+                attestation_type.to_string(),
                 AttestationTypeConfig::try_new(
-                    doctype,
+                    attestation_type,
                     // KeyPair doesn't implement clone, so manually construct a new KeyPair.
                     KeyPair::new_from_signing_key(
                         issuance_keypair.private_key().clone(),
@@ -102,7 +103,7 @@ fn setup(
                     )
                     .unwrap(),
                     Days::new(365),
-                    4.try_into().unwrap(),
+                    IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
                     issuance_keypair
                         .certificate()
                         .san_dns_name_or_uris()
@@ -147,7 +148,7 @@ async fn accept_issuance(
     let message_client = MockOpenidMessageClient::new(issuer);
     let copy_count = 4;
 
-    let (session, previews) = HttpIssuanceSession::start_issuance(
+    let session = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
         TokenRequest::new_mock(),
@@ -169,14 +170,14 @@ async fn accept_issuance(
 
     issued_creds
         .into_iter()
-        .zip(previews.into_iter().flat_map(|(preview, _)| preview).collect_vec())
-        .for_each(|(copies, preview)| match copies {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
-                .first()
-                .compare_unsigned(match &preview {
-                    CredentialPreview::MsoMdoc { unsigned_mdoc, .. } => unsigned_mdoc,
-                })
-                .unwrap(),
+        .zip(session.credential_preview_data().iter())
+        .for_each(|(copies, preview_data)| match copies {
+            IssuedCredentialCopies::MsoMdoc(mdocs) => {
+                let mdoc = mdocs.first().clone();
+                let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();
+
+                assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
+            }
         });
 }
 
@@ -185,7 +186,7 @@ async fn reject_issuance() {
     let (issuer, trust_anchor, server_url, _) = setup_mock_issuer(NonZeroUsize::new(1).unwrap());
     let message_client = MockOpenidMessageClient::new(issuer);
 
-    let (session, _previews) =
+    let session =
         HttpIssuanceSession::start_issuance(message_client, server_url, TokenRequest::new_mock(), &[trust_anchor])
             .await
             .unwrap();
@@ -200,7 +201,7 @@ async fn start_and_accept_err(
     wte_issuer_privkey: SigningKey,
 ) -> IssuanceSessionError {
     let trust_anchors = &[trust_anchor];
-    let (session, _previews) = HttpIssuanceSession::start_issuance(
+    let session = HttpIssuanceSession::start_issuance(
         message_client,
         server_url.clone(),
         TokenRequest::new_mock(),
@@ -506,7 +507,7 @@ impl VcMessageClient for MockOpenidMessageClient {
     }
 }
 
-const MOCK_DOCTYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
+const MOCK_ATTESTATION_TYPES: [&str; 2] = ["com.example.pid", "com.example.address"];
 const MOCK_ATTRS: [(&str, &str); 2] = [("first_name", "John"), ("family_name", "Doe")];
 
 fn mock_type_metadata(vct: &str) -> TypeMetadata {
@@ -534,7 +535,7 @@ fn mock_issuable_attestation(attestation_count: NonZeroUsize) -> VecNonEmpty<Iss
     (0..attestation_count.get())
         .map(|i| {
             IssuableDocument::try_new(
-                MOCK_DOCTYPES[i].to_string(),
+                MOCK_ATTESTATION_TYPES[i].to_string(),
                 IndexMap::from_iter(MOCK_ATTRS.iter().map(|(key, val)| {
                     (
                         key.to_string(),

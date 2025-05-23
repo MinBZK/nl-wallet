@@ -1,11 +1,9 @@
 part of 'issuance_bloc.dart';
 
-const int kIssuanceSteps = 7;
+const int kIssuanceSteps = 5;
 
 sealed class IssuanceState extends Equatable {
-  final bool isRefreshFlow;
-
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 0, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kIssuanceSteps, totalSteps: kIssuanceSteps);
 
   bool get showStopConfirmation => true;
 
@@ -13,11 +11,10 @@ sealed class IssuanceState extends Equatable {
 
   bool get didGoBack => false;
 
-  const IssuanceState({this.isRefreshFlow = false});
+  const IssuanceState();
 
   @override
   List<Object?> get props => [
-        isRefreshFlow,
         stepperProgress,
         showStopConfirmation,
         canGoBack,
@@ -26,26 +23,30 @@ sealed class IssuanceState extends Equatable {
 }
 
 class IssuanceInitial extends IssuanceState {
-  const IssuanceInitial({super.isRefreshFlow});
+  const IssuanceInitial();
 }
 
 class IssuanceLoadInProgress extends IssuanceState {
-  const IssuanceLoadInProgress({super.isRefreshFlow});
-}
+  final int step;
 
-class IssuanceLoadFailure extends IssuanceState {
-  const IssuanceLoadFailure({super.isRefreshFlow});
+  const IssuanceLoadInProgress({required this.step});
+
+  @override
+  FlowProgress get stepperProgress => FlowProgress(currentStep: step, totalSteps: kIssuanceSteps);
 }
 
 class IssuanceCheckOrganization extends IssuanceState {
   final bool afterBackPressed;
 
   final Organization organization;
+  final Policy policy;
+  final RequestedAttributes requestedAttributes;
 
   const IssuanceCheckOrganization({
     required this.organization,
+    required this.requestedAttributes,
+    required this.policy,
     this.afterBackPressed = false,
-    super.isRefreshFlow,
   });
 
   @override
@@ -53,36 +54,6 @@ class IssuanceCheckOrganization extends IssuanceState {
 
   @override
   bool get didGoBack => afterBackPressed;
-
-  @override
-  List<Object?> get props => [organization, ...super.props];
-}
-
-class IssuanceProofIdentity extends IssuanceState {
-  final bool afterBackPressed;
-
-  final Organization organization;
-
-  final Policy policy;
-
-  final List<Attribute> requestedAttributes;
-
-  const IssuanceProofIdentity({
-    super.isRefreshFlow,
-    required this.organization,
-    required this.policy,
-    required this.requestedAttributes,
-    this.afterBackPressed = false,
-  });
-
-  @override
-  bool get canGoBack => !isRefreshFlow;
-
-  @override
-  bool get didGoBack => afterBackPressed;
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [organization, policy, requestedAttributes, ...super.props];
@@ -93,147 +64,92 @@ class IssuanceMissingAttributes extends IssuanceState {
 
   final Organization organization;
 
-  final Policy policy;
-
   final List<MissingAttribute> missingAttributes;
 
   const IssuanceMissingAttributes({
-    super.isRefreshFlow,
     required this.organization,
-    required this.policy,
     required this.missingAttributes,
     this.afterBackPressed = false,
   });
 
   @override
-  bool get canGoBack => !isRefreshFlow;
+  bool get didGoBack => afterBackPressed;
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kIssuanceSteps, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [organization, missingAttributes, ...super.props];
+}
+
+class IssuanceProvidePinForDisclosure extends IssuanceState {
+  const IssuanceProvidePinForDisclosure();
+
+  @override
+  bool get canGoBack => true;
+
+  @override
+  FlowProgress get stepperProgress => FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
+}
+
+class IssuanceReviewCards extends IssuanceState {
+  final Map<WalletCard, bool /* selected */ > selectableCards;
+
+  List<WalletCard> get cards => selectableCards.keys.toList();
+
+  List<WalletCard> get selectedCards =>
+      selectableCards.entries.where((entry) => entry.value).map((entry) => entry.key).toList();
+
+  final bool afterBackPressed;
 
   @override
   bool get didGoBack => afterBackPressed;
 
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
+  const IssuanceReviewCards({required this.selectableCards, this.afterBackPressed = false});
+
+  /// Create a IssuanceReviewCards state where all provided cards default to being selected
+  factory IssuanceReviewCards.init({required List<WalletCard> cards, bool afterBackPressed = false}) {
+    final selectableCards = cards.asMap().map((_, card) => MapEntry(card, true));
+    return IssuanceReviewCards(selectableCards: selectableCards, afterBackPressed: afterBackPressed);
+  }
+
+  /// Create an IssuanceReviewCards state for which the provided card's selected state is toggled
+  IssuanceReviewCards toggleCard(WalletCard card) {
+    assert(cards.contains(card), 'Can not toggle card that does not exist');
+    final updatedCards = Map<WalletCard, bool>.from(selectableCards);
+    updatedCards.update(card, (selected) => !selected);
+    return IssuanceReviewCards(selectableCards: updatedCards);
+  }
 
   @override
-  List<Object?> get props => [organization, policy, missingAttributes, ...super.props];
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps);
+
+  @override
+  List<Object?> get props => [selectableCards, ...super.props];
 }
 
-class IssuanceProvidePin extends IssuanceState {
-  const IssuanceProvidePin({super.isRefreshFlow});
+class IssuanceProvidePinForIssuance extends IssuanceState {
+  final List<WalletCard> cards;
+
+  const IssuanceProvidePinForIssuance({required this.cards});
 
   @override
   bool get canGoBack => true;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
-}
-
-class IssuanceCheckDataOffering extends IssuanceState {
-  final WalletCard card;
-
-  const IssuanceCheckDataOffering({super.isRefreshFlow, required this.card});
+  FlowProgress get stepperProgress => FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kIssuanceSteps);
-
-  @override
-  List<Object?> get props => [card, ...super.props];
-}
-
-class IssuanceSelectCards extends IssuanceState {
-  final MultipleCardsFlow multipleCardsFlow;
-
-  final bool showNoSelectionError;
-
-  @override
-  final bool didGoBack;
-
-  List<WalletCard> get cards => multipleCardsFlow.availableCards;
-
-  List<WalletCard> get selectedCards => multipleCardsFlow.selectedCards;
-
-  const IssuanceSelectCards({
-    required this.multipleCardsFlow,
-    this.didGoBack = false,
-    this.showNoSelectionError = false,
-    super.isRefreshFlow,
-  });
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 5, totalSteps: kIssuanceSteps);
-
-  IssuanceSelectCards toggleCard(String cardId) {
-    final selection = Set<String>.from(multipleCardsFlow.selectedCardIds);
-    return IssuanceSelectCards(
-      isRefreshFlow: isRefreshFlow,
-      multipleCardsFlow: multipleCardsFlow.copyWith(selectedCardIds: selection..toggle(cardId)),
-    );
-  }
-
-  IssuanceSelectCards copyWith({bool? showNoSelectionError}) {
-    return IssuanceSelectCards(
-      isRefreshFlow: isRefreshFlow,
-      multipleCardsFlow: multipleCardsFlow,
-      showNoSelectionError: showNoSelectionError ?? this.showNoSelectionError,
-      didGoBack: didGoBack,
-    );
-  }
-
-  @override
-  List<Object?> get props => [cards, multipleCardsFlow, showNoSelectionError, ...super.props];
-}
-
-class IssuanceCheckCards extends IssuanceState {
-  final MultipleCardsFlow multipleCardsFlow;
-
-  @override
-  final bool didGoBack;
-
-  WalletCard get cardToCheck => multipleCardsFlow.activeCard;
-
-  int get totalNrOfCardsToCheck => multipleCardsFlow.selectedCards.length;
-
-  const IssuanceCheckCards({
-    super.isRefreshFlow,
-    required this.multipleCardsFlow,
-    this.didGoBack = false,
-  });
-
-  IssuanceCheckCards copyForNextCard() {
-    if (!multipleCardsFlow.hasMoreCards) throw UnsupportedError('There is no next card to check!');
-    return IssuanceCheckCards(
-      isRefreshFlow: isRefreshFlow,
-      multipleCardsFlow: multipleCardsFlow.next(),
-      didGoBack: false,
-    );
-  }
-
-  IssuanceCheckCards copyForPreviousCard() {
-    if (multipleCardsFlow.isAtFirstCard) throw UnsupportedError('There is no previous card to check!');
-    return IssuanceCheckCards(
-      isRefreshFlow: isRefreshFlow,
-      multipleCardsFlow: multipleCardsFlow.previous(),
-      didGoBack: true,
-    );
-  }
-
-  @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 6, totalSteps: kIssuanceSteps);
-
-  @override
-  bool get canGoBack => true;
-
-  @override
-  List<Object?> get props => [multipleCardsFlow, ...super.props];
+  List<Object?> get props => [cards, ...super.props];
 }
 
 class IssuanceCompleted extends IssuanceState {
   final List<WalletCard> addedCards;
 
-  const IssuanceCompleted({super.isRefreshFlow, required this.addedCards});
+  const IssuanceCompleted({required this.addedCards});
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 7, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kIssuanceSteps, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [addedCards, ...super.props];
@@ -243,17 +159,37 @@ class IssuanceCompleted extends IssuanceState {
 }
 
 class IssuanceStopped extends IssuanceState {
-  const IssuanceStopped({super.isRefreshFlow});
+  final String? returnUrl;
+
+  const IssuanceStopped({this.returnUrl});
 
   @override
   bool get showStopConfirmation => false;
+
+  @override
+  List<Object?> get props => [returnUrl, ...super.props];
 }
 
 class IssuanceGenericError extends IssuanceState implements ErrorState {
   @override
   final ApplicationError error;
 
-  const IssuanceGenericError({required this.error, super.isRefreshFlow});
+  final String? returnUrl;
+
+  const IssuanceGenericError({required this.error, this.returnUrl});
+
+  @override
+  bool get showStopConfirmation => false;
+
+  @override
+  List<Object?> get props => [...super.props, error, returnUrl];
+}
+
+class IssuanceExternalScannerError extends IssuanceState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  const IssuanceExternalScannerError({required this.error});
 
   @override
   bool get showStopConfirmation => false;
@@ -262,9 +198,93 @@ class IssuanceGenericError extends IssuanceState implements ErrorState {
   List<Object?> get props => [...super.props, error];
 }
 
-class IssuanceIdentityValidationFailure extends IssuanceState {
-  const IssuanceIdentityValidationFailure({super.isRefreshFlow});
+class IssuanceNoCardsRetrieved extends IssuanceState {
+  final Organization organization;
+
+  const IssuanceNoCardsRetrieved({required this.organization});
 
   @override
   bool get showStopConfirmation => false;
+
+  @override
+  List<Object?> get props => [organization, ...super.props];
+}
+
+class IssuanceNetworkError extends IssuanceState implements NetworkErrorState {
+  @override
+  final bool hasInternet;
+
+  @override
+  final ApplicationError error;
+
+  @override
+  final int? statusCode;
+
+  const IssuanceNetworkError({required this.error, required this.hasInternet, this.statusCode});
+
+  @override
+  bool get showStopConfirmation => false;
+
+  @override
+  List<Object?> get props => [...super.props, error, hasInternet, statusCode];
+}
+
+class IssuanceSessionExpired extends IssuanceState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  final bool isCrossDevice;
+
+  final bool canRetry;
+
+  final String? returnUrl;
+
+  const IssuanceSessionExpired({
+    required this.error,
+    required this.isCrossDevice,
+    required this.canRetry,
+    this.returnUrl,
+  });
+
+  @override
+  List<Object?> get props => [error, canRetry, isCrossDevice, returnUrl, ...super.props];
+}
+
+/// State that is exposed when the session has been stopped remotely (e.g. the user pressed stop in wallet_web)
+class IssuanceSessionCancelled extends IssuanceState implements ErrorState {
+  final Organization? relyingParty;
+  final String? returnUrl;
+
+  @override
+  final ApplicationError error;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const IssuanceSessionCancelled({
+    required this.error,
+    this.relyingParty,
+    this.returnUrl,
+  });
+
+  @override
+  List<Object?> get props => [error, relyingParty, returnUrl, ...super.props];
+}
+
+class IssuanceRelyingPartyError extends IssuanceState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  final LocalizedText? organizationName;
+
+  @override
+  bool get showStopConfirmation => false;
+
+  const IssuanceRelyingPartyError({required this.error, this.organizationName});
+
+  @override
+  List<Object?> get props => [error, organizationName, ...super.props];
 }

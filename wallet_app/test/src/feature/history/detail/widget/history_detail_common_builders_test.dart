@@ -2,9 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
+import 'package:wallet/src/feature/common/builder/request_detail_common_builders.dart';
 import 'package:wallet/src/feature/common/widget/app_image.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
-import 'package:wallet/src/feature/history/detail/widget/history_detail_common_builders.dart';
+import 'package:wallet/src/feature/common/widget/divider_side.dart';
 import 'package:wallet/src/feature/history/detail/widget/wallet_event_status_header.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
 import 'package:wallet/src/util/extension/wallet_event_extension.dart';
@@ -19,9 +20,10 @@ void main() {
   testWidgets('buildStatusHeaderSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildStatusHeaderSliver(
+        sliverBuilder: (context) => RequestDetailCommonBuilders.buildStatusHeaderSliver(
           context,
-          WalletMockData.disclosureEvent,
+          event: WalletMockData.disclosureEvent,
+          side: DividerSide.bottom,
         ),
       ),
     );
@@ -34,9 +36,10 @@ void main() {
   testWidgets('buildPurposeSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildPurposeSliver(
+        sliverBuilder: (context) => RequestDetailCommonBuilders.buildPurposeSliver(
           context,
-          WalletMockData.disclosureEvent,
+          purpose: WalletMockData.disclosureEvent.purpose,
+          side: DividerSide.bottom,
         ),
       ),
     );
@@ -49,9 +52,10 @@ void main() {
   testWidgets('buildSharedAttributesSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildSharedAttributesSliver(
+        sliverBuilder: (context) => RequestDetailCommonBuilders.buildSharedAttributesSliver(
           context,
-          WalletMockData.disclosureEvent,
+          cards: WalletMockData.disclosureEvent.cards,
+          side: DividerSide.bottom,
         ),
       ),
     );
@@ -66,9 +70,10 @@ void main() {
   testWidgets('buildRequestedAttributesSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildRequestedAttributesSliver(
+        sliverBuilder: (context) => RequestDetailCommonBuilders.buildRequestedAttributesSliver(
           context,
-          WalletMockData.disclosureEvent,
+          cards: WalletMockData.disclosureEvent.cards,
+          side: DividerSide.bottom,
         ),
       ),
     );
@@ -83,10 +88,11 @@ void main() {
   testWidgets('buildPolicySliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildPolicySliver(
+        sliverBuilder: (context) => RequestDetailCommonBuilders.buildPolicySliver(
           context,
-          WalletMockData.disclosureEvent.relyingParty,
-          WalletMockData.disclosureEvent.policy,
+          organization: WalletMockData.disclosureEvent.relyingParty,
+          policy: WalletMockData.disclosureEvent.policy,
+          side: DividerSide.bottom,
         ),
       ).withDependency<ContextMapper<OrganizationPolicy, String>>((context) => PolicyBodyTextMapper()),
     );
@@ -99,9 +105,10 @@ void main() {
   testWidgets('buildAboutOrganizationSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildAboutOrganizationSliver(
+        sliverBuilder: (context) => RequestDetailCommonBuilders.buildAboutOrganizationSliver(
           context,
-          WalletMockData.disclosureEvent.relyingPartyOrIssuer,
+          organization: WalletMockData.disclosureEvent.relyingPartyOrIssuer,
+          side: DividerSide.bottom,
         ),
       ),
     );
@@ -115,9 +122,10 @@ void main() {
   testWidgets('buildShowDetailsSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _SliverTestWrapper(
-        sliverBuilder: (context) => HistoryDetailCommonBuilders.buildShowDetailsSliver(
+        sliverBuilder: (context) => RequestDetailCommonBuilders.buildShowDetailsSliver(
           context,
-          WalletMockData.disclosureEvent,
+          event: WalletMockData.disclosureEvent,
+          side: DividerSide.bottom,
         ),
       ),
     );
@@ -128,8 +136,8 @@ void main() {
 
   testWidgets('buildReportIssueSliver', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
-      const _SliverTestWrapper(
-        sliverBuilder: HistoryDetailCommonBuilders.buildReportIssueSliver,
+      _SliverTestWrapper(
+        sliverBuilder: (c) => RequestDetailCommonBuilders.buildReportIssueSliver(c, side: DividerSide.bottom),
       ),
     );
 

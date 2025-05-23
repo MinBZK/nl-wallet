@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/model/result/application_error.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../common/sheet/error_details_sheet.dart';
@@ -33,11 +34,11 @@ class ErrorButtonBuilder {
     };
   }
 
-  static FitsWidthWidget buildShowDetailsButton(BuildContext context) {
+  static FitsWidthWidget buildShowDetailsButton(BuildContext context, {ApplicationError? error}) {
     return TertiaryButton(
       text: Text.rich(context.l10n.generalShowDetailsCta.toTextSpan(context)),
       icon: const Icon(Icons.info_outline_rounded),
-      onPressed: () => ErrorDetailsSheet.show(context),
+      onPressed: () => ErrorDetailsSheet.show(context, error: error),
     );
   }
 }

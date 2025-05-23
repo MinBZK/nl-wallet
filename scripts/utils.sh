@@ -242,13 +242,24 @@ function generate_ws_random_key {
     random_bytes 64 > "${TARGET_DIR}/demo_relying_party/$1.key"
 }
 
-# Generate an EC root CA for the pid_issuer
-function generate_pid_issuer_root_ca {
-    echo -e "${INFO}Generating PID CA key pair${NC}"
+# Generate an EC root CA for issuer
+function generate_issuer_root_ca {
+    echo -e "${INFO}Generating Issuer CA key pair${NC}"
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "ca.pid.example.com" \
-        --file-prefix "${TARGET_DIR}/pid_issuer/ca" \
+        --common-name "ca.issuer.example.com" \
+        --file-prefix "${TARGET_DIR}/ca.issuer" \
         --force
+    openssl x509 -in "${TARGET_DIR}/ca.issuer.crt.pem" -outform der -out "${TARGET_DIR}/ca.issuer.crt.der"
+}
+
+# Generate an EC root CA for reader
+function generate_reader_root_ca {
+    echo -e "${INFO}Generating Reader CA key pair${NC}"
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
+        --common-name "ca.reader.example.com" \
+        --file-prefix "${TARGET_DIR}/ca.reader" \
+        --force
+    openssl x509 -in "${TARGET_DIR}/ca.reader.crt.pem" -outform der -out "${TARGET_DIR}/ca.reader.crt.der"
 }
 
 # Generate an EC key pair for the pid_issuer
@@ -277,8 +288,8 @@ function generate_pid_issuer_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca issuer-cert \
         --public-key-file "${TARGET_DIR}/pid_issuer/issuer.pub.pem" \
-        --ca-key-file "${TARGET_DIR}/pid_issuer/ca.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/pid_issuer/ca.crt.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
         --common-name "cert.issuer.example.com" \
         --issuer-auth-file "${DEVENV}/rvig_issuer_auth.json" \
         --file-prefix "${TARGET_DIR}/pid_issuer/issuer" \
@@ -292,22 +303,49 @@ function generate_pid_issuer_key_pair {
             -out "${TARGET_DIR}/pid_issuer/issuer.crt.der"
 }
 
-# Generate an EC root CA for the demo_relying_party
-function generate_demo_relying_party_root_ca {
-    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml --bin wallet_ca ca \
-        --common-name "ca.rp.example.com" \
-        --file-prefix "${TARGET_DIR}/demo_relying_party/ca" \
+# Generate an EC key pairs for the demo_issuer
+#
+# $1 - ISSUER_NAME: Name of the Issuer
+function generate_demo_issuer_key_pairs {
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca reader \
+        --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
+        --common-name "$1.example.com" \
+        --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
+        --file-prefix "${TARGET_DIR}/demo_issuer/$1.reader" \
         --force
+
+    cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
+        --bin wallet_ca issuer \
+        --ca-key-file "${TARGET_DIR}/ca.issuer.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.issuer.crt.pem" \
+        --common-name "$1.example.com" \
+        --issuer-auth-file "${DEVENV}/$1_issuer_auth.json" \
+        --file-prefix "${TARGET_DIR}/demo_issuer/$1.issuer" \
+        --force
+
+    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.reader.crt.pem" \
+        -outform der -out "${TARGET_DIR}/demo_issuer/$1.reader.crt.der"
+    openssl x509 -in "${TARGET_DIR}/demo_issuer/$1.issuer.crt.pem" \
+        -outform der -out "${TARGET_DIR}/demo_issuer/$1.issuer.crt.der"
+
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/demo_issuer/$1.reader.key.pem" \
+        -out "${TARGET_DIR}/demo_issuer/$1.reader.key.der" -nocrypt
+    openssl pkcs8 -topk8 -inform PEM -outform DER \
+        -in "${TARGET_DIR}/demo_issuer/$1.issuer.key.pem" \
+        -out "${TARGET_DIR}/demo_issuer/$1.issuer.key.der" -nocrypt
 }
 
 # Generate an EC key pair for the demo_relying_party
 #
-# $1 - READER_NAME: Name of the Relying Party
+# $1 - RELYING_PARTY_NAME: Name of the Relying Party
 function generate_demo_relying_party_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
         --bin wallet_ca reader \
-        --ca-key-file "${TARGET_DIR}/demo_relying_party/ca.key.pem" \
-        --ca-crt-file "${TARGET_DIR}/demo_relying_party/ca.crt.pem" \
+        --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
+        --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
         --common-name "$1.example.com" \
         --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
         --file-prefix "${TARGET_DIR}/demo_relying_party/$1" \
@@ -348,8 +386,8 @@ function generate_relying_party_hsm_key_pair {
     cargo run --manifest-path "${BASE_DIR}"/wallet_core/Cargo.toml \
           --bin wallet_ca reader-cert \
           --public-key-file "${TARGET_DIR}/$2/$1.pub.pem" \
-          --ca-key-file "${TARGET_DIR}/demo_relying_party/ca.key.pem" \
-          --ca-crt-file "${TARGET_DIR}/demo_relying_party/ca.crt.pem" \
+          --ca-key-file "${TARGET_DIR}/ca.reader.key.pem" \
+          --ca-crt-file "${TARGET_DIR}/ca.reader.crt.pem" \
           --common-name "$1.example.com" \
           --reader-auth-file "${DEVENV}/$1_reader_auth.json" \
           --file-prefix "${TARGET_DIR}/$2/$1" \

@@ -25,6 +25,7 @@ use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
+use attestation_data::attributes::Entry;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -42,13 +43,11 @@ use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::holder::Mdoc;
-use mdoc::unsigned::Entry;
 use mdoc::unsigned::UnsignedMdoc;
 use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::utils::serialization::TaggedBytes;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::DeviceResponse;
-use mdoc::IssuerSigned;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -74,7 +73,6 @@ use server_utils::settings::Server;
 use server_utils::settings::Settings;
 use server_utils::settings::Storage;
 use utils::generator::mock::MockTimeGenerator;
-use utils::generator::TimeGenerator;
 use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
@@ -949,7 +947,6 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
         valid_from: now.into(),
         valid_until: now.add(Days::new(365)).into(),
         attributes: example_attributes.try_into().unwrap(),
-        copy_count: 1.try_into().unwrap(),
         issuer_uri: issuer_key_pair
             .certificate()
             .san_dns_name_or_uris()
@@ -966,22 +963,17 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = crypto::utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
-    let mdoc_public_key = mdoc_private_key.verifying_key().try_into().unwrap();
-    let issuer_signed = IssuerSigned::sign(
+    let mdoc_public_key = mdoc_private_key.verifying_key();
+
+    let mdoc = Mdoc::sign::<MockRemoteEcdsaKey>(
         unsigned_mdoc,
         metadata_integrity,
         &metadata_documents,
+        mdoc_private_key_id,
         mdoc_public_key,
         &issuer_key_pair,
     )
     .await
-    .unwrap();
-    let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(
-        mdoc_private_key_id,
-        issuer_signed,
-        &TimeGenerator,
-        &[issuer_ca.to_trust_anchor()],
-    )
     .unwrap();
 
     // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.

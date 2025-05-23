@@ -30,6 +30,8 @@ pub use crate::wallet::UriType;
 pub use crate::wallet::Wallet;
 
 pub mod attestation_data {
+    pub use attestation_data::attributes::Attribute;
+    pub use attestation_data::attributes::AttributeValue;
     pub use attestation_data::auth::reader_auth::DeletionPolicy;
     pub use attestation_data::auth::reader_auth::ReaderRegistration;
     pub use attestation_data::auth::reader_auth::RetentionPolicy;
@@ -48,17 +50,15 @@ pub mod configuration {
 }
 
 pub mod openid4vc {
-    pub use openid4vc::attributes::Attribute;
-    pub use openid4vc::attributes::AttributeValue;
     pub use openid4vc::verifier::SessionType;
 }
 
 pub mod sd_jwt_vc_metadata {
     pub use sd_jwt_vc_metadata::ClaimDisplayMetadata;
     pub use sd_jwt_vc_metadata::DisplayMetadata;
+    pub use sd_jwt_vc_metadata::Image;
     pub use sd_jwt_vc_metadata::LogoMetadata;
     pub use sd_jwt_vc_metadata::RenderingMetadata;
-    pub use sd_jwt_vc_metadata::UriMetadata;
 }
 
 pub mod utils {

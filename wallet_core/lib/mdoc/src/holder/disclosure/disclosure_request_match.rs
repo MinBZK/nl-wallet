@@ -192,11 +192,10 @@ impl<I> DisclosureRequestMatch<I> {
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU8;
-
     use futures::future;
     use rstest::rstest;
 
+    use attestation_data::attributes::Entry;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
 
@@ -204,7 +203,6 @@ mod tests {
     use crate::iso::mdocs::Attributes;
     use crate::iso::mdocs::IssuerNameSpaces;
     use crate::iso::mdocs::IssuerSignedItem;
-    use crate::iso::unsigned::Entry;
     use crate::test::data::addr_street;
     use crate::test::data::empty;
     use crate::test::data::pid_family_name;
@@ -249,7 +247,7 @@ mod tests {
             future::join_all(
                 stored_documents
                     .into_iter()
-                    .map(|document| document.sign(&ca, &key_factory, NonZeroU8::new(1).unwrap())),
+                    .map(|document| document.sign(&ca, &key_factory)),
             )
             .await,
         );

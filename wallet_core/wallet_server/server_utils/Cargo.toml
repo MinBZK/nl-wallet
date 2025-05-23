@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-integration_test = []
+parsed_key_pair_conversion = []
 # Include session storage in PostgreSQL
 postgres = ["dep:serde_json", "dep:sea-orm", "dep:strum"]
 

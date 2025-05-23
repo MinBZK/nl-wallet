@@ -45,32 +45,28 @@ imagePullSecrets: []
 ## Parameters for the ingress configuration
 ## @param ingress.enabled Enable or disable the ingress
 ## @param ingress.className Ingress class name
-## @param ingress.cspScriptSrc Content Security Policy script source
-## @param ingress.cspStyleSrc Content Security Policy style source
 ## @param ingress.tlsSecretName Name of the TLS secret for the ingress
 ## @param ingress.labels Additional labels for the ingress
 ##
 ingress:
   enabled: true
   className: "nginx"
-  cspScriptSrc: "'none'"
-  cspStyleSrc: "'none'"
   tlsSecretName: null
   labels: {}
 
 ## @section Resource requests and limits
-## @param resources.limits.memory Memory limit
-## @param resources.limits.cpu CPU limit
-## @param resources.requests.memory Memory request
 ## @param resources.requests.cpu CPU request
+## @param resources.requests.memory Memory request
+## @param resources.limits.cpu CPU limit
+## @param resources.limits.memory Memory limit
 ##
 resources:
-  limits:
-    memory: "512Mi"
-    cpu: "500m"
   requests:
-    memory: "512Mi"
-    cpu: "300m"
+    cpu: "50m"
+    memory: "32Mi"
+  limits:
+    cpu: "200m"
+    memory: "64Mi"
 
 ## @section Demo Index parameters
 ## Parameters for the demo issuer configuration

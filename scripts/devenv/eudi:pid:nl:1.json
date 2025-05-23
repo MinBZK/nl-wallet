@@ -7,7 +7,7 @@
   "display": [
     {
       "lang": "en-US",
-      "name": "Personal data (NL)",
+      "name": "Personal data",
       "description": "The Dutch personal data credential",
       "summary": "{{given_name}}",
       "rendering": {
@@ -19,7 +19,7 @@
     },
     {
       "lang": "nl-NL",
-      "name": "Persoonsgegevens (NL)",
+      "name": "Persoonsgegevens",
       "description": "De Nederlandse persoonsgegevensattestatie",
       "summary": "{{given_name}}",
       "rendering": {

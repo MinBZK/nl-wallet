@@ -21,6 +21,6 @@ class SetupMockedWalletUseCaseImpl extends SetupMockedWalletUseCase {
     await _walletRepository.createWallet('000000');
 
     // Add cards + history
-    await _pidRepository.acceptOfferedPid('000000');
+    await _pidRepository.acceptIssuance('000000');
   }
 }

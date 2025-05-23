@@ -75,17 +75,18 @@ class TestLocaleProvider extends ActiveLocaleProvider {
 
 extension TestWidgetExtensions on Widget {
   /// Wraps the widget with a BlocProvider to provide the [bloc]
-  /// and configures it to emit the provided [state].
+  /// and configures it to emit the provided [initialState].
+  /// Further state changes can be provided through [streamStates].
   ///
   /// Useful to configure the state of a screen for a UI test.
-  Widget withState<B extends BlocBase<S>, S>(B bloc, S state) => BlocProvider<B>(
+  Widget withState<B extends BlocBase<S>, S>(B bloc, S initialState, {List<S> streamStates = const []}) =>
+      BlocProvider<B>(
         create: (c) {
           assert(bloc is MockBloc, 'Can only provide mocked state on MockBloc');
-          whenListen(
-            bloc,
-            Stream<S>.value(state),
-            initialState: state,
-          );
+
+          final Stream<S> statesStream =
+              streamStates.isNotEmpty ? Stream<S>.fromIterable(streamStates) : Stream<S>.value(initialState);
+          whenListen(bloc, statesStream, initialState: initialState);
           return bloc;
         },
         child: Builder(builder: (context) => this),

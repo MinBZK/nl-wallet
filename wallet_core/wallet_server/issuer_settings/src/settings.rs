@@ -6,20 +6,22 @@ use chrono::Days;
 use derive_more::AsRef;
 use derive_more::From;
 use futures::future::join_all;
+use indexmap::IndexMap;
 use rustls_pki_types::TrustAnchor;
 use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
 
+use attestation_data::qualification::AttestationQualification;
 use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
 use crypto::x509::CertificateUsage;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls::HttpsUri;
-use mdoc::AttestationQualification;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttestationTypesConfig;
+use openid4vc::Format;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use server_utils::keys::PrivateKeySettingsError;
@@ -60,7 +62,7 @@ pub struct AttestationTypeConfigSettings {
     pub keypair: KeyPair,
 
     pub valid_days: u64,
-    pub copy_count: NonZeroU8,
+    pub copies_per_format: IndexMap<Format, NonZeroU8>,
 
     #[serde(default)]
     pub attestation_qualification: AttestationQualification,
@@ -130,7 +132,7 @@ impl AttestationTypesConfigSettings {
                     &typ,
                     attestation.keypair.parse(hsm.clone()).await?,
                     Days::new(attestation.valid_days),
-                    attestation.copy_count,
+                    attestation.copies_per_format,
                     issuer_uri,
                     attestation.attestation_qualification,
                     metadata_documents,
@@ -221,14 +223,16 @@ mod tests {
     use std::collections::HashMap;
 
     use assert_matches::assert_matches;
+    use indexmap::IndexMap;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::qualification::AttestationQualification;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;
-    use mdoc::AttestationQualification;
     use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
+    use openid4vc::Format;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
     use server_utils::settings::CertificateVerificationError;
@@ -253,7 +257,7 @@ mod tests {
                 AttestationTypeConfigSettings {
                     keypair,
                     valid_days: 365,
-                    copy_count: 10.try_into().unwrap(),
+                    copies_per_format: IndexMap::from([(Format::MsoMdoc, 10.try_into().unwrap())]),
                     attestation_qualification: AttestationQualification::PubEAA,
                     certificate_san: Some(("https://".to_string() + ISSUANCE_CERT_CN).parse().unwrap()),
                 },
@@ -317,7 +321,7 @@ mod tests {
             AttestationTypeConfigSettings {
                 keypair: issuer_cert_no_registration.into(),
                 valid_days: 365,
-                copy_count: 4.try_into().unwrap(),
+                copies_per_format: IndexMap::from([(Format::MsoMdoc, 4.try_into().unwrap())]),
                 attestation_qualification: Default::default(),
                 certificate_san: None,
             },

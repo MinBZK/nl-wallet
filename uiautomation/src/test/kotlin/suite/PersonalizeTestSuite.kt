@@ -5,6 +5,7 @@ import org.junit.platform.suite.api.Suite
 import org.junit.platform.suite.api.SuiteDisplayName
 
 @SelectClasses(
+    feature.personalize.DisclosureBasedIssuanceTests::class,
     feature.personalize.PersonalizeInformTests::class,
     feature.personalize.PersonalizeAuthenticatingWithDigidScreenTests::class,
     feature.personalize.PersonalizePidPreviewTests::class,

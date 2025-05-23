@@ -11,10 +11,10 @@ import '../../util/helper/announcements_helper.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
 import '../common/page/generic_loading_page.dart';
-import '../common/page/page_illustration.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
+import '../common/widget/page_illustration.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/stepper_indicator.dart';
 import '../common/widget/wallet_app_bar.dart';
@@ -31,7 +31,10 @@ const _kSelectNewPinPageKey = ValueKey('select_new_pin_page');
 const _kConfirmNewPinPageKey = ValueKey('confirm_new_pin_page');
 
 class ChangePinScreen extends StatelessWidget {
-  const ChangePinScreen({super.key});
+  @visibleForTesting
+  final bool forceAnnouncements;
+
+  const ChangePinScreen({this.forceAnnouncements = false, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -197,7 +200,7 @@ class ChangePinScreen extends StatelessWidget {
   }
 
   Future<void> _runAnnouncements(BuildContext context, ChangePinState state) async {
-    if (!context.isScreenReaderEnabled) return;
+    if (!context.isScreenReaderEnabled && !forceAnnouncements) return;
     final l10n = context.l10n;
     await Future.delayed(kDefaultAnnouncementDelay);
 

@@ -9,6 +9,7 @@ use std::result::Result;
 
 use chrono::DateTime;
 use chrono::ParseError;
+use chrono::SecondsFormat;
 use chrono::Utc;
 use ciborium::tag;
 use ciborium::value::Value;
@@ -19,14 +20,14 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
-use serde_with::DeserializeFromStr;
-use serde_with::SerializeDisplay;
 use ssri::Integrity;
 
+use attestation_data::attributes::Entry;
+use attestation_data::qualification::AttestationQualification;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
+use utils::date_time_seconds::DateTimeSeconds;
 
-use crate::unsigned::Entry;
 use crate::unsigned::UnsignedAttributes;
 use crate::utils::cose::CoseKey;
 use crate::utils::crypto::cbor_digest;
@@ -151,24 +152,6 @@ impl From<CoseKey> for DeviceKeyInfo {
 /// Public key of an mdoc, contained in [`DeviceKeyInfo`] which is contained in [`MobileSecurityObject`].
 pub type DeviceKey = CoseKey;
 
-// TODO move to separate crate (PVW-4241)
-#[derive(
-    Debug, Clone, Copy, Default, PartialEq, Eq, SerializeDisplay, DeserializeFromStr, strum::EnumString, strum::Display,
-)]
-#[strum(serialize_all = "SCREAMING_SNAKE_CASE")]
-pub enum AttestationQualification {
-    /// Qualified Electronic Attestation of Attributes
-    QEAA,
-
-    /// Electronic attestation of attributes issued by or on behalf of a public sector body
-    #[strum(to_string = "PuB-EAA")]
-    PubEAA,
-
-    /// Electronic attestation of attributes (non-qualified)
-    #[default]
-    EAA,
-}
-
 /// Data signed by the issuer, containing a.o.
 /// - The public key of the mdoc (in [`DeviceKeyInfo`])
 /// - the digests of the attributes ([`ValueDigests`]), but not their randoms (for that see the containing struct
@@ -222,22 +205,34 @@ pub struct ValidityInfo {
 /// A date-time, serialized as a string value as specified in RFC 3339, e.g. `"2020-10-01T13:30:02Z"`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Tdate(pub tag::Required<String, 0>);
-impl From<chrono::DateTime<Utc>> for Tdate {
-    fn from(t: chrono::DateTime<Utc>) -> Self {
-        Tdate(tag::Required(t.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)))
+
+impl From<DateTime<Utc>> for Tdate {
+    fn from(value: DateTime<Utc>) -> Self {
+        Tdate(tag::Required(value.to_rfc3339_opts(SecondsFormat::Secs, true)))
     }
 }
 
-impl Tdate {
-    pub fn now() -> Tdate {
-        Utc::now().into()
+impl From<DateTimeSeconds> for Tdate {
+    fn from(value: DateTimeSeconds) -> Self {
+        DateTime::from(value).into()
     }
 }
 
 impl TryFrom<&Tdate> for DateTime<Utc> {
     type Error = ParseError;
+
     fn try_from(value: &Tdate) -> Result<DateTime<Utc>, Self::Error> {
-        DateTime::parse_from_rfc3339(&value.0 .0).map(|t| t.with_timezone(&Utc))
+        let Tdate(tag::Required(date)) = value;
+
+        DateTime::parse_from_rfc3339(date).map(|date_time| date_time.with_timezone(&Utc))
+    }
+}
+
+impl TryFrom<&Tdate> for DateTimeSeconds {
+    type Error = ParseError;
+
+    fn try_from(value: &Tdate) -> Result<Self, Self::Error> {
+        DateTime::try_from(value).map(Self::from)
     }
 }
 
@@ -297,6 +292,18 @@ impl TryFrom<Vec<Entry>> for Attributes {
                 .map(|entry| (entry.name, entry.value))
                 .collect::<IndexMap<DataElementIdentifier, DataElementValue>>(),
         )
+    }
+}
+
+impl From<Attributes> for Vec<Entry> {
+    fn from(attributes: Attributes) -> Self {
+        attributes
+            .into_iter()
+            .map(|TaggedBytes(item)| Entry {
+                name: item.element_identifier,
+                value: item.element_value,
+            })
+            .collect()
     }
 }
 

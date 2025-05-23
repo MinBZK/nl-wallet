@@ -47,13 +47,13 @@ class PersonalizePidPreviewTests : TestBase() {
         setUp(testInfo)
         assertAll(
             { assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(gbaData.getValueByField(FIRST_NAME,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(gbaData.getValueByField(NAME,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(gbaData.getValueByField(STREET,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(gbaData.getValueByField(CITY,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(gbaData.getValueByField(HOUSE_NUMBER,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible(gbaData.getValueByField(POSTAL_CODE,"999991772")), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadablePidDataVisible("999991772"), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME,"999991772")), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME,"999991772")), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(STREET,"999991772")), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(CITY,"999991772")), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(HOUSE_NUMBER,"999991772")), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(POSTAL_CODE,"999991772")), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible("999991772"), "human readable pid data is not visible") },
             { assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible") }
         )
     }

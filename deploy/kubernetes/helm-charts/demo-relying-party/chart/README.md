@@ -34,24 +34,22 @@
 
 ### Image pull secrets
 
-| Name                    | Description                                  | Value    |
-| ----------------------- | -------------------------------------------- | -------- |
-| `imagePullSecrets`      | Array of secret names for private registries | `[]`     |
-| `ingress.enabled`       | Enable or disable the ingress                | `true`   |
-| `ingress.className`     | Ingress class name                           | `nginx`  |
-| `ingress.cspScriptSrc`  | Content Security Policy script source        | `'none'` |
-| `ingress.cspStyleSrc`   | Content Security Policy style source         | `'none'` |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`    |
-| `ingress.labels`        | Additional labels for the ingress            | `{}`     |
+| Name                    | Description                                  | Value   |
+| ----------------------- | -------------------------------------------- | ------- |
+| `imagePullSecrets`      | Array of secret names for private registries | `[]`    |
+| `ingress.enabled`       | Enable or disable the ingress                | `true`  |
+| `ingress.className`     | Ingress class name                           | `nginx` |
+| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress            | `{}`    |
 
 ### Resource requests and limits
 
 | Name                        | Description    | Value   |
 | --------------------------- | -------------- | ------- |
-| `resources.limits.memory`   | Memory limit   | `512Mi` |
-| `resources.limits.cpu`      | CPU limit      | `500m`  |
-| `resources.requests.memory` | Memory request | `512Mi` |
-| `resources.requests.cpu`    | CPU request    | `300m`  |
+| `resources.requests.cpu`    | CPU request    | `50m`   |
+| `resources.requests.memory` | Memory request | `64Mi`  |
+| `resources.limits.cpu`      | CPU limit      | `200m`  |
+| `resources.limits.memory`   | Memory limit   | `128Mi` |
 
 ### Wallet Server parameters
 
@@ -62,13 +60,11 @@
 
 ### Demo Relying Party parameters
 
-| Name                                 | Description                              | Value |
-| ------------------------------------ | ---------------------------------------- | ----- |
-| `demoRelyingParty.hostname`          | Hostname for the demo Relying Party      | `nil` |
-| `demoRelyingParty.contextPath`       | Context path for the demo Relying Party  | `nil` |
-| `demoRelyingParty.walletWebFilename` | Filename for the wallet web              | `nil` |
-| `demoRelyingParty.walletWebSha256`   | SHA-256 checksum for the wallet web file | `nil` |
-| `helpBaseUrl`                        | Base URL for the help link in wallet web | `nil` |
+| Name                           | Description                              | Value |
+| ------------------------------ | ---------------------------------------- | ----- |
+| `demoRelyingParty.hostname`    | Hostname for the demo Relying Party      | `nil` |
+| `demoRelyingParty.contextPath` | Context path for the demo Relying Party  | `nil` |
+| `helpBaseUrl`                  | Base URL for the help link in wallet web | `nil` |
 
 ### Demo Index parameters
 
@@ -76,4 +72,3 @@
 | ----------------------- | ------------------------------- | ----- |
 | `demoIndex.hostname`    | Hostname for the demo index     | `nil` |
 | `demoIndex.contextPath` | Context path for the demo index | `nil` |
-

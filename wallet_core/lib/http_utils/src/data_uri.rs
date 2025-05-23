@@ -10,6 +10,7 @@ use data_url::DataUrl;
 use data_url::DataUrlError;
 use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
+use url::Url;
 
 #[derive(Debug, Clone, PartialEq, Eq, SerializeDisplay, DeserializeFromStr)]
 pub struct DataUri {
@@ -29,22 +30,29 @@ impl Display for DataUri {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("data-uri error: {0}")]
+pub enum DataUriError {
+    #[error("data-url error: {0}")]
     Uri(#[from] DataUrlError),
     #[error("base64 decode error: {0}")]
     Base64Decode(#[from] InvalidBase64),
 }
 
 impl FromStr for DataUri {
-    type Err = Error;
+    type Err = DataUriError;
 
-    fn from_str(s: &str) -> Result<Self, Error> {
+    fn from_str(s: &str) -> Result<Self, DataUriError> {
         let url = DataUrl::process(s)?;
         Ok(DataUri {
             mime_type: url.mime_type().to_string(),
             data: url.decode_to_vec()?.0,
         })
+    }
+}
+
+impl From<&DataUri> for Url {
+    fn from(value: &DataUri) -> Url {
+        // a data URIs is a valid `Url`
+        value.to_string().parse().unwrap()
     }
 }
 
@@ -75,7 +83,7 @@ mod tests {
     fn parsing_error_url(#[case] value: &str) {
         assert_eq!(
             DataUri::from_str(value).unwrap_err().to_string(),
-            "data-uri error: not a valid data url"
+            "data-url error: not a valid data url"
         );
     }
 
@@ -85,5 +93,12 @@ mod tests {
             DataUri::from_str("data:image/jpeg;base64,/").unwrap_err().to_string(),
             "base64 decode error: lone alphabet symbol present"
         );
+    }
+
+    #[test]
+    fn into_url() {
+        let data_uri = DataUri::from_str("data:image/png;base64,q80=").unwrap();
+        let url = Url::from(&data_uri);
+        assert_eq!(data_uri.to_string(), url.to_string());
     }
 }

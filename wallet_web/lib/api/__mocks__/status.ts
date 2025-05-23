@@ -1,4 +1,4 @@
-import { type StatusResponse } from "@/models/status"
+import { type StatusResponse } from "@/models/openid4vc"
 import { vi } from "vitest"
 
 const statusResponse: StatusResponse = {

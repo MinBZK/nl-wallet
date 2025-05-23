@@ -4,6 +4,7 @@ use coset::CoseSign1;
 use coset::Header;
 use coset::HeaderBuilder;
 use coset::Label;
+use p256::ecdsa::VerifyingKey;
 use ssri::Integrity;
 
 use crypto::keys::EcdsaKey;
@@ -21,13 +22,15 @@ use crate::utils::serialization::TaggedBytes;
 use crate::Result;
 
 impl IssuerSigned {
+    // TODO (PVW-4241): Refactor this method to take `CredentialPayload` directly
+    //                  and remove the now mostly useless `UnsignedMdoc` struct.
     pub async fn sign(
         unsigned_mdoc: UnsignedMdoc,
         metadata_integrity: Integrity,
         metadata_documents: &TypeMetadataDocuments,
-        device_public_key: CoseKey,
+        device_public_key: &VerifyingKey,
         key: &KeyPair<impl EcdsaKey>,
-    ) -> Result<Self> {
+    ) -> Result<(Self, MobileSecurityObject)> {
         let now = Utc::now();
         let validity = ValidityInfo {
             signed: now.into(),
@@ -39,12 +42,14 @@ impl IssuerSigned {
         let doc_type = unsigned_mdoc.doc_type;
         let attrs = IssuerNameSpaces::from(unsigned_mdoc.attributes);
 
+        let cose_pubkey: CoseKey = device_public_key.try_into()?;
+
         let mso = MobileSecurityObject {
             version: MobileSecurityObjectVersion::V1_0,
             digest_algorithm: DigestAlgorithm::SHA256,
             doc_type,
             value_digests: (&attrs).try_into()?,
-            device_key_info: device_public_key.into(),
+            device_key_info: cose_pubkey.into(),
             validity_info: validity,
             issuer_uri: Some(unsigned_mdoc.issuer_uri),
             attestation_qualification: Some(unsigned_mdoc.attestation_qualification),
@@ -53,16 +58,17 @@ impl IssuerSigned {
 
         let headers = Self::create_unprotected_header(key.certificate().to_vec(), metadata_documents)?;
 
-        let mso_tagged = mso.into();
+        let mso_tagged = TaggedBytes(mso);
         let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
             MdocCose::sign(&mso_tagged, headers, key, true).await?;
+        let TaggedBytes(mso) = mso_tagged;
 
         let issuer_signed = IssuerSigned {
             name_spaces: attrs.into(),
             issuer_auth,
         };
 
-        Ok(issuer_signed)
+        Ok((issuer_signed, mso))
     }
 
     pub(crate) fn create_unprotected_header(
@@ -109,7 +115,6 @@ impl IssuerSigned {
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU8;
     use std::ops::Add;
 
     use chrono::Days;
@@ -118,18 +123,15 @@ mod tests {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use attestation_data::attributes::Entry;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
-    use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use utils::generator::TimeGenerator;
 
-    use crate::holder::Mdoc;
-    use crate::unsigned::Entry;
     use crate::unsigned::UnsignedMdoc;
-    use crate::utils::cose::CoseKey;
     use crate::utils::serialization::TaggedBytes;
     use crate::verifier::ValidityRequirement;
     use crate::IssuerSigned;
@@ -147,7 +149,6 @@ mod tests {
         let now = chrono::Utc::now();
         let unsigned = UnsignedMdoc {
             doc_type: ISSUANCE_DOC_TYPE.to_string(),
-            copy_count: NonZeroU8::new(2).unwrap(),
             valid_from: now.into(),
             valid_until: now.add(Days::new(365)).into(),
             attributes: IndexMap::from([(
@@ -170,12 +171,11 @@ mod tests {
         let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(
             TypeMetadata::empty_example_with_attestation_type(ISSUANCE_DOC_TYPE),
         );
-        let device_key = CoseKey::try_from(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
-        let issuer_signed = IssuerSigned::sign(
+        let (issuer_signed, _) = IssuerSigned::sign(
             unsigned.clone(),
             metadata_integrity.clone(),
             &metadata_documents,
-            device_key,
+            SigningKey::random(&mut OsRng).verifying_key(),
             &issuance_key,
         )
         .await
@@ -203,15 +203,5 @@ mod tests {
             .expect("retrieving type metadata documents from IssuerSigned should succeed");
 
         assert_eq!(received_metadata_documents, metadata_documents);
-
-        // Construct an mdoc so we can use `compare_unsigned()` to check that the attributes have the expected values
-        let mdoc = Mdoc::new::<MockRemoteEcdsaKey>(
-            "key_id_not_used_in_this_test".to_string(),
-            issuer_signed,
-            &TimeGenerator,
-            trust_anchors,
-        )
-        .unwrap();
-        mdoc.compare_unsigned(&unsigned).unwrap();
     }
 }

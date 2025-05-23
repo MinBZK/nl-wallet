@@ -106,6 +106,12 @@ then
     USAGE=0
 fi
 
+if [ "$#" == "1" ] && [ "$1" == "--stop" ]; then
+    error "The --stop argument requires at least one service, --default, or --all to be specified."
+    usage
+    exit 1
+fi
+
 while [[ $# -gt 0 ]]
 do
     case $1 in
@@ -173,6 +179,7 @@ do
         --default)
             DIGID_CONNECTOR=0
             DEMO_RELYING_PARTY=0
+            DEMO_INDEX=0
             DEMO_ISSUER=0
             VERIFICATION_SERVER=0
             ISSUANCE_SERVER=0
@@ -188,6 +195,7 @@ do
             DIGID_CONNECTOR=0
             POSTGRES=0
             DEMO_RELYING_PARTY=0
+            DEMO_INDEX=0
             DEMO_ISSUER=0
             VERIFICATION_SERVER=0
             ISSUANCE_SERVER=0
@@ -428,7 +436,7 @@ then
         popd
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_rp_issuance_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
 
         echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
     fi

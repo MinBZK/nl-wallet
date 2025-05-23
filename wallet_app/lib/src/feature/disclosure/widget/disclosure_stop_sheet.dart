@@ -38,6 +38,7 @@ class DisclosureStopSheet extends StatelessWidget {
       onCancelPressed: onCancelPressed,
       onConfirmPressed: onConfirmPressed,
       confirmIcon: Icons.not_interested,
+      cancelIcon: Icons.arrow_back,
       extraContent: onReportIssuePressed == null
           ? null
           : ListButton(

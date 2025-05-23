@@ -1,13 +1,12 @@
 use std::net::IpAddr;
-use std::path::PathBuf;
 
 use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
+use http_utils::urls::ConnectSource;
 use indexmap::IndexMap;
 use serde::Deserialize;
-use serde::Serialize;
 
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
@@ -24,15 +23,8 @@ pub struct Settings {
     pub demo_index_url: BaseUrl,
     pub structured_logging: bool,
     pub allow_origins: Option<CorsOrigin>,
-    pub wallet_web: WalletWeb,
+    pub connect_src: Option<ConnectSource>,
     pub usecases: IndexMap<String, Usecase>,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct WalletWeb {
-    // relative to /assets
-    pub filename: PathBuf,
-    pub sha256: String,
 }
 
 #[derive(Deserialize, Clone)]

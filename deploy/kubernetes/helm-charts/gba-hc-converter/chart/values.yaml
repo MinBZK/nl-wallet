@@ -61,10 +61,10 @@ securityContext: {}
 ## @param gbaHcConverter.envVarNamePreloaded Environment variable name for the preloaded run mode
 ## @param gbaHcConverter.envVarNameGbav Environment variable name for the GBAV run mode
 ## @param gbaHcConverter.preloadedXmlPath Path to the preloaded XML files
-## @param gbaHcConverter.resources.limits.memory Memory limit
-## @param gbaHcConverter.resources.limits.cpu CPU limit
-## @param gbaHcConverter.resources.requests.memory Memory request
 ## @param gbaHcConverter.resources.requests.cpu CPU request
+## @param gbaHcConverter.resources.requests.memory Memory request
+## @param gbaHcConverter.resources.limits.cpu CPU limit
+## @param gbaHcConverter.resources.limits.memory Memory limit
 gbaHcConverter:
   replicaCount: 2
   extraPodlabels: {}
@@ -73,12 +73,12 @@ gbaHcConverter:
   envVarNameGbav: ALL__GBAV
   preloadedXmlPath: "resources/encrypted-gba-v-responses"
   resources:
-    limits:
-      memory: "128Mi"
-      cpu: "400m"
     requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
       memory: "128Mi"
-      cpu: "100m"
 
 ## @section GBA Fetch parameters
 ## Parameters for the GBA Fetch configuration
@@ -120,10 +120,10 @@ hostAliases: []
 ## @param frontend.extraPodlabels Additional labels for the frontend pods
 ## @param frontend.ingress.className Ingress class name for the frontend
 ## @param frontend.ingress.secretName Secret name for the ingress TLS configuration
-## @param frontend.resources.limits.memory Memory limit for the frontend container
-## @param frontend.resources.limits.cpu CPU limit for the frontend container
-## @param frontend.resources.requests.memory Memory request for the frontend container
 ## @param frontend.resources.requests.cpu CPU request for the frontend container
+## @param frontend.resources.requests.memory Memory request for the frontend container
+## @param frontend.resources.limits.cpu CPU limit for the frontend container
+## @param frontend.resources.limits.memory Memory limit for the frontend container
 frontend:
   replicaCount: 1
   name: gba-fetch-frontend
@@ -132,12 +132,12 @@ frontend:
     className: nginx
     secretName: null
   resources:
-    limits:
-      memory: "128Mi"
-      cpu: "100m"
     requests:
-      memory: "128Mi"
       cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
 
 ## @section Preload GBA Pod parameters
 ## Parameters for the Preload GBA Pod configuration

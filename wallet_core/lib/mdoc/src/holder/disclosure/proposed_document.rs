@@ -1,6 +1,7 @@
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 
+use attestation_data::attributes::Entry;
 use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
@@ -12,7 +13,6 @@ use crate::iso::disclosure::DeviceSigned;
 use crate::iso::disclosure::Document;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DocType;
-use crate::unsigned::Entry;
 use crate::NameSpace;
 
 use super::StoredMdoc;

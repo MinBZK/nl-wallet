@@ -19,7 +19,6 @@ import '../../../../wallet_constants.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
 part 'wallet_personalize_event.dart';
-
 part 'wallet_personalize_state.dart';
 
 class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonalizeState> {
@@ -70,6 +69,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
             // Currently seeing 'accessDenied/loginRequired' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)
             final cancelled = [RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError);
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: cancelled, error: error));
+          case RelyingPartyError():
+            emit(WalletPersonalizeRelyingPartyError(error: error, organizationName: error.organizationName));
           default:
             add(WalletPersonalizeLoginWithDigidFailed(error: error));
         }
@@ -89,6 +90,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
         switch (error) {
           case NetworkError():
             emit(WalletPersonalizeNetworkError(error: error, hasInternet: error.hasInternet));
+          case RelyingPartyError():
+            emit(WalletPersonalizeRelyingPartyError(error: error, organizationName: error.organizationName));
           default:
             emit(WalletPersonalizeDigidFailure(error: error));
         }

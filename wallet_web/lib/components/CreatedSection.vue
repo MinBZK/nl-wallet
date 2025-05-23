@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import DeviceChoice from "@/components/DeviceChoice.vue"
+import { type SessionType } from "@/models/openid4vc"
 import QrCode from "@/components/QrCode.vue"
-import { type SessionType } from "@/models/status"
 
 defineProps<{
   sameDeviceUl: URL

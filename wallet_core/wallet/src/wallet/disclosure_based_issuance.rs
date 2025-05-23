@@ -170,28 +170,23 @@ mod tests {
     use openid4vc::credential::CredentialOfferContainer;
     use openid4vc::credential::GrantPreAuthorizedCode;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
-    use openid4vc::credential_formats::CredentialFormats;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::mock::MockIssuanceSession;
-    use openid4vc::token::CredentialPreview;
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::verifier::ToPostAuthResponseErrorCode;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
-    use sd_jwt_vc_metadata::TypeMetadataDocuments;
-    use utils::vec_at_least::VecNonEmpty;
 
     use crate::disclosure::MdocDisclosureError;
     use crate::disclosure::MdocDisclosureSessionState;
     use crate::disclosure::MockMdocDisclosureProposal;
     use crate::disclosure::MockMdocDisclosureSession;
-    use crate::issuance;
     use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
+    use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::WalletWithMocks;
-    use crate::wallet::test::ISSUER_KEY;
     use crate::wallet::DisclosureBasedIssuanceError;
     use crate::wallet::DisclosureError;
     use crate::wallet::Session;
@@ -229,30 +224,14 @@ mod tests {
         )));
 
         // Setup wallet issuance state
-        let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
-        let (_, _, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
-        let normalized_type_metadata = vec![
-            metadata_documents
-                .clone()
-                .into_normalized(&unsigned_mdoc.doc_type)
-                .unwrap()
-                .0,
-        ];
-        let credential_formats = CredentialFormats::try_new(
-            VecNonEmpty::try_from(vec![CredentialPreview::MsoMdoc {
-                unsigned_mdoc,
-                issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
-                type_metadata: metadata_documents.clone(),
-            }])
-            .unwrap(),
-        )
-        .unwrap();
+        let preview_data = create_example_preview_data();
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
-            Ok((
-                MockIssuanceSession::new(),
-                vec![(credential_formats, normalized_type_metadata)],
-            ))
+            let mut client = MockIssuanceSession::new();
+
+            client.expect_credential_preview_data().return_const(vec![preview_data]);
+
+            Ok(client)
         });
 
         // Accept disclosure based issuance
@@ -288,7 +267,7 @@ mod tests {
                         VpClientError::Request(
                             DisclosureErrorResponse {
                                 error_response: PostAuthResponseError::HandlingDisclosureResult(
-                                    DisclosureResultHandlerError(Box::new(MockError)),
+                                    DisclosureResultHandlerError::new(MockError),
                                 )
                                 .into(),
                                 redirect_uri: None,

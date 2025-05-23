@@ -1,6 +1,8 @@
 import 'package:fimber/fimber.dart';
+import 'package:wallet_core/core.dart';
 
 import '../../util/extension/core_error_extension.dart';
+import '../../util/extension/wallet_instruction_error_extension.dart';
 import '../../wallet_core/error/core_error.dart';
 import '../model/result/application_error.dart';
 import '../model/result/result.dart';
@@ -20,6 +22,10 @@ abstract class WalletUseCase {
     } on CoreError catch (ex) {
       Fimber.e(errorDescription, ex: ex);
       return Result.error(await ex.asApplicationError());
+    } on WalletInstructionError catch (ex) {
+      Fimber.e(errorDescription, ex: ex);
+      final checkPinResult = ex.asCheckPinResult();
+      return Result.error(CheckPinError(checkPinResult, sourceError: ex));
     } catch (ex) {
       Fimber.e(errorDescription, ex: ex);
       return Result.error(GenericError(ex.toString(), sourceError: ex));

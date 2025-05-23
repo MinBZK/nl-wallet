@@ -1,65 +1,101 @@
+import 'package:fimber/fimber.dart';
 import 'package:wallet_core/core.dart' as core;
-import 'package:wallet_mock/mock.dart' hide StartIssuanceResult;
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
-import '../../../../domain/model/issuance/continue_issuance_result.dart';
+import '../../../../domain/model/disclosure/disclosure_session_type.dart';
+import '../../../../domain/model/disclosure/disclosure_type.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../domain/model/policy/policy.dart';
 import '../../../../util/mapper/mapper.dart';
+import '../../../../wallet_core/typed/typed_wallet_core.dart';
 import '../issuance_repository.dart';
 
 class CoreIssuanceRepository implements IssuanceRepository {
-  /// Replace with [WalletCore] once it supports issuance.
-  final WalletCoreForIssuance _core;
+  final TypedWalletCore _walletCore;
 
-  final Mapper<core.Attestation, WalletCard> _cardMapper;
+  final Mapper<core.Attestation, WalletCard> _attestationMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
-  final Mapper<core.Organization, Organization> _organizationMapper;
+  final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;
+  final Mapper<List<core.LocalizedString>, LocalizedText> _localizedStringMapper;
+  final Mapper<core.DisclosureSessionType, DisclosureSessionType> _disclosureSessionTypeMapper;
+  final Mapper<core.DisclosureType, DisclosureType> _disclosureTypeMapper;
 
   CoreIssuanceRepository(
-    this._core,
-    this._cardMapper,
-    this._organizationMapper,
+    this._walletCore,
+    this._attestationMapper,
+    this._relyingPartyMapper,
     this._missingAttributeMapper,
     this._requestPolicyMapper,
+    this._localizedStringMapper,
+    this._disclosureSessionTypeMapper,
+    this._disclosureTypeMapper,
   );
 
   @override
-  Future<StartIssuanceResult> startIssuance(String disclosureUri) async {
-    final result = await _core.startIssuance(disclosureUri);
+  Future<StartIssuanceResult> startIssuance(String issuanceUri, {bool isQrCode = false}) async {
+    // The first step of disclosure based issuance is identical to normal disclosure
+    Fimber.d('Starting disclosure based issuance with uri: $issuanceUri. isQrCode: $isQrCode');
+    final result = await _walletCore.startDisclosure(issuanceUri, isQrCode: isQrCode);
     switch (result) {
-      case StartIssuanceResultReadyToDisclose():
-        final cards = _cardMapper.mapList(result.requestedAttestations);
+      case core.StartDisclosureResult_Request():
+        final cards = _attestationMapper.mapList(result.requestedAttestations);
         final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
+        final relyingParty = _relyingPartyMapper.map(result.relyingParty);
+        final policy = _requestPolicyMapper.map(result.policy);
         return StartIssuanceReadyToDisclose(
-          relyingParty: _organizationMapper.map(result.organization),
-          policy: _requestPolicyMapper.map(result.policy),
+          relyingParty: relyingParty,
+          originUrl: result.requestOriginBaseUrl,
+          requestPurpose: _localizedStringMapper.map(result.requestPurpose),
+          sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
+          type: _disclosureTypeMapper.map(result.requestType),
           requestedAttributes: requestedAttributes,
+          policy: policy,
+          sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
-      case StartIssuanceResultRequestedAttributesMissing():
+      case core.StartDisclosureResult_RequestAttributesMissing():
+        final relyingParty = _relyingPartyMapper.map(result.relyingParty);
+        final missingAttributes = _missingAttributeMapper.mapList(result.missingAttributes);
         return StartIssuanceMissingAttributes(
-          relyingParty: _organizationMapper.map(result.organization),
-          policy: _requestPolicyMapper.map(result.policy),
-          missingAttributes: _missingAttributeMapper.mapList(result.missingAttributes),
+          relyingParty: relyingParty,
+          originUrl: result.requestOriginBaseUrl,
+          requestPurpose: _localizedStringMapper.map(result.requestPurpose),
+          sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
+          missingAttributes: missingAttributes,
+          sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );
     }
   }
 
   @override
-  Future<core.WalletInstructionResult> discloseForIssuance(String pin) => _core.discloseForIssuance(pin);
+  Future<List<WalletCard>> discloseForIssuance(String pin) async {
+    final result = await _walletCore.continueDisclosureBasedIssuance(pin);
+    switch (result) {
+      case core.DisclosureBasedIssuanceResult_Ok():
+        return _attestationMapper.mapList(result.field0);
+      case core.DisclosureBasedIssuanceResult_InstructionError():
+        throw result.error;
+    }
+  }
 
   @override
-  Future<void> acceptIssuance(Iterable<String> cardDocTypes) => _core.acceptIssuance(cardDocTypes.toList());
+  Future<void> acceptIssuance(String pin, Iterable<WalletCard> cards) async {
+    // [cards] are currently unused, these will become relevant when we implement selective issuance.
+    final result = await _walletCore.acceptIssuance(pin);
+    switch (result) {
+      case core.WalletInstructionResult_Ok():
+        return;
+      case core.WalletInstructionResult_InstructionError():
+        throw result.error;
+    }
+  }
 
   @override
-  Future<void> cancelIssuance() => _core.cancelIssuance();
-
-  @override
-  Future<ContinueIssuanceResult> proceedIssuance() async {
-    final cards = await _core.proceedIssuance();
-    return ContinueIssuanceResult(_cardMapper.mapList(cards));
+  Future<String?> cancelIssuance() async {
+    if (await _walletCore.hasActiveDisclosureSession()) return _walletCore.cancelDisclosure();
+    if (await _walletCore.hasActiveIssuanceSession()) await _walletCore.cancelIssuance();
+    return null;
   }
 }

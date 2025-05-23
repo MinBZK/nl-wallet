@@ -4,7 +4,7 @@ import 'requested_attribute.dart';
 
 class IssuanceResponse {
   final String id;
-  final Organization organization;
+  final Organization relyingParty;
   final List<RequestedAttribute> requestedAttributes;
   final List<LocalizedString> requestPurpose;
   final RequestPolicy policy;
@@ -12,7 +12,7 @@ class IssuanceResponse {
 
   const IssuanceResponse({
     required this.id,
-    required this.organization,
+    required this.relyingParty,
     required this.requestedAttributes,
     required this.requestPurpose,
     required this.policy,

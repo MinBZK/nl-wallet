@@ -677,15 +677,15 @@ mod tests {
     use serial_test::serial;
     use uuid::uuid;
 
+    use attestation_data::attributes::AttributeError;
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::Entry;
     use http_utils::urls;
     use mdoc::holder::Mdoc;
     use mdoc::holder::ProposedAttributes;
     use mdoc::holder::ProposedDocumentAttributes;
     use mdoc::test::data::PID;
-    use mdoc::unsigned::Entry;
     use mdoc::DataElementValue;
-    use openid4vc::attributes::AttributeError;
-    use openid4vc::attributes::AttributeValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::ErrorResponse;

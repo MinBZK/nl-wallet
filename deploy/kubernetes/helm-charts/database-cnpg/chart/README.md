@@ -56,10 +56,10 @@
 
 | Name                        | Description                      | Value   |
 | --------------------------- | -------------------------------- | ------- |
-| `resources.requests.memory` | Memory request for the container | `384Mi` |
 | `resources.requests.cpu`    | CPU request for the container    | `400m`  |
+| `resources.requests.memory` | Memory request for the container | `384Mi` |
+| `resources.limits.cpu`      | CPU limit for the container      | `1000m` |
 | `resources.limits.memory`   | Memory limit for the container   | `512Mi` |
-| `resources.limits.cpu`      | CPU limit for the container      | `800m`  |
 
 ### PostgreSQL parameters
 

@@ -71,7 +71,10 @@ class WalletRepositoryProvider extends StatelessWidget {
         ),
         RepositoryProvider<IssuanceRepository>(
           create: (context) => CoreIssuanceRepository(
-            issuanceApi,
+            context.read(),
+            context.read(),
+            context.read(),
+            context.read(),
             context.read(),
             context.read(),
             context.read(),

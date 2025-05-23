@@ -8,6 +8,11 @@ import 'vertical_confirm_buttons.dart';
 const _kPadding = EdgeInsets.symmetric(horizontal: 16, vertical: 24);
 const _kLandscapePadding = EdgeInsets.symmetric(horizontal: 16, vertical: 12);
 
+/// Widget that renders two buttons either side by side, or stacked vertically,
+/// depending on the content and the available screen size. Usually used on the
+/// bottom of the screen.
+/// NOTE: This widget assumes it takes up the full width of the screen, so it should
+/// not be wrapped in any padding/margin providing widget.
 class ConfirmButtons extends StatelessWidget {
   static const kButtonSpacing = 12.0;
 

@@ -31,11 +31,11 @@
   },
   "disclosure": {
     "rp_trust_anchors": [
-      "${RP_CA_CRT}"
+      "${READER_CA_CRT}"
     ]
   },
   "mdoc_trust_anchors": [
-    "${PID_CA_CRT}"
+    "${ISSUER_CA_CRT}"
   ],
   "update_policy_server": {
     "http_config": {

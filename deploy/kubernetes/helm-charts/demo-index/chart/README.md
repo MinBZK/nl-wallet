@@ -34,24 +34,22 @@
 
 ### Image pull secrets
 
-| Name                    | Description                                  | Value    |
-| ----------------------- | -------------------------------------------- | -------- |
-| `imagePullSecrets`      | Array of secret names for private registries | `[]`     |
-| `ingress.enabled`       | Enable or disable the ingress                | `true`   |
-| `ingress.className`     | Ingress class name                           | `nginx`  |
-| `ingress.cspScriptSrc`  | Content Security Policy script source        | `'none'` |
-| `ingress.cspStyleSrc`   | Content Security Policy style source         | `'none'` |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`    |
-| `ingress.labels`        | Additional labels for the ingress            | `{}`     |
+| Name                    | Description                                  | Value   |
+| ----------------------- | -------------------------------------------- | ------- |
+| `imagePullSecrets`      | Array of secret names for private registries | `[]`    |
+| `ingress.enabled`       | Enable or disable the ingress                | `true`  |
+| `ingress.className`     | Ingress class name                           | `nginx` |
+| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress            | `{}`    |
 
 ### Resource requests and limits
 
-| Name                        | Description    | Value   |
-| --------------------------- | -------------- | ------- |
-| `resources.limits.memory`   | Memory limit   | `512Mi` |
-| `resources.limits.cpu`      | CPU limit      | `500m`  |
-| `resources.requests.memory` | Memory request | `512Mi` |
-| `resources.requests.cpu`    | CPU request    | `300m`  |
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `50m`  |
+| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.limits.cpu`      | CPU limit      | `200m` |
+| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
 ### Demo Index parameters
 
@@ -59,4 +57,3 @@
 | ----------------------- | ------------------------------- | ----- |
 | `demoIndex.hostname`    | Hostname for the demo index     | `nil` |
 | `demoIndex.contextPath` | Context path for the demo index | `nil` |
-

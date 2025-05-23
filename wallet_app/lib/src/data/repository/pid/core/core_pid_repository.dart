@@ -28,11 +28,11 @@ class CorePidRepository extends PidRepository {
   }
 
   @override
-  Future<void> cancelPidIssuance() => _walletCore.cancelPidIssuance();
+  Future<void> cancelIssuance() => _walletCore.cancelIssuance();
 
   @override
-  Future<bool> hasActivePidIssuanceSession() => _walletCore.hasActivePidIssuanceSession();
+  Future<bool> hasActiveIssuanceSession() => _walletCore.hasActiveIssuanceSession();
 
   @override
-  Future<WalletInstructionResult> acceptOfferedPid(String pin) => _walletCore.acceptOfferedPid(pin);
+  Future<WalletInstructionResult> acceptIssuance(String pin) => _walletCore.acceptIssuance(pin);
 }

@@ -14,14 +14,14 @@ void main() {
   });
 
   test('cancel is called when session is active', () async {
-    when(pidRepository.hasActivePidIssuanceSession()).thenAnswer((_) async => true);
+    when(pidRepository.hasActiveIssuanceSession()).thenAnswer((_) async => true);
     await usecase.invoke();
-    verify(pidRepository.cancelPidIssuance()).called(1);
+    verify(pidRepository.cancelIssuance()).called(1);
   });
 
   test('cancel is not called when session is not active', () async {
-    when(pidRepository.hasActivePidIssuanceSession()).thenAnswer((_) async => false);
+    when(pidRepository.hasActiveIssuanceSession()).thenAnswer((_) async => false);
     await usecase.invoke();
-    verifyNever(pidRepository.cancelPidIssuance());
+    verifyNever(pidRepository.cancelIssuance());
   });
 }

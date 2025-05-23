@@ -78,12 +78,11 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
         ErrorResponse {
             error: match err {
                 CredentialRequestError::IssuanceError(IssuanceError::SessionStore(_))
-                | CredentialRequestError::CoseKeyConversion(_)
                 | CredentialRequestError::MissingPrivateKey(_)
+                | CredentialRequestError::MdocConversion(_)
+                | CredentialRequestError::SdJwtConversion(_)
                 | CredentialRequestError::CredentialSigning(_)
-                | CredentialRequestError::CborSerialization(_)
                 | CredentialRequestError::Jwt(_)
-                | CredentialRequestError::JsonSerialization(_)
                 | CredentialRequestError::WteTracking(_) => CredentialErrorCode::ServerError,
 
                 CredentialRequestError::IssuanceError(_)
@@ -105,10 +104,6 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::JwkConversion(_)
                 | CredentialRequestError::MissingCredentialRequestPoP
                 | CredentialRequestError::PoaVerification(_) => CredentialErrorCode::InvalidProof,
-
-                CredentialRequestError::UnsupportedCredentialFormat(_) => {
-                    CredentialErrorCode::UnsupportedCredentialFormat
-                }
             },
             error_description: Some(description),
             error_uri: None,
@@ -117,7 +112,7 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
 }
 
 impl ErrorStatusCode for CredentialErrorCode {
-    fn status_code(&self) -> reqwest::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             CredentialErrorCode::InvalidCredentialRequest
             | CredentialErrorCode::UnsupportedCredentialType
@@ -159,10 +154,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
             error: match err {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
                 | TokenRequestError::AttributeService(_)
-                | TokenRequestError::CredentialTypeNotOffered(_)
-                | TokenRequestError::AttributeConversion(_)
-                | TokenRequestError::CredentialPayload(_)
-                | TokenRequestError::Certificate(_) => TokenErrorCode::ServerError,
+                | TokenRequestError::CredentialTypeNotOffered(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
                 TokenRequestError::UnsupportedTokenRequestType => TokenErrorCode::UnsupportedGrantType,
             },
@@ -173,7 +165,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
 }
 
 impl ErrorStatusCode for TokenErrorCode {
-    fn status_code(&self) -> reqwest::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             TokenErrorCode::InvalidRequest
             | TokenErrorCode::InvalidGrant
@@ -231,7 +223,7 @@ impl From<GetAuthRequestError> for ErrorResponse<GetRequestErrorCode> {
 }
 
 impl ErrorStatusCode for GetRequestErrorCode {
-    fn status_code(&self) -> reqwest::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             GetRequestErrorCode::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             GetRequestErrorCode::ExpiredSession
@@ -291,7 +283,7 @@ impl From<PostAuthResponseError> for ErrorResponse<PostAuthResponseErrorCode> {
 }
 
 impl ErrorStatusCode for PostAuthResponseErrorCode {
-    fn status_code(&self) -> reqwest::StatusCode {
+    fn status_code(&self) -> StatusCode {
         match self {
             PostAuthResponseErrorCode::ExpiredSession
             | PostAuthResponseErrorCode::CancelledSession

@@ -99,7 +99,7 @@ void main() {
 
   group('cancelPidIssuance', () {
     test('cancel pid issuance is passed on to core', () async {
-      await typedWalletCore.cancelPidIssuance();
+      await typedWalletCore.cancelIssuance();
       verify(core.crateApiFullCancelIssuance()).called(1);
     });
   });
@@ -139,7 +139,7 @@ void main() {
 
   group('acceptOfferedPid', () {
     test('accept offered pid is passed on to core', () async {
-      await typedWalletCore.acceptOfferedPid(_kSamplePin);
+      await typedWalletCore.acceptIssuance(_kSamplePin);
       verify(core.crateApiFullAcceptIssuance(pin: _kSamplePin)).called(1);
     });
   });
@@ -294,12 +294,12 @@ void main() {
 
     test('cancelPidIssuance', () async {
       when(core.crateApiFullCancelIssuance()).thenAnswer((_) async => throw ffiException);
-      expect(() async => typedWalletCore.cancelPidIssuance(), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.cancelIssuance(), throwsA(isA<CoreError>()));
     });
 
     test('acceptOfferedPid', () async {
       when(core.crateApiFullAcceptIssuance(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
-      expect(() async => typedWalletCore.acceptOfferedPid(_kSamplePin), throwsA(isA<CoreError>()));
+      expect(() async => typedWalletCore.acceptIssuance(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('resetWallet', () async {

@@ -7,12 +7,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
-import '../../../domain/model/card/wallet_card.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
+import '../../../domain/model/requested_attributes.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
@@ -83,6 +83,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
             _handleSessionError(emit, error);
           case ExternalScannerError():
             emit(DisclosureExternalScannerError(error: error));
+          case RelyingPartyError():
+            emit(DisclosureRelyingPartyError(error: error, organizationName: error.organizationName));
           default:
             emit(DisclosureGenericError(error: error));
         }
@@ -277,21 +279,26 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
     emit(DisclosureLoadInProgress(state.stepperProgress));
     // {event.error} is the error that was thrown when user tried to confirm the disclosure session with a PIN.
-    switch (event.error) {
+    final eventError = event.error;
+    switch (eventError) {
       case SessionError():
-        _handleSessionError(emit, event.error as SessionError);
+        _handleSessionError(emit, eventError);
         return;
       case NetworkError():
         await _cancelDisclosureUseCase.invoke(); // Attempt to cancel the session, but propagate original error
-        emit(DisclosureNetworkError(error: event.error, hasInternet: (event.error as NetworkError).hasInternet));
+        emit(DisclosureNetworkError(error: eventError, hasInternet: eventError.hasInternet));
+        return;
+      case RelyingPartyError():
+        emit(DisclosureRelyingPartyError(error: eventError, organizationName: eventError.organizationName));
         return;
       default:
         Fimber.d('Disclosure failed unexpectedly when entering pin, cause: ${event.error}.');
     }
-    // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
+
+    // Handle other unexpected errors and cancel session to avoid stale session and to try and provide more context (e.g. returnUrl).
     final cancelResult = await _cancelDisclosureUseCase.invoke();
     await cancelResult.process(
-      onSuccess: (returnUrl) => emit(DisclosureGenericError(error: event.error, returnUrl: returnUrl)),
+      onSuccess: (returnUrl) => emit(DisclosureGenericError(error: eventError, returnUrl: returnUrl)),
       onError: (error) => emit(DisclosureGenericError(error: error)),
     );
   }

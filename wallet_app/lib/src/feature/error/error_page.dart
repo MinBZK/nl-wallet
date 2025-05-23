@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
-import '../common/page/page_illustration.dart';
 import '../common/sheet/error_details_sheet.dart';
 import '../common/widget/button/confirm/confirm_buttons.dart';
 import '../common/widget/button/tertiary_button.dart';
+import '../common/widget/page_illustration.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/text/body_text.dart';
 import '../common/widget/text/title_text.dart';
@@ -131,6 +131,28 @@ class ErrorPage extends StatelessWidget {
       primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
         context,
         ErrorCtaStyle.close,
+        onPressed: onPrimaryActionPressed,
+      ),
+      secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
+    );
+  }
+
+  factory ErrorPage.relyingParty(
+    BuildContext context, {
+    String? organizationName,
+    VoidCallback? onPrimaryActionPressed,
+    ErrorCtaStyle style = ErrorCtaStyle.retry,
+  }) {
+    final description = organizationName == null
+        ? context.l10n.genericRelyingPartyErrorDescription
+        : context.l10n.genericRelyingPartyErrorDescriptionWithOrganizationName(organizationName);
+    return ErrorPage(
+      headline: context.l10n.genericRelyingPartyErrorTitle,
+      description: description,
+      illustration: WalletAssets.svg_error_card_blocked,
+      primaryButton: ErrorButtonBuilder.buildPrimaryButtonFor(
+        context,
+        style,
         onPressed: onPrimaryActionPressed,
       ),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),

@@ -1,12 +1,9 @@
-use serde::Deserialize;
-use serde::Serialize;
+use serde_with::DeserializeFromStr;
+use serde_with::SerializeDisplay;
 
 // Data structures implemening OAuth/OpenID(4VCI) protocol messages.
-pub mod attributes;
 pub mod authorization;
 pub mod credential;
-pub mod credential_formats;
-pub mod credential_payload;
 pub mod token;
 
 // Cryptographic tools.
@@ -14,7 +11,6 @@ pub mod dpop;
 pub mod pkce;
 
 // Issuance code for the server and client.
-pub mod issuable_document;
 pub mod issuance_session;
 pub mod issuer;
 
@@ -39,12 +35,25 @@ pub mod mock;
 #[cfg(test)]
 mod test;
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    Hash,
+    SerializeDisplay,
+    DeserializeFromStr,
+    strum::EnumString,
+    strum::Display,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum Format {
     #[default]
     MsoMdoc,
-    Jwt,
+    #[strum(serialize = "dc+sd-jwt")]
+    SdJwt,
 
     // Other formats we don't currently support; we include them here so we can give the appropriate error message
     // when they might be requested by the wallet (as opposed to a deserialization error).
