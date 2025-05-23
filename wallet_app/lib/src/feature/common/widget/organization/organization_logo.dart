@@ -26,7 +26,7 @@ class OrganizationLogo extends StatelessWidget {
       height: size,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(fixedRadius ?? (size / _kBorderRadiusFactor)),
-        child: AppImage(asset: image, fit: BoxFit.cover),
+        child: AppImage(asset: image, fit: BoxFit.contain),
       ),
     );
   }
