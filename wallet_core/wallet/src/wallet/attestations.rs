@@ -58,22 +58,28 @@ where
             .fetch_unique_mdocs()
             .await?
             .into_iter()
-            .map(|StoredMdocCopy { mdoc_id, mdoc, .. }| {
-                let issuer_certificate = mdoc.issuer_certificate()?;
-                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
-                    .ok_or(AttestationsError::MissingIssuerRegistration)?;
+            .map(
+                |StoredMdocCopy {
+                     mdoc_id,
+                     mdoc,
+                     normalized_metadata,
+                     ..
+                 }| {
+                    let issuer_certificate = mdoc.issuer_certificate()?;
+                    let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
+                        .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?;
-                let attestation = Attestation::create_for_issuance(
-                    AttestationIdentity::Fixed {
-                        id: mdoc_id.to_string(),
-                    },
-                    metadata,
-                    issuer_registration.organization,
-                    mdoc.issuer_signed.into_entries_by_namespace(),
-                )?;
-                Ok(attestation)
-            })
+                    let attestation = Attestation::create_for_issuance(
+                        AttestationIdentity::Fixed {
+                            id: mdoc_id.to_string(),
+                        },
+                        normalized_metadata,
+                        issuer_registration.organization,
+                        mdoc.issuer_signed.into_entries_by_namespace(),
+                    )?;
+                    Ok(attestation)
+                },
+            )
             .collect::<Result<Vec<_>, AttestationsError>>()?;
 
         if let Some(ref mut callback) = self.attestations_callback {
