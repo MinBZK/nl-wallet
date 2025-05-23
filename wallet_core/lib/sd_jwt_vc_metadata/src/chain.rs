@@ -61,7 +61,7 @@ fn check_resource_integrity(json: &[u8], integrity: Integrity) -> Result<(), Typ
 
 /// Represents a chain of decoded SD-JWT Type Metadata documents that is sorted from leaf to root.
 #[derive(Debug, Clone, AsRef)]
-pub struct SortedTypeMetadata(VecNonEmpty<TypeMetadata>);
+pub(crate) struct SortedTypeMetadata(VecNonEmpty<TypeMetadata>);
 
 impl SortedTypeMetadata {
     pub fn into_inner(self) -> VecNonEmpty<TypeMetadata> {
@@ -276,23 +276,8 @@ mod example_constructors {
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
 
-    use super::SortedTypeMetadata;
     use super::TypeMetadataDocuments;
     use super::VerifiedTypeMetadataDocuments;
-
-    impl SortedTypeMetadata {
-        pub fn example_with_extensions() -> Self {
-            let chain = vec![
-                TypeMetadata::example_v3(),
-                TypeMetadata::example_v2(),
-                TypeMetadata::example(),
-            ]
-            .try_into()
-            .unwrap();
-
-            Self(chain)
-        }
-    }
 
     impl TypeMetadataDocuments {
         /// Construct a [`TypeMetadataDocuments`] chain for transmission by JSON encoding an ordered sequence of
@@ -417,6 +402,18 @@ mod test {
     impl SortedTypeMetadata {
         pub fn new_mock(chain: Vec<TypeMetadata>) -> Self {
             Self(chain.try_into().unwrap())
+        }
+
+        pub fn example_with_extensions() -> Self {
+            let chain = vec![
+                TypeMetadata::example_v3(),
+                TypeMetadata::example_v2(),
+                TypeMetadata::example(),
+            ]
+            .try_into()
+            .unwrap();
+
+            Self(chain)
         }
     }
 

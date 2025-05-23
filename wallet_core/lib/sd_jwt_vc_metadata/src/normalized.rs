@@ -63,7 +63,9 @@ impl NormalizedTypeMetadata {
     /// Attempt to combine all of the SD-JWT VC type metadata in a chain that is sorted from leaf to root into a single
     /// [`NormalizedTypeMetadata`], which can then be used to both validate a received attestation and convert it to a
     /// display representation.
-    pub fn try_from_sorted_metadata(sorted_metadata: SortedTypeMetadata) -> Result<Self, NormalizedTypeMetadataError> {
+    pub(crate) fn try_from_sorted_metadata(
+        sorted_metadata: SortedTypeMetadata,
+    ) -> Result<Self, NormalizedTypeMetadataError> {
         let chain = sorted_metadata.into_inner();
         let chain_length = chain.len().get();
 
