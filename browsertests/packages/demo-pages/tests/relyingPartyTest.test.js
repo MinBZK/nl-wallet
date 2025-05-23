@@ -15,6 +15,7 @@ const test = base.extend({
 
   accessibilityCheck: async ({ page, demoPage }, use) => {
     async function check() {
+      await page.waitForLoadState("load")
       const accessibilityScanResults = await new AxeBuilder({ page })
         .include(demoPage.nlWalletButtonTag)
         .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -22,6 +23,19 @@ const test = base.extend({
       expect(accessibilityScanResults.violations).toEqual([])
     }
     await use(check)
+  },
+
+  visualCheck: async ({ page, demoPage }, use) => {
+    await page.waitForLoadState("load")
+    // eslint-disable-next-line playwright/no-wait-for-timeout -- hard wait needed for screenshot test
+    await page.waitForTimeout(1000)
+    const visualCheck = async (screenshotName) => {
+      const walletModal = await demoPage.getWalletModal()
+      await base.expect(walletModal).toHaveScreenshot(screenshotName, {
+        maxDiffPixelRatio: 0.04,
+      })
+    }
+    await use(visualCheck)
   },
 })
 
@@ -64,6 +78,11 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(jsonResponse).toHaveProperty("status")
     expect(jsonResponse).toHaveProperty("ul")
     await accessibilityCheck()
+    const walletModal = await demoPage.getWalletModal()
+    const QrCode = await demoPage.getQrCode()
+    await expect(walletModal).toHaveScreenshot("wallet-web-start.png", {
+      mask: [QrCode],
+    })
   })
 
   test("When the frontend library tries to fetch the session status, but this takes too long or fails, the user is warned that they may not have a good internet connection and offers to try again.", async ({
@@ -82,16 +101,17 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(await demoPage.getModalMessageText()).toBe(
       "Your internet connection seems to be down or too slow. Check your connection and try again.",
     )
+    await accessibilityCheck()
     expect(await demoPage.getWebsiteLink()).toBeDefined()
     await expect(await demoPage.getTryAgainButton()).toBeVisible()
     await expect(await demoPage.getCloseButton()).toBeVisible()
-    await accessibilityCheck()
   })
 
   test("When a mobile device is detected, and when the library cannot reliably detect that it runs on a desktop device, it asks the user where the NL Wallet is installed, offering options for same device flow, cross-device flow and to abort. When the library can reliably detect that it runs on a desktop device, it automatically starts the cross-device flow.", async ({
     demoPage,
     isMobileDevice,
     accessibilityCheck,
+    visualCheck,
   }) => {
     await demoPage.goToAmsterdamMunicipality()
     await demoPage.openWalletLogin()
@@ -104,6 +124,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
       await expect(await demoPage.getCloseButton()).toBeVisible()
       expect(await demoPage.getWebsiteLink()).toBeDefined()
       await accessibilityCheck()
+      await visualCheck("wallet-web-mobile-device.png")
     } else {
       await expect(await demoPage.getSameDeviceButton()).toBeHidden()
       await expect(await demoPage.getCrossDeviceButton()).toBeHidden()
@@ -133,6 +154,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     page,
     demoPage,
     accessibilityCheck,
+    visualCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -149,12 +171,14 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(await demoPage.getWebsiteLink()).toBeDefined()
     await expect(await demoPage.getCloseButton()).toBeVisible()
     await accessibilityCheck()
+    await visualCheck("wallet-web-session-status-failed.png")
   })
 
   test('The library polls the status of this session. Upon "waiting for response", the library hides the QR code (when in cross-device) and tells the User to follow the instructions on their mobile device.', async ({
     page,
     demoPage,
     accessibilityCheck,
+    visualCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -170,12 +194,14 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     expect(await demoPage.getWebsiteLink()).toBeDefined()
     await expect(await demoPage.getCancelButton()).toBeVisible()
     await accessibilityCheck()
+    await visualCheck("wallet-web-waiting-for-response.png")
   })
 
   test('The library polls the status of this session. Upon "expired", the library informs the user that the session was expired and offers them the option to try again, which leads to a new session.', async ({
     page,
     demoPage,
     accessibilityCheck,
+    visualCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -194,12 +220,14 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await expect(await demoPage.getTryAgainButton()).toBeVisible()
     await expect(await demoPage.getCloseButton()).toBeVisible()
     await accessibilityCheck()
+    await visualCheck("wallet-web-expired.png")
   })
 
   test('The library polls the status of this session. Upon "cancelled", the library confirms to the user that they have aborted the session and offers them the option to try again, which leads to a new session.', async ({
     page,
     demoPage,
     accessibilityCheck,
+    visualCheck,
   }) => {
     await page.route("**/disclosure/sessions/**", async (route) => {
       await route.fulfill({
@@ -216,6 +244,7 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await expect(await demoPage.getTryAgainButton()).toBeVisible()
     await expect(await demoPage.getCloseButton()).toBeVisible()
     await accessibilityCheck()
+    await visualCheck("wallet-web-canceled.png")
   })
 
   test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
