@@ -532,13 +532,29 @@ pub struct DisclosureUseCases<K, S> {
     sessions: Arc<S>,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum NewDisclosureUseCaseError {
+    #[error("no ItemsRequest")]
+    NoItemsRequests,
+    #[error(transparent)]
+    UseCaseCertificate(#[from] UseCaseCertificateError),
+}
+
 impl<K> DisclosureUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
         items_requests: Option<ItemsRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
-    ) -> Result<Self, UseCaseCertificateError> {
+    ) -> Result<Self, NewDisclosureUseCaseError> {
+        if items_requests
+            .as_ref()
+            .map(|items_requests| items_requests.0.is_empty())
+            .unwrap_or_default()
+        {
+            return Err(NewDisclosureUseCaseError::NoItemsRequests);
+        }
+
         let client_id = client_id_from_key_pair(&key_pair)?;
         let use_case = Self {
             data: UseCaseData {
@@ -580,14 +596,19 @@ impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
 
+        // If the caller passed `Some(items_requests)`, then `items_requests` should not be empty.
+        if items_requests
+            .as_ref()
+            .map(|items_request| items_request.0.is_empty())
+            .unwrap_or_default()
+        {
+            return Err(NewSessionError::NoItemsRequests);
+        }
+
+        // We use either the specified items_requests, or if not specified, the one configured in the usecase.
         let items_requests = items_requests
             .or_else(|| self.items_requests.clone())
             .ok_or_else(|| NewSessionError::NoItemsRequests)?;
-
-        // Now that we determined which `items_requests` to use, check that it actually containes items requests.
-        if items_requests.0.is_empty() {
-            return Err(NewSessionError::NoItemsRequests);
-        }
 
         let session = Session::<Created>::new(items_requests, id, self.data.client_id.clone(), return_url_template);
 
