@@ -21,9 +21,9 @@ of manually extracting in a specific dir to group.
 
 - [labels.ts](labels.ts) contains the logic to group test results from a
   RawTestResult.
-- [generate.ts](generate.ts) contains the wrapper to modify the result while
-  reading and the plumbing to generate the report.
+- [generate.ts](generate.ts) contains the plumbing to generate the report.
 - [mapping.ts](mapping.ts) contains the mapping of the filename to
   human-readable name
+- [reader.ts](reader.ts) contains the wrapper to modify the result while reading
 - [zip.ts](zip.ts) contains the logic to read a zipfile and read the entries as
   ZipResultFile that contains the origin filename.
