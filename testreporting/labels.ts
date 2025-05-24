@@ -24,7 +24,7 @@ function setGroupAsParent(suiteNames: Record<SuiteKey, string | undefined>, grou
 
 export function groupTestResult(group: string, result: RawTestResult) {
   if (!result.labels) {
-    return result
+    result.labels = []
   }
 
   const suiteNames = {} as Record<SuiteKey, string | undefined>
