@@ -52,7 +52,7 @@ build-test-report:
       allure-results/browsertest-{demo-pages,fallback-pages,gba-fetch}.zip
       allure-results/{e2e,web}.zip
       junit-results/{android,flutter,flutter-ui,ios,rust,rust-gba-pid}.xml
-    - mv allure-report/awesome/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
+    - mv allure-report/index.html allure-report-$CI_COMMIT_SHORT_SHA.html
     - zip -j allure-report.zip allure-report-$CI_COMMIT_SHORT_SHA.html
   after_script:
     - deploy/bin/store-artifact.sh testreporting/allure-report.zip qt/quality-time/
