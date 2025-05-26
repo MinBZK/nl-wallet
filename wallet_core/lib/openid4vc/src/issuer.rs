@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use chrono::Days;
+use chrono::DurationRound;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -762,7 +763,11 @@ impl Session<Created> {
                         TokenRequestError::CredentialTypeNotOffered(document.attestation_type().to_string())
                     })?;
 
-                let now = Utc::now();
+                // Truncate the current time to only include the date part, so that all issued credentials on a single
+                // day day have the same `iat` and `exp` field
+                let now = Utc::now()
+                    .duration_trunc(chrono::Duration::days(1))
+                    .expect("should never exceed Unix time bounds");
                 let valid_until = now.add(attestation_data.valid_days);
 
                 let credential_payload = document.into_previewable_credential_payload(
