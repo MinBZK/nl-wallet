@@ -563,8 +563,7 @@ impl<K> RpInitiatedUseCase<K> {
     ) -> Result<Self, NewDisclosureUseCaseError> {
         if items_requests
             .as_ref()
-            .map(|items_requests| items_requests.0.is_empty())
-            .unwrap_or_default()
+            .is_some_and(|items_requests| items_requests.0.is_empty())
         {
             return Err(NewDisclosureUseCaseError::NoItemsRequests);
         }
