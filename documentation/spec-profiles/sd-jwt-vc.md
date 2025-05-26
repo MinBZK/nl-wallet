@@ -66,7 +66,7 @@ Rendering using `svg_templates` is not supported.
 
 ##### Logo metadata
 - `uri`
-    - REQUIRED. MUST use `data` URI scheme (no external links).
+    - REQUIRED. MUST use `data` URI scheme as defined in [RFC 2397](https://datatracker.ietf.org/doc/html/rfc2397) (no external links).
     Example: `"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vc..."`
         The following mime-types are supported: `image/jpeg`, `image/png`, `image/svg+xml`. 
 
