@@ -1735,6 +1735,7 @@ dependencies = [
  "askama_web",
  "axum",
  "base64 0.22.1",
+ "ciborium",
  "config",
  "crypto",
  "demo_utils",

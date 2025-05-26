@@ -81,14 +81,10 @@ walletServer:
 ## Parameters for the demo Relying Party configuration
 ## @param demoRelyingParty.hostname Hostname for the demo Relying Party
 ## @param demoRelyingParty.contextPath Context path for the demo Relying Party
-## @param demoRelyingParty.walletWebFilename Filename for the wallet web
-## @param demoRelyingParty.walletWebSha256 SHA-256 checksum for the wallet web file
 ##
 demoRelyingParty:
   hostname: null
   contextPath: null
-  walletWebFilename: null
-  walletWebSha256: null
 
 ## @param helpBaseUrl Base URL for the help link in wallet web
 helpBaseUrl: null

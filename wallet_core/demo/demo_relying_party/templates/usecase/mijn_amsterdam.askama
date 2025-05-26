@@ -1,4 +1,4 @@
-{% call header::header(base.trans.amsterdam_title, demo_utils::OPTION_STR_NONE) %}
+{% call header::header(base.trans.amsterdam_title, demo_utils::OPTION_STR_NONE, demo_utils::OPTION_STR_NONE) %}
 <main>
     {% match base.session_token %}
     {% when Some with (session_token) %}

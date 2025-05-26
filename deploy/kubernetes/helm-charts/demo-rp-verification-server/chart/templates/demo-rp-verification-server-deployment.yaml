@@ -128,5 +128,17 @@ spec:
                   key: private_key
             - name: VERIFICATION_SERVER__USECASES__xyz_bank__PRIVATE_KEY_TYPE
               value: "software"
+            - name: VERIFICATION_SERVER__USECASES__job_finder__CERTIFICATE
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-job-finder
+                  key: certificate
+            - name: VERIFICATION_SERVER__USECASES__job_finder__PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nl-wallet-demo-rp-verification-server-verifier-usecases-job-finder
+                  key: private_key
+            - name: VERIFICATION_SERVER__USECASES__job_finder__PRIVATE_KEY_TYPE
+              value: "software"
             - name: RUST_LOG
               value: "debug,hyper=warn"

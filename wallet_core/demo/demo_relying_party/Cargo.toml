@@ -22,6 +22,7 @@ askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
 base64.workspace = true
+ciborium.workspace = true
 config = { workspace = true, features = ["preserve_order", "toml"] }
 futures = { workspace = true, features = ["std"] }
 http.workspace = true

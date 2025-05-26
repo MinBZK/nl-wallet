@@ -74,7 +74,14 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
             );
         }
       },
-      onError: (error) => emit(IssuanceGenericError(error: error)),
+      onError: (error) {
+        switch (error) {
+          case RelyingPartyError():
+            emit(IssuanceRelyingPartyError(error: error, organizationName: error.organizationName));
+          default:
+            emit(IssuanceGenericError(error: error));
+        }
+      },
     );
   }
 
@@ -209,6 +216,9 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     switch (error) {
       case SessionError():
         _handleSessionError(emit, error);
+        return;
+      case RelyingPartyError():
+        emit(IssuanceRelyingPartyError(error: error, organizationName: error.organizationName));
         return;
       case NetworkError():
         await _cancelIssuanceUseCase.invoke(); // Attempt to cancel the session, but propagate original error

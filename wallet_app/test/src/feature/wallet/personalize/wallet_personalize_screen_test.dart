@@ -18,6 +18,7 @@ import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_co
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_intro_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_success_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../../wallet_app_test_widget.dart';
 import '../../../mocks/wallet_mock_data.dart';
@@ -290,6 +291,39 @@ void main() {
         ),
       );
       await screenMatchesGolden('wallet_personalize/digid_failure.portrait.light');
+    });
+
+    testGoldens('WalletPersonalizeGenericError Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeGenericError(error: GenericError('test', sourceError: 'sourceError')),
+        ),
+      );
+      await screenMatchesGolden('wallet_personalize/generic_error.light');
+    });
+
+    testGoldens('WalletPersonalizeRelyingPartyError Light - Relying Party X', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeRelyingPartyError(
+            organizationName: 'Relying Party X'.untranslated,
+            error: RelyingPartyError(sourceError: ''),
+          ),
+        ),
+      );
+      await screenMatchesGolden('wallet_personalize/relying_party_error.light');
+    });
+
+    testGoldens('WalletPersonalizeRelyingPartyError Dark - Unknown relying party', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeRelyingPartyError(organizationName: null, error: RelyingPartyError(sourceError: '')),
+        ),
+      );
+      await screenMatchesGolden('wallet_personalize/relying_party_error.party_unknown.dark');
     });
   });
 

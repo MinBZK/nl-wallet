@@ -169,6 +169,7 @@ class WalletCoreMock implements WalletCoreApi {
         inactiveWarningTimeout: Duration(minutes: 1).inSeconds,
         inactiveLockTimeout: Duration(minutes: 3).inSeconds,
         backgroundLockTimeout: Duration(seconds: 20).inSeconds,
+        staticAssetsBaseUrl: 'https://example.com/',
         version: BigInt.one,
       ),
     );

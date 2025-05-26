@@ -1,3 +1,4 @@
+{{- if .Values.ingress.enabled }}
 {{ $name := include "common.names.fullname" . }}
 ---
 apiVersion: networking.k8s.io/v1
@@ -17,13 +18,13 @@ spec:
                 name: {{ include "common.names.fullname" . }}
                 port:
                   number: 3010
-            pathType: ImplementationSpecific
+            path: /
+            pathType: Prefix
   tls:
     - hosts:
         - {{ .Values.ingressVpn.hostname | quote }}
       secretName: wildcard-tls
 ---
-{{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -54,7 +55,7 @@ spec:
                 port:
                   number: 3009
             path: /{{ .Values.verificationServer.contextPath }}/(.*)
-            pathType: Prefix
+            pathType: ImplementationSpecific
   tls:
     - hosts:
         - {{ .Values.verificationServer.hostname }}

@@ -1,0 +1,23 @@
+dl.attributes {
+  display: grid;
+  grid-template-columns: max-content auto;
+  gap: 0 8px;
+  letter-spacing: 0.15px;
+}
+
+.attributes dt {
+  display: flex;
+  grid-column-start: 1;
+  color: #414145;
+  justify-content: space-between;
+}
+
+.attributes dt::after {
+  content: ":";
+  margin-left: 16px;
+}
+
+.attributes dd {
+  grid-column-start: 2;
+  color: #000;
+}

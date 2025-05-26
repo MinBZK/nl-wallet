@@ -252,10 +252,11 @@ class Mocks {
       when(repository.appConfiguration).thenAnswer(
         (_) => Stream.value(
           const FlutterAppConfiguration(
-            version: 1,
-            backgroundLockTimeout: Duration(minutes: 1),
             idleLockTimeout: Duration(minutes: 2),
             idleWarningTimeout: Duration(minutes: 1),
+            backgroundLockTimeout: Duration(minutes: 1),
+            staticAssetsBaseUrl: 'https://example.com/',
+            version: 1,
           ),
         ),
       );

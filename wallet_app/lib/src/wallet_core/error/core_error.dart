@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:wallet_core/core.dart';
 
 sealed class CoreError extends Equatable {
   final String? description;
@@ -57,4 +58,14 @@ class CoreExpiredSessionError extends CoreError {
 
 class CoreCancelledSessionError extends CoreError {
   const CoreCancelledSessionError(super.description, {super.data});
+}
+
+class CoreRelyingPartyError extends CoreError {
+  final List<LocalizedString>? organizationName;
+
+  CoreRelyingPartyError(super.description, {super.data, this.organizationName})
+      : assert(organizationName == null || organizationName.isNotEmpty, 'Do not provide an empty org. name');
+
+  @override
+  List<Object?> get props => [organizationName, ...super.props];
 }

@@ -155,6 +155,9 @@ class WalletPersonalizeGenericError extends WalletPersonalizeState implements Er
   @override
   final ApplicationError error;
 
+  @override
+  FlowProgress get stepperProgress => FlowProgress(currentStep: kSetupSteps, totalSteps: kSetupSteps);
+
   const WalletPersonalizeGenericError({required this.error});
 
   @override
@@ -169,4 +172,19 @@ class WalletPersonalizeSessionExpired extends WalletPersonalizeState implements 
 
   @override
   List<Object?> get props => [error, ...super.props];
+}
+
+class WalletPersonalizeRelyingPartyError extends WalletPersonalizeState implements ErrorState {
+  @override
+  final ApplicationError error;
+
+  final LocalizedText? organizationName;
+
+  @override
+  FlowProgress get stepperProgress => FlowProgress(currentStep: kSetupSteps, totalSteps: kSetupSteps);
+
+  const WalletPersonalizeRelyingPartyError({required this.error, this.organizationName});
+
+  @override
+  List<Object?> get props => [error, organizationName, ...super.props];
 }

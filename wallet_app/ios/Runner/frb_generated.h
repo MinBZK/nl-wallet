@@ -286,6 +286,7 @@ typedef struct wire_cst_flutter_configuration {
   uint16_t inactive_warning_timeout;
   uint16_t inactive_lock_timeout;
   uint16_t background_lock_timeout;
+  struct wire_cst_list_prim_u_8_strict *static_assets_base_url;
   uint64_t version;
 } wire_cst_flutter_configuration;
 

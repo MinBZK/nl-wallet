@@ -1,0 +1,21 @@
+{% call header::header(base.trans.job_title, Some(base.trans.job_title_part), demo_utils::OPTION_STR_NONE) %}
+<main>
+    <section>
+        <h2>{{ base.trans.job_career_title }}</h2>
+    </section>
+    {% match base.session_token %}
+        {% when Some with (session_token) %}
+        {% call notification::notification(base.trans.job_failed_try_again, "", session_token) %}
+        {% when None %}
+    {% endmatch %}
+    <section class="buttons">
+        <nl-wallet-button
+            text="{{ base.trans.job_use_nl_wallet }}"
+            usecase="{{ usecase }}"
+            start-url="{{ start_url }}"
+            help-base-url="{{ help_base_url }}"
+            lang="{{ base.selected_lang }}">
+        </nl-wallet-button>
+        <button disabled><span>{{ base.trans.job_react }}</span></a>
+    </section>
+</main>

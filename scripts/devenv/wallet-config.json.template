@@ -45,5 +45,6 @@
       ]
     }
   },
-  "google_cloud_project_number": ${GOOGLE_CLOUD_PROJECT_NUMBER}
+  "google_cloud_project_number": ${GOOGLE_CLOUD_PROJECT_NUMBER},
+  "static_assets_base_url": "https://${SERVICES_HOST}:${CONFIG_SERVER_PORT}/"
 }

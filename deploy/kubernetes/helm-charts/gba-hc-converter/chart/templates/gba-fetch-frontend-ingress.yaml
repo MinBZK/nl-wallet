@@ -33,7 +33,8 @@ spec:
                 name: {{ .Values.frontend.name }}
                 port:
                   number: 3000
-            pathType: ImplementationSpecific
+            path: /
+            pathType: Prefix
   tls:
     - hosts:
         - {{ .Values.gbaFetch.frontendUrl }}
