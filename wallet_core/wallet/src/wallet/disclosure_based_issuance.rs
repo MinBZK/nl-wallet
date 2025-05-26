@@ -224,12 +224,14 @@ mod tests {
         )));
 
         // Setup wallet issuance state
-        let preview_data = create_example_preview_data();
+        let credential_preview = create_example_preview_data();
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();
 
-            client.expect_credential_preview_data().return_const(vec![preview_data]);
+            client
+                .expect_normalized_credential_previews()
+                .return_const(vec![credential_preview]);
 
             Ok(client)
         });

@@ -343,7 +343,7 @@ where
 
         info!("successfully received token and previews from issuer");
         let attestations = issuance_session
-            .credential_preview_data()
+            .normalized_credential_preview()
             .iter()
             .map(|preview_data| {
                 let attestation = Attestation::create_from_attributes(
@@ -780,7 +780,9 @@ mod tests {
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();
 
-            client.expect_credential_preview_data().return_const(vec![preview_data]);
+            client
+                .expect_normalized_credential_previews()
+                .return_const(vec![preview_data]);
 
             Ok(client)
         });

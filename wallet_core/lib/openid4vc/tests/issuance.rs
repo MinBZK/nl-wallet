@@ -170,7 +170,7 @@ async fn accept_issuance(
 
     issued_creds
         .into_iter()
-        .zip(session.credential_preview_data().iter())
+        .zip(session.normalized_credential_preview().iter())
         .for_each(|(copies, preview_data)| match copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => {
                 let mdoc = mdocs.first().clone();

@@ -308,7 +308,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
 
     async fn reject_issuance(self) -> Result<(), IssuanceSessionError>;
 
-    fn credential_preview_data(&self) -> &[NormalizedCredentialPreview];
+    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
 
     fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError>;
 }
@@ -532,7 +532,7 @@ impl NormalizedCredentialPreview {
 struct IssuanceState {
     access_token: AccessToken,
     c_nonce: String,
-    credential_preview_data: Vec<NormalizedCredentialPreview>,
+    normalized_credential_previews: Vec<NormalizedCredentialPreview>,
     credential_request_types: Vec<CredentialRequestType>,
     issuer_url: BaseUrl,
     #[debug(skip)]
@@ -541,7 +541,7 @@ struct IssuanceState {
 }
 
 fn credential_request_types_from_preview(
-    credential_preview_data: &[NormalizedCredentialPreview],
+    normalized_credential_previews: &[NormalizedCredentialPreview],
 ) -> Result<Vec<CredentialRequestType>, IssuanceSessionError> {
     // The OpenID4VCI `/batch_credential` endpoints supports issuance of multiple attestations, but the protocol
     // has no support (yet) for issuance of multiple copies of multiple attestations.
@@ -556,7 +556,7 @@ fn credential_request_types_from_preview(
     // TODO (PVW-4366): Have the batch issuance endpoint consider the `credential_type` field
     //                  of the `CredentialRequest`s and only issue those formats.
 
-    let credential_request_types = credential_preview_data
+    let credential_request_types = normalized_credential_previews
         .iter()
         .map(|preview| {
             let mut unsupported_formats = HashSet::new();
@@ -658,7 +658,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .request_token(&token_endpoint, &token_request, &dpop_header)
             .await?;
 
-        let credential_preview_data = token_response
+        let normalized_credential_previews = token_response
             .credential_previews
             .into_iter()
             .map(|preview| {
@@ -669,7 +669,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             })
             .collect::<Result<Vec<_>, _>>()?;
 
-        let credential_request_types = credential_request_types_from_preview(&credential_preview_data)?;
+        let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -677,7 +677,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 .token_response
                 .c_nonce
                 .ok_or(IssuanceSessionError::MissingNonce)?,
-            credential_preview_data,
+            normalized_credential_previews,
             credential_request_types,
             issuer_url: base_url,
             dpop_private_key,
@@ -793,7 +793,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         let docs = self
             .session_state
-            .credential_preview_data
+            .normalized_credential_previews
             .iter()
             .map(|preview| {
                 preview
@@ -854,13 +854,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         Ok(())
     }
 
-    fn credential_preview_data(&self) -> &[NormalizedCredentialPreview] {
-        &self.session_state.credential_preview_data
+    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview] {
+        &self.session_state.normalized_credential_previews
     }
 
     fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError> {
         let registration = self
-            .credential_preview_data()
+            .normalized_credential_preview()
             .iter()
             .map(|preview| &preview.issuer_registration)
             .single_unique()
@@ -1178,7 +1178,7 @@ mod tests {
             content,
             normalized_metadata,
             ..
-        } = &session.credential_preview_data()[0];
+        } = &session.normalized_credential_preview()[0];
 
         assert_matches!(
                 &content.credential_payload.attributes["family_name"],
@@ -1253,13 +1253,13 @@ mod tests {
     }
 
     /// Return a new session ready for `accept_issuance()`.
-    fn new_session_state(credential_preview_data: Vec<NormalizedCredentialPreview>) -> IssuanceState {
-        let credential_request_types = credential_request_types_from_preview(&credential_preview_data).unwrap();
+    fn new_session_state(normalized_credential_previews: Vec<NormalizedCredentialPreview>) -> IssuanceState {
+        let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews).unwrap();
 
         IssuanceState {
             access_token: "access_token".to_string().into(),
             c_nonce: "c_nonce".to_string(),
-            credential_preview_data,
+            normalized_credential_previews,
             credential_request_types,
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
