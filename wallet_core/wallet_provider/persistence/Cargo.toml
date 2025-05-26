@@ -56,7 +56,6 @@ tracing-subscriber = { workspace = true, optional = true, features = [
     "tracing-log",
     "smallvec",
     "parking_lot",
-    "env-filter",
     "ansi",
 ] }
 uuid.workspace = true
