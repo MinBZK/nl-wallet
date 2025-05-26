@@ -84,6 +84,6 @@ rstest.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-attestation_data = { path = "../attestation_data", features = ["generate", "mock"] }
+attestation_data = { path = "../attestation_data", features = ["examples", "generate", "mock"] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
