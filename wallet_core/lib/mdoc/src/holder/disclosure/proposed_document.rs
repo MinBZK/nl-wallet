@@ -13,6 +13,7 @@ use crate::iso::disclosure::DeviceSigned;
 use crate::iso::disclosure::Document;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DocType;
+use crate::Attributes;
 use crate::NameSpace;
 
 use super::StoredMdoc;
@@ -127,7 +128,9 @@ impl<I> ProposedDocument<I> {
                         .collect::<Vec<_>>();
 
                     // This will return `None` if the attributes are empty and will subsequently be filtered out.
-                    attributes.try_into().ok().map(|attributes| (name_space, attributes))
+                    Attributes::try_from(attributes)
+                        .ok()
+                        .map(|attributes| (name_space, attributes))
                 })
                 .collect::<IndexMap<_, _>>()
                 .try_into()

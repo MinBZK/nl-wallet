@@ -15,7 +15,6 @@ use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::SD_JWT_VC_TYPE_METADATA_KEY;
 
 use crate::iso::*;
-use crate::unsigned::UnsignedAttributes;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::cose::COSE_X5CHAIN_HEADER_LABEL;
@@ -40,8 +39,7 @@ impl IssuerSigned {
         };
 
         let attributes = Attribute::from_attributes(&payload.attestation_type, payload.attributes);
-        let attributes: UnsignedAttributes = attributes.try_into().expect("should work"); // TODO: map to error
-        let attrs = IssuerNameSpaces::from(attributes);
+        let attrs = IssuerNameSpaces::try_from(attributes).expect("should work"); // TODO: map to error
 
         let doc_type = payload.attestation_type;
         let cose_pubkey: CoseKey = device_public_key.try_into()?;

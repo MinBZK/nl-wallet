@@ -28,7 +28,6 @@ use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
 use utils::date_time_seconds::DateTimeSeconds;
 
-use crate::unsigned::UnsignedAttributes;
 use crate::utils::cose::CoseKey;
 use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::CryptoError;
@@ -243,21 +242,19 @@ pub type DocType = String;
 /// [`Attributes`], which contains [`IssuerSignedItem`]s, grouped per [`NameSpace`].
 #[nutype(
     derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
-    validate(predicate = |name_spaces| !name_spaces.is_empty()),
+    validate(predicate = |name_spaces| !name_spaces.is_empty() && !name_spaces.values().any(|attrs| attrs.as_ref().is_empty())),
 )]
 pub struct IssuerNameSpaces(IndexMap<NameSpace, Attributes>);
 
-/// Since [`UnsignedAttributes`] is guaranteed not to be empty, we can
-/// implement `From` instead of `TryFrom` and use `unwrap()` safely.
-impl From<UnsignedAttributes> for IssuerNameSpaces {
-    fn from(value: UnsignedAttributes) -> Self {
-        value
-            .into_inner()
+impl TryFrom<IndexMap<NameSpace, Vec<Entry>>> for IssuerNameSpaces {
+    type Error = IssuerNameSpacesError;
+
+    fn try_from(source: IndexMap<NameSpace, Vec<Entry>>) -> Result<Self, Self::Error> {
+        source
             .into_iter()
             .map(|(namespace, attrs)| (namespace, Attributes::try_from(attrs).unwrap()))
             .collect::<IndexMap<_, _>>()
             .try_into()
-            .unwrap()
     }
 }
 
