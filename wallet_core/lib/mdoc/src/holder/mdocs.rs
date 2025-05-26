@@ -169,28 +169,35 @@ impl IntoCredentialPayload for MdocParts {
 
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
         let MdocParts { attributes, mso } = self;
-
-        let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
-
-        let payload = CredentialPayload {
-            issued_at: (&mso.validity_info.signed).try_into()?,
-            confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
-            previewable_payload: PreviewableCredentialPayload {
-                attestation_type: mso.doc_type,
-                issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
-                expires: Some((&mso.validity_info.valid_until).try_into()?),
-                not_before: Some((&mso.validity_info.valid_from).try_into()?),
-                attestation_qualification: mso
-                    .attestation_qualification
-                    .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
-                attributes: Attribute::from_mdoc_attributes(metadata, attributes)?,
-            },
-        };
-
-        CredentialPayload::validate(&serde_json::to_value(&payload)?, metadata)?;
-
-        Ok(payload)
+        credential_payload_from(mso, Attribute::from_mdoc_attributes(metadata, attributes)?, metadata)
     }
+}
+
+pub fn credential_payload_from(
+    mso: MobileSecurityObject,
+    attributes: IndexMap<String, Attribute>,
+    metadata: &NormalizedTypeMetadata,
+) -> Result<CredentialPayload, MdocCredentialPayloadError> {
+    let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
+
+    let payload = CredentialPayload {
+        issued_at: (&mso.validity_info.signed).try_into()?,
+        confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
+        previewable_payload: PreviewableCredentialPayload {
+            attestation_type: mso.doc_type,
+            issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
+            expires: Some((&mso.validity_info.valid_until).try_into()?),
+            not_before: Some((&mso.validity_info.valid_from).try_into()?),
+            attestation_qualification: mso
+                .attestation_qualification
+                .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
+            attributes,
+        },
+    };
+
+    CredentialPayload::validate(&serde_json::to_value(&payload)?, metadata)?;
+
+    Ok(payload)
 }
 
 #[cfg(any(test, feature = "test"))]
@@ -198,6 +205,7 @@ mod test {
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
+    use attestation_data::credential_payload::PreviewableCredentialPayload;
     use crypto::server_keys::KeyPair;
     use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
@@ -205,14 +213,13 @@ mod test {
 
     use crate::iso::disclosure::IssuerSigned;
     use crate::iso::mdocs::IssuerSignedItemBytes;
-    use crate::iso::unsigned::UnsignedMdoc;
 
     use super::Mdoc;
 
     impl Mdoc {
         /// Construct an [`Mdoc`] directly by signing, skipping validation.
         pub async fn sign<K: CredentialEcdsaKey>(
-            unsigned_mdoc: UnsignedMdoc,
+            payload: PreviewableCredentialPayload,
             metadata_integrity: Integrity,
             metadata_documents: &TypeMetadataDocuments,
             private_key_id: String,
@@ -220,7 +227,7 @@ mod test {
             issuer_keypair: &KeyPair<impl EcdsaKey>,
         ) -> crate::Result<Mdoc> {
             let (issuer_signed, mso) = IssuerSigned::sign(
-                unsigned_mdoc,
+                payload,
                 metadata_integrity,
                 metadata_documents,
                 public_key,

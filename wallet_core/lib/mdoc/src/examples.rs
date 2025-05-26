@@ -256,7 +256,7 @@ pub mod mock {
     use sd_jwt_vc_metadata::TypeMetadata;
 
     use crate::holder::Mdoc;
-    use crate::test::data::pid_example;
+    use crate::test::data::pid_example_payload;
 
     use super::*;
 
@@ -311,12 +311,12 @@ pub mod mock {
 
         async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
             let issuer_keypair = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
-            let unsigned_mdoc = pid_example().0.remove(0).into();
+            let previewable_payload = pid_example_payload().previewable_payload;
             let (_, metadata_integrity, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example());
 
             Mdoc::sign::<MockRemoteEcdsaKey>(
-                unsigned_mdoc,
+                previewable_payload,
                 metadata_integrity,
                 &metadata_documents,
                 key.identifier().to_string(),

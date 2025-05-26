@@ -7449,6 +7449,7 @@ dependencies = [
  "attestation_data",
  "axum",
  "chrono",
+ "ciborium",
  "config",
  "crypto",
  "derive_more",

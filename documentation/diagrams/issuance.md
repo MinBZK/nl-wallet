@@ -64,7 +64,7 @@ sequenceDiagram
 ## Generic issuance
 
 For generic issuance, we can implement the AttributeService as follows:
-  * The issuer feeds it a bunch of to-be-issued attestations (e.g. `Vec<UnsignedMdoc>`) and receives a fresh pre-authorized token in return, which it sends to the wallet using a UL or QR;
+  * The issuer feeds it a bunch of to-be-issued attestations (e.g. `Vec<IssuableDocument>`) and receives a fresh pre-authorized token in return, which it sends to the wallet using a UL or QR;
   * When the WalletServer calls `getAttributes(pre-authorized_code)` on the AttributeService, it looks up the attributes to be issued using the pre-authorized code and returns them.
 
 This would look like the following diagram.

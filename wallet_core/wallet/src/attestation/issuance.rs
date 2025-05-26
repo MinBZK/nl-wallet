@@ -39,21 +39,21 @@ mod test {
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
-    use crate::issuance::mock::create_bsn_only_unsigned_mdoc;
-    use crate::issuance::mock::create_example_unsigned_mdoc;
+    use crate::issuance::mock::create_bsn_only_mdoc_attributes;
+    use crate::issuance::mock::create_example_mdoc_attributes;
     use crate::issuance::PID_DOCTYPE;
     use crate::Attestation;
     use crate::AttestationIdentity;
 
     #[test]
     fn test_happy() {
-        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+        let (mdoc_attributes, metadata) = create_example_mdoc_attributes();
 
         let attestation = Attestation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             NormalizedTypeMetadata::from_single_example(metadata.into_inner()),
             Organization::new_mock(),
-            unsigned_mdoc.attributes.into_inner(),
+            mdoc_attributes,
         )
         .expect("creating new Attestation should be successful");
 
@@ -88,10 +88,10 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
-        let (unsigned_mdoc, _) = create_bsn_only_unsigned_mdoc();
+        let (mdoc_attributes, _) = create_bsn_only_mdoc_attributes();
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
-            &unsigned_mdoc.doc_type,
+            PID_DOCTYPE,
             &[
                 ("not_found", JsonSchemaPropertyType::String, None),
                 ("bsn", JsonSchemaPropertyType::String, None),
@@ -102,7 +102,7 @@ mod test {
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
-            unsigned_mdoc.attributes.into_inner(),
+            mdoc_attributes,
         )
         .expect("creating new Attestation should be successful");
 
@@ -123,10 +123,10 @@ mod test {
 
     #[test]
     fn test_attribute_not_processed() {
-        let (unsigned_mdoc, _) = create_example_unsigned_mdoc();
+        let (mdoc_attributes, _) = create_example_mdoc_attributes();
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
-            &unsigned_mdoc.doc_type,
+            PID_DOCTYPE,
             &[
                 ("family_name", JsonSchemaPropertyType::String, None),
                 ("given_name", JsonSchemaPropertyType::String, None),
@@ -138,7 +138,7 @@ mod test {
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
-            unsigned_mdoc.attributes.into_inner(),
+            mdoc_attributes,
         )
         .expect_err("creating new Attestation should not be successful");
 

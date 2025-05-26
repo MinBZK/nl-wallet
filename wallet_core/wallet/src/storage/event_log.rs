@@ -214,13 +214,14 @@ mod test {
     use indexmap::IndexMap;
     use rstest::rstest;
 
+    use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Entry;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
     use mdoc::holder::ProposedDocumentAttributes;
-    use mdoc::unsigned::UnsignedMdoc;
     use mdoc::DataElementValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -239,16 +240,16 @@ mod test {
     });
 
     #[rstest]
-    #[case(issuance::mock::create_bsn_only_unsigned_mdoc(), DisclosureType::Login)]
-    #[case(issuance::mock::create_example_unsigned_mdoc(), DisclosureType::Regular)]
+    #[case(issuance::mock::create_bsn_only_payload_preview(), DisclosureType::Login)]
+    #[case(issuance::mock::create_example_payload_preview(), DisclosureType::Regular)]
     fn test_disclosure_type_from_proposed_attributes(
-        #[case] (unsigned_mdoc, type_metadata): (UnsignedMdoc, TypeMetadata),
+        #[case] (payload_preview, type_metadata): (PreviewableCredentialPayload, TypeMetadata),
         #[case] expected: DisclosureType,
     ) {
         let proposed_attributes = ProposedAttributes::from([(
             PID_DOCTYPE.to_string(),
             ProposedDocumentAttributes {
-                attributes: unsigned_mdoc.attributes.into_inner(),
+                attributes: Attribute::from_attributes(&payload_preview.attestation_type, payload_preview.attributes),
                 issuer: ISSUER_CERTIFICATE.clone(),
                 type_metadata: NormalizedTypeMetadata::from_single_example(type_metadata.into_inner()),
             },

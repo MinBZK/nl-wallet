@@ -14,7 +14,7 @@ use crate::qualification::AttestationQualification;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
 /// should be convertable into all documents that are actually issued to the wallet. For now, this will only be
-/// `UnsignedMdoc`.
+/// `PreviewableCredentialPayload`.
 /// ```json
 /// {
 ///     "attestation_type": "com.example.pid",
