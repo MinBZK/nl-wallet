@@ -114,8 +114,8 @@ where
         // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
         // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
         let wallet_router = Router::new()
-            .route("/{session_id}/request_uri", get(retrieve_request::<S, US, UC, K>))
-            .route("/{session_id}/request_uri", post(retrieve_request::<S, US, UC, K>))
+            .route("/{identifier}/request_uri", get(retrieve_request::<S, US, UC, K>))
+            .route("/{identifier}/request_uri", post(retrieve_request::<S, US, UC, K>))
             .route("/{session_token}/response_uri", post(post_response::<S, US, UC, K>));
 
         WalletRouterAndState {
@@ -188,7 +188,7 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
 async fn retrieve_request<S, US, UC, K>(
     uri: Uri,
     State(state): State<Arc<ApplicationState<S, US>>>,
-    Path(session_id): Path<String>,
+    Path(identifier): Path<String>,
     Form(wallet_request): Form<WalletRequest>,
 ) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
 where
@@ -201,7 +201,7 @@ where
 
     let response = state
         .verifier
-        .process_get_request(&session_id, &state.public_url, uri.query(), wallet_request.wallet_nonce)
+        .process_get_request(&identifier, &state.public_url, uri.query(), wallet_request.wallet_nonce)
         .await
         .inspect_err(|error| {
             warn!("processing request for Authorization Request JWT failed, returning error: {error}");
