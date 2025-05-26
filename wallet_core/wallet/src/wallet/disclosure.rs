@@ -643,15 +643,22 @@ where
             .into_iter()
             .fold(
                 IndexMap::<_, Vec<_>>::with_capacity(doc_types.len()),
-                |mut mdocs_by_doc_type, StoredMdocCopy { mdoc_copy_id, mdoc, .. }| {
+                |mut mdocs_by_doc_type,
+                 StoredMdocCopy {
+                     mdoc_copy_id,
+                     mdoc,
+                     normalized_metadata,
+                     ..
+                 }| {
                     // Re-use the `doc_types` string slices, which should contain all `Mdoc` doc types.
                     let doc_type = *doc_types
                         .get(mdoc.doc_type().as_str())
                         .expect("Storage returned mdoc with unexpected doc_type");
-                    mdocs_by_doc_type
-                        .entry(doc_type)
-                        .or_default()
-                        .push(StoredMdoc { id: mdoc_copy_id, mdoc });
+                    mdocs_by_doc_type.entry(doc_type).or_default().push(StoredMdoc {
+                        id: mdoc_copy_id,
+                        mdoc,
+                        normalized_metadata,
+                    });
 
                     mdocs_by_doc_type
                 },

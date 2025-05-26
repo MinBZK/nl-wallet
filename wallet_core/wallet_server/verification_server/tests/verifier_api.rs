@@ -68,6 +68,7 @@ use openid4vc::ErrorResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use server_utils::settings::Authentication;
@@ -979,9 +980,9 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
     };
 
     // NOTE: This metadata does not match the attributes.
-    let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(
-        TypeMetadata::empty_example_with_attestation_type(&unsigned_mdoc.doc_type),
-    );
+    let type_metadata = TypeMetadata::empty_example_with_attestation_type(&unsigned_mdoc.doc_type);
+    let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(type_metadata.clone());
+    let normalized_metadata = NormalizedTypeMetadata::from_single_example(type_metadata.into_inner());
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = crypto::utils::random_string(16);
@@ -1000,7 +1001,7 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
     .unwrap();
 
     // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
-    let mdoc_data_source = MockMdocDataSource::new(vec![mdoc]);
+    let mdoc_data_source = MockMdocDataSource::new(vec![(mdoc, normalized_metadata)]);
     let key_factory = MockRemoteKeyFactory::new(vec![mdoc_private_key]);
 
     (mdoc_data_source, key_factory)

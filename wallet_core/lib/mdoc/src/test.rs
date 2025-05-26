@@ -4,6 +4,7 @@ use chrono::Duration;
 use chrono::Utc;
 use ciborium::Value;
 use coset::CoseSign1;
+use derive_more::Constructor;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ssri::Integrity;
@@ -19,6 +20,7 @@ use crypto::server_keys::KeyPair;
 use crypto::EcdsaKey;
 use crypto::WithIdentifier;
 use http_utils::urls::HttpsUri;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
@@ -159,7 +161,7 @@ impl DeviceRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Constructor)]
 pub struct TestDocument {
     pub doc_type: String,
     pub issuer_uri: HttpsUri,
@@ -167,12 +169,10 @@ pub struct TestDocument {
 }
 
 impl TestDocument {
-    fn new(doc_type: String, issuer_uri: HttpsUri, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
-        Self {
-            doc_type,
-            issuer_uri,
-            namespaces,
-        }
+    pub fn normalized_metadata(&self) -> NormalizedTypeMetadata {
+        NormalizedTypeMetadata::from_single_example(
+            TypeMetadata::empty_example_with_attestation_type(&self.doc_type).into_inner(),
+        )
     }
 
     async fn prepare_unsigned<KF>(
