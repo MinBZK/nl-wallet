@@ -125,8 +125,9 @@ pub enum IssuanceError {
 
 #[derive(Debug, Clone, Constructor)]
 pub struct IssuanceSession<IS> {
-    pub is_pid: bool,
-    pub protocol_state: IS,
+    is_pid: bool,
+    preview_attestations: VecNonEmpty<Attestation>,
+    protocol_state: IS,
 }
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
@@ -352,8 +353,14 @@ where
             })
             .collect::<Result<Vec<_>, IssuanceError>>()?;
 
-        self.session
-            .replace(Session::Issuance(IssuanceSession::new(is_pid, issuance_session)));
+        // The IssuanceSession trait guarantees that credential_preview_data()
+        // returns at least one value, so this unwrap() is safe.
+        let event_attestations = attestations.clone().try_into().unwrap();
+        self.session.replace(Session::Issuance(IssuanceSession::new(
+            is_pid,
+            event_attestations,
+            issuance_session,
+        )));
 
         Ok(attestations)
     }
@@ -471,19 +478,9 @@ where
             .collect_vec();
 
         info!("Isuance succeeded; removing issuance session state");
-        self.session.take();
-
-        // Prepare events before storing mdocs, to avoid cloning mdocs
-        let event = {
-            // Extract first copy from each issued mdoc
-            let mdocs: VecNonEmpty<_> = mdocs_with_metadata
-                .iter()
-                .map(|(mdoc_copies, _type_metadata)| mdoc_copies.first().clone())
-                .collect_vec()
-                .try_into()
-                .expect("should have received at least one issued mdoc");
-
-            WalletEvent::new_issuance(mdocs)
+        let issuance_session = match self.session.take() {
+            Some(Session::Issuance(issuance_session)) => issuance_session,
+            _ => unreachable!(),
         };
 
         info!("Attestations accepted, storing mdoc in database");
@@ -494,7 +491,7 @@ where
             .await
             .map_err(IssuanceError::MdocStorage)?;
 
-        self.store_history_event(event)
+        self.store_history_event(WalletEvent::new_issuance(issuance_session.preview_attestations))
             .await
             .map_err(IssuanceError::EventStorage)?;
 
@@ -534,15 +531,28 @@ mod tests {
     use super::super::test::WalletWithMocks;
     use super::*;
 
-    fn mock_issuance_session(mdoc: Mdoc, type_metadata: VerifiedTypeMetadataDocuments) -> MockIssuanceSession {
+    fn mock_issuance_session(
+        mdoc: Mdoc,
+        type_metadata: VerifiedTypeMetadataDocuments,
+    ) -> (MockIssuanceSession, VecNonEmpty<Attestation>) {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = mdoc.issuer_certificate().unwrap();
-        client.expect_issuer().return_once(move || {
-            Ok(match IssuerRegistration::from_certificate(&issuer_certificate) {
-                Ok(Some(registration)) => registration,
-                _ => IssuerRegistration::new_mock(),
-            })
-        });
+        let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
+            Ok(Some(registration)) => registration,
+            _ => IssuerRegistration::new_mock(),
+        };
+
+        let attestations = vec![Attestation::create_for_issuance(
+            AttestationIdentity::Ephemeral,
+            type_metadata.to_normalized().unwrap(),
+            issuer_registration.organization.clone(),
+            mdoc.issuer_signed.clone().into_entries_by_namespace(),
+        )
+        .unwrap()]
+        .try_into()
+        .unwrap();
+
+        client.expect_issuer().return_once(move || Ok(issuer_registration));
 
         client.expect_accept().return_once(|| {
             Ok(vec![(
@@ -550,7 +560,8 @@ mod tests {
                 type_metadata,
             )])
         });
-        client
+
+        (client, attestations)
     }
 
     #[tokio::test]
@@ -634,6 +645,7 @@ mod tests {
         // Setup a mock OpenID4VCI session.
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
+            vec![Attestation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
         )));
 
@@ -696,7 +708,11 @@ mod tests {
                 .return_once(|| Ok(IssuerRegistration::new_mock()));
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+            true,
+            vec![Attestation::new_mock()].try_into().unwrap(),
+            pid_issuer,
+        )));
 
         // Cancelling PID issuance should not fail.
         wallet.cancel_issuance().await.expect("Could not cancel PID issuance");
@@ -894,7 +910,11 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+            true,
+            vec![Attestation::new_mock()].try_into().unwrap(),
+            pid_issuer,
+        )));
 
         // Canceling PID issuance on a wallet should forward this error.
         let error = wallet
@@ -913,7 +933,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Register mock document_callback
-        let attestations = test::setup_mock_attestations_callback(&mut wallet).await.unwrap();
+        let attestations_callback = test::setup_mock_attestations_callback(&mut wallet).await.unwrap();
 
         // Register mock recent_history_callback
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
@@ -921,8 +941,8 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
-        let pid_issuer = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
+        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
 
         // Accept the PID issuance with the PIN.
         wallet
@@ -932,7 +952,7 @@ mod tests {
 
         {
             // Test which `Attestation` instances we have received through the callback.
-            let attestations = attestations.lock();
+            let attestations = attestations_callback.lock();
 
             // The first entry should be empty, because there are no mdocs in the database.
             assert_eq!(attestations.len(), 2);
@@ -1041,7 +1061,11 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+            true,
+            vec![Attestation::new_mock()].try_into().unwrap(),
+            pid_issuer,
+        )));
 
         // Accepting PID issuance should result in an error.
         let error = wallet
@@ -1125,7 +1149,11 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+            true,
+            vec![Attestation::new_mock()].try_into().unwrap(),
+            pid_issuer,
+        )));
 
         // Accepting PID issuance should result in an error.
         let error = wallet
@@ -1146,8 +1174,8 @@ mod tests {
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let mdoc = test::create_example_pid_mdoc();
-        let pid_issuer = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
+        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
+        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
 
         // Have the mdoc storage return an error on query.
         wallet.storage.write().await.has_query_error = true;
