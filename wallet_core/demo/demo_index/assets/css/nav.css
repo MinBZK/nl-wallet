@@ -135,6 +135,10 @@ nav a::before {
   background: url("../images/monkey_bike.svg") no-repeat center center / cover;
 }
 
+#job_finder::before {
+  background: url("../images/job_finder.svg") no-repeat center center / cover;
+}
+
 #university::before {
   background: url("../images/university.svg") no-repeat center center / cover;
 }

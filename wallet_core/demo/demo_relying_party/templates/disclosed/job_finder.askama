@@ -1,0 +1,11 @@
+{% let username = attributes | attribute("given_name") %}
+{% call header::header(base.trans.job_title, Some(base.trans.job_title_part), Some(username)) %}
+<main>
+    <section>
+        <h2>{{ base.trans.job_career_title }}</h2>
+        {% call notification::notification(base.trans.job_success, "", "") %}
+    </section>
+    <section>
+        {% call attributes::attributes(attributes) %}
+    </section>
+</main>

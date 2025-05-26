@@ -279,6 +279,13 @@ export DEMO_RELYING_PARTY_KEY_MONKEY_BIKE
 DEMO_RELYING_PARTY_CRT_MONKEY_BIKE=$(< "${TARGET_DIR}/demo_relying_party/monkey_bike.crt.der" ${BASE64})
 export DEMO_RELYING_PARTY_CRT_MONKEY_BIKE
 
+# Generate relying party key and cert
+generate_demo_relying_party_key_pair job_finder
+DEMO_RELYING_PARTY_KEY_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.key.der" ${BASE64})
+export DEMO_RELYING_PARTY_KEY_JOB_FINDER
+DEMO_RELYING_PARTY_CRT_JOB_FINDER=$(< "${TARGET_DIR}/demo_relying_party/job_finder.crt.der" ${BASE64})
+export DEMO_RELYING_PARTY_CRT_JOB_FINDER
+
 render_template "${DEVENV}/demo_relying_party.toml.template" "${DEMO_RELYING_PARTY_DIR}/demo_relying_party.toml"
 
 

@@ -1,5 +1,5 @@
 {% let username = attributes | attribute("given_name") %}
-{% call header::header(base.trans.marketplace_title, Some(username)) %}
+{% call header::header(base.trans.marketplace_title, demo_utils::OPTION_STR_NONE, Some(username)) %}
 
 <main>
     {% let welcome = base.trans.welcome %}

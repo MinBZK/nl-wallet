@@ -1,5 +1,5 @@
 {% let organisation_name = Some(base.trans.amsterdam_profile_name) %}
-{% call header::header(base.trans.amsterdam_title, organisation_name) %}
+{% call header::header(base.trans.amsterdam_title, demo_utils::OPTION_STR_NONE, organisation_name) %}
 
 <main>
     {% call notification::notification(base.trans.amsterdam_success, base.trans.amsterdam_logged_in, "") %}
