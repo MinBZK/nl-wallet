@@ -17,8 +17,8 @@ use openid4vc::server_state::MemoryWteTracker;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::SessionTypeReturnUrl;
-use openid4vc::verifier::StaticUseCase;
-use openid4vc::verifier::StaticUseCases;
+use openid4vc::verifier::WalletInitiatedUseCase;
+use openid4vc::verifier::WalletInitiatedUseCases;
 use openid4vc_server::issuer::create_issuance_router;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::keys::PrivateKeyVariant;
@@ -73,7 +73,7 @@ where
     let use_cases = try_join_all(settings.disclosure_settings.into_iter().map(|(id, s)| async {
         Ok::<_, anyhow::Error>((
             id,
-            StaticUseCase::try_new(
+            WalletInitiatedUseCase::try_new(
                 s.key_pair.parse(hsm.clone()).await?,
                 SessionTypeReturnUrl::Both,
                 s.to_disclose,
@@ -83,9 +83,9 @@ where
     }))
     .await?
     .into_iter()
-    .collect::<HashMap<String, StaticUseCase<PrivateKeyVariant>>>();
+    .collect::<HashMap<String, WalletInitiatedUseCase<PrivateKeyVariant>>>();
 
-    let use_cases = StaticUseCases::new(use_cases);
+    let use_cases = WalletInitiatedUseCases::new(use_cases);
 
     let issuer = Arc::new(Issuer::new(
         issuance_sessions,

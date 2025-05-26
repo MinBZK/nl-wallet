@@ -29,8 +29,8 @@ use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::verifier::DisclosureData;
-use openid4vc::verifier::DisclosureUseCase;
-use openid4vc::verifier::DisclosureUseCases;
+use openid4vc::verifier::RpInitiatedUseCase;
+use openid4vc::verifier::RpInitiatedUseCases;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use server_utils::keys::PrivateKeyVariant;
 use server_utils::settings::verify_key_pairs;
@@ -99,7 +99,7 @@ impl UseCasesSettings {
         hsm: Option<Pkcs11Hsm>,
         ephemeral_id_secret: hmac::Key,
         sessions: Arc<S>,
-    ) -> Result<DisclosureUseCases<PrivateKeyVariant, S>, anyhow::Error>
+    ) -> Result<RpInitiatedUseCases<PrivateKeyVariant, S>, anyhow::Error>
     where
         S: SessionStore<DisclosureData>,
     {
@@ -110,15 +110,15 @@ impl UseCasesSettings {
         let use_cases = try_join_all(iter)
             .await?
             .into_iter()
-            .collect::<HashMap<String, DisclosureUseCase<_>>>();
+            .collect::<HashMap<String, RpInitiatedUseCase<_>>>();
 
-        Ok(DisclosureUseCases::new(use_cases, ephemeral_id_secret, sessions))
+        Ok(RpInitiatedUseCases::new(use_cases, ephemeral_id_secret, sessions))
     }
 }
 
 impl UseCaseSettings {
-    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<DisclosureUseCase<PrivateKeyVariant>, anyhow::Error> {
-        let use_case = DisclosureUseCase::try_new(
+    pub async fn parse(self, hsm: Option<Pkcs11Hsm>) -> Result<RpInitiatedUseCase<PrivateKeyVariant>, anyhow::Error> {
+        let use_case = RpInitiatedUseCase::try_new(
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
             self.items_requests,

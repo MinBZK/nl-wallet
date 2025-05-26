@@ -533,15 +533,15 @@ pub trait UseCases {
 
 /// A usecase started by an RP.
 #[derive(Debug)]
-pub struct DisclosureUseCase<K> {
+pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
     items_requests: Option<ItemsRequests>,
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
 #[derive(Constructor)]
-pub struct DisclosureUseCases<K, S> {
-    disclosures: HashMap<String, DisclosureUseCase<K>>,
+pub struct RpInitiatedUseCases<K, S> {
+    disclosures: HashMap<String, RpInitiatedUseCase<K>>,
     ephemeral_id_secret: hmac::Key,
     sessions: Arc<S>,
 }
@@ -554,7 +554,7 @@ pub enum NewDisclosureUseCaseError {
     UseCaseCertificate(#[from] UseCaseCertificateError),
 }
 
-impl<K> DisclosureUseCase<K> {
+impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
@@ -584,7 +584,7 @@ impl<K> DisclosureUseCase<K> {
     }
 }
 
-impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
+impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
     type Key = K;
 
     fn data(&self) -> &UseCaseData<Self::Key> {
@@ -630,13 +630,13 @@ impl<K: EcdsaKeySend> UseCase for DisclosureUseCase<K> {
     }
 }
 
-impl<K, S> UseCases for DisclosureUseCases<K, S>
+impl<K, S> UseCases for RpInitiatedUseCases<K, S>
 where
     K: EcdsaKeySend + Sync,
     S: SessionStore<DisclosureData> + Send + Sync,
 {
     type Key = K;
-    type UseCase = DisclosureUseCase<K>;
+    type UseCase = RpInitiatedUseCase<K>;
 
     fn get(&self, id: &str) -> Option<&Self::UseCase> {
         self.disclosures.get(id)
@@ -669,7 +669,7 @@ where
     }
 }
 
-impl<K, S> DisclosureUseCases<K, S> {
+impl<K, S> RpInitiatedUseCases<K, S> {
     fn verify_ephemeral_id(
         ephemeral_id_secret: &hmac::Key,
         session_token: &SessionToken,
@@ -723,18 +723,18 @@ impl<K, S> DisclosureUseCases<K, S> {
 
 /// A use case which is started not by an RP but by the wallet invoking the `request_uri` endpoint.
 #[derive(Debug, Constructor)]
-pub struct StaticUseCase<K> {
+pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
     items_requests: ItemsRequests,
     return_url_template: ReturnUrlTemplate,
 }
 
 #[derive(Constructor)]
-pub struct StaticUseCases<K> {
-    disclosures: HashMap<String, StaticUseCase<K>>,
+pub struct WalletInitiatedUseCases<K> {
+    disclosures: HashMap<String, WalletInitiatedUseCase<K>>,
 }
 
-impl<K> StaticUseCase<K> {
+impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
@@ -756,7 +756,7 @@ impl<K> StaticUseCase<K> {
     }
 }
 
-impl<K: EcdsaKeySend> UseCase for StaticUseCase<K> {
+impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
     type Key = K;
 
     fn data(&self) -> &UseCaseData<Self::Key> {
@@ -780,12 +780,12 @@ impl<K: EcdsaKeySend> UseCase for StaticUseCase<K> {
     }
 }
 
-impl<K> UseCases for StaticUseCases<K>
+impl<K> UseCases for WalletInitiatedUseCases<K>
 where
     K: EcdsaKeySend + Sync,
 {
     type Key = K;
-    type UseCase = StaticUseCase<K>;
+    type UseCase = WalletInitiatedUseCase<K>;
 
     fn get(&self, id: &str) -> Option<&Self::UseCase> {
         self.disclosures.get(id)
@@ -1493,8 +1493,6 @@ mod tests {
     use super::AuthorizationErrorCode;
     use super::DisclosedAttributesError;
     use super::DisclosureData;
-    use super::DisclosureUseCase;
-    use super::DisclosureUseCases;
     use super::Done;
     use super::EphemeralIdParameters;
     use super::ErrorResponse;
@@ -1502,14 +1500,14 @@ mod tests {
     use super::HashMap;
     use super::ItemsRequests;
     use super::NewSessionError;
+    use super::RpInitiatedUseCase;
+    use super::RpInitiatedUseCases;
     use super::SessionError;
     use super::SessionResult;
     use super::SessionState;
     use super::SessionStatus;
     use super::SessionType;
     use super::SessionTypeReturnUrl;
-    use super::StaticUseCase;
-    use super::StaticUseCases;
     use super::StatusResponse;
     use super::UseCaseData;
     use super::Verifier;
@@ -1517,6 +1515,8 @@ mod tests {
     use super::VpAuthorizationErrorCode;
     use super::VpRequestUriObject;
     use super::WalletAuthResponse;
+    use super::WalletInitiatedUseCase;
+    use super::WalletInitiatedUseCases;
     use super::EPHEMERAL_ID_VALIDITY_SECONDS;
 
     const DISCLOSURE_DOC_TYPE: &str = "example_doctype";
@@ -1545,7 +1545,7 @@ mod tests {
 
     type TestVerifier = Verifier<
         MemorySessionStore<DisclosureData>,
-        DisclosureUseCases<SigningKey, MemorySessionStore<DisclosureData>>,
+        RpInitiatedUseCases<SigningKey, MemorySessionStore<DisclosureData>>,
     >;
 
     fn create_verifier() -> TestVerifier {
@@ -1557,7 +1557,7 @@ mod tests {
         let use_cases = HashMap::from([
             (
                 DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
-                DisclosureUseCase::try_new(
+                RpInitiatedUseCase::try_new(
                     generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     SessionTypeReturnUrl::Neither,
                     None,
@@ -1567,7 +1567,7 @@ mod tests {
             ),
             (
                 DISCLOSURE_USECASE.to_string(),
-                DisclosureUseCase::try_new(
+                RpInitiatedUseCase::try_new(
                     generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     SessionTypeReturnUrl::SameDevice,
                     None,
@@ -1577,7 +1577,7 @@ mod tests {
             ),
             (
                 DISCLOSURE_USECASE_ALL_REDIRECT_URI.to_string(),
-                DisclosureUseCase::try_new(
+                RpInitiatedUseCase::try_new(
                     generate_reader_mock(&ca, reader_registration).unwrap(),
                     SessionTypeReturnUrl::Both,
                     None,
@@ -1590,7 +1590,7 @@ mod tests {
         let session_store = Arc::new(MemorySessionStore::default());
 
         Verifier::new(
-            DisclosureUseCases::new(
+            RpInitiatedUseCases::new(
                 use_cases,
                 hmac::Key::generate(hmac::HMAC_SHA256, &rand::SystemRandom::new()).unwrap(),
                 Arc::clone(&session_store),
@@ -1884,7 +1884,7 @@ mod tests {
             "https://app-ul.example.com".parse().unwrap(),
             "https://rp.example.com".parse().unwrap(),
             Some(EphemeralIdParameters {
-                ephemeral_id: DisclosureUseCases::<(), ()>::generate_ephemeral_id(
+                ephemeral_id: RpInitiatedUseCases::<(), ()>::generate_ephemeral_id(
                     &ephemeral_id_secret,
                     &session_token,
                     &time,
@@ -1938,7 +1938,7 @@ mod tests {
 
         let use_cases = HashMap::from([(
             DISCLOSURE_USECASE_NO_REDIRECT_URI.to_string(),
-            StaticUseCase {
+            WalletInitiatedUseCase {
                 data: UseCaseData {
                     key_pair: generate_reader_mock(&ca, reader_registration.clone()).unwrap(),
                     session_type_return_url: SessionTypeReturnUrl::Neither,
@@ -1952,7 +1952,7 @@ mod tests {
         let session_store = Arc::new(MemorySessionStore::default());
 
         let verifier = Verifier::new(
-            StaticUseCases::new(use_cases),
+            WalletInitiatedUseCases::new(use_cases),
             session_store,
             trust_anchors,
             None,
