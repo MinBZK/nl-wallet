@@ -1210,6 +1210,7 @@ impl CredentialResponse {
             Utc::now().into(),
             holder_pubkey,
             &attestation_config.metadata,
+            attestation_config.first_metadata_integrity.clone(),
         )?;
 
         let sd_jwt = payload

@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
+use ssri::Integrity;
 
 use crypto::server_keys::KeyPair;
 use crypto::EcdsaKeySend;
@@ -67,6 +68,10 @@ pub struct CredentialPayload {
     #[serde(rename = "cnf")]
     pub confirmation_key: RequiredKeyBinding,
 
+    /// Contains the first integrity digest of a chain of digests that prevents tampering with the type metadata
+    #[serde(rename = "vct#integrity")]
+    pub vct_integrity: Integrity,
+
     #[serde(flatten)]
     pub previewable_payload: PreviewableCredentialPayload,
 }
@@ -121,10 +126,12 @@ impl CredentialPayload {
         issued_at: DateTimeSeconds,
         holder_pubkey: &VerifyingKey,
         metadata: &NormalizedTypeMetadata,
+        metadata_integrity: Integrity,
     ) -> Result<Self, SdJwtCredentialPayloadError> {
         let payload = CredentialPayload {
             issued_at,
             confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
+            vct_integrity: metadata_integrity,
             previewable_payload,
         };
 
@@ -139,6 +146,7 @@ impl CredentialPayload {
         holder_pubkey: &VerifyingKey,
         issuer_key: &KeyPair<impl EcdsaKeySend>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
+        let vct_integrity = self.vct_integrity.clone();
         let sd_jwt = type_metadata
             .claims()
             .iter()
@@ -155,6 +163,7 @@ impl CredentialPayload {
             })?
             .finish(
                 Algorithm::ES256,
+                vct_integrity,
                 issuer_key.private_key(),
                 vec![issuer_key.certificate().clone()],
                 holder_pubkey,
@@ -180,6 +189,7 @@ mod examples {
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
     use rand_core::OsRng;
+    use ssri::Integrity;
 
     use jwt::jwk::jwk_from_p256;
     use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
@@ -198,6 +208,7 @@ mod examples {
             Self {
                 issued_at: now.into(),
                 confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
+                vct_integrity: Integrity::from(""),
                 previewable_payload: PreviewableCredentialPayload {
                     attestation_type: String::from("urn:eudi:pid:nl:1"),
                     issuer: "https://cert.issuer.example.com".parse().unwrap(),
@@ -247,6 +258,7 @@ mod test {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
     use serde_json::json;
+    use ssri::Integrity;
 
     use crypto::server_keys::generate::Ca;
     use crypto::EcdsaKey;
@@ -277,6 +289,7 @@ mod test {
         let payload = CredentialPayload {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
             confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
+            vct_integrity: Integrity::from(""),
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: String::from("com.example.pid"),
                 issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
@@ -327,6 +340,7 @@ mod test {
 
         let expected_json = json!({
             "vct": "com.example.pid",
+            "vct#integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
             "iss": "https://com.example.org/pid/issuer",
             "iat": 61,
             "attestation_qualification": "QEAA",
@@ -373,6 +387,7 @@ mod test {
             Utc::now().into(),
             holder_key.verifying_key(),
             &metadata,
+            Integrity::from(""),
         )
         .unwrap();
 
@@ -400,6 +415,7 @@ mod test {
             Utc::now().into(),
             holder_key.verifying_key(),
             &metadata,
+            Integrity::from(""),
         )
         .expect_err("wrong family_name type should fail validation");
 
@@ -415,6 +431,7 @@ mod test {
 
         let claims = json!({
             "vct": "com.example.pid",
+            "vct#integrity": "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
             "iss": "https://com.example.org/pid/issuer",
             "iat": 61,
             "attestation_qualification": "QEAA",
@@ -445,7 +462,13 @@ mod test {
             .unwrap()
             .add_decoys("", 2)
             .unwrap()
-            .finish(Algorithm::ES256, &issuer_key, vec![], holder_key.verifying_key())
+            .finish(
+                Algorithm::ES256,
+                Integrity::from(""),
+                &issuer_key,
+                vec![],
+                holder_key.verifying_key(),
+            )
             .now_or_never()
             .unwrap()
             .unwrap();

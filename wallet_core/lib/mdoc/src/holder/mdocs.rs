@@ -129,6 +129,10 @@ pub enum MdocCredentialPayloadError {
     #[category(critical)]
     MissingAttestationQualification,
 
+    #[error("mdoc is missing metadata integrity")]
+    #[category(critical)]
+    MissingMetadataIntegrity,
+
     #[error("attribute error: {0}")]
     #[category(pd)]
     Attribute(#[from] AttributeError),
@@ -175,6 +179,9 @@ impl IntoCredentialPayload for MdocParts {
         let payload = CredentialPayload {
             issued_at: (&mso.validity_info.signed).try_into()?,
             confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
+            vct_integrity: mso
+                .type_metadata_integrity
+                .ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: mso.doc_type,
                 issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,

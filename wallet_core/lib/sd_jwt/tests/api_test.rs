@@ -9,6 +9,7 @@ use p256::ecdsa::VerifyingKey;
 use rand_core::OsRng;
 use serde_json::json;
 use serde_json::Value;
+use ssri::Integrity;
 
 use crypto::server_keys::generate::Ca;
 use crypto::x509::BorrowingCertificate;
@@ -33,7 +34,13 @@ async fn make_sd_jwt(
         .fold(SdJwtBuilder::new(object).unwrap(), |builder, path| {
             builder.make_concealable(path).unwrap()
         })
-        .finish(Algorithm::ES256, &signing_key, vec![], holder_pubkey)
+        .finish(
+            Algorithm::ES256,
+            Integrity::from(""),
+            &signing_key,
+            vec![],
+            holder_pubkey,
+        )
         .await
         .unwrap();
 
@@ -252,6 +259,7 @@ async fn test_presentation() -> anyhow::Result<()> {
         .add_decoys("", 2)?
         .finish(
             Algorithm::ES256,
+            Integrity::from(""),
             &issuer_privkey,
             vec![certificate.clone()],
             holder_privkey.verifying_key(),

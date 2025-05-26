@@ -25,6 +25,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 serde_valid.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono", "hex", "indexmap_2", "macros"] }
+ssri.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }

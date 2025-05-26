@@ -17,6 +17,7 @@ use jsonwebtoken::Validation;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use ssri::Integrity;
 
 use crypto::x509::BorrowingCertificate;
 use crypto::EcdsaKeySend;
@@ -46,6 +47,11 @@ pub struct SdJwtClaims {
     // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
     // to parse.
     pub cnf: Option<RequiredKeyBinding>,
+
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
+    #[serde(rename = "vct#integrity")]
+    pub vct_integrity: Option<Integrity>,
 
     #[serde(flatten)]
     pub properties: serde_json::Map<String, serde_json::Value>,
@@ -339,6 +345,7 @@ mod test {
     use rand_core::OsRng;
     use rstest::rstest;
     use serde_json::json;
+    use ssri::Integrity;
 
     use jwt::error::JwtError;
     use jwt::EcdsaDecodingKey;
@@ -380,7 +387,13 @@ mod test {
             "exp": (Utc::now() - Duration::days(1)).timestamp(),
         }))
         .unwrap()
-        .finish(Algorithm::ES256, &signing_key, vec![], holder_privkey.verifying_key())
+        .finish(
+            Algorithm::ES256,
+            Integrity::from(""),
+            &signing_key,
+            vec![],
+            holder_privkey.verifying_key(),
+        )
         .await
         .unwrap()
         .to_string();
