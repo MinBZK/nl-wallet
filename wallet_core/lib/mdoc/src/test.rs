@@ -6,7 +6,6 @@ use ciborium::Value;
 use coset::CoseSign1;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
-use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use ssri::Integrity;
 
 use attestation_data::attributes::Attribute;
@@ -22,6 +21,7 @@ use crypto::server_keys::KeyPair;
 use crypto::EcdsaKey;
 use crypto::WithIdentifier;
 use http_utils::urls::HttpsUri;
+use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
@@ -245,11 +245,7 @@ impl TestDocument {
         KF: KeyFactory,
     {
         let (_, metadata_integrity, metadata_documents) = self.metadata();
-
         let (normalized_metadata, _) = metadata_documents.clone().into_normalized(&self.doc_type).unwrap();
-
-        dbg!(&normalized_metadata);
-
         let attributes = Attribute::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
 
         let now = Utc::now();
