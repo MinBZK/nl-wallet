@@ -14,6 +14,7 @@ use crypto::server_keys::KeyPair;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 use sd_jwt_vc_metadata::SD_JWT_VC_TYPE_METADATA_KEY;
 
+use crate::errors::Error;
 use crate::iso::*;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
@@ -33,13 +34,19 @@ impl IssuerSigned {
         let now = Utc::now();
         let validity = ValidityInfo {
             signed: now.into(),
-            valid_from: payload.not_before.map(Into::into).expect("should exist"), // TODO: map to error
-            valid_until: payload.expires.map(Into::into).expect("should exist"),   // TODO: map to error
+            valid_from: payload
+                .not_before
+                .map(Into::into)
+                .ok_or_else(|| Error::MissingValidityInformation("valid_from".to_string()))?,
+            valid_until: payload
+                .expires
+                .map(Into::into)
+                .ok_or_else(|| Error::MissingValidityInformation("valid_until".to_string()))?,
             expected_update: None,
         };
 
         let attributes = Attribute::from_attributes(&payload.attestation_type, payload.attributes);
-        let attrs = IssuerNameSpaces::try_from(attributes).expect("should work"); // TODO: map to error
+        let attrs = IssuerNameSpaces::try_from(attributes).map_err(Error::MissingOrEmptyNamespace)?;
 
         let doc_type = payload.attestation_type;
         let cose_pubkey: CoseKey = device_public_key.try_into()?;
