@@ -169,35 +169,27 @@ impl IntoCredentialPayload for MdocParts {
 
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
         let MdocParts { attributes, mso } = self;
-        credential_payload_from(mso, Attribute::from_mdoc_attributes(metadata, attributes)?, metadata)
+        let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
+
+        let payload = CredentialPayload {
+            issued_at: (&mso.validity_info.signed).try_into()?,
+            confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
+            previewable_payload: PreviewableCredentialPayload {
+                attestation_type: mso.doc_type,
+                issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
+                expires: Some((&mso.validity_info.valid_until).try_into()?),
+                not_before: Some((&mso.validity_info.valid_from).try_into()?),
+                attestation_qualification: mso
+                    .attestation_qualification
+                    .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
+                attributes: Attribute::from_mdoc_attributes(metadata, attributes)?,
+            },
+        };
+
+        CredentialPayload::validate(&serde_json::to_value(&payload)?, metadata)?;
+
+        Ok(payload)
     }
-}
-
-pub fn credential_payload_from(
-    mso: MobileSecurityObject,
-    attributes: IndexMap<String, Attribute>,
-    metadata: &NormalizedTypeMetadata,
-) -> Result<CredentialPayload, MdocCredentialPayloadError> {
-    let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
-
-    let payload = CredentialPayload {
-        issued_at: (&mso.validity_info.signed).try_into()?,
-        confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
-        previewable_payload: PreviewableCredentialPayload {
-            attestation_type: mso.doc_type,
-            issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
-            expires: Some((&mso.validity_info.valid_until).try_into()?),
-            not_before: Some((&mso.validity_info.valid_from).try_into()?),
-            attestation_qualification: mso
-                .attestation_qualification
-                .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
-            attributes,
-        },
-    };
-
-    CredentialPayload::validate(&serde_json::to_value(&payload)?, metadata)?;
-
-    Ok(payload)
 }
 
 #[cfg(any(test, feature = "test"))]

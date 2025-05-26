@@ -16,6 +16,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Validation;
+use mdoc::holder::MdocParts;
 use p256::ecdsa::VerifyingKey;
 use reqwest::Method;
 use serde::Deserialize;
@@ -25,6 +26,7 @@ use tokio::task::JoinHandle;
 use tracing::info;
 
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_data::issuable_document::IssuableDocument;
 use attestation_data::issuable_document::IssuableDocuments;
@@ -43,7 +45,6 @@ use jwt::validations;
 use jwt::wte::WteClaims;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
-use mdoc::holder::credential_payload_from;
 use mdoc::holder::MdocCredentialPayloadError;
 use mdoc::IssuerSigned;
 use poa::Poa;
@@ -1164,7 +1165,6 @@ impl CredentialResponse {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let attributes = preview.content.credential_payload.attributes.clone();
         let (issuer_signed, mso) = IssuerSigned::sign(
             preview.content.credential_payload,
             attestation_config.first_metadata_integrity.clone(),
@@ -1177,8 +1177,8 @@ impl CredentialResponse {
 
         // As a last check, convert the `IssuerSigned` back to a full `CredentialPayload`
         // and validate it against the normalized metadata for this attestation.
-        // TODO: this now takes the 'input' attributes, so it's not a complete validation of the Mdoc
-        let _ = credential_payload_from(mso, attributes, &attestation_config.metadata)?;
+        let _ = MdocParts::new(issuer_signed.clone().into_entries_by_namespace(), mso)
+            .into_credential_payload(&attestation_config.metadata)?;
 
         Ok(CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed.into()),
