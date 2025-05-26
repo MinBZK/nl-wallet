@@ -184,8 +184,9 @@ We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:
     this release
   * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
     verification server for relying parties, for glibc-based Linux systems
+    built with Debian bookworm.
   * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
-    verification server for relying parties, for musl-libc based Linux systems
+    verification server for relying parties using statically linked musl.
   * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for relying
     parties, to assist with integrating relying party applications with the
     wallet platform

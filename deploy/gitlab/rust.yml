@@ -162,24 +162,21 @@ test-configuration-server-compilation:
 build-update-policy-server-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "update_policy_server" --bin update_policy_server
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "update_policy_server" --bin update_policy_server
   artifacts:
     name: update_policy_server
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/update_policy_server
       - wallet_core/target/x86_64-unknown-linux-musl/release/update_policy_server
 
 build-wallet-provider-binary:
   extends: .build-binary
   script:
+    # Use glibc binary because it needs to work with dynamically loaded PKCS11 library
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "wallet_provider" --bin wallet_provider
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_provider" --bin wallet_provider
   artifacts:
     name: wallet_provider
     paths:
       - wallet_core/target/x86_64-unknown-linux-gnu/release/wallet_provider
-      - wallet_core/target/x86_64-unknown-linux-musl/release/wallet_provider
 
 build-wallet-provider-migrations-binary:
   extends: .build-binary
@@ -193,17 +190,17 @@ build-wallet-provider-migrations-binary:
 build-pid-issuer-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres
+    # Use musl since we only use software keys on pid-issuer for our own environments (docker image is from scratch)
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package pid_issuer --bin pid_issuer --no-default-features --features postgres
   artifacts:
     name: pid_issuer
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/pid_issuer
       - wallet_core/target/x86_64-unknown-linux-musl/release/pid_issuer
 
 build-verification-server-binary:
   extends: .build-binary
   script:
+    # Also build for glibc because it is needed to work with dynamically loaded PKCS11 library
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package verification_server --bin verification_server --no-default-features --features postgres
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package verification_server --bin verification_server --no-default-features --features postgres
   artifacts:
@@ -215,6 +212,7 @@ build-verification-server-binary:
 build-issuance-server-binary:
   extends: .build-binary
   script:
+    # Also build for glibc because it is needed to work with dynamically loaded PKCS11 library
     - cargo build --locked --target x86_64-unknown-linux-gnu --release --package issuance_server --bin issuance_server --no-default-features --features postgres
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package issuance_server --bin issuance_server --no-default-features --features postgres
   artifacts:
@@ -235,64 +233,56 @@ build-wallet-server-migrations-binary:
 build-demo-relying-party-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_relying_party" --bin demo_relying_party
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_relying_party" --bin demo_relying_party
   artifacts:
     name: demo_relying_party
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_relying_party
       - wallet_core/target/x86_64-unknown-linux-musl/release/demo_relying_party
 
 build-demo-issuer-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_issuer" --bin demo_issuer
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_issuer" --bin demo_issuer
   artifacts:
     name: demo_issuer
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_issuer
       - wallet_core/target/x86_64-unknown-linux-musl/release/demo_issuer
 
 build-demo-index-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "demo_index" --bin demo_index
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "demo_index" --bin demo_index
   artifacts:
     name: demo_index
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/demo_index
       - wallet_core/target/x86_64-unknown-linux-musl/release/demo_index
 
 build-gba-hc-converter-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --release --package "gba_hc_converter" --bin gba_hc_converter
     - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin gba_hc_converter
   artifacts:
     name: gba_hc_converter
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/release/gba_hc_converter
       - wallet_core/target/x86_64-unknown-linux-musl/release/gba_hc_converter
 
 build-gba-fetch-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --package "gba_hc_converter" --bin gba_fetch
+    - cargo build --locked --target x86_64-unknown-linux-musl --package "gba_hc_converter" --bin gba_fetch
   artifacts:
     name: gba_fetch
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_fetch
+      - wallet_core/target/x86_64-unknown-linux-musl/debug/gba_fetch
 
 build-gba-encrypt-binary:
   extends: .build-binary
   script:
-    - cargo build --locked --target x86_64-unknown-linux-gnu --package "gba_hc_converter" --bin gba_encrypt
+    - cargo build --locked --target x86_64-unknown-linux-musl --package "gba_hc_converter" --bin gba_encrypt
   artifacts:
     name: gba_encrypt
     paths:
-      - wallet_core/target/x86_64-unknown-linux-gnu/debug/gba_encrypt
+      - wallet_core/target/x86_64-unknown-linux-musl/debug/gba_encrypt
 
 build-gba-fetch-frontend-binary:
   extends: .build-binary
