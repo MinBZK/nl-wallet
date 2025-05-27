@@ -277,11 +277,12 @@ mod example_constructors {
 
     use utils::vec_at_least::VecNonEmpty;
 
-    use crate::examples::ADDRESS_METADATA_BYTES;
     use crate::examples::DEGREE_METADATA_BYTES;
+    use crate::examples::EUDI_ADDRESS_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::EXAMPLE_V2_METADATA_BYTES;
     use crate::examples::EXAMPLE_V3_METADATA_BYTES;
+    use crate::examples::NL_ADDRESS_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
@@ -346,8 +347,12 @@ mod example_constructors {
 
         pub fn address_example() -> (Integrity, Self) {
             (
-                Integrity::from(ADDRESS_METADATA_BYTES),
-                Self::new(vec![ADDRESS_METADATA_BYTES.to_vec()].try_into().unwrap()),
+                Integrity::from(NL_ADDRESS_METADATA_BYTES),
+                Self::new(
+                    vec![NL_ADDRESS_METADATA_BYTES.to_vec(), EUDI_ADDRESS_METADATA_BYTES.to_vec()]
+                        .try_into()
+                        .unwrap(),
+                ),
             )
         }
 

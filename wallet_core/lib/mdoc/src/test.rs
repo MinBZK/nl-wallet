@@ -21,12 +21,7 @@ use crypto::server_keys::KeyPair;
 use crypto::EcdsaKey;
 use crypto::WithIdentifier;
 use http_utils::urls::HttpsUri;
-use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
-use sd_jwt_vc_metadata::JsonSchemaPropertyType;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use sd_jwt_vc_metadata::TypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
-use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
 use crate::holder::Mdoc;
 use crate::iso::device_retrieval::DeviceRequest;
@@ -164,72 +159,31 @@ impl DeviceRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct TestDocument {
     pub doc_type: String,
     pub issuer_uri: HttpsUri,
     pub namespaces: IndexMap<String, Vec<Entry>>,
-}
-
-fn type_and_format_of(value: &ciborium::Value) -> (JsonSchemaPropertyType, Option<JsonSchemaPropertyFormat>) {
-    use ciborium::Value::*;
-    match value {
-        Integer(_) => (JsonSchemaPropertyType::Integer, None),
-        Bytes(_) => (JsonSchemaPropertyType::Array, None),
-        Float(_) => (JsonSchemaPropertyType::Number, None),
-        Text(_) => (JsonSchemaPropertyType::String, None),
-        Bool(_) => (JsonSchemaPropertyType::Boolean, None),
-        Null => (JsonSchemaPropertyType::Null, None),
-        Tag(tag, value) => {
-            let (type_, format) = type_and_format_of(value);
-
-            if *tag == 1004 {
-                (JsonSchemaPropertyType::String, Some(JsonSchemaPropertyFormat::Date))
-            } else {
-                (type_, format)
-            }
-        }
-        Array(_) => (JsonSchemaPropertyType::Array, None),
-        Map(_) => (JsonSchemaPropertyType::Object, None),
-        _ => unimplemented!(),
-    }
-}
-
-pub fn unchecked_metadata_from_attributes(attributes: &IndexMap<String, Vec<Entry>>) -> UncheckedTypeMetadata {
-    assert_eq!(attributes.len(), 1);
-
-    let (namespace, entries) = attributes.first().unwrap();
-    let attrs: Vec<_> = entries
-        .iter()
-        .map(|Entry { name, value }| {
-            let (type_, format) = type_and_format_of(value);
-            (name.as_str(), type_, format)
-        })
-        .collect();
-
-    UncheckedTypeMetadata::example_with_claim_names(namespace, attrs.as_slice())
-}
-
-pub fn normalized_metadata_from_attributes(attributes: &IndexMap<String, Vec<Entry>>) -> NormalizedTypeMetadata {
-    NormalizedTypeMetadata::from_single_example(unchecked_metadata_from_attributes(attributes))
+    pub metadata_integrity: Integrity,
+    pub metadata: TypeMetadataDocuments,
 }
 
 impl TestDocument {
-    pub fn new(doc_type: String, issuer_uri: HttpsUri, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
+    pub fn new(
+        doc_type: String,
+        issuer_uri: HttpsUri,
+        namespaces: IndexMap<String, Vec<Entry>>,
+        (metadata_integrity, metadata): (Integrity, TypeMetadataDocuments),
+    ) -> Self {
         Self {
             doc_type,
             issuer_uri,
             namespaces,
+            metadata_integrity,
+            metadata,
         }
     }
 
-    pub fn metadata(&self) -> (String, Integrity, TypeMetadataDocuments) {
-        let unchecked_metadata = unchecked_metadata_from_attributes(&self.namespaces);
-        let type_metadata = TypeMetadata::try_new(unchecked_metadata).unwrap();
-        TypeMetadataDocuments::from_single_example(type_metadata)
-    }
-
-    // TODO: rename, replace unsigned with preview
     async fn prepare_credential_preview<KF>(
         self,
         ca: &Ca,
@@ -244,8 +198,7 @@ impl TestDocument {
     where
         KF: KeyFactory,
     {
-        let (_, metadata_integrity, metadata_documents) = self.metadata();
-        let (normalized_metadata, _) = metadata_documents.clone().into_normalized(&self.doc_type).unwrap();
+        let (normalized_metadata, _) = self.metadata.clone().into_normalized(&self.doc_type).unwrap();
         let attributes = Attribute::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
 
         let now = Utc::now();
@@ -263,8 +216,8 @@ impl TestDocument {
 
         (
             payload_preview,
-            metadata_documents,
-            metadata_integrity,
+            self.metadata.clone(),
+            self.metadata_integrity.clone(),
             issuance_key,
             mdoc_key,
         )
@@ -329,7 +282,7 @@ impl From<TestDocument> for ItemsRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct TestDocuments(pub Vec<TestDocument>);
 impl TestDocuments {
     pub fn len(&self) -> usize {
@@ -351,6 +304,7 @@ impl TestDocuments {
             doc_type: expected_doc_type,
             namespaces: expected_namespaces,
             issuer_uri: expected_issuer,
+            ..
         } in &self.0
         {
             // verify the disclosed attributes
@@ -453,6 +407,7 @@ pub mod data {
 
     pub const PID: &str = "urn:eudi:pid:nl:1";
     const ADDR: &str = "urn:eudi:pid-address:nl:1";
+    const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
 
     pub fn empty() -> TestDocuments {
         vec![].into()
@@ -479,6 +434,7 @@ pub mod data {
                     },
                 ],
             )]),
+            TypeMetadataDocuments::pid_example(),
         )]
         .into()
     }
@@ -505,6 +461,7 @@ pub mod data {
                     value: Value::Text("Willeke Liselotte".to_string()),
                 }],
             )]),
+            TypeMetadataDocuments::pid_example(),
         )]
         .into()
     }
@@ -520,6 +477,7 @@ pub mod data {
                     value: Value::Text("De Bruijn".to_string()),
                 }],
             )]),
+            TypeMetadataDocuments::pid_example(),
         )]
         .into()
     }
@@ -532,15 +490,16 @@ pub mod data {
                 PID.to_string(),
                 vec![
                     Entry {
-                        name: "given_name".to_string(),
-                        value: Value::Text("Willeke Liselotte".to_string()),
-                    },
-                    Entry {
                         name: "family_name".to_string(),
                         value: Value::Text("De Bruijn".to_string()),
                     },
+                    Entry {
+                        name: "given_name".to_string(),
+                        value: Value::Text("Willeke Liselotte".to_string()),
+                    },
                 ],
             )]),
+            TypeMetadataDocuments::pid_example(),
         )]
         .into()
     }
@@ -550,12 +509,13 @@ pub mod data {
             ADDR.to_owned(),
             format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             IndexMap::from_iter(vec![(
-                ADDR.to_string(),
+                ADDR_NS.to_string(),
                 vec![Entry {
                     name: "street_address".to_string(),
                     value: Value::Text("Turfmarkt".to_string()),
                 }],
             )]),
+            TypeMetadataDocuments::address_example(),
         )]
         .into()
     }
