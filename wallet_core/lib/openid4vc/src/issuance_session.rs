@@ -481,8 +481,6 @@ impl HttpVcMessageClient {
 pub struct NormalizedCredentialPreview {
     pub content: CredentialPreviewContent,
 
-    pub issuer_registration: IssuerRegistration,
-
     pub normalized_metadata: NormalizedTypeMetadata,
 
     pub raw_metadata: SortedTypeMetadataDocuments,
@@ -490,14 +488,12 @@ pub struct NormalizedCredentialPreview {
 
 impl NormalizedCredentialPreview {
     pub fn try_new(preview: CredentialPreview) -> Result<Self, IssuanceSessionError> {
-        let issuer_registration = preview.issuer_registration()?;
         let (normalized_metadata, raw_metadata) = preview
             .type_metadata
             .into_normalized(&preview.content.credential_payload.attestation_type)?;
 
         Ok(Self {
             content: preview.content,
-            issuer_registration,
             normalized_metadata,
             raw_metadata,
         })
@@ -636,6 +632,16 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .request_token(&token_endpoint, &token_request, &dpop_header)
             .await?;
 
+        let issuer_registration = token_response
+            .credential_previews
+            .iter()
+            .map(|preview| preview.issuer_registration())
+            .collect::<Result<Vec<_>, _>>()?
+            .iter()
+            .single_unique()
+            .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
+            .expect("there are always credential_previews in the token_response");
+
         let normalized_credential_previews = token_response
             .credential_previews
             .into_iter()
@@ -648,13 +654,6 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .collect::<Result<Vec<_>, _>>()?;
 
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
-
-        let issuer_registration = normalized_credential_previews
-            .iter()
-            .map(|preview| &preview.issuer_registration)
-            .single_unique()
-            .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
-            .expect("there are always credential_previews in the token_response");
 
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
@@ -1446,7 +1445,6 @@ mod tests {
                     credential_payload: credential_payload.previewable_payload,
                     issuer_certificate,
                 },
-                issuer_registration,
                 normalized_metadata,
                 raw_metadata,
             };

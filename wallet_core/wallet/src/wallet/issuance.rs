@@ -346,6 +346,7 @@ where
         .await?;
 
         info!("successfully received token and previews from issuer");
+        let organization = &issuance_session.issuer_registration().organization;
         let attestations = issuance_session
             .normalized_credential_preview()
             .iter()
@@ -353,11 +354,11 @@ where
                 let attestation = Attestation::create_from_attributes(
                     AttestationIdentity::Ephemeral,
                     preview_data.normalized_metadata.clone(),
-                    preview_data.issuer_registration.organization.clone(),
+                    organization.clone(),
                     preview_data.content.credential_payload.attributes.clone(),
                 )
                 .map_err(|error| IssuanceError::Attestation {
-                    organization: Box::new(preview_data.issuer_registration.organization.clone()),
+                    organization: Box::new(organization.clone()),
                     error,
                 })?;
 
@@ -794,6 +795,8 @@ mod tests {
             client
                 .expect_normalized_credential_previews()
                 .return_const(vec![preview_data]);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
         });
