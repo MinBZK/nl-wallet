@@ -294,7 +294,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}demo_index${NC}"
-        RUST_LOG=debug cargo run --bin demo_index > "${TARGET_DIR}/demo_index.log" 2>&1 &
+        RUST_LOG=debug cargo run --package demo_index --bin demo_index > "${TARGET_DIR}/demo_index.log" 2>&1 &
 
         echo -e "demo_index logs can be found at ${CYAN}${TARGET_DIR}/demo_index.log${NC}"
     fi
@@ -319,7 +319,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}demo_relying_party${NC}"
-        RUST_LOG=debug cargo run --features "allow_insecure_url" --bin demo_relying_party > "${TARGET_DIR}/demo_relying_party.log" 2>&1 &
+        RUST_LOG=debug cargo run --package demo_relying_party --features "allow_insecure_url" --bin demo_relying_party > "${TARGET_DIR}/demo_relying_party.log" 2>&1 &
 
         echo -e "demo_relying_party logs can be found at ${CYAN}${TARGET_DIR}/demo_relying_party.log${NC}"
     fi
@@ -344,7 +344,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}demo_issuer${NC}"
-        RUST_LOG=debug cargo run --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --package demo_issuer --bin demo_issuer > "${TARGET_DIR}/demo_issuer.log" 2>&1 &
 
         echo -e "demo_issuer logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer.log${NC}"
     fi
@@ -370,11 +370,11 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running pid_issuer database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --bin wallet_server_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/pid_issuer" cargo run --package wallet_server_migrations --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}pid_issuer${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
+        RUST_LOG=debug cargo run --package pid_issuer --no-default-features --features "postgres" --bin pid_issuer > "${TARGET_DIR}/pid_issuer.log" 2>&1 &
 
         echo -e "pid_issuer logs can be found at ${CYAN}${TARGET_DIR}/pid_issuer.log${NC}"
     fi
@@ -401,11 +401,11 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running verification_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --bin wallet_server_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/verification_server" cargo run --package wallet_server_migrations --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}verification_server${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package verification_server --no-default-features --features "allow_insecure_url,postgres" --bin verification_server > "${TARGET_DIR}/demo_rp_verification_server.log" 2>&1 &
 
         echo -e "verification_server logs can be found at ${CYAN}${TARGET_DIR}/demo_rp_verification_server.log${NC}"
     fi
@@ -432,11 +432,11 @@ then
     then
         pushd "${WALLET_CORE_DIR}"
         echo -e "${INFO}Running issuance_server database migrations${NC}"
-        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/issuance_server" cargo run --bin wallet_server_migrations -- fresh
+        DATABASE_URL="postgres://${DB_USERNAME}:${DB_PASSWORD}@${DB_HOST}:5432/issuance_server" cargo run --package wallet_server_migrations --bin wallet_server_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}issuance_server${NC}"
-        RUST_LOG=debug cargo run --no-default-features --features "allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package issuance_server --no-default-features --features "allow_insecure_url,postgres" --bin issuance_server > "${TARGET_DIR}/demo_issuer_issuance_server.log" 2>&1 &
 
         echo -e "issuance_server logs can be found at ${CYAN}${TARGET_DIR}/demo_issuer_issuance_server.log${NC}"
     fi
@@ -462,11 +462,11 @@ then
     then
         echo -e "${INFO}Running wallet_provider database migrations${NC}"
         pushd "${WALLET_CORE_DIR}"
-        cargo run --bin wallet_provider_migrations -- fresh
+        cargo run --package wallet_provider_migrations --bin wallet_provider_migrations -- fresh
         popd
 
         echo -e "${INFO}Start ${ORANGE}wallet_provider${NC}"
-        RUST_LOG=debug cargo run --bin wallet_provider --features=android_emulator > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
+        RUST_LOG=debug cargo run --package wallet_provider --bin wallet_provider --features=android_emulator > "${TARGET_DIR}/wallet_provider.log" 2>&1 &
 
         echo -e "wallet_provider logs can be found at ${CYAN}${TARGET_DIR}/wallet_provider.log${NC}"
     fi
@@ -491,7 +491,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}configuration_server${NC}"
-        RUST_LOG=debug cargo run --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package configuration_server --bin configuration_server > "${TARGET_DIR}/configuration_server.log" 2>&1 &
 
         echo -e "configuration_server logs can be found at ${CYAN}${TARGET_DIR}/configuration_server.log${NC}"
     fi
@@ -515,7 +515,7 @@ then
     if [ "${START}" == "0" ]
     then
         echo -e "${INFO}Start ${ORANGE}update_policy_server${NC}"
-        RUST_LOG=debug cargo run --bin update_policy_server > "${TARGET_DIR}/update_policy_server.log" 2>&1 &
+        RUST_LOG=debug cargo run --package update_policy_server --bin update_policy_server > "${TARGET_DIR}/update_policy_server.log" 2>&1 &
 
         echo -e "update_policy_server logs can be found at ${CYAN}${TARGET_DIR}/update_policy_server.log${NC}"
     fi
@@ -563,7 +563,7 @@ then
         echo -e "Starting ${ORANGE}gba_hc_converter${NC}"
 
         encrypt_gba_v_responses
-        RUST_LOG=debug cargo run --bin gba_hc_converter > "${TARGET_DIR}/gba_hc_converter.log" 2>&1 &
+        RUST_LOG=debug cargo run --package gba_hc_converter --bin gba_hc_converter > "${TARGET_DIR}/gba_hc_converter.log" 2>&1 &
 
         echo -e "gba_hc_converter logs can be found at ${CYAN}${TARGET_DIR}/gba_hc_converter.log${NC}"
     fi
