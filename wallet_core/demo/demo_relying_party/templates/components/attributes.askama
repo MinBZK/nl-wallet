@@ -1,11 +1,23 @@
 {% macro attributes(attributes) %}
-<p class="attributes">
+<dl class="attributes">
 {% for doctype in attributes %}
     {% for namespace in doctype.1.attributes %}
-        {% for (_, value) in namespace.1 %}
-            {{ value.as_text().unwrap() }}<br />
+        {% for (key, value) in namespace.1 %}
+            <dt>{{ base.trans[key.as_str()] }}</dt>
+            <dd>
+            {% match value %}
+            {% when Value::Text(text) %}
+                {{ text }}
+            {% when Value::Integer(int) %}
+                {{ "{:?}" | format(int) }}
+            {% when Value::Bool(bool) %}
+                {{ base.trans[format!("{bool:?}").as_str()] }}
+            {% else %}
+                {{ "{:?}" | format(value) }}
+            {% endmatch %}
+            </dd>
         {% endfor %}
     {% endfor %}
 {% endfor %}
-</p>
+</dl>
 {% endmacro %}

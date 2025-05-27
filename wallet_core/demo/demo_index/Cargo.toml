@@ -20,7 +20,16 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower.workspace = true
 tower-http = { workspace = true, features = ["fs", "trace"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["env-filter", "fmt", "json"] }
+tracing-subscriber = { workspace = true, features = [
+    "std",
+    "fmt",
+    "tracing-log",
+    "smallvec",
+    "parking_lot",
+    "env-filter",
+    "json",
+    "ansi",
+] }
 url = { workspace = true, features = ["serde"] }
 
 demo_utils.path = "../demo_utils"

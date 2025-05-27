@@ -4,7 +4,7 @@ port = ${DEMO_INDEX_PORT}
 
 [[demo_services]]
 service_url = 'http://${SERVICES_HOST}:${DEMO_RP_PORT}/'
-usecases = ['mijn_amsterdam', 'online_marketplace', 'xyz_bank', 'monkey_bike']
+usecases = ['mijn_amsterdam', 'online_marketplace', 'xyz_bank', 'monkey_bike', 'job_finder']
 
 [[demo_services]]
 service_url = 'http://${SERVICES_HOST}:${DEMO_ISSUER_PORT}/'

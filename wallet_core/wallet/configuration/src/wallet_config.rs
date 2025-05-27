@@ -31,6 +31,7 @@ pub struct WalletConfiguration {
     pub mdoc_trust_anchors: Vec<BorrowingTrustAnchor>,
     pub update_policy_server: UpdatePolicyServerConfiguration,
     pub google_cloud_project_number: u64,
+    pub static_assets_base_url: BaseUrl,
     pub version: u64,
 }
 

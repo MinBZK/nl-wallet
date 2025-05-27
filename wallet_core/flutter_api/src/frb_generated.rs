@@ -1268,11 +1268,13 @@ impl SseDecode for crate::models::config::FlutterConfiguration {
         let mut var_inactiveWarningTimeout = <u16>::sse_decode(deserializer);
         let mut var_inactiveLockTimeout = <u16>::sse_decode(deserializer);
         let mut var_backgroundLockTimeout = <u16>::sse_decode(deserializer);
+        let mut var_staticAssetsBaseUrl = <String>::sse_decode(deserializer);
         let mut var_version = <u64>::sse_decode(deserializer);
         return crate::models::config::FlutterConfiguration {
             inactive_warning_timeout: var_inactiveWarningTimeout,
             inactive_lock_timeout: var_inactiveLockTimeout,
             background_lock_timeout: var_backgroundLockTimeout,
+            static_assets_base_url: var_staticAssetsBaseUrl,
             version: var_version,
         };
     }
@@ -2097,6 +2099,7 @@ impl flutter_rust_bridge::IntoDart for crate::models::config::FlutterConfigurati
             self.inactive_warning_timeout.into_into_dart().into_dart(),
             self.inactive_lock_timeout.into_into_dart().into_dart(),
             self.background_lock_timeout.into_into_dart().into_dart(),
+            self.static_assets_base_url.into_into_dart().into_dart(),
             self.version.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -2727,6 +2730,7 @@ impl SseEncode for crate::models::config::FlutterConfiguration {
         <u16>::sse_encode(self.inactive_warning_timeout, serializer);
         <u16>::sse_encode(self.inactive_lock_timeout, serializer);
         <u16>::sse_encode(self.background_lock_timeout, serializer);
+        <String>::sse_encode(self.static_assets_base_url, serializer);
         <u64>::sse_encode(self.version, serializer);
     }
 }
@@ -3496,6 +3500,7 @@ mod io {
                 inactive_warning_timeout: self.inactive_warning_timeout.cst_decode(),
                 inactive_lock_timeout: self.inactive_lock_timeout.cst_decode(),
                 background_lock_timeout: self.background_lock_timeout.cst_decode(),
+                static_assets_base_url: self.static_assets_base_url.cst_decode(),
                 version: self.version.cst_decode(),
             }
         }
@@ -3916,6 +3921,7 @@ mod io {
                 inactive_warning_timeout: Default::default(),
                 inactive_lock_timeout: Default::default(),
                 background_lock_timeout: Default::default(),
+                static_assets_base_url: core::ptr::null_mut(),
                 version: Default::default(),
             }
         }
@@ -4617,6 +4623,7 @@ mod io {
         inactive_warning_timeout: u16,
         inactive_lock_timeout: u16,
         background_lock_timeout: u16,
+        static_assets_base_url: *mut wire_cst_list_prim_u_8_strict,
         version: u64,
     }
     #[repr(C)]

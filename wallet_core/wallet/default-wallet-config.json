@@ -45,5 +45,6 @@
       ]
     }
   },
-  "google_cloud_project_number": 0
+  "google_cloud_project_number": 0,
+  "static_assets_base_url": "https://localhost:3001/"
 }

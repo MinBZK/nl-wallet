@@ -17,16 +17,18 @@
 
 {% block content %}
 {% match usecase %}
-    {% when "mijn_amsterdam" %}
-        {% include "mijn_amsterdam.askama" %}
-    {% when "monkey_bike" %}
-        {% include "monkey_bike.askama" %}
-    {% when "online_marketplace" %}
-        {% include "online_marketplace.askama" %}
-    {% when "xyz_bank" %}
-        {% include "xyz_bank.askama" %}
-    {% else %}
-        {% call attributes::attributes(attributes) %}
+{% when "mijn_amsterdam" %}
+    {% include "mijn_amsterdam.askama" %}
+{% when "monkey_bike" %}
+    {% include "monkey_bike.askama" %}
+{% when "online_marketplace" %}
+    {% include "online_marketplace.askama" %}
+{% when "xyz_bank" %}
+    {% include "xyz_bank.askama" %}
+{% when "job_finder" %}
+    {% include "job_finder.askama" %}
+{% else %}
+    {% call attributes::attributes(attributes) %}
 {% endmatch %}
 
 {# should be last for accessibility purposes #}

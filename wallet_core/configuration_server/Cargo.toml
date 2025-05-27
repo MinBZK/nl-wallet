@@ -23,7 +23,7 @@ rustls = { workspace = true, features = ["logging", "std", "ring", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "parking_lot"] }
 tracing.workspace = true
-tracing-subscriber = { workspace = true, features = ["std", "fmt", "ansi", "tracing-log", "parking_lot"] }
+tracing-subscriber = { workspace = true, features = ["std", "fmt", "tracing-log", "smallvec", "parking_lot", "ansi"] }
 
 http_utils = { path = "../lib/http_utils", features = ["server"] }
 utils.path = "../lib/utils"

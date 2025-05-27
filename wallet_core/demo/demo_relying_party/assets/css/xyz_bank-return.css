@@ -1,4 +1,5 @@
 @import url("./xyz_bank.css");
+@import url("./attributes.css");
 
 button {
   width: fit-content;

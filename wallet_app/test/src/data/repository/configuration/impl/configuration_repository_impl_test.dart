@@ -22,6 +22,7 @@ void main() {
           inactiveWarningTimeout: 3,
           inactiveLockTimeout: 5,
           backgroundLockTimeout: 10,
+          staticAssetsBaseUrl: 'https://example.com/',
           version: BigInt.zero,
         ),
       ),
@@ -34,6 +35,7 @@ void main() {
         idleWarningTimeout: Duration(seconds: 3),
         idleLockTimeout: Duration(seconds: 5),
         backgroundLockTimeout: Duration(seconds: 10),
+        staticAssetsBaseUrl: 'https://example.com/',
         version: 0,
       ),
     );

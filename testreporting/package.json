@@ -10,13 +10,13 @@
     "format-check": "prettier --check \"**/*.{js,json,md,mjs,ts}\"",
     "format": "prettier --write \"**/*.{js,json,md,mjs,ts}\"",
     "type-check": "tsc",
-    "serve": "python3 -m http.server -b 127.0.0.1 -d allure-report/awesome 8080"
+    "serve": "python3 -m http.server -b 127.0.0.1 -d allure-report 8080"
   },
   "dependencies": {
-    "@allurereport/core": "^3.0.0-beta.10",
-    "@allurereport/plugin-api": "^3.0.0-beta.10",
-    "@allurereport/reader": "^3.0.0-beta.10",
-    "@allurereport/reader-api": "^3.0.0-beta.10",
+    "@allurereport/core": "^3.0.0-beta.13",
+    "@allurereport/plugin-api": "^3.0.0-beta.13",
+    "@allurereport/reader": "^3.0.0-beta.13",
+    "@allurereport/reader-api": "^3.0.0-beta.13",
     "@types/yauzl": "^2.10.3",
     "yauzl": "^3.2.0"
   },

@@ -1,4 +1,4 @@
-{% call header::header(base.trans.insurance_title, demo_utils::OPTION_STR_NONE) %}
+{% call header::header(base.trans.insurance_title, demo_utils::OPTION_STR_NONE, demo_utils::OPTION_STR_NONE) %}
 
 <main>
     <section>

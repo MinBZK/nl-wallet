@@ -25,11 +25,9 @@ import 'widget/menu_row.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool showDesignSystemRow;
-  final bool showBrowserTestRow;
 
   const MenuScreen({
     this.showDesignSystemRow = !kReleaseMode,
-    this.showBrowserTestRow = !kReleaseMode,
     super.key,
   });
 
@@ -150,7 +148,7 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
       );
       defaultMenuItems.add(designSystemItem);
     }
-    if (widget.showBrowserTestRow && Environment.demoRelyingPartyUrl.isNotEmpty) {
+    if (Environment.demoRelyingPartyUrl.isNotEmpty) {
       final browserTestItem = MenuRow(
         label: context.l10n.menuScreenBrowserCta,
         subtitle: 'Open url: ${Environment.demoRelyingPartyUrl}',
