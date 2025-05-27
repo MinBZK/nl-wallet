@@ -8,7 +8,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use ctor::ctor;
-use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
 use jsonwebtoken::Header;
@@ -61,8 +60,6 @@ use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
 use verification_server::settings::VerifierSettings;
-use wallet::attestation_data::Attribute;
-use wallet::attestation_data::AttributeValue;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
 use wallet::wallet_deps::default_config_server_config;
@@ -416,7 +413,7 @@ pub fn issuance_server_settings() -> (IssuanceServerSettings, Vec<IssuableDocume
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec![mock_issuable_document()])
+    (settings, vec![IssuableDocument::new_mock()])
 }
 
 pub fn verification_server_settings() -> VerifierSettings {
@@ -443,32 +440,6 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
         | RequesterAuth::InternalEndpoint(Server { port, .. }) => format!("http://localhost:{port}/").parse().unwrap(),
         RequesterAuth::Authentication(_) => settings.server_settings.public_url.clone(),
     }
-}
-
-pub fn mock_issuable_document() -> IssuableDocument {
-    IssuableDocument::try_new(
-        "com.example.degree".to_string(),
-        IndexMap::from([
-            (
-                "university".to_string(),
-                Attribute::Single(AttributeValue::Text("Example university".to_string())),
-            ),
-            (
-                "education".to_string(),
-                Attribute::Single(AttributeValue::Text("Example education".to_string())),
-            ),
-            (
-                "graduation_date".to_string(),
-                Attribute::Single(AttributeValue::Text("1970-01-01".to_string())),
-            ),
-            (
-                "grade".to_string(),
-                Attribute::Single(AttributeValue::Text("A".to_string())),
-            ),
-            ("cum_laude".to_string(), Attribute::Single(AttributeValue::Bool(true))),
-        ]),
-    )
-    .unwrap()
 }
 
 async fn mock_attestation_server(issuable_documents: Vec<IssuableDocument>) -> (MockServer, BaseUrl) {

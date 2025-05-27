@@ -76,3 +76,38 @@ impl IssuableDocument {
 }
 
 pub type IssuableDocuments = VecNonEmpty<IssuableDocument>;
+
+#[cfg(feature = "mock")]
+pub mod mock {
+    use super::*;
+
+    use crate::attributes::AttributeValue;
+
+    impl IssuableDocument {
+        pub fn new_mock() -> Self {
+            IssuableDocument::try_new(
+                "com.example.degree".to_string(),
+                IndexMap::from([
+                    (
+                        "university".to_string(),
+                        Attribute::Single(AttributeValue::Text("Example university".to_string())),
+                    ),
+                    (
+                        "education".to_string(),
+                        Attribute::Single(AttributeValue::Text("Example education".to_string())),
+                    ),
+                    (
+                        "graduation_date".to_string(),
+                        Attribute::Single(AttributeValue::Text("1970-01-01".to_string())),
+                    ),
+                    (
+                        "grade".to_string(),
+                        Attribute::Single(AttributeValue::Text("A".to_string())),
+                    ),
+                    ("cum_laude".to_string(), Attribute::Single(AttributeValue::Bool(true))),
+                ]),
+            )
+            .unwrap()
+        }
+    }
+}

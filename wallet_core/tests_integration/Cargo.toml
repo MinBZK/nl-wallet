@@ -210,9 +210,11 @@ tracing = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = [
     "std",
     "fmt",
-    "ansi",
     "tracing-log",
+    "smallvec",
     "parking_lot",
+    "env-filter",
+    "ansi",
 ] }
 url = { workspace = true, optional = true }
 uuid = { workspace = true, optional = true }

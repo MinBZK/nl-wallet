@@ -46,13 +46,13 @@ tower-http = { workspace = true, features = ["trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = [
     "std",
-    "env-filter",
     "fmt",
-    "ansi",
-    "json",
     "tracing-log",
     "smallvec",
     "parking_lot",
+    "env-filter",
+    "json",
+    "ansi",
 ] }
 trait-variant.workspace = true
 

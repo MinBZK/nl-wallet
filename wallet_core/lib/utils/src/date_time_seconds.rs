@@ -1,6 +1,7 @@
 use chrono::DateTime;
 use chrono::Timelike;
 use chrono::Utc;
+use derive_more::AsRef;
 use derive_more::Into;
 use serde::Deserialize;
 use serde::Serialize;
@@ -9,7 +10,7 @@ use serde_with::TimestampSeconds;
 
 /// Newtype around `DateTime<Utc>` having only seconds precision.
 #[serde_as]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Into, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Into, AsRef, Serialize, Deserialize)]
 pub struct DateTimeSeconds(#[serde_as(as = "TimestampSeconds<i64>")] DateTime<Utc>);
 
 impl DateTimeSeconds {

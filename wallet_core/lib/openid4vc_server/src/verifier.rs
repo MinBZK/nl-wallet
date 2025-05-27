@@ -15,7 +15,6 @@ use http::HeaderValue;
 use http::Method;
 use http::StatusCode;
 use http::Uri;
-use ring::hmac;
 use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
@@ -38,9 +37,9 @@ use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionToken;
 use openid4vc::verifier::DisclosureData;
 use openid4vc::verifier::DisclosureResultHandler;
-use openid4vc::verifier::SessionIdentifier;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
+use openid4vc::verifier::UseCase;
 use openid4vc::verifier::UseCases;
 use openid4vc::verifier::Verifier;
 use openid4vc::verifier::WalletAuthResponse;
@@ -50,51 +49,44 @@ use openid4vc::PostAuthResponseErrorCode;
 use openid4vc::VerificationErrorCode;
 use utils::generator::TimeGenerator;
 
-struct ApplicationState<S, K> {
-    verifier: Verifier<S, K>,
+struct ApplicationState<S, US> {
+    verifier: Verifier<S, US>,
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
 }
 
-#[derive(Clone, Copy)]
-pub enum RequestUriBehaviour {
-    BySessionToken,
-    ByUsecaseId,
-}
-
-pub struct VerifierFactory<K> {
+pub struct VerifierFactory<US> {
     public_url: BaseUrl,
     universal_link_base_url: BaseUrl,
-    use_cases: UseCases<K>,
-    ephemeral_id_secret: Option<hmac::Key>,
+    use_cases: US,
     issuer_trust_anchors: Vec<TrustAnchor<'static>>,
     accepted_wallet_client_ids: Vec<String>,
-    behaviour: RequestUriBehaviour,
 }
 
-struct WalletRouterAndState<S, K> {
-    wallet_router: Router<Arc<ApplicationState<S, K>>>,
-    application_state: Arc<ApplicationState<S, K>>,
+struct WalletRouterAndState<S, US> {
+    wallet_router: Router<Arc<ApplicationState<S, US>>>,
+    application_state: Arc<ApplicationState<S, US>>,
 }
 
-impl<K> VerifierFactory<K> {
+impl<K, US, UC> VerifierFactory<US>
+where
+    US: UseCases<UseCase = UC, Key = K> + Send + Sync + 'static,
+    UC: UseCase<Key = K> + Send + Sync + 'static,
+    K: EcdsaKeySend + Sync + 'static,
+{
     pub fn new(
         public_url: BaseUrl,
         universal_link_base_url: BaseUrl,
-        use_cases: UseCases<K>,
-        ephemeral_id_secret: Option<hmac::Key>,
+        use_cases: US,
         issuer_trust_anchors: Vec<TrustAnchor<'static>>,
         accepted_wallet_client_ids: Vec<String>,
-        behaviour: RequestUriBehaviour,
     ) -> Self {
         Self {
             public_url,
             universal_link_base_url,
             use_cases,
-            ephemeral_id_secret,
             issuer_trust_anchors,
             accepted_wallet_client_ids,
-            behaviour,
         }
     }
 
@@ -102,17 +94,15 @@ impl<K> VerifierFactory<K> {
         self,
         sessions: Arc<S>,
         result_handler: Option<Box<dyn DisclosureResultHandler + Send + Sync>>,
-    ) -> WalletRouterAndState<S, K>
+    ) -> WalletRouterAndState<S, US>
     where
         S: SessionStore<DisclosureData> + Send + Sync + 'static,
-        K: EcdsaKeySend + Sync + 'static,
     {
         let application_state = Arc::new(ApplicationState {
             verifier: Verifier::new(
                 self.use_cases,
                 sessions,
                 self.issuer_trust_anchors,
-                self.ephemeral_id_secret,
                 result_handler,
                 self.accepted_wallet_client_ids.clone(),
             ),
@@ -123,21 +113,10 @@ impl<K> VerifierFactory<K> {
         // RFC 9101 defines just `GET` for the `request_uri` endpoint, but OpenID4VP extends that with `POST`.
         // Note that since `retrieve_request()` uses the `Form` extractor, it requires the
         // `Content-Type: application/x-www-form-urlencoded` header to be set on POST requests (but not GET requests).
-        let wallet_router = match self.behaviour {
-            RequestUriBehaviour::BySessionToken => Router::new()
-                .route(
-                    "/{session_token}/request_uri",
-                    get(retrieve_request_by_sessiontoken::<S, K>),
-                )
-                .route(
-                    "/{session_token}/request_uri",
-                    post(retrieve_request_by_sessiontoken::<S, K>),
-                ),
-            RequestUriBehaviour::ByUsecaseId => Router::new()
-                .route("/{usecase}/request_uri", get(retrieve_request_by_usecase::<S, K>))
-                .route("/{usecase}/request_uri", post(retrieve_request_by_usecase::<S, K>)),
-        }
-        .route("/{session_token}/response_uri", post(post_response::<S, K>));
+        let wallet_router = Router::new()
+            .route("/{identifier}/request_uri", get(retrieve_request::<S, US, UC, K>))
+            .route("/{identifier}/request_uri", post(retrieve_request::<S, US, UC, K>))
+            .route("/{session_token}/response_uri", post(post_response::<S, US, UC, K>));
 
         WalletRouterAndState {
             wallet_router,
@@ -152,7 +131,6 @@ impl<K> VerifierFactory<K> {
     ) -> Router
     where
         S: SessionStore<DisclosureData> + Send + Sync + 'static,
-        K: EcdsaKeySend + Sync + 'static,
     {
         let WalletRouterAndState {
             wallet_router,
@@ -170,7 +148,6 @@ impl<K> VerifierFactory<K> {
     ) -> (Router, Router)
     where
         S: SessionStore<DisclosureData> + Send + Sync + 'static,
-        K: EcdsaKeySend + Sync + 'static,
     {
         let WalletRouterAndState {
             wallet_router,
@@ -178,8 +155,8 @@ impl<K> VerifierFactory<K> {
         } = self.wallet_router_and_state(sessions, result_handler);
 
         let mut wallet_web = Router::new()
-            .route("/{session_token}", get(status::<S, K>))
-            .route("/{session_token}", delete(cancel::<S, K>));
+            .route("/{session_token}", get(status::<S, US, UC, K>))
+            .route("/{session_token}", delete(cancel::<S, US, UC, K>));
 
         if let Some(cors_origin) = allow_origins {
             // The CORS headers should be set for these routes, so that any web browser may call them.
@@ -191,10 +168,10 @@ impl<K> VerifierFactory<K> {
             .with_state(Arc::clone(&application_state));
 
         let requester_router = Router::new()
-            .route("/", post(start::<S, K>))
+            .route("/", post(start::<S, US, UC, K>))
             .route(
                 "/{session_token}/disclosed_attributes",
-                get(disclosed_attributes::<S, K>),
+                get(disclosed_attributes::<S, US, UC, K>),
             )
             .with_state(application_state);
 
@@ -208,47 +185,23 @@ fn cors_layer(allow_origins: CorsOrigin) -> CorsLayer {
         .allow_methods([Method::GET, Method::DELETE])
 }
 
-async fn retrieve_request_by_usecase<S, K>(
+async fn retrieve_request<S, US, UC, K>(
     uri: Uri,
-    State(state): State<Arc<ApplicationState<S, K>>>,
-    Path(usecase): Path<String>,
+    State(state): State<Arc<ApplicationState<S, US>>>,
+    Path(identifier): Path<String>,
     Form(wallet_request): Form<WalletRequest>,
 ) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
 where
     S: SessionStore<DisclosureData>,
-    K: EcdsaKeySend,
-{
-    retrieve_request(uri, state, SessionIdentifier::UseCaseId(usecase), wallet_request).await
-}
-
-async fn retrieve_request_by_sessiontoken<S, K>(
-    uri: Uri,
-    State(state): State<Arc<ApplicationState<S, K>>>,
-    Path(session_token): Path<SessionToken>,
-    Form(wallet_request): Form<WalletRequest>,
-) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
-where
-    S: SessionStore<DisclosureData>,
-    K: EcdsaKeySend,
-{
-    retrieve_request(uri, state, SessionIdentifier::Token(session_token), wallet_request).await
-}
-
-async fn retrieve_request<S, K>(
-    uri: Uri,
-    state: Arc<ApplicationState<S, K>>,
-    session_id: SessionIdentifier,
-    wallet_request: WalletRequest,
-) -> Result<(HeaderMap, String), DisclosureErrorResponse<GetRequestErrorCode>>
-where
-    S: SessionStore<DisclosureData>,
+    US: UseCases<Key = K, UseCase = UC>,
+    UC: UseCase<Key = K>,
     K: EcdsaKeySend,
 {
     info!("process request for Authorization Request JWT");
 
     let response = state
         .verifier
-        .process_get_request(&session_id, &state.public_url, uri.query(), wallet_request.wallet_nonce)
+        .process_get_request(&identifier, &state.public_url, uri.query(), wallet_request.wallet_nonce)
         .await
         .inspect_err(|error| {
             warn!("processing request for Authorization Request JWT failed, returning error: {error}");
@@ -260,16 +213,19 @@ where
         header::CONTENT_TYPE,
         HeaderValue::from_static(APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref()),
     )]);
+
     Ok((headers, response.0))
 }
 
-async fn post_response<S, K>(
-    State(state): State<Arc<ApplicationState<S, K>>>,
+async fn post_response<S, US, UC, K>(
+    State(state): State<Arc<ApplicationState<S, US>>>,
     Path(session_token): Path<SessionToken>,
     Form(wallet_response): Form<WalletAuthResponse>,
 ) -> Result<Json<VpResponse>, DisclosureErrorResponse<PostAuthResponseErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    US: UseCases<Key = K, UseCase = UC>,
+    UC: UseCase<Key = K>,
     K: EcdsaKeySend,
 {
     info!("process Verifiable Presentation");
@@ -290,13 +246,15 @@ pub struct StatusParams {
     pub session_type: Option<SessionType>,
 }
 
-async fn status<S, K>(
-    State(state): State<Arc<ApplicationState<S, K>>>,
+async fn status<S, US, UC, K>(
+    State(state): State<Arc<ApplicationState<S, US>>>,
     Path(session_token): Path<SessionToken>,
     Query(query): Query<StatusParams>,
 ) -> Result<Json<StatusResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    US: UseCases<Key = K, UseCase = UC>,
+    UC: UseCase<Key = K>,
     K: EcdsaKeySend,
 {
     let response = state
@@ -314,12 +272,14 @@ where
     Ok(Json(response))
 }
 
-async fn cancel<S, K>(
-    State(state): State<Arc<ApplicationState<S, K>>>,
+async fn cancel<S, US, UC, K>(
+    State(state): State<Arc<ApplicationState<S, US>>>,
     Path(session_token): Path<SessionToken>,
 ) -> Result<StatusCode, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    US: UseCases<Key = K, UseCase = UC>,
+    UC: UseCase<Key = K>,
     K: EcdsaKeySend,
 {
     state
@@ -334,7 +294,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
-    pub items_requests: ItemsRequests,
+    pub items_requests: Option<ItemsRequests>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -343,19 +303,21 @@ pub struct StartDisclosureResponse {
     pub session_token: SessionToken,
 }
 
-async fn start<S, K>(
-    State(state): State<Arc<ApplicationState<S, K>>>,
+async fn start<S, US, UC, K>(
+    State(state): State<Arc<ApplicationState<S, US>>>,
     Json(start_request): Json<StartDisclosureRequest>,
 ) -> Result<Json<StartDisclosureResponse>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    US: UseCases<Key = K, UseCase = UC>,
+    UC: UseCase<Key = K>,
     K: EcdsaKeySend,
 {
     let session_token = state
         .verifier
         .new_session(
-            start_request.items_requests,
             start_request.usecase,
+            start_request.items_requests,
             start_request.return_url_template,
         )
         .await
@@ -369,13 +331,15 @@ pub struct DisclosedAttributesParams {
     pub nonce: Option<String>,
 }
 
-async fn disclosed_attributes<S, K>(
-    State(state): State<Arc<ApplicationState<S, K>>>,
+async fn disclosed_attributes<S, US, UC, K>(
+    State(state): State<Arc<ApplicationState<S, US>>>,
     Path(session_token): Path<SessionToken>,
     Query(params): Query<DisclosedAttributesParams>,
 ) -> Result<Json<DisclosedAttributes>, HttpJsonError<VerificationErrorCode>>
 where
     S: SessionStore<DisclosureData>,
+    US: UseCases<Key = K, UseCase = UC>,
+    UC: UseCase<Key = K>,
     K: EcdsaKeySend,
 {
     let disclosed_attributes = state

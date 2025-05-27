@@ -36,10 +36,8 @@ db_test = [
 
 [dependencies]
 chrono = { workspace = true, features = ["std", "clock"] }
-ctor = { workspace = true, optional = true }
 derive_more = { workspace = true, features = ["from"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8", "std"] }
-rand_core = { workspace = true, optional = true }
 sea-orm = { workspace = true, features = [
     "macros",
     "runtime-tokio-rustls",
@@ -47,19 +45,22 @@ sea-orm = { workspace = true, features = [
     "with-chrono",
     "with-uuid",
 ] }
-thiserror = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["parking_lot", "rt"] }
 tracing.workspace = true
+uuid.workspace = true
+
+ctor = { workspace = true, optional = true }
+mockall = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
+thiserror = { workspace = true, optional = true }
 tracing-subscriber = { workspace = true, optional = true, features = [
     "std",
     "fmt",
-    "ansi",
     "tracing-log",
+    "smallvec",
     "parking_lot",
+    "ansi",
 ] }
-uuid.workspace = true
-
-mockall = { workspace = true, optional = true }
 
 apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
