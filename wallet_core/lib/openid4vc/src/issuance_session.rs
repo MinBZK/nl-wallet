@@ -155,10 +155,6 @@ pub enum IssuanceSessionError {
     #[error("error retrieving metadata from issued mdoc: {0}")]
     Metadata(#[source] mdoc::Error),
 
-    #[error("metadata contained in credential not equal to expected value")]
-    #[category(critical)]
-    MetadataMismatch,
-
     #[error("metadata integrity digest contained is not consistent across credential copies")]
     #[category(critical)]
     MetadataIntegrityInconsistent,
@@ -946,7 +942,6 @@ impl CredentialResponse {
                 let NormalizedCredentialPreview {
                     content,
                     normalized_metadata,
-                    raw_metadata,
                     ..
                 } = preview;
 
@@ -987,18 +982,6 @@ impl CredentialResponse {
                     != content.issuer_certificate
                 {
                     return Err(IssuanceSessionError::IssuerMismatch);
-                }
-
-                // Check that the collection of metadata received in the mdoc unsigned header
-                // is the same as the one received for the preview. Note that the type metadata
-                // integrity is checked for all the copies of a credential at once, so we do not
-                // need to do that here.
-                let metadata_documents = issuer_signed
-                    .type_metadata_documents()
-                    .map_err(IssuanceSessionError::Metadata)?;
-                // TODO: remove this check in PVW-4109 when metadata has been removed from the mdoc
-                if metadata_documents != *raw_metadata {
-                    return Err(IssuanceSessionError::MetadataMismatch);
                 }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
@@ -1274,7 +1257,6 @@ mod tests {
     struct MockCredentialSigner {
         pub trust_anchor: TrustAnchor<'static>,
         issuer_key: Arc<KeyPair>,
-        metadata_documents: TypeMetadataDocuments,
         metadata_integrity: Integrity,
         previewable_payload: PreviewableCredentialPayload,
     }
@@ -1305,13 +1287,11 @@ mod tests {
 
             let (attestation_type, metadata_integrity, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(type_metadata);
-            let (normalized_metadata, raw_metadata) =
-                metadata_documents.clone().into_normalized(&attestation_type).unwrap();
+            let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(&attestation_type).unwrap();
 
             let signer = Self {
                 trust_anchor,
                 issuer_key: Arc::new(issuer_key),
-                metadata_documents,
                 metadata_integrity,
                 previewable_payload: credential_payload.previewable_payload.clone(),
             };
@@ -1344,7 +1324,6 @@ mod tests {
             let (issuer_signed, _) = IssuerSigned::sign(
                 self.previewable_payload.try_into().unwrap(),
                 self.metadata_integrity,
-                &self.metadata_documents,
                 holder_public_key,
                 &self.issuer_key,
             )
@@ -1750,35 +1729,6 @@ mod tests {
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::IssuerMismatch);
-    }
-
-    #[test]
-    fn test_credential_response_into_mdoc_issuer_metadata_mismatch_error() {
-        let (credential_response, normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
-
-        // Converting a `CredentialResponse` into an `Mdoc` using different metadata
-        // in the preview than is contained within the response should fail.
-        let (attestation_type, _, different_metadata_documents) =
-            TypeMetadataDocuments::from_single_example(TypeMetadata::empty_example_with_attestation_type("different"));
-        let (different_normalized, different_raw) =
-            different_metadata_documents.into_normalized(&attestation_type).unwrap();
-
-        let preview_data = NormalizedCredentialPreview {
-            normalized_metadata: different_normalized,
-            raw_metadata: different_raw,
-            ..normalized_preview
-        };
-
-        let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview_data,
-                &[trust_anchor],
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, IssuanceSessionError::MetadataMismatch);
     }
 
     #[test]
