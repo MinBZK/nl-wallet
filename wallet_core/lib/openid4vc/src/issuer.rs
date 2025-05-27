@@ -723,6 +723,34 @@ impl Session<Created> {
         }
     }
 
+    fn credential_preview_from_issuable_document(
+        document: IssuableDocument,
+        attestation_data: &AttestationTypeConfig<impl EcdsaKeySend>,
+    ) -> CredentialPreview {
+        // Truncate the current time to only include the date part, so that all issued credentials on a single
+        // day day have the same `iat` and `exp` field
+        let now = Utc::now()
+            .duration_trunc(chrono::Duration::days(1))
+            .expect("should never exceed Unix time bounds");
+        let valid_until = now.add(attestation_data.valid_days);
+
+        let credential_payload = document.into_previewable_credential_payload(
+            now,
+            valid_until,
+            attestation_data.issuer_uri.clone(),
+            attestation_data.attestation_qualification,
+        );
+
+        CredentialPreview {
+            content: CredentialPreviewContent {
+                copies_per_format: attestation_data.copies_per_format.clone(),
+                credential_payload,
+                issuer_certificate: attestation_data.key_pair.certificate().clone(),
+            },
+            type_metadata: attestation_data.metadata_documents.clone(),
+        }
+    }
+
     pub async fn process_token_request_inner(
         &self,
         token_request: TokenRequest,
@@ -763,28 +791,7 @@ impl Session<Created> {
                         TokenRequestError::CredentialTypeNotOffered(document.attestation_type().to_string())
                     })?;
 
-                // Truncate the current time to only include the date part, so that all issued credentials on a single
-                // day day have the same `iat` and `exp` field
-                let now = Utc::now()
-                    .duration_trunc(chrono::Duration::days(1))
-                    .expect("should never exceed Unix time bounds");
-                let valid_until = now.add(attestation_data.valid_days);
-
-                let credential_payload = document.into_previewable_credential_payload(
-                    now,
-                    valid_until,
-                    attestation_data.issuer_uri.clone(),
-                    attestation_data.attestation_qualification,
-                );
-
-                let preview = CredentialPreview {
-                    content: CredentialPreviewContent {
-                        copies_per_format: attestation_data.copies_per_format.clone(),
-                        credential_payload,
-                        issuer_certificate: attestation_data.key_pair.certificate().to_owned(),
-                    },
-                    type_metadata: attestation_data.metadata_documents.clone(),
-                };
+                let preview = Self::credential_preview_from_issuable_document(document, attestation_data);
 
                 Ok(preview)
             })
@@ -1301,15 +1308,58 @@ impl WteDisclosure {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Timelike;
     use derive_more::Debug;
     use thiserror::Error;
     use tracing_test::traced_test;
+
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use crypto::server_keys::generate::Ca;
 
     use super::*;
 
     #[derive(Debug, Error, Clone, Eq, PartialEq)]
     #[error("MyError")]
     struct MyError;
+
+    #[test]
+    fn test_credential_preview_from_issuable_document() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let document = IssuableDocument::new_mock();
+        let config = AttestationTypeConfig::try_new(
+            document.attestation_type(),
+            KeyPair::new_from_signing_key(
+                issuance_keypair.private_key().to_owned(),
+                issuance_keypair.certificate().to_owned(),
+            )
+            .unwrap(),
+            Days::new(1),
+            IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
+            "https://example.com".parse().unwrap(),
+            AttestationQualification::default(),
+            TypeMetadataDocuments::degree_example().1,
+        )
+        .unwrap();
+
+        let preview = Session::<Created>::credential_preview_from_issuable_document(document, &config);
+        assert_eq!(
+            preview.content.credential_payload.not_before.unwrap().as_ref().second(),
+            0
+        );
+        assert_eq!(
+            preview.content.credential_payload.not_before.unwrap().as_ref().minute(),
+            0
+        );
+        assert_eq!(
+            preview.content.credential_payload.not_before.unwrap().as_ref().hour(),
+            0
+        );
+        assert_eq!(preview.content.credential_payload.expires.unwrap().as_ref().second(), 0);
+        assert_eq!(preview.content.credential_payload.expires.unwrap().as_ref().minute(), 0);
+        assert_eq!(preview.content.credential_payload.expires.unwrap().as_ref().hour(), 0);
+    }
 
     #[traced_test]
     #[test]
