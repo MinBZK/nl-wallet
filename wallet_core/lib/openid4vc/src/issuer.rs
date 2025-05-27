@@ -334,7 +334,6 @@ pub struct AttestationTypeConfig<K> {
     pub attestation_qualification: AttestationQualification,
     pub metadata_documents: TypeMetadataDocuments,
     first_metadata_integrity: Integrity,
-    #[allow(dead_code)]
     metadata: NormalizedTypeMetadata,
 }
 
