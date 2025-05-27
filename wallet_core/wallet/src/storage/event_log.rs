@@ -11,8 +11,9 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event::EventType;
-use mdoc::holder::Mdoc;
 use mdoc::holder::ProposedAttributes;
+use openid4vc::issuance_session::IssuedCredential;
+use sd_jwt_vc_metadata::DisplayMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
@@ -64,27 +65,56 @@ pub enum WalletEvent {
 }
 
 impl WalletEvent {
-    pub(crate) fn new_issuance(mdocs: VecNonEmpty<Mdoc>) -> Self {
-        let attestations = mdocs
+    pub(crate) fn new_issuance(credentials: VecNonEmpty<IssuedCredential>) -> Self {
+        let attestations = credentials
             .into_iter()
-            .map(|mdoc| {
-                // As these mdocs have just been validated, we can make assumptions about them and use `expect()`.
-                // TODO (PVW-4132): Use the type system to codify these assumptions.
-                let metadata = mdoc.type_metadata().expect("mdoc should contain valid type metadata");
-                let issuer_certificate = mdoc
-                    .issuer_certificate()
-                    .expect("mdoc should contain issuer certificate");
-                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
-                    .expect("mdoc should contain valid issuer registration")
-                    .expect("mdoc should contain issuer registration");
+            .map(|credential| {
+                match credential {
+                    IssuedCredential::MsoMdoc(mdoc) => {
+                        // As these mdocs have just been validated, we can make assumptions about them and use
+                        // `expect()`. TODO (PVW-4132): Use the type system to codify these assumptions.
+                        let metadata = mdoc.type_metadata().expect("mdoc should contain valid type metadata");
 
-                Attestation::create_for_issuance(
-                    AttestationIdentity::Ephemeral,
-                    metadata,
-                    issuer_registration.organization,
-                    mdoc.issuer_signed.into_entries_by_namespace(),
-                )
-                .expect("mdoc should succesfully be transformed for display by metadata")
+                        let issuer_certificate = mdoc
+                            .issuer_certificate()
+                            .expect("mdoc should contain issuer certificate");
+
+                        let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
+                            .expect("mdoc should contain valid issuer registration")
+                            .expect("mdoc should contain issuer registration");
+
+                        Attestation::create_for_issuance(
+                            AttestationIdentity::Ephemeral,
+                            metadata,
+                            issuer_registration.organization,
+                            mdoc.issuer_signed.into_entries_by_namespace(),
+                        )
+                        .expect("mdoc should succesfully be transformed for display by metadata")
+                    }
+                    IssuedCredential::SdJwt(sd_jwt) => {
+                        // TODO: code below is necessary for letting integration tests pass.
+                        // This has to be implemented properly in PVW-4109
+                        let issuer_registration =
+                            IssuerRegistration::from_certificate(sd_jwt.issuer_certificate_chain().first().unwrap())
+                                .expect("sd_jwt should contain valid issuer registration")
+                                .expect("sd_jwt should contain issuer registration");
+
+                        Attestation {
+                            identity: AttestationIdentity::Ephemeral,
+                            attestation_type: String::from(""),
+                            display_metadata: VecNonEmpty::try_from(vec![DisplayMetadata {
+                                lang: String::from("en"),
+                                name: String::from("SD-JWT"),
+                                description: None,
+                                summary: None,
+                                rendering: None,
+                            }])
+                            .unwrap(),
+                            issuer: issuer_registration.organization,
+                            attributes: vec![],
+                        }
+                    }
+                }
             })
             .collect_vec()
             .try_into()

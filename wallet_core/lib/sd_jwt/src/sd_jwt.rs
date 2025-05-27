@@ -169,8 +169,15 @@ impl SdJwt {
         self.claims().cnf.as_ref()
     }
 
-    pub fn issuer_certificates(&self) -> &Vec<BorrowingCertificate> {
+    pub fn issuer_certificate_chain(&self) -> &Vec<BorrowingCertificate> {
         &self.issuer_certificates
+    }
+
+    pub fn issuer_certificate(&self) -> Option<&BorrowingCertificate> {
+        // From https://datatracker.ietf.org/doc/html/rfc7515:
+        // The certificate containing the public key corresponding to the key used to digitally sign the
+        // JWS MUST be the first certificate.
+        self.issuer_certificates.first()
     }
 
     /// Serializes the components into the final SD-JWT.

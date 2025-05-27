@@ -23,11 +23,11 @@ use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use mdoc::utils::cose::CoseError;
-use openid4vc::credential::CredentialCopies;
-use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
+use openid4vc::issuance_session::IssuedCredential;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -482,43 +482,49 @@ where
         ) {
             self.reset_to_initial_state().await;
         }
-        let issued_mdocs = issuance_result?
-            .into_iter()
-            .map(CredentialCopies::from)
-            .collect::<Vec<_>>();
+
+        let issued_credentials = issuance_result?;
 
         info!("Isuance succeeded; removing issuance session state");
         self.session.take();
 
         // Prepare events before storing mdocs, to avoid cloning mdocs
         let event = {
-            // Extract first copy from each issued mdoc
-            let mdocs: VecNonEmpty<_> = issued_mdocs
-                .iter()
-                .map(|mdoc: &MdocCopies| mdoc.first().clone())
-                .collect_vec()
-                .try_into()
-                .expect("should have received at least one issued mdoc");
+            // Extract first copy from each issued credential
+            let credentials: VecNonEmpty<_> = VecNonEmpty::try_from(
+                issued_credentials
+                    .iter()
+                    .map(|copies| match copies {
+                        IssuedCredentialCopies::MsoMdoc(mdocs) => {
+                            IssuedCredential::MsoMdoc(Box::new(mdocs.first().clone()))
+                        }
+                        IssuedCredentialCopies::SdJwt(sd_jwts) => {
+                            IssuedCredential::SdJwt(Box::new(sd_jwts.first().clone()))
+                        }
+                    })
+                    .collect_vec(),
+            )
+            .expect("there is always something issued");
 
-            // Validate all issuer_certificates
-            for mdoc in mdocs.as_ref() {
-                let certificate = mdoc
-                    .issuer_certificate()
-                    .map_err(IssuanceError::InvalidIssuerCertificate)?;
+            for issued_credential_copies in &issued_credentials {
+                let issuer_certificate = issued_credential_copies.issuer_certificate()?;
 
-                // Verify that the certificate contains IssuerRegistration
-                if matches!(IssuerRegistration::from_certificate(&certificate), Err(_) | Ok(None)) {
+                if matches!(
+                    IssuerRegistration::from_certificate(&issuer_certificate),
+                    Err(_) | Ok(None)
+                ) {
                     return Err(IssuanceError::MissingIssuerRegistration);
                 }
             }
-            WalletEvent::new_issuance(mdocs)
+
+            WalletEvent::new_issuance(credentials)
         };
 
         info!("Attestations accepted, storing mdoc in database");
         self.storage
             .write()
             .await
-            .insert_mdocs(issued_mdocs)
+            .insert_credentials(issued_credentials)
             .await
             .map_err(IssuanceError::MdocStorage)?;
 
@@ -544,7 +550,6 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
-    use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
@@ -571,9 +576,9 @@ mod tests {
             });
 
         client.expect_accept().return_once(|| {
-            Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
-                .try_into()
-                .unwrap()])
+            Ok(vec![IssuedCredentialCopies::MsoMdoc(
+                VecNonEmpty::try_from(vec![mdoc]).unwrap(),
+            )])
         });
         client
     }

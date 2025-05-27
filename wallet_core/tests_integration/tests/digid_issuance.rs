@@ -4,7 +4,6 @@ use crypto::mock_remote::MockRemoteKeyFactory;
 use hsm::service::Pkcs11Hsm;
 use http_utils::urls;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use openid4vc::credential::MdocCopies;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession;
@@ -97,5 +96,5 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     assert_eq!(2, mdocs.len());
-    assert_eq!(2, <&MdocCopies>::from(&mdocs[0]).len());
+    assert_eq!(2, mdocs[0].len());
 }

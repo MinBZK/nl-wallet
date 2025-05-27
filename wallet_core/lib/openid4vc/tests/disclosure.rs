@@ -48,13 +48,13 @@ use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::DocType;
 use mdoc::SessionTranscript;
-use openid4vc::credential::MdocCopies;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -342,14 +342,19 @@ const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITUATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
 
-struct MockMdocDataSource(HashMap<DocType, MdocCopies>);
+struct MockMdocDataSource(HashMap<DocType, IssuedCredentialCopies>);
 
 impl From<Vec<Mdoc>> for MockMdocDataSource {
     fn from(value: Vec<Mdoc>) -> Self {
         MockMdocDataSource(
             value
                 .into_iter()
-                .map(|mdoc| (mdoc.doc_type().clone(), vec![mdoc].try_into().unwrap()))
+                .map(|mdoc| {
+                    (
+                        mdoc.doc_type().clone(),
+                        IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                    )
+                })
                 .collect(),
         )
     }
@@ -366,16 +371,19 @@ impl MdocDataSource for MockMdocDataSource {
         let stored_mdocs = self
             .0
             .iter()
-            .filter_map(|(doc_type, mdoc_copies)| {
-                if doc_types.contains(doc_type.as_str()) {
-                    return vec![StoredMdoc {
-                        id: format!("{}_id", doc_type.clone()),
-                        mdoc: mdoc_copies.first().clone(),
-                    }]
-                    .into();
-                }
+            .filter_map(|(doc_type, mdoc_copies)| match mdoc_copies {
+                IssuedCredentialCopies::MsoMdoc(mdocs) => {
+                    if doc_types.contains(doc_type.as_str()) {
+                        return vec![StoredMdoc {
+                            id: format!("{}_id", doc_type.clone()),
+                            mdoc: mdocs.first().clone(),
+                        }]
+                        .into();
+                    }
 
-                None
+                    None
+                }
+                _ => None,
             })
             .collect();
 

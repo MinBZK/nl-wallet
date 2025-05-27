@@ -178,6 +178,9 @@ async fn accept_issuance(
 
                 assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
             }
+            IssuedCredentialCopies::SdJwt(_) => {
+                panic!("SdJwt should not be issued");
+            }
         });
 }
 

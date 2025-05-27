@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crypto::x509::BorrowingCertificate;
 use mdoc::DocType;
-use openid4vc::credential::MdocCopies;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;
@@ -30,7 +30,7 @@ pub enum KeyedDataResult {
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
-    pub mdocs: IndexMap<DocType, Vec<MdocCopies>>,
+    pub issued_credential_copies: IndexMap<DocType, Vec<IssuedCredentialCopies>>,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
@@ -50,7 +50,7 @@ impl MockStorage {
         MockStorage {
             state,
             data,
-            mdocs: IndexMap::new(),
+            issued_credential_copies: IndexMap::new(),
             mdoc_copies_usage_counts: HashMap::new(),
             event_log: vec![],
             has_query_error: false,
@@ -132,14 +132,21 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+    async fn insert_credentials(&mut self, credentials: Vec<IssuedCredentialCopies>) -> StorageResult<()> {
         self.check_query_error()?;
 
-        for mdoc_copies in mdocs {
-            self.mdocs
-                .entry(mdoc_copies.first().doc_type().clone())
-                .or_default()
-                .push(mdoc_copies);
+        for mdoc_copies in credentials {
+            match &mdoc_copies {
+                IssuedCredentialCopies::MsoMdoc(mdocs) => {
+                    self.issued_credential_copies
+                        .entry(mdocs.first().doc_type().clone())
+                        .or_default()
+                        .push(mdoc_copies);
+                }
+                IssuedCredentialCopies::SdJwt(_sd_jwts) => {
+                    // todo!("implement in PVW-4109")
+                }
+            }
         }
 
         Ok(())
@@ -161,13 +168,16 @@ impl Storage for MockStorage {
 
         // Get a single copy of every unique Mdoc, along with a random `Uuid`.
         let mdocs = self
-            .mdocs
+            .issued_credential_copies
             .values()
             .flatten()
-            .map(|mdoc_copies| StoredMdocCopy {
-                mdoc_id: Uuid::now_v7(),
-                mdoc_copy_id: Uuid::now_v7(),
-                mdoc: mdoc_copies.first().clone(),
+            .map(|mdoc_copies| match &mdoc_copies {
+                IssuedCredentialCopies::MsoMdoc(mdocs) => StoredMdocCopy {
+                    mdoc_id: Uuid::now_v7(),
+                    mdoc_copy_id: Uuid::now_v7(),
+                    mdoc: mdocs.first().clone(),
+                },
+                IssuedCredentialCopies::SdJwt(_) => todo!("implement in PVW-4109"),
             })
             .collect();
 

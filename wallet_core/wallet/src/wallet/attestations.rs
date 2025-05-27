@@ -108,6 +108,8 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    use openid4vc::issuance_session::IssuedCredentialCopies;
+
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
@@ -149,12 +151,10 @@ mod tests {
         // The database contains a single `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
         let mdoc_doc_type = mdoc.doc_type().clone();
-        wallet
-            .storage
-            .write()
-            .await
-            .mdocs
-            .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
+        wallet.storage.write().await.issued_credential_copies.insert(
+            mdoc.doc_type().clone(),
+            vec![IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap())],
+        );
 
         // Register mock document_callback
         let attestations = test::setup_mock_attestations_callback(&mut wallet)
@@ -191,12 +191,10 @@ mod tests {
 
         // The database contains a single `Mdoc`, without Issuer registration.
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
-        wallet
-            .storage
-            .write()
-            .await
-            .mdocs
-            .insert(mdoc.doc_type().clone(), vec![vec![mdoc].try_into().unwrap()]);
+        wallet.storage.write().await.issued_credential_copies.insert(
+            mdoc.doc_type().clone(),
+            vec![IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap())],
+        );
 
         // Register mock attestation_callback
         let (attestations, error) = test::setup_mock_attestations_callback(&mut wallet)

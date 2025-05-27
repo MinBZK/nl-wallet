@@ -266,7 +266,7 @@ async fn test_presentation() -> anyhow::Result<()> {
         )
         .await?;
 
-    assert_eq!(sd_jwt.issuer_certificates(), &vec![certificate]);
+    assert_eq!(sd_jwt.issuer_certificate_chain(), &vec![certificate]);
 
     let hasher = Sha256Hasher::new();
 

@@ -126,7 +126,7 @@ integration_test = [
     "tokio/sync",
 ]
 # Optional feature for running integration tests that depend on the DigiD connector
-digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter", "dep:rustls-pki-types"]
+digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter", "dep:rustls-pki-types", "dep:serial_test"]
 # Should be enabled when building the performance_test binary
 performance_test = [
     "logging",

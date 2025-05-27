@@ -687,6 +687,7 @@ mod tests {
     use mdoc::test::data::PID;
     use mdoc::DataElementValue;
     use openid4vc::disclosure_session::VpMessageClientError;
+    use openid4vc::issuance_session::IssuedCredentialCopies;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
@@ -1784,9 +1785,9 @@ mod tests {
             .storage
             .write()
             .await
-            .insert_mdocs(vec![
-                vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
-                vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+            .insert_credentials(vec![
+                IssuedCredentialCopies::MsoMdoc(vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap()),
+                IssuedCredentialCopies::MsoMdoc(vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap()),
             ])
             .await
             .unwrap();

@@ -47,7 +47,7 @@ use entity::mdoc_copy;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use mdoc::utils::serialization::CborError;
-use openid4vc::credential::MdocCopies;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 
 use super::data::KeyedData;
@@ -490,37 +490,42 @@ where
         Ok(())
     }
 
-    async fn insert_mdocs(&mut self, mdocs: Vec<MdocCopies>) -> StorageResult<()> {
+    async fn insert_credentials(&mut self, credentials: Vec<IssuedCredentialCopies>) -> StorageResult<()> {
         // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
         // based on the unique `MdocCopies`, to be inserted into the database.
-        let mdoc_models = mdocs
+        let mdoc_models = credentials
             .into_iter()
-            .map(|mdoc_copies| {
+            .map(|credential_copies| {
                 let mdoc_id = Uuid::now_v7();
 
-                let copy_models = mdoc_copies
-                    .as_ref()
-                    .iter()
-                    .map(|mdoc| {
-                        let model = mdoc_copy::ActiveModel {
-                            id: Set(Uuid::now_v7()),
-                            mdoc_id: Set(mdoc_id),
-                            mdoc: Set(cbor_serialize(&mdoc)?),
-                            ..Default::default()
+                match credential_copies {
+                    IssuedCredentialCopies::MsoMdoc(mdocs) => {
+                        let copy_models = mdocs
+                            .iter()
+                            .map(|mdoc| {
+                                let model = mdoc_copy::ActiveModel {
+                                    id: Set(Uuid::now_v7()),
+                                    mdoc_id: Set(mdoc_id),
+                                    mdoc: Set(cbor_serialize(&mdoc)?),
+                                    ..Default::default()
+                                };
+
+                                Ok(model)
+                            })
+                            .collect::<Result<Vec<_>, CborError>>()?;
+
+                        // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter()
+                        // above.
+                        let doc_type = mdocs.first().doc_type();
+                        let mdoc_model = entity::mdoc::ActiveModel {
+                            id: Set(mdoc_id),
+                            doc_type: Set(doc_type.clone()),
                         };
 
-                        Ok(model)
-                    })
-                    .collect::<Result<Vec<_>, CborError>>()?;
-
-                // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the filter() above.
-                let doc_type = mdoc_copies.into_iter().next().unwrap().doc_type().clone();
-                let mdoc_model = entity::mdoc::ActiveModel {
-                    id: Set(mdoc_id),
-                    doc_type: Set(doc_type),
-                };
-
-                Ok((mdoc_model, copy_models))
+                        Ok((mdoc_model, copy_models))
+                    }
+                    IssuedCredentialCopies::SdJwt(_) => todo!("implement in PVW-4109"),
+                }
             })
             .collect::<Result<Vec<_>, CborError>>()?;
 
@@ -969,11 +974,12 @@ pub(crate) mod tests {
         // This line fixes that.
         let mdoc: Mdoc = cbor_deserialize(cbor_serialize(&mdoc).unwrap().as_slice()).unwrap();
 
-        let mdoc_copies = MdocCopies::try_from([mdoc.clone(), mdoc.clone(), mdoc].to_vec()).unwrap();
+        let issued_mdoc_copies =
+            IssuedCredentialCopies::MsoMdoc(vec![mdoc.clone(), mdoc.clone(), mdoc.clone()].try_into().unwrap());
 
         // Insert mdocs
         storage
-            .insert_mdocs(vec![mdoc_copies.clone()])
+            .insert_credentials(vec![issued_mdoc_copies.clone()])
             .await
             .expect("Could not insert mdocs");
 
@@ -986,7 +992,7 @@ pub(crate) mod tests {
         // Only one unique `Mdoc` should be returned and it should match all copies.
         assert_eq!(fetched_unique.len(), 1);
         let mdoc_copy1 = fetched_unique.first().unwrap();
-        assert_eq!(&mdoc_copy1.mdoc, mdoc_copies.first());
+        assert_eq!(&mdoc_copy1.mdoc, &mdoc);
 
         // Increment the usage count for this mdoc.
         storage
@@ -1003,7 +1009,7 @@ pub(crate) mod tests {
         // One matching `Mdoc` should be returned and it should be a different copy than the fist one.
         assert_eq!(fetched_unique_doctype.len(), 1);
         let mdoc_copy2 = fetched_unique_doctype.first().unwrap();
-        assert_eq!(&mdoc_copy2.mdoc, mdoc_copies.first());
+        assert_eq!(&mdoc_copy2.mdoc, &mdoc);
         assert_ne!(mdoc_copy1.mdoc_copy_id, mdoc_copy2.mdoc_copy_id);
 
         // Increment the usage count for this mdoc.
