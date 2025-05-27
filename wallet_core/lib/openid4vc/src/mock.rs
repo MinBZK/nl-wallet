@@ -40,7 +40,7 @@ mockall::mock! {
 
         pub fn normalized_credential_previews(&self) -> &[NormalizedCredentialPreview];
 
-        pub fn issuer(&self) -> Result<IssuerRegistration, IssuanceSessionError>;
+        pub fn issuer(&self) -> &IssuerRegistration;
     }
 }
 
@@ -74,7 +74,7 @@ impl IssuanceSession for MockIssuanceSession {
         self.normalized_credential_previews()
     }
 
-    fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError> {
+    fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
     }
 }

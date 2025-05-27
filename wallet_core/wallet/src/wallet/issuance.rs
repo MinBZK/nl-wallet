@@ -252,7 +252,11 @@ where
 
         let session = self.session.take().unwrap();
         if let Session::Issuance(issuance_session) = session {
-            let organization = issuance_session.protocol_state.issuer_registration()?.organization;
+            let organization = issuance_session
+                .protocol_state
+                .issuer_registration()
+                .organization
+                .clone();
 
             info!("Rejecting issuance");
             issuance_session
@@ -435,7 +439,11 @@ where
 
         info!("Signing nonce using Wallet Provider");
 
-        let organization = issuance_session.protocol_state.issuer_registration()?.organization;
+        let organization = issuance_session
+            .protocol_state
+            .issuer_registration()
+            .organization
+            .clone();
 
         let issuance_result = issuance_session
             .protocol_state
@@ -555,12 +563,12 @@ mod tests {
     fn mock_issuance_session(mdoc: Mdoc) -> MockIssuanceSession {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = mdoc.issuer_certificate().unwrap();
-        client.expect_issuer().return_once(move || {
-            Ok(match IssuerRegistration::from_certificate(&issuer_certificate) {
+        client
+            .expect_issuer()
+            .return_const(match IssuerRegistration::from_certificate(&issuer_certificate) {
                 Ok(Some(registration)) => registration,
                 _ => IssuerRegistration::new_mock(),
-            })
-        });
+            });
 
         client.expect_accept().return_once(|| {
             Ok(vec![vec![IssuedCredential::MsoMdoc(Box::new(mdoc))]
@@ -708,9 +716,7 @@ mod tests {
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
             client.expect_reject().return_once(|| Ok(()));
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, pid_issuer)));
@@ -907,9 +913,7 @@ mod tests {
                 .expect_reject()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
 
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             client
         };
@@ -1081,9 +1085,7 @@ mod tests {
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
 
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             client
         };
@@ -1165,9 +1167,7 @@ mod tests {
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
 
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             client
         };

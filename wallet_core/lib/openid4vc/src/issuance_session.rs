@@ -193,13 +193,9 @@ pub enum IssuanceSessionError {
     #[category(pd)]
     UnsupportedCredentialFormat(String, HashSet<Format>),
 
-    #[error("issuer registration not found in credential previews")]
+    #[error("different issuer registrations found in credential previews")]
     #[category(critical)]
-    NoIssuerRegistration,
-
-    #[error("multiple issuer registrations found in credential previews")]
-    #[category(critical)]
-    MultipleIssuerRegistrations(#[source] MultipleItemsFound),
+    DifferentIssuerRegistrations(#[source] MultipleItemsFound),
 }
 
 #[derive(Clone, Debug)]
@@ -310,7 +306,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
 
     fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview];
 
-    fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError>;
+    fn issuer_registration(&self) -> &IssuerRegistration;
 }
 
 #[derive(Debug)]
@@ -534,6 +530,7 @@ struct IssuanceState {
     c_nonce: String,
     normalized_credential_previews: Vec<NormalizedCredentialPreview>,
     credential_request_types: Vec<CredentialRequestType>,
+    issuer_registration: IssuerRegistration,
     issuer_url: BaseUrl,
     #[debug(skip)]
     dpop_private_key: SigningKey,
@@ -671,6 +668,13 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews)?;
 
+        let issuer_registration = normalized_credential_previews
+            .iter()
+            .map(|preview| &preview.issuer_registration)
+            .single_unique()
+            .map_err(IssuanceSessionError::DifferentIssuerRegistrations)?
+            .expect("there are always credential_previews in the token_response");
+
         let session_state = IssuanceState {
             access_token: token_response.token_response.access_token,
             c_nonce: token_response
@@ -679,6 +683,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 .ok_or(IssuanceSessionError::MissingNonce)?,
             normalized_credential_previews,
             credential_request_types,
+            issuer_registration,
             issuer_url: base_url,
             dpop_private_key,
             dpop_nonce,
@@ -858,16 +863,8 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         &self.session_state.normalized_credential_previews
     }
 
-    fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError> {
-        let registration = self
-            .normalized_credential_preview()
-            .iter()
-            .map(|preview| &preview.issuer_registration)
-            .single_unique()
-            .map_err(IssuanceSessionError::MultipleIssuerRegistrations)?
-            .ok_or(IssuanceSessionError::NoIssuerRegistration)?;
-
-        Ok(registration)
+    fn issuer_registration(&self) -> &IssuerRegistration {
+        &self.session_state.issuer_registration
     }
 }
 
@@ -1066,6 +1063,7 @@ where
 mod tests {
     use std::num::NonZeroU8;
     use std::sync::Arc;
+    use std::vec;
 
     use assert_matches::assert_matches;
     use chrono::Utc;
@@ -1078,6 +1076,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::auth::LocalizedStrings;
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::qualification::AttestationQualification;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
@@ -1119,7 +1118,7 @@ mod tests {
     fn test_start_issuance(
         ca: &Ca,
         trust_anchor: TrustAnchor,
-        credential_payload: CredentialPayload,
+        credential_payloads: Vec<CredentialPayload>,
         type_metadata: TypeMetadata,
         formats: Vec<Format>,
     ) -> Result<HttpIssuanceSession<MockVcMessageClient>, IssuanceSessionError> {
@@ -1131,21 +1130,24 @@ mod tests {
             .return_once(move |_url, _token_request, _dpop_header| {
                 let (_, _, type_metadata) = TypeMetadataDocuments::from_single_example(type_metadata);
 
-                let preview = CredentialPreview {
-                    content: CredentialPreviewContent {
-                        copies_per_format: formats
-                            .into_iter()
-                            .map(|format| (format, NonZeroU8::new(1).unwrap()))
-                            .collect(),
-                        credential_payload: credential_payload.previewable_payload,
-                        issuer_certificate: issuance_key.certificate().clone(),
-                    },
-                    type_metadata,
-                };
+                let previews = credential_payloads
+                    .into_iter()
+                    .map(|credential_payload| CredentialPreview {
+                        content: CredentialPreviewContent {
+                            copies_per_format: formats
+                                .iter()
+                                .map(|format| (*format, NonZeroU8::new(1).unwrap()))
+                                .collect(),
+                            credential_payload: credential_payload.previewable_payload,
+                            issuer_certificate: issuance_key.certificate().clone(),
+                        },
+                        type_metadata: type_metadata.clone(),
+                    })
+                    .collect_vec();
 
                 let token_response = TokenResponseWithPreviews {
                     token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
-                    credential_previews: VecNonEmpty::try_from(vec![preview]).unwrap(),
+                    credential_previews: VecNonEmpty::try_from(previews).unwrap(),
                 };
 
                 Ok((token_response, None))
@@ -1168,7 +1170,7 @@ mod tests {
         let session = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
-            CredentialPayload::example_family_name(),
+            vec![CredentialPayload::example_family_name()],
             TypeMetadata::pid_example(),
             vec![Format::MsoMdoc],
         )
@@ -1202,7 +1204,7 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             other_ca.to_trust_anchor(),
-            CredentialPayload::example_family_name(),
+            vec![CredentialPayload::example_family_name()],
             TypeMetadata::pid_example(),
             vec![Format::MsoMdoc],
         )
@@ -1223,7 +1225,9 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
-            CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key()),
+            vec![CredentialPayload::example_empty(
+                SigningKey::random(&mut OsRng).verifying_key(),
+            )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
             vec![Format::MsoMdoc],
         )
@@ -1239,7 +1243,9 @@ mod tests {
         let error = test_start_issuance(
             &ca,
             ca.to_trust_anchor(),
-            CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key()),
+            vec![CredentialPayload::example_empty(
+                SigningKey::random(&mut OsRng).verifying_key(),
+            )],
             TypeMetadata::pid_example(),
             vec![Format::AcVc, Format::MsoMdoc, Format::JwtVc],
         )
@@ -1252,6 +1258,67 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_start_issuance_error_different_issuer_registrations() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+
+        let issuance_key = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let mut different_org = IssuerRegistration::new_mock();
+        different_org.organization.display_name = LocalizedStrings::from(vec![("en", "different org name")]);
+        let different_issuance_key = generate_issuer_mock(&ca, different_org.into()).unwrap();
+
+        let payload = CredentialPayload::example_empty(SigningKey::random(&mut OsRng).verifying_key());
+        let copies_per_format: IndexMap<Format, NonZeroU8> = IndexMap::from_iter([
+            (Format::MsoMdoc, NonZeroU8::new(1).unwrap()),
+            (Format::SdJwt, NonZeroU8::new(1).unwrap()),
+        ]);
+
+        let mut mock_msg_client = mock_openid_message_client();
+        mock_msg_client
+            .expect_request_token()
+            .return_once(move |_url, _token_request, _dpop_header| {
+                let (_, _, type_metadata) = TypeMetadataDocuments::from_single_example(TypeMetadata::pid_example());
+
+                let previews = vec![
+                    CredentialPreview {
+                        content: CredentialPreviewContent {
+                            copies_per_format: copies_per_format.clone(),
+                            credential_payload: payload.previewable_payload.clone(),
+                            issuer_certificate: issuance_key.certificate().clone(),
+                        },
+                        type_metadata: type_metadata.clone(),
+                    },
+                    CredentialPreview {
+                        content: CredentialPreviewContent {
+                            copies_per_format,
+                            credential_payload: payload.previewable_payload,
+                            issuer_certificate: different_issuance_key.certificate().clone(),
+                        },
+                        type_metadata: type_metadata.clone(),
+                    },
+                ];
+
+                let token_response = TokenResponseWithPreviews {
+                    token_response: TokenResponse::new("access_token".to_string().into(), "c_nonce".to_string()),
+                    credential_previews: VecNonEmpty::try_from(previews).unwrap(),
+                };
+
+                Ok((token_response, None))
+            });
+
+        let error = HttpIssuanceSession::start_issuance(
+            mock_msg_client,
+            "https://example.com".parse().unwrap(),
+            TokenRequest::new_mock(),
+            &[ca.to_trust_anchor()],
+        )
+        .now_or_never()
+        .unwrap()
+        .expect_err("starting issuance session should not succeed");
+
+        assert_matches!(error, IssuanceSessionError::DifferentIssuerRegistrations(_));
+    }
+
     /// Return a new session ready for `accept_issuance()`.
     fn new_session_state(normalized_credential_previews: Vec<NormalizedCredentialPreview>) -> IssuanceState {
         let credential_request_types = credential_request_types_from_preview(&normalized_credential_previews).unwrap();
@@ -1261,6 +1328,7 @@ mod tests {
             c_nonce: "c_nonce".to_string(),
             normalized_credential_previews,
             credential_request_types,
+            issuer_registration: IssuerRegistration::new_mock(),
             issuer_url: "https://issuer.example.com".parse().unwrap(),
             dpop_private_key: SigningKey::random(&mut OsRng),
             dpop_nonce: Some("dpop_nonce".to_string()),
@@ -1539,66 +1607,6 @@ mod tests {
         .expect_err("accepting issuance should not succeed");
 
         assert_matches!(error, IssuanceSessionError::CredentialPayload(_));
-    }
-
-    #[test]
-    fn test_issuer_registrations_differ() {
-        let type_metadata = TypeMetadata::example_with_claim_name(
-            "urn:eudi:pid:nl:1",
-            "family_name",
-            JsonSchemaPropertyType::String,
-            None,
-        );
-        let credential_payload = CredentialPayload::example_with_attribute(
-            "family_name",
-            AttributeValue::Integer(1),
-            SigningKey::random(&mut OsRng).verifying_key(),
-        );
-
-        let (attestation_type, _, metadata_documents) = TypeMetadataDocuments::from_single_example(type_metadata);
-        let (normalized_metadata, raw_metadata) =
-            metadata_documents.clone().into_normalized(&attestation_type).unwrap();
-
-        let issuer_registration = IssuerRegistration::new_mock();
-
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuer_key = generate_issuer_mock(&ca, Some(issuer_registration.clone())).unwrap();
-
-        let credential_preview = NormalizedCredentialPreview {
-            content: CredentialPreviewContent {
-                copies_per_format: IndexMap::from([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
-                credential_payload: credential_payload.previewable_payload,
-                issuer_certificate: issuer_key.certificate().clone(),
-            },
-            issuer_registration: IssuerRegistration::new_mock(),
-            normalized_metadata,
-            raw_metadata,
-        };
-
-        let mut another_credential_preview = credential_preview.clone();
-        another_credential_preview.issuer_registration.organization.display_name =
-            vec![("en", "different name")].into();
-
-        let error = HttpIssuanceSession {
-            message_client: mock_openid_message_client(),
-            session_state: new_session_state(vec![credential_preview, another_credential_preview]),
-        }
-        .issuer_registration()
-        .expect_err("should fail for different issuer registrations");
-
-        assert_matches!(error, IssuanceSessionError::MultipleIssuerRegistrations(_));
-    }
-
-    #[test]
-    fn test_issuer_registrations_empty() {
-        let error = HttpIssuanceSession {
-            message_client: mock_openid_message_client(),
-            session_state: new_session_state(vec![]),
-        }
-        .issuer_registration()
-        .expect_err("should fail for no issuer registrations");
-
-        assert_matches!(error, IssuanceSessionError::NoIssuerRegistration);
     }
 
     fn mock_credential_response() -> (
