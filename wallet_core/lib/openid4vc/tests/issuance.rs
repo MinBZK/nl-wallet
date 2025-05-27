@@ -166,12 +166,12 @@ async fn accept_issuance(
         .unwrap();
 
     assert_eq!(issued_creds.len(), attestation_count.get());
-    assert_eq!(issued_creds.first().unwrap().0.len(), copy_count);
+    assert_eq!(issued_creds.first().unwrap().copies.len(), copy_count);
 
     issued_creds
         .into_iter()
         .zip(session.credential_preview_data().iter())
-        .for_each(|((copies, _metadata_documents), preview_data)| match copies {
+        .for_each(|(credential, preview_data)| match credential.copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => {
                 let mdoc = mdocs.first().clone();
                 let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();

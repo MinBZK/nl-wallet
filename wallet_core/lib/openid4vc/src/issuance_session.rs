@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
 
+use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future::try_join_all;
 use futures::future::OptionFuture;
@@ -214,6 +215,12 @@ impl TryFrom<IssuedCredential> for Mdoc {
     }
 }
 
+#[derive(Clone, Debug, Constructor)]
+pub struct CredentialWithMetadata {
+    pub copies: IssuedCredentialCopies,
+    pub metadata_documents: VerifiedTypeMetadataDocuments,
+}
+
 #[derive(Clone, Debug)]
 pub enum IssuedCredentialCopies {
     MsoMdoc(MdocCopies),
@@ -298,7 +305,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<(IssuedCredentialCopies, VerifiedTypeMetadataDocuments)>, IssuanceSessionError>
+    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
@@ -694,7 +701,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<(IssuedCredentialCopies, VerifiedTypeMetadataDocuments)>, IssuanceSessionError>
+    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
@@ -830,7 +837,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
                         let issued_copies = cred_copies.try_into()?;
 
-                        Ok((issued_copies, verified_metadata))
+                        Ok(CredentialWithMetadata::new(issued_copies, verified_metadata))
                     })
                     .collect::<Result<Vec<_>, IssuanceSessionError>>()
             })

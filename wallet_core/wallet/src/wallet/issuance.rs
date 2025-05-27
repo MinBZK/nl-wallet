@@ -474,7 +474,7 @@ where
         }
         let mdocs_with_metadata = issuance_result?
             .into_iter()
-            .map(|(issued_copies, type_metadata)| (CredentialCopies::from(issued_copies), type_metadata))
+            .map(|credential| (CredentialCopies::from(credential.copies), credential.metadata_documents))
             .collect_vec();
 
         info!("Isuance succeeded; removing issuance session state");
@@ -514,6 +514,7 @@ mod tests {
     use crypto::x509::BorrowingCertificateExtension;
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
+    use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
@@ -555,7 +556,7 @@ mod tests {
         client.expect_issuer().return_once(move || Ok(issuer_registration));
 
         client.expect_accept().return_once(|| {
-            Ok(vec![(
+            Ok(vec![CredentialWithMetadata::new(
                 vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap(),
                 type_metadata,
             )])
