@@ -1459,14 +1459,17 @@ mod tests {
             });
         }
 
-        // _ is an error because our mock does not behave like an actual issuer should, but it doesn't matter
-        // because we are just inspecting what the client sent in this test with the expectation above.
-        let _ = HttpIssuanceSession {
+        let credential_copies = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state,
         }
         .accept_issuance(&[trust_anchor], &key_factory, wte)
-        .now_or_never();
+        .now_or_never()
+        .unwrap()
+        .expect("accepting issuance should succeed");
+
+        let expected_credential_count = if multiple_creds { 2 } else { 1 };
+        assert_eq!(credential_copies.len(), expected_credential_count);
     }
 
     #[test]
