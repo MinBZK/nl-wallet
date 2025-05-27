@@ -731,7 +731,6 @@ pub(crate) mod tests {
 
     use chrono::TimeZone;
     use chrono::Utc;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use tokio::fs;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
@@ -746,6 +745,7 @@ pub(crate) mod tests {
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use wallet_account::messages::registration::WalletCertificate;
 
     use crate::storage::data::RegistrationData;
