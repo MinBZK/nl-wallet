@@ -111,19 +111,21 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        items_requests: vec![ItemsRequest {
-            doc_type: "urn:eudi:pid:nl:1".to_owned(),
-            request_info: None,
-            name_spaces: IndexMap::from([(
-                "urn:eudi:pid:nl:1".to_owned(),
-                IndexMap::from_iter(
-                    [("given_name", true), ("family_name", false)]
-                        .iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
-                ),
-            )]),
-        }]
-        .into(),
+        items_requests: Some(
+            vec![ItemsRequest {
+                doc_type: "urn:eudi:pid:nl:1".to_owned(),
+                request_info: None,
+                name_spaces: IndexMap::from([(
+                    "urn:eudi:pid:nl:1".to_owned(),
+                    IndexMap::from_iter(
+                        [("given_name", true), ("family_name", false)]
+                            .iter()
+                            .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+                    ),
+                )]),
+            }]
+            .into(),
+        ),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 

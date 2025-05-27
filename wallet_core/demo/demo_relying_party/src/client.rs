@@ -67,7 +67,7 @@ impl WalletServerClient {
             .post(self.base_url.join("/disclosure/sessions"))
             .json(&StartDisclosureRequest {
                 usecase,
-                items_requests,
+                items_requests: Some(items_requests),
                 return_url_template,
             })
             .send()

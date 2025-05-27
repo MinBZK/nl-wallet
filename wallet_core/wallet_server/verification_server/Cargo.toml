@@ -66,6 +66,7 @@ hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosure"] }
+mdoc.path = "../../lib/mdoc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 server_utils.path = "../server_utils"
 utils = { path = "../../lib/utils" }

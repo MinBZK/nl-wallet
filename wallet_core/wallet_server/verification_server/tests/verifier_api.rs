@@ -59,12 +59,9 @@ use openid4vc::server_state::SessionStoreTimeouts;
 use openid4vc::server_state::SessionToken;
 use openid4vc::server_state::CLEANUP_INTERVAL_SECONDS;
 use openid4vc::verifier::DisclosureData;
-use openid4vc::verifier::EphemeralIdParameters;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::SessionTypeReturnUrl;
 use openid4vc::verifier::StatusResponse;
-use openid4vc::verifier::VerifierUrlParameters;
-use openid4vc::ErrorResponse;
 use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
@@ -85,19 +82,21 @@ const USECASE_NAME: &str = "usecase";
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
     usecase: USECASE_NAME.to_string(),
     return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
-    items_requests: vec![ItemsRequest {
-        doc_type: EXAMPLE_DOC_TYPE.to_string(),
-        request_info: None,
-        name_spaces: IndexMap::from([(
-            EXAMPLE_NAMESPACE.to_string(),
-            IndexMap::from_iter(
-                [(EXAMPLE_ATTR_NAME.to_string(), true)]
-                    .into_iter()
-                    .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
-            ),
-        )]),
-    }]
-    .into(),
+    items_requests: Some(
+        vec![ItemsRequest {
+            doc_type: EXAMPLE_DOC_TYPE.to_string(),
+            request_info: None,
+            name_spaces: IndexMap::from([(
+                EXAMPLE_NAMESPACE.to_string(),
+                IndexMap::from_iter(
+                    [(EXAMPLE_ATTR_NAME.to_string(), true)]
+                        .into_iter()
+                        .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
+                ),
+            )]),
+        }]
+        .into(),
+    ),
 });
 
 fn memory_storage_settings() -> Storage {
@@ -149,7 +148,7 @@ async fn wallet_server_settings_and_listener(
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = Some(reader_registration_mock_from_requests(
-        &EXAMPLE_START_DISCLOSURE_REQUEST.items_requests,
+        EXAMPLE_START_DISCLOSURE_REQUEST.items_requests.as_ref().unwrap(),
     ));
 
     // Set up the use case, based on RP CA and reader registration.
@@ -159,6 +158,8 @@ async fn wallet_server_settings_and_listener(
         UseCaseSettings {
             session_type_return_url: SessionTypeReturnUrl::SameDevice,
             key_pair: usecase_keypair.into(),
+            items_requests: None,
+            return_url_template: None,
         },
     )])
     .into();
@@ -437,15 +438,6 @@ async fn test_http_json_error_body(
     body
 }
 
-async fn test_error_response(response: Response, status_code: StatusCode, error_type: &str) {
-    assert_eq!(response.status(), status_code);
-
-    let body = serde_json::from_slice::<ErrorResponse<String>>(&response.bytes().await.unwrap())
-        .expect("response body should deserialize to ErrorResponse");
-
-    assert_eq!(body.error, error_type);
-}
-
 #[tokio::test]
 async fn test_new_session_parameters_error() {
     let (requester_server, requester_listener) = request_server_settings_and_listener().await;
@@ -477,7 +469,7 @@ async fn test_new_session_parameters_error() {
 
     let no_items_request = {
         let mut request = EXAMPLE_START_DISCLOSURE_REQUEST.clone();
-        request.items_requests = vec![].into();
+        request.items_requests = Some(vec![].into());
         request
     };
 
@@ -541,27 +533,6 @@ async fn test_disclosure_not_found() {
 
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
 
-    // check if a non-existent token returns a 404 on the wallet URL
-    let mut request_uri = settings
-        .server_settings
-        .public_url
-        .join("disclosure/sessions/nonexistent_session/request_uri");
-    request_uri.set_query(
-        serde_urlencoded::to_string(VerifierUrlParameters {
-            session_type: SessionType::SameDevice,
-            ephemeral_id_params: Some(EphemeralIdParameters {
-                ephemeral_id: vec![42],
-                time: Utc::now(),
-            }),
-        })
-        .unwrap()
-        .as_str()
-        .into(),
-    );
-    let response = client.get(request_uri).send().await.unwrap();
-
-    test_error_response(response, StatusCode::NOT_FOUND, "unknown_session").await;
-
     // check if a non-existent token returns a 404 on the disclosed_attributes URL
     let response = client
         .get(internal_url.join("disclosure/sessions/nonexistent_session/disclosed_attributes"))
@@ -571,6 +542,12 @@ async fn test_disclosure_not_found() {
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     test_http_json_error_body(response, StatusCode::NOT_FOUND, "unknown_session").await;
+
+    // As to `request_uri` which is invoked by the wallet: this endpoint can only be invoked with a valid
+    // ephemeral ID token over the session token, which the server normally hands out at the status endpoint.
+    // But the server will not hand out such a token for a session token that does not refer to an existing session.
+    // So getting a 404 from this endpoint is not possible, i.e. will not be happening in production scenarios,
+    // so there is no need to test this case here.
 }
 
 fn format_status_url(public_url: &BaseUrl, session_token: &SessionToken, session_type: Option<SessionType>) -> Url {

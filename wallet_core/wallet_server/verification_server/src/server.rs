@@ -11,7 +11,6 @@ use tracing::info;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use openid4vc::server_state::SessionStore;
 use openid4vc::verifier::DisclosureData;
-use openid4vc_server::verifier::RequestUriBehaviour;
 use openid4vc_server::verifier::VerifierFactory;
 use server_utils::server::create_wallet_listener;
 use server_utils::server::decorate_router;
@@ -44,11 +43,19 @@ where
     check_requester_listener_with_settings(&requester_listener, &settings);
     let log_requests = settings.server_settings.log_requests;
 
+    let usecases = settings
+        .usecases
+        .parse(
+            hsm,
+            (&settings.ephemeral_id_secret).into(),
+            Arc::clone(&disclosure_sessions),
+        )
+        .await?;
+
     let (wallet_disclosure_router, requester_router) = VerifierFactory::new(
         settings.server_settings.public_url.join_base_url("disclosure/sessions"),
         settings.universal_link_base_url,
-        settings.usecases.parse(hsm).await?,
-        Some((&settings.ephemeral_id_secret).into()),
+        usecases,
         settings
             .server_settings
             .issuer_trust_anchors
@@ -56,7 +63,6 @@ where
             .map(BorrowingTrustAnchor::to_owned_trust_anchor)
             .collect(),
         settings.wallet_client_ids,
-        RequestUriBehaviour::BySessionToken,
     )
     .create_routers(settings.allow_origins, disclosure_sessions, None);
 
