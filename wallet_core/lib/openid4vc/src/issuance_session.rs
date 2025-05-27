@@ -1548,6 +1548,39 @@ mod tests {
     }
 
     #[test]
+    fn test_accept_issuance_incorrect_resource_integrity() {
+        let (mut signer, preview_data) = MockCredentialSigner::new_with_preview_state();
+        let trust_anchor = signer.trust_anchor.clone();
+
+        // Include a random resource integrity in the MSO of the returned mdoc.
+        signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
+
+        let mut mock_msg_client = mock_openid_message_client();
+
+        mock_msg_client.expect_request_credential().return_once(
+            |_url, credential_requests, _dpop_header, _access_token_header| {
+                let response = signer.into_response_from_request(credential_requests);
+
+                Ok(response)
+            },
+        );
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(vec![preview_data]),
+        }
+        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), None)
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::TypeMetadataVerification(TypeMetadataChainError::ResourceIntegrity(_))
+        );
+    }
+
+    #[test]
     fn test_issuer_registrations_differ() {
         let type_metadata = TypeMetadata::example_with_claim_name(
             "urn:eudi:pid:nl:1",
