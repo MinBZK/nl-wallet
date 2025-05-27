@@ -13,11 +13,11 @@ use utils::vec_at_least::VecNonEmpty;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Query {
     /// Credential Queries that specify the requested Credentials.
-    pub credentials: VecNonEmpty<Credentials>,
+    pub credentials: VecNonEmpty<CredentialQuery>,
 
     /// Additional constraints, if any, on which of the requested Credentials to return.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub credential_sets: Vec<CredentialSets>,
+    pub credential_sets: Vec<CredentialQuerySets>,
 }
 
 /// Represents a request for a presentation of one or more matching Credentials.
@@ -25,7 +25,7 @@ pub struct Query {
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-query>
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Credentials {
+pub struct CredentialQuery {
     /// Identifies the Credential in the response and, if provided, the constraints in credential_sets. MUST be
     /// non-empty consisting of alphanumeric, underscore (_) or hyphen (-) characters. MUST be unique within the
     /// Authorization Request.
@@ -33,7 +33,7 @@ pub struct Credentials {
 
     /// Specifies the format of the requested Credential.
     #[serde(flatten)]
-    format: CredentialFormat,
+    format: CredentialQueryFormat,
 
     /// Indicates whether multiple Credentials can be returned for this Credential Query.
     /// If omitted, the default value is false.
@@ -57,7 +57,7 @@ pub struct Credentials {
     /// Wallets SHOULD ignore such duplicate claim queries.
     /// If empty the wallet MUST disclose none of the attributes of the Credential.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    claims: Vec<Claims>,
+    claims: Vec<ClaimsQuery>,
 
     /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
     /// are requested.
@@ -68,7 +68,7 @@ pub struct Credentials {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "format", content = "meta", rename_all = "snake_case")]
-pub enum CredentialFormat {
+pub enum CredentialQueryFormat {
     MsoMdoc {
         /// Doctype of the requested Verifiable Credential
         doctype_value: String,
@@ -89,7 +89,7 @@ pub enum CredentialFormat {
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-set-query>
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CredentialSets {
+pub struct CredentialQuerySets {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
     /// an array of identifiers which reference elements in the `credentials` field of [`Query`].
@@ -122,7 +122,7 @@ pub enum TrustedAuthoritiesQuery {
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-claims-query>
 #[skip_serializing_none]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Claims {
+pub struct ClaimsQuery {
     /// A string identifying the particular claim.
     /// REQUIRED if claim_sets is present in the Credential Query; OPTIONAL otherwise.
     /// The value MUST be a non-empty string consisting of alphanumeric, underscore (_) or hyphen (-) characters.
