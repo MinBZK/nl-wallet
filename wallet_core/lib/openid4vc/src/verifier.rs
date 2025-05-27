@@ -612,8 +612,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
         // If the caller passed `Some(items_requests)`, then `items_requests` should not be empty.
         if items_requests
             .as_ref()
-            .map(|items_request| items_request.0.is_empty())
-            .unwrap_or_default()
+            .is_some_and(|items_request| items_request.0.is_empty())
         {
             return Err(NewSessionError::NoItemsRequests);
         }
