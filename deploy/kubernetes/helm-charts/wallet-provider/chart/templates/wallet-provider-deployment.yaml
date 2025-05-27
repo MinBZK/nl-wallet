@@ -47,7 +47,7 @@ spec:
           {{- end }}
           ports:
             - name: http
-              containerPort: 3000
+              containerPort: 8001
           {{- with .Values.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

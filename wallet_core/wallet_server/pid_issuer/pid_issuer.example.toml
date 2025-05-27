@@ -1,7 +1,7 @@
 # Example config
 
 # The wallet must be able to reach the server at this URL
-public_url = 'http://localhost:3001/'
+public_url = 'http://localhost:8001/'
 
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
 wte_issuer_pubkey = ""            # Public key of the WTE issuer
@@ -14,7 +14,7 @@ url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 
 [wallet_server]
 ip = '127.0.0.1'
-port = 3001
+port = 8001
 
 # Optional, for securing private keys
 [hsm]

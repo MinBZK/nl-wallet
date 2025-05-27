@@ -49,8 +49,9 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
             .set_default("webserver.ip", "0.0.0.0")?
-            .set_default("webserver.port", 3005)?
-            .set_default("issuance_server.port", 3006)?
+            .set_default("webserver.port", 8001)?
+            .set_default("issuance_server.ip", "127.0.0.1")?
+            .set_default("issuance_server.port", 8002)?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("structured_logging", false)?
             .add_source(File::from(prefix_local_path("demo_issuer.toml".as_ref()).as_ref()).required(false))

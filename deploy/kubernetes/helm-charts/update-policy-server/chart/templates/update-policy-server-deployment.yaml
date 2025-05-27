@@ -38,7 +38,7 @@ spec:
           image: {{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
           ports:
             - name: http
-              containerPort: 3002
+              containerPort: 8001
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

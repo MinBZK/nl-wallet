@@ -37,9 +37,9 @@ spec:
           {{- end }}
           ports:
             - name: http
-              containerPort: 3005
+              containerPort: 8001
             - name: http-internal
-              containerPort: 3006
+              containerPort: 8002
           volumeMounts:
             - name: config-volume
               mountPath: /demo_issuer.toml

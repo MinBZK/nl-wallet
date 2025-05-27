@@ -37,7 +37,7 @@ spec:
           {{- end }}
           ports:
             - name: http
-              containerPort: 3007
+              containerPort: 8001
           volumeMounts:
             - name: issuance-server-settings
               mountPath: /issuance_server.toml

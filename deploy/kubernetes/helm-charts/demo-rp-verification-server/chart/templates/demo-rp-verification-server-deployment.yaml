@@ -37,10 +37,12 @@ spec:
           {{- end }}
           ports:
             - name: http
-              containerPort: 3009
+              containerPort: 8001
             - name: http-internal
-              containerPort: 3010
+              containerPort: 8002
           env:
+            - name: VERIFICATION_SERVER__REQUESTER_SERVER
+              value: "0.0.0.0"
             - name: VERIFICATION_SERVER__PUBLIC_URL
               value: {{ include "common.urls.combineDomainAndContext" (list .Values.verificationServer.hostname .Values.verificationServer.contextPath) }}
             - name: VERIFICATION_SERVER__UNIVERSAL_LINK_BASE_URL

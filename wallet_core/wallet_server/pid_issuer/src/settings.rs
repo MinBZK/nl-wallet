@@ -44,8 +44,8 @@ impl ServerSettings for PidIssuerSettings {
 
         let config_builder = Config::builder()
             .set_default("wallet_server.ip", "0.0.0.0")?
-            .set_default("wallet_server.port", 3003)?
-            .set_default("public_url", "http://localhost:3003/")?
+            .set_default("wallet_server.port", 8001)?
+            .set_default("public_url", "http://localhost:8001/")?
             .set_default("log_requests", false)?
             .set_default("structured_logging", false)?
             .set_default("storage.url", "memory://")?

@@ -52,8 +52,8 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
             .set_default("webserver.ip", "0.0.0.0")?
-            .set_default("webserver.port", 3008)?
-            .set_default("public_url", "http://localhost:3008/")?
+            .set_default("webserver.port", 8001)?
+            .set_default("public_url", "http://localhost:8001/")?
             .set_default("structured_logging", false)?
             .add_source(File::from(prefix_local_path("demo_relying_party.toml".as_ref()).as_ref()).required(false))
             .add_source(

@@ -48,7 +48,7 @@ spec:
               subPath: bsn_zoeken_template.xml
           ports:
             - name: http
-              containerPort: 3012
+              containerPort: 8001
           env:
             - name: RUST_BACKTRACE
               value: "1"

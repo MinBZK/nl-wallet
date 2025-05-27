@@ -650,11 +650,11 @@ url = '$WASTORAGEURL'
 
 [wallet_server]
 ip = '0.0.0.0'
-port = 3005
+port = 8001
 
 [requester_server]
 ip = '0.0.0.0'
-port = 3006
+port = 8002
 
 ephemeral_id_secret = '$WAEPHEMERALIDSECRET'
 
@@ -955,10 +955,10 @@ and [public][16] (also known as the `wallet`) endpoints are available in the
 
 The `verification_server` has two ports: a "wallet server" port, which is a a "public"
 endpoint that can be queried for session status, usually running on TCP port
-`3005`, and a so-called "requester port" which is a "private" endpoint that can
+`8001`, and a so-called "requester port" which is a "private" endpoint that can
 optionally be configured to have authentication mechanisms (or otherwise bind to
 a private/trusted/internal network), used to initiate sessions and retrieve
-sensitive data, usually running on TCP port `3006`.
+sensitive data, usually running on TCP port `8002`.
 
 Following is a collection of sample calls that illustrate how you interact with
 the OV. Note that we're using `localhost`, in your case it might be another
@@ -981,8 +981,8 @@ curl --silent --request POST --json '{
       }
     }
   ],
-  "return_url_template": "https://localhost:3004/return"
-}' 'http://localhost:3006/disclosure/sessions'
+  "return_url_template": "https://relying-party/return"
+}' 'http://localhost:8001/disclosure/sessions'
 ```
 
 Example response:
@@ -996,7 +996,7 @@ Example response:
 ### Check Status of Session
 
 ```sh
-curl --silent --request GET 'http://localhost:3005/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i?session_type=same_device'
+curl --silent --request GET 'http://localhost:8001/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i?session_type=same_device'
 ```
 
 Example responses:
@@ -1028,13 +1028,13 @@ _setting in the `verification_server` configuration file.)_
 ### Retrieve Disclosure Results
 
 ```sh
-curl --silent --request GET 'http://localhost:3006/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes'
+curl --silent --request GET 'http://localhost:8002/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes'
 ```
 
 and with (required, see error response below too) `nonce` query parameter:
 
 ```sh
-curl --silent --request GET' http://localhost:3006/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes?nonce=rcofnse1SThIdSYAqXhnJNOTk9EmBweT'
+curl --silent --request GET' http://localhost:8002/disclosure/sessions/387f8vMgeE1NunRPqn55Tha1761EC54i/disclosed_attributes?nonce=rcofnse1SThIdSYAqXhnJNOTk9EmBweT'
 ```
 
 Example responses:
