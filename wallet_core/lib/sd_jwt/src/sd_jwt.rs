@@ -62,7 +62,11 @@ pub struct SdJwtClaims {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwt {
     issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
+
+    // To not having to parse the certificates from the JWT header x5c field every time,
+    // the certificates are stored here redunantly for convenience as well.
     issuer_certificates: Vec<BorrowingCertificate>,
+
     disclosures: IndexMap<String, Disclosure>,
 }
 
