@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ .Values.nameOverride | default .Chart.Name }}
+  name: {{ include "common.names.fullname" . }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}

@@ -4,7 +4,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ $name }}
+  name: {{ $name }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}
