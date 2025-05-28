@@ -96,5 +96,5 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     assert_eq!(2, mdocs.len());
-    assert_eq!(2, mdocs[0].0.len());
+    assert_eq!(2, mdocs[0].copies.len());
 }
