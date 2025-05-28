@@ -28,7 +28,7 @@ pub enum ResetError {
     NotRegistered,
 }
 
-type ResetResult<T> = std::result::Result<T, ResetError>;
+type ResetResult<T> = Result<T, ResetError>;
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
@@ -109,6 +109,7 @@ mod tests {
 
     use openid4vc::mock::MockIssuanceSession;
 
+    use crate::attestation::Attestation;
     use crate::storage::StorageState;
     use crate::wallet::Session;
 
@@ -166,6 +167,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
+            vec![Attestation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
         )));
 

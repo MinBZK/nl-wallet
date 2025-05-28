@@ -149,8 +149,8 @@ mod tests {
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
-    use openid4vc::issuance_session::IssuedCredential;
 
+    use crate::attestation::Attestation;
     use crate::storage::WalletEvent;
 
     use super::super::test;
@@ -295,10 +295,8 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single Issuance Event
-        let mdocs = vec![IssuedCredential::MsoMdoc(Box::new(test::create_example_pid_mdoc()))]
-            .try_into()
-            .unwrap();
-        let event = WalletEvent::new_issuance(mdocs);
+        let attestations = vec![Attestation::new_mock()].try_into().unwrap();
+        let event = WalletEvent::new_issuance(attestations);
         wallet.storage.write().await.event_log.push(event);
 
         // Register mock recent history callback

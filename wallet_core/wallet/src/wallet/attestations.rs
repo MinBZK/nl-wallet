@@ -58,22 +58,28 @@ where
             .fetch_unique_mdocs()
             .await?
             .into_iter()
-            .map(|StoredMdocCopy { mdoc_id, mdoc, .. }| {
-                let issuer_certificate = mdoc.issuer_certificate()?;
-                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
-                    .ok_or(AttestationsError::MissingIssuerRegistration)?;
+            .map(
+                |StoredMdocCopy {
+                     mdoc_id,
+                     mdoc,
+                     normalized_metadata,
+                     ..
+                 }| {
+                    let issuer_certificate = mdoc.issuer_certificate()?;
+                    let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
+                        .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                let metadata = mdoc.type_metadata().map_err(AttestationsError::Metadata)?;
-                let attestation = Attestation::create_for_issuance(
-                    AttestationIdentity::Fixed {
-                        id: mdoc_id.to_string(),
-                    },
-                    metadata,
-                    issuer_registration.organization,
-                    mdoc.issuer_signed.into_entries_by_namespace(),
-                )?;
-                Ok(attestation)
-            })
+                    let attestation = Attestation::create_for_issuance(
+                        AttestationIdentity::Fixed {
+                            id: mdoc_id.to_string(),
+                        },
+                        normalized_metadata,
+                        issuer_registration.organization,
+                        mdoc.issuer_signed.into_entries_by_namespace(),
+                    )?;
+                    Ok(attestation)
+                },
+            )
             .collect::<Result<Vec<_>, AttestationsError>>()?;
 
         if let Some(ref mut callback) = self.attestations_callback {
@@ -109,6 +115,7 @@ mod tests {
     use assert_matches::assert_matches;
 
     use openid4vc::issuance_session::IssuedCredentialCopies;
+    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -153,7 +160,7 @@ mod tests {
         let mdoc_doc_type = mdoc.doc_type().clone();
         wallet.storage.write().await.issued_credential_copies.insert(
             mdoc.doc_type().clone(),
-            vec![IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap())],
+            vec![(IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()), NormalizedTypeMetadata::pid_example())],
         );
 
         // Register mock document_callback
@@ -193,7 +200,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
         wallet.storage.write().await.issued_credential_copies.insert(
             mdoc.doc_type().clone(),
-            vec![IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap())],
+            vec![(IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()), NormalizedTypeMetadata::pid_example())],
         );
 
         // Register mock attestation_callback

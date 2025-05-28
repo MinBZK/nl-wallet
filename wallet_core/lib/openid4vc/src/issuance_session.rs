@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
 
+use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future::try_join_all;
 use futures::future::OptionFuture;
@@ -52,6 +53,7 @@ use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::SortedTypeMetadataDocuments;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use utils::generator::TimeGenerator;
 use utils::single_unique::MultipleItemsFound;
 use utils::single_unique::SingleUnique;
@@ -172,10 +174,6 @@ pub enum IssuanceSessionError {
     #[error("error retrieving metadata from issued mdoc: {0}")]
     Metadata(#[source] mdoc::Error),
 
-    #[error("metadata contained in credential not equal to expected value")]
-    #[category(critical)]
-    MetadataMismatch,
-
     #[error("metadata integrity digest contained is not consistent across credential copies")]
     #[category(critical)]
     MetadataIntegrityInconsistent,
@@ -223,6 +221,12 @@ pub enum IssuanceSessionError {
 pub enum IssuedCredential {
     MsoMdoc(Box<Mdoc>),
     SdJwt(Box<SdJwt>),
+}
+
+#[derive(Clone, Debug, Constructor)]
+pub struct CredentialWithMetadata {
+    pub copies: IssuedCredentialCopies,
+    pub metadata_documents: VerifiedTypeMetadataDocuments,
 }
 
 #[derive(Clone, Debug)]
@@ -278,7 +282,7 @@ pub trait IssuanceSession<H = HttpVcMessageClient> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
@@ -682,7 +686,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
         trust_anchors: &[TrustAnchor<'_>],
         key_factory: &KF,
         wte: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>
+    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
@@ -829,7 +833,7 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
 
                         // Check that the integrity hash received in the credential matches
                         // that of encoded JSON of the first metadata document.
-                        preview.raw_metadata.verify(integrity.clone())?;
+                        let verified_metadata = preview.raw_metadata.clone().into_verified(integrity.clone())?;
 
                         let copies = match format {
                             Format::MsoMdoc => IssuedCredentialCopies::MsoMdoc(
@@ -864,9 +868,9 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             ))?,
                         };
 
-                        Ok(copies)
+                        Ok(CredentialWithMetadata::new(copies, verified_metadata))
                     })
-                    .collect::<Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>>()
+                    .collect::<Result<Vec<_>, IssuanceSessionError>>()
             })
             // Flatten the results, s.t. we're left with a mixed vector of IssuedCredentialCopies
             .process_results(|i| i.flatten().collect())?;
@@ -990,19 +994,6 @@ impl CredentialResponse {
                     .issuer_auth
                     .signing_cert()
                     .map_err(IssuanceSessionError::IssuerCertificate)?;
-
-                let credential_metadata_documents = &issuer_signed
-                    .type_metadata_documents()
-                    .map_err(IssuanceSessionError::Metadata)?;
-
-                // Check that the collection of metadata received in the mdoc unsigned header
-                // is the same as the one received for the preview. Note that the type metadata
-                // integrity is checked for all the copies of a credential at once, so we do not
-                // need to do that here.
-                // TODO: remove this check in PVW-4320 when metadata has been removed from the mdoc
-                if credential_metadata_documents != &preview.raw_metadata {
-                    return Err(IssuanceSessionError::MetadataMismatch);
-                }
 
                 // Construct the new mdoc; this also verifies it against the trust anchors.
                 let mdoc = Mdoc::new::<K>(key_id, issuer_signed, &TimeGenerator, trust_anchors)
@@ -1143,7 +1134,6 @@ mod tests {
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
     use crypto::x509::CertificateError;
-    use jwt::jwk;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::IssuerSigned;
@@ -1397,7 +1387,6 @@ mod tests {
     struct MockCredentialSigner {
         pub trust_anchor: TrustAnchor<'static>,
         issuer_key: Arc<KeyPair>,
-        metadata_documents: TypeMetadataDocuments,
         metadata_integrity: Integrity,
         previewable_payload: PreviewableCredentialPayload,
     }
@@ -1428,13 +1417,11 @@ mod tests {
 
             let (attestation_type, metadata_integrity, metadata_documents) =
                 TypeMetadataDocuments::from_single_example(type_metadata);
-            let (normalized_metadata, raw_metadata) =
-                metadata_documents.clone().into_normalized(&attestation_type).unwrap();
+            let (normalized_metadata, raw_metadata) = metadata_documents.into_normalized(&attestation_type).unwrap();
 
             let signer = Self {
                 trust_anchor,
                 issuer_key: Arc::new(issuer_key),
-                metadata_documents,
                 metadata_integrity,
                 previewable_payload: credential_payload.previewable_payload.clone(),
             };
@@ -1457,7 +1444,7 @@ mod tests {
                 CredentialRequestProof::Jwt { jwt } => jwt,
             };
             let holder_public_key =
-                jwk::jwk_to_p256(&jsonwebtoken::decode_header(&proof_jwt.0).unwrap().jwk.unwrap()).unwrap();
+                jwk_to_p256(&jsonwebtoken::decode_header(&proof_jwt.0).unwrap().jwk.unwrap()).unwrap();
 
             self.into_response_from_holder_public_key(&holder_public_key)
         }
@@ -1466,7 +1453,6 @@ mod tests {
             let (issuer_signed, _) = IssuerSigned::sign(
                 self.previewable_payload.try_into().unwrap(),
                 self.metadata_integrity,
-                &self.metadata_documents,
                 holder_public_key,
                 &self.issuer_key,
             )
@@ -1581,14 +1567,17 @@ mod tests {
             });
         }
 
-        // _ is an error because our mock does not behave like an actual issuer should, but it doesn't matter
-        // because we are just inspecting what the client sent in this test with the expectation above.
-        let _ = HttpIssuanceSession {
+        let credential_copies = HttpIssuanceSession {
             message_client: mock_msg_client,
             session_state,
         }
         .accept_issuance(&[trust_anchor], &key_factory, wte)
-        .now_or_never();
+        .now_or_never()
+        .unwrap()
+        .expect("accepting issuance should succeed");
+
+        let expected_credential_count = if multiple_creds { 2 } else { 1 };
+        assert_eq!(credential_copies.len(), expected_credential_count);
     }
 
     #[test]
@@ -1664,6 +1653,39 @@ mod tests {
         .expect_err("accepting issuance should not succeed");
 
         assert_matches!(error, IssuanceSessionError::MdocCredentialPayload(_));
+    }
+
+    #[test]
+    fn test_accept_issuance_incorrect_resource_integrity() {
+        let (mut signer, preview_data) = MockCredentialSigner::new_with_preview_state();
+        let trust_anchor = signer.trust_anchor.clone();
+
+        // Include a random resource integrity in the MSO of the returned mdoc.
+        signer.metadata_integrity = Integrity::from(crypto::utils::random_bytes(32));
+
+        let mut mock_msg_client = mock_openid_message_client();
+
+        mock_msg_client.expect_request_credential().return_once(
+            |_url, credential_requests, _dpop_header, _access_token_header| {
+                let response = signer.into_response_from_request(credential_requests);
+
+                Ok(response)
+            },
+        );
+
+        let error = HttpIssuanceSession {
+            message_client: mock_msg_client,
+            session_state: new_session_state(vec![preview_data]),
+        }
+        .accept_issuance(&[trust_anchor], &MockRemoteKeyFactory::default(), None)
+        .now_or_never()
+        .unwrap()
+        .expect_err("accepting issuance should not succeed");
+
+        assert_matches!(
+            error,
+            IssuanceSessionError::TypeMetadataVerification(TypeMetadataChainError::ResourceIntegrity(_))
+        );
     }
 
     fn mock_credential_response() -> (
@@ -1776,35 +1798,6 @@ mod tests {
             .expect_err("should not be able to convert CredentialResponse into Mdoc");
 
         assert_matches!(error, IssuanceSessionError::IssuerMismatch);
-    }
-
-    #[test]
-    fn test_credential_response_into_mdoc_issuer_metadata_mismatch_error() {
-        let (credential_response, normalized_preview, holder_public_key, trust_anchor) = mock_credential_response();
-
-        // Converting a `CredentialResponse` into an `Mdoc` using different metadata
-        // in the preview than is contained within the response should fail.
-        let (attestation_type, _, different_metadata_documents) =
-            TypeMetadataDocuments::from_single_example(TypeMetadata::empty_example_with_attestation_type("different"));
-        let (different_normalized, different_raw) =
-            different_metadata_documents.into_normalized(&attestation_type).unwrap();
-
-        let preview_data = NormalizedCredentialPreview {
-            normalized_metadata: different_normalized,
-            raw_metadata: different_raw,
-            ..normalized_preview
-        };
-
-        let error = credential_response
-            .into_credential::<MockRemoteEcdsaKey>(
-                "key_id".to_string(),
-                &holder_public_key,
-                &preview_data,
-                &[trust_anchor],
-            )
-            .expect_err("should not be able to convert CredentialResponse into Mdoc");
-
-        assert_matches!(error, IssuanceSessionError::MetadataMismatch);
     }
 
     #[test]

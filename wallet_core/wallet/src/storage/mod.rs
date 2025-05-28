@@ -22,7 +22,9 @@ use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
-use openid4vc::issuance_session::IssuedCredentialCopies;
+use openid4vc::issuance_session::CredentialWithMetadata;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
@@ -71,6 +73,9 @@ pub enum StorageError {
     #[error("storage database JSON error: {0}")]
     #[category(pd)]
     Json(#[from] serde_json::Error),
+    #[error("could not decode stored metadata chain: {0}")]
+    #[category(pd)]
+    MetadataChain(#[from] TypeMetadataChainError),
     #[error("storage database CBOR error: {0}")]
     Cbor(#[from] CborError),
     #[error("storage database SQLCipher key error: {0}")]
@@ -87,6 +92,7 @@ pub struct StoredMdocCopy {
     pub mdoc_id: Uuid,
     pub mdoc_copy_id: Uuid,
     pub mdoc: Mdoc,
+    pub normalized_metadata: NormalizedTypeMetadata,
 }
 
 /// This trait abstracts the persistent storage for the wallet.
@@ -109,7 +115,7 @@ pub trait Storage {
     async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
     async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()>;
 
-    async fn insert_credentials(&mut self, credentials: Vec<IssuedCredentialCopies>) -> StorageResult<()>;
+    async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()>;
 
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>>;

@@ -89,6 +89,7 @@ use openid4vc::VpAuthorizationErrorCode;
 use poa::factory::PoaFactory;
 use poa::Poa;
 use poa::PoaError;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 
@@ -342,17 +343,20 @@ const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITUATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
 
-struct MockMdocDataSource(HashMap<DocType, IssuedCredentialCopies>);
+struct MockMdocDataSource(HashMap<DocType, (IssuedCredentialCopies, NormalizedTypeMetadata)>);
 
-impl From<Vec<Mdoc>> for MockMdocDataSource {
-    fn from(value: Vec<Mdoc>) -> Self {
-        MockMdocDataSource(
-            value
+impl MockMdocDataSource {
+    fn new(mdocs: Vec<(Mdoc, NormalizedTypeMetadata)>) -> Self {
+        Self(
+            mdocs
                 .into_iter()
-                .map(|mdoc| {
+                .map(|(mdoc, normalized_metadata)| {
                     (
                         mdoc.doc_type().clone(),
-                        IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                        (
+                            IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                            normalized_metadata,
+                        ),
                     )
                 })
                 .collect(),
@@ -367,16 +371,17 @@ impl MdocDataSource for MockMdocDataSource {
     async fn mdoc_by_doc_types(
         &self,
         doc_types: &HashSet<&str>,
-    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
+    ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
         let stored_mdocs = self
             .0
             .iter()
-            .filter_map(|(doc_type, mdoc_copies)| match mdoc_copies {
+            .filter_map(|(doc_type, (mdoc_copies, normalized_metadata))| match mdoc_copies {
                 IssuedCredentialCopies::MsoMdoc(mdocs) => {
                     if doc_types.contains(doc_type.as_str()) {
                         return vec![StoredMdoc {
                             id: format!("{}_id", doc_type.clone()),
                             mdoc: mdocs.first().clone(),
+                            normalized_metadata: normalized_metadata.clone(),
                         }]
                         .into();
                     }
@@ -753,8 +758,16 @@ async fn test_disclosure_invalid_poa() {
         type Key = MockRemoteEcdsaKey;
         type Error = MockRemoteKeyFactoryError;
 
+        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+            self.0.generate_new_multiple(count).await
+        }
+
         fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
             self.0.generate_existing(identifier, public_key)
+        }
+
+        async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+            unimplemented!()
         }
 
         async fn sign_multiple_with_existing_keys(
@@ -762,14 +775,6 @@ async fn test_disclosure_invalid_poa() {
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         ) -> Result<Vec<Vec<Signature>>, Self::Error> {
             self.0.sign_multiple_with_existing_keys(messages_and_keys).await
-        }
-
-        async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-            unimplemented!()
-        }
-
-        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-            self.0.generate_new_multiple(count).await
         }
     }
 
@@ -989,13 +994,13 @@ where
     UC: UseCase<Key = SigningKey>,
 {
     // Populate the wallet with the specified test documents
-    let mdocs = future::join_all(
-        stored_documents
-            .into_iter()
-            .map(|doc| async { doc.sign(issuer_ca, key_factory).await }),
-    )
+    let mdocs = future::join_all(stored_documents.into_iter().map(|doc| async {
+        let normalized_metadata = doc.normalized_metadata();
+
+        (doc.sign(issuer_ca, key_factory).await, normalized_metadata)
+    }))
     .await;
-    let mdocs = MockMdocDataSource::from(mdocs);
+    let mdocs = MockMdocDataSource::new(mdocs);
 
     // Start session in the wallet
     DisclosureSession::start(

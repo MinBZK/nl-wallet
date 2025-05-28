@@ -2002,7 +2002,11 @@ name = "entity"
 version = "0.3.0-dev"
 dependencies = [
  "chrono",
+ "derive_more",
+ "sd_jwt_vc_metadata",
  "sea-orm",
+ "serde",
+ "serde_json",
  "uuid",
 ]
 
@@ -7477,6 +7481,7 @@ dependencies = [
  "serde_with",
  "serial_test",
  "server_utils",
+ "ssri",
  "tokio",
  "tower-http",
  "tracing",
@@ -7564,6 +7569,7 @@ dependencies = [
  "serde_urlencoded",
  "serde_with",
  "serial_test",
+ "ssri",
  "strum 0.26.3",
  "tempfile",
  "thiserror 2.0.11",

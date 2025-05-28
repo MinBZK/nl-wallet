@@ -9,7 +9,9 @@ use uuid::Uuid;
 
 use crypto::x509::BorrowingCertificate;
 use mdoc::DocType;
+use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredentialCopies;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;
@@ -30,7 +32,7 @@ pub enum KeyedDataResult {
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
-    pub issued_credential_copies: IndexMap<DocType, Vec<IssuedCredentialCopies>>,
+    pub issued_credential_copies: IndexMap<DocType, Vec<(IssuedCredentialCopies, NormalizedTypeMetadata)>>,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
@@ -96,7 +98,7 @@ impl Storage for MockStorage {
         let data = self.data.get(D::KEY);
 
         match data {
-            Some(KeyedDataResult::Data(data)) => Ok(Some(serde_json::from_str(data).unwrap())),
+            Some(KeyedDataResult::Data(data)) => Ok(Some(serde_json::from_str(data)?)),
             Some(KeyedDataResult::Error) => Err(DbErr::Custom("Mock error".to_string()).into()),
             None => Ok(None),
         }
@@ -110,7 +112,7 @@ impl Storage for MockStorage {
         }
 
         self.data
-            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data).unwrap()));
+            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data)?));
 
         Ok(())
     }
@@ -121,7 +123,7 @@ impl Storage for MockStorage {
         }
 
         self.data
-            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data).unwrap()));
+            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data)?));
 
         Ok(())
     }
@@ -132,16 +134,20 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn insert_credentials(&mut self, credentials: Vec<IssuedCredentialCopies>) -> StorageResult<()> {
+    async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()> {
         self.check_query_error()?;
 
-        for mdoc_copies in credentials {
-            match &mdoc_copies {
+        for CredentialWithMetadata {
+            copies,
+            metadata_documents,
+        } in credentials
+        {
+            match &copies {
                 IssuedCredentialCopies::MsoMdoc(mdocs) => {
                     self.issued_credential_copies
                         .entry(mdocs.first().doc_type().clone())
                         .or_default()
-                        .push(mdoc_copies);
+                        .push((copies, metadata_documents.to_normalized()?));
                 }
                 IssuedCredentialCopies::SdJwt(_sd_jwts) => {
                     // todo!("implement in PVW-4109")
@@ -171,11 +177,12 @@ impl Storage for MockStorage {
             .issued_credential_copies
             .values()
             .flatten()
-            .map(|mdoc_copies| match &mdoc_copies {
+            .map(|(credential_copies, metadata)| match &credential_copies {
                 IssuedCredentialCopies::MsoMdoc(mdocs) => StoredMdocCopy {
                     mdoc_id: Uuid::now_v7(),
                     mdoc_copy_id: Uuid::now_v7(),
                     mdoc: mdocs.first().clone(),
+                    normalized_metadata: metadata.clone(),
                 },
                 IssuedCredentialCopies::SdJwt(_) => todo!("implement in PVW-4109"),
             })
