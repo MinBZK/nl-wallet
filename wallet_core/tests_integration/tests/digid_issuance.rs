@@ -86,7 +86,7 @@ async fn test_pid_issuance_digid_bridge() {
     .await
     .unwrap();
 
-    let mdocs = issuance_session
+    let credential_with_metadata = issuance_session
         .accept_issuance(
             &wallet_config.mdoc_trust_anchors(),
             &MockRemoteKeyFactory::default(),
@@ -95,6 +95,6 @@ async fn test_pid_issuance_digid_bridge() {
         .await
         .unwrap();
 
-    assert_eq!(2, mdocs.len());
-    assert_eq!(2, mdocs[0].len());
+    assert_eq!(2, credential_with_metadata.len());
+    assert_eq!(2, credential_with_metadata[0].copies.len());
 }
