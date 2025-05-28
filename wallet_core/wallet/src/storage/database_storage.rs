@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use entity::mdoc::TypeMetadata;
 use futures::try_join;
 use itertools::Itertools;
 use sea_orm::sea_query::Alias;
@@ -44,6 +43,7 @@ use entity::history_attestation_type;
 use entity::issuance_history_event;
 use entity::issuance_history_event_attestation_type;
 use entity::keyed_data;
+use entity::mdoc::TypeMetadataModel;
 use entity::mdoc_copy;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
@@ -237,7 +237,7 @@ impl<K> DatabaseStorage<K> {
             .group_by(mdoc_copy::Column::MdocId)
             .order_by(mdoc_copy::Column::Id, Order::Asc);
 
-        let mdoc_copies: Vec<(Uuid, Uuid, Vec<u8>, TypeMetadata)> =
+        let mdoc_copies: Vec<(Uuid, Uuid, Vec<u8>, TypeMetadataModel)> =
             transform_select(select).into_tuple().all(database.connection()).await?;
 
         let mdocs = mdoc_copies
@@ -527,7 +527,7 @@ where
                 let mdoc_model = entity::mdoc::ActiveModel {
                     id: Set(mdoc_id),
                     doc_type: Set(doc_type),
-                    type_metadata: Set(TypeMetadata::new(type_metadata)),
+                    type_metadata: Set(TypeMetadataModel::new(type_metadata)),
                 };
 
                 Ok((mdoc_model, copy_models))

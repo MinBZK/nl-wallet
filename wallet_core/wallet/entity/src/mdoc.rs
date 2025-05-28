@@ -13,12 +13,12 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub doc_type: String,
-    pub type_metadata: TypeMetadata,
+    pub type_metadata: TypeMetadataModel,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]
 #[serde(transparent)]
-pub struct TypeMetadata {
+pub struct TypeMetadataModel {
     pub documents: VerifiedTypeMetadataDocuments,
 }
 
