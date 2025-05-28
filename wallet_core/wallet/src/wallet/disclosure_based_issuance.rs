@@ -21,7 +21,7 @@ use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
-use crate::attestation::Attestation;
+use crate::attestation::AttestationPresentation;
 use crate::disclosure::MdocDisclosureSession;
 use crate::errors::UpdatePolicyError;
 use crate::issuance::DigidSession;
@@ -87,7 +87,7 @@ where
     pub async fn continue_disclosure_based_issuance(
         &mut self,
         pin: String,
-    ) -> Result<Vec<Attestation>, DisclosureBasedIssuanceError> {
+    ) -> Result<Vec<AttestationPresentation>, DisclosureBasedIssuanceError> {
         let config = self.config_repository.get();
 
         info!("Checking if a disclosure session is present");

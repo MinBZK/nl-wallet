@@ -679,7 +679,10 @@ fn wire__crate__api__full__reset_wallet_impl(port_: flutter_rust_bridge::for_gen
 fn wire__crate__api__full__set_attestations_stream_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     sink: impl CstDecode<
-        StreamSink<Vec<crate::models::attestation::Attestation>, flutter_rust_bridge::for_generated::DcoCodec>,
+        StreamSink<
+            Vec<crate::models::attestation::AttestationPresentation>,
+            flutter_rust_bridge::for_generated::DcoCodec,
+        >,
     >,
 ) {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
@@ -1034,7 +1037,10 @@ impl SseDecode
 }
 
 impl SseDecode
-    for StreamSink<Vec<crate::models::attestation::Attestation>, flutter_rust_bridge::for_generated::DcoCodec>
+    for StreamSink<
+        Vec<crate::models::attestation::AttestationPresentation>,
+        flutter_rust_bridge::for_generated::DcoCodec,
+    >
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1083,24 +1089,6 @@ impl SseDecode for crate::models::disclosure::AcceptDisclosureResult {
     }
 }
 
-impl SseDecode for crate::models::attestation::Attestation {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_identity = <crate::models::attestation::AttestationIdentity>::sse_decode(deserializer);
-        let mut var_attestationType = <String>::sse_decode(deserializer);
-        let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
-        let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
-        let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
-        return crate::models::attestation::Attestation {
-            identity: var_identity,
-            attestation_type: var_attestationType,
-            display_metadata: var_displayMetadata,
-            issuer: var_issuer,
-            attributes: var_attributes,
-        };
-    }
-}
-
 impl SseDecode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1133,6 +1121,24 @@ impl SseDecode for crate::models::attestation::AttestationIdentity {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseDecode for crate::models::attestation::AttestationPresentation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_identity = <crate::models::attestation::AttestationIdentity>::sse_decode(deserializer);
+        let mut var_attestationType = <String>::sse_decode(deserializer);
+        let mut var_displayMetadata = <Vec<crate::models::attestation::DisplayMetadata>>::sse_decode(deserializer);
+        let mut var_issuer = <crate::models::disclosure::Organization>::sse_decode(deserializer);
+        let mut var_attributes = <Vec<crate::models::attestation::AttestationAttribute>>::sse_decode(deserializer);
+        return crate::models::attestation::AttestationPresentation {
+            identity: var_identity,
+            attestation_type: var_attestationType,
+            display_metadata: var_displayMetadata,
+            issuer: var_issuer,
+            attributes: var_attributes,
+        };
     }
 }
 
@@ -1191,7 +1197,8 @@ impl SseDecode for crate::models::instruction::DisclosureBasedIssuanceResult {
         let mut tag_ = <i32>::sse_decode(deserializer);
         match tag_ {
             0 => {
-                let mut var_field0 = <Vec<crate::models::attestation::Attestation>>::sse_decode(deserializer);
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
                 return crate::models::instruction::DisclosureBasedIssuanceResult::Ok(var_field0);
             }
             1 => {
@@ -1377,18 +1384,6 @@ impl SseDecode for crate::models::image::ImageWithMetadata {
     }
 }
 
-impl SseDecode for Vec<crate::models::attestation::Attestation> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut len_ = <i32>::sse_decode(deserializer);
-        let mut ans_ = vec![];
-        for idx_ in 0..len_ {
-            ans_.push(<crate::models::attestation::Attestation>::sse_decode(deserializer));
-        }
-        return ans_;
-    }
-}
-
 impl SseDecode for Vec<crate::models::attestation::AttestationAttribute> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -1396,6 +1391,20 @@ impl SseDecode for Vec<crate::models::attestation::AttestationAttribute> {
         let mut ans_ = vec![];
         for idx_ in 0..len_ {
             ans_.push(<crate::models::attestation::AttestationAttribute>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::models::attestation::AttestationPresentation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = vec![];
+        for idx_ in 0..len_ {
+            ans_.push(<crate::models::attestation::AttestationPresentation>::sse_decode(
                 deserializer,
             ));
         }
@@ -1554,11 +1563,13 @@ impl SseDecode for Option<u64> {
     }
 }
 
-impl SseDecode for Option<Vec<crate::models::attestation::Attestation>> {
+impl SseDecode for Option<Vec<crate::models::attestation::AttestationPresentation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
-            return Some(<Vec<crate::models::attestation::Attestation>>::sse_decode(deserializer));
+            return Some(<Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(
+                deserializer,
+            ));
         } else {
             return None;
         }
@@ -1672,7 +1683,7 @@ impl SseDecode for crate::models::disclosure::StartDisclosureResult {
                 let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
                 let mut var_policy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_requestedAttestations =
-                    <Vec<crate::models::attestation::Attestation>>::sse_decode(deserializer);
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
                 let mut var_sharedDataWithRelyingPartyBefore = <bool>::sse_decode(deserializer);
                 let mut var_sessionType = <crate::models::disclosure::DisclosureSessionType>::sse_decode(deserializer);
                 let mut var_requestPurpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
@@ -1749,7 +1760,7 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 let mut var_relyingParty = <crate::models::disclosure::Organization>::sse_decode(deserializer);
                 let mut var_purpose = <Vec<crate::models::localize::LocalizedString>>::sse_decode(deserializer);
                 let mut var_sharedAttestations =
-                    <Option<Vec<crate::models::attestation::Attestation>>>::sse_decode(deserializer);
+                    <Option<Vec<crate::models::attestation::AttestationPresentation>>>::sse_decode(deserializer);
                 let mut var_requestPolicy = <crate::models::disclosure::RequestPolicy>::sse_decode(deserializer);
                 let mut var_status = <crate::models::wallet_event::DisclosureStatus>::sse_decode(deserializer);
                 let mut var_typ = <crate::models::disclosure::DisclosureType>::sse_decode(deserializer);
@@ -1765,7 +1776,8 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
             }
             1 => {
                 let mut var_dateTime = <String>::sse_decode(deserializer);
-                let mut var_attestation = <crate::models::attestation::Attestation>::sse_decode(deserializer);
+                let mut var_attestation =
+                    <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
                 return crate::models::wallet_event::WalletEvent::Issuance {
                     date_time: var_dateTime,
                     attestation: var_attestation,
@@ -1878,27 +1890,6 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::disclosure::AcceptDisclosu
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for crate::models::attestation::Attestation {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [
-            self.identity.into_into_dart().into_dart(),
-            self.attestation_type.into_into_dart().into_dart(),
-            self.display_metadata.into_into_dart().into_dart(),
-            self.issuer.into_into_dart().into_dart(),
-            self.attributes.into_into_dart().into_dart(),
-        ]
-        .into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::models::attestation::Attestation {}
-impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::Attestation>
-    for crate::models::attestation::Attestation
-{
-    fn into_into_dart(self) -> crate::models::attestation::Attestation {
-        self
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationAttribute {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -1937,6 +1928,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::AttestationId
     for crate::models::attestation::AttestationIdentity
 {
     fn into_into_dart(self) -> crate::models::attestation::AttestationIdentity {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::attestation::AttestationPresentation {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.identity.into_into_dart().into_dart(),
+            self.attestation_type.into_into_dart().into_dart(),
+            self.display_metadata.into_into_dart().into_dart(),
+            self.issuer.into_into_dart().into_dart(),
+            self.attributes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::models::attestation::AttestationPresentation
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::attestation::AttestationPresentation>
+    for crate::models::attestation::AttestationPresentation
+{
+    fn into_into_dart(self) -> crate::models::attestation::AttestationPresentation {
         self
     }
 }
@@ -2520,7 +2535,10 @@ impl SseEncode
 }
 
 impl SseEncode
-    for StreamSink<Vec<crate::models::attestation::Attestation>, flutter_rust_bridge::for_generated::DcoCodec>
+    for StreamSink<
+        Vec<crate::models::attestation::AttestationPresentation>,
+        flutter_rust_bridge::for_generated::DcoCodec,
+    >
 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2563,17 +2581,6 @@ impl SseEncode for crate::models::disclosure::AcceptDisclosureResult {
     }
 }
 
-impl SseEncode for crate::models::attestation::Attestation {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <crate::models::attestation::AttestationIdentity>::sse_encode(self.identity, serializer);
-        <String>::sse_encode(self.attestation_type, serializer);
-        <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
-        <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
-        <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
-    }
-}
-
 impl SseEncode for crate::models::attestation::AttestationAttribute {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -2599,6 +2606,17 @@ impl SseEncode for crate::models::attestation::AttestationIdentity {
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseEncode for crate::models::attestation::AttestationPresentation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::models::attestation::AttestationIdentity>::sse_encode(self.identity, serializer);
+        <String>::sse_encode(self.attestation_type, serializer);
+        <Vec<crate::models::attestation::DisplayMetadata>>::sse_encode(self.display_metadata, serializer);
+        <crate::models::disclosure::Organization>::sse_encode(self.issuer, serializer);
+        <Vec<crate::models::attestation::AttestationAttribute>>::sse_encode(self.attributes, serializer);
     }
 }
 
@@ -2651,7 +2669,7 @@ impl SseEncode for crate::models::instruction::DisclosureBasedIssuanceResult {
         match self {
             crate::models::instruction::DisclosureBasedIssuanceResult::Ok(field0) => {
                 <i32>::sse_encode(0, serializer);
-                <Vec<crate::models::attestation::Attestation>>::sse_encode(field0, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
             }
             crate::models::instruction::DisclosureBasedIssuanceResult::InstructionError { error } => {
                 <i32>::sse_encode(1, serializer);
@@ -2828,22 +2846,22 @@ impl SseEncode for crate::models::image::ImageWithMetadata {
     }
 }
 
-impl SseEncode for Vec<crate::models::attestation::Attestation> {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <i32>::sse_encode(self.len() as _, serializer);
-        for item in self {
-            <crate::models::attestation::Attestation>::sse_encode(item, serializer);
-        }
-    }
-}
-
 impl SseEncode for Vec<crate::models::attestation::AttestationAttribute> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::models::attestation::AttestationAttribute>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::models::attestation::AttestationPresentation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::models::attestation::AttestationPresentation>::sse_encode(item, serializer);
         }
     }
 }
@@ -2973,12 +2991,12 @@ impl SseEncode for Option<u64> {
     }
 }
 
-impl SseEncode for Option<Vec<crate::models::attestation::Attestation>> {
+impl SseEncode for Option<Vec<crate::models::attestation::AttestationPresentation>> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
-            <Vec<crate::models::attestation::Attestation>>::sse_encode(value, serializer);
+            <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(value, serializer);
         }
     }
 }
@@ -3079,7 +3097,10 @@ impl SseEncode for crate::models::disclosure::StartDisclosureResult {
                 <i32>::sse_encode(0, serializer);
                 <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
                 <crate::models::disclosure::RequestPolicy>::sse_encode(policy, serializer);
-                <Vec<crate::models::attestation::Attestation>>::sse_encode(requested_attestations, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(
+                    requested_attestations,
+                    serializer,
+                );
                 <bool>::sse_encode(shared_data_with_relying_party_before, serializer);
                 <crate::models::disclosure::DisclosureSessionType>::sse_encode(session_type, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(request_purpose, serializer);
@@ -3152,7 +3173,10 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <String>::sse_encode(date_time, serializer);
                 <crate::models::disclosure::Organization>::sse_encode(relying_party, serializer);
                 <Vec<crate::models::localize::LocalizedString>>::sse_encode(purpose, serializer);
-                <Option<Vec<crate::models::attestation::Attestation>>>::sse_encode(shared_attestations, serializer);
+                <Option<Vec<crate::models::attestation::AttestationPresentation>>>::sse_encode(
+                    shared_attestations,
+                    serializer,
+                );
                 <crate::models::disclosure::RequestPolicy>::sse_encode(request_policy, serializer);
                 <crate::models::wallet_event::DisclosureStatus>::sse_encode(status, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
@@ -3160,7 +3184,7 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
             crate::models::wallet_event::WalletEvent::Issuance { date_time, attestation } => {
                 <i32>::sse_encode(1, serializer);
                 <String>::sse_encode(date_time, serializer);
-                <crate::models::attestation::Attestation>::sse_encode(attestation, serializer);
+                <crate::models::attestation::AttestationPresentation>::sse_encode(attestation, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -3273,14 +3297,19 @@ mod io {
     }
     impl
         CstDecode<
-            StreamSink<Vec<crate::models::attestation::Attestation>, flutter_rust_bridge::for_generated::DcoCodec>,
+            StreamSink<
+                Vec<crate::models::attestation::AttestationPresentation>,
+                flutter_rust_bridge::for_generated::DcoCodec,
+            >,
         > for *mut wire_cst_list_prim_u_8_strict
     {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(
             self,
-        ) -> StreamSink<Vec<crate::models::attestation::Attestation>, flutter_rust_bridge::for_generated::DcoCodec>
-        {
+        ) -> StreamSink<
+            Vec<crate::models::attestation::AttestationPresentation>,
+            flutter_rust_bridge::for_generated::DcoCodec,
+        > {
             let raw: String = self.cst_decode();
             StreamSink::deserialize(raw)
         }
@@ -3326,18 +3355,6 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::attestation::Attestation> for wire_cst_attestation {
-        // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::attestation::Attestation {
-            crate::models::attestation::Attestation {
-                identity: self.identity.cst_decode(),
-                attestation_type: self.attestation_type.cst_decode(),
-                display_metadata: self.display_metadata.cst_decode(),
-                issuer: self.issuer.cst_decode(),
-                attributes: self.attributes.cst_decode(),
-            }
-        }
-    }
     impl CstDecode<crate::models::attestation::AttestationAttribute> for wire_cst_attestation_attribute {
         // Codec=Cst (C-struct based), see doc to use other codecs
         fn cst_decode(self) -> crate::models::attestation::AttestationAttribute {
@@ -3361,6 +3378,18 @@ mod io {
                     }
                 }
                 _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::attestation::AttestationPresentation> for wire_cst_attestation_presentation {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::attestation::AttestationPresentation {
+            crate::models::attestation::AttestationPresentation {
+                identity: self.identity.cst_decode(),
+                attestation_type: self.attestation_type.cst_decode(),
+                display_metadata: self.display_metadata.cst_decode(),
+                issuer: self.issuer.cst_decode(),
+                attributes: self.attributes.cst_decode(),
             }
         }
     }
@@ -3396,11 +3425,11 @@ mod io {
             }
         }
     }
-    impl CstDecode<crate::models::attestation::Attestation> for *mut wire_cst_attestation {
+    impl CstDecode<crate::models::attestation::AttestationPresentation> for *mut wire_cst_attestation_presentation {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> crate::models::attestation::Attestation {
+        fn cst_decode(self) -> crate::models::attestation::AttestationPresentation {
             let wrap = unsafe { flutter_rust_bridge::for_generated::box_from_leak_ptr(self) };
-            CstDecode::<crate::models::attestation::Attestation>::cst_decode(*wrap).into()
+            CstDecode::<crate::models::attestation::AttestationPresentation>::cst_decode(*wrap).into()
         }
     }
     impl CstDecode<crate::models::image::Image> for *mut wire_cst_image {
@@ -3564,9 +3593,9 @@ mod io {
             }
         }
     }
-    impl CstDecode<Vec<crate::models::attestation::Attestation>> for *mut wire_cst_list_attestation {
+    impl CstDecode<Vec<crate::models::attestation::AttestationAttribute>> for *mut wire_cst_list_attestation_attribute {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<crate::models::attestation::Attestation> {
+        fn cst_decode(self) -> Vec<crate::models::attestation::AttestationAttribute> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -3574,9 +3603,11 @@ mod io {
             vec.into_iter().map(CstDecode::cst_decode).collect()
         }
     }
-    impl CstDecode<Vec<crate::models::attestation::AttestationAttribute>> for *mut wire_cst_list_attestation_attribute {
+    impl CstDecode<Vec<crate::models::attestation::AttestationPresentation>>
+        for *mut wire_cst_list_attestation_presentation
+    {
         // Codec=Cst (C-struct based), see doc to use other codecs
-        fn cst_decode(self) -> Vec<crate::models::attestation::AttestationAttribute> {
+        fn cst_decode(self) -> Vec<crate::models::attestation::AttestationPresentation> {
             let vec = unsafe {
                 let wrap = flutter_rust_bridge::for_generated::box_from_leak_ptr(self);
                 flutter_rust_bridge::for_generated::vec_from_leak_ptr(wrap.ptr, wrap.len)
@@ -3815,22 +3846,6 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
-    impl NewWithNullPtr for wire_cst_attestation {
-        fn new_with_null_ptr() -> Self {
-            Self {
-                identity: Default::default(),
-                attestation_type: core::ptr::null_mut(),
-                display_metadata: core::ptr::null_mut(),
-                issuer: Default::default(),
-                attributes: core::ptr::null_mut(),
-            }
-        }
-    }
-    impl Default for wire_cst_attestation {
-        fn default() -> Self {
-            Self::new_with_null_ptr()
-        }
-    }
     impl NewWithNullPtr for wire_cst_attestation_attribute {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -3855,6 +3870,22 @@ mod io {
         }
     }
     impl Default for wire_cst_attestation_identity {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
+    impl NewWithNullPtr for wire_cst_attestation_presentation {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                identity: Default::default(),
+                attestation_type: core::ptr::null_mut(),
+                display_metadata: core::ptr::null_mut(),
+                issuer: Default::default(),
+                attributes: core::ptr::null_mut(),
+            }
+        }
+    }
+    impl Default for wire_cst_attestation_presentation {
         fn default() -> Self {
             Self::new_with_null_ptr()
         }
@@ -4345,8 +4376,9 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation() -> *mut wire_cst_attestation {
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attestation::new_with_null_ptr())
+    pub extern "C" fn frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation(
+    ) -> *mut wire_cst_attestation_presentation {
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wire_cst_attestation_presentation::new_with_null_ptr())
     }
 
     #[unsafe(no_mangle)]
@@ -4387,21 +4419,26 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_cst_new_list_attestation(len: i32) -> *mut wire_cst_list_attestation {
-        let wrap = wire_cst_list_attestation {
-            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(<wire_cst_attestation>::new_with_null_ptr(), len),
-            len,
-        };
-        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_cst_new_list_attestation_attribute(
         len: i32,
     ) -> *mut wire_cst_list_attestation_attribute {
         let wrap = wire_cst_list_attestation_attribute {
             ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
                 <wire_cst_attestation_attribute>::new_with_null_ptr(),
+                len,
+            ),
+            len,
+        };
+        flutter_rust_bridge::for_generated::new_leak_box_ptr(wrap)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_cst_new_list_attestation_presentation(
+        len: i32,
+    ) -> *mut wire_cst_list_attestation_presentation {
+        let wrap = wire_cst_list_attestation_presentation {
+            ptr: flutter_rust_bridge::for_generated::new_leak_vec_ptr(
+                <wire_cst_attestation_presentation>::new_with_null_ptr(),
                 len,
             ),
             len,
@@ -4511,15 +4548,6 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_attestation {
-        identity: wire_cst_attestation_identity,
-        attestation_type: *mut wire_cst_list_prim_u_8_strict,
-        display_metadata: *mut wire_cst_list_display_metadata,
-        issuer: wire_cst_organization,
-        attributes: *mut wire_cst_list_attestation_attribute,
-    }
-    #[repr(C)]
-    #[derive(Clone, Copy)]
     pub struct wire_cst_attestation_attribute {
         key: *mut wire_cst_list_prim_u_8_strict,
         labels: *mut wire_cst_list_claim_display_metadata,
@@ -4542,6 +4570,15 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_AttestationIdentity_Fixed {
         id: *mut wire_cst_list_prim_u_8_strict,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_attestation_presentation {
+        identity: wire_cst_attestation_identity,
+        attestation_type: *mut wire_cst_list_prim_u_8_strict,
+        display_metadata: *mut wire_cst_list_display_metadata,
+        issuer: wire_cst_organization,
+        attributes: *mut wire_cst_list_attestation_attribute,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4601,7 +4638,7 @@ mod io {
     #[repr(C)]
     #[derive(Clone, Copy)]
     pub struct wire_cst_DisclosureBasedIssuanceResult_Ok {
-        field0: *mut wire_cst_list_attestation,
+        field0: *mut wire_cst_list_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -4686,14 +4723,14 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_list_attestation {
-        ptr: *mut wire_cst_attestation,
+    pub struct wire_cst_list_attestation_attribute {
+        ptr: *mut wire_cst_attestation_attribute,
         len: i32,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_list_attestation_attribute {
-        ptr: *mut wire_cst_attestation_attribute,
+    pub struct wire_cst_list_attestation_presentation {
+        ptr: *mut wire_cst_attestation_presentation,
         len: i32,
     }
     #[repr(C)]
@@ -4803,7 +4840,7 @@ mod io {
     pub struct wire_cst_StartDisclosureResult_Request {
         relying_party: *mut wire_cst_organization,
         policy: *mut wire_cst_request_policy,
-        requested_attestations: *mut wire_cst_list_attestation,
+        requested_attestations: *mut wire_cst_list_attestation_presentation,
         shared_data_with_relying_party_before: bool,
         session_type: i32,
         request_purpose: *mut wire_cst_list_localized_string,
@@ -4839,7 +4876,7 @@ mod io {
         date_time: *mut wire_cst_list_prim_u_8_strict,
         relying_party: *mut wire_cst_organization,
         purpose: *mut wire_cst_list_localized_string,
-        shared_attestations: *mut wire_cst_list_attestation,
+        shared_attestations: *mut wire_cst_list_attestation_presentation,
         request_policy: *mut wire_cst_request_policy,
         status: i32,
         typ: i32,
@@ -4848,7 +4885,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_WalletEvent_Issuance {
         date_time: *mut wire_cst_list_prim_u_8_strict,
-        attestation: *mut wire_cst_attestation,
+        attestation: *mut wire_cst_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

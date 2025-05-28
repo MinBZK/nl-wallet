@@ -4,15 +4,15 @@ import 'package:wallet_core/core.dart';
 
 class Wallet {
   final BehaviorSubject<bool> _isLockedSubject = BehaviorSubject.seeded(true);
-  final BehaviorSubject<List<Attestation>> _attestationsSubject = BehaviorSubject.seeded([]);
+  final BehaviorSubject<List<AttestationPresentation>> _attestationsSubject = BehaviorSubject.seeded([]);
 
   Wallet();
 
   Stream<bool> get lockedStream => _isLockedSubject.stream;
 
-  Stream<List<Attestation>> get attestationsStream => _attestationsSubject.stream;
+  Stream<List<AttestationPresentation>> get attestationsStream => _attestationsSubject.stream;
 
-  List<Attestation> get _attestations => _attestationsSubject.value;
+  List<AttestationPresentation> get _attestations => _attestationsSubject.value;
 
   List<AttestationAttribute> get _allAttributes =>
       _attestations.map((attestation) => attestation.attributes).flattened.toList();
@@ -28,13 +28,13 @@ class Wallet {
   AttestationAttribute? findAttribute(String key) =>
       _allAttributes.firstWhereOrNull((attribute) => attribute.key == key);
 
-  List<Attestation> getRequestedAttestations(Iterable<String> keys) {
+  List<AttestationPresentation> getRequestedAttestations(Iterable<String> keys) {
     final allRequestedAttributes = keys.map(findAttribute).nonNulls;
     final cardToAttributes = allRequestedAttributes
         .groupListsBy((attribute) => _attestations.firstWhere((card) => card.attributes.contains(attribute)));
     return cardToAttributes.entries
         .map(
-          (e) => Attestation(
+          (e) => AttestationPresentation(
             identity: e.key.identity,
             attestationType: e.key.attestationType,
             displayMetadata: e.key.displayMetadata,
@@ -62,7 +62,7 @@ class Wallet {
   unlock() => _isLockedSubject.add(false);
 
   /// Adds the cards to the wallet, if a card with the same docType already exists, it is replaced with the new card.
-  void add(List<Attestation> attestations) {
+  void add(List<AttestationPresentation> attestations) {
     final currentCards = List.of(_attestations);
     final newAttestationTypes = attestations.map((e) => e.attestationType);
     final cardsToKeep =

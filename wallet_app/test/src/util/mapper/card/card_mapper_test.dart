@@ -18,7 +18,7 @@ const _kSampleAttributeName = CoreMockData.attestationAttributeName;
 const _kSampleAttributeCity = CoreMockData.attestationAttributeCity;
 const _kSampleIssuer = CoreMockData.organization;
 
-const _kSampleCard = core.Attestation(
+const _kSampleCard = core.AttestationPresentation(
   identity: core.AttestationIdentity.ephemeral(),
   attestationType: 'urn:eudi:pid:nl:1',
   displayMetadata: [CoreMockData.enDisplayMetadata],
@@ -32,7 +32,7 @@ void main() {
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
   late Mapper<core.DisplayMetadata, CardDisplayMetadata> mockDisplayMetadataMapper;
 
-  late Mapper<core.Attestation, WalletCard> mapper;
+  late Mapper<core.AttestationPresentation, WalletCard> mapper;
 
   setUp(() {
     provideDummy<CardConfig>(const CardConfig());
@@ -57,7 +57,7 @@ void main() {
     });
 
     test('card with `stored` persistence should return storage `id`', () {
-      const input = core.Attestation(
+      const input = core.AttestationPresentation(
         identity: core.AttestationIdentity.fixed(id: 'id-987'),
         attestationType: _kSampleDocType,
         displayMetadata: [CoreMockData.enDisplayMetadata],

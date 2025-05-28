@@ -23,7 +23,7 @@ class WalletCoreForSigning {
   SignRequest? _activeSignRequest;
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeSignRequest], assumes [_activeSignRequest] is non null.
-  List<Attestation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
+  List<AttestationPresentation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
         _activeSignRequest!.requestedAttributes.map(
           (attribute) => attribute.key,
         ),
@@ -113,7 +113,7 @@ sealed class StartSigningResult {
 }
 
 class StartSignResultReadyToDisclose extends StartSigningResult {
-  final List<Attestation> requestedAttestations;
+  final List<AttestationPresentation> requestedAttestations;
 
   StartSignResultReadyToDisclose({
     required super.organization,

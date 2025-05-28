@@ -13,7 +13,7 @@ use wallet::Wallet;
 
 use crate::frb_generated::StreamSink;
 use crate::logging::init_logging;
-use crate::models::attestation::Attestation;
+use crate::models::attestation::AttestationPresentation;
 use crate::models::config::FlutterConfiguration;
 use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::StartDisclosureResult;
@@ -113,12 +113,12 @@ pub async fn clear_version_state_stream() {
     wallet().read().await.clear_version_state_callback();
 }
 
-pub async fn set_attestations_stream(sink: StreamSink<Vec<Attestation>>) -> anyhow::Result<()> {
+pub async fn set_attestations_stream(sink: StreamSink<Vec<AttestationPresentation>>) -> anyhow::Result<()> {
     wallet()
         .write()
         .await
         .set_attestations_callback(Box::new(move |attestations| {
-            let _ = sink.add(attestations.into_iter().map(Attestation::from).collect());
+            let _ = sink.add(attestations.into_iter().map(AttestationPresentation::from).collect());
         }))
         .await?;
 
@@ -231,13 +231,16 @@ pub async fn cancel_issuance() -> anyhow::Result<()> {
 }
 
 #[flutter_api_error]
-pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<Attestation>> {
+pub async fn continue_pid_issuance(uri: String) -> anyhow::Result<Vec<AttestationPresentation>> {
     let url = Url::parse(&uri)?;
 
     let mut wallet = wallet().write().await;
 
     let wallet_attestations = wallet.continue_pid_issuance(url).await?;
-    let attestations = wallet_attestations.into_iter().map(Attestation::from).collect();
+    let attestations = wallet_attestations
+        .into_iter()
+        .map(AttestationPresentation::from)
+        .collect();
 
     Ok(attestations)
 }

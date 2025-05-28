@@ -273,7 +273,7 @@ class StartDisclosureResult_Request extends StartDisclosureResult {
   const StartDisclosureResult_Request(
       {required this.relyingParty,
       required this.policy,
-      required final List<Attestation> requestedAttestations,
+      required final List<AttestationPresentation> requestedAttestations,
       required this.sharedDataWithRelyingPartyBefore,
       required this.sessionType,
       required final List<LocalizedString> requestPurpose,
@@ -286,8 +286,8 @@ class StartDisclosureResult_Request extends StartDisclosureResult {
   @override
   final Organization relyingParty;
   final RequestPolicy policy;
-  final List<Attestation> _requestedAttestations;
-  List<Attestation> get requestedAttestations {
+  final List<AttestationPresentation> _requestedAttestations;
+  List<AttestationPresentation> get requestedAttestations {
     if (_requestedAttestations is EqualUnmodifiableListView) return _requestedAttestations;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_requestedAttestations);
@@ -362,7 +362,7 @@ abstract mixin class $StartDisclosureResult_RequestCopyWith<$Res> implements $St
   $Res call(
       {Organization relyingParty,
       RequestPolicy policy,
-      List<Attestation> requestedAttestations,
+      List<AttestationPresentation> requestedAttestations,
       bool sharedDataWithRelyingPartyBefore,
       DisclosureSessionType sessionType,
       List<LocalizedString> requestPurpose,
@@ -403,7 +403,7 @@ class _$StartDisclosureResult_RequestCopyWithImpl<$Res> implements $StartDisclos
       requestedAttestations: null == requestedAttestations
           ? _self._requestedAttestations
           : requestedAttestations // ignore: cast_nullable_to_non_nullable
-              as List<Attestation>,
+              as List<AttestationPresentation>,
       sharedDataWithRelyingPartyBefore: null == sharedDataWithRelyingPartyBefore
           ? _self.sharedDataWithRelyingPartyBefore
           : sharedDataWithRelyingPartyBefore // ignore: cast_nullable_to_non_nullable

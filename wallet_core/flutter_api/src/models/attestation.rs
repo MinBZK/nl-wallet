@@ -5,7 +5,7 @@ use crate::models::disclosure::Organization;
 use crate::models::image::Image;
 use crate::models::image::ImageWithMetadata;
 
-pub struct Attestation {
+pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
     pub display_metadata: Vec<DisplayMetadata>,
@@ -13,8 +13,8 @@ pub struct Attestation {
     pub attributes: Vec<AttestationAttribute>,
 }
 
-impl From<wallet::Attestation> for Attestation {
-    fn from(value: wallet::Attestation) -> Self {
+impl From<wallet::AttestationPresentation> for AttestationPresentation {
+    fn from(value: wallet::AttestationPresentation) -> Self {
         Self {
             identity: value.identity.into(),
             attestation_type: value.attestation_type,
