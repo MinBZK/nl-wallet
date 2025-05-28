@@ -198,12 +198,11 @@ pub fn mdoc_from_unsigned(
     let private_key_id = crypto::utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key();
-    let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
+    let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(metadata);
 
     Mdoc::sign::<MockRemoteEcdsaKey>(
         payload,
         metadata_integrity,
-        &metadata_documents,
         private_key_id,
         mdoc_public_key,
         &issuer_key.issuance_key,

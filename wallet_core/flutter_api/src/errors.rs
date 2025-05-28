@@ -234,9 +234,7 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::DigidSessionFinish(DigidSessionError::Oidc(OidcError::RequestingUserInfo(_))) => {
                 FlutterApiErrorType::Server
             }
-            IssuanceError::InvalidIssuerCertificate(_)
-            | IssuanceError::MissingIssuerRegistration
-            | IssuanceError::AttestationPreview(_)
+            IssuanceError::AttestationPreview(_)
             | IssuanceError::Attestation { .. }
             | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
             IssuanceError::UpdatePolicy(e) => FlutterApiErrorType::from(e),

@@ -334,7 +334,6 @@ pub struct AttestationTypeConfig<K> {
     pub attestation_qualification: AttestationQualification,
     pub metadata_documents: TypeMetadataDocuments,
     first_metadata_integrity: Integrity,
-    #[allow(dead_code)]
     metadata: NormalizedTypeMetadata,
 }
 
@@ -1180,7 +1179,6 @@ impl CredentialResponse {
         let (issuer_signed, mso) = IssuerSigned::sign(
             preview.content.credential_payload,
             attestation_config.first_metadata_integrity.clone(),
-            &preview.type_metadata,
             holder_pubkey,
             &attestation_config.key_pair,
         )

@@ -6,6 +6,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
+use serde_with::base64::Standard;
 use serde_with::base64::UrlSafe;
 use serde_with::formats::Unpadded;
 use serde_with::serde_as;
@@ -61,7 +62,7 @@ fn check_resource_integrity(json: &[u8], integrity: Integrity) -> Result<(), Typ
 
 /// Represents a chain of decoded SD-JWT Type Metadata documents that is sorted from leaf to root.
 #[derive(Debug, Clone, AsRef)]
-pub struct SortedTypeMetadata(VecNonEmpty<TypeMetadata>);
+pub(crate) struct SortedTypeMetadata(VecNonEmpty<TypeMetadata>);
 
 impl SortedTypeMetadata {
     pub fn into_inner(self) -> VecNonEmpty<TypeMetadata> {
@@ -215,21 +216,11 @@ impl TypeMetadataDocuments {
 pub struct SortedTypeMetadataDocuments(VecNonEmpty<Vec<u8>>);
 
 impl SortedTypeMetadataDocuments {
-    /// Verify the resource integrity of the leaf document.
-    // TODO (PVW-3816): Remove this method once `HttpIssuanceSession` can properly take
-    //                  ownership of this type and use the `into_verified()` method below.
-    pub fn verify(&self, integrity: Integrity) -> Result<(), TypeMetadataChainError> {
+    /// Verify the resource integrity of the leaf document and return a [`VerifiedTypeMetadataDocuments`] type.
+    pub fn into_verified(self, integrity: Integrity) -> Result<VerifiedTypeMetadataDocuments, TypeMetadataChainError> {
         let Self(documents) = self;
 
         check_resource_integrity(documents.first(), integrity)?;
-
-        Ok(())
-    }
-
-    /// Verify the resource integrity of the leaf document and return a [`VerifiedTypeMetadataDocuments`] type.
-    pub fn into_verified(self, integrity: Integrity) -> Result<VerifiedTypeMetadataDocuments, TypeMetadataChainError> {
-        self.verify(integrity)?;
-        let Self(documents) = self;
 
         Ok(VerifiedTypeMetadataDocuments(documents))
     }
@@ -260,8 +251,30 @@ impl PartialEq<TypeMetadataDocuments> for SortedTypeMetadataDocuments {
 }
 
 /// Contains a sorted JSON-encoded chain of SD-JWT VC Type Metadata documents that has been fully verified.
-#[derive(Debug, Clone, PartialEq, Eq, AsRef)]
-pub struct VerifiedTypeMetadataDocuments(VecNonEmpty<Vec<u8>>);
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, AsRef, Serialize, Deserialize)]
+pub struct VerifiedTypeMetadataDocuments(
+    #[serde_as(as = "IfIsHumanReadable<Vec<Base64<Standard, Unpadded>>, Vec<Bytes>>")] VecNonEmpty<Vec<u8>>,
+);
+
+impl VerifiedTypeMetadataDocuments {
+    /// Parse and normalize the chain of SD-JWT VC Type Metadata documents. This method can be called e.g. after
+    /// deserializing the JSON documents from persistent storage. Note that this could fail if the validation rules
+    /// for [`TypeMetadata`] or the normalization rules for [`NormalizedTypeMetadata`] have changed since storing the
+    /// JSON documents.
+    pub fn to_normalized(&self) -> Result<NormalizedTypeMetadata, TypeMetadataChainError> {
+        let Self(documents) = self;
+        let metadata_chain = documents
+            .iter()
+            .map(|json| serde_json::from_slice(json))
+            .collect::<Result<Vec<_>, _>>()?
+            .try_into()
+            .unwrap();
+        let normalized = NormalizedTypeMetadata::try_from_sorted_metadata(SortedTypeMetadata(metadata_chain))?;
+
+        Ok(normalized)
+    }
+}
 
 impl From<VerifiedTypeMetadataDocuments> for TypeMetadataDocuments {
     fn from(value: VerifiedTypeMetadataDocuments) -> Self {
@@ -287,8 +300,8 @@ mod example_constructors {
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
 
-    use super::SortedTypeMetadata;
     use super::TypeMetadataDocuments;
+    use super::VerifiedTypeMetadataDocuments;
 
     impl TypeMetadataDocuments {
         /// Construct a [`TypeMetadataDocuments`] chain for transmission by JSON encoding an ordered sequence of
@@ -379,17 +392,13 @@ mod example_constructors {
         }
     }
 
-    impl SortedTypeMetadata {
-        pub fn example_with_extensions() -> Self {
-            let chain = vec![
-                TypeMetadata::example_v3(),
-                TypeMetadata::example_v2(),
-                TypeMetadata::example(),
-            ]
-            .try_into()
-            .unwrap();
+    impl VerifiedTypeMetadataDocuments {
+        pub fn example() -> Self {
+            Self(vec![EXAMPLE_METADATA_BYTES.to_vec()].try_into().unwrap())
+        }
 
-            Self(chain)
+        pub fn pid_example() -> Self {
+            Self(vec![PID_METADATA_BYTES.to_vec()].try_into().unwrap())
         }
     }
 }
@@ -421,6 +430,18 @@ mod test {
     impl SortedTypeMetadata {
         pub fn new_mock(chain: Vec<TypeMetadata>) -> Self {
             Self(chain.try_into().unwrap())
+        }
+
+        pub fn example_with_extensions() -> Self {
+            let chain = vec![
+                TypeMetadata::example_v3(),
+                TypeMetadata::example_v2(),
+                TypeMetadata::example(),
+            ]
+            .try_into()
+            .unwrap();
+
+            Self(chain)
         }
     }
 
@@ -597,7 +618,7 @@ mod test {
             .into_normalized("https://sd_jwt_vc_metadata.example.com/example_credential_v3")
             .expect("parsing metadata document chain should succeed");
         let error = leaf_document
-            .verify(integrity)
+            .into_verified(integrity)
             .expect_err("veryfing leaf metadata document integrity should not succeed");
 
         assert_matches!(error, TypeMetadataChainError::IntegrityAlgorithmInsecure(_));

@@ -21,6 +21,7 @@ use crypto::server_keys::KeyPair;
 use crypto::EcdsaKey;
 use crypto::WithIdentifier;
 use http_utils::urls::HttpsUri;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
 use crate::holder::Mdoc;
@@ -184,21 +185,21 @@ impl TestDocument {
         }
     }
 
+    pub fn normalized_metadata(&self) -> NormalizedTypeMetadata {
+        let (normalized_metadata, _) = self.metadata.clone().into_normalized(&self.doc_type).unwrap();
+
+        normalized_metadata
+    }
+
     async fn prepare_credential_preview<KF>(
         self,
         ca: &Ca,
         key_factory: &KF,
-    ) -> (
-        PreviewableCredentialPayload,
-        TypeMetadataDocuments,
-        Integrity,
-        KeyPair,
-        KF::Key,
-    )
+    ) -> (PreviewableCredentialPayload, Integrity, KeyPair, KF::Key)
     where
         KF: KeyFactory,
     {
-        let (normalized_metadata, _) = self.metadata.clone().into_normalized(&self.doc_type).unwrap();
+        let (normalized_metadata, _) = self.metadata.into_normalized(&self.doc_type).unwrap();
         let attributes = Attribute::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
 
         let now = Utc::now();
@@ -214,13 +215,7 @@ impl TestDocument {
         let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
         let mdoc_key = key_factory.generate_new().await.unwrap();
 
-        (
-            payload_preview,
-            self.metadata.clone(),
-            self.metadata_integrity.clone(),
-            issuance_key,
-            mdoc_key,
-        )
+        (payload_preview, self.metadata_integrity.clone(), issuance_key, mdoc_key)
     }
 
     /// Converts `self` into a [`PreviewableCredentialPayload`] and signs it into an [`Mdoc`] using `ca` and
@@ -229,13 +224,12 @@ impl TestDocument {
     where
         KF: KeyFactory,
     {
-        let (credential_preview, metadata_documents, metadata_integrity, issuance_key, mdoc_key) =
+        let (credential_preview, metadata_integrity, issuance_key, mdoc_key) =
             self.prepare_credential_preview(ca, key_factory).await;
 
         Mdoc::sign::<KF::Key>(
             credential_preview,
             metadata_integrity,
-            &metadata_documents,
             mdoc_key.identifier().to_string(),
             &mdoc_key.verifying_key().await.unwrap(),
             &issuance_key,
@@ -250,13 +244,12 @@ impl TestDocument {
     where
         KF: KeyFactory,
     {
-        let (credential_preview, metadata_documents, metadata_integrity, issuance_key, mdoc_key) =
+        let (credential_preview, metadata_integrity, issuance_key, mdoc_key) =
             self.prepare_credential_preview(ca, key_factory).await;
 
         let (issuer_signed, _) = IssuerSigned::sign(
             credential_preview,
             metadata_integrity,
-            &metadata_documents,
             &mdoc_key.verifying_key().await.unwrap(),
             &issuance_key,
         )

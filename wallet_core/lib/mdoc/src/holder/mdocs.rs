@@ -92,19 +92,6 @@ impl Mdoc {
 
         Ok(integrity)
     }
-
-    pub fn type_metadata(&self) -> Result<NormalizedTypeMetadata, Error> {
-        let documents = self.issuer_signed.type_metadata_documents()?;
-
-        let (metadata, sorted) = documents
-            .into_normalized(&self.mso.doc_type)
-            .map_err(HolderError::TypeMetadata)?;
-
-        let integrity = self.type_metadata_integrity()?.clone();
-        let _verified = sorted.into_verified(integrity).map_err(HolderError::TypeMetadata)?;
-
-        Ok(metadata)
-    }
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -201,7 +188,6 @@ mod test {
     use crypto::server_keys::KeyPair;
     use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
-    use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
     use crate::iso::disclosure::IssuerSigned;
     use crate::iso::mdocs::IssuerSignedItemBytes;
@@ -213,19 +199,12 @@ mod test {
         pub async fn sign<K: CredentialEcdsaKey>(
             payload: PreviewableCredentialPayload,
             metadata_integrity: Integrity,
-            metadata_documents: &TypeMetadataDocuments,
             private_key_id: String,
             public_key: &VerifyingKey,
             issuer_keypair: &KeyPair<impl EcdsaKey>,
         ) -> crate::Result<Mdoc> {
-            let (issuer_signed, mso) = IssuerSigned::sign(
-                payload,
-                metadata_integrity,
-                metadata_documents,
-                public_key,
-                issuer_keypair,
-            )
-            .await?;
+            let (issuer_signed, mso) =
+                IssuerSigned::sign(payload, metadata_integrity, public_key, issuer_keypair).await?;
 
             let mdoc = Self {
                 mso,

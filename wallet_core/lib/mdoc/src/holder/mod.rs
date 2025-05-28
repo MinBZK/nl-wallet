@@ -4,7 +4,6 @@ use attestation_data::auth::reader_auth;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
-use sd_jwt_vc_metadata::TypeMetadataChainError;
 
 pub mod disclosure;
 pub use disclosure::*;
@@ -34,7 +33,4 @@ pub enum HolderError {
     #[error("mdoc is missing type metadata integrity digest")]
     #[category(critical)]
     MissingMetadataIntegrity,
-    #[error("could not decode type metadata chain: {0}")]
-    #[category(critical)]
-    TypeMetadata(#[from] TypeMetadataChainError),
 }

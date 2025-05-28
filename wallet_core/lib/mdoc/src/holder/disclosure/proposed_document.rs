@@ -100,9 +100,8 @@ impl<I> ProposedDocument<I> {
         let StoredMdoc {
             id: source_identifier,
             mdoc,
+            normalized_metadata: type_metadata,
         } = stored_mdoc;
-
-        let type_metadata = mdoc.type_metadata()?;
 
         // As this method should only ever be called when we know that it
         // matches the `requested_attributes`, we know that it should result
@@ -259,6 +258,7 @@ mod tests {
         let stored_mdoc = StoredMdoc {
             id: "id_1234",
             mdoc: Mdoc::new_mock().await,
+            normalized_metadata: NormalizedTypeMetadata::pid_example(),
         };
         let id = stored_mdoc.id;
         let doc_type = stored_mdoc.mdoc.mso.doc_type.clone();
@@ -329,6 +329,7 @@ mod tests {
             .map(|(index, mdoc)| StoredMdoc {
                 id: format!("id_{}", index + 1),
                 mdoc,
+                normalized_metadata: NormalizedTypeMetadata::pid_example(),
             })
             .collect();
 

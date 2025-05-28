@@ -643,15 +643,22 @@ where
             .into_iter()
             .fold(
                 IndexMap::<_, Vec<_>>::with_capacity(doc_types.len()),
-                |mut mdocs_by_doc_type, StoredMdocCopy { mdoc_copy_id, mdoc, .. }| {
+                |mut mdocs_by_doc_type,
+                 StoredMdocCopy {
+                     mdoc_copy_id,
+                     mdoc,
+                     normalized_metadata,
+                     ..
+                 }| {
                     // Re-use the `doc_types` string slices, which should contain all `Mdoc` doc types.
                     let doc_type = *doc_types
                         .get(mdoc.doc_type().as_str())
                         .expect("Storage returned mdoc with unexpected doc_type");
-                    mdocs_by_doc_type
-                        .entry(doc_type)
-                        .or_default()
-                        .push(StoredMdoc { id: mdoc_copy_id, mdoc });
+                    mdocs_by_doc_type.entry(doc_type).or_default().push(StoredMdoc {
+                        id: mdoc_copy_id,
+                        mdoc,
+                        normalized_metadata,
+                    });
 
                     mdocs_by_doc_type
                 },
@@ -694,6 +701,7 @@ mod tests {
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
+    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
@@ -1785,8 +1793,16 @@ mod tests {
             .write()
             .await
             .insert_mdocs(vec![
-                vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
-                vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                (
+                    vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
+                    VerifiedTypeMetadataDocuments::pid_example(),
+                ),
+                (
+                    vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                    // Note that the attestation type of this metadata does not match the mdoc doc_type,
+                    // which is not relevant for this particular test.
+                    VerifiedTypeMetadataDocuments::pid_example(),
+                ),
             ])
             .await
             .unwrap();
