@@ -28,7 +28,7 @@ pub enum ResetError {
     NotRegistered,
 }
 
-type ResetResult<T> = std::result::Result<T, ResetError>;
+type ResetResult<T> = Result<T, ResetError>;
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where

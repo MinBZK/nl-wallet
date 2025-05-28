@@ -114,6 +114,7 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    use openid4vc::issuance_session::IssuedCredentialCopies;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use super::super::test;
@@ -157,9 +158,12 @@ mod tests {
         // The database contains a single `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
         let mdoc_doc_type = mdoc.doc_type().clone();
-        wallet.storage.write().await.mdocs.insert(
+        wallet.storage.write().await.issued_credential_copies.insert(
             mdoc.doc_type().clone(),
-            vec![(vec![mdoc].try_into().unwrap(), NormalizedTypeMetadata::pid_example())],
+            vec![(
+                IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                NormalizedTypeMetadata::pid_example(),
+            )],
         );
 
         // Register mock document_callback
@@ -197,9 +201,12 @@ mod tests {
 
         // The database contains a single `Mdoc`, without Issuer registration.
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
-        wallet.storage.write().await.mdocs.insert(
+        wallet.storage.write().await.issued_credential_copies.insert(
             mdoc.doc_type().clone(),
-            vec![(vec![mdoc].try_into().unwrap(), NormalizedTypeMetadata::pid_example())],
+            vec![(
+                IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                NormalizedTypeMetadata::pid_example(),
+            )],
         );
 
         // Register mock attestation_callback

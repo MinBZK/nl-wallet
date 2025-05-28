@@ -4,6 +4,8 @@
 use std::collections::HashSet;
 use std::fmt::Display;
 
+use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use base64::Engine;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -15,7 +17,9 @@ use jsonwebtoken::Validation;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+use ssri::Integrity;
 
+use crypto::x509::BorrowingCertificate;
 use crypto::EcdsaKeySend;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
@@ -44,6 +48,11 @@ pub struct SdJwtClaims {
     // to parse.
     pub cnf: Option<RequiredKeyBinding>,
 
+    // Even though we want this to be mandatory, we allow it to be optional in order for the examples from the spec
+    // to parse.
+    #[serde(rename = "vct#integrity")]
+    pub vct_integrity: Option<Integrity>,
+
     #[serde(flatten)]
     pub properties: serde_json::Map<String, serde_json::Value>,
 }
@@ -53,6 +62,11 @@ pub struct SdJwtClaims {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SdJwt {
     issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
+
+    // To not having to parse the certificates from the JWT header x5c field every time,
+    // the certificates are stored here redunantly for convenience as well.
+    issuer_certificates: Vec<BorrowingCertificate>,
+
     disclosures: IndexMap<String, Disclosure>,
 }
 
@@ -131,9 +145,14 @@ impl Display for SdJwtPresentation {
 
 impl SdJwt {
     /// Creates a new [`SdJwt`] from its components.
-    pub(crate) fn new(jwt: VerifiedJwt<SdJwtClaims>, disclosures: IndexMap<String, Disclosure>) -> Self {
+    pub(crate) fn new(
+        issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
+        issuer_certificates: Vec<BorrowingCertificate>,
+        disclosures: IndexMap<String, Disclosure>,
+    ) -> Self {
         Self {
-            issuer_signed_jwt: jwt,
+            issuer_signed_jwt,
+            issuer_certificates,
             disclosures,
         }
     }
@@ -152,6 +171,17 @@ impl SdJwt {
 
     pub fn required_key_bind(&self) -> Option<&RequiredKeyBinding> {
         self.claims().cnf.as_ref()
+    }
+
+    pub fn issuer_certificate_chain(&self) -> &Vec<BorrowingCertificate> {
+        &self.issuer_certificates
+    }
+
+    pub fn issuer_certificate(&self) -> Option<&BorrowingCertificate> {
+        // From https://datatracker.ietf.org/doc/html/rfc7515:
+        // The certificate containing the public key corresponding to the key used to digitally sign the
+        // JWS MUST be the first certificate.
+        self.issuer_certificates.first()
     }
 
     /// Serializes the components into the final SD-JWT.
@@ -179,7 +209,9 @@ impl SdJwt {
             "SD-JWT format is invalid, input doesn't contain a '~'".to_string(),
         ))?;
 
-        let jwt = VerifiedJwt::try_new(sd_jwt_segment.parse()?, pubkey, &sd_jwt_validation())?;
+        let issuer_signed_jwt = VerifiedJwt::try_new(sd_jwt_segment.parse()?, pubkey, &sd_jwt_validation())?;
+
+        let issuer_certificates = Self::parse_x5c_header(&issuer_signed_jwt)?;
 
         let disclosures = disclosure_segments
             .split("~")
@@ -191,7 +223,8 @@ impl SdJwt {
             })?;
 
         Ok(Self {
-            issuer_signed_jwt: jwt,
+            issuer_signed_jwt,
+            issuer_certificates,
             disclosures,
         })
     }
@@ -222,6 +255,22 @@ impl SdJwt {
         let object = serde_json::to_value(self.claims())?;
 
         decoder.decode(object.as_object().unwrap(), &self.disclosures)
+    }
+
+    fn parse_x5c_header(jwt: &VerifiedJwt<SdJwtClaims>) -> Result<Vec<BorrowingCertificate>> {
+        let Some(encoded_x5c) = &jwt.header().x5c else {
+            return Ok(vec![]);
+        };
+
+        encoded_x5c
+            .iter()
+            .flat_map(|encoded_cert| {
+                BASE64_URL_SAFE_NO_PAD
+                    .decode(encoded_cert)
+                    .map_err(Error::Base64Decode)
+                    .map(|bytes| BorrowingCertificate::from_der(bytes).map_err(Error::IssuerCertificate))
+            })
+            .try_collect()
     }
 }
 
@@ -307,6 +356,7 @@ mod test {
     use rand_core::OsRng;
     use rstest::rstest;
     use serde_json::json;
+    use ssri::Integrity;
 
     use jwt::error::JwtError;
     use jwt::EcdsaDecodingKey;
@@ -348,7 +398,13 @@ mod test {
             "exp": (Utc::now() - Duration::days(1)).timestamp(),
         }))
         .unwrap()
-        .finish(Algorithm::ES256, &signing_key, &[], holder_privkey.verifying_key())
+        .finish(
+            Algorithm::ES256,
+            Integrity::from(""),
+            &signing_key,
+            vec![],
+            holder_privkey.verifying_key(),
+        )
         .await
         .unwrap()
         .to_string();

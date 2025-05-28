@@ -170,7 +170,6 @@ pub fn create_example_preview_data() -> NormalizedCredentialPreview {
             credential_payload: credential_payload.previewable_payload,
             issuer_certificate: ISSUER_KEY.issuance_key.certificate().clone(),
         },
-        issuer_registration: IssuerRegistration::new_mock(),
         normalized_metadata,
         raw_metadata,
     }

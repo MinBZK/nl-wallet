@@ -9,6 +9,7 @@ use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use p256::ecdsa::VerifyingKey;
 use serde::Serialize;
+use ssri::Integrity;
 
 use crypto::x509::BorrowingCertificate;
 use crypto::EcdsaKeySend;
@@ -116,8 +117,9 @@ impl<H: Hasher> SdJwtBuilder<H> {
     pub async fn finish(
         self,
         alg: Algorithm,
+        vct_integrity: Integrity,
         issuer_signing_key: &impl EcdsaKeySend,
-        issuer_certificates: &[&BorrowingCertificate],
+        issuer_certificates: Vec<BorrowingCertificate>,
         holder_pubkey: &VerifyingKey,
     ) -> Result<SdJwt> {
         let SdJwtBuilder {
@@ -126,16 +128,6 @@ impl<H: Hasher> SdJwtBuilder<H> {
             mut header,
         } = self;
         encoder.add_sd_alg_property();
-        let mut object = encoder.encode();
-
-        // Add key binding requirement as `cnf`.
-        object
-            .as_object_mut()
-            .expect("encoder::object is a JSON Object")
-            .insert(
-                "cnf".to_string(),
-                serde_json::to_value(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?))?,
-            );
 
         header.alg = alg;
         header.x5c = Some(
@@ -145,11 +137,13 @@ impl<H: Hasher> SdJwtBuilder<H> {
                 .collect_vec(),
         );
 
-        let claims = serde_json::from_value::<SdJwtClaims>(object)?;
+        let mut claims = serde_json::from_value::<SdJwtClaims>(encoder.encode())?;
+        claims.cnf = Some(RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?));
+        claims.vct_integrity = Some(vct_integrity);
 
         let verified_jwt = VerifiedJwt::sign(claims, header, issuer_signing_key).await?;
 
-        Ok(SdJwt::new(verified_jwt, disclosures))
+        Ok(SdJwt::new(verified_jwt, issuer_certificates, disclosures))
     }
 }
 

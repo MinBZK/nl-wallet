@@ -22,10 +22,9 @@ use crypto::x509::BorrowingCertificate;
 use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
-use openid4vc::credential::MdocCopies;
+use openid4vc::issuance_session::CredentialWithMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 pub use self::data::ChangePinData;
 pub use self::data::InstructionData;
@@ -116,10 +115,8 @@ pub trait Storage {
     async fn upsert_data<D: KeyedData>(&mut self, data: &D) -> StorageResult<()>;
     async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()>;
 
-    async fn insert_mdocs(
-        &mut self,
-        mdocs_with_metadata: Vec<(MdocCopies, VerifiedTypeMetadataDocuments)>,
-    ) -> StorageResult<()>;
+    async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()>;
+
     async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>>;
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>>;

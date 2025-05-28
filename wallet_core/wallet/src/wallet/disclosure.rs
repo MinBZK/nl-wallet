@@ -632,7 +632,7 @@ where
     async fn mdoc_by_doc_types(
         &self,
         doc_types: &HashSet<&str>,
-    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
+    ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
         // Build an `IndexMap<>` to group `StoredMdoc` entries with the same `doc_type`.
         let mdocs_by_doc_type = self
             .storage
@@ -694,6 +694,8 @@ mod tests {
     use mdoc::test::data::PID;
     use mdoc::DataElementValue;
     use openid4vc::disclosure_session::VpMessageClientError;
+    use openid4vc::issuance_session::CredentialWithMetadata;
+    use openid4vc::issuance_session::IssuedCredentialCopies;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
@@ -1792,13 +1794,17 @@ mod tests {
             .storage
             .write()
             .await
-            .insert_mdocs(vec![
-                (
-                    vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
+            .insert_credentials(vec![
+                CredentialWithMetadata::new(
+                    IssuedCredentialCopies::MsoMdoc(
+                        vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
+                    ),
                     VerifiedTypeMetadataDocuments::pid_example(),
                 ),
-                (
-                    vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                CredentialWithMetadata::new(
+                    IssuedCredentialCopies::MsoMdoc(
+                        vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                    ),
                     // Note that the attestation type of this metadata does not match the mdoc doc_type,
                     // which is not relevant for this particular test.
                     VerifiedTypeMetadataDocuments::pid_example(),

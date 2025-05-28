@@ -9,9 +9,9 @@ use uuid::Uuid;
 
 use crypto::x509::BorrowingCertificate;
 use mdoc::DocType;
-use openid4vc::credential::MdocCopies;
+use openid4vc::issuance_session::CredentialWithMetadata;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;
@@ -32,7 +32,7 @@ pub enum KeyedDataResult {
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
-    pub mdocs: IndexMap<DocType, Vec<(MdocCopies, NormalizedTypeMetadata)>>,
+    pub issued_credential_copies: IndexMap<DocType, Vec<(IssuedCredentialCopies, NormalizedTypeMetadata)>>,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
@@ -52,7 +52,7 @@ impl MockStorage {
         MockStorage {
             state,
             data,
-            mdocs: IndexMap::new(),
+            issued_credential_copies: IndexMap::new(),
             mdoc_copies_usage_counts: HashMap::new(),
             event_log: vec![],
             has_query_error: false,
@@ -98,7 +98,7 @@ impl Storage for MockStorage {
         let data = self.data.get(D::KEY);
 
         match data {
-            Some(KeyedDataResult::Data(data)) => Ok(Some(serde_json::from_str(data).unwrap())),
+            Some(KeyedDataResult::Data(data)) => Ok(Some(serde_json::from_str(data)?)),
             Some(KeyedDataResult::Error) => Err(DbErr::Custom("Mock error".to_string()).into()),
             None => Ok(None),
         }
@@ -112,7 +112,7 @@ impl Storage for MockStorage {
         }
 
         self.data
-            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data).unwrap()));
+            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data)?));
 
         Ok(())
     }
@@ -123,7 +123,7 @@ impl Storage for MockStorage {
         }
 
         self.data
-            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data).unwrap()));
+            .insert(D::KEY, KeyedDataResult::Data(serde_json::to_string(&data)?));
 
         Ok(())
     }
@@ -134,17 +134,25 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn insert_mdocs(
-        &mut self,
-        mdocs_with_metadata: Vec<(MdocCopies, VerifiedTypeMetadataDocuments)>,
-    ) -> StorageResult<()> {
+    async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()> {
         self.check_query_error()?;
 
-        for (mdoc_copies, metadata_docs) in mdocs_with_metadata {
-            self.mdocs
-                .entry(mdoc_copies.first().doc_type().clone())
-                .or_default()
-                .push((mdoc_copies, metadata_docs.to_normalized().unwrap()));
+        for CredentialWithMetadata {
+            copies,
+            metadata_documents,
+        } in credentials
+        {
+            match &copies {
+                IssuedCredentialCopies::MsoMdoc(mdocs) => {
+                    self.issued_credential_copies
+                        .entry(mdocs.first().doc_type().clone())
+                        .or_default()
+                        .push((copies, metadata_documents.to_normalized()?));
+                }
+                IssuedCredentialCopies::SdJwt(_sd_jwts) => {
+                    // todo!("implement in PVW-4109")
+                }
+            }
         }
 
         Ok(())
@@ -166,14 +174,17 @@ impl Storage for MockStorage {
 
         // Get a single copy of every unique Mdoc, along with a random `Uuid`.
         let mdocs = self
-            .mdocs
+            .issued_credential_copies
             .values()
             .flatten()
-            .map(|(mdoc_copies, metadata)| StoredMdocCopy {
-                mdoc_id: Uuid::now_v7(),
-                mdoc_copy_id: Uuid::now_v7(),
-                mdoc: mdoc_copies.first().clone(),
-                normalized_metadata: metadata.clone(),
+            .map(|(credential_copies, metadata)| match &credential_copies {
+                IssuedCredentialCopies::MsoMdoc(mdocs) => StoredMdocCopy {
+                    mdoc_id: Uuid::now_v7(),
+                    mdoc_copy_id: Uuid::now_v7(),
+                    mdoc: mdocs.first().clone(),
+                    normalized_metadata: metadata.clone(),
+                },
+                IssuedCredentialCopies::SdJwt(_) => todo!("implement in PVW-4109"),
             })
             .collect();
 
