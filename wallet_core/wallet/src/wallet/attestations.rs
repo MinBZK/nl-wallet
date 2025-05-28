@@ -160,7 +160,10 @@ mod tests {
         let mdoc_doc_type = mdoc.doc_type().clone();
         wallet.storage.write().await.issued_credential_copies.insert(
             mdoc.doc_type().clone(),
-            vec![(IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()), NormalizedTypeMetadata::pid_example())],
+            vec![(
+                IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                NormalizedTypeMetadata::pid_example(),
+            )],
         );
 
         // Register mock document_callback
@@ -200,7 +203,10 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc_unauthenticated();
         wallet.storage.write().await.issued_credential_copies.insert(
             mdoc.doc_type().clone(),
-            vec![(IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()), NormalizedTypeMetadata::pid_example())],
+            vec![(
+                IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                NormalizedTypeMetadata::pid_example(),
+            )],
         );
 
         // Register mock attestation_callback
