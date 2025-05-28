@@ -12,6 +12,7 @@ use serde_with::serde_as;
 use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
+use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use issuer_settings::settings::IssuerSettings;
@@ -48,9 +49,9 @@ pub struct AttestationSettings {
     pub key_pair: KeyPair,
     pub to_disclose: ItemsRequests,
 
-    /// Url to which the disclosed attributes get sent and which has to respond with the attestations to be issued
+    /// Endpoint to which the disclosed attributes get sent and which has to respond with the attestations to be issued
     /// (or an empty JSON array if none).
-    pub attestation_url: BaseUrl,
+    pub attestation_url_config: TlsPinningConfig,
 }
 
 impl ServerSettings for IssuanceServerSettings {

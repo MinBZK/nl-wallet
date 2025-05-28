@@ -21,10 +21,13 @@ max_sessions = 3
 max_session_lifetime_in_sec = 900
 
 [disclosure_settings.university]
-attestation_url = "http://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university/"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_READER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_READER}"
+
+[disclosure_settings.university.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university/"
+trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [[disclosure_settings.university.to_disclose]]
 docType = "urn:eudi:pid:nl:1"
@@ -38,10 +41,13 @@ private_key = "${DEMO_ISSUER_KEY_UNIVERSITY_ISSUER}"
 certificate = "${DEMO_ISSUER_CRT_UNIVERSITY_ISSUER}"
 
 [disclosure_settings.insurance]
-attestation_url = "http://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/insurance/"
 private_key_type = "software"
 private_key = "${DEMO_ISSUER_KEY_INSURANCE_READER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_READER}"
+
+[disclosure_settings.insurance.attestation_url_config]
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university/"
+trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [[disclosure_settings.insurance.to_disclose]]
 docType = "urn:eudi:pid:nl:1"
