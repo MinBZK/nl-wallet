@@ -1,13 +1,24 @@
+use derive_more::Constructor;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use sea_orm::entity::prelude::*;
+use sea_orm::FromJsonQueryResult;
+use serde::Deserialize;
+use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Eq, PartialEq, DeriveEntityModel)]
+#[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "mdoc")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub doc_type: String,
-    pub type_metadata: Json,
+    pub type_metadata: TypeMetadata,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromJsonQueryResult, Constructor)]
+#[serde(transparent)]
+pub struct TypeMetadata {
+    pub documents: VerifiedTypeMetadataDocuments,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

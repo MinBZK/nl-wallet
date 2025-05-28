@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use entity::mdoc::TypeMetadata;
 use futures::try_join;
 use itertools::Itertools;
 use sea_orm::sea_query::Alias;
@@ -236,15 +237,14 @@ impl<K> DatabaseStorage<K> {
             .group_by(mdoc_copy::Column::MdocId)
             .order_by(mdoc_copy::Column::Id, Order::Asc);
 
-        let mdoc_copies: Vec<(Uuid, Uuid, Vec<u8>, serde_json::Value)> =
+        let mdoc_copies: Vec<(Uuid, Uuid, Vec<u8>, TypeMetadata)> =
             transform_select(select).into_tuple().all(database.connection()).await?;
 
         let mdocs = mdoc_copies
             .into_iter()
-            .map(|(mdoc_copy_id, mdoc_id, mdoc_bytes, metadata_json)| {
+            .map(|(mdoc_copy_id, mdoc_id, mdoc_bytes, metadata)| {
                 let mdoc = cbor_deserialize(mdoc_bytes.as_slice())?;
-                let metadata = serde_json::from_value::<VerifiedTypeMetadataDocuments>(metadata_json)?;
-                let normalized_metadata = metadata.to_normalized()?;
+                let normalized_metadata = metadata.documents.to_normalized()?;
 
                 let stored_mdoc_copy = StoredMdocCopy {
                     mdoc_id,
@@ -527,7 +527,7 @@ where
                 let mdoc_model = entity::mdoc::ActiveModel {
                     id: Set(mdoc_id),
                     doc_type: Set(doc_type),
-                    type_metadata: Set(serde_json::to_value(type_metadata)?),
+                    type_metadata: Set(TypeMetadata::new(type_metadata)),
                 };
 
                 Ok((mdoc_model, copy_models))

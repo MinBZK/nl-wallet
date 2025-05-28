@@ -6,6 +6,7 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::base64::Base64;
+use serde_with::base64::Standard;
 use serde_with::base64::UrlSafe;
 use serde_with::formats::Unpadded;
 use serde_with::serde_as;
@@ -250,8 +251,11 @@ impl PartialEq<TypeMetadataDocuments> for SortedTypeMetadataDocuments {
 }
 
 /// Contains a sorted JSON-encoded chain of SD-JWT VC Type Metadata documents that has been fully verified.
+#[serde_as]
 #[derive(Debug, Clone, PartialEq, Eq, AsRef, Serialize, Deserialize)]
-pub struct VerifiedTypeMetadataDocuments(VecNonEmpty<Vec<u8>>);
+pub struct VerifiedTypeMetadataDocuments(
+    #[serde_as(as = "IfIsHumanReadable<Vec<Base64<Standard, Unpadded>>, Vec<Bytes>>")] VecNonEmpty<Vec<u8>>,
+);
 
 impl VerifiedTypeMetadataDocuments {
     /// Parse and normalize the chain of SD-JWT VC Type Metadata documents. This method can be called e.g. after
