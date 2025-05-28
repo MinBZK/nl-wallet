@@ -1041,24 +1041,22 @@ impl Session<WaitingForResponse> {
 
         self.check_credential_endpoint_access(&access_token, &dpop, "batch_credential", issuer_data)?;
 
-        let previews_and_holder_pubkeys = try_join_all(
-            credential_requests
-                .credential_requests
-                .iter()
-                .zip(session_data.credential_previews.iter().flat_map(|preview| {
-                    preview
-                        .content
-                        .copies_per_format
-                        .values()
-                        .flat_map(|copies| itertools::repeat_n(preview.clone(), copies.get().into()))
-                }))
-                .map(|(cred_req, preview)| async move {
-                    let key = cred_req.verify(&session_data.c_nonce, &preview, issuer_data)?;
+        let previews_and_holder_pubkeys = credential_requests
+            .credential_requests
+            .iter()
+            .zip(session_data.credential_previews.iter().flat_map(|preview| {
+                preview
+                    .content
+                    .copies_per_format
+                    .values()
+                    .flat_map(|copies| itertools::repeat_n(preview.clone(), copies.get().into()))
+            }))
+            .map(|(cred_req, preview)| {
+                let key = cred_req.verify(&session_data.c_nonce, &preview, issuer_data)?;
 
-                    Ok::<_, CredentialRequestError>((preview, cred_req.credential_type.as_ref().format(), key))
-                }),
-        )
-        .await?;
+                Ok((preview, cred_req.credential_type.as_ref().format(), key))
+            })
+            .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
         self.verify_wte_and_poa(
             credential_requests.attestations,
