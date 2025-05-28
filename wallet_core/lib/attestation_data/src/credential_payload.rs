@@ -68,7 +68,7 @@ pub struct CredentialPayload {
     #[serde(rename = "cnf")]
     pub confirmation_key: RequiredKeyBinding,
 
-    /// Contains the first integrity digest of a chain of digests that prevents tampering with the type metadata
+    /// Contains the integrity digest of the type metadata document of this `vct`.
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Integrity,
 
