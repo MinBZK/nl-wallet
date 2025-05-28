@@ -1,10 +1,11 @@
 use derive_more::Constructor;
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 use sea_orm::entity::prelude::*;
 use sea_orm::FromJsonQueryResult;
 use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
+
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
 #[sea_orm(table_name = "mdoc")]
