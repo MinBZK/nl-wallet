@@ -1707,6 +1707,7 @@ dependencies = [
  "askama_web",
  "attestation_data",
  "axum",
+ "axum-server",
  "config",
  "demo_utils",
  "http_utils",

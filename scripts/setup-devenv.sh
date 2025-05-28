@@ -208,13 +208,34 @@ softhsm2-util --init-token --slot 0 --so-pin "${HSM_SO_PIN}" --label "test_token
 render_template "${DEVENV}/hsm.toml.template" "${BASE_DIR}/wallet_core/lib/hsm/hsm.toml"
 
 ########################################################################
-# Configure verification_server and demo_relying_party
+# Configure verification_server, issuance_server, pid_issuer and demo
+# services
 ########################################################################
 
 echo
-echo -e "${SECTION}Configure verification_server and demo_relying_party${NC}"
+echo -e "${SECTION}Configure verification_server, issuance_server, pid_issuer, demo_index, demo_relying_party and demo_issuer{NC}"
 
 cd "${BASE_DIR}"
+
+# Generate root TLS CA
+if [ ! -f "${TARGET_DIR}/demo_issuer/ca.key.pem" ]; then
+    generate_root_ca "${TARGET_DIR}/demo_issuer" "nl-wallet-demo-issuer"
+else
+    echo -e "${INFO}Target file '${TARGET_DIR}/demo_issuer/ca.key.pem' already exists, not (re-)generating root CA"
+fi
+
+generate_ssl_key_pair_with_san "${TARGET_DIR}/demo_issuer" demo_issuer "${TARGET_DIR}/demo_issuer/ca.crt.pem" "${TARGET_DIR}/demo_issuer/ca.key.pem"
+
+cp "${TARGET_DIR}/demo_issuer/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.ca.crt.der"
+DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT=$(< "${TARGET_DIR}/demo_issuer/ca.crt.der" ${BASE64})
+export DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT
+
+DEMO_ISSUER_ATTESTATION_SERVER_CERT=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" ${BASE64})
+export DEMO_ISSUER_ATTESTATION_SERVER_CERT
+
+DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" ${BASE64})
+export DEMO_ISSUER_ATTESTATION_SERVER_KEY
+
 
 # Generate root CA for issuer
 if [ ! -f "${TARGET_DIR}/ca.issuer.key.pem" ]; then

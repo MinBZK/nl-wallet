@@ -9,7 +9,9 @@ use crate::settings::Settings;
 
 pub async fn serve(settings: Settings) -> Result<()> {
     let web_listener = TcpListener::bind((settings.webserver.ip, settings.webserver.port)).await?;
-    let issuance_listener = TcpListener::bind((settings.issuance_server.ip, settings.issuance_server.port)).await?;
+    let issuance_listener = TcpListener::bind((settings.issuance_server.ip, settings.issuance_server.port))
+        .await?
+        .into_std()?;
 
     info!("{}", version_string());
 
@@ -19,6 +21,7 @@ pub async fn serve(settings: Settings) -> Result<()> {
         settings.issuance_server.ip, settings.issuance_server.port
     );
 
+    let issuance_server_tls_config = settings.issuance_server_tls_config.to_rustls_config().await?;
     let (web_router, issuance_router) = create_routers(settings);
 
     info!("listening for web on {}", web_listener.local_addr()?);
@@ -30,7 +33,8 @@ pub async fn serve(settings: Settings) -> Result<()> {
 
     info!("listening for issuance on {}", issuance_listener.local_addr()?);
     let issuance_server = tokio::spawn(async move {
-        axum::serve(issuance_listener, issuance_router)
+        axum_server::from_tcp_rustls(issuance_listener, issuance_server_tls_config)
+            .serve(issuance_router.into_make_service())
             .await
             .expect("issuance server should be started");
     });
