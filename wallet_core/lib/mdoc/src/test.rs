@@ -4,6 +4,7 @@ use chrono::Duration;
 use chrono::Utc;
 use ciborium::Value;
 use coset::CoseSign1;
+use derive_more::Constructor;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ssri::Integrity;
@@ -19,8 +20,8 @@ use crypto::server_keys::KeyPair;
 use crypto::EcdsaKey;
 use crypto::WithIdentifier;
 use http_utils::urls::HttpsUri;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
-use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
 use crate::holder::Mdoc;
 use crate::iso::device_retrieval::DeviceRequest;
@@ -159,7 +160,7 @@ impl DeviceRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Constructor)]
 pub struct TestDocument {
     pub doc_type: String,
     pub issuer_uri: HttpsUri,
@@ -167,32 +168,22 @@ pub struct TestDocument {
 }
 
 impl TestDocument {
-    fn new(doc_type: String, issuer_uri: HttpsUri, namespaces: IndexMap<String, Vec<Entry>>) -> Self {
-        Self {
-            doc_type,
-            issuer_uri,
-            namespaces,
-        }
+    pub fn normalized_metadata(&self) -> NormalizedTypeMetadata {
+        NormalizedTypeMetadata::from_single_example(
+            TypeMetadata::empty_example_with_attestation_type(&self.doc_type).into_inner(),
+        )
     }
 
-    async fn prepare_unsigned<KF>(
-        self,
-        ca: &Ca,
-        key_factory: &KF,
-    ) -> (UnsignedMdoc, TypeMetadataDocuments, Integrity, KeyPair, KF::Key)
+    async fn prepare_unsigned<KF>(self, ca: &Ca, key_factory: &KF) -> (UnsignedMdoc, KeyPair, KF::Key)
     where
         KF: KeyFactory,
     {
         let unsigned = UnsignedMdoc::from(self);
 
-        // NOTE: This metadata does not match the attributes.
-        let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(
-            TypeMetadata::empty_example_with_attestation_type(&unsigned.doc_type),
-        );
         let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
         let mdoc_key = key_factory.generate_new().await.unwrap();
 
-        (unsigned, metadata_documents, metadata_integrity, issuance_key, mdoc_key)
+        (unsigned, issuance_key, mdoc_key)
     }
 
     /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
@@ -200,13 +191,12 @@ impl TestDocument {
     where
         KF: KeyFactory,
     {
-        let (unsigned, metadata_documents, metadata_integrity, issuance_key, mdoc_key) =
-            self.prepare_unsigned(ca, key_factory).await;
+        let (unsigned, issuance_key, mdoc_key) = self.prepare_unsigned(ca, key_factory).await;
 
         Mdoc::sign::<KF::Key>(
             unsigned,
-            metadata_integrity,
-            &metadata_documents,
+            // Note that this resource integrity does not match any metadata source document.
+            Integrity::from(crypto::utils::random_bytes(32)),
             mdoc_key.identifier().to_string(),
             &mdoc_key.verifying_key().await.unwrap(),
             &issuance_key,
@@ -220,13 +210,12 @@ impl TestDocument {
     where
         KF: KeyFactory,
     {
-        let (unsigned, metadata_documents, metadata_integrity, issuance_key, mdoc_key) =
-            self.prepare_unsigned(ca, key_factory).await;
+        let (unsigned, issuance_key, mdoc_key) = self.prepare_unsigned(ca, key_factory).await;
 
         let (issuer_signed, _) = IssuerSigned::sign(
             unsigned,
-            metadata_integrity,
-            &metadata_documents,
+            // Note that this resource integrity does not match any metadata source document.
+            Integrity::from(crypto::utils::random_bytes(32)),
             &mdoc_key.verifying_key().await.unwrap(),
             &issuance_key,
         )

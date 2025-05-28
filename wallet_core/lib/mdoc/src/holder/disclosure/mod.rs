@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::error::Error;
 
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+
 use super::Mdoc;
 
 pub use disclosure_request_match::DisclosureRequestMatch;
@@ -24,6 +26,7 @@ pub mod mock;
 pub struct StoredMdoc<I> {
     pub id: I,
     pub mdoc: Mdoc,
+    pub normalized_metadata: NormalizedTypeMetadata,
 }
 
 /// This trait needs to be implemented by an entity that stores mdocs.

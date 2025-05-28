@@ -192,7 +192,7 @@ impl<I> DisclosureRequestMatch<I> {
 
 #[cfg(test)]
 mod tests {
-    use futures::future;
+    use futures::FutureExt;
     use rstest::rstest;
 
     use attestation_data::attributes::Entry;
@@ -244,12 +244,17 @@ mod tests {
         let key_factory = MockRemoteKeyFactory::default();
 
         let mdoc_data_source = MockMdocDataSource::new(
-            future::join_all(
-                stored_documents
-                    .into_iter()
-                    .map(|document| document.sign(&ca, &key_factory)),
-            )
-            .await,
+            stored_documents
+                .into_iter()
+                .map(|document| {
+                    let normalized_metadata = document.normalized_metadata();
+
+                    (
+                        document.sign(&ca, &key_factory).now_or_never().unwrap(),
+                        normalized_metadata,
+                    )
+                })
+                .collect(),
         );
 
         let device_request = DeviceRequest::from(requested_documents);

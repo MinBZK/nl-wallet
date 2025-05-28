@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+
 use crate::holder::Mdoc;
 
 use super::MdocDataSource;
@@ -10,11 +12,12 @@ use super::StoredMdoc;
 /// `doc_type` is requested.
 #[derive(Debug, Default)]
 pub struct MockMdocDataSource {
-    pub mdocs: Vec<Mdoc>,
+    pub mdocs: Vec<(Mdoc, NormalizedTypeMetadata)>,
     pub has_error: bool,
 }
+
 impl MockMdocDataSource {
-    pub fn new(mdocs: Vec<Mdoc>) -> Self {
+    pub fn new(mdocs: Vec<(Mdoc, NormalizedTypeMetadata)>) -> Self {
         Self {
             mdocs,
             has_error: false,
@@ -24,7 +27,8 @@ impl MockMdocDataSource {
     #[cfg(any(test, feature = "mock_example_constructors"))]
     pub async fn new_example_resigned(ca: &crypto::server_keys::generate::Ca) -> Self {
         let mdoc = Mdoc::new_example_resigned(ca).await;
-        Self::new(vec![mdoc])
+
+        Self::new(vec![(mdoc, NormalizedTypeMetadata::example())])
     }
 }
 
@@ -49,12 +53,13 @@ impl MdocDataSource for MockMdocDataSource {
         let stored_mdocs = self
             .mdocs
             .iter()
-            .filter(|mdoc| doc_types.contains(mdoc.doc_type().as_str()))
+            .filter(|(mdoc, _normalized_metadata)| doc_types.contains(mdoc.doc_type().as_str()))
             .cloned()
             .enumerate()
-            .map(|(index, mdoc)| StoredMdoc {
+            .map(|(index, (mdoc, normalized_metadata))| StoredMdoc {
                 id: format!("id_{}", index + 1),
                 mdoc,
+                normalized_metadata,
             })
             .collect();
 

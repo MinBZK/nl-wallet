@@ -8,6 +8,7 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
+use ssri::Integrity;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
@@ -177,29 +178,28 @@ pub fn create_example_preview_data() -> NormalizedCredentialPreview {
 
 /// Generates a valid `Mdoc` that contains a full PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
-    let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
+    let (unsigned_mdoc, _metadata) = issuance::mock::create_example_unsigned_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, metadata, &ISSUER_KEY)
+    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
 pub fn create_example_pid_mdoc_unauthenticated() -> Mdoc {
-    let (unsigned_mdoc, metadata) = issuance::mock::create_example_unsigned_mdoc();
+    let (unsigned_mdoc, _metadata) = issuance::mock::create_example_unsigned_mdoc();
 
-    mdoc_from_unsigned(unsigned_mdoc, metadata, &ISSUER_KEY_UNAUTHENTICATED)
+    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY_UNAUTHENTICATED)
 }
 
 /// Generates a valid `Mdoc`, based on an `UnsignedMdoc`, the `TypeMetadata` and issuer key.
-pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, metadata: TypeMetadata, issuer_key: &IssuerKey) -> Mdoc {
+pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -> Mdoc {
     let private_key_id = crypto::utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key();
-    let (_, metadata_integrity, metadata_documents) = TypeMetadataDocuments::from_single_example(metadata);
 
     Mdoc::sign::<MockRemoteEcdsaKey>(
         unsigned_mdoc,
-        metadata_integrity,
-        &metadata_documents,
+        // Note that this resource integrity does not match any metadata source document.
+        Integrity::from(crypto::utils::random_bytes(32)),
         private_key_id,
         mdoc_public_key,
         &issuer_key.issuance_key,
