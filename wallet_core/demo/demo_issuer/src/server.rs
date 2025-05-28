@@ -21,8 +21,7 @@ pub async fn serve(settings: Settings) -> Result<()> {
         settings.issuance_server.ip, settings.issuance_server.port
     );
 
-    let issuance_server_tls_config = settings.issuance_server_tls_config.to_rustls_config().await?;
-    let (web_router, issuance_router) = create_routers(settings);
+    let (web_router, issuance_router) = create_routers(settings.clone());
 
     info!("listening for web on {}", web_listener.local_addr()?);
     let web_server = tokio::spawn(async move {
@@ -33,10 +32,20 @@ pub async fn serve(settings: Settings) -> Result<()> {
 
     info!("listening for issuance on {}", issuance_listener.local_addr()?);
     let issuance_server = tokio::spawn(async move {
-        axum_server::from_tcp_rustls(issuance_listener, issuance_server_tls_config)
+        if let Some(tls_config) = &settings.issuance_server_tls_config {
+            axum_server::from_tcp_rustls(
+                issuance_listener,
+                tls_config.to_rustls_config().await.expect("TLS config should be valid"),
+            )
             .serve(issuance_router.into_make_service())
             .await
             .expect("issuance server should be started");
+        } else {
+            axum_server::from_tcp(issuance_listener)
+                .serve(issuance_router.into_make_service())
+                .await
+                .expect("issuance server should be started");
+        }
     });
 
     tokio::try_join!(web_server, issuance_server)?;

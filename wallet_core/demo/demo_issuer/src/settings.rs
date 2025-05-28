@@ -18,7 +18,7 @@ use utils::path::prefix_local_path;
 pub struct Settings {
     pub webserver: Server,
     pub issuance_server: Server,
-    pub issuance_server_tls_config: TlsServerConfig,
+    pub issuance_server_tls_config: Option<TlsServerConfig>,
     pub issuance_server_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     pub help_base_url: BaseUrl,
