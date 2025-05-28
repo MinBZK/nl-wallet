@@ -990,7 +990,7 @@ impl Session<WaitingForResponse> {
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
-        let holder_pubkey = credential_request.verify(&session_data.c_nonce, preview, issuer_data)?;
+        let holder_pubkey = credential_request.verify(&session_data.c_nonce, issuer_data)?;
 
         self.verify_wte_and_poa(
             credential_request.attestations,
@@ -1041,22 +1041,27 @@ impl Session<WaitingForResponse> {
 
         self.check_credential_endpoint_access(&access_token, &dpop, "batch_credential", issuer_data)?;
 
-        let previews_and_holder_pubkeys = credential_requests
-            .credential_requests
-            .iter()
-            .zip(session_data.credential_previews.iter().flat_map(|preview| {
-                preview
-                    .content
-                    .copies_per_format
-                    .values()
-                    .flat_map(|copies| itertools::repeat_n(preview.clone(), copies.get().into()))
-            }))
-            .map(|(cred_req, preview)| {
-                let key = cred_req.verify(&session_data.c_nonce, &preview, issuer_data)?;
+        let previews_and_holder_pubkeys =
+            credential_requests
+                .credential_requests
+                .iter()
+                .zip(session_data.credential_previews.iter().flat_map(|preview| {
+                    preview.content.copies_per_format.iter().flat_map(|(format, copies)| {
+                        itertools::repeat_n((*format, preview.clone()), copies.get().into())
+                    })
+                }))
+                .map(|(cred_req, (format, preview))| {
+                    // Verify the assumption that the order of the incoming requests matches exactly
+                    // that of the flattened copies_per_format by matching the requested format.
+                    if format != cred_req.credential_type.as_ref().format() {
+                        return Err(CredentialRequestError::CredentialTypeMismatch);
+                    }
 
-                Ok((preview, cred_req.credential_type.as_ref().format(), key))
-            })
-            .collect::<Result<Vec<_>, CredentialRequestError>>()?;
+                    let key = cred_req.verify(&session_data.c_nonce, issuer_data)?;
+
+                    Ok((preview, format, key))
+                })
+                .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
         self.verify_wte_and_poa(
             credential_requests.attestations,
@@ -1121,17 +1126,8 @@ impl CredentialRequest {
     fn verify(
         &self,
         c_nonce: &str,
-        credential_preview: &CredentialPreview,
         issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        if !credential_preview
-            .content
-            .copies_per_format
-            .contains_key(&self.credential_type.as_ref().format())
-        {
-            return Err(CredentialRequestError::CredentialTypeMismatch);
-        }
-
         let holder_pubkey = self
             .proof
             .as_ref()
