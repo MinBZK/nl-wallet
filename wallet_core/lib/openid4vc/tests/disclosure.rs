@@ -46,7 +46,6 @@ use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
-use mdoc::DocType;
 use mdoc::SessionTranscript;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -343,7 +342,7 @@ const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITUATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
 
-struct MockMdocDataSource(HashMap<DocType, (IssuedCredentialCopies, NormalizedTypeMetadata)>);
+struct MockMdocDataSource(HashMap<String, (IssuedCredentialCopies, NormalizedTypeMetadata)>);
 
 impl MockMdocDataSource {
     fn new(mdocs: Vec<(Mdoc, NormalizedTypeMetadata)>) -> Self {
