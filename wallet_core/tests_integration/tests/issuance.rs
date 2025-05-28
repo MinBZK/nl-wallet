@@ -47,8 +47,7 @@ pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<Attestatio
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_ok() {
-    // retain [`MockDigidSession::Context`]
-    let _context = setup_digid_context();
+    let _retain = setup_digid_context();
 
     let pin = "112233";
     let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
@@ -145,8 +144,7 @@ fn pid_missing_required() -> IssuableDocument {
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_optional_attributes() {
-    // retain [`MockDigidSession::Context`]
-    let _context = setup_digid_context();
+    let _retain = setup_digid_context();
 
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(
@@ -187,8 +185,7 @@ async fn test_pid_optional_attributes() {
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_missing_required_attributes() {
-    // retain [`MockDigidSession::Context`]
-    let _context = setup_digid_context();
+    let _retain = setup_digid_context();
 
     let pin = "112233";
     let (mut wallet, _, _) = setup_wallet_and_env(

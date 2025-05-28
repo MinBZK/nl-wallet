@@ -112,8 +112,7 @@ async fn test_disclosure_usecases_ok(
         return_url_template,
     };
 
-    // retain [`MockDigidSession::Context`]
-    let _context = setup_digid_context();
+    let _retain = setup_digid_context();
 
     let pin = "112233";
     let (mut wallet, urls, _) = setup_wallet_and_env(
