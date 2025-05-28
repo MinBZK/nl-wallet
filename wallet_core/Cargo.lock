@@ -6566,6 +6566,7 @@ dependencies = [
  "assert_matches",
  "attestation_data",
  "axum",
+ "axum-server",
  "chrono",
  "configuration_server",
  "crypto",

@@ -230,9 +230,11 @@ cp "${TARGET_DIR}/demo_issuer/ca.crt.der" "${BASE_DIR}/wallet_core/tests_integra
 DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT=$(< "${TARGET_DIR}/demo_issuer/ca.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT
 
+cp "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" "${BASE_DIR}/wallet_core/tests_integration/di.crt.der"
 DEMO_ISSUER_ATTESTATION_SERVER_CERT=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.crt.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_CERT
 
+cp "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" "${BASE_DIR}/wallet_core/tests_integration/di.key.der"
 DEMO_ISSUER_ATTESTATION_SERVER_KEY=$(< "${TARGET_DIR}/demo_issuer/demo_issuer.key.der" ${BASE64})
 export DEMO_ISSUER_ATTESTATION_SERVER_KEY
 
