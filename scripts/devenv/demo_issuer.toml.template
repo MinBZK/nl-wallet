@@ -1,4 +1,5 @@
 issuance_server_url = 'http://${SERVICES_HOST}:${ISSUANCE_SERVER_WS_PORT}'
+
 help_base_url = "https://example.com/"
 
 [webserver]
@@ -8,6 +9,10 @@ port = ${DEMO_ISSUER_PORT}
 [issuance_server]
 ip = '127.0.0.1'
 port = ${DEMO_ISSUER_IS_PORT}
+
+[issuance_server_tls_config]
+cert = "${DEMO_ISSUER_ATTESTATION_SERVER_CERT}"
+key = "${DEMO_ISSUER_ATTESTATION_SERVER_KEY}"
 
 [usecases.university]
 client_id = "university.example.com"

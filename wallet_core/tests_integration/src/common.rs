@@ -7,6 +7,9 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
+use axum::routing::post;
+use axum::Json;
+use axum::Router;
 use ctor::ctor;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::EncodingKey;
@@ -22,11 +25,7 @@ use tokio::net::TcpListener as TokioTcpListener;
 use tokio::time;
 use url::Url;
 use uuid::Uuid;
-use wiremock::matchers::method;
-use wiremock::matchers::path;
-use wiremock::Mock;
 use wiremock::MockServer;
-use wiremock::ResponseTemplate;
 
 use android_attest::android_crl::RevocationStatusList;
 use android_attest::root_public_key::RootPublicKey;
@@ -40,6 +39,7 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::trusted_reqwest_client_builder;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::tls::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
@@ -172,8 +172,13 @@ pub async fn setup_wallet_and_env(
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
     (issuer_settings, pid_issuable_documents): (PidIssuerSettings, VecNonEmpty<IssuableDocument>),
-    (issuance_server_settings, issuable_documents): (IssuanceServerSettings, Vec<IssuableDocument>),
-) -> (WalletWithMocks, DisclosureParameters, IssuanceParameters) {
+    (issuance_server_settings, issuable_documents, di_root_ca, di_tls_config): (
+        IssuanceServerSettings,
+        Vec<IssuableDocument>,
+        ReqwestTrustAnchor,
+        TlsServerConfig,
+    ),
+) -> (WalletWithMocks, DisclosureParameters, BaseUrl) {
     let key_holder = match vendor {
         WalletDeviceVendor::Apple => MockHardwareAttestedKeyHolder::generate_apple(
             AttestationEnvironment::Development,
@@ -216,12 +221,21 @@ pub async fn setup_wallet_and_env(
     let hsm = Pkcs11Hsm::from_settings(wp_settings.hsm.clone()).expect("Could not initialize HSM");
     let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
 
-    let (attestation_server, attestation_server_url) = mock_attestation_server(issuable_documents).await;
+    let attestation_server_url =
+        start_mock_attestation_server(issuable_documents, di_tls_config, di_root_ca.clone()).await;
     let attributes_fetcher = HttpAttributesFetcher::new(
         issuance_server_settings
             .disclosure_settings
             .keys()
-            .map(|id| (id.to_string(), attestation_server_url.clone()))
+            .map(|id| {
+                (
+                    id.to_string(),
+                    TlsPinningConfig {
+                        base_url: attestation_server_url.clone(),
+                        trust_anchors: vec![di_root_ca.clone()],
+                    },
+                )
+            })
             .collect(),
     );
 
@@ -233,11 +247,6 @@ pub async fn setup_wallet_and_env(
     )
     .await;
     let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), attributes_fetcher).await;
-
-    let issuance_setup = IssuanceParameters {
-        attestation_server,
-        url: issuance_server_url,
-    };
 
     let config_bytes = read_file("wallet-config.json");
     let mut served_wallet_config: WalletConfiguration = serde_json::from_slice(&config_bytes).unwrap();
@@ -287,7 +296,7 @@ pub async fn setup_wallet_and_env(
     .await
     .expect("Could not create test wallet");
 
-    (wallet, wallet_urls, issuance_setup)
+    (wallet, wallet_urls, issuance_server_url)
 }
 
 pub async fn wallet_user_count(connection: &DatabaseConnection) -> u64 {
@@ -418,14 +427,25 @@ pub fn pid_issuer_settings() -> (PidIssuerSettings, VecNonEmpty<IssuableDocument
     )
 }
 
-pub fn issuance_server_settings() -> (IssuanceServerSettings, Vec<IssuableDocument>) {
+pub fn issuance_server_settings() -> (
+    IssuanceServerSettings,
+    Vec<IssuableDocument>,
+    ReqwestTrustAnchor,
+    TlsServerConfig,
+) {
     let mut settings =
         IssuanceServerSettings::new("issuance_server.toml", "issuance_server").expect("Could not read settings");
 
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    (settings, vec![IssuableDocument::new_mock()])
+    let root_ca = read_file("di.ca.crt.der").try_into().unwrap();
+    let tls_config = TlsServerConfig {
+        cert: read_file("di.crt.der"),
+        key: read_file("di.key.der"),
+    };
+
+    (settings, vec![IssuableDocument::new_mock()], root_ca, tls_config)
 }
 
 pub fn verification_server_settings() -> VerifierSettings {
@@ -454,17 +474,31 @@ fn internal_url(settings: &VerifierSettings) -> BaseUrl {
     }
 }
 
-async fn mock_attestation_server(issuable_documents: Vec<IssuableDocument>) -> (MockServer, BaseUrl) {
-    let server = MockServer::start().await;
-    let url: BaseUrl = server.uri().parse().unwrap();
+async fn start_mock_attestation_server(
+    issuable_documents: Vec<IssuableDocument>,
+    tls_server_config: TlsServerConfig,
+    trust_anchor: ReqwestTrustAnchor,
+) -> BaseUrl {
+    let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
 
-    Mock::given(method("POST"))
-        .and(path("/"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(issuable_documents))
-        .mount(&server)
-        .await;
+    tokio::spawn(async move {
+        axum_server::from_tcp_rustls(
+            listener.into_std().unwrap(),
+            tls_server_config.to_rustls_config().await.unwrap(),
+        )
+        .serve(
+            Router::new()
+                .route("/", post(|| async { Json(issuable_documents) }))
+                .into_make_service(),
+        )
+        .await
+        .expect("issuance server should be started");
+    });
 
-    (server, url)
+    let url: BaseUrl = format!("https://localhost:{}/", port).as_str().parse().unwrap();
+    wait_for_server(url.clone(), vec![trust_anchor.into_certificate()]).await;
+    url
 }
 
 pub async fn start_issuance_server(

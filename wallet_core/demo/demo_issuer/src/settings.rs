@@ -9,6 +9,7 @@ use serde::Deserialize;
 use serde_tuple::Deserialize_tuple;
 
 use attestation_data::issuable_document::IssuableDocuments;
+use http_utils::tls::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use utils::path::prefix_local_path;
@@ -17,6 +18,7 @@ use utils::path::prefix_local_path;
 pub struct Settings {
     pub webserver: Server,
     pub issuance_server: Server,
+    pub issuance_server_tls_config: Option<TlsServerConfig>,
     pub issuance_server_url: BaseUrl,
     pub universal_link_base_url: BaseUrl,
     pub help_base_url: BaseUrl,

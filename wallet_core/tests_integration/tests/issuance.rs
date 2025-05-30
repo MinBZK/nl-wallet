@@ -232,7 +232,7 @@ async fn test_disclosure_based_issuance_ok() {
     let _context = setup_digid_context();
 
     let pin = "112233";
-    let (mut wallet, _, issuance_params) = setup_wallet_and_env(
+    let (mut wallet, _, issuance_url) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         update_policy_server_settings(),
@@ -247,7 +247,7 @@ async fn test_disclosure_based_issuance_ok() {
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let _proposal = wallet
-        .start_disclosure(&universal_link(&issuance_params.url), DisclosureUriSource::Link)
+        .start_disclosure(&universal_link(&issuance_url), DisclosureUriSource::Link)
         .await
         .unwrap();
 
@@ -274,15 +274,17 @@ async fn test_disclosure_based_issuance_ok() {
 async fn test_disclosure_based_issuance_error_no_attributes() {
     let _context = setup_digid_context();
 
+    let (issuance_server_settings, _, di_trust_anchor, di_tls_config) = issuance_server_settings();
+
     let pin = "112233";
-    let (mut wallet, _, issuance_params) = setup_wallet_and_env(
+    let (mut wallet, _, issuance_url) = setup_wallet_and_env(
         WalletDeviceVendor::Apple,
         config_server_settings(),
         update_policy_server_settings(),
         wallet_provider_settings(),
         verification_server_settings(),
         pid_issuer_settings(),
-        (issuance_server_settings().0, vec![]),
+        (issuance_server_settings, vec![], di_trust_anchor, di_tls_config),
     )
     .await;
 
@@ -290,7 +292,7 @@ async fn test_disclosure_based_issuance_error_no_attributes() {
     wallet = do_pid_issuance(wallet, pin.to_owned()).await;
 
     let _proposal = wallet
-        .start_disclosure(&universal_link(&issuance_params.url), DisclosureUriSource::Link)
+        .start_disclosure(&universal_link(&issuance_url), DisclosureUriSource::Link)
         .await
         .unwrap();
 
