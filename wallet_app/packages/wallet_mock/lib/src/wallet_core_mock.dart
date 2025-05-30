@@ -213,7 +213,15 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin, hint}) async {
-    return DisclosureBasedIssuanceResult.ok(kPidAttestations);
+    assert(_issuanceManager.hasActiveIssuanceSession, 'invalid state');
+    final attestations = await _issuanceManager.discloseForIssuance(pin);
+    try {
+      return DisclosureBasedIssuanceResult.ok(attestations);
+    } on WalletInstructionError catch (error) {
+      return DisclosureBasedIssuanceResult.instructionError(error: error);
+    } catch (ex) {
+      rethrow;
+    }
   }
 
   @override
