@@ -130,6 +130,10 @@ pub enum TrustedAuthoritiesQuery {
     /// mdoc or SD-JWT). Note that the chain can consist of a single certificate and the credential can include the
     /// entire X.509 chain or parts of it.
     Aki(VecNonEmpty<String>),
+
+    // Allow parsing of methods not supported by this implementation.
+    #[serde(untagged)]
+    Other(String),
 }
 
 /// Specifies claims in the requested Credential.
