@@ -24,7 +24,6 @@ import '../util/mapper/card/attribute/localized_labels_mapper.dart';
 import '../util/mapper/card/attribute/missing_attribute_mapper.dart';
 import '../util/mapper/card/card_config_mapper.dart';
 import '../util/mapper/card/card_mapper.dart';
-import '../util/mapper/card/card_subtitle_mapper.dart';
 import '../util/mapper/card/metadata_mapper.dart';
 import '../util/mapper/context_mapper.dart';
 import '../util/mapper/disclosure/disclosure_session_type_mapper.dart';
@@ -82,9 +81,6 @@ class WalletMapperProvider extends StatelessWidget {
         ),
 
         /// Card mappers
-        RepositoryProvider<Mapper<core.Attestation, LocalizedText?>>(
-          create: (context) => CardSubtitleMapper(context.read()),
-        ),
         RepositoryProvider<Mapper<String, CardConfig>>(
           create: (context) => CardConfigMapper(),
         ),

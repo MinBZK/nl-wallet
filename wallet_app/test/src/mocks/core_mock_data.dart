@@ -1,9 +1,10 @@
 import 'package:wallet_core/core.dart';
+import 'package:wallet_mock/mock.dart';
 
 abstract class CoreMockData {
   static const Attestation attestation = Attestation(
     identity: AttestationIdentity_Ephemeral(),
-    attestationType: kPidDocType,
+    attestationType: MockConstants.pidDocType,
     displayMetadata: [enDisplayMetadata, nlDisplayMetadata],
     issuer: organization,
     attributes: [attestationAttributeName],

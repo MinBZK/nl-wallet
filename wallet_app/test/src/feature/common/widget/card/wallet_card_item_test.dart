@@ -11,7 +11,7 @@ import 'package:wallet/src/feature/common/widget/svg_or_image.dart';
 import 'package:wallet/src/theme/dark_wallet_theme.dart';
 import 'package:wallet/src/theme/light_wallet_theme.dart';
 import 'package:wallet/src/wallet_assets.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_mock/mock.dart';
 
 import '../../../../../wallet_app_test_widget.dart';
 import '../../../../mocks/wallet_mock_data.dart';
@@ -51,7 +51,7 @@ void main() {
               WalletCardItem(
                 title: 'Dark Card',
                 subtitle: 'subtitle',
-                background: MockCardBackground(docType: kAddressDocType),
+                background: MockCardBackground(docType: MockConstants.addressDocType),
                 logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 textColor: DarkWalletTheme.textColor,
                 onPressed: _voidCallback,
@@ -59,7 +59,7 @@ void main() {
               WalletCardItem(
                 title: 'Light Card',
                 subtitle: 'subtitle',
-                background: MockCardBackground(docType: kPidDocType),
+                background: MockCardBackground(docType: MockConstants.pidDocType),
                 logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 textColor: LightWalletTheme.textColor,
                 onPressed: _voidCallback,
@@ -85,7 +85,7 @@ void main() {
               WalletCardItem(
                 title: '50 characters looooooong title is consider the max',
                 subtitle: '50 characters loong subtitle is considered the max',
-                background: MockCardBackground(docType: kAddressDocType),
+                background: MockCardBackground(docType: MockConstants.addressDocType),
                 logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 textColor: DarkWalletTheme.textColor,
                 onPressed: _voidCallback,
@@ -95,7 +95,7 @@ void main() {
                 child: WalletCardItem(
                   title: '50 characters looooooong title is consider the max',
                   subtitle: '50 characters loong subtitle is considered the max',
-                  background: MockCardBackground(docType: kPidDocType),
+                  background: MockCardBackground(docType: MockConstants.pidDocType),
                   logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                   textColor: LightWalletTheme.textColor,
                   onPressed: _voidCallback,
@@ -120,7 +120,7 @@ void main() {
                 title: 'TITLE',
                 subtitle: 'SUBTITLE',
                 textColor: LightWalletTheme.textColor,
-                background: MockCardBackground(docType: kPidDocType),
+                background: MockCardBackground(docType: MockConstants.pidDocType),
                 logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 onPressed: _voidCallback,
               ),
@@ -129,19 +129,19 @@ void main() {
                 subtitle: 'SUBTITLE',
                 textColor: LightWalletTheme.textColor,
                 onPressed: _voidCallback,
-                background: MockCardBackground(docType: kPidDocType),
+                background: MockCardBackground(docType: MockConstants.pidDocType),
               ),
               WalletCardItem(
                 title: 'TITLE - NO SUBTITLE',
                 textColor: LightWalletTheme.textColor,
-                background: MockCardBackground(docType: kPidDocType),
+                background: MockCardBackground(docType: MockConstants.pidDocType),
                 logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
                 onPressed: _voidCallback,
               ),
               WalletCardItem(
                 title: 'TITLE - NO SHOW DETAILS',
                 textColor: LightWalletTheme.textColor,
-                background: MockCardBackground(docType: kPidDocType),
+                background: MockCardBackground(docType: MockConstants.pidDocType),
                 logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
               ),
             ],
@@ -160,7 +160,7 @@ void main() {
           const WalletCardItem(
             title: 'Holograph',
             textColor: DarkWalletTheme.textColor,
-            background: MockCardBackground(docType: kAddressDocType),
+            background: MockCardBackground(docType: MockConstants.addressDocType),
             logo: CardLogo(logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid)),
             holograph: CardHolograph(holograph: WalletAssets.svg_rijks_card_holo, brightness: Brightness.dark),
           ),

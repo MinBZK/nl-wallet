@@ -234,7 +234,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
 
   Future<void> _loginWithDigid(BuildContext context, String authUrl) async {
     final bloc = context.bloc;
-    if (authUrl == kMockPidIssuanceRedirectUri && !Environment.isTest) {
+    if (authUrl == MockConstants.pidIssuanceRedirectUri && !Environment.isTest) {
       await _performMockDigidLogin(context);
     } else {
       try {
@@ -262,7 +262,7 @@ class WalletPersonalizeScreen extends StatelessWidget {
     final loginSucceeded = (await MockDigidScreen.mockLogin(context)) ?? false;
     await Future.delayed(kDefaultMockDelay);
     if (loginSucceeded) {
-      final attestations = await walletCore.continuePidIssuance(kMockPidIssuanceRedirectUri);
+      final attestations = await walletCore.continuePidIssuance(MockConstants.pidIssuanceRedirectUri);
       final mockPidCardAttributes = attestations
           .map(
             (attestation) =>

@@ -13,6 +13,7 @@ import 'package:wallet/src/util/mapper/image/image_mapper.dart';
 import 'package:wallet/src/util/mapper/organization/organization_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet_core/core.dart';
+import 'package:wallet_mock/mock.dart';
 
 import '../../../../mocks/core_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
@@ -43,7 +44,7 @@ void main() {
       const mockContinueUri = 'mock_continue_issuance_url';
       final testAttestation = Attestation(
         identity: const AttestationIdentity_Ephemeral(),
-        attestationType: kPidDocType,
+        attestationType: MockConstants.pidDocType,
         displayMetadata: [CoreMockData.enDisplayMetadata],
         issuer: CoreMockData.organization,
         attributes: CoreMockData.attestation.attributes,

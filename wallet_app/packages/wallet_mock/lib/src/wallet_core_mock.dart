@@ -99,7 +99,7 @@ class WalletCoreMock implements WalletCoreApi {
   Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri, hint}) async => kPidAttestations;
 
   @override
-  Future<String> crateApiFullCreatePidIssuanceRedirectUri({hint}) async => kMockPidIssuanceRedirectUri;
+  Future<String> crateApiFullCreatePidIssuanceRedirectUri({hint}) async => MockConstants.pidIssuanceRedirectUri;
 
   @override
   Future<bool> crateApiFullHasRegistration({hint}) async => _pinManager.isRegistered;
@@ -254,5 +254,5 @@ class WalletCoreMock implements WalletCoreApi {
   Future<WalletInstructionResult> crateApiFullCheckPin({required String pin, hint}) async => _pinManager.checkPin(pin);
 
   @override
-  Future<String> crateApiFullGetVersionString({hint}) async => kMockVersionString;
+  Future<String> crateApiFullGetVersionString({hint}) async => MockConstants.versionString;
 }

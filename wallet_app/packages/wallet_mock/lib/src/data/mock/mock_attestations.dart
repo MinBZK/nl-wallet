@@ -7,7 +7,7 @@ import 'mock_organizations.dart';
 final kPidAttestations = [
   Attestation(
     identity: AttestationIdentity_Fixed(id: 'pid'),
-    attestationType: kPidDocType,
+    attestationType: MockConstants.pidDocType,
     displayMetadata: _buildDisplayMetaData(
       englishTitle: 'Personal data',
       dutchTitle: 'Persoons­gegevens',
@@ -21,7 +21,7 @@ final kPidAttestations = [
   ),
   Attestation(
     identity: AttestationIdentity_Fixed(id: 'address'),
-    attestationType: kAddressDocType,
+    attestationType: MockConstants.addressDocType,
     displayMetadata: _buildDisplayMetaData(
       englishTitle: 'Residential address',
       dutchTitle: 'Woonadres',
@@ -68,7 +68,7 @@ final kMockMasterDiplomaWalletCard = Attestation(
 );
 
 final kMockDrivingLicenseWalletCard = Attestation(
-  attestationType: kDrivingLicenseDocType,
+  attestationType: MockConstants.drivingLicenseDocType,
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'Driving License',
@@ -83,7 +83,7 @@ final kMockDrivingLicenseWalletCard = Attestation(
 );
 
 final kMockDrivingLicenseRenewedWalletCard = Attestation(
-  attestationType: kDrivingLicenseDocType,
+  attestationType: MockConstants.drivingLicenseDocType,
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'Driving License',
