@@ -164,6 +164,7 @@ impl DeviceRequest {
 pub struct TestDocument {
     pub doc_type: String,
     pub issuer_uri: HttpsUri,
+    // TODO: change to: pub attributes: IndexMap<String, Attribute> in PVW-4138, or even remove TestDocument altogether?
     pub namespaces: IndexMap<String, Vec<Entry>>,
     pub metadata_integrity: Integrity,
     pub metadata: TypeMetadataDocuments,
