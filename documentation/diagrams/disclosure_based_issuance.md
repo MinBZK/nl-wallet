@@ -75,18 +75,20 @@ For each attestation server, a configuration block like the following must be pu
 
 ```toml
 [disclosure_settings.degree]
-# URL to the attestation server
-attestation_url = "https://attestation_server.example.com"
-
 # Either "hsm" or "software"
 private_key_type = "hsm"
 
 # In case of "hsm": label for the private key in the HSM
 # In case of "software": a DER-serialized private key
-private_key = "my_issuer_key" 
+private_key = "my_issuer_key"
 
 # RP certificate
 certificate = "MIJ..."
+
+[disclosure_settings.degree.attestation_url_config]
+# URL to the attestation server
+base_url = "https://attestation_server.example.com"
+trust_anchors = ["MIJ..."]
 
 # Attributes that have to be disclosed for `degree`
 [[disclosure_settings.degree.to_disclose]]
@@ -142,7 +144,7 @@ Finally, the issuer issues the attestations using OpenID4VCI in the pre-authoriz
 
 During OpenID4VCI, the issuer requires the wallet to include the keys of the attestations that it disclosed earlier in its Proof of Association (PoA) when it sends its Proofs of Possession (PoPs) for the keys of the attestation (copies). This enforces that the newly issued attestations are bound to the same WSCD as the one that disclosed the attestations in the first part of the protocol.
 
-```mermaid 
+```mermaid
 sequenceDiagram
     autonumber
     actor User
@@ -155,7 +157,7 @@ sequenceDiagram
     Issuer->>Issuer: Start disclosure session with preconfigured request
     Issuer->>-App: Authorization Request [OpenID4VP]
 
-    App ->>-User: Request approval for disclosure 
+    App ->>-User: Request approval for disclosure
     User->>+ App: Approve disclosure with PIN
 
     App->>+Issuer: Authorization Response [OpenID4VP] (including PoA) *

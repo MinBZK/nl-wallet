@@ -11,12 +11,11 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event::EventType;
-use mdoc::holder::Mdoc;
 use mdoc::holder::ProposedAttributes;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
-use crate::attestation::AttestationIdentity;
+use crate::issuance::BSN_ATTR_NAME;
 use crate::issuance::PID_DOCTYPE;
 
 pub type DisclosureStatus = EventStatus;
@@ -34,7 +33,7 @@ pub fn disclosure_type_for_proposed_attributes(proposed_attributes: &ProposedAtt
         .and_then(|doc_attributes| doc_attributes.attributes.iter().exactly_one().ok())
         .and_then(|(namespace, entries)| (namespace == PID_DOCTYPE).then_some(entries))
         .and_then(|entries| entries.iter().exactly_one().ok())
-        .and_then(|entry| (entry.name == "bsn").then_some(DisclosureType::Login))
+        .and_then(|entry| (entry.name == BSN_ATTR_NAME).then_some(DisclosureType::Login))
         .unwrap_or(DisclosureType::Regular)
 }
 
@@ -64,32 +63,7 @@ pub enum WalletEvent {
 }
 
 impl WalletEvent {
-    pub(crate) fn new_issuance(mdocs: VecNonEmpty<Mdoc>) -> Self {
-        let attestations = mdocs
-            .into_iter()
-            .map(|mdoc| {
-                // As these mdocs have just been validated, we can make assumptions about them and use `expect()`.
-                // TODO (PVW-4132): Use the type system to codify these assumptions.
-                let metadata = mdoc.type_metadata().expect("mdoc should contain valid type metadata");
-                let issuer_certificate = mdoc
-                    .issuer_certificate()
-                    .expect("mdoc should contain issuer certificate");
-                let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)
-                    .expect("mdoc should contain valid issuer registration")
-                    .expect("mdoc should contain issuer registration");
-
-                Attestation::create_for_issuance(
-                    AttestationIdentity::Ephemeral,
-                    metadata,
-                    issuer_registration.organization,
-                    mdoc.issuer_signed.into_entries_by_namespace(),
-                )
-                .expect("mdoc should succesfully be transformed for display by metadata")
-            })
-            .collect_vec()
-            .try_into()
-            .unwrap();
-
+    pub(crate) fn new_issuance(attestations: VecNonEmpty<Attestation>) -> Self {
         Self::Issuance {
             id: Uuid::now_v7(),
             attestations,
@@ -227,6 +201,7 @@ mod test {
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
+    use crate::attestation::AttestationIdentity;
     use crate::issuance;
 
     use super::*;
@@ -275,14 +250,14 @@ mod test {
                 let metadata =
                     NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
                         attestation_type,
-                        "bsn",
+                        BSN_ATTR_NAME,
                         JsonSchemaPropertyType::String,
                         None,
                     ));
                 let attributes = IndexMap::from([(
                     attestation_type.to_string(),
                     vec![Entry {
-                        name: "bsn".to_string(),
+                        name: BSN_ATTR_NAME.to_string(),
                         value: DataElementValue::Text("999999999".to_string()),
                     }],
                 )]);

@@ -32,7 +32,7 @@ class IssuanceRelyingPartyErrorPage extends StatelessWidget {
       primaryButtonCta: context.l10n.issuanceRelyingPartyErrorCloseCta,
       onPrimaryPressed: onClosePressed,
       secondaryButtonCta: context.l10n.generalShowDetailsCta,
-      secondaryButtonIcon: Icon(Icons.info_outline_rounded),
+      secondaryButtonIcon: const Icon(Icons.info_outline_rounded),
       onSecondaryButtonPressed: !kReleaseMode ? () => ErrorDetailsSheet.show(context, error: error) : null,
       flipButtonOrder: true,
     );

@@ -31,14 +31,14 @@ void main() {
 
   group('map', () {
     test('should return `DataAttribute`', () {
-      when(mockLabelMapper.map(_kSampleCardAttributeLabels)).thenReturn({Locale('nl'): 'Test'});
+      when(mockLabelMapper.map(_kSampleCardAttributeLabels)).thenReturn({const Locale('nl'): 'Test'});
       when(mockValueMapper.map(_kSampleCardValue)).thenReturn(const StringValue('John Doe'));
 
       final expected = DataAttribute(
         key: 'card.key',
         svgId: 'card.svgId',
-        label: {Locale('nl'): 'Test'},
-        value: StringValue('John Doe'),
+        label: {const Locale('nl'): 'Test'},
+        value: const StringValue('John Doe'),
         sourceCardDocType: 'docType',
       );
 

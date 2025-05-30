@@ -91,8 +91,9 @@ class CoreWalletRepository implements WalletRepository {
   @override
   Future<bool> containsPid() async {
     try {
-      final attestations = await _walletCore.observeCards().first.timeout(const Duration(seconds: 1));
-      return attestations.any((attestation) => attestation.attestationType == kPidDocType);
+      final cards = await _walletCore.observeCards().first.timeout(const Duration(seconds: 1));
+      // Since cards can't be issued without having the PID, having any card means we have the PID.
+      return cards.isNotEmpty;
     } on TimeoutException catch (ex) {
       Fimber.e('Stream remained empty, no cards available yet.', ex: ex);
       return false;

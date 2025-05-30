@@ -26,10 +26,10 @@ void main() {
     configurationRepository = MockConfigurationRepository();
     when(configurationRepository.appConfiguration).thenAnswer(
       (_) => Stream.value(
-        FlutterAppConfiguration(
-          idleLockTimeout: Duration(),
-          idleWarningTimeout: Duration(),
-          backgroundLockTimeout: Duration(),
+        const FlutterAppConfiguration(
+          idleLockTimeout: Duration.zero,
+          idleWarningTimeout: Duration.zero,
+          backgroundLockTimeout: Duration.zero,
           staticAssetsBaseUrl: 'https://example.com/',
           version: 1337,
         ),
@@ -64,7 +64,7 @@ void main() {
           )
               .withDependency<GetVersionStringUseCase>((c) => MockGetVersionStringUseCase())
               .withDependency<ConfigurationRepository>((c) => configurationRepository),
-          surfaceSize: Size(350, 341),
+          surfaceSize: const Size(350, 341),
         );
         await tester.pumpAndSettle();
         await screenMatchesGolden('error_details_sheet/application_error.light');

@@ -48,9 +48,9 @@ class CardPreviewScreen extends StatelessWidget {
           child: WalletScrollbar(
             child: CustomScrollView(
               slivers: [
-                SliverSizedBox(height: 12),
+                const SliverSizedBox(height: 12),
                 _buildHeader(context),
-                SliverDivider(),
+                const SliverDivider(),
                 _buildDataAttributes(context, card.attributes),
               ],
             ),
@@ -95,7 +95,7 @@ class CardPreviewScreen extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -103,10 +103,10 @@ class CardPreviewScreen extends StatelessWidget {
               width: 110,
               child: WalletCardItem.fromWalletCard(context, card, showText: false),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             TitleText(card.title.l10nValue(context)),
             BodyText(context.l10n.cardPreviewScreenIssuedBy(card.issuer.displayName.l10nValue(context))),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
           ],
         ),
       ),

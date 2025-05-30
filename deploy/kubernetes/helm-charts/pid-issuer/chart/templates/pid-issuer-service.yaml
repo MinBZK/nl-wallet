@@ -8,7 +8,6 @@ spec:
   selector:
     {{- include "common.labels.componentSelectorLabels" (list "server" .) | nindent 4 }}
   ports:
-    - name: pid-issuer-http
-      port: 3003
-      targetPort: pid-issuer-port
-      protocol: TCP
+    - name: http
+      port: 80
+      targetPort: http

@@ -55,7 +55,7 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                             color: context.colorScheme.primary,
                             size: 18,
                           ),
-                          rowPadding: EdgeInsets.symmetric(vertical: 4),
+                          rowPadding: const EdgeInsets.symmetric(vertical: 4),
                         ),
                       ],
                     ),

@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 
 use chrono::Days;
+use chrono::DurationRound;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::Debug;
@@ -26,6 +27,7 @@ use tracing::info;
 
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_data::issuable_document::IssuableDocument;
 use attestation_data::issuable_document::IssuableDocuments;
@@ -208,18 +210,29 @@ pub struct Created {
     pub issuable_documents: Option<VecNonEmpty<IssuableDocument>>,
 }
 
-// TODO (PVW-4109): Once the unsigned mdoc header no longer embeds the type metadata, the state stored for the
-//                  credentials can be reduced to the `CredentialPayload`s and the copies per format. Storing
-//                  the entire preview is unnecessary, as this also includes the type metadata documents and
-//                  the issuer certificate. Both of these are already present in the issuer configuration.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WaitingForResponse {
     pub access_token: AccessToken,
     pub c_nonce: String,
     pub accepted_wallet_client_ids: Vec<String>,
-    pub credential_previews: Vec<CredentialPreview>,
+    pub credential_previews: Vec<CredentialPreviewState>,
     pub dpop_public_key: VerifyingKey,
     pub dpop_nonce: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CredentialPreviewState {
+    pub copies_per_format: IndexMap<Format, NonZeroU8>,
+    pub credential_payload: PreviewableCredentialPayload,
+}
+
+impl From<CredentialPreview> for CredentialPreviewState {
+    fn from(value: CredentialPreview) -> Self {
+        Self {
+            copies_per_format: value.content.copies_per_format,
+            credential_payload: value.content.credential_payload,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -334,7 +347,6 @@ pub struct AttestationTypeConfig<K> {
     pub attestation_qualification: AttestationQualification,
     pub metadata_documents: TypeMetadataDocuments,
     first_metadata_integrity: Integrity,
-    #[allow(dead_code)]
     metadata: NormalizedTypeMetadata,
 }
 
@@ -709,7 +721,12 @@ impl Session<Created> {
                     access_token: response.token_response.access_token.clone(),
                     c_nonce: response.token_response.c_nonce.as_ref().unwrap().clone(), // field is always set below
                     accepted_wallet_client_ids: accepted_wallet_client_ids.to_vec(),
-                    credential_previews: response.credential_previews.clone().into_inner(),
+                    credential_previews: response
+                        .credential_previews
+                        .clone()
+                        .into_iter()
+                        .map(Into::into)
+                        .collect(),
                     dpop_public_key: dpop_pubkey,
                     dpop_nonce: dpop_nonce.clone(),
                 });
@@ -719,6 +736,34 @@ impl Session<Created> {
                 let next = self.transition_fail(&err);
                 Err((err, next))
             }
+        }
+    }
+
+    fn credential_preview_from_issuable_document(
+        document: IssuableDocument,
+        attestation_data: &AttestationTypeConfig<impl EcdsaKeySend>,
+    ) -> CredentialPreview {
+        // Truncate the current time to only include the date part, so that all issued credentials on a single
+        // day day have the same `iat` and `exp` field
+        let now = Utc::now()
+            .duration_trunc(chrono::Duration::days(1))
+            .expect("should never exceed Unix time bounds");
+        let valid_until = now.add(attestation_data.valid_days);
+
+        let credential_payload = document.into_previewable_credential_payload(
+            now,
+            valid_until,
+            attestation_data.issuer_uri.clone(),
+            attestation_data.attestation_qualification,
+        );
+
+        CredentialPreview {
+            content: CredentialPreviewContent {
+                copies_per_format: attestation_data.copies_per_format.clone(),
+                credential_payload,
+                issuer_certificate: attestation_data.key_pair.certificate().clone(),
+            },
+            type_metadata: attestation_data.metadata_documents.clone(),
         }
     }
 
@@ -762,24 +807,7 @@ impl Session<Created> {
                         TokenRequestError::CredentialTypeNotOffered(document.attestation_type().to_string())
                     })?;
 
-                let now = Utc::now();
-                let valid_until = now.add(attestation_data.valid_days);
-
-                let credential_payload = document.into_previewable_credential_payload(
-                    now,
-                    valid_until,
-                    attestation_data.issuer_uri.clone(),
-                    attestation_data.attestation_qualification,
-                );
-
-                let preview = CredentialPreview {
-                    content: CredentialPreviewContent {
-                        copies_per_format: attestation_data.copies_per_format.clone(),
-                        credential_payload,
-                        issuer_certificate: attestation_data.key_pair.certificate().to_owned(),
-                    },
-                    type_metadata: attestation_data.metadata_documents.clone(),
-                };
+                let preview = Self::credential_preview_from_issuable_document(document, attestation_data);
 
                 Ok(preview)
             })
@@ -966,7 +994,7 @@ impl Session<WaitingForResponse> {
         let offered_creds = session_data
             .credential_previews
             .iter()
-            .filter(|preview| preview.content.copies_per_format.contains_key(&requested_format))
+            .filter(|preview| preview.copies_per_format.contains_key(&requested_format))
             .collect_vec();
 
         let preview = match (offered_creds.first(), offered_creds.len()) {
@@ -979,7 +1007,7 @@ impl Session<WaitingForResponse> {
             _ => Err(CredentialRequestError::UseBatchIssuance),
         }?;
 
-        let holder_pubkey = credential_request.verify(&session_data.c_nonce, preview, issuer_data)?;
+        let holder_pubkey = credential_request.verify(&session_data.c_nonce, issuer_data)?;
 
         self.verify_wte_and_poa(
             credential_request.attestations,
@@ -989,8 +1017,13 @@ impl Session<WaitingForResponse> {
         )
         .await?;
 
-        let credential_response =
-            CredentialResponse::new(requested_format, preview.clone(), holder_pubkey, issuer_data).await?;
+        let credential_response = CredentialResponse::new(
+            requested_format,
+            preview.credential_payload.clone(),
+            holder_pubkey,
+            issuer_data,
+        )
+        .await?;
 
         Ok(credential_response)
     }
@@ -1030,24 +1063,27 @@ impl Session<WaitingForResponse> {
 
         self.check_credential_endpoint_access(&access_token, &dpop, "batch_credential", issuer_data)?;
 
-        let previews_and_holder_pubkeys = try_join_all(
-            credential_requests
-                .credential_requests
-                .iter()
-                .zip(session_data.credential_previews.iter().flat_map(|preview| {
-                    preview
-                        .content
-                        .copies_per_format
-                        .values()
-                        .flat_map(|copies| itertools::repeat_n(preview.clone(), copies.get().into()))
-                }))
-                .map(|(cred_req, preview)| async move {
-                    let key = cred_req.verify(&session_data.c_nonce, &preview, issuer_data)?;
+        let previews_and_holder_pubkeys = credential_requests
+            .credential_requests
+            .iter()
+            .zip(session_data.credential_previews.iter().flat_map(|preview| {
+                preview
+                    .copies_per_format
+                    .iter()
+                    .flat_map(|(format, copies)| itertools::repeat_n((*format, preview.clone()), copies.get().into()))
+            }))
+            .map(|(cred_req, (format, preview))| {
+                // Verify the assumption that the order of the incoming requests matches exactly
+                // that of the flattened copies_per_format by matching the requested format.
+                if format != cred_req.credential_type.as_ref().format() {
+                    return Err(CredentialRequestError::CredentialTypeMismatch);
+                }
 
-                    Ok::<_, CredentialRequestError>((preview, cred_req.credential_type.as_ref().format(), key))
-                }),
-        )
-        .await?;
+                let key = cred_req.verify(&session_data.c_nonce, issuer_data)?;
+
+                Ok((preview, format, key))
+            })
+            .collect::<Result<Vec<_>, CredentialRequestError>>()?;
 
         self.verify_wte_and_poa(
             credential_requests.attestations,
@@ -1057,12 +1093,11 @@ impl Session<WaitingForResponse> {
         )
         .await?;
 
-        let credential_responses = try_join_all(
-            previews_and_holder_pubkeys
-                .into_iter()
-                .map(|(preview, format, key)| CredentialResponse::new(format, preview, key, issuer_data)),
-        )
-        .await?;
+        let credential_responses =
+            try_join_all(previews_and_holder_pubkeys.into_iter().map(|(preview, format, key)| {
+                CredentialResponse::new(format, preview.credential_payload, key, issuer_data)
+            }))
+            .await?;
 
         Ok(CredentialResponses { credential_responses })
     }
@@ -1100,29 +1135,12 @@ impl<T: IssuanceState> Session<T> {
     }
 }
 
-impl CredentialPreview {
-    /// Returns an identifier for the issuer private key with which this credential is to be issued.
-    /// The issuer will need to have a private key under this identifier in its [`KeyRing`].
-    fn issuer_key_identifier(&self) -> &str {
-        self.content.credential_payload.attestation_type.as_str()
-    }
-}
-
 impl CredentialRequest {
     fn verify(
         &self,
         c_nonce: &str,
-        credential_preview: &CredentialPreview,
         issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<VerifyingKey, CredentialRequestError> {
-        if !credential_preview
-            .content
-            .copies_per_format
-            .contains_key(&self.credential_type.as_ref().format())
-        {
-            return Err(CredentialRequestError::CredentialTypeMismatch);
-        }
-
         let holder_pubkey = self
             .proof
             .as_ref()
@@ -1140,12 +1158,12 @@ impl CredentialRequest {
 impl CredentialResponse {
     async fn new(
         credential_format: Format,
-        preview: CredentialPreview,
+        preview_credential_payload: PreviewableCredentialPayload,
         holder_pubkey: VerifyingKey,
         issuer_data: &IssuerData<impl EcdsaKeySend, impl WteTracker>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Get the correct `AttestationTypeConfig` for this attestation type.
-        let key_id = preview.issuer_key_identifier();
+        let key_id = preview_credential_payload.attestation_type.as_str();
         let attestation_config = issuer_data
             .attestation_config
             .as_ref()
@@ -1153,26 +1171,25 @@ impl CredentialResponse {
             .ok_or(CredentialRequestError::MissingPrivateKey(key_id.to_string()))?;
 
         match credential_format {
-            Format::MsoMdoc => Self::new_for_mdoc(preview, &holder_pubkey, attestation_config).await,
-            Format::SdJwt => Self::new_for_sd_jwt(preview, &holder_pubkey, attestation_config).await,
+            Format::MsoMdoc => Self::new_for_mdoc(preview_credential_payload, &holder_pubkey, attestation_config).await,
+            Format::SdJwt => Self::new_for_sd_jwt(preview_credential_payload, &holder_pubkey, attestation_config).await,
             other => Err(CredentialRequestError::CredentialTypeNotOffered(other.to_string())),
         }
     }
 
     async fn new_for_mdoc(
-        preview: CredentialPreview,
+        preview_credential_payload: PreviewableCredentialPayload,
         holder_pubkey: &VerifyingKey,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let unsigned_mdoc: UnsignedMdoc = preview.content.credential_payload.try_into()?;
+        let unsigned_mdoc: UnsignedMdoc = preview_credential_payload.try_into()?;
         let attributes = unsigned_mdoc.attributes.clone().into_inner();
 
         let (issuer_signed, mso) = IssuerSigned::sign(
             unsigned_mdoc,
             attestation_config.first_metadata_integrity.clone(),
-            &preview.type_metadata,
             holder_pubkey,
             &attestation_config.key_pair,
         )
@@ -1189,15 +1206,16 @@ impl CredentialResponse {
     }
 
     async fn new_for_sd_jwt(
-        preview: CredentialPreview,
+        preview_credential_payload: PreviewableCredentialPayload,
         holder_pubkey: &VerifyingKey,
         attestation_config: &AttestationTypeConfig<impl EcdsaKeySend + Sized>,
     ) -> Result<CredentialResponse, CredentialRequestError> {
         let payload = CredentialPayload::from_previewable_credential_payload(
-            preview.content.credential_payload,
+            preview_credential_payload,
             Utc::now().into(),
             holder_pubkey,
             &attestation_config.metadata,
+            attestation_config.first_metadata_integrity.clone(),
         )?;
 
         let sd_jwt = payload
@@ -1296,15 +1314,58 @@ impl WteDisclosure {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Timelike;
     use derive_more::Debug;
     use thiserror::Error;
     use tracing_test::traced_test;
+
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use crypto::server_keys::generate::Ca;
 
     use super::*;
 
     #[derive(Debug, Error, Clone, Eq, PartialEq)]
     #[error("MyError")]
     struct MyError;
+
+    #[test]
+    fn test_credential_preview_from_issuable_document() {
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+        let document = IssuableDocument::new_mock();
+        let config = AttestationTypeConfig::try_new(
+            document.attestation_type(),
+            KeyPair::new_from_signing_key(
+                issuance_keypair.private_key().to_owned(),
+                issuance_keypair.certificate().to_owned(),
+            )
+            .unwrap(),
+            Days::new(1),
+            IndexMap::from_iter([(Format::MsoMdoc, NonZeroU8::new(1).unwrap())]),
+            "https://example.com".parse().unwrap(),
+            AttestationQualification::default(),
+            TypeMetadataDocuments::degree_example().1,
+        )
+        .unwrap();
+
+        let preview = Session::<Created>::credential_preview_from_issuable_document(document, &config);
+        assert_eq!(
+            preview.content.credential_payload.not_before.unwrap().as_ref().second(),
+            0
+        );
+        assert_eq!(
+            preview.content.credential_payload.not_before.unwrap().as_ref().minute(),
+            0
+        );
+        assert_eq!(
+            preview.content.credential_payload.not_before.unwrap().as_ref().hour(),
+            0
+        );
+        assert_eq!(preview.content.credential_payload.expires.unwrap().as_ref().second(), 0);
+        assert_eq!(preview.content.credential_payload.expires.unwrap().as_ref().minute(), 0);
+        assert_eq!(preview.content.credential_payload.expires.unwrap().as_ref().hour(), 0);
+    }
 
     #[traced_test]
     #[test]

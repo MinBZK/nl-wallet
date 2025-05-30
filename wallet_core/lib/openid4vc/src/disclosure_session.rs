@@ -1025,6 +1025,7 @@ mod tests {
                     .mdocs
                     .first_mut()
                     .unwrap()
+                    .0
                     .modify_attributes(EXAMPLE_NAMESPACE, |attributes| {
                         attributes.pop();
                     });

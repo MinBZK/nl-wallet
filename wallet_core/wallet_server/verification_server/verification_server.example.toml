@@ -1,14 +1,14 @@
 # Example config
 
 # The wallet must be able to reach the server at this URL
-public_url = 'http://localhost:3001/'
+public_url = 'http://localhost:8001/'
 
 issuer_trust_anchors = ["MII..."] # CAs for trusted issuers
 reader_trust_anchors = ["MII..."] # CAs for RP certificates
 
 ephemeral_id_secret = "" # hex encoded, minimally 16 bytes (32 characters)
 
-allow_origins = ["http://localhost:3004"] # or allow_origins = "*"
+allow_origins = ["http://localhost:8080"] # or allow_origins = "*"
 
 # The base of the Universal Link (UL) of the wallet, used in QRs/ULs
 # Production value is "https://app.example.com/deeplink/"
@@ -29,12 +29,12 @@ url = 'postgres://postgres:postgres@localhost:5432/verification_server' # or 'me
 
 [wallet_server]
 ip = '127.0.0.1'
-port = 3001
+port = 8001
 
 # Endpoints for the requester. Optional; `wallet_server` is used if absent
 [requester_server]
 ip = "127.0.0.1"
-port = 3002
+port = 8002
 
 # Optional, but required if the above ip/port are absent
 # [requester_server.authentication]

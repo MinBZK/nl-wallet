@@ -56,8 +56,8 @@ async fn main() {
     let temp_path = temp_dir.path();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
-    let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
     let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
+    let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
 
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
@@ -111,19 +111,21 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        items_requests: vec![ItemsRequest {
-            doc_type: "urn:eudi:pid:nl:1".to_owned(),
-            request_info: None,
-            name_spaces: IndexMap::from([(
-                "urn:eudi:pid:nl:1".to_owned(),
-                IndexMap::from_iter(
-                    [("given_name", true), ("family_name", false)]
-                        .iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
-                ),
-            )]),
-        }]
-        .into(),
+        items_requests: Some(
+            vec![ItemsRequest {
+                doc_type: "urn:eudi:pid:nl:1".to_owned(),
+                request_info: None,
+                name_spaces: IndexMap::from([(
+                    "urn:eudi:pid:nl:1".to_owned(),
+                    IndexMap::from_iter(
+                        [("given_name", true), ("family_name", false)]
+                            .iter()
+                            .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
+                    ),
+                )]),
+            }]
+            .into(),
+        ),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 

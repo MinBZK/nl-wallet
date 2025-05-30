@@ -92,19 +92,6 @@ impl Mdoc {
 
         Ok(integrity)
     }
-
-    pub fn type_metadata(&self) -> Result<NormalizedTypeMetadata, Error> {
-        let documents = self.issuer_signed.type_metadata_documents()?;
-
-        let (metadata, sorted) = documents
-            .into_normalized(&self.mso.doc_type)
-            .map_err(HolderError::TypeMetadata)?;
-
-        let integrity = self.type_metadata_integrity()?.clone();
-        let _verified = sorted.into_verified(integrity).map_err(HolderError::TypeMetadata)?;
-
-        Ok(metadata)
-    }
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -128,6 +115,10 @@ pub enum MdocCredentialPayloadError {
     #[error("mdoc is missing attestation qualification")]
     #[category(critical)]
     MissingAttestationQualification,
+
+    #[error("mdoc is missing metadata integrity")]
+    #[category(critical)]
+    MissingMetadataIntegrity,
 
     #[error("attribute error: {0}")]
     #[category(pd)]
@@ -175,6 +166,9 @@ impl IntoCredentialPayload for MdocParts {
         let payload = CredentialPayload {
             issued_at: (&mso.validity_info.signed).try_into()?,
             confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
+            vct_integrity: mso
+                .type_metadata_integrity
+                .ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: mso.doc_type,
                 issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
@@ -201,7 +195,6 @@ mod test {
     use crypto::server_keys::KeyPair;
     use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
-    use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
     use crate::iso::disclosure::IssuerSigned;
     use crate::iso::mdocs::IssuerSignedItemBytes;
@@ -214,19 +207,12 @@ mod test {
         pub async fn sign<K: CredentialEcdsaKey>(
             unsigned_mdoc: UnsignedMdoc,
             metadata_integrity: Integrity,
-            metadata_documents: &TypeMetadataDocuments,
             private_key_id: String,
             public_key: &VerifyingKey,
             issuer_keypair: &KeyPair<impl EcdsaKey>,
         ) -> crate::Result<Mdoc> {
-            let (issuer_signed, mso) = IssuerSigned::sign(
-                unsigned_mdoc,
-                metadata_integrity,
-                metadata_documents,
-                public_key,
-                issuer_keypair,
-            )
-            .await?;
+            let (issuer_signed, mso) =
+                IssuerSigned::sign(unsigned_mdoc, metadata_integrity, public_key, issuer_keypair).await?;
 
             let mdoc = Self {
                 mso,

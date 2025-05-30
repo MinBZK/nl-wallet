@@ -35,7 +35,7 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Values.frontend.name }}
-          image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageGbaFrontend.repository }}{{- if (.Values.image).tag }}:{{ .Values.image.tag }}{{- end }}"
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageGbaFrontend.repository }}:{{ .Values.image.tag }}"
           {{ with .Values.frontend.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
@@ -46,6 +46,9 @@ spec:
             - mountPath: /resources/remote/bsn_zoeken_template.xml
               name: zoek-xml-volume
               subPath: bsn_zoeken_template.xml
+          ports:
+            - name: http
+              containerPort: 8001
           env:
             - name: RUST_BACKTRACE
               value: "1"
@@ -53,8 +56,6 @@ spec:
               value: "debug,hyper=warn"
             - name: GBA_HC_CONVERTER__STRUCTURED_LOGGING
               value: "true"
-            - name: GBA_HC_CONVERTER__PORT
-              value: "3000"
             - name: GBA_HC_CONVERTER__RUN_MODE__ALL__PRELOADED__XML_PATH
               value: "/data"
             - name: GBA_HC_CONVERTER__RUN_MODE__ALL__PRELOADED__ENCRYPTION_KEY

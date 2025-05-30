@@ -31,7 +31,7 @@ void main() {
     when(repository.hasActiveDisclosureSession()).thenAnswer((_) async => true);
 
     const mockReturnUrl = 'https://example.org';
-    final coreErrorWithReturnUrl = CoreGenericError('test', data: {'return_url': mockReturnUrl});
+    final coreErrorWithReturnUrl = const CoreGenericError('test', data: {'return_url': mockReturnUrl});
     when(repository.cancelDisclosure()).thenThrow(coreErrorWithReturnUrl);
 
     final result = await usecase.invoke();
@@ -47,7 +47,7 @@ void main() {
   test('when cancelDisclosure throws CoreError without a returnUrl, invoke returns error', () async {
     when(repository.hasActiveDisclosureSession()).thenAnswer((_) async => true);
 
-    final coreErrorWithoutReturnUrl = CoreGenericError('test');
+    final coreErrorWithoutReturnUrl = const CoreGenericError('test');
     when(repository.cancelDisclosure()).thenThrow(coreErrorWithoutReturnUrl);
 
     final result = await usecase.invoke();

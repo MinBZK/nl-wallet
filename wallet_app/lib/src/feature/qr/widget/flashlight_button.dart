@@ -34,7 +34,7 @@ class FlashlightButton extends StatelessWidget {
         ),
         child: ButtonContent(
           text: Text(isOn ? context.l10n.qrScreenDisableTorchCta : context.l10n.qrScreenEnableTorchCta),
-          icon: isOn ? Icon(Icons.flashlight_on_outlined) : Icon(Icons.flashlight_off_outlined),
+          icon: isOn ? const Icon(Icons.flashlight_on_outlined) : const Icon(Icons.flashlight_off_outlined),
         ),
       ),
     );

@@ -65,3 +65,33 @@ pub enum AttestationAttributeValue {
     Basic(AttributeValue),
     Date(NaiveDate),
 }
+
+#[cfg(test)]
+mod mock {
+    use attestation_data::auth::Organization;
+
+    use super::Attestation;
+    use super::AttestationIdentity;
+    use super::DisplayMetadata;
+
+    impl Attestation {
+        /// Create a nearly empty [`Attestation`] for tests that absolutely need this type.
+        pub fn new_mock() -> Self {
+            Self {
+                identity: AttestationIdentity::Ephemeral,
+                attestation_type: "mock".to_string(),
+                display_metadata: vec![DisplayMetadata {
+                    lang: "nl".to_string(),
+                    name: "mock".to_string(),
+                    description: None,
+                    summary: None,
+                    rendering: None,
+                }]
+                .try_into()
+                .unwrap(),
+                issuer: Organization::new_mock(),
+                attributes: vec![],
+            }
+        }
+    }
+}

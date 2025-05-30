@@ -16,7 +16,7 @@ main() {
         TextDirection.ltr,
       );
       await tester.pumpWidgetWithAppWrapper(const QrScannerActiveAnnouncer());
-      await tester.pump(Duration(seconds: 10));
+      await tester.pump(const Duration(seconds: 10));
       await tester.pumpAndSettle();
 
       expect(mock.announcements, hasOneAnnouncement(expectedAnnouncement));

@@ -7,7 +7,7 @@ APP VERSION: {{ .Chart.AppVersion }}
 
 ** Please be patient while the chart is being deployed **
 
-Host GBA fetch frontend: {{ .Values.gbaFetch.frontendUrl }}
+Host GBA fetch frontend: {{ .Values.frontend.ingress.hostname }}
 
 
 To run the job to encrypt test data, execute:

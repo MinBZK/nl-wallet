@@ -61,12 +61,6 @@
 | `gbaHcConverter.resources.limits.cpu`      | CPU limit                                                      | `200m`                                |
 | `gbaHcConverter.resources.limits.memory`   | Memory limit                                                   | `128Mi`                               |
 
-### GBA Fetch parameters
-
-| Name                   | Description                    | Value |
-| ---------------------- | ------------------------------ | ----- |
-| `gbaFetch.frontendUrl` | URL for the GBA Fetch frontend | `nil` |
-
 ### GBA CLI Tool parameters
 
 | Name                     | Description                                 | Value   |
@@ -96,7 +90,8 @@
 | `frontend.name`                      | Name of the GBA Fetch frontend application    | `gba-fetch-frontend` |
 | `frontend.extraPodlabels`            | Additional labels for the frontend pods       | `{}`                 |
 | `frontend.ingress.className`         | Ingress class name for the frontend           | `nginx`              |
-| `frontend.ingress.secretName`        | Secret name for the ingress TLS configuration | `nil`                |
+| `frontend.ingress.hostname`          | Ingress hostname for the frontend             | `nil`                |
+| `frontend.ingress.tlsSecretName`     | Secret name for the ingress TLS configuration | `nil`                |
 | `frontend.resources.requests.cpu`    | CPU request for the frontend container        | `50m`                |
 | `frontend.resources.requests.memory` | Memory request for the frontend container     | `64Mi`               |
 | `frontend.resources.limits.cpu`      | CPU limit for the frontend container          | `200m`               |

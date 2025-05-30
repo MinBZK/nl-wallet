@@ -12,6 +12,7 @@ anyhow.workspace = true
 askama.workspace = true
 askama_web = { workspace = true, features = ["axum-0.8"] }
 axum = { workspace = true, features = ["http1", "query", "tokio", "tower-log", "tracing"] }
+axum-server = { workspace = true, features = ["tls-rustls-no-provider"] }
 config = { workspace = true, features = ["preserve_order", "toml"] }
 indexmap.workspace = true
 itertools.workspace = true
@@ -25,13 +26,13 @@ tower-http = { workspace = true, features = ["trace", "fs"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = [
     "std",
-    "env-filter",
     "fmt",
+    "tracing-log",
+    "smallvec",
+    "parking_lot",
+    "env-filter",
     "json",
     "ansi",
-    "smallvec",
-    "tracing-log",
-    "parking_lot",
 ] }
 url.workspace = true
 

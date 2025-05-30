@@ -19,7 +19,7 @@ class ParagraphedSliverList extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverList.separated(
       itemBuilder: (c, i) => BodyText(paragraphs[i]),
-      separatorBuilder: (BuildContext context, int index) => ParagraphSpacer(),
+      separatorBuilder: (BuildContext context, int index) => const ParagraphSpacer(),
       itemCount: paragraphs.length,
     );
   }

@@ -5,7 +5,8 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 
 use attestation_data::issuable_document::IssuableDocument;
-use http_utils::reqwest::default_reqwest_client_builder;
+use http_utils::reqwest::ClientBuilder;
+use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::credential::CredentialOffer;
@@ -44,18 +45,25 @@ pub trait AttributesFetcher {
 }
 
 pub struct HttpAttributesFetcher {
-    urls: HashMap<String, BaseUrl>,
-    http_client: reqwest::Client,
+    urls: HashMap<String, (BaseUrl, reqwest::Client)>,
 }
 
 impl HttpAttributesFetcher {
-    pub fn new(urls: HashMap<String, BaseUrl>) -> Self {
-        Self {
-            urls,
-            http_client: default_reqwest_client_builder()
-                .build()
-                .expect("failed to construct reqwest instance"),
-        }
+    pub fn new(urls: HashMap<String, TlsPinningConfig>) -> Self {
+        let urls = urls
+            .into_iter()
+            .map(|(id, config)| {
+                (
+                    id,
+                    (
+                        config.base_url.clone(),
+                        config.builder().build().expect("failed to construct reqwest instance"),
+                    ),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+
+        Self { urls }
     }
 }
 
@@ -67,16 +75,13 @@ impl AttributesFetcher for HttpAttributesFetcher {
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
     ) -> Result<Vec<IssuableDocument>, Self::Error> {
-        let usecase_url = self
+        let (usecase_url, http_client) = self
             .urls
             .get(usecase_id)
-            .ok_or_else(|| AttributesFetcherError::UnknownUsecase(usecase_id.to_string()))?
-            .as_ref()
-            .clone();
+            .ok_or_else(|| AttributesFetcherError::UnknownUsecase(usecase_id.to_string()))?;
 
-        let to_issue = self
-            .http_client
-            .post(usecase_url)
+        let to_issue = http_client
+            .post(usecase_url.clone().into_inner())
             .json(disclosed)
             .send()
             .await?

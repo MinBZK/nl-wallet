@@ -37,6 +37,8 @@ class IssuanceStopSheet extends StatelessWidget {
         onPressed: onReportIssuePressed,
         text: Text.rich(context.l10n.issuanceStopSheetReportIssueCta.toTextSpan(context)),
       ),
+      onCancelPressed: onCancelPressed,
+      onConfirmPressed: onConfirmPressed,
     );
   }
 

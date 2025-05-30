@@ -8,10 +8,10 @@ use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
 
+use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
 use crate::issuance_session::IssuanceSession;
 use crate::issuance_session::IssuanceSessionError;
-use crate::issuance_session::IssuedCredentialCopies;
 use crate::issuance_session::NormalizedCredentialPreview;
 use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
@@ -34,13 +34,13 @@ mockall::mock! {
 
         pub fn accept(
             &self,
-        ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError>;
+        ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError>;
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
 
-        pub fn credential_preview_data(&self) -> &[NormalizedCredentialPreview];
+        pub fn normalized_credential_previews(&self) -> &[NormalizedCredentialPreview];
 
-        pub fn issuer(&self) -> Result<IssuerRegistration, IssuanceSessionError>;
+        pub fn issuer(&self) -> &IssuerRegistration;
     }
 }
 
@@ -62,7 +62,7 @@ impl IssuanceSession for MockIssuanceSession {
         _: &[TrustAnchor<'_>],
         _: &KF,
         _: Option<JwtCredential<WteClaims>>,
-    ) -> Result<Vec<IssuedCredentialCopies>, IssuanceSessionError> {
+    ) -> Result<Vec<CredentialWithMetadata>, IssuanceSessionError> {
         self.accept()
     }
 
@@ -70,11 +70,11 @@ impl IssuanceSession for MockIssuanceSession {
         self.reject()
     }
 
-    fn credential_preview_data(&self) -> &[NormalizedCredentialPreview] {
-        self.credential_preview_data()
+    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview] {
+        self.normalized_credential_previews()
     }
 
-    fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError> {
+    fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
     }
 }

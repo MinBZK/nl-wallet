@@ -12,5 +12,10 @@ doctest = false
 
 [dependencies]
 chrono.workspace = true
+derive_more = { workspace = true, features = ["constructor"] }
 sea-orm = { workspace = true, features = ["macros", "with-json", "with-uuid", "with-chrono"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 uuid.workspace = true
+
+sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"

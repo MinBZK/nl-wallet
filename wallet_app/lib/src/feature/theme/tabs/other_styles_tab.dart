@@ -63,7 +63,7 @@ const _kMockUrl = 'https://www.example.org';
 const _kMockOtherKey = 'mock_other';
 
 final _kSampleCardMetaData = [
-  CardDisplayMetadata(
+  const CardDisplayMetadata(
     language: Locale('en'),
     name: 'Sample Card',
     rawSummary: 'Subtitle',
@@ -75,7 +75,7 @@ final _kSampleCardMetaData = [
 ];
 
 final _kAltSampleCardMetaData = [
-  CardDisplayMetadata(
+  const CardDisplayMetadata(
     language: Locale('en'),
     name: 'Alt Sample Card',
     rawSummary: 'Alt Subtitle',
@@ -269,7 +269,7 @@ class OtherStylesTab extends StatelessWidget {
         TextButton(
           onPressed: () {
             // Simulate a network error from the personalize flow
-            final networkError = WalletPersonalizeNetworkError(
+            final networkError = const WalletPersonalizeNetworkError(
               hasInternet: false,
               error: NetworkError(hasInternet: false, sourceError: 'sourceError'),
             );
@@ -567,7 +567,7 @@ class OtherStylesTab extends StatelessWidget {
           ],
         ),
         const ThemeSectionSubHeader(title: 'TourBanner'),
-        TourBanner(),
+        const TourBanner(),
       ],
     );
   }

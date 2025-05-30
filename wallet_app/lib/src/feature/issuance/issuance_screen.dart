@@ -205,7 +205,7 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildProvidePinForIssuancePage(BuildContext context, IssuanceProvidePinForIssuance state) {
     return IssuanceConfirmPinForIssuancePage(
-      onPinValidated: (_) => context.bloc.add(IssuancePinForIssuanceConfirmed()),
+      onPinValidated: (_) => context.bloc.add(const IssuancePinForIssuanceConfirmed()),
       onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
         IssuanceConfirmPinFailed(error: errorState.error),
       ),
@@ -271,7 +271,7 @@ class IssuanceScreen extends StatelessWidget {
       description: context.l10n.issuanceNoCardsPageDescription(state.organization.displayName.l10nValue(context)),
       primaryButtonCta: context.l10n.generalClose,
       onPrimaryPressed: () => _stopIssuance(context),
-      illustration: PageIllustration(asset: WalletAssets.svg_no_cards),
+      illustration: const PageIllustration(asset: WalletAssets.svg_no_cards),
     );
   }
 

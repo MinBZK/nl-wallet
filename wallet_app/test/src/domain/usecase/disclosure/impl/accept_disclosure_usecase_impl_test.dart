@@ -13,7 +13,7 @@ void main() {
   final mockRepo = Mocks.create<DisclosureRepository>() as MockDisclosureRepository;
 
   setUp(() {
-    provideDummy<AcceptDisclosureResult>(AcceptDisclosureResult.ok());
+    provideDummy<AcceptDisclosureResult>(const AcceptDisclosureResult.ok());
     usecase = AcceptDisclosureUseCaseImpl(mockRepo);
   });
 
@@ -25,7 +25,7 @@ void main() {
 
   test('when acceptDisclosure returns instruction error, result is error', () async {
     when(mockRepo.acceptDisclosure(any)).thenThrow(
-      WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
+      const WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
     );
     final result = await usecase.invoke('123123');
     expect(result.hasError, isTrue);

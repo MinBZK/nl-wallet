@@ -45,7 +45,7 @@ void main() {
   });
 
   test('initial state is correct', () {
-    expect(create().state, DisclosureInitial());
+    expect(create().state, const DisclosureInitial());
   });
 
   blocTest(

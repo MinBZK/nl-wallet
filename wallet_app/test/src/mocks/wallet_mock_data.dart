@@ -15,7 +15,7 @@ import 'package:wallet/src/util/extension/string_extension.dart';
 import 'package:wallet/src/wallet_assets.dart';
 
 abstract class WalletMockData {
-  static Locale testLocale = Locale('en');
+  static Locale testLocale = const Locale('en');
 
   static WalletCard card = WalletCard(
     docType: 'com.example.docType',
@@ -27,7 +27,7 @@ abstract class WalletMockData {
         language: testLocale,
         name: 'Sample Card #1',
         rawSummary: 'Subtitle',
-        rendering: SimpleCardRendering(
+        rendering: const SimpleCardRendering(
           logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid),
           textColor: DarkWalletTheme.textColor,
           bgColor: Color(0xFF35426E),
@@ -46,7 +46,7 @@ abstract class WalletMockData {
         name: 'Simple Rendering',
         description: 'Sample card with simple rendering metadata',
         rawSummary: 'Sample summary (no placeholders)',
-        rendering: SimpleCardRendering(textColor: Colors.white, bgColor: Colors.deepPurple),
+        rendering: const SimpleCardRendering(textColor: Colors.white, bgColor: Colors.deepPurple),
       ),
     ],
     id: 'id',
@@ -62,7 +62,7 @@ abstract class WalletMockData {
         language: testLocale,
         name: 'Sample Card #2',
         rawSummary: 'Alt Subtitle',
-        rendering: SimpleCardRendering(
+        rendering: const SimpleCardRendering(
           textColor: LightWalletTheme.textColor,
           logo: AppAssetImage(WalletAssets.logo_card_rijksoverheid),
           bgColor: Color(0xFFCCEFF0),

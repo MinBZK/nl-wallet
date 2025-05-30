@@ -51,6 +51,6 @@ extension LocalizedTextExtension on LocalizedText {
       Environment.isTest,
       'This should never be used in real builds, as a BuildContext should readily be available in that case',
     );
-    return resolveEntryForLocale(Locale('en'))?.value ?? '';
+    return resolveEntryForLocale(const Locale('en'))?.value ?? '';
   }
 }

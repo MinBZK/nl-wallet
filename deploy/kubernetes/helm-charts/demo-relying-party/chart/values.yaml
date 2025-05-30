@@ -41,18 +41,24 @@ extraPodlabels: {}
 ##
 imagePullSecrets: []
 
-# @section Ingress parameters
+## @section Ingress parameters
 ## Parameters for the ingress configuration
 ## @param ingress.enabled Enable or disable the ingress
 ## @param ingress.className Ingress class name
+## @param ingress.hostname Hostname for the ingress
+## @param ingress.contextPath Optional context path for the ingress
 ## @param ingress.tlsSecretName Name of the TLS secret for the ingress
 ## @param ingress.labels Additional labels for the ingress
+## @param ingress.annotations Additional annotations for the ingress
 ##
 ingress:
   enabled: true
   className: "nginx"
+  hostname: null
+  contextPath: null
   tlsSecretName: null
   labels: {}
+  annotations: {}
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request
@@ -62,38 +68,16 @@ ingress:
 ##
 resources:
   requests:
-    memory: "64Mi"
     cpu: "50m"
+    memory: "32Mi"
   limits:
-    memory: "128Mi"
     cpu: "200m"
+    memory: "64Mi"
 
-## @section Wallet Server parameters
-## Parameters for the wallet server configuration
-## @param walletServer.hostname Hostname for the wallet server
-## @param walletServer.contextPath Context path for the wallet server
-##
-walletServer:
-  hostname: null
-  contextPath: null
-
-## @section Demo Relying Party parameters
-## Parameters for the demo Relying Party configuration
-## @param demoRelyingParty.hostname Hostname for the demo Relying Party
-## @param demoRelyingParty.contextPath Context path for the demo Relying Party
-##
-demoRelyingParty:
-  hostname: null
-  contextPath: null
-
+## @section Urls
+## @param verificationServerBaseUrl Base URL of the verification server
 ## @param helpBaseUrl Base URL for the help link in wallet web
+## @param demoIndexUrl URL of the demo index
+verificationServerBaseUrl: null
 helpBaseUrl: null
-
-## @section Demo Index parameters
-## Parameters for the demo index configuration
-## @param demoIndex.hostname Hostname for the demo index
-## @param demoIndex.contextPath Context path for the demo index
-##
-demoIndex:
-  hostname: null
-  contextPath: null
+demoIndexUrl: null

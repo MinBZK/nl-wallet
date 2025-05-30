@@ -17,10 +17,10 @@ void main() {
   setUp(() {
     provideDummy<Policy>(WalletMockData.policy);
     provideDummy<ui.DisclosureType>(ui.DisclosureType.login);
-    provideDummy<AcceptDisclosureResult>(AcceptDisclosureResult_Ok());
+    provideDummy<AcceptDisclosureResult>(const AcceptDisclosureResult_Ok());
     provideDummy<ui.DisclosureSessionType>(ui.DisclosureSessionType.crossDevice);
     provideDummy<StartDisclosureResult>(
-      StartDisclosureResult.requestAttributesMissing(
+      const StartDisclosureResult.requestAttributesMissing(
         relyingParty: Organization(legalName: [], displayName: [], description: [], category: []),
         missingAttributes: [],
         requestOriginBaseUrl: '',
@@ -64,7 +64,7 @@ void main() {
 
   test('StartDisclosureResultRequest is mapped successfully to StartDisclosureReadyToDisclose', () async {
     when(mockTypedWalletCore.startDisclosure(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
-      return StartDisclosureResult.request(
+      return const StartDisclosureResult.request(
         relyingParty: Organization(legalName: [], displayName: [], description: [], category: []),
         requestOriginBaseUrl: '',
         sharedDataWithRelyingPartyBefore: false,

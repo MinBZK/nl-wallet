@@ -35,7 +35,13 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "http_utils/allow_insecure
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres"]
 # Enable integration tests
-integration_test = ["allow_insecure_url", "openid4vc/test", "openid4vc/mock", "server_utils/parsed_key_pair_conversion"]
+integration_test = [
+    "allow_insecure_url",
+    "openid4vc/test",
+    "openid4vc/mock",
+    "server_utils/parsed_key_pair_conversion",
+    "dep:ssri",
+]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["integration_test", "postgres", "futures/std", "futures/async-await", "dep:serial_test", "tokio/sync"]
 
@@ -59,6 +65,7 @@ tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 serial_test = { workspace = true, optional = true }
+ssri = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
@@ -66,6 +73,7 @@ hsm = { path = "../../lib/hsm", features = ["settings"] }
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["disclosure"] }
+mdoc.path = "../../lib/mdoc"
 sd_jwt_vc_metadata.path = "../../lib/sd_jwt_vc_metadata"
 server_utils.path = "../server_utils"
 utils = { path = "../../lib/utils" }

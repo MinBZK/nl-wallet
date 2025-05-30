@@ -30,21 +30,19 @@ spec:
       {{- end }}
       containers:
         - name: {{ include "common.names.fullname" . }}
-          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}{{- if (.Values.image).tag }}:{{ .Values.image.tag }}{{- end }}"
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: demo-index-port
-              containerPort: 3004
+            - name: http
+              containerPort: 8001
           volumeMounts:
             - name: config-volume
               mountPath: /demo_index.toml
               subPath: config.toml
           env:
-            - name: DEMO_INDEX__WEBSERVER__PORT
-              value: "3004"
             - name: DEMO_INDEX__STRUCTURED_LOGGING
               value: "true"
             - name: RUST_LOG

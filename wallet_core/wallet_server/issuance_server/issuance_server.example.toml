@@ -1,5 +1,5 @@
 # The wallet must be able to reach the server at this URL
-public_url = 'http://localhost:3001/'
+public_url = 'http://localhost:8001/'
 
 issuer_trust_anchors = ["MII..."] # CAs for issuer certificates
 reader_trust_anchors = ["MII..."] # CAs for RP certificates
@@ -26,7 +26,7 @@ url = 'postgres://postgres:postgres@localhost:5432/pid_issuer' # or 'memory://'
 
 [wallet_server]
 ip = '127.0.0.1'
-port = 3001
+port = 8001
 
 # Optional, for securing private keys
 [hsm]
@@ -39,10 +39,14 @@ max_session_lifetime_in_sec = 900
 # that starts the session.
 [disclosure_settings.disclosure_based_issuance]
 # URL of a server that will receive the disclosed attributes and has to respond with a JSON array of `IssuableDocument`s
-attestation_url = "http://localhost:3010"
 private_key_type = "hsm"                      # or "software"
 private_key = "disclosure_based_issuance_key" # label for the private key in the HSM, in case of "hsm"
 certificate = "MIJ..."
+
+[disclosure_settings.degree.attestation_url_config]
+# URL to the attestation server
+base_url = "https://attestation_server.example.com"
+trust_anchors = ["MIJ..."]
 
 # Attributes that have to be disclosed for `disclosure_based_issuance`
 [[disclosure_settings.disclosure_based_issuance.to_disclose]]

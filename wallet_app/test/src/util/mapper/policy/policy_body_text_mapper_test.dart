@@ -42,7 +42,7 @@ void main() {
     });
 
     test('handles data shared but not stored', () {
-      final policy = Policy(
+      final policy = const Policy(
         dataIsShared: true,
         storageDuration: null, // Not stored
         deletionCanBeRequested: false,
@@ -57,9 +57,9 @@ void main() {
     });
 
     test('handles data shared and stored', () {
-      final policy = Policy(
+      final policy = const Policy(
         dataIsShared: true,
-        storageDuration: const Duration(days: 180), // 6 months
+        storageDuration: Duration(days: 180), // 6 months
         deletionCanBeRequested: true,
         privacyPolicyUrl: 'https://example.com',
       );
@@ -72,7 +72,7 @@ void main() {
     });
 
     test('handles data not shared and not stored', () {
-      final policy = Policy(
+      final policy = const Policy(
         dataIsShared: false,
         storageDuration: null,
         deletionCanBeRequested: false,
@@ -87,9 +87,9 @@ void main() {
     });
 
     test('handles data not shared but stored', () {
-      final policy = Policy(
+      final policy = const Policy(
         dataIsShared: false,
-        storageDuration: const Duration(days: 180),
+        storageDuration: Duration(days: 180),
         deletionCanBeRequested: true,
         privacyPolicyUrl: 'https://example.com',
       );

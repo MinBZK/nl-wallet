@@ -34,41 +34,35 @@
 
 ### Image pull secrets
 
-| Name                    | Description                                  | Value   |
-| ----------------------- | -------------------------------------------- | ------- |
-| `imagePullSecrets`      | Array of secret names for private registries | `[]`    |
-| `ingress.enabled`       | Enable or disable the ingress                | `true`  |
-| `ingress.className`     | Ingress class name                           | `nginx` |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`   |
-| `ingress.labels`        | Additional labels for the ingress            | `{}`    |
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
+
+### Ingress parameters
+
+| Name                    | Description                            | Value   |
+| ----------------------- | -------------------------------------- | ------- |
+| `ingress.enabled`       | Enable or disable the ingress          | `true`  |
+| `ingress.className`     | Ingress class name                     | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
+| `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 
-| Name                        | Description    | Value   |
-| --------------------------- | -------------- | ------- |
-| `resources.requests.cpu`    | CPU request    | `50m`   |
-| `resources.requests.memory` | Memory request | `64Mi`  |
-| `resources.limits.cpu`      | CPU limit      | `200m`  |
-| `resources.limits.memory`   | Memory limit   | `128Mi` |
+| Name                        | Description    | Value  |
+| --------------------------- | -------------- | ------ |
+| `resources.requests.cpu`    | CPU request    | `50m`  |
+| `resources.requests.memory` | Memory request | `32Mi` |
+| `resources.limits.cpu`      | CPU limit      | `200m` |
+| `resources.limits.memory`   | Memory limit   | `64Mi` |
 
-### Wallet Server parameters
+### Urls
 
-| Name                       | Description                        | Value |
-| -------------------------- | ---------------------------------- | ----- |
-| `walletServer.hostname`    | Hostname for the wallet server     | `nil` |
-| `walletServer.contextPath` | Context path for the wallet server | `nil` |
-
-### Demo Relying Party parameters
-
-| Name                           | Description                              | Value |
-| ------------------------------ | ---------------------------------------- | ----- |
-| `demoRelyingParty.hostname`    | Hostname for the demo Relying Party      | `nil` |
-| `demoRelyingParty.contextPath` | Context path for the demo Relying Party  | `nil` |
-| `helpBaseUrl`                  | Base URL for the help link in wallet web | `nil` |
-
-### Demo Index parameters
-
-| Name                    | Description                     | Value |
-| ----------------------- | ------------------------------- | ----- |
-| `demoIndex.hostname`    | Hostname for the demo index     | `nil` |
-| `demoIndex.contextPath` | Context path for the demo index | `nil` |
+| Name                        | Description                              | Value |
+| --------------------------- | ---------------------------------------- | ----- |
+| `verificationServerBaseUrl` | Base URL of the verification server      | `nil` |
+| `helpBaseUrl`               | Base URL for the help link in wallet web | `nil` |
+| `demoIndexUrl`              | URL of the demo index                    | `nil` |

@@ -6,9 +6,9 @@ import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
   test('IssuanceInitiated equals works', () {
-    final actual = IssuanceInitiated('test');
-    final equal = IssuanceInitiated('test');
-    final diff = IssuanceInitiated('other');
+    final actual = const IssuanceInitiated('test');
+    final equal = const IssuanceInitiated('test');
+    final diff = const IssuanceInitiated('other');
     expect(actual, equals(equal));
     expect(actual, isNot(diff));
   });
@@ -22,9 +22,9 @@ void main() {
   });
 
   test('IssuanceConfirmPinFailed equals works', () {
-    final actual = IssuanceConfirmPinFailed(error: GenericError('test', sourceError: 'test'));
-    final equal = IssuanceConfirmPinFailed(error: GenericError('test', sourceError: 'test'));
-    final diff = IssuanceConfirmPinFailed(error: GenericError('alternative', sourceError: 'alternative'));
+    final actual = const IssuanceConfirmPinFailed(error: GenericError('test', sourceError: 'test'));
+    final equal = const IssuanceConfirmPinFailed(error: GenericError('test', sourceError: 'test'));
+    final diff = const IssuanceConfirmPinFailed(error: GenericError('alternative', sourceError: 'alternative'));
     expect(actual, equals(equal));
     expect(actual, isNot(diff));
   });
