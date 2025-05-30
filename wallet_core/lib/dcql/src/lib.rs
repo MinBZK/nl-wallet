@@ -30,31 +30,31 @@ pub struct CredentialQuery {
     /// Identifies the Credential in the response and, if provided, the constraints in credential_sets. MUST be
     /// non-empty consisting of alphanumeric, underscore (_) or hyphen (-) characters. MUST be unique within the
     /// Authorization Request.
-    id: String,
+    pub id: String,
 
     /// Specifies the format of the requested Credential.
     #[serde(flatten)]
-    format: CredentialQueryFormat,
+    pub format: CredentialQueryFormat,
 
     /// Indicates whether multiple Credentials can be returned for this Credential Query.
     /// If omitted, the default value is false.
     #[serde(default = "bool_value::<false>")]
-    multiple: bool,
+    pub multiple: bool,
 
     /// Expected authorities or trust frameworks that certify Issuers, if any, that the Verifier will accept.
     /// Every Credential returned by the Wallet SHOULD match at least one of the conditions present
     /// in the corresponding trusted_authorities array if present.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    trusted_authorities: Vec<TrustedAuthoritiesQuery>,
+    pub trusted_authorities: Vec<TrustedAuthoritiesQuery>,
 
     /// Indicates whether the Verifier requires a Cryptographic Holder Binding proof. The default value is true,
     /// i.e., a Verifiable Presentation with Cryptographic Holder Binding is required.
     /// If set to false, the Verifier accepts a Credential without Cryptographic Holder Binding proof.
     #[serde(default = "bool_value::<true>")]
-    require_cryptographic_holder_binding: bool,
+    pub require_cryptographic_holder_binding: bool,
 
     #[serde(flatten)]
-    claims_selection: ClaimsSelection,
+    pub claims_selection: ClaimsSelection,
 }
 
 /// Specifies which claims (if any) of the Credential is requested by the RP.
@@ -108,12 +108,12 @@ pub struct CredentialSetQuery {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
     /// an array of identifiers which reference elements in the `credentials` field of [`Query`].
-    options: VecNonEmpty<VecNonEmpty<String>>,
+    pub options: VecNonEmpty<VecNonEmpty<String>>,
 
     /// Indicates whether this set of Credentials is required to satisfy the particular use case at the Verifier.
     /// If omitted, the default value is true.
     #[serde(default = "bool_value::<true>")]
-    required: bool,
+    pub required: bool,
 }
 
 /// Information that helps to identify an authority or the trust framework that certifies Issuers.
@@ -146,21 +146,21 @@ pub struct ClaimsQuery {
     /// REQUIRED if claim_sets is present in the Credential Query; OPTIONAL otherwise.
     /// The value MUST be a non-empty string consisting of alphanumeric, underscore (_) or hyphen (-) characters.
     /// Within the particular claims array, the same id MUST NOT be present more than once.
-    id: Option<String>,
+    pub id: Option<String>,
 
     /// Claims path pointers that specify the path to a claim within the Credential.
-    path: VecNonEmpty<ClaimPath>,
+    pub path: VecNonEmpty<ClaimPath>,
 
     /// Expected values of the claim, if any. If the values property is present, the Wallet SHOULD return the claim
     /// only if the type and value of the claim both match exactly for at least one of the elements in the array.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    values: Vec<serde_json::Value>,
+    pub values: Vec<serde_json::Value>,
 
     /// Whether the RP intends to retain the attribute after disclosure for some amount of time.
     /// Note: this flag is specific to the mdoc attestation format and should not be present in case of other formats.
     ///
     /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-parameter-in-the-claims-que>
-    intent_to_retain: Option<bool>,
+    pub intent_to_retain: Option<bool>,
 }
 
 /// Element of a claims path pointer.
