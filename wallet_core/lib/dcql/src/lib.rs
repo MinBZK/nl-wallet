@@ -53,18 +53,32 @@ pub struct CredentialQuery {
     #[serde(default = "bool_value::<true>")]
     require_cryptographic_holder_binding: bool,
 
-    /// Objects that specify claims in the requested Credential. Optional.
-    /// Verifiers MUST NOT point to the same claim more than once in a single query.
-    /// Wallets SHOULD ignore such duplicate claim queries.
-    /// If empty the wallet MUST disclose none of the attributes of the Credential.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    claims: Vec<ClaimsQuery>,
+    #[serde(flatten)]
+    claims_selection: ClaimsSelection,
+}
 
-    /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
-    /// are requested.
-    /// Optional. MUST NOT be present if claims is absent.
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    claim_sets: Vec<VecNonEmpty<String>>,
+/// Specifies which claims (if any) of the Credential is requested by the RP.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ClaimsSelection {
+    /// The RP requests none of the selectively disclosable claims of the Credential.
+    NoSelectivelyDisclosable,
+
+    /// The RP specifies several options of combinations of requested claims.
+    Combinations {
+        /// Objects that specify claims in the requested Credential.
+        claims: VecNonEmpty<ClaimsQuery>,
+
+        /// Arrays of identifiers for elements in claims that specifies which combinations of claims for the Credential
+        /// are requested.
+        claim_sets: VecNonEmpty<VecNonEmpty<String>>,
+    },
+
+    /// The RP requests all of the contained claims.
+    All {
+        /// Objects that specify claims in the requested Credential.
+        claims: VecNonEmpty<ClaimsQuery>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
