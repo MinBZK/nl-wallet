@@ -1,7 +1,6 @@
 use std::any::Any;
 use std::io;
 use std::net::IpAddr;
-use std::net::TcpListener;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -21,7 +20,7 @@ use sea_orm::Database;
 use sea_orm::DatabaseConnection;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
-use tokio::net::TcpListener as TokioTcpListener;
+use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 use uuid::Uuid;
@@ -352,7 +351,7 @@ pub fn wallet_provider_settings() -> (WpSettings, ReqwestTrustAnchor) {
 }
 
 pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
@@ -368,7 +367,7 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrus
 }
 
 pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async {
@@ -384,7 +383,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 }
 
 pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let listener = TcpListener::bind("localhost:0").unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
     let port = listener.local_addr().unwrap().port();
 
     let play_integrity_client = MockPlayIntegrityClient::new(
@@ -479,21 +478,18 @@ async fn start_mock_attestation_server(
     tls_server_config: TlsServerConfig,
     trust_anchor: ReqwestTrustAnchor,
 ) -> BaseUrl {
-    let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap().into_std().unwrap();
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async move {
-        axum_server::from_tcp_rustls(
-            listener.into_std().unwrap(),
-            tls_server_config.to_rustls_config().await.unwrap(),
-        )
-        .serve(
-            Router::new()
-                .route("/", post(|| async { Json(issuable_documents) }))
-                .into_make_service(),
-        )
-        .await
-        .expect("issuance server should be started");
+        axum_server::from_tcp_rustls(listener, tls_server_config.to_rustls_config().await.unwrap())
+            .serve(
+                Router::new()
+                    .route("/", post(|| async { Json(issuable_documents) }))
+                    .into_make_service(),
+            )
+            .await
+            .expect("issuance server should be started");
     });
 
     let url: BaseUrl = format!("https://localhost:{}/", port).as_str().parse().unwrap();
@@ -506,7 +502,7 @@ pub async fn start_issuance_server(
     hsm: Option<Pkcs11Hsm>,
     attributes_fetcher: impl AttributesFetcher + Sync + 'static,
 ) -> BaseUrl {
-    let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let public_url = BaseUrl::from_str(format!("http://localhost:{}/", port).as_str()).unwrap();
     settings.issuer_settings.server_settings.public_url = public_url.clone();
@@ -546,7 +542,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
     hsm: Option<Pkcs11Hsm>,
     attr_service: A,
 ) -> u16 {
-    let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
     let public_url = BaseUrl::from_str(format!("http://localhost:{}/", port).as_str()).unwrap();
 
@@ -583,14 +579,14 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
 }
 
 pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Option<Pkcs11Hsm>) -> DisclosureParameters {
-    let listener = TokioTcpListener::bind("localhost:0").await.unwrap();
+    let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
     let requester_listener = match &mut settings.requester_server {
         RequesterAuth::Authentication(_) => None,
         RequesterAuth::ProtectedInternalEndpoint { ref mut server, .. }
         | RequesterAuth::InternalEndpoint(ref mut server) => {
-            let listener = TokioTcpListener::bind(("localhost", 0)).await.unwrap();
+            let listener = TcpListener::bind(("localhost", 0)).await.unwrap();
             server.port = listener.local_addr().unwrap().port();
             Some(listener)
         }
