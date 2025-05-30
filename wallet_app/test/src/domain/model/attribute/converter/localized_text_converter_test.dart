@@ -7,10 +7,10 @@ void main() {
 
   test('LocalizedText to- and fromJson', () {
     final LocalizedText input = {
-      Locale('en'): 'English',
-      Locale('en', 'US'): 'American',
-      Locale('nl'): 'dutch',
-      Locale('nl', 'BE'): 'Flemish',
+      const Locale('en'): 'English',
+      const Locale('en', 'US'): 'American',
+      const Locale('nl'): 'dutch',
+      const Locale('nl', 'BE'): 'Flemish',
     };
     final json = converter.toJson(input);
     final result = converter.fromJson(json);

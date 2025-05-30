@@ -21,7 +21,7 @@ void main() {
   late RequestBiometricsUseCase requestBiometricsUsecase;
 
   setUp(() {
-    provideDummy<Result<BiometricAuthenticationResult>>(Result.success(BiometricAuthenticationResult.success));
+    provideDummy<Result<BiometricAuthenticationResult>>(const Result.success(BiometricAuthenticationResult.success));
 
     getSupportedBiometricsUseCase = MockGetSupportedBiometricsUseCase();
     getAvailableBiometricsUseCase = MockGetAvailableBiometricsUseCase();
@@ -51,7 +51,7 @@ void main() {
       isBiometricLoginEnabledUseCase,
       requestBiometricsUsecase,
     ),
-    act: (bloc) => bloc.add(BiometricLoadTriggered()),
+    act: (bloc) => bloc.add(const BiometricLoadTriggered()),
     expect: () => [const BiometricSettingsLoaded(biometricLoginEnabled: false)],
   );
 
@@ -72,7 +72,7 @@ void main() {
         ),
       );
     },
-    act: (bloc) => bloc.add(BiometricLoadTriggered()),
+    act: (bloc) => bloc.add(const BiometricLoadTriggered()),
     expect: () => [const BiometricSettingsError()],
   );
 
@@ -88,18 +88,18 @@ void main() {
     setUp: () {
       when(isBiometricLoginEnabledUseCase.invoke()).thenAnswer((_) async => false);
       when(requestBiometricsUsecase.invoke()).thenAnswer(
-        (_) async => Result.success(BiometricAuthenticationResult.success),
+        (_) async => const Result.success(BiometricAuthenticationResult.success),
       );
     },
     act: (bloc) async {
-      bloc.add(BiometricLoadTriggered());
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricUnlockToggled());
-      await Future.delayed(Duration(milliseconds: 5));
+      bloc.add(const BiometricLoadTriggered());
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricUnlockToggled());
+      await Future.delayed(const Duration(milliseconds: 5));
     },
     expect: () => [
-      BiometricSettingsLoaded(biometricLoginEnabled: false),
-      BiometricSettingsLoaded(biometricLoginEnabled: true /* we update the ui immediately */),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false),
+      const BiometricSettingsLoaded(biometricLoginEnabled: true /* we update the ui immediately */),
       const BiometricSettingsConfirmPin(),
     ],
   );
@@ -118,26 +118,26 @@ void main() {
       when(isBiometricLoginEnabledUseCase.invoke()).thenAnswer((_) async => biometricsEnabled);
       when(setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false)).thenAnswer((_) async {
         biometricsEnabled = true;
-        return Result.success(null);
+        return const Result.success(null);
       });
       when(requestBiometricsUsecase.invoke()).thenAnswer(
-        (_) async => Result.success(BiometricAuthenticationResult.success),
+        (_) async => const Result.success(BiometricAuthenticationResult.success),
       );
     },
     act: (bloc) async {
-      bloc.add(BiometricLoadTriggered());
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricUnlockToggled());
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricUnlockEnabledWithPin());
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricLoadTriggered()); // Reload and make sure update came through
+      bloc.add(const BiometricLoadTriggered());
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricUnlockToggled());
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricUnlockEnabledWithPin());
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricLoadTriggered()); // Reload and make sure update came through
     },
     expect: () => [
-      BiometricSettingsLoaded(biometricLoginEnabled: false),
-      BiometricSettingsLoaded(biometricLoginEnabled: true /* we update the ui immediately */),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false),
+      const BiometricSettingsLoaded(biometricLoginEnabled: true /* we update the ui immediately */),
       const BiometricSettingsConfirmPin(),
-      BiometricSettingsLoaded(biometricLoginEnabled: true /* successful confirm so enabled stays true */),
+      const BiometricSettingsLoaded(biometricLoginEnabled: true /* successful confirm so enabled stays true */),
     ],
     verify: (bloc) {
       // Verify biometrics are being enabled
@@ -157,21 +157,23 @@ void main() {
     setUp: () {
       when(isBiometricLoginEnabledUseCase.invoke()).thenAnswer((_) async => false);
       when(requestBiometricsUsecase.invoke()).thenAnswer(
-        (_) async => Result.success(BiometricAuthenticationResult.success),
+        (_) async => const Result.success(BiometricAuthenticationResult.success),
       );
     },
     act: (bloc) async {
-      bloc.add(BiometricLoadTriggered()); // Initial load
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricUnlockToggled()); // Enable toggle
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricLoadTriggered()); // Reload after (here unsuccessful) pin confirmation
+      bloc.add(const BiometricLoadTriggered()); // Initial load
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricUnlockToggled()); // Enable toggle
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricLoadTriggered()); // Reload after (here unsuccessful) pin confirmation
     },
     expect: () => [
-      BiometricSettingsLoaded(biometricLoginEnabled: false),
-      BiometricSettingsLoaded(biometricLoginEnabled: true /* we update the ui immediately */),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false),
+      const BiometricSettingsLoaded(biometricLoginEnabled: true /* we update the ui immediately */),
       const BiometricSettingsConfirmPin(),
-      BiometricSettingsLoaded(biometricLoginEnabled: false /* unsuccessful confirm so enabled goes back to false */),
+      const BiometricSettingsLoaded(
+        biometricLoginEnabled: false /* unsuccessful confirm so enabled goes back to false */,
+      ),
     ],
   );
 
@@ -187,18 +189,18 @@ void main() {
     setUp: () {
       when(isBiometricLoginEnabledUseCase.invoke()).thenAnswer((_) async => true);
       when(requestBiometricsUsecase.invoke()).thenAnswer(
-        (_) async => Result.success(BiometricAuthenticationResult.success),
+        (_) async => const Result.success(BiometricAuthenticationResult.success),
       );
     },
     act: (bloc) async {
-      bloc.add(BiometricLoadTriggered());
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricUnlockToggled());
-      await Future.delayed(Duration(milliseconds: 5));
+      bloc.add(const BiometricLoadTriggered());
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricUnlockToggled());
+      await Future.delayed(const Duration(milliseconds: 5));
     },
     expect: () => [
-      BiometricSettingsLoaded(biometricLoginEnabled: true),
-      BiometricSettingsLoaded(biometricLoginEnabled: false),
+      const BiometricSettingsLoaded(biometricLoginEnabled: true),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false),
     ],
     verify: (bloc) {
       verify(setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: false)).called(1);
@@ -217,20 +219,20 @@ void main() {
     setUp: () {
       when(isBiometricLoginEnabledUseCase.invoke()).thenAnswer((_) async => false);
       when(requestBiometricsUsecase.invoke()).thenAnswer(
-        (_) async => Result.success(BiometricAuthenticationResult.lockedOut),
+        (_) async => const Result.success(BiometricAuthenticationResult.lockedOut),
       );
     },
     act: (bloc) async {
-      bloc.add(BiometricLoadTriggered());
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricUnlockToggled());
-      await Future.delayed(Duration(milliseconds: 5));
+      bloc.add(const BiometricLoadTriggered());
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricUnlockToggled());
+      await Future.delayed(const Duration(milliseconds: 5));
     },
     expect: () => [
-      BiometricSettingsLoaded(biometricLoginEnabled: false),
-      BiometricSettingsLoaded(biometricLoginEnabled: true /* eager enable */),
-      BiometricSettingsLockedOut(),
-      BiometricSettingsLoaded(biometricLoginEnabled: false /* fall back to truth */),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false),
+      const BiometricSettingsLoaded(biometricLoginEnabled: true /* eager enable */),
+      const BiometricSettingsLockedOut(),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false /* fall back to truth */),
     ],
   );
 
@@ -246,20 +248,20 @@ void main() {
     setUp: () {
       when(isBiometricLoginEnabledUseCase.invoke()).thenAnswer((_) async => false);
       when(requestBiometricsUsecase.invoke()).thenAnswer(
-        (_) async => Result.success(BiometricAuthenticationResult.setupRequired),
+        (_) async => const Result.success(BiometricAuthenticationResult.setupRequired),
       );
     },
     act: (bloc) async {
-      bloc.add(BiometricLoadTriggered());
-      await Future.delayed(Duration(milliseconds: 5));
-      bloc.add(BiometricUnlockToggled());
-      await Future.delayed(Duration(milliseconds: 5));
+      bloc.add(const BiometricLoadTriggered());
+      await Future.delayed(const Duration(milliseconds: 5));
+      bloc.add(const BiometricUnlockToggled());
+      await Future.delayed(const Duration(milliseconds: 5));
     },
     expect: () => [
-      BiometricSettingsLoaded(biometricLoginEnabled: false),
-      BiometricSettingsLoaded(biometricLoginEnabled: true /* eager enable */),
-      BiometricSettingsSetupRequired(),
-      BiometricSettingsLoaded(biometricLoginEnabled: false /* fall back to truth */),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false),
+      const BiometricSettingsLoaded(biometricLoginEnabled: true /* eager enable */),
+      const BiometricSettingsSetupRequired(),
+      const BiometricSettingsLoaded(biometricLoginEnabled: false /* fall back to truth */),
     ],
   );
 }

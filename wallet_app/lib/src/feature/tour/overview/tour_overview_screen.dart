@@ -45,8 +45,8 @@ class TourOverviewScreen extends StatelessWidget {
               child: BodyText(context.l10n.tourOverviewScreenSubtitle),
             ),
           ),
-          SliverSizedBox(height: 16),
-          SliverDivider(),
+          const SliverSizedBox(height: 16),
+          const SliverDivider(),
           _buildVideoList(context),
         ],
       ),
@@ -58,7 +58,7 @@ class TourOverviewScreen extends StatelessWidget {
     return SliverList.separated(
       itemBuilder: (context, index) => _buildVideoListItem(context, tourVideos[index]),
       itemCount: tourVideos.length,
-      separatorBuilder: (context, index) => Divider(),
+      separatorBuilder: (context, index) => const Divider(),
     );
   }
 
@@ -82,7 +82,7 @@ class TourOverviewScreen extends StatelessWidget {
                 _buildPlayButton(context),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               tourVideo.title,
               style: context.textTheme.headlineMedium,
@@ -121,10 +121,10 @@ class TourOverviewScreen extends StatelessWidget {
       child: Center(
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.all(Radius.circular(8)),
+            borderRadius: const BorderRadius.all(Radius.circular(8)),
             color: context.colorScheme.surface,
           ),
-          padding: EdgeInsets.all(8),
+          padding: const EdgeInsets.all(8),
           child: Icon(
             Icons.play_arrow,
             color: context.colorScheme.primary,

@@ -93,7 +93,7 @@ class _TourBannerState extends State<TourBanner> {
   }
 
   Widget _buildStoreLogo() {
-    return SizedBox(
+    return const SizedBox(
       height: _kTourIconSize,
       width: _kTourIconSize,
       child: SvgOrImage(

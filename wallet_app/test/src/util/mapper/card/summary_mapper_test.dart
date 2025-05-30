@@ -25,7 +25,7 @@ void main() {
         issuer: WalletMockData.organization,
         attributes: [],
         id: 'id',
-        metadata: [CardDisplayMetadata(language: Locale('en'), name: 'name')],
+        metadata: [const CardDisplayMetadata(language: Locale('en'), name: 'name')],
       );
       expect(mapper.map(input).testValue, '');
     });
@@ -81,7 +81,7 @@ void main() {
           DataAttribute(
             key: 'over18',
             svgId: 'over18',
-            label: {Locale('en'): 'Over 18', Locale('nl'): 'Ouder dan 18'},
+            label: {const Locale('en'): 'Over 18', const Locale('nl'): 'Ouder dan 18'},
             value: const BooleanValue(true),
             sourceCardDocType: 'com.example.docType',
           ),
@@ -101,8 +101,8 @@ void main() {
         id: 'id',
       );
 
-      expect(mapper.map(input)[Locale('en')], 'User is 18+ Yes');
-      expect(mapper.map(input)[Locale('nl')], 'Gebruiker is 18+ Ja');
+      expect(mapper.map(input)[const Locale('en')], 'User is 18+ Yes');
+      expect(mapper.map(input)[const Locale('nl')], 'Gebruiker is 18+ Ja');
     });
 
     test('placeholders without a corresponding value should be blanked', () {
@@ -132,7 +132,7 @@ void main() {
         attributes: [
           DataAttribute(
             key: key,
-            label: {Locale('en'): 'mock'},
+            label: {const Locale('en'): 'mock'},
             value: const StringValue('mock_value'),
             sourceCardDocType: 'com.example.docType',
           ),
@@ -147,7 +147,7 @@ void main() {
       );
 
       // Mapper should not replace key with "mock_value" since no svgId is set
-      expect(mapper.map(input)[Locale('en')], '');
+      expect(mapper.map(input)[const Locale('en')], '');
     });
 
     test('Dates are formatted based on localization', () {
@@ -183,9 +183,9 @@ void main() {
         id: 'id',
       );
 
-      expect(mapper.map(input)[Locale('en')], 'Date 10/5/2024');
-      expect(mapper.map(input)[Locale('ja_JP')], '日付 2024/10/5');
-      expect(mapper.map(input)[Locale('nl')], 'Datum 5-10-2024');
+      expect(mapper.map(input)[const Locale('en')], 'Date 10/5/2024');
+      expect(mapper.map(input)[const Locale('ja_JP')], '日付 2024/10/5');
+      expect(mapper.map(input)[const Locale('nl')], 'Datum 5-10-2024');
     });
   });
 }

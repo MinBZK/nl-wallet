@@ -26,8 +26,8 @@ void main() {
   );
 
   test('MenuState equals works', () {
-    final a = MenuInitial();
-    final b = MenuInitial();
+    final a = const MenuInitial();
+    final b = const MenuInitial();
     expect(a, b, reason: 'MenuInitial instances should be equal');
   });
 

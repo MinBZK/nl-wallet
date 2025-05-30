@@ -7,6 +7,6 @@ class ParagraphSpacer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(height: 16);
+    return const SizedBox(height: 16);
   }
 }

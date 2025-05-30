@@ -59,7 +59,7 @@ class DataAttribute extends Attribute {
     required AttributeValue super.value,
     required this.sourceCardDocType,
     this.svgId,
-  }) : super(label: {Locale('en'): label});
+  }) : super(label: {const Locale('en'): label});
 
   factory DataAttribute.fromJson(Map<String, dynamic> json) => _$DataAttributeFromJson(json);
 
@@ -90,7 +90,7 @@ class UiAttribute extends Attribute {
     required this.icon,
     super.key = '',
     required String label,
-  }) : super(label: {Locale('en'): label});
+  }) : super(label: {const Locale('en'): label});
 
   @override
   String get key => throw UnsupportedError('UiAttributes should only be used to render data to the screen');
@@ -104,7 +104,8 @@ class UiAttribute extends Attribute {
 class MissingAttribute extends Attribute {
   const MissingAttribute({super.key = '', required super.label});
 
-  MissingAttribute.untranslated({required super.key, required String label}) : super(label: {Locale('en'): label});
+  MissingAttribute.untranslated({required super.key, required String label})
+      : super(label: {const Locale('en'): label});
 
   @override
   List<Object?> get props => [key, label];

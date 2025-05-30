@@ -62,7 +62,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
+          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
         ),
       );
       await screenMatchesGolden('load_in_progress.light');
@@ -289,7 +289,7 @@ void main() {
           DisclosureCancelledSessionError(
             relyingParty: WalletMockData.organization,
             returnUrl: 'https://example.com',
-            error: SessionError(
+            error: const SessionError(
               state: SessionState.cancelled,
               returnUrl: 'https://example.com',
               sourceError: CoreCancelledSessionError('test'),
@@ -569,7 +569,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
+          const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
         ),
       );
 
@@ -784,7 +784,7 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             mockDisclosureBloc,
-            DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
+            const DisclosureLoadInProgress(FlowProgress(currentStep: 0, totalSteps: kNormalDisclosureSteps)),
           ),
         );
 

@@ -297,7 +297,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeGenericError(error: GenericError('test', sourceError: 'sourceError')),
+          const WalletPersonalizeGenericError(error: GenericError('test', sourceError: 'sourceError')),
         ),
       );
       await screenMatchesGolden('wallet_personalize/generic_error.light');
@@ -309,7 +309,7 @@ void main() {
           MockWalletPersonalizeBloc(),
           WalletPersonalizeRelyingPartyError(
             organizationName: 'Relying Party X'.untranslated,
-            error: RelyingPartyError(sourceError: ''),
+            error: const RelyingPartyError(sourceError: ''),
           ),
         ),
       );
@@ -320,7 +320,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
           MockWalletPersonalizeBloc(),
-          WalletPersonalizeRelyingPartyError(organizationName: null, error: RelyingPartyError(sourceError: '')),
+          const WalletPersonalizeRelyingPartyError(organizationName: null, error: RelyingPartyError(sourceError: '')),
         ),
       );
       await screenMatchesGolden('wallet_personalize/relying_party_error.party_unknown.dark');

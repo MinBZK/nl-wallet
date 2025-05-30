@@ -10,7 +10,7 @@ void main() {
     testGoldens(
       'Update Notification Dialog',
       (tester) async {
-        final Key showDialogButton = Key('showDialogButton');
+        final Key showDialogButton = const Key('showDialogButton');
         await tester.pumpWidgetWithAppWrapper(
           Scaffold(
             body: Builder(
@@ -34,14 +34,14 @@ void main() {
     testGoldens(
       'Update Notification Dialog - 3 hours left',
       (tester) async {
-        final Key showDialogButton = Key('showDialogButton');
+        final Key showDialogButton = const Key('showDialogButton');
         await tester.pumpWidgetWithAppWrapper(
           Scaffold(
             body: Builder(
               builder: (context) {
                 return Center(
                   child: TextButton(
-                    onPressed: () => UpdateNotificationDialog.show(context, timeUntilBlocked: Duration(hours: 3)),
+                    onPressed: () => UpdateNotificationDialog.show(context, timeUntilBlocked: const Duration(hours: 3)),
                     child: Text('Show Dialog', key: showDialogButton),
                   ),
                 );

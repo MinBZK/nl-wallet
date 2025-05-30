@@ -38,7 +38,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     this._startDisclosureUseCase,
     this._cancelDisclosureUseCase,
     this._getMostRecentWalletEventUseCase,
-  ) : super(DisclosureInitial()) {
+  ) : super(const DisclosureInitial()) {
     on<DisclosureSessionStarted>(_onSessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
     on<DisclosureBackPressed>(_onBackPressed);

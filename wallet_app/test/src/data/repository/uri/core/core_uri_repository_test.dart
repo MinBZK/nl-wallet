@@ -50,7 +50,7 @@ void main() {
       expect(result, isA<IssuanceNavigationRequest>());
       expect(
         result.argument,
-        IssuanceScreenArgument(uri: testUri, isRefreshFlow: false, isQrCode: false),
+        const IssuanceScreenArgument(uri: testUri, isRefreshFlow: false, isQrCode: false),
         reason: 'The original uri should be passed to the correct screen as an argument',
       );
     });

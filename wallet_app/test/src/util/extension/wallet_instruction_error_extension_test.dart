@@ -5,7 +5,7 @@ import 'package:wallet_core/core.dart';
 
 void main() {
   test('WalletInstructionError.incorrectPin is converted to CheckPinResultIncorrect', () async {
-    final input = WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: true);
+    final input = const WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: true);
     final result = input.asCheckPinResult() as CheckPinResultIncorrect;
     expect(result.isFinalRound, isTrue);
     expect(result.attemptsLeftInRound, 3);
@@ -18,7 +18,7 @@ void main() {
   });
 
   test('WalletInstructionError.blocked is converted to CheckPinResultIncorrect', () async {
-    final input = WalletInstructionError.blocked();
+    final input = const WalletInstructionError.blocked();
     final result = input.asCheckPinResult();
     expect(result is CheckPinResultBlocked, isTrue);
   });

@@ -24,7 +24,7 @@ void main() {
     });
 
     testWidgets('showDetailsIncorrect shows the expected copy', (tester) async {
-      final btnKey = ValueKey('btn');
+      final btnKey = const ValueKey('btn');
       await tester.pumpWidgetWithAppWrapper(
         Builder(
           builder: (context) {

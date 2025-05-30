@@ -89,7 +89,7 @@ class PolicyScreen extends StatelessWidget {
           ),
           SliverToBoxAdapter(child: _buildLearnMoreFooter(context)),
           SliverToBoxAdapter(child: _buildReportIssueButton(context)),
-          SliverDivider(),
+          const SliverDivider(),
           const SliverSizedBox(height: 24),
         ],
       ),
@@ -98,7 +98,7 @@ class PolicyScreen extends StatelessWidget {
 
   Widget _buildLearnMoreFooter(BuildContext context) {
     final policyUrl = policy.privacyPolicyUrl;
-    if (policyUrl == null) return SizedBox.shrink();
+    if (policyUrl == null) return const SizedBox.shrink();
 
     final urlTheme = context.textTheme.bodyLarge!.copyWith(
       color: context.colorScheme.primary,
@@ -128,7 +128,7 @@ class PolicyScreen extends StatelessWidget {
 
     return Column(
       children: [
-        Divider(),
+        const Divider(),
         PolicyEntryRow(
           title: TitleText(
             context.l10n.policyScreenPolicySectionTitle,

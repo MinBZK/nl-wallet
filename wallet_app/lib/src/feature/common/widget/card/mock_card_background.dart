@@ -13,7 +13,7 @@ class MockCardBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bgAsset = _resolveBackgroundAsset(docType);
-    if (bgAsset == null) return DecoratedBox(decoration: BoxDecoration(color: Color(0xFFEEEFF7)));
+    if (bgAsset == null) return const DecoratedBox(decoration: BoxDecoration(color: Color(0xFFEEEFF7)));
     return SvgOrImage(asset: bgAsset, fit: BoxFit.cover, alignment: Alignment.topCenter);
   }
 

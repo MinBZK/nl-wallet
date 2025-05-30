@@ -14,7 +14,7 @@ class MockCardHolograph extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final show = Environment.mockRepositories && [kPidDocType, kAddressDocType].contains(docType);
-    if (!show) return SizedBox.shrink();
+    if (!show) return const SizedBox.shrink();
     return CardHolograph(
       holograph: WalletAssets.svg_rijks_card_holo,
       // Taking shortcuts here to avoid adding extra info just for mock builds
