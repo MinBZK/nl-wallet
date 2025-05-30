@@ -56,4 +56,4 @@
 | `env[1].name`  | Name of Routes__0__DownstreamHostAndPorts__0__Host environment variable  | `Routes__0__DownstreamHostAndPorts__0__Host` |
 | `env[1].value` | Value of Routes__0__DownstreamHostAndPorts__0__Host environment variable | `gba-hc-converter`                           |
 | `env[2].name`  | Name of Routes__0__DownstreamHostAndPorts__0__Port environment variable  | `Routes__0__DownstreamHostAndPorts__0__Port` |
-| `env[2].value` | Value of Routes__0__DownstreamHostAndPorts__0__Port environment variable | `3006`                                       |
+| `env[2].value` | Value of Routes__0__DownstreamHostAndPorts__0__Port environment variable | `80`                                         |

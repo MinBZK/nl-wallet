@@ -32,7 +32,7 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
             .set_default("webserver.ip", "0.0.0.0")?
-            .set_default("webserver.port", 3004)?
+            .set_default("webserver.port", 8001)?
             .set_default("structured_logging", false)?
             .add_source(File::from(prefix_local_path("demo_index.toml".as_ref()).as_ref()).required(false))
             .add_source(

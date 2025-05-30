@@ -251,8 +251,8 @@ mod tests {
         SourceExpression::SchemeSource("wss:".to_string().try_into().unwrap()),
         SourceExpression::HostSource(Url::parse("https://example.com").unwrap())])
     )]
-    #[case(r#"["http://localhost:3009"]"#, ConnectSource::List(vec![
-        SourceExpression::HostSource(Url::parse("http://localhost:3009").unwrap())])
+    #[case(r#"["http://localhost:8080"]"#, ConnectSource::List(vec![
+        SourceExpression::HostSource(Url::parse("http://localhost:8080").unwrap())])
     )]
     fn deserialize_connect_source(#[case] input: &str, #[case] expected: ConnectSource) {
         let actual: Test = toml::from_str(&format!("connect_src = {input}")).expect("toml");

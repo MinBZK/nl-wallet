@@ -117,7 +117,7 @@ impl Settings {
             .set_default("wte_signing_key_identifier", "wte_signing_key")?
             .set_default("wte_issuer_identifier", "wte-issuer.example.com")?
             .set_default("webserver.ip", "0.0.0.0")?
-            .set_default("webserver.port", 3000)?
+            .set_default("webserver.port", 8001)?
             .set_default("pin_policy.rounds", 4)?
             .set_default("pin_policy.attempts_per_round", 4)?
             .set_default("pin_policy.timeouts_in_ms", vec![60_000, 300_000, 3_600_000])?

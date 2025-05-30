@@ -37,5 +37,5 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
           ports:
-            - name: http-brpproxy
+            - name: http
               containerPort: 5000

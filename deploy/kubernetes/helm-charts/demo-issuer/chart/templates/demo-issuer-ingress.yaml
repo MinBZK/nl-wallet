@@ -1,42 +1,22 @@
-{{ if .Values.ingress.enabled }}
 {{ $name := include "common.names.fullname" . }}
+{{- if .Values.ingress.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ $name }}-vpn
-  labels:
-    {{- include "common.labels.standard" . | nindent 4 }}
-spec:
-  ingressClassName: {{ .Values.ingress.className }}
-  rules:
-    - host: {{ .Values.ingressVpn.hostname | quote }}
-      http:
-        paths:
-          - backend:
-              service:
-                name: {{ include "common.names.fullname" . }}
-                port:
-                  number: 3006
-            path: /
-            pathType: Prefix
-  tls:
-    - hosts:
-        - {{ .Values.ingressVpn.hostname | quote }}
-      secretName: wildcard-tls
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: nl-{{ $name }}-public
+  name: {{ $name }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
   annotations:
-    odcn.rijksapps.nl/inet-loadbalancer-hostnames: {{ .Values.demoIssuer.hostname | quote }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{ if .Values.ingress.contextPath }}
     nginx.ingress.kubernetes.io/rewrite-target: /$1
+{{ end }}
     # CSP header is set in the application
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
@@ -51,18 +31,56 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className | quote }}
   rules:
-    - host: {{ .Values.demoIssuer.hostname | quote }}
+    - host: {{ .Values.ingress.hostname | quote }}
       http:
         paths:
           - backend:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3005
-            path: /{{ .Values.demoIssuer.contextPath }}/(.*)
+                  name: http
+{{ if .Values.ingress.contextPath }}
+            path: /{{ .Values.ingress.contextPath }}/(.*)
             pathType: ImplementationSpecific
+{{ else }}
+            path: /
+            pathType: Prefix
+{{ end }}
   tls:
     - hosts:
-        - {{ .Values.demoIssuer.hostname }}
+        - {{ .Values.ingress.hostname }}
       secretName: {{ .Values.ingress.tlsSecretName | quote }}
+{{ end }}
+{{ if .Values.ingressInternal.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}-internal
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+    {{- with .Values.ingressInternal.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.ingressInternal.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingressInternal.className }}
+  rules:
+    - host: {{ .Values.ingressInternal.hostname | quote }}
+      http:
+        paths:
+          - backend:
+              service:
+                name: {{ include "common.names.fullname" . }}
+                port:
+                  name: http-internal
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - {{ .Values.ingressInternal.hostname | quote }}
+      secretName: {{ .Values.ingressInternal.tlsSecretName | quote }}
 {{ end }}

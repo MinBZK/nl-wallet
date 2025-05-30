@@ -8,6 +8,6 @@ spec:
   selector:
     {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 4 }}
   ports:
-    - name: gba-hc-http
-      port: 3006
-      targetPort: 3006
+    - name: http
+      port: 80
+      targetPort: http

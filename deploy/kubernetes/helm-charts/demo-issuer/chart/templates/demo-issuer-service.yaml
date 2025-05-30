@@ -8,11 +8,9 @@ spec:
   selector:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}
   ports:
-    - name: demo-issuer-web-http
-      port: 3005
-      targetPort: demo-iw-port
-      protocol: TCP
-    - name: demo-issuer-issuance-http
-      port: 3006
-      targetPort: demo-ii-port
-      protocol: TCP
+    - name: http
+      port: 80
+      targetPort: http
+    - name: http-internal
+      port: 8080
+      targetPort: http-internal

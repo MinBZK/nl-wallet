@@ -1,11 +1,11 @@
 [webserver]
 ip = '127.0.0.1'
-port = 3004
+port = 8001
 
 [[demo_services]]
-service_url = 'http://localhost:3008/'
+service_url = 'http://demo-relying-party/'
 usecases = ['mijn_amsterdam', 'online_marketplace', 'xyz_bank', 'monkey_bike']
 
 [[demo_services]]
-service_url = 'http://localhost:3005/'
+service_url = 'http://demo-issuer/'
 usecases = ['university', 'insurance']

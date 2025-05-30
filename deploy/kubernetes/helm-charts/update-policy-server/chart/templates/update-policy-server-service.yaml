@@ -8,7 +8,6 @@ spec:
   selector:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}
   ports:
-    - name: update-policy-server-http
-      port: 3002
-      targetPort: ups-port
-      protocol: TCP
+    - name: http
+      port: 80
+      targetPort: http

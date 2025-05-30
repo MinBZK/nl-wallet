@@ -1,18 +1,22 @@
-{{- if .Values.ingress.enabled }}
 {{ $name := include "common.names.fullname" . }}
+{{- if .Values.ingress.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-{{ $name }}-public
+  name: {{ $name }}
   labels:
     {{- include "common.labels.standard" . | nindent 4 }}
     {{- with .Values.ingress.labels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
   annotations:
-    odcn.rijksapps.nl/inet-loadbalancer-hostnames: {{ .Values.issuanceServer.hostname | quote }}
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{ if .Values.ingress.contextPath }}
     nginx.ingress.kubernetes.io/rewrite-target: /$1
+{{ end }}
     nginx.ingress.kubernetes.io/configuration-snippet: |
       more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains"
       more_set_headers "X-Content-Type-Options: nosniff";
@@ -22,18 +26,23 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
-    - host: {{ .Values.issuanceServer.hostname | quote }}
+    - host: {{ .Values.ingress.hostname | quote }}
       http:
         paths:
           - backend:
               service:
                 name: {{ include "common.names.fullname" . }}
                 port:
-                  number: 3007
-            path: /{{ .Values.issuanceServer.contextPath }}/(.*)
+                  name: http
+{{ if .Values.ingress.contextPath }}
+            path: /{{ .Values.ingress.contextPath }}/(.*)
             pathType: ImplementationSpecific
+{{ else }}
+            path: /
+            pathType: Prefix
+{{ end }}
   tls:
     - hosts:
-        - {{ .Values.issuanceServer.hostname }}
+        - {{ .Values.ingress.hostname }}
       secretName: {{ .Values.ingress.tlsSecretName | quote }}
 {{ end }}

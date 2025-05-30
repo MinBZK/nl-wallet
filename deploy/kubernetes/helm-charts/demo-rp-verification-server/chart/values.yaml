@@ -49,25 +49,41 @@ extraPodlabels: {}
 ##
 imagePullSecrets: []
 
-## @section Ingress VPN parameters
-## Parameters for the VPN ingress
-## @param ingressVpn.hostname Hostname for the VPN ingress
+## @section Ingress internal parameters
+## Parameters for the internal ingress
+## @param ingressInternal.enabled Enable or disable the internal ingress
+## @param ingressInternal.className Ingress class name
+## @param ingressInternal.hostname Hostname for the internal ingress
+## @param ingressInternal.tlsSecretName Name of the TLS secret for the internal ingress
+## @param ingressInternal.labels Additional labels for the internal ingress
+## @param ingressInternal.annotations Additional annotations for the internal ingress
 ##
-ingressVpn:
+ingressInternal:
+  enabled: false
+  className: "nginx"
   hostname: null
+  tlsSecretName: null
+  labels: {}
+  annotations: {}
 
 ## @section Ingress parameters
 ## Parameters for the ingress configuration
 ## @param ingress.enabled Enable or disable the ingress
 ## @param ingress.className Ingress class name
+## @param ingress.hostname Hostname for the ingress
+## @param ingress.contextPath Optional context path for the ingress
 ## @param ingress.tlsSecretName Name of the TLS secret for the ingress
 ## @param ingress.labels Additional labels for the ingress
+## @param ingress.annotations Additional annotations for the ingress
 ##
 ingress:
   enabled: true
   className: "nginx"
+  hostname: null
+  contextPath: null
   tlsSecretName: null
   labels: {}
+  annotations: {}
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request
@@ -83,15 +99,7 @@ resources:
     cpu: "200m"
     memory: "128Mi"
 
-## @section Verification Server parameters
-## Parameters for the verification server configuration
-## @param verificationServer.hostname Hostname for the verification server
-## @param verificationServer.contextPath Context path for the verification server
-##
-verificationServer:
-  hostname: null
-  contextPath: null
-
+## @section Urls
 ## @param universalLinkBaseUrl Base URL for universal links
 universalLinkBaseUrl: null
 
