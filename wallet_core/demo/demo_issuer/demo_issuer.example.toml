@@ -1,6 +1,6 @@
 [webserver]
 ip = '127.0.0.1'
-port = 3011
+port = 8001
 
 [[usecases.university.9999999999]]
 attestation_type = "com.example.degree"

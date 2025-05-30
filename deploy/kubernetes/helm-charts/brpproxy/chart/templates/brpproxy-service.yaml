@@ -11,6 +11,6 @@ spec:
   selector:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}
   ports:
-    - name: "5001"
-      port: 5001
-      targetPort: http-brpproxy
+    - name: http
+      port: 80
+      targetPort: http

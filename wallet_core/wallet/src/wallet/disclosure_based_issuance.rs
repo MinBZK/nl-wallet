@@ -166,6 +166,7 @@ mod tests {
     use assert_matches::assert_matches;
     use parking_lot::lock_api::Mutex;
 
+    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::credential::CredentialOfferContainer;
     use openid4vc::credential::GrantPreAuthorizedCode;
@@ -224,12 +225,16 @@ mod tests {
         )));
 
         // Setup wallet issuance state
-        let preview_data = create_example_preview_data();
+        let credential_preview = create_example_preview_data();
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();
 
-            client.expect_credential_preview_data().return_const(vec![preview_data]);
+            client
+                .expect_normalized_credential_previews()
+                .return_const(vec![credential_preview]);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
         });

@@ -154,10 +154,10 @@ class OrganizationApprovePage extends StatelessWidget {
   }
 
   Widget _buildHeaderDescriptionSection(BuildContext context) {
-    if (description?.isEmpty ?? true) return SizedBox.shrink();
+    if (description?.isEmpty ?? true) return const SizedBox.shrink();
     return Column(
       children: [
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         BodyText(description!),
       ],
     );
@@ -165,10 +165,10 @@ class OrganizationApprovePage extends StatelessWidget {
 
   Widget _buildHeaderFraudInfoSection(BuildContext context) {
     final showFraudInfo = sessionType == DisclosureSessionType.crossDevice;
-    if (!showFraudInfo) return SizedBox.shrink();
+    if (!showFraudInfo) return const SizedBox.shrink();
     return Column(
       children: [
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         _buildFraudInfoText(context),
       ],
     );

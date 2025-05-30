@@ -165,7 +165,7 @@ class LoginDetailScreen extends StatelessWidget {
           context.l10n.loginDetailScreenCredentialsTitle,
           style: context.textTheme.titleLarge,
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         BodyText(context.l10n.loginDetailScreenCredentialsBody),
         const SizedBox(height: 24),
       ],
@@ -196,7 +196,7 @@ class LoginDetailScreen extends StatelessWidget {
             context.l10n.loginDetailScreenAgreementTitle,
             style: context.textTheme.titleLarge,
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           BodyText(
             context.read<ContextMapper<OrganizationPolicy, String>>().map(
                   context,

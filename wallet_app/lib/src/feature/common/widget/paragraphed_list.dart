@@ -21,7 +21,7 @@ class ParagraphedList extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemBuilder: (c, i) => BodyText(paragraphs[i]),
-      separatorBuilder: (BuildContext context, int index) => ParagraphSpacer(),
+      separatorBuilder: (BuildContext context, int index) => const ParagraphSpacer(),
       itemCount: paragraphs.length,
     );
   }

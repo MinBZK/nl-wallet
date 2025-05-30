@@ -38,9 +38,9 @@ mockall::mock! {
 
         pub fn reject(self) -> Result<(), IssuanceSessionError>;
 
-        pub fn credential_preview_data(&self) -> &[NormalizedCredentialPreview];
+        pub fn normalized_credential_previews(&self) -> &[NormalizedCredentialPreview];
 
-        pub fn issuer(&self) -> Result<IssuerRegistration, IssuanceSessionError>;
+        pub fn issuer(&self) -> &IssuerRegistration;
     }
 }
 
@@ -70,11 +70,11 @@ impl IssuanceSession for MockIssuanceSession {
         self.reject()
     }
 
-    fn credential_preview_data(&self) -> &[NormalizedCredentialPreview] {
-        self.credential_preview_data()
+    fn normalized_credential_preview(&self) -> &[NormalizedCredentialPreview] {
+        self.normalized_credential_previews()
     }
 
-    fn issuer_registration(&self) -> Result<IssuerRegistration, IssuanceSessionError> {
+    fn issuer_registration(&self) -> &IssuerRegistration {
         self.issuer()
     }
 }

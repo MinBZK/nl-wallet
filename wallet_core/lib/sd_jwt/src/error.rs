@@ -1,6 +1,7 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
+use crypto::x509::CertificateError;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
 
@@ -57,4 +58,13 @@ pub enum Error {
 
     #[error("missing required JWK key binding")]
     MissingJwkKeybinding,
+
+    #[error("missing x5c header")]
+    MissingX5cHeader,
+
+    #[error("error decoding base64: {0}")]
+    Base64Decode(#[from] base64::DecodeError),
+
+    #[error("error constructing issuer certificate: {0}")]
+    IssuerCertificate(#[from] CertificateError),
 }

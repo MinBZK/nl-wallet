@@ -51,7 +51,7 @@ void main() {
 
   test('invoke handles CoreError by mapping to appropriate ApplicationError', () async {
     const pin = '123456';
-    final coreError = CoreExpiredSessionError('test error', canRetry: false);
+    final coreError = const CoreExpiredSessionError('test error', canRetry: false);
     when(repository.acceptIssuance(any, any)).thenThrow(coreError);
 
     final result = await usecase.invoke(pin);

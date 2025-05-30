@@ -26,7 +26,7 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         Config::builder()
             .set_default("ip", "0.0.0.0")?
-            .set_default("port", 3002)?
+            .set_default("port", 8001)?
             .set_default("structured_logging", false)?
             .add_source(File::from(prefix_local_path("update_policy_server.toml".as_ref()).as_ref()).required(false))
             .add_source(

@@ -22,9 +22,9 @@ class IssuanceSuccessPage extends StatelessWidget {
       title: context.l10n.issuanceSuccessPageTitle(cards.length),
       description: context.l10n.issuanceSuccessPageCardsAddedSubtitle(cards.length),
       primaryButtonCta: context.l10n.issuanceSuccessPageCloseCta,
-      primaryButtonIcon: Icon(Icons.arrow_forward_outlined),
+      primaryButtonIcon: const Icon(Icons.arrow_forward_outlined),
       onPrimaryPressed: onClose,
-      illustration: PageIllustration(asset: WalletAssets.svg_phone),
+      illustration: const PageIllustration(asset: WalletAssets.svg_phone),
     );
   }
 }

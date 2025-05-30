@@ -92,7 +92,7 @@ void main() {
           Container(
             height: _defaultTestSurfaceSize.height,
             width: _defaultTestSurfaceSize.width,
-            padding: EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
             child: SharedAttributesCard(
               card: WalletMockData.simpleRenderingCard,
               attributes: WalletMockData.simpleRenderingCard.attributes + WalletMockData.simpleRenderingCard.attributes,
@@ -111,7 +111,7 @@ void main() {
           Container(
             height: _defaultTestSurfaceSize.height,
             width: _defaultTestSurfaceSize.width,
-            padding: EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
             child: SharedAttributesCard(
               card: WalletMockData.card,
               attributes: WalletMockData.card.attributes,

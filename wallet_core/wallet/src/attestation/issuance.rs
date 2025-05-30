@@ -41,6 +41,7 @@ mod test {
     use crate::attestation::AttestationError;
     use crate::issuance::mock::create_bsn_only_mdoc_attributes;
     use crate::issuance::mock::create_example_mdoc_attributes;
+    use crate::issuance::BSN_ATTR_NAME;
     use crate::issuance::PID_DOCTYPE;
     use crate::Attestation;
     use crate::AttestationIdentity;
@@ -94,7 +95,7 @@ mod test {
             PID_DOCTYPE,
             &[
                 ("not_found", JsonSchemaPropertyType::String, None),
-                ("bsn", JsonSchemaPropertyType::String, None),
+                (BSN_ATTR_NAME, JsonSchemaPropertyType::String, None),
             ],
         ));
 
@@ -114,7 +115,7 @@ mod test {
 
         assert_eq!(
             [(
-                vec![String::from("bsn")],
+                vec![BSN_ATTR_NAME.to_string()],
                 AttestationAttributeValue::Basic(AttributeValue::Text(String::from("999999999")))
             ),],
             attrs.as_slice()

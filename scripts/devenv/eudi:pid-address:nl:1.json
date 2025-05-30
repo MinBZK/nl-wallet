@@ -146,6 +146,6 @@
         "required": ["street_address", "house_number", "postal_code", "locality", "country"]
       }
     },
-    "required": ["vct", "iss", "iat", "exp", "attestation_qualification"]
+    "required": ["vct", "iss", "iat", "exp", "attestation_qualification", "address"]
   }
 }

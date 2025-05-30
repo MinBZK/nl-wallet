@@ -61,24 +61,21 @@ serviceAccountName: null
 ##
 securityContext: {}
 
-## @section Ingress VPN parameters
-## Parameters for the VPN ingress
-## @param ingressVpn.hostname Hostname for the VPN ingress
-##
-ingressVpn:
-  hostname: null
-
 ## @section Ingress parameters
 ## @param ingress.className Ingress class name
 ## @param ingress.hostname Hostname for the ingress
-## @param ingress.contextPath Context path for the ingress
+## @param ingress.contextPath Optional context path for the ingress
+## @param ingress.tlsSecretName TLS secret name for the ingress
 ## @param ingress.labels Additional labels for the ingress
+## @param ingress.annotations Additional annotations for the ingress
 ##
 ingress:
   className: "nginx"
   hostname: null
   contextPath: null
+  tlsSecretName: null
   labels: {}
+  annotations: {}
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request
@@ -172,3 +169,8 @@ appIdentifier: null
 migration:
   labels: {}
   reset: true
+
+## @section Service monitor
+## @param serviceMonitor.enabled Enable service monitor
+serviceMonitor:
+  enabled: true

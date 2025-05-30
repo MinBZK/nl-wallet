@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: nl-wallet-gba-fetch-vpn
+  name: {{ .Values.frontend.name }}
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
@@ -25,17 +25,17 @@ metadata:
 spec:
   ingressClassName: {{ .Values.frontend.ingress.className }}
   rules:
-    - host: {{ .Values.gbaFetch.frontendUrl }}
+    - host: {{ .Values.frontend.ingress.hostname }}
       http:
         paths:
           - backend:
               service:
                 name: {{ .Values.frontend.name }}
                 port:
-                  number: 3000
+                  name: http
             path: /
             pathType: Prefix
   tls:
     - hosts:
-        - {{ .Values.gbaFetch.frontendUrl }}
-      secretName: {{ .Values.frontend.ingress.secretName }}
+        - {{ .Values.frontend.ingress.hostname }}
+      secretName: {{ .Values.frontend.ingress.tlsSecretName }}

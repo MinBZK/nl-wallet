@@ -141,7 +141,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceProvidePinForDisclosure(),
+          const IssuanceProvidePinForDisclosure(),
         ),
         providers: [
           RepositoryProvider<DiscloseForIssuanceUseCase>(create: (c) => MockDiscloseForIssuanceUseCase()),
@@ -154,7 +154,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceProvidePinForDisclosure(),
+          const IssuanceProvidePinForDisclosure(),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -211,7 +211,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceProvidePinForIssuance(
+          const IssuanceProvidePinForIssuance(
             cards: [],
           ),
         ),
@@ -256,7 +256,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceStopped(),
+          const IssuanceStopped(),
         ),
       );
       await screenMatchesGolden('stopped.light');
@@ -266,7 +266,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceStopped(returnUrl: 'https://example.org'),
+          const IssuanceStopped(returnUrl: 'https://example.org'),
         ),
       );
       await screenMatchesGolden('stopped.return_url.light');
@@ -276,7 +276,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceStopped(),
+          const IssuanceStopped(),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -288,7 +288,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceGenericError(
+          const IssuanceGenericError(
             error: GenericError('test', sourceError: CoreGenericError('test')),
           ),
         ),
@@ -300,7 +300,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceGenericError(
+          const IssuanceGenericError(
             error: GenericError('test', sourceError: CoreGenericError('test')),
           ),
         ),
@@ -340,7 +340,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceExternalScannerError(error: GenericError('test', sourceError: 'test')),
+          const IssuanceExternalScannerError(error: GenericError('test', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('external_scanner_error.light');
@@ -350,7 +350,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceExternalScannerError(error: GenericError('test', sourceError: 'test')),
+          const IssuanceExternalScannerError(error: GenericError('test', sourceError: 'test')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -362,7 +362,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: false),
+          const IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: false),
         ),
       );
       await screenMatchesGolden('network_error.light');
@@ -372,7 +372,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: true),
+          const IssuanceNetworkError(error: GenericError('test', sourceError: 'test'), hasInternet: true),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,
@@ -384,7 +384,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceSessionExpired(
+          const IssuanceSessionExpired(
             error: GenericError('test', sourceError: 'test'),
             isCrossDevice: false,
             canRetry: true,
@@ -399,7 +399,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceSessionExpired(
+          const IssuanceSessionExpired(
             error: GenericError('test', sourceError: 'test'),
             isCrossDevice: true,
             canRetry: false,
@@ -416,7 +416,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
+          const IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
         ),
       );
       await screenMatchesGolden('cancelled_session_error.light');
@@ -426,7 +426,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
+          const IssuanceSessionCancelled(error: GenericError('test', sourceError: 'test')),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,

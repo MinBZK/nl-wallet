@@ -46,15 +46,14 @@ use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
-use mdoc::DocType;
 use mdoc::SessionTranscript;
-use openid4vc::credential::MdocCopies;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -343,7 +342,7 @@ const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITUATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
 
-struct MockMdocDataSource(HashMap<DocType, (MdocCopies, NormalizedTypeMetadata)>);
+struct MockMdocDataSource(HashMap<String, (IssuedCredentialCopies, NormalizedTypeMetadata)>);
 
 impl MockMdocDataSource {
     fn new(mdocs: Vec<(Mdoc, NormalizedTypeMetadata)>) -> Self {
@@ -353,7 +352,10 @@ impl MockMdocDataSource {
                 .map(|(mdoc, normalized_metadata)| {
                     (
                         mdoc.doc_type().clone(),
-                        (vec![mdoc].try_into().unwrap(), normalized_metadata),
+                        (
+                            IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                            normalized_metadata,
+                        ),
                     )
                 })
                 .collect(),
@@ -368,21 +370,24 @@ impl MdocDataSource for MockMdocDataSource {
     async fn mdoc_by_doc_types(
         &self,
         doc_types: &HashSet<&str>,
-    ) -> std::result::Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
+    ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
         let stored_mdocs = self
             .0
             .iter()
-            .filter_map(|(doc_type, (mdoc_copies, normalized_metadata))| {
-                if doc_types.contains(doc_type.as_str()) {
-                    return vec![StoredMdoc {
-                        id: format!("{}_id", doc_type.clone()),
-                        mdoc: mdoc_copies.first().clone(),
-                        normalized_metadata: normalized_metadata.clone(),
-                    }]
-                    .into();
-                }
+            .filter_map(|(doc_type, (mdoc_copies, normalized_metadata))| match mdoc_copies {
+                IssuedCredentialCopies::MsoMdoc(mdocs) => {
+                    if doc_types.contains(doc_type.as_str()) {
+                        return vec![StoredMdoc {
+                            id: format!("{}_id", doc_type.clone()),
+                            mdoc: mdocs.first().clone(),
+                            normalized_metadata: normalized_metadata.clone(),
+                        }]
+                        .into();
+                    }
 
-                None
+                    None
+                }
+                _ => None,
             })
             .collect();
 
@@ -752,8 +757,16 @@ async fn test_disclosure_invalid_poa() {
         type Key = MockRemoteEcdsaKey;
         type Error = MockRemoteKeyFactoryError;
 
+        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
+            self.0.generate_new_multiple(count).await
+        }
+
         fn generate_existing<I: Into<String>>(&self, identifier: I, public_key: VerifyingKey) -> Self::Key {
             self.0.generate_existing(identifier, public_key)
+        }
+
+        async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
+            unimplemented!()
         }
 
         async fn sign_multiple_with_existing_keys(
@@ -761,14 +774,6 @@ async fn test_disclosure_invalid_poa() {
             messages_and_keys: Vec<(Vec<u8>, Vec<&Self::Key>)>,
         ) -> Result<Vec<Vec<Signature>>, Self::Error> {
             self.0.sign_multiple_with_existing_keys(messages_and_keys).await
-        }
-
-        async fn sign_with_new_keys(&self, _: Vec<u8>, _: u64) -> Result<Vec<(Self::Key, Signature)>, Self::Error> {
-            unimplemented!()
-        }
-
-        async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-            self.0.generate_new_multiple(count).await
         }
     }
 

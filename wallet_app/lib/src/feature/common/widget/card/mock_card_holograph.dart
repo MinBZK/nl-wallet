@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:wallet_core/core.dart';
+import 'package:wallet_mock/mock.dart';
 
 import '../../../../../environment.dart';
 import '../../../../wallet_assets.dart';
@@ -13,12 +13,13 @@ class MockCardHolograph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final show = Environment.mockRepositories && [kPidDocType, kAddressDocType].contains(docType);
-    if (!show) return SizedBox.shrink();
+    final show =
+        Environment.mockRepositories && [MockConstants.pidDocType, MockConstants.addressDocType].contains(docType);
+    if (!show) return const SizedBox.shrink();
     return CardHolograph(
       holograph: WalletAssets.svg_rijks_card_holo,
       // Taking shortcuts here to avoid adding extra info just for mock builds
-      brightness: docType == kPidDocType ? Brightness.light : Brightness.dark,
+      brightness: docType == MockConstants.pidDocType ? Brightness.light : Brightness.dark,
     );
   }
 }

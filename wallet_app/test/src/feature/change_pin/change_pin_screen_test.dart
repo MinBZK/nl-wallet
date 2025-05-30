@@ -333,10 +333,10 @@ void main() {
               forceAnnouncements: true,
             ).withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
-              ChangePinSelectNewPinInProgress(2),
+              const ChangePinSelectNewPinInProgress(2),
               streamStates: [
-                ChangePinSelectNewPinInProgress(3),
-                ChangePinSelectNewPinInProgress(2, afterBackspacePressed: true),
+                const ChangePinSelectNewPinInProgress(3),
+                const ChangePinSelectNewPinInProgress(2, afterBackspacePressed: true),
               ],
             ),
           );
@@ -370,11 +370,11 @@ void main() {
               forceAnnouncements: true,
             ).withState<ChangePinBloc, ChangePinState>(
               MockChangePinBloc(),
-              ChangePinConfirmNewPinInProgress(1),
+              const ChangePinConfirmNewPinInProgress(1),
               streamStates: [
-                ChangePinConfirmNewPinInProgress(2),
-                ChangePinConfirmNewPinInProgress(1, afterBackspacePressed: true),
-                ChangePinConfirmNewPinInProgress(0),
+                const ChangePinConfirmNewPinInProgress(2),
+                const ChangePinConfirmNewPinInProgress(1, afterBackspacePressed: true),
+                const ChangePinConfirmNewPinInProgress(0),
               ],
             ),
           );

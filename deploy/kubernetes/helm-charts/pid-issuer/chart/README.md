@@ -57,9 +57,10 @@
 | ----------------------- | -------------------------------------- | ------- |
 | `ingress.className`     | Ingress class name                     | `nginx` |
 | `ingress.hostname`      | Hostname for the ingress               | `nil`   |
-| `ingress.contextPath`   | Context path for the ingress           | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
 | `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
 | `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 
@@ -72,10 +73,9 @@
 
 ### DigiD parameters
 
-| Name                | Description                        | Value |
-| ------------------- | ---------------------------------- | ----- |
-| `digid.hostname`    | Hostname for the DigiD service     | `nil` |
-| `digid.contextPath` | Context path for the DigiD service | `nil` |
+| Name           | Description                    | Value |
+| -------------- | ------------------------------ | ----- |
+| `digidBaseUrl` | Base URL for the DigiD service | `nil` |
 
 ### Migration parameters
 

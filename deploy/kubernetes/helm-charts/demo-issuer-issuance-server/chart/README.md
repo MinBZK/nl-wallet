@@ -51,8 +51,11 @@
 | ----------------------- | -------------------------------------- | ------- |
 | `ingress.enabled`       | Enable or disable the ingress          | `true`  |
 | `ingress.className`     | Ingress class name                     | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
 | `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
 | `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 
@@ -60,16 +63,14 @@
 | --------------------------- | -------------- | ------- |
 | `resources.requests.cpu`    | CPU request    | `50m`   |
 | `resources.requests.memory` | Memory request | `64Mi`  |
-| `resources.limits.memory`   | Memory limit   | `128Mi` |
 | `resources.limits.cpu`      | CPU limit      | `200m`  |
+| `resources.limits.memory`   | Memory limit   | `128Mi` |
 
-### Issuance Server parameters
+### Urls
 
-| Name                         | Description                          | Value |
-| ---------------------------- | ------------------------------------ | ----- |
-| `issuanceServer.hostname`    | Hostname for the issuance server     | `nil` |
-| `issuanceServer.contextPath` | Context path for the issuance server | `nil` |
-| `universalLinkBaseUrl`       | Base URL for universal links         | `nil` |
+| Name                   | Description                  | Value |
+| ---------------------- | ---------------------------- | ----- |
+| `universalLinkBaseUrl` | Base URL for universal links | `nil` |
 
 ### Migration parameters
 

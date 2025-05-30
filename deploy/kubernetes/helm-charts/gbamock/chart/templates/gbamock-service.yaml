@@ -10,7 +10,7 @@ spec:
   selector:
     {{- include "common.labels.selectorLabels" . | nindent 4 }}
   ports:
-    - name: "5010"
-      port: 5010
+    - name: http
+      port: 80
       targetPort: 5010
 {{ end }}

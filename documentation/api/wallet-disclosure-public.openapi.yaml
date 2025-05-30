@@ -21,7 +21,7 @@ servers:
           - demo
         default: localhost
       rp_ws_port:
-        default: '3005'
+        default: '8001'
 
 paths:
   /disclosure/sessions/{session_token}:

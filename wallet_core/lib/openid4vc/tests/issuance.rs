@@ -170,13 +170,16 @@ async fn accept_issuance(
 
     issued_creds
         .into_iter()
-        .zip(session.credential_preview_data().iter())
+        .zip(session.normalized_credential_preview().iter())
         .for_each(|(credential, preview_data)| match credential.copies {
             IssuedCredentialCopies::MsoMdoc(mdocs) => {
                 let mdoc = mdocs.first().clone();
                 let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();
 
                 assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
+            }
+            IssuedCredentialCopies::SdJwt(_) => {
+                panic!("SdJwt should not be issued");
             }
         });
 }

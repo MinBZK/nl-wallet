@@ -19,7 +19,7 @@ class CardLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: BoxConstraints(
+      constraints: const BoxConstraints(
         minHeight: kLogoHeight,
         maxHeight: kLogoHeight,
         maxWidth: kLogoHeight * 2 /* add sane width restriction */,

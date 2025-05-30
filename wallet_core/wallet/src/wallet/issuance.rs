@@ -4,7 +4,6 @@ use derive_more::Constructor;
 use http::header;
 use http::HeaderMap;
 use http::HeaderValue;
-use itertools::Itertools;
 use p256::ecdsa::signature;
 use rustls_pki_types::TrustAnchor;
 use tracing::info;
@@ -20,7 +19,6 @@ use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
-use openid4vc::credential::CredentialCopies;
 use openid4vc::issuance_session::HttpVcMessageClient;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
@@ -244,7 +242,11 @@ where
 
         let session = self.session.take().unwrap();
         if let Session::Issuance(issuance_session) = session {
-            let organization = issuance_session.protocol_state.issuer_registration()?.organization;
+            let organization = issuance_session
+                .protocol_state
+                .issuer_registration()
+                .organization
+                .clone();
 
             info!("Rejecting issuance");
             issuance_session
@@ -334,18 +336,19 @@ where
         .await?;
 
         info!("successfully received token and previews from issuer");
+        let organization = &issuance_session.issuer_registration().organization;
         let attestations = issuance_session
-            .credential_preview_data()
+            .normalized_credential_preview()
             .iter()
             .map(|preview_data| {
                 let attestation = Attestation::create_from_attributes(
                     AttestationIdentity::Ephemeral,
                     preview_data.normalized_metadata.clone(),
-                    preview_data.issuer_registration.organization.clone(),
+                    organization.clone(),
                     preview_data.content.credential_payload.attributes.clone(),
                 )
                 .map_err(|error| IssuanceError::Attestation {
-                    organization: Box::new(preview_data.issuer_registration.organization.clone()),
+                    organization: Box::new(organization.clone()),
                     error,
                 })?;
 
@@ -433,7 +436,11 @@ where
 
         info!("Signing nonce using Wallet Provider");
 
-        let organization = issuance_session.protocol_state.issuer_registration()?.organization;
+        let organization = issuance_session
+            .protocol_state
+            .issuer_registration()
+            .organization
+            .clone();
 
         let issuance_result = issuance_session
             .protocol_state
@@ -472,10 +479,8 @@ where
         ) {
             self.reset_to_initial_state().await;
         }
-        let mdocs_with_metadata = issuance_result?
-            .into_iter()
-            .map(|credential| (CredentialCopies::from(credential.copies), credential.metadata_documents))
-            .collect_vec();
+
+        let issued_credentials_with_metadata = issuance_result?;
 
         info!("Isuance succeeded; removing issuance session state");
         let issuance_session = match self.session.take() {
@@ -483,11 +488,11 @@ where
             _ => unreachable!(),
         };
 
-        info!("Attestations accepted, storing mdoc in database");
+        info!("Attestations accepted, storing credentials in database");
         self.storage
             .write()
             .await
-            .insert_mdocs(mdocs_with_metadata)
+            .insert_credentials(issued_credentials_with_metadata)
             .await
             .map_err(IssuanceError::MdocStorage)?;
 
@@ -515,7 +520,7 @@ mod tests {
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::CredentialWithMetadata;
-    use openid4vc::issuance_session::IssuedCredential;
+    use openid4vc::issuance_session::IssuedCredentialCopies;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
@@ -553,11 +558,11 @@ mod tests {
         .try_into()
         .unwrap();
 
-        client.expect_issuer().return_once(move || Ok(issuer_registration));
+        client.expect_issuer().return_const(issuer_registration);
 
         client.expect_accept().return_once(|| {
             Ok(vec![CredentialWithMetadata::new(
-                vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap(),
+                IssuedCredentialCopies::MsoMdoc(VecNonEmpty::try_from(vec![mdoc]).unwrap()),
                 type_metadata,
             )])
         });
@@ -704,9 +709,7 @@ mod tests {
         let pid_issuer = {
             let mut client = MockIssuanceSession::new();
             client.expect_reject().return_once(|| Ok(()));
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
@@ -773,14 +776,16 @@ mod tests {
     async fn test_continue_pid_issuance() {
         let mut wallet = setup_wallet_with_digid_session();
 
-        let preview_data = create_example_preview_data();
-
         // Set up the `MockIssuanceSession` to return one `CredentialPreviewState`.
         let start_context = MockIssuanceSession::start_context();
         start_context.expect().return_once(|| {
             let mut client = MockIssuanceSession::new();
 
-            client.expect_credential_preview_data().return_const(vec![preview_data]);
+            client
+                .expect_normalized_credential_previews()
+                .return_const(vec![create_example_preview_data()]);
+
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             Ok(client)
         });
@@ -905,9 +910,7 @@ mod tests {
                 .expect_reject()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
 
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             client
         };
@@ -1056,9 +1059,7 @@ mod tests {
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::Jwt(JwtError::Signing(Box::new(key_error)))));
 
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             client
         };
@@ -1144,9 +1145,7 @@ mod tests {
                 .expect_accept()
                 .return_once(|| Err(IssuanceSessionError::MissingNonce));
 
-            client
-                .expect_issuer()
-                .return_once(|| Ok(IssuerRegistration::new_mock()));
+            client.expect_issuer().return_const(IssuerRegistration::new_mock());
 
             client
         };

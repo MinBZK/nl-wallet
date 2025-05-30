@@ -27,7 +27,7 @@ void main() {
 
     test('hashCode !matches', () {
       final otherWarning = FlutterAppConfiguration(
-        idleWarningTimeout: Duration(hours: 1337),
+        idleWarningTimeout: const Duration(hours: 1337),
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
@@ -35,7 +35,7 @@ void main() {
       );
       final otherIdle = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
-        idleLockTimeout: Duration(hours: 1337),
+        idleLockTimeout: const Duration(hours: 1337),
         backgroundLockTimeout: defaultMockConfig.backgroundLockTimeout,
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         version: defaultMockConfig.version,
@@ -43,7 +43,7 @@ void main() {
       final otherBackground = FlutterAppConfiguration(
         idleWarningTimeout: defaultMockConfig.idleWarningTimeout,
         idleLockTimeout: defaultMockConfig.idleLockTimeout,
-        backgroundLockTimeout: Duration(hours: 1337),
+        backgroundLockTimeout: const Duration(hours: 1337),
         staticAssetsBaseUrl: defaultMockConfig.staticAssetsBaseUrl,
         version: defaultMockConfig.version,
       );

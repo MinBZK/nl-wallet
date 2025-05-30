@@ -15,6 +15,7 @@ use mdoc::holder::ProposedAttributes;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::Attestation;
+use crate::issuance::BSN_ATTR_NAME;
 use crate::issuance::PID_DOCTYPE;
 
 pub type DisclosureStatus = EventStatus;
@@ -32,7 +33,7 @@ pub fn disclosure_type_for_proposed_attributes(proposed_attributes: &ProposedAtt
         .and_then(|doc_attributes| doc_attributes.attributes.iter().exactly_one().ok())
         .and_then(|(namespace, entries)| (namespace == PID_DOCTYPE).then_some(entries))
         .and_then(|entries| entries.iter().exactly_one().ok())
-        .and_then(|entry| (entry.name == "bsn").then_some(DisclosureType::Login))
+        .and_then(|entry| (entry.name == BSN_ATTR_NAME).then_some(DisclosureType::Login))
         .unwrap_or(DisclosureType::Regular)
 }
 
@@ -249,14 +250,14 @@ mod test {
                 let metadata =
                     NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
                         attestation_type,
-                        "bsn",
+                        BSN_ATTR_NAME,
                         JsonSchemaPropertyType::String,
                         None,
                     ));
                 let attributes = IndexMap::from([(
                     attestation_type.to_string(),
                     vec![Entry {
-                        name: "bsn".to_string(),
+                        name: BSN_ATTR_NAME.to_string(),
                         value: DataElementValue::Text("999999999".to_string()),
                     }],
                 )]);

@@ -75,7 +75,7 @@ void main() {
   });
 
   test('Should return an application error if a CoreError is internally thrown', () async {
-    final sourceError = CoreGenericError('test');
+    final sourceError = const CoreGenericError('test');
     const sequentialPin = '123456';
     when(walletRepository.validatePin(sequentialPin)).thenAnswer((_) => throw sourceError);
     final result = await useCase.invoke(sequentialPin);

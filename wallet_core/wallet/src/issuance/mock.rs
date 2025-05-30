@@ -11,6 +11,7 @@ use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::TypeMetadata;
 
+use super::BSN_ATTR_NAME;
 use super::PID_DOCTYPE;
 
 pub fn create_bsn_only_payload_preview() -> (PreviewableCredentialPayload, TypeMetadata) {
@@ -19,7 +20,7 @@ pub fn create_bsn_only_payload_preview() -> (PreviewableCredentialPayload, TypeM
         SigningKey::random(&mut OsRng).verifying_key(),
     );
 
-    let metadata = TypeMetadata::example_with_claim_name(PID_DOCTYPE, "bsn", JsonSchemaPropertyType::String, None);
+    let metadata = TypeMetadata::example_with_claim_name(PID_DOCTYPE, BSN_ATTR_NAME, JsonSchemaPropertyType::String, None);
 
     (payload.previewable_payload, metadata)
 }

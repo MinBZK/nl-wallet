@@ -1,11 +1,9 @@
 {{- define "common.urls.combineDomainAndContext" -}}
 {{- $domain := index . 0 -}}
 {{- $path := index . 1 -}}
-{{- if not (hasPrefix "https://" $domain) -}}
-{{- $domain = printf "https://%s" $domain -}}
+{{- if empty $path -}}
+{{- printf "https://%s/" $domain -}}
+{{- else -}}
+{{- printf "https://%s/%s/" $domain $path -}}
 {{- end -}}
-{{- if not (hasPrefix "/" $path) -}}
-{{- $path = printf "/%s/" $path -}}
-{{- end -}}
-{{- printf "%s%s" (trimSuffix "/" $domain) $path -}}
 {{- end -}}

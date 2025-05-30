@@ -79,7 +79,7 @@ void main() {
       );
 
       // Advance the timer so that expiry will be checked
-      await tester.pump(Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
       // Verify callback is executed
@@ -96,7 +96,7 @@ void main() {
     });
 
     test('getArgument throws for invalid input', () {
-      expect(() => PinTimeoutScreen.getArgument(RouteSettings(arguments: 1)), throwsA(isA<UnsupportedError>()));
+      expect(() => PinTimeoutScreen.getArgument(const RouteSettings(arguments: 1)), throwsA(isA<UnsupportedError>()));
     });
   });
 }

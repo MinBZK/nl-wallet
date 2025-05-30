@@ -150,8 +150,6 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
 
-    use super::Wallet;
-
     use crate::attestation::Attestation;
     use crate::storage::WalletEvent;
 
@@ -160,6 +158,7 @@ mod tests {
     use super::super::test::WalletWithMocks;
     use super::super::test::ISSUER_KEY;
     use super::HistoryError;
+    use super::Wallet;
 
     const PID_DOCTYPE: &str = "com.example.pid";
     const ADDRESS_DOCTYPE: &str = "com.example.address";

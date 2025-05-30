@@ -34,7 +34,7 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
         settings
             .disclosure_settings
             .iter()
-            .map(|(id, s)| (id.clone(), s.attestation_url.clone()))
+            .map(|(id, s)| (id.clone(), s.attestation_url_config.clone()))
             .collect(),
     );
 

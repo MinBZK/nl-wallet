@@ -1,5 +1,5 @@
 ip = "0.0.0.0"
-port = 3009
+port = 8001
 
 [update_policy]
 "=1.1.0" = "Notify"

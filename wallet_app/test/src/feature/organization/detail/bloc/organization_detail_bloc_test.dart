@@ -45,9 +45,9 @@ void main() {
     });
 
     test('OrganizationDetailFailure equals works', () {
-      final a = OrganizationDetailFailure(organizationId: '1');
-      final b = OrganizationDetailFailure(organizationId: '1');
-      final c = OrganizationDetailFailure(organizationId: 'other');
+      final a = const OrganizationDetailFailure(organizationId: '1');
+      final b = const OrganizationDetailFailure(organizationId: '1');
+      final c = const OrganizationDetailFailure(organizationId: 'other');
       expect(a, b, reason: 'OrganizationDetailFailure instances should a & b should be equal');
       expect(a, isNot(c), reason: 'OrganizationDetailFailure instances should a & c should not be equal');
     });

@@ -40,7 +40,7 @@ void main() {
         ''';
         await tester.pumpWidgetWithAppWrapper(
           OrganizationLogo(
-            image: SvgImage(landscapeSvg),
+            image: const SvgImage(landscapeSvg),
             size: kGoldenSize.height,
           ),
           surfaceSize: kGoldenSize,

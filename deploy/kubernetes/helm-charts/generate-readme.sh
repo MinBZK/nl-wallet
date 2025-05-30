@@ -14,5 +14,6 @@ else
 fi
 
 for values_file in $(find "$BASE_DIR" -type f -name 'values.yaml'); do
+    echo "$(basename "$(dirname "$(dirname "$values_file")")")"
     $GENERATOR -r "$(dirname "$values_file")/README.md" -v "$values_file"
 done

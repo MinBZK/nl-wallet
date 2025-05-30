@@ -34,13 +34,21 @@
 
 ### Image pull secrets
 
-| Name                    | Description                                  | Value   |
-| ----------------------- | -------------------------------------------- | ------- |
-| `imagePullSecrets`      | Array of secret names for private registries | `[]`    |
-| `ingress.enabled`       | Enable or disable the ingress                | `true`  |
-| `ingress.className`     | Ingress class name                           | `nginx` |
-| `ingress.tlsSecretName` | Name of the TLS secret for the ingress       | `nil`   |
-| `ingress.labels`        | Additional labels for the ingress            | `{}`    |
+| Name               | Description                                  | Value |
+| ------------------ | -------------------------------------------- | ----- |
+| `imagePullSecrets` | Array of secret names for private registries | `[]`  |
+
+### Ingress parameters
+
+| Name                    | Description                            | Value   |
+| ----------------------- | -------------------------------------- | ------- |
+| `ingress.enabled`       | Enable or disable the ingress          | `true`  |
+| `ingress.className`     | Ingress class name                     | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
+| `ingress.tlsSecretName` | Name of the TLS secret for the ingress | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 
@@ -50,10 +58,3 @@
 | `resources.requests.memory` | Memory request | `32Mi` |
 | `resources.limits.cpu`      | CPU limit      | `200m` |
 | `resources.limits.memory`   | Memory limit   | `64Mi` |
-
-### Demo Index parameters
-
-| Name                    | Description                     | Value |
-| ----------------------- | ------------------------------- | ----- |
-| `demoIndex.hostname`    | Hostname for the demo index     | `nil` |
-| `demoIndex.contextPath` | Context path for the demo index | `nil` |

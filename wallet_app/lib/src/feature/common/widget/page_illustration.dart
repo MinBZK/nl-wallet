@@ -21,7 +21,7 @@ class PageIllustration extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: padding,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: _kContainerColor,
         borderRadius: WalletTheme.kBorderRadius12,
       ),

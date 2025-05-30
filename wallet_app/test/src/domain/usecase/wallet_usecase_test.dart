@@ -38,7 +38,7 @@ void main() {
     });
 
     test('CoreError is mapped and forwarded', () async {
-      final sourceException = CoreHardwareKeyUnsupportedError('test');
+      final sourceException = const CoreHardwareKeyUnsupportedError('test');
       final errorStream = Stream.error(sourceException).handleAppError('[errorDescription]');
       expect(errorStream, emitsError(isA<HardwareUnsupportedError>()));
     });

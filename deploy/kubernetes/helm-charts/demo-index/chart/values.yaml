@@ -41,18 +41,24 @@ extraPodlabels: {}
 ##
 imagePullSecrets: []
 
-# @section Ingress parameters
+## @section Ingress parameters
 ## Parameters for the ingress configuration
 ## @param ingress.enabled Enable or disable the ingress
 ## @param ingress.className Ingress class name
+## @param ingress.hostname Hostname for the ingress
+## @param ingress.contextPath Optional context path for the ingress
 ## @param ingress.tlsSecretName Name of the TLS secret for the ingress
 ## @param ingress.labels Additional labels for the ingress
+## @param ingress.annotations Additional annotations for the ingress
 ##
 ingress:
   enabled: true
   className: "nginx"
+  hostname: null
+  contextPath: null
   tlsSecretName: null
   labels: {}
+  annotations: {}
 
 ## @section Resource requests and limits
 ## @param resources.requests.cpu CPU request
@@ -67,12 +73,3 @@ resources:
   limits:
     cpu: "200m"
     memory: "64Mi"
-
-## @section Demo Index parameters
-## Parameters for the demo issuer configuration
-## @param demoIndex.hostname Hostname for the demo index
-## @param demoIndex.contextPath Context path for the demo index
-##
-demoIndex:
-  hostname: null
-  contextPath: null

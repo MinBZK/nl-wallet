@@ -3,8 +3,8 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 
 void main() {
   test('Missing attribute equals works as expected', () {
-    final attribute = MissingAttribute(key: 'key', label: {Locale('nl'): 'label'});
-    final sameAttribute = MissingAttribute(key: 'key', label: {Locale('nl'): 'label'});
+    final attribute = MissingAttribute(key: 'key', label: {const Locale('nl'): 'label'});
+    final sameAttribute = MissingAttribute(key: 'key', label: {const Locale('nl'): 'label'});
     expect(attribute, sameAttribute);
   });
 

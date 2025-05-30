@@ -5,9 +5,9 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 void main() {
   test('UiAttribute key should throw', () {
     final attribute = UiAttribute(
-      value: StringValue('value'),
+      value: const StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {Locale('nl'): 'test'},
+      label: {const Locale('nl'): 'test'},
     );
 
     expect(() => attribute.key, throwsA(isA<UnsupportedError>()));
@@ -15,15 +15,15 @@ void main() {
 
   test('UiAttribute equals works as expected', () {
     final attribute = UiAttribute(
-      value: StringValue('value'),
+      value: const StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {Locale('nl'): 'test'},
+      label: {const Locale('nl'): 'test'},
     );
 
     final identicalAttribute = UiAttribute(
-      value: StringValue('value'),
+      value: const StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {Locale('nl'): 'test'},
+      label: {const Locale('nl'): 'test'},
     );
 
     expect(attribute == identicalAttribute, isTrue);
@@ -31,27 +31,27 @@ void main() {
 
   test('UiAttribute !equals works as expected', () {
     final attribute = UiAttribute(
-      value: StringValue('value'),
+      value: const StringValue('value'),
       icon: Icons.connected_tv_sharp,
-      label: {Locale('nl'): 'test'},
+      label: {const Locale('nl'): 'test'},
     );
 
     final otherValue = UiAttribute(
-      value: StringValue('value!'),
+      value: const StringValue('value!'),
       icon: Icons.connected_tv_sharp,
-      label: {Locale('nl'): 'test'},
+      label: {const Locale('nl'): 'test'},
     );
 
     final otherIcon = UiAttribute(
-      value: StringValue('value'),
+      value: const StringValue('value'),
       icon: Icons.factory,
-      label: {Locale('nl'): 'test'},
+      label: {const Locale('nl'): 'test'},
     );
 
     final otherLabel = UiAttribute(
-      value: StringValue('value'),
+      value: const StringValue('value'),
       icon: Icons.factory,
-      label: {Locale('en'): 'test'},
+      label: {const Locale('en'): 'test'},
     );
 
     expect(attribute == otherValue, isFalse);

@@ -8,6 +8,6 @@ spec:
   selector:
     {{- include "common.labels.componentSelectorLabels" (list .Values.frontend.name .) | nindent 4 }}
   ports:
-    - name: gba-fetch-http
-      port: 3000
-      targetPort: 3000
+    - name: http
+      port: 80
+      targetPort: http

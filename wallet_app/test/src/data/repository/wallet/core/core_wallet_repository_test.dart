@@ -8,6 +8,7 @@ import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/util/mapper/pin/pin_validation_error_mapper.dart';
 import 'package:wallet/src/wallet_core/typed/typed_wallet_core.dart';
 import 'package:wallet_core/core.dart';
+import 'package:wallet_mock/mock.dart';
 
 import '../../../../mocks/core_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
@@ -152,7 +153,7 @@ void main() {
     test('when wallet contains pid the method returns true', () async {
       const cardWithPidDocType = Attestation(
         identity: AttestationIdentity.fixed(id: '0'),
-        attestationType: kPidDocType,
+        attestationType: MockConstants.pidDocType,
         displayMetadata: [DisplayMetadata(lang: 'nl', name: 'card name')],
         attributes: [],
         issuer: CoreMockData.organization,

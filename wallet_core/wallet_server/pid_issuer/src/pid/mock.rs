@@ -17,66 +17,74 @@ use crate::pid::constants::*;
 #[derive(Debug, Constructor)]
 pub struct MockAttributeService(VecNonEmpty<IssuableDocument>);
 
+pub fn mock_issuable_document_pid() -> IssuableDocument {
+    IssuableDocument::try_new(
+        MOCK_PID_DOCTYPE.to_string(),
+        IndexMap::from_iter(vec![
+            (
+                PID_FAMILY_NAME.to_string(),
+                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
+            ),
+            (
+                PID_GIVEN_NAME.to_string(),
+                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
+            ),
+            (
+                PID_BIRTH_DATE.to_string(),
+                Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
+            ),
+            (
+                PID_AGE_OVER_18.to_string(),
+                Attribute::Single(AttributeValue::Bool(true)),
+            ),
+            (
+                PID_BSN.to_string(),
+                Attribute::Single(AttributeValue::Text("999991772".to_string())),
+            ),
+        ]),
+    )
+    .unwrap()
+}
+
+pub fn mock_issuable_document_address() -> IssuableDocument {
+    IssuableDocument::try_new(
+        MOCK_ADDRESS_DOCTYPE.to_string(),
+        IndexMap::from_iter(vec![(
+            PID_ADDRESS_GROUP.to_string(),
+            Attribute::Nested(IndexMap::from_iter(vec![
+                (
+                    PID_RESIDENT_STREET.to_string(),
+                    Attribute::Single(AttributeValue::Text("Turfmarkt".to_string())),
+                ),
+                (
+                    PID_RESIDENT_HOUSE_NUMBER.to_string(),
+                    Attribute::Single(AttributeValue::Text("147".to_string())),
+                ),
+                (
+                    PID_RESIDENT_POSTAL_CODE.to_string(),
+                    Attribute::Single(AttributeValue::Text("2511 DP".to_string())),
+                ),
+                (
+                    PID_RESIDENT_CITY.to_string(),
+                    Attribute::Single(AttributeValue::Text("Den Haag".to_string())),
+                ),
+                (
+                    PID_RESIDENT_COUNTRY.to_string(),
+                    Attribute::Single(AttributeValue::Text("Nederland".to_string())),
+                ),
+            ])),
+        )]),
+    )
+    .unwrap()
+}
+
 impl Default for MockAttributeService {
     fn default() -> Self {
-        let pid = IssuableDocument::try_new(
-            MOCK_PID_DOCTYPE.to_string(),
-            IndexMap::from_iter(vec![
-                (
-                    PID_FAMILY_NAME.to_string(),
-                    Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
-                ),
-                (
-                    PID_GIVEN_NAME.to_string(),
-                    Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
-                ),
-                (
-                    PID_BIRTH_DATE.to_string(),
-                    Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
-                ),
-                (
-                    PID_AGE_OVER_18.to_string(),
-                    Attribute::Single(AttributeValue::Bool(true)),
-                ),
-                (
-                    PID_BSN.to_string(),
-                    Attribute::Single(AttributeValue::Text("999991772".to_string())),
-                ),
-            ]),
+        Self::new(
+            vec![mock_issuable_document_pid(), mock_issuable_document_address()]
+                .try_into()
+                .unwrap(),
         )
-        .unwrap();
-
-        let address = IssuableDocument::try_new(
-            MOCK_ADDRESS_DOCTYPE.to_string(),
-            IndexMap::from_iter(vec![(
-                PID_ADDRESS_GROUP.to_string(),
-                Attribute::Nested(IndexMap::from_iter(vec![
-                    (
-                        PID_RESIDENT_STREET.to_string(),
-                        Attribute::Single(AttributeValue::Text("Turfmarkt".to_string())),
-                    ),
-                    (
-                        PID_RESIDENT_HOUSE_NUMBER.to_string(),
-                        Attribute::Single(AttributeValue::Text("147".to_string())),
-                    ),
-                    (
-                        PID_RESIDENT_POSTAL_CODE.to_string(),
-                        Attribute::Single(AttributeValue::Text("2511 DP".to_string())),
-                    ),
-                    (
-                        PID_RESIDENT_CITY.to_string(),
-                        Attribute::Single(AttributeValue::Text("Den Haag".to_string())),
-                    ),
-                    (
-                        PID_RESIDENT_COUNTRY.to_string(),
-                        Attribute::Single(AttributeValue::Text("Nederland".to_string())),
-                    ),
-                ])),
-            )]),
-        )
-        .unwrap();
-
-        Self::new(vec![pid, address].try_into().unwrap())
     }
 }
 

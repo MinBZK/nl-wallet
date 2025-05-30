@@ -3,7 +3,6 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 
 use futures::future::try_join_all;
-use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
@@ -18,7 +17,6 @@ use jwt::jwk::jwk_jwt_header;
 use jwt::pop::JwtPopClaims;
 use jwt::wte::WteClaims;
 use jwt::Jwt;
-use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::IssuerSigned;
 use poa::Poa;
@@ -124,6 +122,15 @@ pub struct CredentialResponses {
 pub enum CredentialResponse {
     MsoMdoc { credential: Box<CborBase64<IssuerSigned>> },
     SdJwt { credential: String },
+}
+
+impl CredentialResponse {
+    pub fn matches_format(&self, format: Format) -> bool {
+        match &self {
+            CredentialResponse::MsoMdoc { .. } => format == Format::MsoMdoc,
+            CredentialResponse::SdJwt { .. } => format == Format::SdJwt,
+        }
+    }
 }
 
 pub const OPENID4VCI_VC_POP_JWT_TYPE: &str = "openid4vci-proof+jwt";
@@ -265,29 +272,6 @@ pub struct PreAuthTransactionCode {
     pub input_mode: Option<String>,
     pub length: Option<u64>,
     pub description: Option<String>,
-}
-
-/// Stores multiple copies of credentials that have identical attributes.
-#[nutype(
-    validate(predicate = |copies| !copies.is_empty()),
-    derive(Debug, Clone, AsRef, TryFrom, Serialize, Deserialize, PartialEq, IntoIterator)
-)]
-pub struct CredentialCopies<T>(Vec<T>);
-
-pub type MdocCopies = CredentialCopies<Mdoc>;
-
-impl<T> CredentialCopies<T> {
-    pub fn first(&self) -> &T {
-        self.as_ref().first().unwrap()
-    }
-
-    pub fn len(&self) -> usize {
-        self.as_ref().len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.as_ref().is_empty()
-    }
 }
 
 #[cfg(test)]

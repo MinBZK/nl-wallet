@@ -7,7 +7,7 @@ import 'wallet_instruction_error_extension.dart';
 extension WalletInstructionResultExtension on WalletInstructionResult {
   Result<String?> asApplicationResult() {
     return switch (this) {
-      WalletInstructionResult_Ok() => Result.success(null),
+      WalletInstructionResult_Ok() => const Result.success(null),
       WalletInstructionResult_InstructionError(:final error) => Result.error(
           CheckPinError(
             error.asCheckPinResult(),

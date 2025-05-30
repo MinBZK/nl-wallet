@@ -66,6 +66,7 @@ test_common = [
     "dep:apple_app_attest",
     "dep:attestation_data",
     "dep:axum",
+    "dep:axum-server",
     "dep:chrono",
     "dep:configuration_server",
     "dep:ctor",
@@ -127,7 +128,7 @@ integration_test = [
     "tokio/sync",
 ]
 # Optional feature for running integration tests that depend on the DigiD connector
-digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter", "dep:rustls-pki-types"]
+digid_test = ["fake_digid", "test_common", "dep:gba_hc_converter", "dep:rustls-pki-types", "dep:serial_test"]
 # Should be enabled when building the performance_test binary
 performance_test = [
     "logging",
@@ -182,6 +183,7 @@ gba_pid_test = [
 [dependencies]
 assert_matches = { workspace = true, optional = true }
 axum = { workspace = true, optional = true, features = ["http1", "json", "tokio"] }
+axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
 ctor = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }

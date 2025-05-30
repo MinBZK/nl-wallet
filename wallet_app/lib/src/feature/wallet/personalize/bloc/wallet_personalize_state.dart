@@ -156,7 +156,7 @@ class WalletPersonalizeGenericError extends WalletPersonalizeState implements Er
   final ApplicationError error;
 
   @override
-  FlowProgress get stepperProgress => FlowProgress(currentStep: kSetupSteps, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kSetupSteps, totalSteps: kSetupSteps);
 
   const WalletPersonalizeGenericError({required this.error});
 
@@ -181,7 +181,7 @@ class WalletPersonalizeRelyingPartyError extends WalletPersonalizeState implemen
   final LocalizedText? organizationName;
 
   @override
-  FlowProgress get stepperProgress => FlowProgress(currentStep: kSetupSteps, totalSteps: kSetupSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: kSetupSteps, totalSteps: kSetupSteps);
 
   const WalletPersonalizeRelyingPartyError({required this.error, this.organizationName});
 

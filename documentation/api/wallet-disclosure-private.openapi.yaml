@@ -32,7 +32,7 @@ servers:
           - demo
         default: localhost
       rp_rs_port:
-        default: '3006'
+        default: '8002'
 
 paths:
   /disclosure/sessions:

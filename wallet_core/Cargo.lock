@@ -611,6 +611,7 @@ dependencies = [
  "serde_json",
  "serde_valid",
  "serde_with",
+ "ssri",
  "strum 0.26.3",
  "thiserror 2.0.11",
  "time",
@@ -1636,6 +1637,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c297a1c74b71ae29df00c3e22dd9534821d60eb9af5a0192823fa2acea70c2a"
 
 [[package]]
+name = "dcql"
+version = "0.3.0-dev"
+dependencies = [
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "utils",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1706,6 +1718,7 @@ dependencies = [
  "askama_web",
  "attestation_data",
  "axum",
+ "axum-server",
  "config",
  "demo_utils",
  "http_utils",
@@ -5417,6 +5430,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "ssri",
  "thiserror 2.0.11",
  "tokio",
  "utils",
@@ -6563,6 +6577,7 @@ dependencies = [
  "assert_matches",
  "attestation_data",
  "axum",
+ "axum-server",
  "chrono",
  "configuration_server",
  "crypto",

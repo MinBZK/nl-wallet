@@ -36,19 +36,15 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           ports:
-            - name: wallet-port
-              containerPort: 3009
-            - name: requester-port
-              containerPort: 3010
+            - name: http
+              containerPort: 8001
+            - name: http-internal
+              containerPort: 8002
           env:
-            - name: VERIFICATION_SERVER__WALLET_SERVER__PORT
-              value: "3009"
             - name: VERIFICATION_SERVER__REQUESTER_SERVER__IP
               value: "0.0.0.0"
-            - name: VERIFICATION_SERVER__REQUESTER_SERVER__PORT
-              value: "3010"
             - name: VERIFICATION_SERVER__PUBLIC_URL
-              value: {{ include "common.urls.combineDomainAndContext" (list .Values.verificationServer.hostname .Values.verificationServer.contextPath) }}
+              value: {{ include "common.urls.combineDomainAndContext" (list .Values.ingress.hostname .Values.ingress.contextPath) }}
             - name: VERIFICATION_SERVER__UNIVERSAL_LINK_BASE_URL
               value: {{ .Values.universalLinkBaseUrl }}
             - name: VERIFICATION_SERVER__STRUCTURED_LOGGING
