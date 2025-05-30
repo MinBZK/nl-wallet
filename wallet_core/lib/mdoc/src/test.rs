@@ -215,7 +215,7 @@ impl TestDocument {
         let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
         let mdoc_key = key_factory.generate_new().await.unwrap();
 
-        (payload_preview, self.metadata_integrity.clone(), issuance_key, mdoc_key)
+        (payload_preview, self.metadata_integrity, issuance_key, mdoc_key)
     }
 
     /// Converts `self` into a [`PreviewableCredentialPayload`] and signs it into an [`Mdoc`] using `ca` and
@@ -404,32 +404,6 @@ pub mod data {
 
     pub fn empty() -> TestDocuments {
         vec![].into()
-    }
-
-    pub fn pid_example() -> TestDocuments {
-        vec![TestDocument::new(
-            PID.to_owned(),
-            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
-            IndexMap::from_iter(vec![(
-                PID.to_string(),
-                vec![
-                    Entry {
-                        name: "bsn".to_string(),
-                        value: Value::Text("999999999".to_string()),
-                    },
-                    Entry {
-                        name: "given_name".to_string(),
-                        value: Value::Text("Willeke Liselotte".to_string()),
-                    },
-                    Entry {
-                        name: "family_name".to_string(),
-                        value: Value::Text("De Bruijn".to_string()),
-                    },
-                ],
-            )]),
-            TypeMetadataDocuments::pid_example(),
-        )]
-        .into()
     }
 
     pub fn pid_example_payload() -> CredentialPayload {

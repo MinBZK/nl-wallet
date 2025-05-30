@@ -242,19 +242,28 @@ pub type DocType = String;
 /// [`Attributes`], which contains [`IssuerSignedItem`]s, grouped per [`NameSpace`].
 #[nutype(
     derive(Debug, Clone, PartialEq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
-    validate(predicate = |name_spaces| !name_spaces.is_empty() && !name_spaces.values().any(|attrs| attrs.as_ref().is_empty())),
+    validate(predicate = |name_spaces| !name_spaces.is_empty()),
 )]
 pub struct IssuerNameSpaces(IndexMap<NameSpace, Attributes>);
 
+#[derive(Debug, thiserror::Error)]
+pub enum IssuerNameSpacesPreConditionError {
+    #[error("precondition for namespaces failed: {0}")]
+    Validation(#[from] IssuerNameSpacesError),
+    #[error("precondition for attributes failed: {0}")]
+    AttributeValidation(#[from] AttributesError),
+}
+
 impl TryFrom<IndexMap<NameSpace, Vec<Entry>>> for IssuerNameSpaces {
-    type Error = IssuerNameSpacesError;
+    type Error = IssuerNameSpacesPreConditionError;
 
     fn try_from(source: IndexMap<NameSpace, Vec<Entry>>) -> Result<Self, Self::Error> {
-        source
+        let result: Self = source
             .into_iter()
-            .map(|(namespace, attrs)| (namespace, Attributes::try_from(attrs).unwrap()))
-            .collect::<IndexMap<_, _>>()
-            .try_into()
+            .map(|(namespace, attrs)| Ok((namespace, Attributes::try_from(attrs)?)))
+            .collect::<Result<IndexMap<_, _>, AttributesError>>()?
+            .try_into()?;
+        Ok(result)
     }
 }
 

@@ -146,7 +146,7 @@ async fn request_server_settings_and_listener() -> (RequesterAuth, Option<TcpLis
 
 async fn wallet_server_settings_and_listener(
     requester_server: RequesterAuth,
-    request: &LazyLock<StartDisclosureRequest>,
+    request: &StartDisclosureRequest,
 ) -> (VerifierSettings, TcpListener, Ca, TrustAnchor<'static>) {
     // Set up the listener.
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -595,7 +595,7 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
 
 async fn start_disclosure<S>(
     disclosure_sessions: S,
-    request: &LazyLock<StartDisclosureRequest>,
+    request: &StartDisclosureRequest,
 ) -> (
     VerifierSettings,
     Client,
@@ -633,7 +633,7 @@ where
     let client = default_reqwest_client_builder().build().unwrap();
     let response = client
         .post(internal_url.join("disclosure/sessions"))
-        .json(LazyLock::force(request))
+        .json(request)
         .send()
         .await
         .unwrap();
@@ -1030,7 +1030,7 @@ fn check_example_disclosed_attributes(disclosed_attributes: &DisclosedAttributes
     itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
     let (first_entry_name, first_entry_value) = attributes.get(PID_ATTESTATION_TYPE).unwrap().first().unwrap();
     assert_eq!(first_entry_name, EXAMPLE_ATTR_NAME);
-    assert_eq!(first_entry_value, &ciborium::Value::Text("De Bruijn".to_string()));
+    assert_eq!(first_entry_value.as_text(), "De Bruijn".into());
 }
 
 #[tokio::test]

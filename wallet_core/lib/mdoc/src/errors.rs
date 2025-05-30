@@ -7,7 +7,7 @@ use crate::utils::cose::KeysError;
 use crate::utils::crypto::CryptoError;
 use crate::utils::serialization::CborError;
 use crate::verifier::VerificationError;
-use crate::IssuerNameSpacesError;
+use crate::IssuerNameSpacesPreConditionError;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -34,5 +34,5 @@ pub enum Error {
     MissingValidityInformation(String),
     #[error("Missing or empty NameSpace detected: {0}")]
     #[category(critical)]
-    MissingOrEmptyNamespace(IssuerNameSpacesError),
+    MissingOrEmptyNamespace(#[from] IssuerNameSpacesPreConditionError),
 }

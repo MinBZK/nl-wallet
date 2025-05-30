@@ -184,13 +184,12 @@ impl WalletEvent {
 mod test {
     use std::sync::LazyLock;
 
+    use attestation_data::identifiers::NameSpace;
     use indexmap::IndexMap;
     use rstest::rstest;
 
-    use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Entry;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
@@ -214,16 +213,16 @@ mod test {
     });
 
     #[rstest]
-    #[case(issuance::mock::create_bsn_only_payload_preview(), DisclosureType::Login)]
-    #[case(issuance::mock::create_example_payload_preview(), DisclosureType::Regular)]
+    #[case(issuance::mock::create_bsn_only_mdoc_attributes(), DisclosureType::Login)]
+    #[case(issuance::mock::create_example_mdoc_attributes(), DisclosureType::Regular)]
     fn test_disclosure_type_from_proposed_attributes(
-        #[case] (payload_preview, type_metadata): (PreviewableCredentialPayload, TypeMetadata),
+        #[case] (proposed_attributes, type_metadata): (IndexMap<NameSpace, Vec<Entry>>, TypeMetadata),
         #[case] expected: DisclosureType,
     ) {
         let proposed_attributes = ProposedAttributes::from([(
             PID_DOCTYPE.to_string(),
             ProposedDocumentAttributes {
-                attributes: Attribute::from_attributes(&payload_preview.attestation_type, payload_preview.attributes),
+                attributes: proposed_attributes,
                 issuer: ISSUER_CERTIFICATE.clone(),
                 type_metadata: NormalizedTypeMetadata::from_single_example(type_metadata.into_inner()),
             },

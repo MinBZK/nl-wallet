@@ -127,14 +127,6 @@ pub enum MdocCredentialPayloadError {
     #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
     #[category(pd)]
     CoseKeyConversion(#[from] CryptoError),
-
-    #[error("no attributes present in PreviewableCredentialPayload")]
-    #[category(critical)]
-    NoAttributes,
-
-    #[error("missing either the \"exp\" or \"nbf\" timestamp")]
-    #[category(critical)]
-    MissingValidityTimestamp,
 }
 
 impl IntoCredentialPayload for Mdoc {

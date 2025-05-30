@@ -253,7 +253,6 @@ dotenvy = { workspace = true, optional = true }
 # are run from the workspace. The following features are not included in this:
 # * hsm_test
 # * db_test
-attestation_data = { path = "../lib/attestation_data", features = ["example_credential_payloads"] }
 android_attest = { path = "../lib/android_attest", features = ["serialize_key_attestation"] }
 issuance_server = { path = "../wallet_server/issuance_server", features = ["integration_test"] }
 openid4vc = { path = "../lib/openid4vc", features = ["integration"] }
