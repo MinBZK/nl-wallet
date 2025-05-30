@@ -62,7 +62,7 @@ void main() {
             onPressed: () {},
             isOn: true,
           ),
-          surfaceSize: Size(300, 128),
+          surfaceSize: const Size(300, 128),
           textScaleSize: 2,
         );
         await screenMatchesGolden('flashlight/scaled.light');

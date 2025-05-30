@@ -51,7 +51,7 @@ class _SharedAttributesCardState extends State<SharedAttributesCard> {
     return Semantics(
       button: true,
       child: DecoratedBox(
-        decoration: CardShadowDecoration(),
+        decoration: const CardShadowDecoration(),
         child: TextButton(
           onPressed: widget.onTap,
           statesController: _statesController,

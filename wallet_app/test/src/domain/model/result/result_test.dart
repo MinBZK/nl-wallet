@@ -6,12 +6,12 @@ void main() {
   setUp(() {});
 
   test('value is available through .value method', () async {
-    final result = Result.success(true);
+    final result = const Result.success(true);
     expect(result.value, isTrue);
   });
 
   test('toString prints the contained value', () async {
-    final result = Result.success('[test message]');
+    final result = const Result.success('[test message]');
     expect(result.toString(), contains('[test message]'));
   });
 
@@ -29,14 +29,14 @@ void main() {
   });
 
   test('error is null when trying to fetch an error from a success result', () async {
-    final result = Result.success('success');
+    final result = const Result.success('success');
     expect(result.error, isNull);
   });
 
   test('hasError behaves as expected', () async {
     final error = GenericError('rawMessage', sourceError: Exception('exception'));
     final errorResult = Result.error(error);
-    final successResult = Result.success(true);
+    final successResult = const Result.success(true);
 
     expect(errorResult.hasError, isTrue);
     expect(successResult.hasError, isFalse);

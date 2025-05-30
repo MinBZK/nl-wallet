@@ -13,7 +13,7 @@ void main() {
       'light',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          PolicyEntryRow(
+          const PolicyEntryRow(
             title: Text('Title'),
             description: Text('Description'),
             icon: Icon(Icons.account_balance_wallet_rounded),
@@ -28,7 +28,7 @@ void main() {
       'light long text & description',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          PolicyEntryRow(
+          const PolicyEntryRow(
             title: Text('Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.'),
             description: Text(
               'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt '
@@ -37,7 +37,7 @@ void main() {
             ),
             icon: Icon(Icons.account_balance_wallet_rounded),
           ),
-          surfaceSize: Size(200, 540),
+          surfaceSize: const Size(200, 540),
         );
         await screenMatchesGolden('light.long');
       },
@@ -47,7 +47,7 @@ void main() {
       'light - no icon',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          PolicyEntryRow(
+          const PolicyEntryRow(
             title: Text('Title'),
             description: Text('Description'),
           ),
@@ -61,12 +61,12 @@ void main() {
       'light scaled',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          PolicyEntryRow(
+          const PolicyEntryRow(
             title: Text('Title'),
             description: Text('Description'),
             icon: Icon(Icons.account_balance_wallet_rounded),
           ),
-          surfaceSize: Size(300, 170),
+          surfaceSize: const Size(300, 170),
           textScaleSize: 2.5,
         );
         await screenMatchesGolden('scaled.light');
@@ -77,7 +77,7 @@ void main() {
       'dark',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          PolicyEntryRow(
+          const PolicyEntryRow(
             title: Text('Title'),
             description: Text('Description'),
             icon: Icon(Icons.account_balance_wallet_rounded),
@@ -93,7 +93,7 @@ void main() {
   group('widgets', () {
     testWidgets('banner shows title and description', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
-        PolicyEntryRow(
+        const PolicyEntryRow(
           title: Text('Title'),
           description: Text('Description'),
           icon: Icon(Icons.account_balance_wallet_rounded),

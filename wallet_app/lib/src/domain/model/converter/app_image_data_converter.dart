@@ -15,7 +15,7 @@ class AppImageDataConverter extends JsonConverter<AppImageData, Map<String, dyna
     final String type = json[_kTypeKey];
     return switch (type) {
       'asset' => AppAssetImage(json[_kDataKey]),
-      'base64' => AppMemoryImage(Base64Decoder().convert(json[_kDataKey])),
+      'base64' => AppMemoryImage(const Base64Decoder().convert(json[_kDataKey])),
       'svg' => SvgImage(json[_kDataKey]),
       String() => throw UnsupportedError('could not deserialize to image'),
     };
@@ -30,7 +30,7 @@ class AppImageDataConverter extends JsonConverter<AppImageData, Map<String, dyna
         },
       AppMemoryImage() => {
           _kTypeKey: 'base64',
-          _kDataKey: Base64Encoder().convert(object.data),
+          _kDataKey: const Base64Encoder().convert(object.data),
         },
       SvgImage() => {
           _kTypeKey: 'svg',

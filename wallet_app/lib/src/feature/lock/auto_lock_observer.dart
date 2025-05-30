@@ -133,7 +133,7 @@ class _AutoLockObserverState extends State<AutoLockObserver> with WidgetsBinding
       context.read<NavigationService>().showDialog(WalletDialogType.idleWarning, dismissOpenDialogs: true);
     } finally {
       // Re-enable the idle timer
-      Future.delayed(Duration(seconds: 1)).then((_) => _semanticsTimerResetEnabled = true);
+      Future.delayed(const Duration(seconds: 1)).then((_) => _semanticsTimerResetEnabled = true);
     }
   }
 

@@ -45,7 +45,7 @@ void main() {
       'Cards adapt based on provided brightness',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          Column(
+          const Column(
             spacing: 16,
             children: [
               WalletCardItem(
@@ -79,7 +79,7 @@ void main() {
       'Card scales vertically with content',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          Column(
+          const Column(
             spacing: 16,
             children: [
               WalletCardItem(
@@ -113,7 +113,7 @@ void main() {
       'Subtitles are rendered when provided',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          Column(
+          const Column(
             spacing: 16,
             children: [
               WalletCardItem(
@@ -157,7 +157,7 @@ void main() {
       'Verify holograph is rendered as expected',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
-          WalletCardItem(
+          const WalletCardItem(
             title: 'Holograph',
             textColor: DarkWalletTheme.textColor,
             background: MockCardBackground(docType: kAddressDocType),

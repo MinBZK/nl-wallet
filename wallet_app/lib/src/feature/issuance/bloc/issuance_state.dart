@@ -89,7 +89,7 @@ class IssuanceProvidePinForDisclosure extends IssuanceState {
   bool get canGoBack => true;
 
   @override
-  FlowProgress get stepperProgress => FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
 }
 
 class IssuanceReviewCards extends IssuanceState {
@@ -137,7 +137,7 @@ class IssuanceProvidePinForIssuance extends IssuanceState {
   bool get canGoBack => true;
 
   @override
-  FlowProgress get stepperProgress => FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [cards, ...super.props];

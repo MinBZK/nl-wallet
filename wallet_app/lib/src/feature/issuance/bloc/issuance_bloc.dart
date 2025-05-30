@@ -117,7 +117,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     if (result == null) throw UnsupportedError('Bloc in incorrect state (no data loaded)');
     switch (result) {
       case StartIssuanceReadyToDisclose():
-        emit(IssuanceProvidePinForDisclosure());
+        emit(const IssuanceProvidePinForDisclosure());
       case StartIssuanceMissingAttributes():
         emit(
           IssuanceMissingAttributes(

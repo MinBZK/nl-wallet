@@ -10,7 +10,7 @@ void main() {
     testGoldens(
       'Locked Out Dialog',
       (tester) async {
-        final Key showDialogButton = Key('showDialogButton');
+        final Key showDialogButton = const Key('showDialogButton');
         await tester.pumpWidgetWithAppWrapper(
           Scaffold(
             body: Builder(

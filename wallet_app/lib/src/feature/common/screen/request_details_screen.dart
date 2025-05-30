@@ -105,7 +105,7 @@ class RequestDetailsScreen extends StatelessWidget {
                         policy: policy!.policy,
                         side: DividerSide.top,
                       ),
-                    SliverDivider(),
+                    const SliverDivider(),
                     const SliverSizedBox(height: 24),
                   ],
                 ),
@@ -124,7 +124,7 @@ class RequestDetailsScreen extends StatelessWidget {
         if (side.top) const SliverDivider(),
         SliverToBoxAdapter(
           child: InfoRow(
-            padding: EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             leading: OrganizationLogo(image: organization.logo, size: 24),
             title: Text(
               context.l10n.requestDetailScreenAboutOrganizationCta(

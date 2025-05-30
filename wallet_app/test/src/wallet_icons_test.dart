@@ -8,7 +8,10 @@ import 'test_util/golden_utils.dart';
 void main() {
   group('goldens', () {
     testGoldens('face id icon renders as expected', (tester) async {
-      await tester.pumpWidgetWithAppWrapper(Icon(WalletIcons.icon_face_id, size: 32), surfaceSize: Size(32, 32));
+      await tester.pumpWidgetWithAppWrapper(
+        const Icon(WalletIcons.icon_face_id, size: 32),
+        surfaceSize: const Size(32, 32),
+      );
       await screenMatchesGolden('icons/face_id');
     });
   });

@@ -217,7 +217,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
           child: ConstrainedBox(
             constraints: _kCardSizeConstraints,
             child: DecoratedBox(
-              decoration: CardShadowDecoration(),
+              decoration: const CardShadowDecoration(),
               child: Material(
                 color: Colors.transparent,
                 borderRadius: _kCardBorderRadius,
@@ -373,7 +373,7 @@ extension WalletCardRenderExtension on WalletCard {
     final rendering = getL10nRendering(context);
     switch (rendering) {
       case null:
-        return DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
+        return const DecoratedBox(decoration: BoxDecoration(color: _kFallbackBgColor));
       case SimpleCardRendering():
         final bgColor = rendering.bgColor
                 .takeIf((_) => rendering.textColor != null /* guarantee contrast */ || Environment.isMockOrTest) ??

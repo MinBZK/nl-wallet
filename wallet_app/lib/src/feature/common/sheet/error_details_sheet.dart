@@ -70,7 +70,7 @@ class ErrorDetailsSheet extends StatelessWidget {
 
     return ListView.separated(
       itemBuilder: (context, index) => items[index],
-      separatorBuilder: (context, index) => SizedBox(height: 4),
+      separatorBuilder: (context, index) => const SizedBox(height: 4),
       itemCount: items.length,
       shrinkWrap: true,
     );

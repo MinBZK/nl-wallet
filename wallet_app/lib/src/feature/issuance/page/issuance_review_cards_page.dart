@@ -80,7 +80,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
 
   Widget _buildCardListItem(BuildContext context, WalletCard card) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Stack(
         fit: StackFit.passthrough,
         children: [
@@ -96,7 +96,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
       onPressed: () => CardPreviewScreen.show(context, card: card),
       mainAxisAlignment: MainAxisAlignment.start,
       text: Text(context.l10n.issuanceReviewCardsPageShowDetailsCta),
-      icon: Icon(Icons.info_outline_rounded),
+      icon: const Icon(Icons.info_outline_rounded),
     );
 
     final addButton = Align(
@@ -123,7 +123,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -159,7 +159,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Divider(),
+          const Divider(),
           ConfirmButtons(
             primaryButton: PrimaryButton(
               key: kReviewCardsAcceptButtonKey,
@@ -170,7 +170,7 @@ class IssuanceReviewCardsPage extends StatelessWidget {
               key: kReviewCardsDeclineButtonKey,
               onPressed: onDecline,
               text: Text(context.l10n.issuanceReviewCardsPageDeclineCta),
-              icon: Icon(Icons.block_flipped),
+              icon: const Icon(Icons.block_flipped),
             ),
           ),
         ],

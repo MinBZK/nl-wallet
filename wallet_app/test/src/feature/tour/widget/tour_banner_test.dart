@@ -39,7 +39,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const TourBanner(),
-          surfaceSize: Size(390, 128),
+          surfaceSize: const Size(390, 128),
           textScaleSize: 2,
         );
         await screenMatchesGolden('scaled.light');

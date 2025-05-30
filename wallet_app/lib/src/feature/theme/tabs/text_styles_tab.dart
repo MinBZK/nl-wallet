@@ -40,9 +40,9 @@ class TextStylesTab extends StatelessWidget {
         Text('LabelMedium', style: context.textTheme.labelMedium),
         Text('LabelSmall', style: context.textTheme.labelSmall),
         const Divider(height: 24),
-        TitleText('Title Text'),
-        ParagraphSpacer(),
-        BodyText('Body Text'),
+        const TitleText('Title Text'),
+        const ParagraphSpacer(),
+        const BodyText('Body Text'),
         _buildScenarios(context),
       ],
     );

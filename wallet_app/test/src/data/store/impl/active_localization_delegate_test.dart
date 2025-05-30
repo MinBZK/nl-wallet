@@ -20,7 +20,7 @@ void main() {
   });
 
   test('when notified about a different language, that language is emitted as the new activeLocale', () async {
-    await delegate.load(Locale('nl'));
+    await delegate.load(const Locale('nl'));
     expect(delegate.activeLocale.languageCode, 'nl');
   });
 
@@ -30,14 +30,14 @@ void main() {
         delegate.observe(),
         emitsInOrder(
           [
-            Locale('en'),
-            Locale('nl'),
-            Locale('de'),
+            const Locale('en'),
+            const Locale('nl'),
+            const Locale('de'),
           ],
         ),
       ),
     );
-    await delegate.load(Locale('nl'));
-    await delegate.load(Locale('de'));
+    await delegate.load(const Locale('nl'));
+    await delegate.load(const Locale('de'));
   });
 }
