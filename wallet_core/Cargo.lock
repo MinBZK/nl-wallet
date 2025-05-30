@@ -1637,6 +1637,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c297a1c74b71ae29df00c3e22dd9534821d60eb9af5a0192823fa2acea70c2a"
 
 [[package]]
+name = "dcql"
+version = "0.3.0-dev"
+dependencies = [
+ "rstest",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "utils",
+]
+
+[[package]]
 name = "deadpool"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

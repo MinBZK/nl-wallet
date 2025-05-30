@@ -1,0 +1,18 @@
+[package]
+name = "dcql"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+serde_with.workspace = true
+
+utils.path = "../utils"
+
+[dev-dependencies]
+rstest.workspace = true
