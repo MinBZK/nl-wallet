@@ -4,6 +4,7 @@ use std::fmt::Formatter;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
+
 use utils::vec_at_least::VecNonEmpty;
 
 /// A DCQL query, encoding constraints on the combinations of credentials and claims that are requested.
