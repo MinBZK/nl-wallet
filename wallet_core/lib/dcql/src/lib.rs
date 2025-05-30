@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::ops::Not;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -38,7 +39,7 @@ pub struct CredentialQuery {
 
     /// Indicates whether multiple Credentials can be returned for this Credential Query.
     /// If omitted, the default value is false.
-    #[serde(default = "bool_value::<false>")]
+    #[serde(default = "bool_value::<false>", skip_serializing_if = "<&bool>::not")]
     pub multiple: bool,
 
     /// Expected authorities or trust frameworks that certify Issuers, if any, that the Verifier will accept.
@@ -50,7 +51,7 @@ pub struct CredentialQuery {
     /// Indicates whether the Verifier requires a Cryptographic Holder Binding proof. The default value is true,
     /// i.e., a Verifiable Presentation with Cryptographic Holder Binding is required.
     /// If set to false, the Verifier accepts a Credential without Cryptographic Holder Binding proof.
-    #[serde(default = "bool_value::<true>")]
+    #[serde(default = "bool_value::<true>", skip_serializing_if = "Clone::clone")]
     pub require_cryptographic_holder_binding: bool,
 
     #[serde(flatten)]
@@ -112,7 +113,7 @@ pub struct CredentialSetQuery {
 
     /// Indicates whether this set of Credentials is required to satisfy the particular use case at the Verifier.
     /// If omitted, the default value is true.
-    #[serde(default = "bool_value::<true>")]
+    #[serde(default = "bool_value::<true>", skip_serializing_if = "Clone::clone")]
     pub required: bool,
 }
 
@@ -232,8 +233,6 @@ mod tests {
                     "meta": {
                         "vct_values": [ "https://credentials.example.com/identity_credential" ]
                     },
-                    "multiple": false,
-                    "require_cryptographic_holder_binding": true,
                     "claims": [
                         { "id": "a", "path": [ "given_name" ] },
                         { "id": "b", "path": [ "family_name" ] },
@@ -250,7 +249,6 @@ mod tests {
                     "meta": {
                         "vct_values": [ "https://othercredentials.example/pid" ]
                     },
-                    "multiple": false,
                     "trusted_authorities": [
                         { "type": "aki", "values": [ "s9tIpPmhxdiuNkHMEWNpYim8S8Y" ] }
                     ],
@@ -268,7 +266,6 @@ mod tests {
                         "doctype_value": "org.iso.7367.1.mVRC"
                     },
                     "multiple": true,
-                    "require_cryptographic_holder_binding": true,
                     "claims": [
                         { "path": [ "org.iso.7367.1", "vehicle_holder" ], "intent_to_retain": true },
                         { "path": [ "org.iso.18013.5.1", "first_name" ], "values": [ "John" ] }
@@ -277,8 +274,7 @@ mod tests {
             ],
             "credential_sets": [
                 {
-                    "options": [ [ "pid" ], [ "other_pid" ] ],
-                    "required": true
+                    "options": [ [ "pid" ], [ "other_pid" ] ]
                 },
                 {
                     "options": [ [ "mdl" ] ],
