@@ -34,12 +34,13 @@ pub fn create_bsn_only_mdoc_attributes() -> (IndexMap<String, Vec<Entry>>, TypeM
     )
 }
 
+// NOTE: this example and metadata should comply with "eudi:pid:nl:1.json"
 pub fn create_example_payload_preview() -> (PreviewableCredentialPayload, TypeMetadata) {
     let payload = CredentialPayload::example_with_attributes(
         vec![
             ("family_name", AttributeValue::Text("De Bruijn".to_string())),
             ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
-            ("birth_date", AttributeValue::Text("1997-05-10".to_string())),
+            ("birthdate", AttributeValue::Text("1997-05-10".to_string())),
             ("age_over_18", AttributeValue::Bool(true)),
         ],
         SigningKey::random(&mut OsRng).verifying_key(),
@@ -51,7 +52,7 @@ pub fn create_example_payload_preview() -> (PreviewableCredentialPayload, TypeMe
             ("family_name", JsonSchemaPropertyType::String, None),
             ("given_name", JsonSchemaPropertyType::String, None),
             (
-                "birth_date",
+                "birthdate",
                 JsonSchemaPropertyType::String,
                 Some(JsonSchemaPropertyFormat::Date),
             ),

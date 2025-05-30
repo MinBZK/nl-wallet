@@ -74,7 +74,7 @@ mod test {
                     AttestationAttributeValue::Basic(AttributeValue::Text(String::from("Willeke Liselotte")))
                 ),
                 (
-                    vec![String::from("birth_date")],
+                    vec![String::from("birthdate")],
                     AttestationAttributeValue::Date(NaiveDate::from_ymd_opt(1997, 5, 10).unwrap())
                 ),
                 (
@@ -148,7 +148,7 @@ mod test {
                 if claims == IndexMap::from([
                     (String::from(PID_DOCTYPE),
                     vec![Entry {
-                        name: String::from("birth_date"),
+                        name: String::from("birthdate"),
                         value: ciborium::value::Value::Text("1997-05-10".to_string())
                     }]
                 )]

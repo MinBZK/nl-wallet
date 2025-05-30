@@ -1795,13 +1795,13 @@ mod tests {
             .insert_mdocs(vec![
                 (
                     vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
-                    VerifiedTypeMetadataDocuments::pid_example(),
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
                 (
                     vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
                     // Note that the attestation type of this metadata does not match the mdoc doc_type,
                     // which is not relevant for this particular test.
-                    VerifiedTypeMetadataDocuments::pid_example(),
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
             ])
             .await

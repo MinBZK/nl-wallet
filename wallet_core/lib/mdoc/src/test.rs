@@ -429,7 +429,7 @@ pub mod data {
                     value: Value::Text("Willeke Liselotte".to_string()),
                 }],
             )]),
-            TypeMetadataDocuments::pid_example(),
+            TypeMetadataDocuments::nl_pid_example(),
         )]
         .into()
     }
@@ -445,7 +445,7 @@ pub mod data {
                     value: Value::Text("De Bruijn".to_string()),
                 }],
             )]),
-            TypeMetadataDocuments::pid_example(),
+            TypeMetadataDocuments::nl_pid_example(),
         )]
         .into()
     }
@@ -467,7 +467,7 @@ pub mod data {
                     },
                 ],
             )]),
-            TypeMetadataDocuments::pid_example(),
+            TypeMetadataDocuments::nl_pid_example(),
         )]
         .into()
     }

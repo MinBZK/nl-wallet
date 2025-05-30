@@ -942,7 +942,7 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
-        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
+        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::nl_pid_example());
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
 
         // Accept the PID issuance with the PIN.
@@ -1175,7 +1175,7 @@ mod tests {
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let mdoc = test::create_example_pid_mdoc();
-        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
+        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::nl_pid_example());
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
 
         // Have the mdoc storage return an error on query.
