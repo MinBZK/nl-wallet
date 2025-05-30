@@ -18,7 +18,7 @@ pub struct Query {
 
     /// Additional constraints, if any, on which of the requested Credentials to return.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub credential_sets: Vec<CredentialQuerySets>,
+    pub credential_sets: Vec<CredentialSetQuery>,
 }
 
 /// Represents a request for a presentation of one or more matching Credentials.
@@ -90,7 +90,7 @@ pub enum CredentialQueryFormat {
 ///
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-28.html#name-credential-set-query>
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CredentialQuerySets {
+pub struct CredentialSetQuery {
     /// A non-empty array, where each value in the array is a list of Credential Query identifiers representing
     /// one set of Credentials that satisfies the use case. The value of each element in the options array is
     /// an array of identifiers which reference elements in the `credentials` field of [`Query`].
