@@ -49,6 +49,8 @@ use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
 use openid4vc::token::TokenRequest;
+use pid_issuer::pid::mock::mock_issuable_document_address;
+use pid_issuer::pid::mock::mock_issuable_document_pid;
 use pid_issuer::pid::mock::MockAttributeService;
 use pid_issuer::settings::PidIssuerSettings;
 use pid_issuer::wte_tracker::WteTrackerVariant;
@@ -59,6 +61,7 @@ use server_utils::settings::Server;
 use server_utils::settings::ServerSettings;
 use server_utils::store::SessionStoreVariant;
 use update_policy_server::settings::Settings as UpsSettings;
+use utils::vec_at_least::VecNonEmpty;
 use verification_server::settings::VerifierSettings;
 use wallet::mock::MockDigidSession;
 use wallet::mock::MockStorage;
@@ -168,7 +171,7 @@ pub async fn setup_wallet_and_env(
     (ups_settings, ups_root_ca): (UpsSettings, ReqwestTrustAnchor),
     (mut wp_settings, wp_root_ca): (WpSettings, ReqwestTrustAnchor),
     verifier_settings: VerifierSettings,
-    issuer_settings: PidIssuerSettings,
+    (issuer_settings, pid_issuable_documents): (PidIssuerSettings, VecNonEmpty<IssuableDocument>),
     (issuance_server_settings, issuable_documents): (IssuanceServerSettings, Vec<IssuableDocument>),
 ) -> (WalletWithMocks, DisclosureParameters, IssuanceParameters) {
     let key_holder = match vendor {
@@ -223,8 +226,12 @@ pub async fn setup_wallet_and_env(
     );
 
     let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
-    let pid_issuer_port =
-        start_pid_issuer_server(issuer_settings, Some(hsm.clone()), MockAttributeService::default()).await;
+    let pid_issuer_port = start_pid_issuer_server(
+        issuer_settings,
+        Some(hsm.clone()),
+        MockAttributeService::new(pid_issuable_documents),
+    )
+    .await;
     let issuance_server_url = start_issuance_server(issuance_server_settings, Some(hsm), attributes_fetcher).await;
 
     let issuance_setup = IssuanceParameters {
@@ -397,13 +404,18 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     port
 }
 
-pub fn pid_issuer_settings() -> PidIssuerSettings {
+pub fn pid_issuer_settings() -> (PidIssuerSettings, VecNonEmpty<IssuableDocument>) {
     let mut settings = PidIssuerSettings::new("pid_issuer.toml", "pid_issuer").expect("Could not read settings");
 
     settings.issuer_settings.server_settings.wallet_server.ip = IpAddr::from_str("127.0.0.1").unwrap();
     settings.issuer_settings.server_settings.wallet_server.port = 0;
 
-    settings
+    (
+        settings,
+        vec![mock_issuable_document_pid(), mock_issuable_document_address()]
+            .try_into()
+            .unwrap(),
+    )
 }
 
 pub fn issuance_server_settings() -> (IssuanceServerSettings, Vec<IssuableDocument>) {

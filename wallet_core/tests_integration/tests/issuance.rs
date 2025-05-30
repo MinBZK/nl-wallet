@@ -1,16 +1,24 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use indexmap::IndexMap;
 use serial_test::serial;
 use url::Url;
 
+use attestation_data::issuable_document::IssuableDocument;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
+use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::VerifierUrlParameters;
+use openid4vc::ErrorResponse;
+use pid_issuer::pid::constants::*;
+use pid_issuer::pid::mock::mock_issuable_document_address;
 use tests_integration::common::*;
+use wallet::attestation_data::Attribute;
 use wallet::attestation_data::AttributeValue;
+use wallet::errors::IssuanceError;
 use wallet::openid4vc::SessionType;
 use wallet::utils::BaseUrl;
 use wallet::Attestation;
@@ -38,9 +46,8 @@ pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<Attestatio
 
 #[tokio::test]
 #[serial(hsm)]
-async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // retain [`MockDigidSession::Context`]
-    let _context = setup_digid_context();
+async fn test_pid_ok() {
+    let _retain = setup_digid_context();
 
     let pin = "112233";
     let mut wallet = setup_wallet_and_default_env(WalletDeviceVendor::Apple).await;
@@ -59,8 +66,6 @@ async fn test_pid_ok() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         ),
         None => panic!("BSN attribute not found"),
     }
-
-    Ok(())
 }
 
 fn universal_link(issuance_server_url: &BaseUrl) -> Url {
@@ -86,6 +91,139 @@ fn universal_link(issuance_server_url: &BaseUrl) -> Url {
     uri.set_query(Some(&query));
 
     uri
+}
+
+fn pid_without_optionals() -> IssuableDocument {
+    IssuableDocument::try_new(
+        MOCK_PID_DOCTYPE.to_string(),
+        IndexMap::from_iter(vec![
+            (
+                PID_FAMILY_NAME.to_string(),
+                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
+            ),
+            (
+                PID_GIVEN_NAME.to_string(),
+                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
+            ),
+            (
+                PID_BIRTH_DATE.to_string(),
+                Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
+            ),
+            // only age_over_18 is optional in `eudi::pid::nl:1.json`
+            (
+                PID_BSN.to_string(),
+                Attribute::Single(AttributeValue::Text("999991772".to_string())),
+            ),
+        ]),
+    )
+    .unwrap()
+}
+
+fn pid_missing_required() -> IssuableDocument {
+    IssuableDocument::try_new(
+        MOCK_PID_DOCTYPE.to_string(),
+        IndexMap::from_iter(vec![
+            (
+                PID_FAMILY_NAME.to_string(),
+                Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
+            ),
+            (
+                PID_GIVEN_NAME.to_string(),
+                Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
+            ),
+            (
+                PID_BIRTH_DATE.to_string(),
+                Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
+            ),
+            // bsn is missing, which is required
+        ]),
+    )
+    .unwrap()
+}
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_pid_optional_attributes() {
+    let _retain = setup_digid_context();
+
+    let pin = "112233";
+    let (mut wallet, _, _) = setup_wallet_and_env(
+        WalletDeviceVendor::Apple,
+        config_server_settings(),
+        update_policy_server_settings(),
+        wallet_provider_settings(),
+        verification_server_settings(),
+        (
+            pid_issuer_settings().0,
+            vec![pid_without_optionals(), mock_issuable_document_address()]
+                .try_into()
+                .unwrap(),
+        ),
+        issuance_server_settings(),
+    )
+    .await;
+    wallet = do_wallet_registration(wallet, pin).await;
+    wallet = do_pid_issuance(wallet, pin.to_owned()).await;
+
+    // Verify that the first mdoc contains the bsn
+    let attestations = wallet_attestations(&mut wallet).await;
+    let pid_attestation = attestations.first().unwrap();
+    let bsn_attr = pid_attestation.attributes.iter().find(|a| a.key == vec!["bsn"]);
+
+    match bsn_attr {
+        Some(bsn_attr) => assert_eq!(
+            bsn_attr.value,
+            AttestationAttributeValue::Basic(AttributeValue::Text("999991772".to_string()))
+        ),
+        None => panic!("BSN attribute not found"),
+    }
+    // Verify that we didn't get `age_over_18` issued
+    let age_over_18 = pid_attestation.attributes.iter().find(|a| a.key == vec!["age_over_18"]);
+    assert!(age_over_18.is_none());
+}
+
+#[tokio::test]
+#[serial(hsm)]
+async fn test_pid_missing_required_attributes() {
+    let _retain = setup_digid_context();
+
+    let pin = "112233";
+    let (mut wallet, _, _) = setup_wallet_and_env(
+        WalletDeviceVendor::Apple,
+        config_server_settings(),
+        update_policy_server_settings(),
+        wallet_provider_settings(),
+        verification_server_settings(),
+        (
+            pid_issuer_settings().0,
+            vec![pid_missing_required(), mock_issuable_document_address()]
+                .try_into()
+                .unwrap(),
+        ),
+        issuance_server_settings(),
+    )
+    .await;
+    wallet = do_wallet_registration(wallet, pin).await;
+    let redirect_url = wallet
+        .create_pid_issuance_auth_url()
+        .await
+        .expect("should create PID issuance redirect URL");
+    let _unsigned_mdocs = wallet
+        .continue_pid_issuance(redirect_url)
+        .await
+        .expect("should continue PID issuance");
+    let error = wallet
+        .accept_issuance(pin.to_owned())
+        .await
+        .expect_err("should fail to accept issuance");
+
+    assert!(matches!(
+        error,
+        IssuanceError::IssuerServer {
+            error: IssuanceSessionError::CredentialRequest(ErrorResponse { error_description: Some(description), .. }),
+            ..
+            } if description == "error converting CredentialPayload to Mdoc: metadata validation error: JSON schema validation failed for vct \"urn:eudi:pid:nl:1\": \"bsn\" is a required property"
+    ));
 }
 
 #[tokio::test]

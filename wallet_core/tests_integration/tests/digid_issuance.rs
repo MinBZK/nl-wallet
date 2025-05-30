@@ -34,7 +34,7 @@ use wallet::wallet_deps::HttpDigidSession;
 #[tokio::test]
 #[serial(hsm)]
 async fn test_pid_issuance_digid_bridge() {
-    let settings = pid_issuer_settings();
+    let (settings, _) = pid_issuer_settings();
     let hsm = settings
         .issuer_settings
         .server_settings
