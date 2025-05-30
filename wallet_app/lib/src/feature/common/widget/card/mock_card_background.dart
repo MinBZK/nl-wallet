@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:wallet_core/core.dart';
 import 'package:wallet_mock/mock.dart';
 
 import '../../../../wallet_assets.dart';
@@ -19,15 +18,15 @@ class MockCardBackground extends StatelessWidget {
 
   String? _resolveBackgroundAsset(String docType) {
     switch (docType) {
-      case kPidDocType:
+      case MockConstants.pidDocType:
         return WalletAssets.svg_rijks_card_bg_light;
-      case kAddressDocType:
+      case MockConstants.addressDocType:
         return WalletAssets.svg_rijks_card_bg_dark;
       case 'DIPLOMA_1':
         return WalletAssets.image_bg_diploma;
       case 'DIPLOMA_2':
         return WalletAssets.image_bg_diploma;
-      case kDrivingLicenseDocType:
+      case MockConstants.drivingLicenseDocType:
         return WalletAssets.image_bg_nl_driving_license;
       case 'HEALTH_INSURANCE':
         return WalletAssets.image_bg_health_insurance;

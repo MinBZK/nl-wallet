@@ -16,11 +16,6 @@ export 'src/models/uri.dart';
 export 'src/models/version_state.dart';
 export 'src/models/wallet_event.dart';
 
-// Hardcoded docTypes, these are exposed here because the card data is still enriched
-// based on this docType inside wallet_app (see [CardFrontMapper]). To be removed #someday
-const kPidDocType = 'urn:eudi:pid:nl:1';
-const kAddressDocType = 'urn:eudi:pid-address:nl:1';
-
 Future<void> postInit() async {
   if (await core.isInitialized()) {
     // We always reset the streams here to avoid an invalid state where the native code
