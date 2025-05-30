@@ -36,6 +36,9 @@ use uuid::Uuid;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
+use entity::attestation::TypeMetadataModel;
+use entity::attestation_copy;
+use entity::attestation_copy::AttestationFormat;
 use entity::disclosure_history_event;
 use entity::disclosure_history_event::EventStatus;
 use entity::disclosure_history_event_attestation_type;
@@ -43,8 +46,6 @@ use entity::history_attestation_type;
 use entity::issuance_history_event;
 use entity::issuance_history_event_attestation_type;
 use entity::keyed_data;
-use entity::mdoc::TypeMetadataModel;
-use entity::mdoc_copy;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use mdoc::utils::serialization::CborError;
@@ -216,7 +217,7 @@ impl<K> DatabaseStorage<K> {
 
     async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<StoredMdocCopy>>
     where
-        F: FnOnce(Select<mdoc_copy::Entity>) -> Select<mdoc_copy::Entity>,
+        F: FnOnce(Select<attestation_copy::Entity>) -> Select<attestation_copy::Entity>,
     {
         let database = self.database()?;
 
@@ -226,16 +227,17 @@ impl<K> DatabaseStorage<K> {
         // queries" feature that SQLite provides.
         //
         // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
-        let select = mdoc_copy::Entity::find()
+        let select = attestation_copy::Entity::find()
             .select_only()
-            .inner_join(entity::mdoc::Entity)
-            .column(mdoc_copy::Column::Id)
-            .column(mdoc_copy::Column::MdocId)
-            .column(mdoc_copy::Column::Mdoc)
-            .column(entity::mdoc::Column::TypeMetadata)
-            .column_as(mdoc_copy::Column::DisclosureCount.min(), "disclosure_count")
-            .group_by(mdoc_copy::Column::MdocId)
-            .order_by(mdoc_copy::Column::Id, Order::Asc);
+            .inner_join(entity::attestation::Entity)
+            .column(attestation_copy::Column::Id)
+            .column(attestation_copy::Column::AttestationId)
+            .column(attestation_copy::Column::Attestation)
+            .column(entity::attestation::Column::TypeMetadata)
+            .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
+            .group_by(attestation_copy::Column::AttestationId)
+            .filter(attestation_copy::Column::AttestationFormat.eq(AttestationFormat::Mdoc))
+            .order_by(attestation_copy::Column::Id, Order::Asc);
 
         let mdoc_copies: Vec<(Uuid, Uuid, Vec<u8>, TypeMetadataModel)> =
             transform_select(select).into_tuple().all(database.connection()).await?;
@@ -513,10 +515,11 @@ where
                             let copy_models = mdocs
                                 .iter()
                                 .map(|mdoc| {
-                                    let model = mdoc_copy::ActiveModel {
+                                    let model = attestation_copy::ActiveModel {
                                         id: Set(Uuid::now_v7()),
-                                        mdoc_id: Set(mdoc_id),
-                                        mdoc: Set(cbor_serialize(&mdoc)?),
+                                        attestation_id: Set(mdoc_id),
+                                        attestation: Set(cbor_serialize(&mdoc)?),
+                                        attestation_format: Set(AttestationFormat::Mdoc),
                                         ..Default::default()
                                     };
 
@@ -527,9 +530,9 @@ where
                             // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the
                             // filter() above.
                             let doc_type = mdocs.first().doc_type();
-                            let mdoc_model = entity::mdoc::ActiveModel {
+                            let mdoc_model = entity::attestation::ActiveModel {
                                 id: Set(mdoc_id),
-                                doc_type: Set(doc_type.clone()),
+                                attestation_type: Set(doc_type.clone()),
                                 type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
                             };
 
@@ -546,10 +549,10 @@ where
 
         let transaction = self.database()?.connection().begin().await?;
 
-        entity::mdoc::Entity::insert_many(mdoc_models)
+        entity::attestation::Entity::insert_many(mdoc_models)
             .exec(&transaction)
             .await?;
-        mdoc_copy::Entity::insert_many(copy_models.into_iter().flatten())
+        attestation_copy::Entity::insert_many(copy_models.into_iter().flatten())
             .exec(&transaction)
             .await?;
 
@@ -558,13 +561,13 @@ where
         Ok(())
     }
 
-    async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()> {
-        mdoc_copy::Entity::update_many()
+    async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()> {
+        attestation_copy::Entity::update_many()
             .col_expr(
-                mdoc_copy::Column::DisclosureCount,
-                Expr::col(mdoc_copy::Column::DisclosureCount).add(1),
+                attestation_copy::Column::DisclosureCount,
+                Expr::col(attestation_copy::Column::DisclosureCount).add(1),
             )
-            .filter(mdoc_copy::Column::Id.is_in(mdoc_copy_ids))
+            .filter(attestation_copy::Column::Id.is_in(attestation_copy_ids))
             .exec(self.database()?.connection())
             .await?;
 
@@ -578,8 +581,10 @@ where
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
         let doc_types_iter = doc_types.iter().copied();
 
-        self.query_unique_mdocs(move |select| select.filter(entity::mdoc::Column::DocType.is_in(doc_types_iter)))
-            .await
+        self.query_unique_mdocs(move |select| {
+            select.filter(entity::attestation::Column::AttestationType.is_in(doc_types_iter))
+        })
+        .await
     }
 
     async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool> {
@@ -1010,7 +1015,7 @@ pub(crate) mod tests {
 
         // Increment the usage count for this mdoc.
         storage
-            .increment_mdoc_copies_usage_count(vec![mdoc_copy1.mdoc_copy_id])
+            .increment_attestation_copies_usage_count(vec![mdoc_copy1.mdoc_copy_id])
             .await
             .expect("Could not increment usage count for mdoc copy");
 
@@ -1029,7 +1034,7 @@ pub(crate) mod tests {
 
         // Increment the usage count for this mdoc.
         storage
-            .increment_mdoc_copies_usage_count(vec![mdoc_copy2.mdoc_copy_id])
+            .increment_attestation_copies_usage_count(vec![mdoc_copy2.mdoc_copy_id])
             .await
             .expect("Could not increment usage count for mdoc copy");
 

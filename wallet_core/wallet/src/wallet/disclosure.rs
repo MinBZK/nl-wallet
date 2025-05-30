@@ -509,7 +509,7 @@ where
             .storage
             .write()
             .await
-            .increment_mdoc_copies_usage_count(session_proposal.proposed_source_identifiers())
+            .increment_attestation_copies_usage_count(session_proposal.proposed_source_identifiers())
             .await;
 
         if let Err(error) = result {
