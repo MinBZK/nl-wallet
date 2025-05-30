@@ -39,7 +39,7 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::reqwest::trusted_reqwest_client_builder;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::tls::pinning::TlsPinningConfig;
-use http_utils::tls::TlsServerConfig;
+use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;

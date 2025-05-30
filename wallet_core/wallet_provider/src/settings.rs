@@ -20,7 +20,7 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AttestationEnvironment;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use hsm::settings::Hsm;
-use http_utils::tls::TlsServerConfig;
+use http_utils::tls::server::TlsServerConfig;
 use utils::path::prefix_local_path;
 use wallet_provider_database_settings::Database;
 
