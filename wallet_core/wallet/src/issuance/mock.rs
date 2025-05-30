@@ -10,6 +10,7 @@ use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::TypeMetadata;
 
+use super::BSN_ATTR_NAME;
 use super::PID_DOCTYPE;
 
 fn create_empty_unsigned_mdoc() -> UnsignedMdoc {
@@ -39,14 +40,15 @@ pub fn create_bsn_only_unsigned_mdoc() -> (UnsignedMdoc, TypeMetadata) {
     unsigned_mdoc.attributes = IndexMap::from([(
         PID_DOCTYPE.to_string(),
         vec![Entry {
-            name: "bsn".to_string(),
+            name: BSN_ATTR_NAME.to_string(),
             value: DataElementValue::Text("999999999".to_string()),
         }],
     )])
     .try_into()
     .unwrap();
 
-    let metadata = TypeMetadata::example_with_claim_name(PID_DOCTYPE, "bsn", JsonSchemaPropertyType::String, None);
+    let metadata =
+        TypeMetadata::example_with_claim_name(PID_DOCTYPE, BSN_ATTR_NAME, JsonSchemaPropertyType::String, None);
 
     (unsigned_mdoc, metadata)
 }
