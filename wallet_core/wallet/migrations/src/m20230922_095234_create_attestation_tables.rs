@@ -1,6 +1,6 @@
 use async_trait::async_trait;
+use entity::attestation_copy::AttestationFormat;
 use sea_orm_migration::prelude::*;
-use sea_orm_migration::sea_orm::EnumIter;
 use sea_orm_migration::sea_orm::Iterable;
 
 #[derive(DeriveMigrationName)]
@@ -36,7 +36,10 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(AttestationCopy::AttestationId).uuid().not_null())
                     .col(
                         ColumnDef::new(AttestationCopy::Format)
-                            .enumeration(Alias::new("attestation_format"), AttestationFormat::iter())
+                            // SQLite doesn't have proper enum support, so we simulate that here with a custom type
+                            // (SQLite is dynamically typed) and a check expression.
+                            .custom(AttestationCopy::EnumText)
+                            .check(Expr::col(AttestationCopy::Format).is_in(AttestationFormat::iter()))
                             .not_null(),
                     )
                     .col(ColumnDef::new(AttestationCopy::Attestation).binary().not_null())
@@ -86,12 +89,5 @@ enum AttestationCopy {
     #[sea_orm(iden = "attestation_format")]
     Format,
     Attestation,
-}
-
-#[derive(Iden, EnumIter)]
-enum AttestationFormat {
-    #[iden = "dc+sd-jwt"]
-    SdJwt,
-    #[iden = "mso_mdoc"]
-    Mdoc,
+    EnumText,
 }
