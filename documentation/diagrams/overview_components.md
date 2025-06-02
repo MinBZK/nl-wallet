@@ -6,7 +6,7 @@ technologies used, but leaves out exact (data) flow and detailed steps. Arrow
 directions indicate which party initiated the interaction and not the flow of
 data.
 
-```mermaid
+```{mermaid}
 graph
     brp["`
         BRP

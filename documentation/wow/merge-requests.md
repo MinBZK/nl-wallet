@@ -1,6 +1,8 @@
+# Merge Requests
+
 As part of our software delivery process, we do pull- or merge requests. These
 are reviewed before being merged to the main branch and checked for compliance
-with our [definition of done](./documentation/wow/definition-of-done.md).
+with our [definition of done](./definition-of-done.md).
 
 This small merge-request guide describes succinctly how we should create an MR
 and how we do a so-called MR review.

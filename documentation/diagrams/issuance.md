@@ -19,7 +19,7 @@ In more detail, the protocol works as follows.
 
 Notice that from the perspective of the AuthServer, the OS acts as the User Agent normally does in OpenID Connect, and the WalletServer/PidAttributeService combination acts as a normal OpenID Client: the former starts the session by navigating to the AuthServer with an Authorization Request, and the latter resumes the session with Token and User Info Requests.
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     autonumber
 
@@ -69,7 +69,7 @@ For generic issuance, we can implement the AttributeService as follows:
 
 This would look like the following diagram.
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     autonumber
 

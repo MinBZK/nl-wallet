@@ -1,3 +1,5 @@
+# Release Notes Template
+
 ## vX.Y.Z (fill in version, place at /documentation/release-notes/vX.Y.Z.md)
 
 ### Important (this is an optional header, remove if there are no )

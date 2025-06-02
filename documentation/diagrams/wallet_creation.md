@@ -4,7 +4,7 @@ The diagram below illustrates the Wallet creation process. Including certificate
 
 ## Create wallet (app)
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     %% Force ordering by explicitly setting up participants
     actor user
@@ -67,7 +67,7 @@ sequenceDiagram
 
 High level overview of what happens inside the `wallet_provider`.
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     %% Force ordering by explicitly setting up participants
     actor user

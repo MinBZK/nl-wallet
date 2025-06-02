@@ -1,9 +1,9 @@
+# Definition of done
+
 This Definition of Done (the DoD) is a mutual agreement between the development
 team and the product owner. It is essentially a list of conditions that a change
 to the code should adhere to before being considered ready to be merged into the
 `main` branch.
-
-[[_TOC_]]
 
 ## In general
 
