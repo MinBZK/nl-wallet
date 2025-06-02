@@ -20,7 +20,8 @@ pub fn create_bsn_only_payload_preview() -> (PreviewableCredentialPayload, TypeM
         SigningKey::random(&mut OsRng).verifying_key(),
     );
 
-    let metadata = TypeMetadata::example_with_claim_name(PID_DOCTYPE, BSN_ATTR_NAME, JsonSchemaPropertyType::String, None);
+    let metadata =
+        TypeMetadata::example_with_claim_name(PID_DOCTYPE, BSN_ATTR_NAME, JsonSchemaPropertyType::String, None);
 
     (payload.previewable_payload, metadata)
 }
