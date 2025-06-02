@@ -60,10 +60,10 @@ class TerminalPage extends StatelessWidget {
     return Expanded(
       child: WalletScrollbar(
         child: ListView(
-          padding: const EdgeInsets.only(top: 2, bottom: 24),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -73,6 +73,7 @@ class TerminalPage extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 24),
             illustration ?? _buildIllustrationPlaceHolder(context),
           ],
         ),

@@ -699,7 +699,7 @@ void main() {
     );
 
     testWidgets(
-      'DisclosureScreen with DisclosureMissingAttributes displays the missing attributes',
+      'DisclosureScreen with DisclosureMissingAttributes displays the missing attributes in details sheet',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
@@ -707,12 +707,17 @@ void main() {
             DisclosureMissingAttributes(
               relyingParty: WalletMockData.organization,
               missingAttributes: [
-                WalletMockData.textDataAttribute,
-                WalletMockData.textDataAttribute,
+                MissingAttribute.untranslated(key: 'text_key', label: 'Label'),
+                MissingAttribute.untranslated(key: 'text_key', label: 'Label'),
               ],
             ),
           ),
         );
+
+        // Tap show details button to open details sheet
+        final l10n = await TestUtils.englishLocalizations;
+        await tester.tap(find.text(l10n.missingAttributesPageShowDetailsCta));
+        await tester.pumpAndSettle();
 
         expect(find.byType(MissingAttributesPage), findsOneWidget);
         expect(find.text(WalletMockData.textDataAttribute.label.testValue), findsNWidgets(2));

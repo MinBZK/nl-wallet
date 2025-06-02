@@ -217,7 +217,7 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
 
 class DisclosureMissingAttributes extends DisclosureState {
   final Organization relyingParty;
-  final List<Attribute> missingAttributes;
+  final List<MissingAttribute> missingAttributes;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kNormalDisclosureSteps);

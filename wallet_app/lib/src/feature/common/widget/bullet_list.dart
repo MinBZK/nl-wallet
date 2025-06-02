@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'icon_row.dart';
+import 'text/body_text.dart';
 
 class BulletList extends StatelessWidget {
   final List<String> items;
@@ -19,24 +20,21 @@ class BulletList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: items.map((point) {
-          return IconRow(
-            crossAxisAlignment: rowCrossAxisAlignment,
-            padding: rowPadding ?? EdgeInsets.zero,
-            icon: SizedBox(
-              height: 24,
-              width: 24,
-              child: icon,
-            ),
-            text: Text(point),
-          );
-        }).toList(),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: items.map((point) {
+        return IconRow(
+          crossAxisAlignment: rowCrossAxisAlignment,
+          padding: rowPadding ?? EdgeInsets.zero,
+          icon: SizedBox(
+            height: 24,
+            width: 24,
+            child: icon,
+          ),
+          text: BodyText(point),
+        );
+      }).toList(),
     );
   }
 }

@@ -195,13 +195,10 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildMissingAttributesPage(BuildContext context, DisclosureMissingAttributes state) {
     return MissingAttributesPage(
-      onDecline: () => context.bloc.add(const DisclosureStopRequested()),
+      onClosePressed: () => context.bloc.add(const DisclosureStopRequested()),
       missingAttributes: state.missingAttributes,
       organization: state.relyingParty,
-      onReportIssuePressed: () {
-        final options = _resolveReportingOptionsForState(context);
-        _onReportIssuePressed(context, options);
-      },
+      hasReturnUrl: false,
     );
   }
 
