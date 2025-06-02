@@ -6,6 +6,7 @@ import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/issuance/issuance_repository.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
@@ -58,7 +59,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceLoadInProgress(step: 3),
+          const IssuanceLoadInProgress(FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps)),
         ),
       );
       await screenMatchesGolden('loading.light');
@@ -68,7 +69,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          const IssuanceLoadInProgress(step: 4),
+          const IssuanceLoadInProgress(FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps)),
         ),
         brightness: Brightness.dark,
         surfaceSize: iphoneXSizeLandscape,

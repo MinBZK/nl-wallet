@@ -410,7 +410,7 @@
     "forgotPinScreenTitle": "Pincode vergeten?",
     "fraudCheckPageAboutCta": "Meer over deze website-controle",
     "fraudCheckPageContinueCta": "Ja, verder",
-    "fraudCheckPageDescription": "Controleer de website waar je de QR-code hebt gescand. Ga alleen verder als de web-adressen hetzelfde zijn. Dit helpt om nep-websites te voorkomen.",
+    "fraudCheckPageDescription": "Controleer de website waar je de QR-code hebt gescand. Ga alleen verder als de web-adressen hetzelfde zijn. Dit helpt om nep-websites te vermijden.",
     "fraudCheckPageStopCta": "Stop",
     "fraudCheckPageTitle": "Begint de website met: {url}?",
     "@fraudCheckPageTitle": {

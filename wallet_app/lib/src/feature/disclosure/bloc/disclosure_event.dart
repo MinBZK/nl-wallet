@@ -17,8 +17,8 @@ class DisclosureSessionStarted extends DisclosureEvent {
   List<Object?> get props => [uri, isQrCode];
 }
 
-class DisclosureOrganizationApproved extends DisclosureEvent {
-  const DisclosureOrganizationApproved();
+class DisclosureUrlApproved extends DisclosureEvent {
+  const DisclosureUrlApproved();
 }
 
 class DisclosureShareRequestedAttributesApproved extends DisclosureEvent {
