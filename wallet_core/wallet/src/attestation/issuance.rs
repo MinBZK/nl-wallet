@@ -6,11 +6,11 @@ use attestation_data::auth::Organization;
 use mdoc::NameSpace;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
-use super::Attestation;
 use super::AttestationError;
 use super::AttestationIdentity;
+use super::AttestationPresentation;
 
-impl Attestation {
+impl AttestationPresentation {
     pub(crate) fn create_for_issuance(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
@@ -43,14 +43,14 @@ mod test {
     use crate::issuance::mock::create_example_mdoc_attributes;
     use crate::issuance::BSN_ATTR_NAME;
     use crate::issuance::PID_DOCTYPE;
-    use crate::Attestation;
     use crate::AttestationIdentity;
+    use crate::AttestationPresentation;
 
     #[test]
     fn test_happy() {
         let (mdoc_attributes, metadata) = create_example_mdoc_attributes();
 
-        let attestation = Attestation::create_for_issuance(
+        let attestation = AttestationPresentation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             NormalizedTypeMetadata::from_single_example(metadata.into_inner()),
             Organization::new_mock(),
@@ -99,7 +99,7 @@ mod test {
             ],
         ));
 
-        let attestation = Attestation::create_for_issuance(
+        let attestation = AttestationPresentation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
@@ -135,7 +135,7 @@ mod test {
             ],
         ));
 
-        let error = Attestation::create_for_issuance(
+        let error = AttestationPresentation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),

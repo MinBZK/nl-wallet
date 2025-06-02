@@ -27,13 +27,13 @@ sealed class WalletEvent with _$WalletEvent {
     required String dateTime,
     required Organization relyingParty,
     required List<LocalizedString> purpose,
-    List<Attestation>? sharedAttestations,
+    List<AttestationPresentation>? sharedAttestations,
     required RequestPolicy requestPolicy,
     required DisclosureStatus status,
     required DisclosureType typ,
   }) = WalletEvent_Disclosure;
   const factory WalletEvent.issuance({
     required String dateTime,
-    required Attestation attestation,
+    required AttestationPresentation attestation,
   }) = WalletEvent_Issuance;
 }

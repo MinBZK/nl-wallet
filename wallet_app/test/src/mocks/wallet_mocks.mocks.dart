@@ -1699,15 +1699,18 @@ class MockTypedWalletCore extends _i1.Mock implements _i33.TypedWalletCore {
       ) as _i8.Future<void>);
 
   @override
-  _i8.Future<List<_i19.Attestation>> continuePidIssuance(String? uri) => (super.noSuchMethod(
+  _i8.Future<List<_i19.AttestationPresentation>> continuePidIssuance(
+    String? uri,
+  ) =>
+      (super.noSuchMethod(
         Invocation.method(#continuePidIssuance, [uri]),
-        returnValue: _i8.Future<List<_i19.Attestation>>.value(
-          <_i19.Attestation>[],
+        returnValue: _i8.Future<List<_i19.AttestationPresentation>>.value(
+          <_i19.AttestationPresentation>[],
         ),
-        returnValueForMissingStub: _i8.Future<List<_i19.Attestation>>.value(
-          <_i19.Attestation>[],
+        returnValueForMissingStub: _i8.Future<List<_i19.AttestationPresentation>>.value(
+          <_i19.AttestationPresentation>[],
         ),
-      ) as _i8.Future<List<_i19.Attestation>>);
+      ) as _i8.Future<List<_i19.AttestationPresentation>>);
 
   @override
   _i8.Future<_i19.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String? pin) => (super.noSuchMethod(
@@ -1811,11 +1814,11 @@ class MockTypedWalletCore extends _i1.Mock implements _i33.TypedWalletCore {
       ) as _i8.Future<bool>);
 
   @override
-  _i8.Stream<List<_i19.Attestation>> observeCards() => (super.noSuchMethod(
+  _i8.Stream<List<_i19.AttestationPresentation>> observeCards() => (super.noSuchMethod(
         Invocation.method(#observeCards, []),
-        returnValue: _i8.Stream<List<_i19.Attestation>>.empty(),
-        returnValueForMissingStub: _i8.Stream<List<_i19.Attestation>>.empty(),
-      ) as _i8.Stream<List<_i19.Attestation>>);
+        returnValue: _i8.Stream<List<_i19.AttestationPresentation>>.empty(),
+        returnValueForMissingStub: _i8.Stream<List<_i19.AttestationPresentation>>.empty(),
+      ) as _i8.Stream<List<_i19.AttestationPresentation>>);
 
   @override
   _i8.Future<void> resetWallet() => (super.noSuchMethod(
@@ -4147,20 +4150,18 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<_i19.DisclosureBasedIssuanceResult>);
 
   @override
-  _i8.Future<List<_i19.Attestation>> crateApiFullContinuePidIssuance({
-    required String? uri,
-  }) =>
+  _i8.Future<List<_i19.AttestationPresentation>> crateApiFullContinuePidIssuance({required String? uri}) =>
       (super.noSuchMethod(
         Invocation.method(#crateApiFullContinuePidIssuance, [], {
           #uri: uri,
         }),
-        returnValue: _i8.Future<List<_i19.Attestation>>.value(
-          <_i19.Attestation>[],
+        returnValue: _i8.Future<List<_i19.AttestationPresentation>>.value(
+          <_i19.AttestationPresentation>[],
         ),
-        returnValueForMissingStub: _i8.Future<List<_i19.Attestation>>.value(
-          <_i19.Attestation>[],
+        returnValueForMissingStub: _i8.Future<List<_i19.AttestationPresentation>>.value(
+          <_i19.AttestationPresentation>[],
         ),
-      ) as _i8.Future<List<_i19.Attestation>>);
+      ) as _i8.Future<List<_i19.AttestationPresentation>>);
 
   @override
   _i8.Future<String> crateApiFullCreatePidIssuanceRedirectUri() => (super.noSuchMethod(
@@ -4321,11 +4322,11 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<void>);
 
   @override
-  _i8.Stream<List<_i19.Attestation>> crateApiFullSetAttestationsStream() => (super.noSuchMethod(
+  _i8.Stream<List<_i19.AttestationPresentation>> crateApiFullSetAttestationsStream() => (super.noSuchMethod(
         Invocation.method(#crateApiFullSetAttestationsStream, []),
-        returnValue: _i8.Stream<List<_i19.Attestation>>.empty(),
-        returnValueForMissingStub: _i8.Stream<List<_i19.Attestation>>.empty(),
-      ) as _i8.Stream<List<_i19.Attestation>>);
+        returnValue: _i8.Stream<List<_i19.AttestationPresentation>>.empty(),
+        returnValueForMissingStub: _i8.Stream<List<_i19.AttestationPresentation>>.empty(),
+      ) as _i8.Stream<List<_i19.AttestationPresentation>>);
 
   @override
   _i8.Future<void> crateApiFullSetBiometricUnlock({required bool? enable}) => (super.noSuchMethod(

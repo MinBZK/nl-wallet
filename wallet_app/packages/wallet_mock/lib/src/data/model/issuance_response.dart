@@ -8,7 +8,7 @@ class IssuanceResponse {
   final List<RequestedAttribute> requestedAttributes;
   final List<LocalizedString> requestPurpose;
   final RequestPolicy policy;
-  final List<Attestation> attestations;
+  final List<AttestationPresentation> attestations;
 
   const IssuanceResponse({
     required this.id,

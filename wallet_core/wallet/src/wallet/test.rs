@@ -56,7 +56,7 @@ use crate::storage::StorageState;
 use crate::update_policy::MockUpdatePolicyRepository;
 use crate::wallet::attestations::AttestationsError;
 use crate::wte::tests::MockWteIssuanceClient;
-use crate::Attestation;
+use crate::AttestationPresentation;
 use crate::WalletEvent;
 
 use super::init::RegistrationStatus;
@@ -346,10 +346,13 @@ impl WalletWithMocks {
 
 pub async fn setup_mock_attestations_callback(
     wallet: &mut WalletWithMocks,
-) -> Result<Arc<Mutex<Vec<Vec<Attestation>>>>, (Arc<Mutex<Vec<Vec<Attestation>>>>, AttestationsError)> {
+) -> Result<
+    Arc<Mutex<Vec<Vec<AttestationPresentation>>>>,
+    (Arc<Mutex<Vec<Vec<AttestationPresentation>>>>, AttestationsError),
+> {
     // Wrap a `Vec<Attestation>` in both a `Mutex` and `Arc`,
     // so we can write to it from the closure.
-    let attestations = Arc::new(Mutex::new(Vec::<Vec<Attestation>>::with_capacity(1)));
+    let attestations = Arc::new(Mutex::new(Vec::<Vec<AttestationPresentation>>::with_capacity(1)));
     let callback_attestations = Arc::clone(&attestations);
 
     // Set the attestations callback on the `Wallet`, which

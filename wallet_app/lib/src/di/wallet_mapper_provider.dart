@@ -87,7 +87,7 @@ class WalletMapperProvider extends StatelessWidget {
         RepositoryProvider<Mapper<core.DisplayMetadata, CardDisplayMetadata>>(
           create: (context) => DisplayMetadataMapper(context.read()),
         ),
-        RepositoryProvider<Mapper<core.Attestation, WalletCard>>(
+        RepositoryProvider<Mapper<core.AttestationPresentation, WalletCard>>(
           create: (context) => CardMapper(
             context.read(),
             context.read(),

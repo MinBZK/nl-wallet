@@ -11,37 +11,6 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'attestation.freezed.dart';
 
-class Attestation {
-  final AttestationIdentity identity;
-  final String attestationType;
-  final List<DisplayMetadata> displayMetadata;
-  final Organization issuer;
-  final List<AttestationAttribute> attributes;
-
-  const Attestation({
-    required this.identity,
-    required this.attestationType,
-    required this.displayMetadata,
-    required this.issuer,
-    required this.attributes,
-  });
-
-  @override
-  int get hashCode =>
-      identity.hashCode ^ attestationType.hashCode ^ displayMetadata.hashCode ^ issuer.hashCode ^ attributes.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Attestation &&
-          runtimeType == other.runtimeType &&
-          identity == other.identity &&
-          attestationType == other.attestationType &&
-          displayMetadata == other.displayMetadata &&
-          issuer == other.issuer &&
-          attributes == other.attributes;
-}
-
 class AttestationAttribute {
   final String key;
   final List<ClaimDisplayMetadata> labels;
@@ -77,6 +46,37 @@ sealed class AttestationIdentity with _$AttestationIdentity {
   const factory AttestationIdentity.fixed({
     required String id,
   }) = AttestationIdentity_Fixed;
+}
+
+class AttestationPresentation {
+  final AttestationIdentity identity;
+  final String attestationType;
+  final List<DisplayMetadata> displayMetadata;
+  final Organization issuer;
+  final List<AttestationAttribute> attributes;
+
+  const AttestationPresentation({
+    required this.identity,
+    required this.attestationType,
+    required this.displayMetadata,
+    required this.issuer,
+    required this.attributes,
+  });
+
+  @override
+  int get hashCode =>
+      identity.hashCode ^ attestationType.hashCode ^ displayMetadata.hashCode ^ issuer.hashCode ^ attributes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AttestationPresentation &&
+          runtimeType == other.runtimeType &&
+          identity == other.identity &&
+          attestationType == other.attestationType &&
+          displayMetadata == other.displayMetadata &&
+          issuer == other.issuer &&
+          attributes == other.attributes;
 }
 
 @freezed

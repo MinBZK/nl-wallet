@@ -110,7 +110,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<DisclosureBasedIssuanceResult> crateApiFullContinueDisclosureBasedIssuance({required String pin});
 
-  Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri});
+  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri});
 
   Future<String> crateApiFullCreatePidIssuanceRedirectUri();
 
@@ -142,7 +142,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullResetWallet();
 
-  Stream<List<Attestation>> crateApiFullSetAttestationsStream();
+  Stream<List<AttestationPresentation>> crateApiFullSetAttestationsStream();
 
   Future<void> crateApiFullSetBiometricUnlock({required bool enable});
 
@@ -450,14 +450,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri}) {
+  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
         var arg0 = cst_encode_String(uri);
         return wire.wire__crate__api__full__continue_pid_issuance(port_, arg0);
       },
       codec: DcoCodec(
-        decodeSuccessData: dco_decode_list_attestation,
+        decodeSuccessData: dco_decode_list_attestation_presentation,
         decodeErrorData: dco_decode_AnyhowException,
       ),
       constMeta: kCrateApiFullContinuePidIssuanceConstMeta,
@@ -791,11 +791,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Stream<List<Attestation>> crateApiFullSetAttestationsStream() {
-    final sink = RustStreamSink<List<Attestation>>();
+  Stream<List<AttestationPresentation>> crateApiFullSetAttestationsStream() {
+    final sink = RustStreamSink<List<AttestationPresentation>>();
     unawaited(handler.executeNormal(NormalTask(
       callFfi: (port_) {
-        var arg0 = cst_encode_StreamSink_list_attestation_Dco(sink);
+        var arg0 = cst_encode_StreamSink_list_attestation_presentation_Dco(sink);
         return wire.wire__crate__api__full__set_attestations_stream(port_, arg0);
       },
       codec: DcoCodec(
@@ -1023,7 +1023,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  RustStreamSink<List<Attestation>> dco_decode_StreamSink_list_attestation_Dco(dynamic raw) {
+  RustStreamSink<List<AttestationPresentation>> dco_decode_StreamSink_list_attestation_presentation_Dco(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
@@ -1058,20 +1058,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  Attestation dco_decode_attestation(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
-    return Attestation(
-      identity: dco_decode_attestation_identity(arr[0]),
-      attestationType: dco_decode_String(arr[1]),
-      displayMetadata: dco_decode_list_display_metadata(arr[2]),
-      issuer: dco_decode_organization(arr[3]),
-      attributes: dco_decode_list_attestation_attribute(arr[4]),
-    );
-  }
-
-  @protected
   AttestationAttribute dco_decode_attestation_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -1097,6 +1083,20 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       default:
         throw Exception("unreachable");
     }
+  }
+
+  @protected
+  AttestationPresentation dco_decode_attestation_presentation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5) throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return AttestationPresentation(
+      identity: dco_decode_attestation_identity(arr[0]),
+      attestationType: dco_decode_String(arr[1]),
+      displayMetadata: dco_decode_list_display_metadata(arr[2]),
+      issuer: dco_decode_organization(arr[3]),
+      attributes: dco_decode_list_attestation_attribute(arr[4]),
+    );
   }
 
   @protected
@@ -1131,9 +1131,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  Attestation dco_decode_box_autoadd_attestation(dynamic raw) {
+  AttestationPresentation dco_decode_box_autoadd_attestation_presentation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_attestation(raw);
+    return dco_decode_attestation_presentation(raw);
   }
 
   @protected
@@ -1196,7 +1196,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (raw[0]) {
       case 0:
         return DisclosureBasedIssuanceResult_Ok(
-          dco_decode_list_attestation(raw[1]),
+          dco_decode_list_attestation_presentation(raw[1]),
         );
       case 1:
         return DisclosureBasedIssuanceResult_InstructionError(
@@ -1329,15 +1329,15 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<Attestation> dco_decode_list_attestation(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return (raw as List<dynamic>).map(dco_decode_attestation).toList();
-  }
-
-  @protected
   List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_attestation_attribute).toList();
+  }
+
+  @protected
+  List<AttestationPresentation> dco_decode_list_attestation_presentation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_attestation_presentation).toList();
   }
 
   @protected
@@ -1428,9 +1428,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<Attestation>? dco_decode_opt_list_attestation(dynamic raw) {
+  List<AttestationPresentation>? dco_decode_opt_list_attestation_presentation(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
-    return raw == null ? null : dco_decode_list_attestation(raw);
+    return raw == null ? null : dco_decode_list_attestation_presentation(raw);
   }
 
   @protected
@@ -1503,7 +1503,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return StartDisclosureResult_Request(
           relyingParty: dco_decode_box_autoadd_organization(raw[1]),
           policy: dco_decode_box_autoadd_request_policy(raw[2]),
-          requestedAttestations: dco_decode_list_attestation(raw[3]),
+          requestedAttestations: dco_decode_list_attestation_presentation(raw[3]),
           sharedDataWithRelyingPartyBefore: dco_decode_bool(raw[4]),
           sessionType: dco_decode_disclosure_session_type(raw[5]),
           requestPurpose: dco_decode_list_localized_string(raw[6]),
@@ -1557,7 +1557,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           dateTime: dco_decode_String(raw[1]),
           relyingParty: dco_decode_box_autoadd_organization(raw[2]),
           purpose: dco_decode_list_localized_string(raw[3]),
-          sharedAttestations: dco_decode_opt_list_attestation(raw[4]),
+          sharedAttestations: dco_decode_opt_list_attestation_presentation(raw[4]),
           requestPolicy: dco_decode_box_autoadd_request_policy(raw[5]),
           status: dco_decode_disclosure_status(raw[6]),
           typ: dco_decode_disclosure_type(raw[7]),
@@ -1565,7 +1565,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 1:
         return WalletEvent_Issuance(
           dateTime: dco_decode_String(raw[1]),
-          attestation: dco_decode_box_autoadd_attestation(raw[2]),
+          attestation: dco_decode_box_autoadd_attestation_presentation(raw[2]),
         );
       default:
         throw Exception("unreachable");
@@ -1633,7 +1633,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  RustStreamSink<List<Attestation>> sse_decode_StreamSink_list_attestation_Dco(SseDeserializer deserializer) {
+  RustStreamSink<List<AttestationPresentation>> sse_decode_StreamSink_list_attestation_presentation_Dco(
+      SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     throw UnimplementedError('Unreachable ()');
   }
@@ -1669,22 +1670,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  Attestation sse_decode_attestation(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_identity = sse_decode_attestation_identity(deserializer);
-    var var_attestationType = sse_decode_String(deserializer);
-    var var_displayMetadata = sse_decode_list_display_metadata(deserializer);
-    var var_issuer = sse_decode_organization(deserializer);
-    var var_attributes = sse_decode_list_attestation_attribute(deserializer);
-    return Attestation(
-        identity: var_identity,
-        attestationType: var_attestationType,
-        displayMetadata: var_displayMetadata,
-        issuer: var_issuer,
-        attributes: var_attributes);
-  }
-
-  @protected
   AttestationAttribute sse_decode_attestation_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_key = sse_decode_String(deserializer);
@@ -1708,6 +1693,22 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       default:
         throw UnimplementedError('');
     }
+  }
+
+  @protected
+  AttestationPresentation sse_decode_attestation_presentation(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_identity = sse_decode_attestation_identity(deserializer);
+    var var_attestationType = sse_decode_String(deserializer);
+    var var_displayMetadata = sse_decode_list_display_metadata(deserializer);
+    var var_issuer = sse_decode_organization(deserializer);
+    var var_attributes = sse_decode_list_attestation_attribute(deserializer);
+    return AttestationPresentation(
+        identity: var_identity,
+        attestationType: var_attestationType,
+        displayMetadata: var_displayMetadata,
+        issuer: var_issuer,
+        attributes: var_attributes);
   }
 
   @protected
@@ -1740,9 +1741,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  Attestation sse_decode_box_autoadd_attestation(SseDeserializer deserializer) {
+  AttestationPresentation sse_decode_box_autoadd_attestation_presentation(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_attestation(deserializer));
+    return (sse_decode_attestation_presentation(deserializer));
   }
 
   @protected
@@ -1803,7 +1804,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
-        var var_field0 = sse_decode_list_attestation(deserializer);
+        var var_field0 = sse_decode_list_attestation_presentation(deserializer);
         return DisclosureBasedIssuanceResult_Ok(var_field0);
       case 1:
         var var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
@@ -1935,18 +1936,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<Attestation> sse_decode_list_attestation(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-
-    var len_ = sse_decode_i_32(deserializer);
-    var ans_ = <Attestation>[];
-    for (var idx_ = 0; idx_ < len_; ++idx_) {
-      ans_.add(sse_decode_attestation(deserializer));
-    }
-    return ans_;
-  }
-
-  @protected
   List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -1954,6 +1943,18 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var ans_ = <AttestationAttribute>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_attestation_attribute(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<AttestationPresentation> sse_decode_list_attestation_presentation(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <AttestationPresentation>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_attestation_presentation(deserializer));
     }
     return ans_;
   }
@@ -2096,11 +2097,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  List<Attestation>? sse_decode_opt_list_attestation(SseDeserializer deserializer) {
+  List<AttestationPresentation>? sse_decode_opt_list_attestation_presentation(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     if (sse_decode_bool(deserializer)) {
-      return (sse_decode_list_attestation(deserializer));
+      return (sse_decode_list_attestation_presentation(deserializer));
     } else {
       return null;
     }
@@ -2193,7 +2194,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 0:
         var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
         var var_policy = sse_decode_box_autoadd_request_policy(deserializer);
-        var var_requestedAttestations = sse_decode_list_attestation(deserializer);
+        var var_requestedAttestations = sse_decode_list_attestation_presentation(deserializer);
         var var_sharedDataWithRelyingPartyBefore = sse_decode_bool(deserializer);
         var var_sessionType = sse_decode_disclosure_session_type(deserializer);
         var var_requestPurpose = sse_decode_list_localized_string(deserializer);
@@ -2260,7 +2261,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_dateTime = sse_decode_String(deserializer);
         var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
         var var_purpose = sse_decode_list_localized_string(deserializer);
-        var var_sharedAttestations = sse_decode_opt_list_attestation(deserializer);
+        var var_sharedAttestations = sse_decode_opt_list_attestation_presentation(deserializer);
         var var_requestPolicy = sse_decode_box_autoadd_request_policy(deserializer);
         var var_status = sse_decode_disclosure_status(deserializer);
         var var_typ = sse_decode_disclosure_type(deserializer);
@@ -2274,7 +2275,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
             typ: var_typ);
       case 1:
         var var_dateTime = sse_decode_String(deserializer);
-        var var_attestation = sse_decode_box_autoadd_attestation(deserializer);
+        var var_attestation = sse_decode_box_autoadd_attestation_presentation(deserializer);
         return WalletEvent_Issuance(dateTime: var_dateTime, attestation: var_attestation);
       default:
         throw UnimplementedError('');
@@ -2423,12 +2424,13 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_StreamSink_list_attestation_Dco(RustStreamSink<List<Attestation>> self, SseSerializer serializer) {
+  void sse_encode_StreamSink_list_attestation_presentation_Dco(
+      RustStreamSink<List<AttestationPresentation>> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(
         self.setupAndSerialize(
             codec: DcoCodec(
-          decodeSuccessData: dco_decode_list_attestation,
+          decodeSuccessData: dco_decode_list_attestation_presentation,
           decodeErrorData: dco_decode_AnyhowException,
         )),
         serializer);
@@ -2466,16 +2468,6 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_attestation(Attestation self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_attestation_identity(self.identity, serializer);
-    sse_encode_String(self.attestationType, serializer);
-    sse_encode_list_display_metadata(self.displayMetadata, serializer);
-    sse_encode_organization(self.issuer, serializer);
-    sse_encode_list_attestation_attribute(self.attributes, serializer);
-  }
-
-  @protected
   void sse_encode_attestation_attribute(AttestationAttribute self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.key, serializer);
@@ -2494,6 +2486,16 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(1, serializer);
         sse_encode_String(id, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_attestation_presentation(AttestationPresentation self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_attestation_identity(self.identity, serializer);
+    sse_encode_String(self.attestationType, serializer);
+    sse_encode_list_display_metadata(self.displayMetadata, serializer);
+    sse_encode_organization(self.issuer, serializer);
+    sse_encode_list_attestation_attribute(self.attributes, serializer);
   }
 
   @protected
@@ -2522,9 +2524,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_box_autoadd_attestation(Attestation self, SseSerializer serializer) {
+  void sse_encode_box_autoadd_attestation_presentation(AttestationPresentation self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_attestation(self, serializer);
+    sse_encode_attestation_presentation(self, serializer);
   }
 
   @protected
@@ -2583,7 +2585,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (self) {
       case DisclosureBasedIssuanceResult_Ok(field0: final field0):
         sse_encode_i_32(0, serializer);
-        sse_encode_list_attestation(field0, serializer);
+        sse_encode_list_attestation_presentation(field0, serializer);
       case DisclosureBasedIssuanceResult_InstructionError(error: final error):
         sse_encode_i_32(1, serializer);
         sse_encode_box_autoadd_wallet_instruction_error(error, serializer);
@@ -2691,20 +2693,20 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_list_attestation(List<Attestation> self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_i_32(self.length, serializer);
-    for (final item in self) {
-      sse_encode_attestation(item, serializer);
-    }
-  }
-
-  @protected
   void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_attestation_attribute(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_attestation_presentation(List<AttestationPresentation> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_attestation_presentation(item, serializer);
     }
   }
 
@@ -2824,12 +2826,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
-  void sse_encode_opt_list_attestation(List<Attestation>? self, SseSerializer serializer) {
+  void sse_encode_opt_list_attestation_presentation(List<AttestationPresentation>? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
     sse_encode_bool(self != null, serializer);
     if (self != null) {
-      sse_encode_list_attestation(self, serializer);
+      sse_encode_list_attestation_presentation(self, serializer);
     }
   }
 
@@ -2909,7 +2911,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_i_32(0, serializer);
         sse_encode_box_autoadd_organization(relyingParty, serializer);
         sse_encode_box_autoadd_request_policy(policy, serializer);
-        sse_encode_list_attestation(requestedAttestations, serializer);
+        sse_encode_list_attestation_presentation(requestedAttestations, serializer);
         sse_encode_bool(sharedDataWithRelyingPartyBefore, serializer);
         sse_encode_disclosure_session_type(sessionType, serializer);
         sse_encode_list_localized_string(requestPurpose, serializer);
@@ -2973,14 +2975,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_String(dateTime, serializer);
         sse_encode_box_autoadd_organization(relyingParty, serializer);
         sse_encode_list_localized_string(purpose, serializer);
-        sse_encode_opt_list_attestation(sharedAttestations, serializer);
+        sse_encode_opt_list_attestation_presentation(sharedAttestations, serializer);
         sse_encode_box_autoadd_request_policy(requestPolicy, serializer);
         sse_encode_disclosure_status(status, serializer);
         sse_encode_disclosure_type(typ, serializer);
       case WalletEvent_Issuance(dateTime: final dateTime, attestation: final attestation):
         sse_encode_i_32(1, serializer);
         sse_encode_String(dateTime, serializer);
-        sse_encode_box_autoadd_attestation(attestation, serializer);
+        sse_encode_box_autoadd_attestation_presentation(attestation, serializer);
     }
   }
 

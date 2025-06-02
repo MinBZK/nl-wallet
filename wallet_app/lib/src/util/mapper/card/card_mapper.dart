@@ -9,7 +9,7 @@ import '../mapper.dart';
 import 'attribute/card_attribute_mapper.dart';
 
 /// Maps a [Attestation] to a [WalletCard] and enriches with (currently) hardcoded data.
-class CardMapper extends Mapper<core.Attestation, WalletCard> {
+class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
   final Mapper<String /*docType*/, CardConfig> _cardConfigMapper;
   final Mapper<CardAttributeWithDocType, DataAttribute> _attributeMapper;
   final Mapper<core.Organization, Organization> _organizationMapper;
@@ -23,7 +23,7 @@ class CardMapper extends Mapper<core.Attestation, WalletCard> {
   );
 
   @override
-  WalletCard map(core.Attestation input) {
+  WalletCard map(core.AttestationPresentation input) {
     final String cardId = switch (input.identity) {
       core.AttestationIdentity_Ephemeral() => input.attestationType,
       core.AttestationIdentity_Fixed(:final id) => id,

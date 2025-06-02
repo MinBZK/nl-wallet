@@ -7665,6 +7665,7 @@ name = "wallet_migrations"
 version = "0.3.0-dev"
 dependencies = [
  "async-trait",
+ "entity",
  "sea-orm-migration",
  "tokio",
 ]

@@ -96,7 +96,8 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<List<Attestation>> crateApiFullContinuePidIssuance({required String uri, hint}) async => kPidAttestations;
+  Future<List<AttestationPresentation>> crateApiFullContinuePidIssuance({required String uri, hint}) async =>
+      kPidAttestations;
 
   @override
   Future<String> crateApiFullCreatePidIssuanceRedirectUri({hint}) async => MockConstants.pidIssuanceRedirectUri;
@@ -160,7 +161,7 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Stream<List<Attestation>> crateApiFullSetAttestationsStream({hint}) => _wallet.attestationsStream;
+  Stream<List<AttestationPresentation>> crateApiFullSetAttestationsStream({hint}) => _wallet.attestationsStream;
 
   @override
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream({hint}) {

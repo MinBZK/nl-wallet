@@ -8,11 +8,11 @@ use uuid::Uuid;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 #[derive(Debug, Clone, PartialEq, Eq, DeriveEntityModel)]
-#[sea_orm(table_name = "mdoc")]
+#[sea_orm(table_name = "attestation")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub doc_type: String,
+    pub attestation_type: String,
     pub type_metadata: TypeMetadataModel,
 }
 
@@ -24,13 +24,13 @@ pub struct TypeMetadataModel {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::mdoc_copy::Entity")]
-    MdocCopy,
+    #[sea_orm(has_many = "super::attestation_copy::Entity")]
+    AttestationCopy,
 }
 
-impl Related<super::mdoc_copy::Entity> for Entity {
+impl Related<super::attestation_copy::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::MdocCopy.def()
+        Relation::AttestationCopy.def()
     }
 }
 

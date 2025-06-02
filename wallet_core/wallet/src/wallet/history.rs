@@ -150,7 +150,7 @@ mod tests {
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
 
-    use crate::attestation::Attestation;
+    use crate::attestation::AttestationPresentation;
     use crate::storage::WalletEvent;
 
     use super::super::test;
@@ -295,7 +295,7 @@ mod tests {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // The database contains a single Issuance Event
-        let attestations = vec![Attestation::new_mock()].try_into().unwrap();
+        let attestations = vec![AttestationPresentation::new_mock()].try_into().unwrap();
         let event = WalletEvent::new_issuance(attestations);
         wallet.storage.write().await.event_log.push(event);
 

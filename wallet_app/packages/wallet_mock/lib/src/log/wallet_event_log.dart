@@ -37,7 +37,7 @@ class WalletEventLog {
       .toList();
 
   void logDisclosure(StartDisclosureResult disclosure, DisclosureStatus status) {
-    final List<Attestation> sharedAttestations = switch (disclosure) {
+    final List<AttestationPresentation> sharedAttestations = switch (disclosure) {
       StartDisclosureResult_Request(:final requestedAttestations) => requestedAttestations,
       StartDisclosureResult_RequestAttributesMissing() => [],
     };
@@ -66,7 +66,7 @@ class WalletEventLog {
   void logDisclosureStep(
     Organization organization,
     RequestPolicy policy,
-    List<Attestation> sharedAttestations,
+    List<AttestationPresentation> sharedAttestations,
     DisclosureStatus status, {
     List<LocalizedString>? purpose,
   }) {
@@ -82,7 +82,7 @@ class WalletEventLog {
     _logEvent(event);
   }
 
-  void logIssuance(Attestation attestation) {
+  void logIssuance(AttestationPresentation attestation) {
     final event = WalletEvent.issuance(
       dateTime: DateTime.now().toIso8601String(),
       attestation: attestation,
@@ -108,7 +108,7 @@ class WalletEventLog {
   void reset() => _log.clear();
 }
 
-extension on List<Attestation> {
+extension on List<AttestationPresentation> {
   bool get onlyContainsBsn {
     return length == 1 && first.attributes.length == 1 && first.attributes.first.key == 'mock_citizenshipNumber';
   }

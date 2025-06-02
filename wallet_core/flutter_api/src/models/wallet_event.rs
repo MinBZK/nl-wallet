@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use super::attestation::Attestation;
+use super::attestation::AttestationPresentation;
 use super::disclosure::DisclosureType;
 use super::disclosure::Organization;
 use super::disclosure::RPLocalizedStrings;
@@ -15,7 +15,7 @@ pub enum WalletEvent {
         date_time: String,
         relying_party: Organization,
         purpose: Vec<LocalizedString>,
-        shared_attestations: Option<Vec<Attestation>>,
+        shared_attestations: Option<Vec<AttestationPresentation>>,
         request_policy: RequestPolicy,
         status: DisclosureStatus,
         typ: DisclosureType,
@@ -23,7 +23,7 @@ pub enum WalletEvent {
     Issuance {
         // ISO8601
         date_time: String,
-        attestation: Attestation,
+        attestation: AttestationPresentation,
     },
 }
 
@@ -65,7 +65,10 @@ impl From<wallet::WalletEvent> for WalletEvents {
             } => {
                 let reader_registration = *reader_registration;
                 let request_policy = RequestPolicy::from(&reader_registration);
-                let attestations = attestations.into_iter().map(Attestation::from).collect_vec();
+                let attestations = attestations
+                    .into_iter()
+                    .map(AttestationPresentation::from)
+                    .collect_vec();
 
                 vec![WalletEvent::Disclosure {
                     date_time: timestamp.to_rfc3339(),

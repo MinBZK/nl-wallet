@@ -5,7 +5,7 @@ use wallet::errors::DisclosureError;
 use wallet::openid4vc::SessionType;
 use wallet::DisclosureProposal;
 
-use super::attestation::Attestation;
+use super::attestation::AttestationPresentation;
 use super::image::Image;
 use super::instruction::WalletInstructionError;
 use super::localize::LocalizedString;
@@ -58,7 +58,7 @@ pub enum StartDisclosureResult {
     Request {
         relying_party: Organization,
         policy: RequestPolicy,
-        requested_attestations: Vec<Attestation>,
+        requested_attestations: Vec<AttestationPresentation>,
         shared_data_with_relying_party_before: bool,
         session_type: DisclosureSessionType,
         request_purpose: Vec<LocalizedString>,
@@ -183,7 +183,11 @@ impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureRes
                 let result = StartDisclosureResult::Request {
                     relying_party: proposal.reader_registration.organization.into(),
                     policy,
-                    requested_attestations: proposal.attestations.into_iter().map(Attestation::from).collect(),
+                    requested_attestations: proposal
+                        .attestations
+                        .into_iter()
+                        .map(AttestationPresentation::from)
+                        .collect(),
                     shared_data_with_relying_party_before: proposal.shared_data_with_relying_party_before,
                     session_type: proposal.session_type.into(),
                     request_purpose,

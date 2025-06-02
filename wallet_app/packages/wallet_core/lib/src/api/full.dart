@@ -35,7 +35,8 @@ Stream<FlutterVersionState> setVersionStateStream() => WalletCore.instance.api.c
 
 Future<void> clearVersionStateStream() => WalletCore.instance.api.crateApiFullClearVersionStateStream();
 
-Stream<List<Attestation>> setAttestationsStream() => WalletCore.instance.api.crateApiFullSetAttestationsStream();
+Stream<List<AttestationPresentation>> setAttestationsStream() =>
+    WalletCore.instance.api.crateApiFullSetAttestationsStream();
 
 Future<void> clearAttestationsStream() => WalletCore.instance.api.crateApiFullClearAttestationsStream();
 
@@ -68,7 +69,7 @@ Future<String> createPidIssuanceRedirectUri() => WalletCore.instance.api.crateAp
 
 Future<void> cancelIssuance() => WalletCore.instance.api.crateApiFullCancelIssuance();
 
-Future<List<Attestation>> continuePidIssuance({required String uri}) =>
+Future<List<AttestationPresentation>> continuePidIssuance({required String uri}) =>
     WalletCore.instance.api.crateApiFullContinuePidIssuance(uri: uri);
 
 Future<WalletInstructionResult> acceptIssuance({required String pin}) =>

@@ -5,7 +5,7 @@ use wallet::errors::InstructionError;
 use wallet::errors::IssuanceError;
 use wallet::errors::WalletUnlockError;
 
-use super::attestation::Attestation;
+use super::attestation::AttestationPresentation;
 
 pub enum WalletInstructionResult {
     Ok,
@@ -13,7 +13,7 @@ pub enum WalletInstructionResult {
 }
 
 pub enum DisclosureBasedIssuanceResult {
-    Ok(Vec<Attestation>),
+    Ok(Vec<AttestationPresentation>),
     InstructionError { error: WalletInstructionError },
 }
 
@@ -121,12 +121,18 @@ impl TryFrom<Result<(), ChangePinError>> for WalletInstructionResult {
 ///    the nested [InstructionError].
 /// 3. In any other cases, this is an unexpected and/or generic error and the [`DisclosureBasedIssuanceError`] will be
 ///    returned unchanged.
-impl TryFrom<Result<Vec<wallet::Attestation>, DisclosureBasedIssuanceError>> for DisclosureBasedIssuanceResult {
+impl TryFrom<Result<Vec<wallet::AttestationPresentation>, DisclosureBasedIssuanceError>>
+    for DisclosureBasedIssuanceResult
+{
     type Error = DisclosureBasedIssuanceError;
 
-    fn try_from(value: Result<Vec<wallet::Attestation>, DisclosureBasedIssuanceError>) -> Result<Self, Self::Error> {
+    fn try_from(
+        value: Result<Vec<wallet::AttestationPresentation>, DisclosureBasedIssuanceError>,
+    ) -> Result<Self, Self::Error> {
         match value {
-            Ok(attestations) => Ok(Self::Ok(attestations.into_iter().map(Attestation::from).collect())),
+            Ok(attestations) => Ok(Self::Ok(
+                attestations.into_iter().map(AttestationPresentation::from).collect(),
+            )),
             Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::Instruction(instruction_error))) => {
                 Ok(DisclosureBasedIssuanceResult::InstructionError {
                     error: instruction_error.try_into().map_err(|error| {

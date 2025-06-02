@@ -11,7 +11,7 @@ import '../mapper.dart';
 class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<RequestPolicy, Policy> _policyMapper;
-  final Mapper<Attestation, WalletCard> _cardMapper;
+  final Mapper<AttestationPresentation, WalletCard> _cardMapper;
   final Mapper<List<LocalizedString>, LocalizedText> _localizedStringMapper;
   final Mapper<core.DisclosureType, DisclosureType> _disclosureTypeMapper;
 
