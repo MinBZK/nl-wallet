@@ -48,14 +48,17 @@ class IntroductionPrivacyScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        BulletList(
-                          items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
-                          icon: Icon(
-                            Icons.check,
-                            color: context.colorScheme.primary,
-                            size: 18,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: BulletList(
+                            items: context.l10n.introductionPrivacyScreenBulletPoints.split('\n'),
+                            icon: Icon(
+                              Icons.check,
+                              color: context.colorScheme.primary,
+                              size: 18,
+                            ),
+                            rowPadding: const EdgeInsets.symmetric(vertical: 4),
                           ),
-                          rowPadding: const EdgeInsets.symmetric(vertical: 4),
                         ),
                       ],
                     ),

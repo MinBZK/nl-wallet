@@ -4,7 +4,8 @@ import '../../../theme/wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import 'svg_or_image.dart';
 
-const _kLandscapeWidth = 160.0;
+const _kLandscapeHeight = 160.0;
+const _kPortraitHeight = 214.0;
 const _kContainerColor = Color(0xFFF5F4F9);
 
 class PageIllustration extends StatelessWidget {
@@ -25,7 +26,7 @@ class PageIllustration extends StatelessWidget {
         color: _kContainerColor,
         borderRadius: WalletTheme.kBorderRadius12,
       ),
-      height: context.isLandscape ? _kLandscapeWidth : null,
+      height: context.isLandscape ? _kLandscapeHeight : _kPortraitHeight,
       width: double.infinity,
       child: SvgOrImage(
         asset: asset,
