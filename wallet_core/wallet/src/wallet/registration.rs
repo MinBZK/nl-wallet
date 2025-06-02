@@ -132,7 +132,7 @@ where
 
         info!("Fetching update policy");
         self.update_policy_repository
-            .fetch(&config.update_policy_server.http_config)
+            .fetch(config.update_policy_server.http_config.clone())
             .await?;
 
         info!("Checking if blocked");
@@ -157,7 +157,7 @@ where
         // Retrieve a challenge from the account server
         let challenge = self
             .account_provider_client
-            .registration_challenge(&config.account_server.http_config)
+            .registration_challenge(config.account_server.http_config.clone())
             .await
             .map_err(WalletRegistrationError::ChallengeRequest)?;
 
@@ -257,7 +257,7 @@ where
         // Send the registration message to the account server and receive the wallet certificate in response.
         let wallet_certificate = self
             .account_provider_client
-            .register(&config.account_server.http_config, registration_message)
+            .register(config.account_server.http_config.clone(), registration_message)
             .await
             .map_err(WalletRegistrationError::RegistrationRequest)?;
 

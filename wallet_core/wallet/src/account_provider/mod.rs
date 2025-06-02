@@ -43,25 +43,27 @@ pub enum AccountProviderResponseError {
     Account(#[defer] AccountError, Option<String>),
 }
 
+// TODO: Refactor command methods so that the command challenge request
+//       and the command itself get sent using the same HTTP client.
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait AccountProviderClient {
-    async fn registration_challenge(&self, client_config: &TlsPinningConfig) -> Result<Vec<u8>, AccountProviderError>;
+    async fn registration_challenge(&self, client_config: TlsPinningConfig) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn register(
         &self,
-        client_config: &TlsPinningConfig,
+        client_config: TlsPinningConfig,
         registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError>;
 
     async fn instruction_challenge(
         &self,
-        client_config: &TlsPinningConfig,
+        client_config: TlsPinningConfig,
         challenge_request: InstructionChallengeRequest,
     ) -> Result<Vec<u8>, AccountProviderError>;
 
     async fn instruction<I>(
         &self,
-        client_config: &TlsPinningConfig,
+        client_config: TlsPinningConfig,
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where

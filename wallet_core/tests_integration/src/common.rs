@@ -223,7 +223,7 @@ pub async fn setup_wallet_and_env(
 
     let attestation_server_url =
         start_mock_attestation_server(issuable_documents, di_tls_config, di_root_ca.clone()).await;
-    let attributes_fetcher = HttpAttributesFetcher::new(
+    let attributes_fetcher = HttpAttributesFetcher::try_new(
         issuance_server_settings
             .disclosure_settings
             .keys()
@@ -237,7 +237,8 @@ pub async fn setup_wallet_and_env(
                 )
             })
             .collect(),
-    );
+    )
+    .unwrap();
 
     let wallet_urls = start_verification_server(verifier_settings, Some(hsm.clone())).await;
     let pid_issuer_port = start_pid_issuer_server(
@@ -280,7 +281,7 @@ pub async fn setup_wallet_and_env(
     .await
     .unwrap();
     config_repository
-        .fetch(&config_server_config.http_config)
+        .fetch(config_server_config.http_config.clone())
         .await
         .unwrap();
 
@@ -717,7 +718,7 @@ pub async fn do_pid_issuance(mut wallet: WalletWithMocks, pin: String) -> Wallet
 #[must_use = "ownership of MockDigidSession::Context must be retained for the duration of the test"]
 pub fn setup_digid_context() -> Box<dyn Any> {
     let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _: &TlsPinningConfig, _| {
+    digid_context.expect().return_once(|_, _: TlsPinningConfig, _| {
         let mut session = MockDigidSession::default();
 
         session.expect_into_token_request().return_once(|_url| {

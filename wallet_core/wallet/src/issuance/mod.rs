@@ -6,14 +6,13 @@ pub mod mock;
 use url::Url;
 
 use error_category::ErrorCategory;
+use http_utils::reqwest::IntoPinnedReqwestClient;
 use openid4vc::oidc::OidcError;
 use openid4vc::token::TokenRequest;
+use wallet_configuration::wallet_config::DigidConfiguration;
 
 pub use app2app::App2AppErrorMessage;
 pub use app2app::HttpDigidSession;
-
-use http_utils::reqwest::JsonReqwestBuilder;
-use wallet_configuration::wallet_config::DigidConfiguration;
 
 pub const PID_DOCTYPE: &str = "urn:eudi:pid:nl:1";
 pub const BSN_ATTR_NAME: &str = "bsn";
@@ -56,12 +55,12 @@ pub enum DigidSessionError {
 pub trait DigidSession {
     async fn start<C>(
         digid_config: DigidConfiguration,
-        http_config: &C,
+        http_config: C,
         redirect_uri: Url,
     ) -> Result<(Self, Url), DigidSessionError>
     where
-        Self: Sized,
-        C: JsonReqwestBuilder + 'static;
+        C: IntoPinnedReqwestClient + Clone + 'static,
+        Self: Sized;
 
     async fn into_token_request(self, received_redirect_uri: Url) -> Result<TokenRequest, DigidSessionError>;
 }

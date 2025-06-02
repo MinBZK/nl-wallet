@@ -2,7 +2,10 @@ use std::error::Error;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use http_utils::reqwest::RequestBuilder;
+use http::Method;
+
+use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::ReqwestClientUrl;
 
 use super::Filename;
 use super::HttpClient;
@@ -25,16 +28,20 @@ impl<T, B> ReqwestHttpClient<T, B> {
 
 impl<T, B> HttpClient<T, B> for ReqwestHttpClient<T, B>
 where
-    B: RequestBuilder + Send + Sync,
+    B: IntoPinnedReqwestClient + Send + Sync,
     T: FromStr + Send + Sync,
     T::Err: Error + Send + Sync + 'static,
 {
     type Error = HttpClientError;
 
-    async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
-        let (client, request_builder) = client_builder.get(self.resource_identifier.as_ref());
-        let request = request_builder.build().map_err(HttpClientError::Networking)?;
-        let response = client.execute(request).await.map_err(HttpClientError::Networking)?;
+    async fn fetch(&self, client_builder: B) -> Result<HttpResponse<T>, Self::Error> {
+        let response = client_builder
+            .try_into_client()?
+            .send_request(
+                Method::GET,
+                ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
+            )
+            .await?;
 
         // Try to get the body from any 4xx or 5xx error responses, in order to create an Error::Response.
         let response = match response.error_for_status_ref() {

@@ -44,7 +44,7 @@ async fn test_pid_issuance_digid_bridge() {
         .transpose()
         .unwrap();
 
-    let attr_service = BrpPidAttributeService::new(
+    let attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server.clone()),
         &settings.digid.bsn_privkey,
         settings.digid.http_config.clone(),
@@ -59,7 +59,7 @@ async fn test_pid_issuance_digid_bridge() {
     // Prepare DigiD flow
     let (digid_session, authorization_url) = HttpDigidSession::<HttpOidcClient>::start(
         wallet_config.pid_issuance.digid.clone(),
-        &wallet_config.pid_issuance.digid_http_config,
+        wallet_config.pid_issuance.digid_http_config.clone(),
         urls::issuance_base_uri(&DEFAULT_UNIVERSAL_LINK_BASE.parse().unwrap()).into_inner(),
     )
     .await
@@ -67,8 +67,8 @@ async fn test_pid_issuance_digid_bridge() {
 
     // Do fake DigiD authentication and parse the access token out of the redirect URL
     let redirect_url = fake_digid_auth(
-        &authorization_url,
-        &wallet_config.pid_issuance.digid_http_config,
+        authorization_url,
+        wallet_config.pid_issuance.digid_http_config.clone(),
         "999991772",
     )
     .await;

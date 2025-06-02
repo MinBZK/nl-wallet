@@ -2,7 +2,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use derive_more::Constructor;
-use http_utils::reqwest::ReqwestBuilder;
+
+use http_utils::reqwest::IntoPinnedReqwestClient;
 use jwt::EcdsaDecodingKey;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
@@ -56,12 +57,12 @@ where
 impl<T, B> UpdateableRepository<Arc<WalletConfiguration>, B> for FileStorageConfigurationRepository<T>
 where
     T: UpdateableRepository<Arc<WalletConfiguration>, B, Error = ConfigurationError> + Sync,
-    B: ReqwestBuilder + Send + Sync,
+    B: IntoPinnedReqwestClient + Send + Sync,
 {
     type Error = ConfigurationError;
 
-    async fn fetch(&self, config: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
-        let result = self.wrapped.fetch(config).await?;
+    async fn fetch(&self, client_builder: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+        let result = self.wrapped.fetch(client_builder).await?;
 
         if let RepositoryUpdateState::Updated { ref to, .. } = result {
             config_file::update_config_file(self.storage_path.as_path(), to).await?;
@@ -106,7 +107,7 @@ mod tests {
     {
         type Error = ConfigurationError;
 
-        async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+        async fn fetch(&self, _: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
             let mut config = self.0.write();
             let from = config.clone();
             config.lock_timeouts.background_timeout = 700;
@@ -137,7 +138,7 @@ mod tests {
             "should return initial_wallet_config"
         );
 
-        repo.fetch(&TlsPinningConfig {
+        repo.fetch(TlsPinningConfig {
             base_url: "http://localhost".parse().unwrap(),
             trust_anchors: vec![],
         })

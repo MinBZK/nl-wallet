@@ -37,14 +37,14 @@ pub enum Error {
 
 pub struct BrpPidAttributeService {
     brp_client: HttpBrpClient,
-    openid_client: OpenIdClient<TlsPinningConfig>,
+    openid_client: OpenIdClient,
 }
 
 impl BrpPidAttributeService {
-    pub fn new(brp_client: HttpBrpClient, bsn_privkey: &str, http_config: TlsPinningConfig) -> Result<Self, Error> {
+    pub fn try_new(brp_client: HttpBrpClient, bsn_privkey: &str, http_config: TlsPinningConfig) -> Result<Self, Error> {
         Ok(Self {
             brp_client,
-            openid_client: OpenIdClient::new(bsn_privkey, http_config)?,
+            openid_client: OpenIdClient::try_new(bsn_privkey, http_config)?,
         })
     }
 }

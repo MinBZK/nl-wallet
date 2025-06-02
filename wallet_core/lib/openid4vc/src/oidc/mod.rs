@@ -1,5 +1,7 @@
-mod client;
 pub use client::*;
-
-mod config;
 pub use config::*;
+pub use reqwest::*;
+
+mod client;
+mod config;
+mod reqwest;

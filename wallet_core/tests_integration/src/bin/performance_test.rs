@@ -69,10 +69,7 @@ async fn main() {
     )
     .await
     .unwrap();
-    config_repository
-        .fetch(&config_server_config.http_config)
-        .await
-        .unwrap();
+    config_repository.fetch(config_server_config.http_config).await.unwrap();
     let pid_issuance_config = &config_repository.get().pid_issuance;
     let update_policy_repository = UpdatePolicyRepository::init();
 
@@ -95,7 +92,12 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(&authorization_url, &pid_issuance_config.digid_http_config, "999991772").await;
+    let redirect_url = fake_digid_auth(
+        authorization_url,
+        pid_issuance_config.digid_http_config.clone(),
+        "999991772",
+    )
+    .await;
 
     let _unsigned_mdocs = wallet
         .continue_pid_issuance(redirect_url)

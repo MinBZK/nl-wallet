@@ -24,7 +24,7 @@ server = ["dep:axum", "dep:axum-server", "dep:tower-http", "serde_with/base64"]
 cfg-if.workspace = true
 base64 = { workspace = true }
 data-url = { workspace = true }
-derive_more = { workspace = true, features = ["as_ref", "debug"] }
+derive_more = { workspace = true, features = ["as_ref", "debug", "constructor"] }
 http.workspace = true
 itertools.workspace = true
 mime.workspace = true

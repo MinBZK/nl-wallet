@@ -33,7 +33,7 @@ async fn test_wallet_update_policy() {
 
     let before = update_policy.get();
     let result = update_policy
-        .fetch(&update_policy_server_config.http_config)
+        .fetch(update_policy_server_config.http_config)
         .await
         .unwrap();
     let after = update_policy.get();
@@ -58,7 +58,7 @@ async fn test_wallet_update_policy_stale() {
     let update_policy = HttpUpdatePolicyRepository::new();
     let before = update_policy.get();
     let result = update_policy
-        .fetch(&update_policy_server_config.http_config)
+        .fetch(update_policy_server_config.http_config)
         .await
         .unwrap();
     let after = update_policy.get();
@@ -83,7 +83,7 @@ async fn test_wallet_update_policy_server_tls_pinning() {
 
     let update_policy = HttpUpdatePolicyRepository::new();
     let before = update_policy.get();
-    let result = update_policy.fetch(&update_policy_server_config.http_config).await;
+    let result = update_policy.fetch(update_policy_server_config.http_config).await;
     let after = update_policy.get();
 
     assert_matches!(result, Err(_));

@@ -10,6 +10,7 @@ pub use biscuit::Empty;
 pub use biscuit::ValidationOptions;
 pub use biscuit::JWT;
 use futures::TryFutureExt;
+use http::Method;
 pub use josekit::jwe::alg;
 pub use josekit::jwe::enc;
 pub use josekit::jwe::JweContentEncryption;
@@ -19,7 +20,7 @@ use reqwest::header;
 use url::Url;
 
 use error_category::ErrorCategory;
-use http_utils::reqwest::JsonReqwestBuilder;
+use http_utils::reqwest::ReqwestClientUrl;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
@@ -38,6 +39,7 @@ use crate::ErrorResponse;
 use crate::TokenErrorCode;
 
 use super::Config;
+use super::OidcReqwestClient;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(pd)]
@@ -84,10 +86,13 @@ const APPLICATION_JWT: &str = "application/jwt";
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
 pub trait OidcClient {
     /// Create a new instance by using OpenID discovery, and return an authorization URL.
-    async fn start<C>(http_config: &C, client_id: String, redirect_uri: Url) -> Result<(Self, Url), OidcError>
+    async fn start(
+        http_client: &OidcReqwestClient,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<(Self, Url), OidcError>
     where
-        Self: Sized,
-        C: JsonReqwestBuilder + 'static;
+        Self: Sized;
 
     /// Create an OpenID Token Request based on the contents
     /// of the redirect URI received.
@@ -117,12 +122,16 @@ impl<P> OidcClient for HttpOidcClient<P>
 where
     P: PkcePair,
 {
-    async fn start<C>(http_config: &C, client_id: String, redirect_uri: Url) -> Result<(Self, Url), OidcError>
+    async fn start(
+        http_client: &OidcReqwestClient,
+        client_id: String,
+        redirect_uri: Url,
+    ) -> Result<(Self, Url), OidcError>
     where
-        C: JsonReqwestBuilder + 'static,
+        Self: Sized,
     {
-        let config = Config::discover(http_config).await?;
-        let jwks = config.jwks(&http_config.json_builder().build()?).await?;
+        let config = Config::discover(http_client).await?;
+        let jwks = config.jwks(http_client).await?;
 
         let client = Self::new(config, jwks, client_id, redirect_uri);
 
@@ -209,17 +218,18 @@ impl<P: PkcePair> HttpOidcClient<P> {
 }
 
 pub async fn request_token(
-    http_config: &impl JsonReqwestBuilder,
+    http_client: &OidcReqwestClient,
     token_request: TokenRequest,
 ) -> Result<TokenResponse, OidcError> {
-    let config = Config::discover(http_config).await?;
+    let config = Config::discover(http_client).await?;
 
-    let response: TokenResponse = http_config
-        .builder()
-        .build()?
-        .post(config.token_endpoint.clone())
-        .form(&token_request)
-        .send()
+    let token_response = http_client
+        .as_ref()
+        .send_custom_request(
+            Method::POST,
+            ReqwestClientUrl::Absolute(config.token_endpoint.clone()),
+            |request| request.form(&token_request),
+        )
         .map_err(OidcError::from)
         .and_then(|response| async {
             // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -233,11 +243,11 @@ pub async fn request_token(
         })
         .await?;
 
-    Ok(response)
+    Ok(token_response)
 }
 
 pub async fn request_userinfo<C, H>(
-    http_config: &impl JsonReqwestBuilder,
+    http_client: &OidcReqwestClient,
     access_token: &AccessToken,
     expected_sig_alg: SignatureAlgorithm,
     encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
@@ -246,20 +256,20 @@ where
     ClaimsSet<C>: CompactPart,
     H: CompactJson,
 {
-    let config = Config::discover(http_config).await?;
-    let jwks = config.jwks(&http_config.json_builder().build()?).await?;
+    let config = Config::discover(http_client).await?;
+    let jwks = config.jwks(http_client).await?;
 
     // Get userinfo endpoint from discovery, throw an error otherwise.
     let endpoint = config.userinfo_endpoint.clone().ok_or(OidcError::NoUserinfoUrl)?;
 
     // Use the access_token to retrieve the userinfo as a JWT.
-    let jwt = http_config
-        .builder()
-        .build()?
-        .post(endpoint)
-        .header(header::ACCEPT, APPLICATION_JWT)
-        .bearer_auth(access_token.as_ref())
-        .send()
+    let jwt = http_client
+        .as_ref()
+        .send_custom_request(Method::POST, ReqwestClientUrl::Absolute(endpoint.clone()), |request| {
+            request
+                .header(header::ACCEPT, APPLICATION_JWT)
+                .bearer_auth(access_token.as_ref())
+        })
         .map_err(OidcError::from)
         .and_then(|response| async {
             // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -316,7 +326,7 @@ mod tests {
     use rstest::rstest;
     use url::Url;
 
-    use http_utils::tls::test::HttpConfig;
+    use http_utils::tls::insecure::InsecureHttpConfig;
     use http_utils::urls::BaseUrl;
 
     use crate::oidc::tests::start_discovery_server;
@@ -329,6 +339,7 @@ mod tests {
     use super::HttpOidcClient;
     use super::OidcClient;
     use super::OidcError;
+    use super::OidcReqwestClient;
 
     // These constants are used by multiple tests.
     const ISSUER_URL: &str = "http://example.com";
@@ -361,16 +372,12 @@ mod tests {
 
         // Create an OIDC client with start()
         let (_server, server_url) = start_discovery_server().await;
+        let client = OidcReqwestClient::try_new(InsecureHttpConfig::new(server_url.clone())).unwrap();
         let redirect_uri: Url = REDIRECT_URI.parse().unwrap();
-        let (client, auth_url) = HttpOidcClient::<MockPkcePair>::start(
-            &HttpConfig {
-                base_url: server_url.clone(),
-            },
-            CLIENT_ID.to_string(),
-            redirect_uri.clone(),
-        )
-        .await
-        .unwrap();
+        let (client, auth_url) =
+            HttpOidcClient::<MockPkcePair>::start(&client, CLIENT_ID.to_string(), redirect_uri.clone())
+                .await
+                .unwrap();
 
         assert_eq!(&client.client_id, CLIENT_ID);
         assert_eq!(client.redirect_uri, redirect_uri);

@@ -6,11 +6,13 @@ use std::str::FromStr;
 
 use http::header;
 use http::HeaderValue;
+use http::Method;
 use http::StatusCode;
 use parking_lot::Mutex;
 use tokio::fs;
 
-use http_utils::reqwest::RequestBuilder;
+use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::ReqwestClientUrl;
 
 use super::FileStorageError;
 use super::Filename;
@@ -74,20 +76,25 @@ impl<T, B, E> HttpClient<T, B> for EtagHttpClient<T, B, E>
 where
     T: FromStr + Send + Sync,
     T::Err: Error + Send + Sync + 'static,
-    B: RequestBuilder + Send + Sync,
+    B: IntoPinnedReqwestClient + Send + Sync,
     E: From<HttpClientError> + Error + Send + Sync + 'static,
 {
     type Error = E;
 
-    async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
-        let (client, mut request_builder) = client_builder.get(self.resource_identifier.as_ref());
-
-        if let Some(etag) = self.latest_etag.lock().as_ref() {
-            request_builder = request_builder.header(header::IF_NONE_MATCH, etag);
-        }
-
-        let request = request_builder.build().map_err(HttpClientError::Networking)?;
-        let response = client.execute(request).await.map_err(HttpClientError::Networking)?;
+    async fn fetch(&self, client_builder: B) -> Result<HttpResponse<T>, Self::Error> {
+        let response = client_builder
+            .try_into_client()
+            .map_err(HttpClientError::Networking)?
+            .send_custom_request(
+                Method::GET,
+                ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
+                |request| match self.latest_etag.lock().as_ref() {
+                    Some(etag) => request.header(header::IF_NONE_MATCH, etag),
+                    None => request,
+                },
+            )
+            .await
+            .map_err(HttpClientError::Networking)?;
 
         // Try to get the body from any 4xx or 5xx error responses, in order to create an Error::Response.
         let response = match response.error_for_status_ref() {
@@ -135,7 +142,7 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::tls::test::HttpConfig;
+    use http_utils::tls::insecure::InsecureHttpConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
@@ -172,19 +179,17 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client: EtagHttpClient<Stub, HttpConfig, HttpClientError> =
+        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().into_path())
                 .await
                 .unwrap();
 
-        let client_builder = HttpConfig {
-            base_url: mock_server.uri().parse().unwrap(),
-        };
+        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch(client_builder.clone()).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch(client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::NotModified));
     }
 
@@ -207,18 +212,16 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client_builder = HttpConfig {
-            base_url: mock_server.uri().parse().unwrap(),
-        };
-        let client: EtagHttpClient<Stub, HttpConfig, HttpClientError> =
+        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
+        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().into_path())
                 .await
                 .unwrap();
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch(client_builder.clone()).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
 
-        let response = client.fetch(&client_builder).await.unwrap();
+        let response = client.fetch(client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
     }
 }

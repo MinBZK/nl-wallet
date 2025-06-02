@@ -32,7 +32,7 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
     let sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
     let wte_tracker = WteTrackerVariant::new(db_connection);
 
-    let pid_attr_service = BrpPidAttributeService::new(
+    let pid_attr_service = BrpPidAttributeService::try_new(
         HttpBrpClient::new(settings.brp_server),
         &settings.digid.bsn_privkey,
         settings.digid.http_config,

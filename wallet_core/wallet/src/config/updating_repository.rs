@@ -77,7 +77,7 @@ where
 
                 info!("Wallet configuration update timer expired, fetching from remote...");
 
-                match wrapped.fetch(&config.http_config).await {
+                match wrapped.fetch(config.http_config.clone()).await {
                     Ok(state) => {
                         if let RepositoryUpdateState::Updated { .. } = state {
                             let config = wrapped.get();
@@ -161,7 +161,7 @@ mod tests {
     {
         type Error = ConfigurationError;
 
-        async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, ConfigurationError> {
+        async fn fetch(&self, _: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, ConfigurationError> {
             let mut config = self.0.write();
             let from = config.clone();
             config.lock_timeouts.background_timeout = 900;

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 use tracing::info;
 
-use http_utils::reqwest::ReqwestBuilder;
+use http_utils::reqwest::IntoPinnedReqwestClient;
 use jwt::validations;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
@@ -54,12 +54,12 @@ impl<C> Repository<Arc<WalletConfiguration>> for HttpConfigurationRepository<C> 
 /// we just panic when that occurs.
 impl<B> UpdateableRepository<Arc<WalletConfiguration>, B> for HttpConfigurationRepository<B>
 where
-    B: ReqwestBuilder + Send + Sync,
+    B: IntoPinnedReqwestClient + Send + Sync,
 {
     type Error = ConfigurationError;
 
-    async fn fetch(&self, config: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
-        let response = self.client.fetch(config).await?;
+    async fn fetch(&self, client_builder: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+        let response = self.client.fetch(client_builder).await?;
         match response {
             HttpResponse::Parsed(parsed_response) => {
                 let new_config = parsed_response.parse_and_verify(&self.signing_public_key, &validations())?;

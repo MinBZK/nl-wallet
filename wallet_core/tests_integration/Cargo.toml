@@ -99,7 +99,7 @@ test_common = [
     "dep:wiremock",
 ]
 # Include the fake_digid submodule
-fake_digid = ["dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
+fake_digid = ["dep:http", "dep:http_utils", "dep:reqwest", "dep:url", "dep:wallet_configuration"]
 # Include and run test that depend on an external PostgreSQL database
 db_test = [
     "pid_issuer?/db_test",
@@ -185,6 +185,7 @@ axum = { workspace = true, optional = true, features = ["http1", "json", "tokio"
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
 ctor = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
+http = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
 insta = { workspace = true, optional = true, features = ["ron"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }

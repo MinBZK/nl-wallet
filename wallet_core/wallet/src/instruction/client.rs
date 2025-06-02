@@ -121,7 +121,7 @@ where
 
         let result = self
             .account_provider_client
-            .instruction_challenge(&self.parameters.client_config, challenge_request)
+            .instruction_challenge(self.parameters.client_config.clone(), challenge_request)
             .await?;
 
         Ok(result)
@@ -167,7 +167,7 @@ where
 
         let signed_result = self
             .account_provider_client
-            .instruction(&self.parameters.client_config, instruction)
+            .instruction(self.parameters.client_config.clone(), instruction)
             .await
             .map_err(InstructionError::from)?;
 

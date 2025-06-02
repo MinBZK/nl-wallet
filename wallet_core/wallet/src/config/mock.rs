@@ -41,7 +41,7 @@ where
 {
     type Error = ConfigurationError;
 
-    async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+    async fn fetch(&self, _: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
         Ok(RepositoryUpdateState::Updated {
             from: self.get(),
             to: self.get(),
