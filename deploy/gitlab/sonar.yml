@@ -45,11 +45,11 @@ sonar-flutter:
   script:
     - cd wallet_app
     - flutter pub get --enforce-lockfile
+    # The quality gate is disabled until SonarQube out-of-memory issues are resolved.
     - sonar-scanner
       -Dsonar.scanner.skipJreProvisioning=true
       -Dsonar.sourceEncoding=UTF-8
       -Dsonar.projectKey=nl-wallet-demo-app
-      -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=.
       -Dsonar.exclusions=android/**,ios/**,test/**,packages/wallet_core/lib/src/**,**/*.freezed.dart,**/*.g.dart,**/*.yaml
       -Dsonar.coverage.exclusions=packages/wallet_mock/**
