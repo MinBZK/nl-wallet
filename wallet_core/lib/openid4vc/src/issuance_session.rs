@@ -226,6 +226,7 @@ pub enum IssuedCredential {
 #[derive(Clone, Debug, Constructor)]
 pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
+    pub attestation_type: String,
     pub metadata_documents: VerifiedTypeMetadataDocuments,
 }
 
@@ -868,7 +869,11 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                             ))?,
                         };
 
-                        Ok(CredentialWithMetadata::new(copies, verified_metadata))
+                        Ok(CredentialWithMetadata::new(
+                            copies,
+                            preview.content.credential_payload.attestation_type.clone(),
+                            verified_metadata,
+                        ))
                     })
                     .collect::<Result<Vec<_>, IssuanceSessionError>>()
             })

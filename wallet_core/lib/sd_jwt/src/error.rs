@@ -59,11 +59,11 @@ pub enum Error {
     #[error("missing required JWK key binding")]
     MissingJwkKeybinding,
 
-    #[error("missing x5c header")]
-    MissingX5cHeader,
-
     #[error("error decoding base64: {0}")]
     Base64Decode(#[from] base64::DecodeError),
+
+    #[error("missing issuer certificate")]
+    MissingIssuerCertificate,
 
     #[error("error constructing issuer certificate: {0}")]
     IssuerCertificate(#[from] CertificateError),

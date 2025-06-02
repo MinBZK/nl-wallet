@@ -1799,12 +1799,14 @@ mod tests {
                     IssuedCredentialCopies::MsoMdoc(
                         vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
                     ),
+                    String::from("https://sd_jwt_vc_metadata.example.com/example_credential"),
                     VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
                 CredentialWithMetadata::new(
                     IssuedCredentialCopies::MsoMdoc(
                         vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
                     ),
+                    String::from("https://sd_jwt_vc_metadata.example.com/example_credential"),
                     // Note that the attestation type of this metadata does not match the mdoc doc_type,
                     // which is not relevant for this particular test.
                     VerifiedTypeMetadataDocuments::nl_pid_example(),

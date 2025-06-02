@@ -23,6 +23,7 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
+use sd_jwt::sd_jwt::SdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
@@ -61,26 +62,38 @@ pub enum StorageError {
     #[error("storage database is not opened")]
     #[category(critical)]
     NotOpened,
+
     #[error("storage database is already opened")]
     #[category(critical)]
     AlreadyOpened,
+
     #[error("storage database I/O error: {0}")]
     #[category(critical)]
     Io(#[from] io::Error),
+
     #[error("storage database error: {0}")]
     #[category(critical)]
     Database(#[from] DbErr),
+
     #[error("storage database JSON error: {0}")]
     #[category(pd)]
     Json(#[from] serde_json::Error),
+
     #[error("could not decode stored metadata chain: {0}")]
     #[category(pd)]
     MetadataChain(#[from] TypeMetadataChainError),
+
     #[error("storage database CBOR error: {0}")]
     Cbor(#[from] CborError),
+
+    #[error("storage database SD-JWT error: {0}")]
+    #[category(pd)]
+    SdJwt(#[from] sd_jwt::error::Error),
+
     #[error("storage database SQLCipher key error: {0}")]
     #[category(pd)] // we don't want to leak the key
     SqlCipherKey(#[from] TryFromSliceError),
+
     #[error("{0}")]
     KeyFile(#[from] KeyFileError),
 }
@@ -93,6 +106,20 @@ pub struct StoredMdocCopy {
     pub mdoc_copy_id: Uuid,
     pub mdoc: Mdoc,
     pub normalized_metadata: NormalizedTypeMetadata,
+}
+
+#[derive(Debug, Clone)]
+pub struct StoredAttestationCopy {
+    pub attestation_id: Uuid,
+    pub attestation_copy_id: Uuid,
+    pub attestation: StoredAttestationFormat,
+    pub normalized_metadata: NormalizedTypeMetadata,
+}
+
+#[derive(Debug, Clone)]
+pub enum StoredAttestationFormat {
+    MsoMdoc { mdoc: Box<Mdoc> },
+    SdJwt { sd_jwt: Box<SdJwt> },
 }
 
 /// This trait abstracts the persistent storage for the wallet.
@@ -117,6 +144,8 @@ pub trait Storage {
 
     async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()>;
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
+
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>>;
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>>;

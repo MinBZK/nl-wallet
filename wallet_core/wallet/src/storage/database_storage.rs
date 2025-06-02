@@ -36,6 +36,7 @@ use uuid::Uuid;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::BorrowingCertificateExtension;
+use entity::attestation;
 use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::attestation_copy::AttestationFormat;
@@ -48,10 +49,12 @@ use entity::issuance_history_event_attestation_type;
 use entity::keyed_data;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
-use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use platform_support::hw_keystore::PlatformEncryptionKey;
+use sd_jwt::hasher::Sha256Hasher;
+use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 use super::data::KeyedData;
 use super::database::Database;
@@ -63,6 +66,8 @@ use super::Storage;
 use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
+use super::StoredAttestationCopy;
+use super::StoredAttestationFormat;
 use super::StoredMdocCopy;
 
 const DATABASE_NAME: &str = "wallet";
@@ -229,11 +234,11 @@ impl<K> DatabaseStorage<K> {
         // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
         let select = attestation_copy::Entity::find()
             .select_only()
-            .inner_join(entity::attestation::Entity)
+            .inner_join(attestation::Entity)
             .column(attestation_copy::Column::Id)
             .column(attestation_copy::Column::AttestationId)
             .column(attestation_copy::Column::Attestation)
-            .column(entity::attestation::Column::TypeMetadata)
+            .column(attestation::Column::TypeMetadata)
             .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
             .group_by(attestation_copy::Column::AttestationId)
             .filter(attestation_copy::Column::AttestationFormat.eq(AttestationFormat::Mdoc))
@@ -499,57 +504,55 @@ where
     }
 
     async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()> {
-        // Construct a vec of tuples of 1 `mdoc` and 1 or more `mdoc_copy` models,
-        // based on the unique `MdocCopies`, to be inserted into the database.
-        let mdoc_models = credentials
+        // Construct a vec of tuples of 1 `attestation` and 1 or more `attestation_copy` models to be inserted
+        // into the database.
+        let attestation_models = credentials
             .into_iter()
             .map(
                 |CredentialWithMetadata {
                      copies,
+                     attestation_type,
                      metadata_documents,
                  }| {
-                    let mdoc_id = Uuid::now_v7();
-
                     match copies {
                         IssuedCredentialCopies::MsoMdoc(mdocs) => {
-                            let copy_models = mdocs
-                                .iter()
-                                .map(|mdoc| {
-                                    let model = attestation_copy::ActiveModel {
-                                        id: Set(Uuid::now_v7()),
-                                        attestation_id: Set(mdoc_id),
-                                        attestation: Set(cbor_serialize(&mdoc)?),
-                                        attestation_format: Set(AttestationFormat::Mdoc),
-                                        ..Default::default()
-                                    };
+                            let serialized = mdocs.into_iter().map(|mdoc| cbor_serialize(&mdoc)).try_collect()?;
 
-                                    Ok(model)
-                                })
-                                .collect::<Result<Vec<_>, CborError>>()?;
+                            let models = create_attestation_active_models(
+                                attestation_type,
+                                AttestationFormat::Mdoc,
+                                serialized,
+                                metadata_documents,
+                            );
 
-                            // `mdoc_copies.cred_copies` is guaranteed to contain at least one value because of the
-                            // filter() above.
-                            let doc_type = mdocs.first().doc_type();
-                            let mdoc_model = entity::attestation::ActiveModel {
-                                id: Set(mdoc_id),
-                                attestation_type: Set(doc_type.clone()),
-                                type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
-                            };
-
-                            Ok((mdoc_model, copy_models))
+                            Ok(models)
                         }
-                        IssuedCredentialCopies::SdJwt(_) => todo!("implement in PVW-4109"),
+                        IssuedCredentialCopies::SdJwt(sd_jwts) => {
+                            let serialized = sd_jwts
+                                .into_iter()
+                                .map(|sd_jwt| sd_jwt.to_string().into_bytes())
+                                .collect_vec();
+
+                            let models = create_attestation_active_models(
+                                attestation_type,
+                                AttestationFormat::SdJwt,
+                                serialized,
+                                metadata_documents,
+                            );
+
+                            Ok(models)
+                        }
                     }
                 },
             )
             .collect::<Result<Vec<_>, StorageError>>()?;
 
         // Make two separate vecs out of the vec of tuples.
-        let (mdoc_models, copy_models): (Vec<_>, Vec<_>) = mdoc_models.into_iter().unzip();
+        let (attestation_models, copy_models): (Vec<_>, Vec<_>) = attestation_models.into_iter().unzip();
 
         let transaction = self.database()?.connection().begin().await?;
 
-        entity::attestation::Entity::insert_many(mdoc_models)
+        attestation::Entity::insert_many(attestation_models)
             .exec(&transaction)
             .await?;
         attestation_copy::Entity::insert_many(copy_models.into_iter().flatten())
@@ -574,6 +577,68 @@ where
         Ok(())
     }
 
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
+        let database = self.database()?;
+
+        // As this query only contains one `MIN()` aggregate function, the columns that
+        // do not appear in the `GROUP BY` clause are taken from whichever `mdoc_copy`
+        // row has the lowest disclosure count. This uses the "bare columns in aggregate
+        // queries" feature that SQLite provides.
+        //
+        // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
+        let select = attestation_copy::Entity::find()
+            .select_only()
+            .inner_join(attestation::Entity)
+            .column(attestation_copy::Column::Id)
+            .column(attestation_copy::Column::AttestationId)
+            .column(attestation_copy::Column::Attestation)
+            .column(attestation_copy::Column::AttestationFormat)
+            .column(attestation::Column::TypeMetadata)
+            .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
+            .group_by(attestation_copy::Column::AttestationId)
+            .order_by(attestation_copy::Column::Id, Order::Asc);
+
+        let copies: Vec<(Uuid, Uuid, Vec<u8>, AttestationFormat, TypeMetadataModel)> =
+            select.into_tuple().all(database.connection()).await?;
+
+        let attestations = copies
+            .into_iter()
+            .map(
+                |(attestation_copy_id, attestation_id, attestation_bytes, attestation_format, metadata)| {
+                    let attestation = match attestation_format {
+                        AttestationFormat::Mdoc => {
+                            let mdoc = cbor_deserialize(attestation_bytes.as_slice())?;
+                            StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) }
+                        }
+                        AttestationFormat::SdJwt => {
+                            let sd_jwt = SdJwt::dangerous_parse(
+                                // Since we put utf-8 bytes into the database, we are certain we also get them out.
+                                String::from_utf8(attestation_bytes).unwrap().as_str(),
+                                &Sha256Hasher,
+                            )?;
+                            StoredAttestationFormat::SdJwt {
+                                sd_jwt: Box::new(sd_jwt),
+                            }
+                        }
+                    };
+
+                    let normalized_metadata = metadata.documents.to_normalized()?;
+
+                    let stored_copy = StoredAttestationCopy {
+                        attestation_id,
+                        attestation_copy_id,
+                        attestation,
+                        normalized_metadata,
+                    };
+
+                    Ok(stored_copy)
+                },
+            )
+            .collect::<Result<_, StorageError>>()?;
+
+        Ok(attestations)
+    }
+
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
         self.query_unique_mdocs(|select| select).await
     }
@@ -581,10 +646,8 @@ where
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
         let doc_types_iter = doc_types.iter().copied();
 
-        self.query_unique_mdocs(move |select| {
-            select.filter(entity::attestation::Column::AttestationType.is_in(doc_types_iter))
-        })
-        .await
+        self.query_unique_mdocs(move |select| select.filter(attestation::Column::AttestationType.is_in(doc_types_iter)))
+            .await
     }
 
     async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool> {
@@ -736,9 +799,36 @@ where
     }
 }
 
+fn create_attestation_active_models(
+    attestation_type: String,
+    format: AttestationFormat,
+    binary_attestations: Vec<Vec<u8>>,
+    metadata_documents: VerifiedTypeMetadataDocuments,
+) -> (attestation::ActiveModel, Vec<attestation_copy::ActiveModel>) {
+    let attestation_id = Uuid::now_v7();
+
+    let copy_models = binary_attestations
+        .into_iter()
+        .map(|binary_attestation| attestation_copy::ActiveModel {
+            id: Set(Uuid::now_v7()),
+            attestation_id: Set(attestation_id),
+            attestation: Set(binary_attestation),
+            attestation_format: Set(format),
+            ..Default::default()
+        })
+        .collect_vec();
+
+    let attestation_model = attestation::ActiveModel {
+        id: Set(attestation_id),
+        attestation_type: Set(attestation_type),
+        type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
+    };
+
+    (attestation_model, copy_models)
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
-    use std::mem;
     use std::sync::LazyLock;
 
     use chrono::TimeZone;
@@ -753,10 +843,10 @@ pub(crate) mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::utils::random_bytes;
     use mdoc::holder::Mdoc;
-    use mdoc::test::data::PID;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
+    use sd_jwt::sd_jwt::SdJwt;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::registration::WalletCertificate;
@@ -825,7 +915,7 @@ pub(crate) mod tests {
         // Set the open database on the `DatabaseStorage` instance, then drop the storage.
         // Both the database file and the encryption key should still exist.
         storage.open_database = open_database.into();
-        mem::drop(storage);
+        drop(storage);
         assert!(fs::try_exists(&database_path).await.unwrap());
         assert!(MockHardwareEncryptionKey::identifier_exists(&key_file_identifier));
 
@@ -992,10 +1082,14 @@ pub(crate) mod tests {
         let issued_mdoc_copies =
             IssuedCredentialCopies::MsoMdoc(vec![mdoc.clone(), mdoc.clone(), mdoc.clone()].try_into().unwrap());
 
+        // Use vct matching that of the metadata
+        let attestation_type = "https://sd_jwt_vc_metadata.example.com/example_credential";
+
         // Insert mdocs
         storage
             .insert_credentials(vec![CredentialWithMetadata::new(
-                issued_mdoc_copies.clone(),
+                issued_mdoc_copies,
+                String::from(attestation_type),
                 VerifiedTypeMetadataDocuments::example(),
             )])
             .await
@@ -1021,7 +1115,7 @@ pub(crate) mod tests {
 
         // Fetch unique mdocs based on doctype
         let fetched_unique_doctype = storage
-            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", PID]))
+            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", attestation_type]))
             .await
             .expect("Could not fetch unique mdocs by doctypes");
 
@@ -1068,6 +1162,46 @@ pub(crate) mod tests {
 
         // No entries should be returned
         assert!(fetched_unique_doctype_mismatch.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_sd_jwt_storage() {
+        let mut storage = open_test_database_storage().await;
+
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+
+        let sd_jwt = SdJwt::example_sd_jwt();
+
+        let issued_copies =
+            IssuedCredentialCopies::SdJwt(vec![sd_jwt.clone(), sd_jwt.clone(), sd_jwt.clone()].try_into().unwrap());
+
+        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+
+        let attestations = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("Could not fetch unique attestations");
+
+        assert!(attestations.is_empty());
+
+        // Insert sd_jwts
+        storage
+            .insert_credentials(vec![CredentialWithMetadata::new(
+                issued_copies,
+                attestation_type.clone(),
+                VerifiedTypeMetadataDocuments::nl_pid_example(),
+            )])
+            .await
+            .expect("Could not insert mdocs");
+
+        let attestations = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("Could not fetch unique attestations");
+
+        // One matching attestation should be returned
+        assert_eq!(attestations.len(), 1);
     }
 
     #[tokio::test]

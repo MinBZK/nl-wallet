@@ -1,13 +1,22 @@
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use base64::Engine;
 use chrono::Duration;
+use futures::FutureExt;
 use indexmap::IndexMap;
 use jsonwebtoken::jwk::Jwk;
+use jsonwebtoken::Algorithm;
+use p256::ecdsa::SigningKey;
+use rand_core::OsRng;
 use serde_json::json;
+use ssri::Integrity;
 
+use crypto::server_keys::generate::Ca;
+use crypto::utils::random_string;
+use crypto::x509::BorrowingCertificate;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 
+use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
@@ -58,6 +67,63 @@ impl SdJwt {
             Duration::minutes(2),
         )
         .unwrap()
+    }
+
+    pub fn example_sd_jwt() -> SdJwt {
+        let object = json!({
+          "vct": "vct_pid_1",
+          "given_name": "John",
+          "family_name": "Doe",
+          "email": "johndoe@example.com",
+          "phone_number": "+1-202-555-0101",
+          "phone_number_verified": true,
+          "address": {
+            "street_address": "123 Main St",
+            "locality": "Anytown",
+            "region": "Anystate",
+            "country": "US"
+          },
+          "birth_date": "1940-01-01",
+          "updated_at": 1570000000,
+          "nationalities": [
+            "US",
+            "DE"
+          ]
+        });
+
+        let ca = Ca::generate("myca", Default::default()).unwrap();
+        let issuer_certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone()).unwrap();
+        let holder_privkey = SigningKey::random(&mut OsRng);
+
+        // issuer signs SD-JWT
+        SdJwtBuilder::new(object)
+            .unwrap()
+            .make_concealable("/family_name")
+            .unwrap()
+            .make_concealable("/email")
+            .unwrap()
+            .make_concealable("/phone_number")
+            .unwrap()
+            .make_concealable("/address/street_address")
+            .unwrap()
+            .make_concealable("/address")
+            .unwrap()
+            .make_concealable("/nationalities/0")
+            .unwrap()
+            .add_decoys("/nationalities", 1)
+            .unwrap()
+            .add_decoys("", 2)
+            .unwrap()
+            .finish(
+                Algorithm::ES256,
+                Integrity::from(random_string(32)),
+                &ca.to_signing_key().unwrap(),
+                vec![issuer_certificate.clone()],
+                holder_privkey.verifying_key(),
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap()
     }
 }
 

@@ -76,6 +76,7 @@ mdoc.path = "../lib/mdoc"
 openid4vc.path = "../lib/openid4vc"
 platform_support.path = "platform_support"
 poa.path = "../lib/poa"
+sd_jwt.path = "../lib/sd_jwt"
 sd_jwt_vc_metadata.path = "../lib/sd_jwt_vc_metadata"
 update_policy_model.path = "../update_policy/model"
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client"] }
@@ -106,6 +107,7 @@ mdoc = { path = "../lib/mdoc", features = ["mock_example_constructors", "test"] 
 openid4vc = { path = "../lib/openid4vc", features = ["mock", "test", "example_credential_payloads"] }
 # enable the "mock" feature for platform_support when running tests
 platform_support = { path = "platform_support", features = ["mock"] }
+sd_jwt = { path = "../lib/sd_jwt", features = ["examples"] }
 sd_jwt_vc_metadata = { path = "../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }
 wallet_account = { path = "../wallet_provider/wallet_account", features = ["client", "server"] }
 

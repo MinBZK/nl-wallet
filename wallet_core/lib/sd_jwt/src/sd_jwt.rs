@@ -23,6 +23,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::EcdsaKeySend;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
+use jwt::Jwt;
 use jwt::VerifiedJwt;
 use utils::spec::SpecOptional;
 
@@ -211,7 +212,7 @@ impl SdJwt {
 
         let issuer_signed_jwt = VerifiedJwt::try_new(sd_jwt_segment.parse()?, pubkey, &sd_jwt_validation())?;
 
-        let issuer_certificates = Self::parse_x5c_header(&issuer_signed_jwt)?;
+        let issuer_certificates = Self::parse_x5c_header(issuer_signed_jwt.header())?;
 
         let disclosures = disclosure_segments
             .split("~")
@@ -227,6 +228,23 @@ impl SdJwt {
             issuer_certificates,
             disclosures,
         })
+    }
+
+    /// Parses an SD-JWT into its components as [`SdJwt`] but extract the issue public key from the
+    /// JWT x5c header.
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn dangerous_parse(sd_jwt: &str, hasher: &dyn Hasher) -> Result<Self> {
+        let jwt: Jwt<SdJwtClaims> = sd_jwt.into();
+        let (header, _) = jwt.dangerous_parse_unverified()?;
+
+        let issuer_certificates = Self::parse_x5c_header(&header)?;
+        let Some(issuer_certificate) = issuer_certificates.first() else {
+            return Err(Error::MissingIssuerCertificate);
+        };
+
+        Self::parse_and_verify(sd_jwt, &EcdsaDecodingKey::from(issuer_certificate.public_key()), hasher)
     }
 
     /// Prepares this [`SdJwt`] for a presentation, returning an [`SdJwtPresentationBuilder`].
@@ -257,8 +275,8 @@ impl SdJwt {
         decoder.decode(object.as_object().unwrap(), &self.disclosures)
     }
 
-    fn parse_x5c_header(jwt: &VerifiedJwt<SdJwtClaims>) -> Result<Vec<BorrowingCertificate>> {
-        let Some(encoded_x5c) = &jwt.header().x5c else {
+    fn parse_x5c_header(header: &Header) -> Result<Vec<BorrowingCertificate>> {
+        let Some(encoded_x5c) = &header.x5c else {
             return Ok(vec![]);
         };
 

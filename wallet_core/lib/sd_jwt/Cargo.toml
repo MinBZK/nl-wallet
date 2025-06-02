@@ -13,7 +13,7 @@ path = "tests/api_test.rs"
 required-features = ["examples"]
 
 [features]
-examples = []
+examples = ["futures", "rand_core"]
 
 [dependencies]
 anyhow.workspace = true
@@ -30,6 +30,9 @@ serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "chrono"] }
 ssri.workspace = true
 thiserror.workspace = true
+
+futures = { workspace = true, optional = true }
+rand_core = { workspace = true, optional = true }
 
 jwt.path = "../jwt"
 crypto.path = "../crypto"

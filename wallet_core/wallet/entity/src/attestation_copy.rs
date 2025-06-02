@@ -12,7 +12,7 @@ pub struct Model {
     pub attestation: Vec<u8>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::None)")]
 pub enum AttestationFormat {
     #[sea_orm(string_value = "dc+sd-jwt")]

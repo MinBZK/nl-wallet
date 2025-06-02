@@ -19,6 +19,8 @@ use super::event_log::WalletEvent;
 use super::Storage;
 use super::StorageResult;
 use super::StorageState;
+use super::StoredAttestationCopy;
+use super::StoredAttestationFormat;
 use super::StoredMdocCopy;
 
 #[derive(Debug)]
@@ -139,20 +141,14 @@ impl Storage for MockStorage {
 
         for CredentialWithMetadata {
             copies,
+            attestation_type,
             metadata_documents,
         } in credentials
         {
-            match &copies {
-                IssuedCredentialCopies::MsoMdoc(mdocs) => {
-                    self.issued_credential_copies
-                        .entry(mdocs.first().doc_type().clone())
-                        .or_default()
-                        .push((copies, metadata_documents.to_normalized()?));
-                }
-                IssuedCredentialCopies::SdJwt(_sd_jwts) => {
-                    // todo!("implement in PVW-4109")
-                }
-            }
+            self.issued_credential_copies
+                .entry(attestation_type)
+                .or_default()
+                .push((copies, metadata_documents.to_normalized()?));
         }
 
         Ok(())
@@ -169,6 +165,35 @@ impl Storage for MockStorage {
         Ok(())
     }
 
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
+        self.check_query_error()?;
+
+        let mdocs = self
+            .issued_credential_copies
+            .values()
+            .flatten()
+            .map(|(credential_copies, metadata)| {
+                let attestation = match &credential_copies {
+                    IssuedCredentialCopies::MsoMdoc(mdocs) => StoredAttestationFormat::MsoMdoc {
+                        mdoc: Box::new(mdocs.first().clone()),
+                    },
+                    IssuedCredentialCopies::SdJwt(sd_jwts) => StoredAttestationFormat::SdJwt {
+                        sd_jwt: Box::new(sd_jwts.first().clone()),
+                    },
+                };
+
+                StoredAttestationCopy {
+                    attestation_id: Uuid::now_v7(),
+                    attestation_copy_id: Uuid::now_v7(),
+                    attestation,
+                    normalized_metadata: metadata.clone(),
+                }
+            })
+            .collect();
+
+        Ok(mdocs)
+    }
+
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
         self.check_query_error()?;
 
@@ -177,14 +202,14 @@ impl Storage for MockStorage {
             .issued_credential_copies
             .values()
             .flatten()
-            .map(|(credential_copies, metadata)| match &credential_copies {
-                IssuedCredentialCopies::MsoMdoc(mdocs) => StoredMdocCopy {
+            .filter_map(|(credential_copies, metadata)| match &credential_copies {
+                IssuedCredentialCopies::MsoMdoc(mdocs) => Some(StoredMdocCopy {
                     mdoc_id: Uuid::now_v7(),
                     mdoc_copy_id: Uuid::now_v7(),
                     mdoc: mdocs.first().clone(),
                     normalized_metadata: metadata.clone(),
-                },
-                IssuedCredentialCopies::SdJwt(_) => todo!("implement in PVW-4109"),
+                }),
+                IssuedCredentialCopies::SdJwt(_) => None,
             })
             .collect();
 
