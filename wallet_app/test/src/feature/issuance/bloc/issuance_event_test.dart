@@ -6,9 +6,9 @@ import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
   test('IssuanceInitiated equals works', () {
-    final actual = const IssuanceInitiated('test');
-    final equal = const IssuanceInitiated('test');
-    final diff = const IssuanceInitiated('other');
+    final actual = const IssuanceSessionStarted('test');
+    final equal = const IssuanceSessionStarted('test');
+    final diff = const IssuanceSessionStarted('other');
     expect(actual, equals(equal));
     expect(actual, isNot(diff));
   });

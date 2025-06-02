@@ -334,7 +334,7 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
         return IssuanceBloc(
           context.read(),
           context.read(),
-        )..add(IssuanceInitiated(argument.uri!, isQrCode: argument.isQrCode));
+        )..add(IssuanceSessionStarted(argument.uri!, isQrCode: argument.isQrCode));
       },
       child: const IssuanceScreen(),
     );

@@ -6,7 +6,6 @@ import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
-import '../../../util/launch_util.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -15,7 +14,6 @@ import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
-import '../../common/widget/text_with_link.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 
 const kShowDetailsButtonKey = Key('showDetailsButton');
@@ -133,7 +131,6 @@ class OrganizationApprovePage extends StatelessWidget {
           const SizedBox(height: 24),
           _buildHeaderTitleText(context),
           _buildHeaderDescriptionSection(context),
-          _buildHeaderFraudInfoSection(context),
         ],
       ),
     );
@@ -159,40 +156,6 @@ class OrganizationApprovePage extends StatelessWidget {
       children: [
         const SizedBox(height: 8),
         BodyText(description!),
-      ],
-    );
-  }
-
-  Widget _buildHeaderFraudInfoSection(BuildContext context) {
-    final showFraudInfo = sessionType == DisclosureSessionType.crossDevice;
-    if (!showFraudInfo) return const SizedBox.shrink();
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        _buildFraudInfoText(context),
-      ],
-    );
-  }
-
-  Widget _buildFraudInfoText(BuildContext context) {
-    final fraudTextPart1 = context.l10n.organizationApprovePageFraudInfoPart1;
-    final fraudTextPart2 = context.l10n.organizationApprovePageFraudInfoPart2(originUrl);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text.rich(
-          fraudTextPart1.toTextSpan(context),
-          textAlign: TextAlign.start,
-          style: context.textTheme.bodyLarge,
-        ), // Migrate to [BodyText] on merge with PVW-2501
-        const SizedBox(height: 8),
-        TextWithLink(
-          fullText: fraudTextPart2,
-          linkText: originUrl,
-          onTapHint: context.l10n.generalWCAGOpenLink,
-          onLinkPressed: () => launchUrlStringCatching(originUrl),
-        ),
       ],
     );
   }

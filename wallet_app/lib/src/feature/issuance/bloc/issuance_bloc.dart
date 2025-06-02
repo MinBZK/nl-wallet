@@ -31,11 +31,16 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
 
   Organization? get relyingParty => _startIssuanceResult?.relyingParty;
 
+  bool get isCrossDeviceFlow {
+    assert(_startIssuanceResult != null, '_startIssuanceResult should be set to correctly fetch isCrossDeviceFlow');
+    return _startIssuanceResult?.sessionType == DisclosureSessionType.crossDevice;
+  }
+
   IssuanceBloc(
     this.startIssuanceUseCase,
     this._cancelIssuanceUseCase,
   ) : super(const IssuanceInitial()) {
-    on<IssuanceInitiated>(_onIssuanceInitiated);
+    on<IssuanceSessionStarted>(_onSessionStarted);
     on<IssuanceBackPressed>(_onIssuanceBackPressed);
     on<IssuanceOrganizationApproved>(_onIssuanceOrganizationApproved);
     on<IssuanceShareRequestedAttributesDeclined>(_onIssuanceShareRequestedAttributesDeclined);
@@ -47,15 +52,17 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
   }
 
-  Future<void> _onIssuanceInitiated(IssuanceInitiated event, Emitter<IssuanceState> emit) async {
+  Future<void> _onSessionStarted(IssuanceSessionStarted event, Emitter<IssuanceState> emit) async {
     // Cancel any potential ongoing (disclosure based) issuance session, needed for when the user taps an issuance
     // deeplink during an active issuance (or disclosure) session (e.g. by switching back to the browser).
     await _cancelIssuanceUseCase.invoke();
-
     final startResult = await startIssuanceUseCase.invoke(event.issuanceUri, isQrCode: event.isQrCode);
-    _startIssuanceResult = startResult.value;
+
+    /// Handle [error]/[ready to disclose]/[missing attributes] cases.
     await startResult.process(
+      onError: (error) => _handleApplicationError(error, emit),
       onSuccess: (result) {
+        _startIssuanceResult = result;
         switch (result) {
           case StartIssuanceReadyToDisclose():
             emit(
@@ -74,39 +81,34 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
             );
         }
       },
-      onError: (error) {
-        switch (error) {
-          case RelyingPartyError():
-            emit(IssuanceRelyingPartyError(error: error, organizationName: error.organizationName));
-          default:
-            emit(IssuanceGenericError(error: error));
-        }
-      },
     );
   }
 
   Future<void> _onIssuanceBackPressed(event, Emitter<IssuanceState> emit) async {
     final state = this.state;
     final startIssuanceResult = _startIssuanceResult;
-    if (state.canGoBack) {
-      switch (state) {
-        case IssuanceProvidePinForDisclosure():
-          if (startIssuanceResult is StartIssuanceReadyToDisclose) {
-            emit(
-              IssuanceCheckOrganization(
-                organization: startIssuanceResult.relyingParty,
-                policy: startIssuanceResult.policy,
-                requestedAttributes: startIssuanceResult.requestedAttributes,
-                afterBackPressed: true,
-              ),
-            );
-          }
-        case IssuanceProvidePinForIssuance():
-          // Once we support selecting cards, we need to make sure we also provide the previously unselected cards here
-          emit(IssuanceReviewCards.init(cards: state.cards, afterBackPressed: true));
-        default:
-          return;
-      }
+    if (startIssuanceResult == null) return; // Unknown state, nothing to navigate back to.
+
+    switch (state) {
+      case IssuanceProvidePinForDisclosure():
+        assert(
+          startIssuanceResult is StartIssuanceReadyToDisclose,
+          'User should never reach $state when wallet was not ready to disclose',
+        );
+        emit(
+          IssuanceCheckOrganization(
+            organization: startIssuanceResult.relyingParty,
+            policy: (startIssuanceResult as StartIssuanceReadyToDisclose).policy,
+            requestedAttributes: startIssuanceResult.requestedAttributes,
+            afterBackPressed: true,
+          ),
+        );
+      case IssuanceProvidePinForIssuance():
+        // Once we support selecting cards, we need to make sure we also provide the previously unselected cards here
+        emit(IssuanceReviewCards.init(cards: state.cards, afterBackPressed: true));
+      default:
+        assert(!state.canGoBack, 'State indicates user can navigate back, but state not updated');
+        Fimber.w('State $state does not support back navigation');
     }
   }
 
@@ -138,7 +140,7 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final issuance = _startIssuanceResult;
     if (issuance == null) throw UnsupportedError('Can not move to select cards state without _startIssuanceResult');
 
-    emit(IssuanceLoadInProgress(step: state.stepperProgress.currentStep));
+    emit(IssuanceLoadInProgress(state.stepperProgress));
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
     emit(IssuanceReviewCards.init(cards: event.cards));
@@ -148,21 +150,20 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final state = tryCast<IssuanceProvidePinForIssuance>(this.state);
     if (state == null) throw StateError('Bloc in invalid state: $state');
 
-    emit(IssuanceLoadInProgress(step: state.stepperProgress.currentStep));
+    emit(IssuanceLoadInProgress(state.stepperProgress));
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
     emit(IssuanceCompleted(addedCards: state.cards));
   }
 
-  Future<void> _onCardsApproved(IssuanceApproveCards event, Emitter<IssuanceState> emit) async {
+  void _onCardsApproved(IssuanceApproveCards event, Emitter<IssuanceState> emit) {
     if (event.cards.isEmpty) {
-      emit(
-        IssuanceGenericError(
-          error: GenericError(
-            'Trying to add zero cards',
-            sourceError: UnimplementedError('This flow is not yet implemented'),
-          ),
+      _handleApplicationError(
+        GenericError(
+          'trying to add zero cards',
+          sourceError: UnimplementedError('Card selection not yet implemented'),
         ),
+        emit,
       );
     } else {
       emit(IssuanceProvidePinForIssuance(cards: event.cards));
@@ -176,6 +177,41 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     final state = this.state;
     if (state is! IssuanceReviewCards) throw UnsupportedError('Incorrect state to $state');
     emit(state.toggleCard(event.card));
+  }
+
+  Future<void> _stopIssuance(Emitter<IssuanceState> emit) async {
+    final cancelResult = await _cancelIssuanceUseCase.invoke();
+    await cancelResult.process(
+      onSuccess: (returnUrl) => emit(IssuanceStopped(returnUrl: returnUrl)),
+      onError: (error) => _handleApplicationError(error, emit),
+    );
+  }
+
+  Future<void> _onIssuanceConfirmPinFailed(IssuanceConfirmPinFailed event, Emitter<IssuanceState> emit) =>
+      _handleApplicationError(event.error, emit);
+
+  Future<void> _handleApplicationError(ApplicationError error, Emitter<IssuanceState> emit) async {
+    emit(IssuanceLoadInProgress(state.stepperProgress));
+    switch (error) {
+      case GenericError():
+        emit(IssuanceGenericError(error: error, returnUrl: error.redirectUrl));
+      case NetworkError():
+        await _cancelIssuanceUseCase.invoke(); // Attempt to cancel the session, but propagate original error
+        emit(IssuanceNetworkError(hasInternet: error.hasInternet, error: error));
+      case SessionError():
+        _handleSessionError(emit, error);
+      case RelyingPartyError():
+        emit(IssuanceRelyingPartyError(error: error, organizationName: error.organizationName));
+      case ExternalScannerError():
+        emit(IssuanceExternalScannerError(error: error));
+      default:
+        // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
+        final cancelResult = await _cancelIssuanceUseCase.invoke();
+        await cancelResult.process(
+          onSuccess: (returnUrl) => emit(IssuanceGenericError(error: error, returnUrl: returnUrl)),
+          onError: (_) => emit(IssuanceGenericError(error: error)),
+        );
+    }
   }
 
   void _handleSessionError(Emitter<IssuanceState> emit, SessionError error) {
@@ -199,39 +235,5 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
           ),
         );
     }
-  }
-
-  Future<void> _stopIssuance(Emitter<IssuanceState> emit) async {
-    final cancelResult = await _cancelIssuanceUseCase.invoke();
-    await cancelResult.process(
-      onSuccess: (returnUrl) => emit(IssuanceStopped(returnUrl: returnUrl)),
-      onError: (error) => emit(IssuanceGenericError(error: error)),
-    );
-  }
-
-  Future<void> _onIssuanceConfirmPinFailed(IssuanceConfirmPinFailed event, Emitter<IssuanceState> emit) async {
-    emit(IssuanceLoadInProgress(step: state.stepperProgress.currentStep));
-    // {event.error} is the error that was thrown when user tried to confirm the disclosure/issuance session with a PIN.
-    final error = event.error;
-    switch (error) {
-      case SessionError():
-        _handleSessionError(emit, error);
-        return;
-      case RelyingPartyError():
-        emit(IssuanceRelyingPartyError(error: error, organizationName: error.organizationName));
-        return;
-      case NetworkError():
-        await _cancelIssuanceUseCase.invoke(); // Attempt to cancel the session, but propagate original error
-        emit(IssuanceNetworkError(error: error, hasInternet: error.hasInternet));
-        return;
-      default:
-        Fimber.d('Disclosure failed unexpectedly when entering pin, cause: ${event.error}.');
-    }
-    // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
-    final cancelResult = await _cancelIssuanceUseCase.invoke();
-    await cancelResult.process(
-      onSuccess: (returnUrl) => emit(IssuanceGenericError(error: event.error, returnUrl: returnUrl)),
-      onError: (error) => emit(IssuanceGenericError(error: error)),
-    );
   }
 }

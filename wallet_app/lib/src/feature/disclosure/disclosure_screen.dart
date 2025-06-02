@@ -23,10 +23,10 @@ import '../common/widget/fade_in_at_offset.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_page.dart';
+import '../fraud_check/fraud_check_page.dart';
 import '../history/detail/argument/history_detail_screen_argument.dart';
 import '../login/login_detail_screen.dart';
 import '../organization/approve/organization_approve_page.dart';
-import '../organization/detail/organization_detail_screen.dart';
 import '../pin/bloc/pin_bloc.dart';
 import '../report_issue/report_issue_screen.dart';
 import 'argument/disclosure_screen_argument.dart';
@@ -75,9 +75,7 @@ class DisclosureScreen extends StatelessWidget {
         body: PopScope(
           canPop: false,
           onPopInvokedWithResult: (didPop, result) {
-            if (didPop) {
-              return;
-            }
+            if (didPop) return;
             final bloc = context.bloc;
             if (bloc.state.canGoBack) {
               bloc.add(const DisclosureBackPressed());
@@ -115,7 +113,7 @@ class DisclosureScreen extends StatelessWidget {
         final Widget result = switch (state) {
           DisclosureInitial() => _buildInitialLoading(context),
           DisclosureLoadInProgress() => _buildLoading(),
-          DisclosureCheckOrganization() => _buildCheckOrganizationPage(context, state),
+          DisclosureCheckUrl() => _buildCheckUrlPage(context, state),
           DisclosureCheckOrganizationForLogin() => _buildCheckOrganizationForLoginPage(context, state),
           DisclosureMissingAttributes() => _buildMissingAttributesPage(context, state),
           DisclosureConfirmDataAttributes() => _buildConfirmDataAttributesPage(context, state),
@@ -127,11 +125,11 @@ class DisclosureScreen extends StatelessWidget {
           DisclosureGenericError() => _buildGenericErrorPage(context, returnUrl: state.returnUrl),
           DisclosureSessionExpired() => _buildSessionExpiredPage(context, state),
           DisclosureExternalScannerError() => _buildGenericErrorPage(context),
-          DisclosureCancelledSessionError() => _buildCancelledSessionPage(context, state),
+          DisclosureSessionCancelled() => _buildCancelledSessionPage(context, state),
           DisclosureRelyingPartyError() => _buildRelyingPartyErrorPage(context, state),
         };
 
-        final skipAnim = !state.didGoBack && state is DisclosureCheckOrganization;
+        final skipAnim = !state.didGoBack && state is DisclosureCheckUrl;
         return FakePagingAnimatedSwitcher(
           animateBackwards: state.didGoBack,
           animate: !skipAnim,
@@ -148,33 +146,18 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildLoading() => const CenteredLoadingIndicator();
 
-  Widget _buildCheckOrganizationPage(BuildContext context, DisclosureCheckOrganization state) {
-    return OrganizationApprovePage(
+  Widget _buildCheckUrlPage(BuildContext context, DisclosureCheckUrl state) {
+    return FraudCheckPage(
       onDeclinePressed: () => _stopDisclosure(context),
-      onAcceptPressed: () => context.bloc.add(const DisclosureOrganizationApproved()),
-      organization: state.relyingParty,
+      onAcceptPressed: () => context.bloc.add(const DisclosureUrlApproved()),
       originUrl: state.originUrl,
-      sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
-      sessionType: state.sessionType,
-      purpose: ApprovalPurpose.disclosure,
-      onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
-      onShowDetailsPressed: () {
-        OrganizationDetailScreen.showPreloaded(
-          context,
-          state.relyingParty,
-          sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
-          onReportIssuePressed: () {
-            _onReportIssuePressed(context, _resolveReportingOptionsForState(context));
-          },
-        );
-      },
     );
   }
 
   Widget _buildCheckOrganizationForLoginPage(BuildContext context, DisclosureCheckOrganizationForLogin state) {
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopDisclosure(context),
-      onAcceptPressed: () => context.bloc.add(const DisclosureOrganizationApproved()),
+      onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedAttributesApproved()),
       organization: state.relyingParty,
       originUrl: state.originUrl,
       sessionType: state.sessionType,
@@ -285,10 +268,14 @@ class DisclosureScreen extends StatelessWidget {
     if (bloc.state.showStopConfirmation) {
       final availableReportOptions = _resolveReportingOptionsForState(context);
       final organizationName = context.read<DisclosureBloc>().relyingParty?.displayName;
+
+      StopDescriptionType stopType = bloc.isLoginFlow ? StopDescriptionType.forLogin : StopDescriptionType.generic;
+      stopType = context.bloc.state is DisclosureCheckUrl ? StopDescriptionType.forUrlCheck : stopType;
+
       final stopPressed = await DisclosureStopSheet.show(
         context,
         organizationName: organizationName,
-        isLoginFlow: bloc.isLoginFlow,
+        descriptionType: stopType,
         onReportIssuePressed: availableReportOptions.isEmpty
             ? null
             : () {
@@ -313,7 +300,7 @@ class DisclosureScreen extends StatelessWidget {
   List<ReportingOption> _resolveReportingOptionsForState(BuildContext context) {
     final state = context.read<DisclosureBloc>().state;
     switch (state) {
-      case DisclosureCheckOrganization():
+      case DisclosureCheckUrl():
       case DisclosureCheckOrganizationForLogin():
         return [
           ReportingOption.unknownOrganization,
@@ -344,19 +331,6 @@ class DisclosureScreen extends StatelessWidget {
     return BlocBuilder<DisclosureBloc, DisclosureState>(
       builder: (context, state) {
         final Widget? result = switch (state) {
-          DisclosureInitial() => null,
-          DisclosureLoadInProgress() => null,
-          DisclosureCheckOrganization() => FadeInAtOffset(
-              appearOffset: 120,
-              visibleOffset: 150,
-              child: Text.rich(
-                context.l10n
-                    .organizationApprovePageGenericTitle(
-                      state.relyingParty.displayName.l10nValue(context),
-                    )
-                    .toTextSpan(context),
-              ),
-            ),
           DisclosureCheckOrganizationForLogin() => FadeInAtOffset(
               appearOffset: 120,
               visibleOffset: 150,
@@ -368,7 +342,6 @@ class DisclosureScreen extends StatelessWidget {
                     .toTextSpan(context),
               ),
             ),
-          DisclosureMissingAttributes() => null,
           DisclosureConfirmDataAttributes() => FadeInAtOffset(
               appearOffset: 70,
               visibleOffset: 100,
@@ -380,13 +353,11 @@ class DisclosureScreen extends StatelessWidget {
                     .toTextSpan(context),
               ),
             ),
-          DisclosureConfirmPin() => null,
           DisclosureStopped() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
               child: Text.rich(context.l10n.disclosureStoppedPageTitle.toTextSpan(context)),
             ),
-          DisclosureLeftFeedback() => null,
           DisclosureSuccess() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
@@ -414,12 +385,12 @@ class DisclosureScreen extends StatelessWidget {
               visibleOffset: 70,
               child: Text.rich(context.l10n.errorScreenSessionExpiredHeadline.toTextSpan(context)),
             ),
-          DisclosureCancelledSessionError() => FadeInAtOffset(
+          DisclosureSessionCancelled() => FadeInAtOffset(
               appearOffset: 48,
               visibleOffset: 70,
               child: Text.rich(context.l10n.errorScreenCancelledSessionHeadline.toTextSpan(context)),
             ),
-          DisclosureRelyingPartyError() => null,
+          _ => null,
         };
 
         return result ?? const SizedBox.shrink();
@@ -455,7 +426,7 @@ class DisclosureScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCancelledSessionPage(BuildContext context, DisclosureCancelledSessionError state) {
+  Widget _buildCancelledSessionPage(BuildContext context, DisclosureSessionCancelled state) {
     return ErrorPage.cancelledSession(
       context,
       organizationName: state.relyingParty?.displayName.l10nValue(context) ?? context.l10n.organizationFallbackName,

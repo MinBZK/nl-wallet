@@ -16,7 +16,7 @@ import '../../../mocks/wallet_mocks.dart';
 final _kDefaultReadyToDiscloseResponse = StartIssuanceReadyToDisclose(
   relyingParty: WalletMockData.organization,
   policy: WalletMockData.policy,
-  sessionType: DisclosureSessionType.crossDevice,
+  sessionType: DisclosureSessionType.sameDevice,
   requestedAttributes: {},
   originUrl: 'https://example.org',
   requestPurpose: {},
@@ -50,12 +50,55 @@ void main() {
     build: () => createBloc(isRefreshFlow: true),
     setUp: () => when(startIssuanceUseCase.invoke(any))
         .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
-    act: (bloc) => bloc.add(const IssuanceInitiated('https://example.org')),
-    expect: () => [isA<IssuanceGenericError>()],
+    act: (bloc) => bloc.add(const IssuanceSessionStarted('https://example.org')),
+    expect: () => [
+      isA<IssuanceLoadInProgress>(),
+      isA<IssuanceGenericError>(),
+    ],
   );
 
   blocTest(
-    'verify happy path',
+    'verify happy path - cross device',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+        (_) async => Result.success(
+          StartIssuanceReadyToDisclose(
+            relyingParty: WalletMockData.organization,
+            policy: WalletMockData.policy,
+            sessionType: DisclosureSessionType.crossDevice,
+            requestedAttributes: {},
+            originUrl: 'https://example.org',
+            requestPurpose: {},
+            type: DisclosureType.regular,
+            sharedDataWithOrganizationBefore: false,
+          ),
+        ),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(const IssuanceOrganizationApproved());
+      bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(IssuanceApproveCards(cards: [WalletMockData.altCard]));
+      bloc.add(const IssuancePinForIssuanceConfirmed());
+      await Future.delayed(const Duration(milliseconds: 10));
+    },
+    expect: () => [
+      isA<IssuanceCheckOrganization>(),
+      isA<IssuanceProvidePinForDisclosure>(),
+      isA<IssuanceLoadInProgress>(),
+      isA<IssuanceReviewCards>(),
+      isA<IssuanceProvidePinForIssuance>(),
+      isA<IssuanceLoadInProgress>(),
+      isA<IssuanceCompleted>().having((it) => it.addedCards, 'added cards should match', [WalletMockData.altCard]),
+    ],
+  );
+
+  blocTest(
+    'verify happy path - same device',
     build: () => createBloc(isRefreshFlow: false),
     setUp: () {
       when(startIssuanceUseCase.invoke(any)).thenAnswer(
@@ -63,7 +106,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
@@ -100,7 +143,7 @@ void main() {
         ),
       );
     },
-    act: (bloc) async => bloc.add(const IssuanceInitiated('https://example.org')),
+    act: (bloc) async => bloc.add(const IssuanceSessionStarted('https://example.org')),
     expect: () => [
       isA<IssuanceMissingAttributes>().having(
         (state) => state.missingAttributes,
@@ -119,7 +162,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(const IssuanceBackPressed());
@@ -140,7 +183,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
@@ -167,7 +210,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       bloc.add(const IssuanceShareRequestedAttributesDeclined());
     },
     expect: () => [
@@ -185,7 +228,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(const IssuanceConfirmPinFailed(error: NetworkError(hasInternet: true, sourceError: 'test')));
@@ -208,13 +251,13 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(IssuanceApproveCards(cards: [WalletMockData.altCard]));
-      bloc.add(const IssuanceConfirmPinFailed(error: GenericError('test', sourceError: 'test')));
+      bloc.add(const IssuanceConfirmPinFailed(error: NetworkError(hasInternet: true, sourceError: 'test')));
     },
     expect: () => [
       isA<IssuanceCheckOrganization>(),
@@ -223,10 +266,10 @@ void main() {
       isA<IssuanceReviewCards>(),
       isA<IssuanceProvidePinForIssuance>(),
       isA<IssuanceLoadInProgress>(),
-      isA<IssuanceGenericError>(),
+      isA<IssuanceNetworkError>(),
     ],
     verify: (_) {
-      // once once for during initialization and once on error
+      // once once for during initialization and once on network error
       verify(cancelIssuanceUseCase.invoke()).called(2);
     },
   );
@@ -241,7 +284,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(const IssuanceConfirmPinFailed(error: SessionError(state: SessionState.expired, sourceError: 'test')));
@@ -265,7 +308,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(const IssuanceConfirmPinFailed(error: SessionError(state: SessionState.cancelled, sourceError: 'test')));
@@ -288,7 +331,7 @@ void main() {
       );
     },
     act: (bloc) async {
-      bloc.add(const IssuanceInitiated('https://example.org'));
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
       await Future.delayed(const Duration(milliseconds: 10));
       bloc.add(const IssuanceOrganizationApproved());
       bloc.add(IssuancePinForDisclosureConfirmed(cards: [WalletMockData.altCard]));
@@ -300,6 +343,7 @@ void main() {
       isA<IssuanceProvidePinForDisclosure>(),
       isA<IssuanceLoadInProgress>(),
       isA<IssuanceReviewCards>(),
+      isA<IssuanceLoadInProgress>(),
       isA<IssuanceGenericError>(),
     ],
   );
