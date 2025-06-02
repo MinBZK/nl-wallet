@@ -14,7 +14,7 @@ use entity::disclosure_history_event::EventType;
 use mdoc::holder::ProposedAttributes;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::attestation::Attestation;
+use crate::attestation::AttestationPresentation;
 use crate::issuance::BSN_ATTR_NAME;
 use crate::issuance::PID_DOCTYPE;
 
@@ -47,12 +47,12 @@ pub enum DataDisclosureStatus {
 pub enum WalletEvent {
     Issuance {
         id: Uuid,
-        attestations: VecNonEmpty<Attestation>,
+        attestations: VecNonEmpty<AttestationPresentation>,
         timestamp: DateTime<Utc>,
     },
     Disclosure {
         id: Uuid,
-        attestations: Vec<Attestation>,
+        attestations: Vec<AttestationPresentation>,
         timestamp: DateTime<Utc>,
         // TODO (PVW-4135): Only store reader registration in event.
         reader_certificate: Box<BorrowingCertificate>,
@@ -63,7 +63,7 @@ pub enum WalletEvent {
 }
 
 impl WalletEvent {
-    pub(crate) fn new_issuance(attestations: VecNonEmpty<Attestation>) -> Self {
+    pub(crate) fn new_issuance(attestations: VecNonEmpty<AttestationPresentation>) -> Self {
         Self::Issuance {
             id: Uuid::now_v7(),
             attestations,
@@ -97,7 +97,7 @@ impl WalletEvent {
                 .expect("proposed attributes should contain valid issuer registration")
                 .expect("proposed attributes should contain issuer registration");
 
-            Attestation::create_for_disclosure(
+            AttestationPresentation::create_for_disclosure(
                 document_attributes.type_metadata,
                 reader_registration.organization,
                 document_attributes.attributes,
@@ -235,7 +235,7 @@ mod test {
     fn mock_attestations_for_attestation_types(
         attestation_types: &[&str],
         issuer_certificate: &BorrowingCertificate,
-    ) -> Vec<Attestation> {
+    ) -> Vec<AttestationPresentation> {
         let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
             .unwrap()
             .unwrap();
@@ -262,8 +262,13 @@ mod test {
                     }],
                 )]);
 
-                Attestation::create_for_issuance(AttestationIdentity::Ephemeral, metadata, issuer_org, attributes)
-                    .unwrap()
+                AttestationPresentation::create_for_issuance(
+                    AttestationIdentity::Ephemeral,
+                    metadata,
+                    issuer_org,
+                    attributes,
+                )
+                .unwrap()
             })
             .collect()
     }

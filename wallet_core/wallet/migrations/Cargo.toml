@@ -16,3 +16,5 @@ doctest = false
 async-trait.workspace = true
 sea-orm-migration = { workspace = true, features = ["cli", "runtime-tokio", "sqlx-sqlite"] }
 tokio = { version = "1.0.0", features = ["rt", "rt-multi-thread", "macros"] }
+
+entity.path = "../entity"

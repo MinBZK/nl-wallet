@@ -17,7 +17,7 @@ sealed class DisclosureBasedIssuanceResult with _$DisclosureBasedIssuanceResult 
   const DisclosureBasedIssuanceResult._();
 
   const factory DisclosureBasedIssuanceResult.ok(
-    List<Attestation> field0,
+    List<AttestationPresentation> field0,
   ) = DisclosureBasedIssuanceResult_Ok;
   const factory DisclosureBasedIssuanceResult.instructionError({
     required WalletInstructionError error,

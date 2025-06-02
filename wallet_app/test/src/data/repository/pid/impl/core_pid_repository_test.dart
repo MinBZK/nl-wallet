@@ -42,7 +42,7 @@ void main() {
 
     test('continue pid issuance should be propagated to the core', () async {
       const mockContinueUri = 'mock_continue_issuance_url';
-      final testAttestation = Attestation(
+      final testAttestation = AttestationPresentation(
         identity: const AttestationIdentity_Ephemeral(),
         attestationType: MockConstants.pidDocType,
         displayMetadata: [CoreMockData.enDisplayMetadata],

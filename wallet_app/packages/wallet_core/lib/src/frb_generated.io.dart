@@ -41,7 +41,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RustStreamSink<FlutterVersionState> dco_decode_StreamSink_flutter_version_state_Dco(dynamic raw);
 
   @protected
-  RustStreamSink<List<Attestation>> dco_decode_StreamSink_list_attestation_Dco(dynamic raw);
+  RustStreamSink<List<AttestationPresentation>> dco_decode_StreamSink_list_attestation_presentation_Dco(dynamic raw);
 
   @protected
   RustStreamSink<List<WalletEvent>> dco_decode_StreamSink_list_wallet_event_Dco(dynamic raw);
@@ -53,13 +53,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AcceptDisclosureResult dco_decode_accept_disclosure_result(dynamic raw);
 
   @protected
-  Attestation dco_decode_attestation(dynamic raw);
-
-  @protected
   AttestationAttribute dco_decode_attestation_attribute(dynamic raw);
 
   @protected
   AttestationIdentity dco_decode_attestation_identity(dynamic raw);
+
+  @protected
+  AttestationPresentation dco_decode_attestation_presentation(dynamic raw);
 
   @protected
   AttributeValue dco_decode_attribute_value(dynamic raw);
@@ -68,7 +68,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool dco_decode_bool(dynamic raw);
 
   @protected
-  Attestation dco_decode_box_autoadd_attestation(dynamic raw);
+  AttestationPresentation dco_decode_box_autoadd_attestation_presentation(dynamic raw);
 
   @protected
   Image dco_decode_box_autoadd_image(dynamic raw);
@@ -131,10 +131,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata dco_decode_image_with_metadata(dynamic raw);
 
   @protected
-  List<Attestation> dco_decode_list_attestation(dynamic raw);
+  List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw);
 
   @protected
-  List<AttestationAttribute> dco_decode_list_attestation_attribute(dynamic raw);
+  List<AttestationPresentation> dco_decode_list_attestation_presentation(dynamic raw);
 
   @protected
   List<ClaimDisplayMetadata> dco_decode_list_claim_display_metadata(dynamic raw);
@@ -176,7 +176,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
 
   @protected
-  List<Attestation>? dco_decode_opt_list_attestation(dynamic raw);
+  List<AttestationPresentation>? dco_decode_opt_list_attestation_presentation(dynamic raw);
 
   @protected
   List<LocalizedString>? dco_decode_opt_list_localized_string(dynamic raw);
@@ -230,7 +230,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   RustStreamSink<FlutterVersionState> sse_decode_StreamSink_flutter_version_state_Dco(SseDeserializer deserializer);
 
   @protected
-  RustStreamSink<List<Attestation>> sse_decode_StreamSink_list_attestation_Dco(SseDeserializer deserializer);
+  RustStreamSink<List<AttestationPresentation>> sse_decode_StreamSink_list_attestation_presentation_Dco(
+      SseDeserializer deserializer);
 
   @protected
   RustStreamSink<List<WalletEvent>> sse_decode_StreamSink_list_wallet_event_Dco(SseDeserializer deserializer);
@@ -242,13 +243,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   AcceptDisclosureResult sse_decode_accept_disclosure_result(SseDeserializer deserializer);
 
   @protected
-  Attestation sse_decode_attestation(SseDeserializer deserializer);
-
-  @protected
   AttestationAttribute sse_decode_attestation_attribute(SseDeserializer deserializer);
 
   @protected
   AttestationIdentity sse_decode_attestation_identity(SseDeserializer deserializer);
+
+  @protected
+  AttestationPresentation sse_decode_attestation_presentation(SseDeserializer deserializer);
 
   @protected
   AttributeValue sse_decode_attribute_value(SseDeserializer deserializer);
@@ -257,7 +258,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
-  Attestation sse_decode_box_autoadd_attestation(SseDeserializer deserializer);
+  AttestationPresentation sse_decode_box_autoadd_attestation_presentation(SseDeserializer deserializer);
 
   @protected
   Image sse_decode_box_autoadd_image(SseDeserializer deserializer);
@@ -320,10 +321,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   ImageWithMetadata sse_decode_image_with_metadata(SseDeserializer deserializer);
 
   @protected
-  List<Attestation> sse_decode_list_attestation(SseDeserializer deserializer);
+  List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer);
 
   @protected
-  List<AttestationAttribute> sse_decode_list_attestation_attribute(SseDeserializer deserializer);
+  List<AttestationPresentation> sse_decode_list_attestation_presentation(SseDeserializer deserializer);
 
   @protected
   List<ClaimDisplayMetadata> sse_decode_list_claim_display_metadata(SseDeserializer deserializer);
@@ -365,7 +366,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
 
   @protected
-  List<Attestation>? sse_decode_opt_list_attestation(SseDeserializer deserializer);
+  List<AttestationPresentation>? sse_decode_opt_list_attestation_presentation(SseDeserializer deserializer);
 
   @protected
   List<LocalizedString>? sse_decode_opt_list_localized_string(SseDeserializer deserializer);
@@ -445,12 +446,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_list_attestation_Dco(
-      RustStreamSink<List<Attestation>> raw) {
+  ffi.Pointer<wire_cst_list_prim_u_8_strict> cst_encode_StreamSink_list_attestation_presentation_Dco(
+      RustStreamSink<List<AttestationPresentation>> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     return cst_encode_String(raw.setupAndSerialize(
         codec: DcoCodec(
-      decodeSuccessData: dco_decode_list_attestation,
+      decodeSuccessData: dco_decode_list_attestation_presentation,
       decodeErrorData: dco_decode_AnyhowException,
     )));
   }
@@ -473,10 +474,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_attestation> cst_encode_box_autoadd_attestation(Attestation raw) {
+  ffi.Pointer<wire_cst_attestation_presentation> cst_encode_box_autoadd_attestation_presentation(
+      AttestationPresentation raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    final ptr = wire.cst_new_box_autoadd_attestation();
-    cst_api_fill_to_wire_attestation(raw, ptr.ref);
+    final ptr = wire.cst_new_box_autoadd_attestation_presentation();
+    cst_api_fill_to_wire_attestation_presentation(raw, ptr.ref);
     return ptr;
   }
 
@@ -542,22 +544,23 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_attestation> cst_encode_list_attestation(List<Attestation> raw) {
-    // Codec=Cst (C-struct based), see doc to use other codecs
-    final ans = wire.cst_new_list_attestation(raw.length);
-    for (var i = 0; i < raw.length; ++i) {
-      cst_api_fill_to_wire_attestation(raw[i], ans.ref.ptr[i]);
-    }
-    return ans;
-  }
-
-  @protected
   ffi.Pointer<wire_cst_list_attestation_attribute> cst_encode_list_attestation_attribute(
       List<AttestationAttribute> raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
     final ans = wire.cst_new_list_attestation_attribute(raw.length);
     for (var i = 0; i < raw.length; ++i) {
       cst_api_fill_to_wire_attestation_attribute(raw[i], ans.ref.ptr[i]);
+    }
+    return ans;
+  }
+
+  @protected
+  ffi.Pointer<wire_cst_list_attestation_presentation> cst_encode_list_attestation_presentation(
+      List<AttestationPresentation> raw) {
+    // Codec=Cst (C-struct based), see doc to use other codecs
+    final ans = wire.cst_new_list_attestation_presentation(raw.length);
+    for (var i = 0; i < raw.length; ++i) {
+      cst_api_fill_to_wire_attestation_presentation(raw[i], ans.ref.ptr[i]);
     }
     return ans;
   }
@@ -652,9 +655,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  ffi.Pointer<wire_cst_list_attestation> cst_encode_opt_list_attestation(List<Attestation>? raw) {
+  ffi.Pointer<wire_cst_list_attestation_presentation> cst_encode_opt_list_attestation_presentation(
+      List<AttestationPresentation>? raw) {
     // Codec=Cst (C-struct based), see doc to use other codecs
-    return raw == null ? ffi.nullptr : cst_encode_list_attestation(raw);
+    return raw == null ? ffi.nullptr : cst_encode_list_attestation_presentation(raw);
   }
 
   @protected
@@ -687,15 +691,6 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_attestation(Attestation apiObj, wire_cst_attestation wireObj) {
-    cst_api_fill_to_wire_attestation_identity(apiObj.identity, wireObj.identity);
-    wireObj.attestation_type = cst_encode_String(apiObj.attestationType);
-    wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
-    cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
-    wireObj.attributes = cst_encode_list_attestation_attribute(apiObj.attributes);
-  }
-
-  @protected
   void cst_api_fill_to_wire_attestation_attribute(AttestationAttribute apiObj, wire_cst_attestation_attribute wireObj) {
     wireObj.key = cst_encode_String(apiObj.key);
     wireObj.labels = cst_encode_list_claim_display_metadata(apiObj.labels);
@@ -715,6 +710,16 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Fixed.id = pre_id;
       return;
     }
+  }
+
+  @protected
+  void cst_api_fill_to_wire_attestation_presentation(
+      AttestationPresentation apiObj, wire_cst_attestation_presentation wireObj) {
+    cst_api_fill_to_wire_attestation_identity(apiObj.identity, wireObj.identity);
+    wireObj.attestation_type = cst_encode_String(apiObj.attestationType);
+    wireObj.display_metadata = cst_encode_list_display_metadata(apiObj.displayMetadata);
+    cst_api_fill_to_wire_organization(apiObj.issuer, wireObj.issuer);
+    wireObj.attributes = cst_encode_list_attestation_attribute(apiObj.attributes);
   }
 
   @protected
@@ -746,8 +751,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
-  void cst_api_fill_to_wire_box_autoadd_attestation(Attestation apiObj, ffi.Pointer<wire_cst_attestation> wireObj) {
-    cst_api_fill_to_wire_attestation(apiObj, wireObj.ref);
+  void cst_api_fill_to_wire_box_autoadd_attestation_presentation(
+      AttestationPresentation apiObj, ffi.Pointer<wire_cst_attestation_presentation> wireObj) {
+    cst_api_fill_to_wire_attestation_presentation(apiObj, wireObj.ref);
   }
 
   @protected
@@ -796,7 +802,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void cst_api_fill_to_wire_disclosure_based_issuance_result(
       DisclosureBasedIssuanceResult apiObj, wire_cst_disclosure_based_issuance_result wireObj) {
     if (apiObj is DisclosureBasedIssuanceResult_Ok) {
-      var pre_field0 = cst_encode_list_attestation(apiObj.field0);
+      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
       wireObj.tag = 0;
       wireObj.kind.Ok.field0 = pre_field0;
       return;
@@ -945,7 +951,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     if (apiObj is StartDisclosureResult_Request) {
       var pre_relying_party = cst_encode_box_autoadd_organization(apiObj.relyingParty);
       var pre_policy = cst_encode_box_autoadd_request_policy(apiObj.policy);
-      var pre_requested_attestations = cst_encode_list_attestation(apiObj.requestedAttestations);
+      var pre_requested_attestations = cst_encode_list_attestation_presentation(apiObj.requestedAttestations);
       var pre_shared_data_with_relying_party_before = cst_encode_bool(apiObj.sharedDataWithRelyingPartyBefore);
       var pre_session_type = cst_encode_disclosure_session_type(apiObj.sessionType);
       var pre_request_purpose = cst_encode_list_localized_string(apiObj.requestPurpose);
@@ -987,7 +993,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       var pre_date_time = cst_encode_String(apiObj.dateTime);
       var pre_relying_party = cst_encode_box_autoadd_organization(apiObj.relyingParty);
       var pre_purpose = cst_encode_list_localized_string(apiObj.purpose);
-      var pre_shared_attestations = cst_encode_opt_list_attestation(apiObj.sharedAttestations);
+      var pre_shared_attestations = cst_encode_opt_list_attestation_presentation(apiObj.sharedAttestations);
       var pre_request_policy = cst_encode_box_autoadd_request_policy(apiObj.requestPolicy);
       var pre_status = cst_encode_disclosure_status(apiObj.status);
       var pre_typ = cst_encode_disclosure_type(apiObj.typ);
@@ -1003,7 +1009,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     }
     if (apiObj is WalletEvent_Issuance) {
       var pre_date_time = cst_encode_String(apiObj.dateTime);
-      var pre_attestation = cst_encode_box_autoadd_attestation(apiObj.attestation);
+      var pre_attestation = cst_encode_box_autoadd_attestation_presentation(apiObj.attestation);
       wireObj.tag = 1;
       wireObj.kind.Issuance.date_time = pre_date_time;
       wireObj.kind.Issuance.attestation = pre_attestation;
@@ -1094,7 +1100,8 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       RustStreamSink<FlutterVersionState> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_StreamSink_list_attestation_Dco(RustStreamSink<List<Attestation>> self, SseSerializer serializer);
+  void sse_encode_StreamSink_list_attestation_presentation_Dco(
+      RustStreamSink<List<AttestationPresentation>> self, SseSerializer serializer);
 
   @protected
   void sse_encode_StreamSink_list_wallet_event_Dco(RustStreamSink<List<WalletEvent>> self, SseSerializer serializer);
@@ -1106,13 +1113,13 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_accept_disclosure_result(AcceptDisclosureResult self, SseSerializer serializer);
 
   @protected
-  void sse_encode_attestation(Attestation self, SseSerializer serializer);
-
-  @protected
   void sse_encode_attestation_attribute(AttestationAttribute self, SseSerializer serializer);
 
   @protected
   void sse_encode_attestation_identity(AttestationIdentity self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_attestation_presentation(AttestationPresentation self, SseSerializer serializer);
 
   @protected
   void sse_encode_attribute_value(AttributeValue self, SseSerializer serializer);
@@ -1121,7 +1128,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
-  void sse_encode_box_autoadd_attestation(Attestation self, SseSerializer serializer);
+  void sse_encode_box_autoadd_attestation_presentation(AttestationPresentation self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_image(Image self, SseSerializer serializer);
@@ -1184,10 +1191,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_image_with_metadata(ImageWithMetadata self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_attestation(List<Attestation> self, SseSerializer serializer);
+  void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer);
 
   @protected
-  void sse_encode_list_attestation_attribute(List<AttestationAttribute> self, SseSerializer serializer);
+  void sse_encode_list_attestation_presentation(List<AttestationPresentation> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_claim_display_metadata(List<ClaimDisplayMetadata> self, SseSerializer serializer);
@@ -1229,7 +1236,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
 
   @protected
-  void sse_encode_opt_list_attestation(List<Attestation>? self, SseSerializer serializer);
+  void sse_encode_opt_list_attestation_presentation(List<AttestationPresentation>? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_list_localized_string(List<LocalizedString>? self, SseSerializer serializer);
@@ -1870,15 +1877,15 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__unlock_wallet_with_biometrics =
       _wire__crate__api__full__unlock_wallet_with_biometricsPtr.asFunction<void Function(int)>();
 
-  ffi.Pointer<wire_cst_attestation> cst_new_box_autoadd_attestation() {
-    return _cst_new_box_autoadd_attestation();
+  ffi.Pointer<wire_cst_attestation_presentation> cst_new_box_autoadd_attestation_presentation() {
+    return _cst_new_box_autoadd_attestation_presentation();
   }
 
-  late final _cst_new_box_autoadd_attestationPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_attestation> Function()>>(
-          'frbgen_wallet_core_cst_new_box_autoadd_attestation');
-  late final _cst_new_box_autoadd_attestation =
-      _cst_new_box_autoadd_attestationPtr.asFunction<ffi.Pointer<wire_cst_attestation> Function()>();
+  late final _cst_new_box_autoadd_attestation_presentationPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_attestation_presentation> Function()>>(
+          'frbgen_wallet_core_cst_new_box_autoadd_attestation_presentation');
+  late final _cst_new_box_autoadd_attestation_presentation = _cst_new_box_autoadd_attestation_presentationPtr
+      .asFunction<ffi.Pointer<wire_cst_attestation_presentation> Function()>();
 
   ffi.Pointer<wire_cst_image> cst_new_box_autoadd_image() {
     return _cst_new_box_autoadd_image();
@@ -1952,20 +1959,6 @@ class WalletCoreWire implements BaseWire {
   late final _cst_new_box_autoadd_wallet_instruction_error = _cst_new_box_autoadd_wallet_instruction_errorPtr
       .asFunction<ffi.Pointer<wire_cst_wallet_instruction_error> Function()>();
 
-  ffi.Pointer<wire_cst_list_attestation> cst_new_list_attestation(
-    int len,
-  ) {
-    return _cst_new_list_attestation(
-      len,
-    );
-  }
-
-  late final _cst_new_list_attestationPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_attestation> Function(ffi.Int32)>>(
-          'frbgen_wallet_core_cst_new_list_attestation');
-  late final _cst_new_list_attestation =
-      _cst_new_list_attestationPtr.asFunction<ffi.Pointer<wire_cst_list_attestation> Function(int)>();
-
   ffi.Pointer<wire_cst_list_attestation_attribute> cst_new_list_attestation_attribute(
     int len,
   ) {
@@ -1979,6 +1972,20 @@ class WalletCoreWire implements BaseWire {
           'frbgen_wallet_core_cst_new_list_attestation_attribute');
   late final _cst_new_list_attestation_attribute = _cst_new_list_attestation_attributePtr
       .asFunction<ffi.Pointer<wire_cst_list_attestation_attribute> Function(int)>();
+
+  ffi.Pointer<wire_cst_list_attestation_presentation> cst_new_list_attestation_presentation(
+    int len,
+  ) {
+    return _cst_new_list_attestation_presentation(
+      len,
+    );
+  }
+
+  late final _cst_new_list_attestation_presentationPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<wire_cst_list_attestation_presentation> Function(ffi.Int32)>>(
+          'frbgen_wallet_core_cst_new_list_attestation_presentation');
+  late final _cst_new_list_attestation_presentation = _cst_new_list_attestation_presentationPtr
+      .asFunction<ffi.Pointer<wire_cst_list_attestation_presentation> Function(int)>();
 
   ffi.Pointer<wire_cst_list_claim_display_metadata> cst_new_list_claim_display_metadata(
     int len,
@@ -2282,7 +2289,7 @@ final class wire_cst_list_attestation_attribute extends ffi.Struct {
   external int len;
 }
 
-final class wire_cst_attestation extends ffi.Struct {
+final class wire_cst_attestation_presentation extends ffi.Struct {
   external wire_cst_attestation_identity identity;
 
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> attestation_type;
@@ -2332,8 +2339,8 @@ final class wire_cst_wallet_instruction_error extends ffi.Struct {
   external WalletInstructionErrorKind kind;
 }
 
-final class wire_cst_list_attestation extends ffi.Struct {
-  external ffi.Pointer<wire_cst_attestation> ptr;
+final class wire_cst_list_attestation_presentation extends ffi.Struct {
+  external ffi.Pointer<wire_cst_attestation_presentation> ptr;
 
   @ffi.Int32()
   external int len;
@@ -2357,7 +2364,7 @@ final class wire_cst_WalletEvent_Disclosure extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_list_localized_string> purpose;
 
-  external ffi.Pointer<wire_cst_list_attestation> shared_attestations;
+  external ffi.Pointer<wire_cst_list_attestation_presentation> shared_attestations;
 
   external ffi.Pointer<wire_cst_request_policy> request_policy;
 
@@ -2371,7 +2378,7 @@ final class wire_cst_WalletEvent_Disclosure extends ffi.Struct {
 final class wire_cst_WalletEvent_Issuance extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> date_time;
 
-  external ffi.Pointer<wire_cst_attestation> attestation;
+  external ffi.Pointer<wire_cst_attestation_presentation> attestation;
 }
 
 final class WalletEventKind extends ffi.Union {
@@ -2416,7 +2423,7 @@ final class wire_cst_accept_disclosure_result extends ffi.Struct {
 }
 
 final class wire_cst_DisclosureBasedIssuanceResult_Ok extends ffi.Struct {
-  external ffi.Pointer<wire_cst_list_attestation> field0;
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
 }
 
 final class wire_cst_DisclosureBasedIssuanceResult_InstructionError extends ffi.Struct {
@@ -2473,7 +2480,7 @@ final class wire_cst_StartDisclosureResult_Request extends ffi.Struct {
 
   external ffi.Pointer<wire_cst_request_policy> policy;
 
-  external ffi.Pointer<wire_cst_list_attestation> requested_attestations;
+  external ffi.Pointer<wire_cst_list_attestation_presentation> requested_attestations;
 
   @ffi.Bool()
   external bool shared_data_with_relying_party_before;

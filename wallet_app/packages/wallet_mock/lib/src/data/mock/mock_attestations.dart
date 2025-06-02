@@ -5,7 +5,7 @@ import 'mock_attributes.dart';
 import 'mock_organizations.dart';
 
 final kPidAttestations = [
-  Attestation(
+  AttestationPresentation(
     identity: AttestationIdentity_Fixed(id: 'pid'),
     attestationType: MockConstants.pidDocType,
     displayMetadata: _buildDisplayMetaData(
@@ -19,7 +19,7 @@ final kPidAttestations = [
     issuer: kOrganizations[kRvigId]!,
     attributes: kMockPidAttestationAttributes,
   ),
-  Attestation(
+  AttestationPresentation(
     identity: AttestationIdentity_Fixed(id: 'address'),
     attestationType: MockConstants.addressDocType,
     displayMetadata: _buildDisplayMetaData(
@@ -36,7 +36,7 @@ final kPidAttestations = [
 ];
 
 const _kDiplomaId = 'DIPLOMA_1';
-final kDiplomaAttestation = Attestation(
+final kDiplomaAttestation = AttestationPresentation(
   attestationType: _kDiplomaId,
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
@@ -52,7 +52,7 @@ final kDiplomaAttestation = Attestation(
 );
 
 const _kMasterDiplomaId = 'DIPLOMA_2';
-final kMockMasterDiplomaWalletCard = Attestation(
+final kMockMasterDiplomaWalletCard = AttestationPresentation(
   attestationType: _kMasterDiplomaId,
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
@@ -67,7 +67,7 @@ final kMockMasterDiplomaWalletCard = Attestation(
   issuer: kOrganizations[kDuoId]!,
 );
 
-final kMockDrivingLicenseWalletCard = Attestation(
+final kMockDrivingLicenseWalletCard = AttestationPresentation(
   attestationType: MockConstants.drivingLicenseDocType,
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
@@ -82,7 +82,7 @@ final kMockDrivingLicenseWalletCard = Attestation(
   issuer: kOrganizations[kRdwId]!,
 );
 
-final kMockDrivingLicenseRenewedWalletCard = Attestation(
+final kMockDrivingLicenseRenewedWalletCard = AttestationPresentation(
   attestationType: MockConstants.drivingLicenseDocType,
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
@@ -97,7 +97,7 @@ final kMockDrivingLicenseRenewedWalletCard = Attestation(
   issuer: kOrganizations[kRdwId]!,
 );
 
-final kMockHealthInsuranceWalletCard = Attestation(
+final kMockHealthInsuranceWalletCard = AttestationPresentation(
   attestationType: 'HEALTH_INSURANCE',
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
@@ -112,7 +112,7 @@ final kMockHealthInsuranceWalletCard = Attestation(
   issuer: kOrganizations[kHealthInsuranceId]!,
 );
 
-final kMockVOGWalletCard = Attestation(
+final kMockVOGWalletCard = AttestationPresentation(
   attestationType: 'VOG',
   identity: AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(

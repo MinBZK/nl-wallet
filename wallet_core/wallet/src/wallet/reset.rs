@@ -109,7 +109,7 @@ mod tests {
 
     use openid4vc::mock::MockIssuanceSession;
 
-    use crate::attestation::Attestation;
+    use crate::attestation::AttestationPresentation;
     use crate::storage::StorageState;
     use crate::wallet::Session;
 
@@ -167,7 +167,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
-            vec![Attestation::new_mock()].try_into().unwrap(),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
         )));
 

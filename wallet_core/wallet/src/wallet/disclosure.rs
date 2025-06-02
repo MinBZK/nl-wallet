@@ -30,8 +30,8 @@ use update_policy_model::update_policy::VersionState;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
-use crate::attestation::Attestation;
 use crate::attestation::AttestationError;
+use crate::attestation::AttestationPresentation;
 use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
 use crate::disclosure::MdocDisclosureError;
@@ -61,7 +61,7 @@ use super::Wallet;
 
 #[derive(Debug, Clone)]
 pub struct DisclosureProposal {
-    pub attestations: Vec<Attestation>,
+    pub attestations: Vec<AttestationPresentation>,
     pub reader_registration: ReaderRegistration,
     pub shared_data_with_relying_party_before: bool,
     pub session_type: SessionType,
@@ -315,14 +315,14 @@ where
         let disclosure_type = storage::disclosure_type_for_proposed_attributes(&proposed_attributes);
 
         // Prepare a list of proposed attestations to report to the caller.
-        let attestations: Vec<Attestation> = proposed_attributes
+        let attestations: Vec<AttestationPresentation> = proposed_attributes
             .into_values()
             .map(|attributes| {
                 let issuer_registration = IssuerRegistration::from_certificate(&attributes.issuer)
                     .map_err(DisclosureError::IssuerRegistration)?
                     .ok_or(DisclosureError::MissingIssuerRegistration)?;
 
-                Attestation::create_for_disclosure(
+                AttestationPresentation::create_for_disclosure(
                     attributes.type_metadata,
                     issuer_registration.organization,
                     attributes.attributes,
@@ -509,7 +509,7 @@ where
             .storage
             .write()
             .await
-            .increment_mdoc_copies_usage_count(session_proposal.proposed_source_identifiers())
+            .increment_attestation_copies_usage_count(session_proposal.proposed_source_identifiers())
             .await;
 
         if let Err(error) = result {

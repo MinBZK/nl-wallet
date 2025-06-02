@@ -25,7 +25,7 @@ class IssuanceManager {
   bool get hasActiveIssuanceSession => _activeIssuanceResponse != null;
 
   /// Get the cards/attributes that have to be disclosed to fulfill [_activeIssuanceResponse], assumes [_activeIssuanceResponse] is non null.
-  List<Attestation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
+  List<AttestationPresentation> get _requestedAttestationsForActiveRequest => _wallet.getRequestedAttestations(
         _activeIssuanceResponse!.requestedAttributes.map(
           (attribute) => attribute.key,
         ),
@@ -75,7 +75,7 @@ class IssuanceManager {
     }
   }
 
-  Future<List<Attestation>> discloseForIssuance(String pin) async {
+  Future<List<AttestationPresentation>> discloseForIssuance(String pin) async {
     assert(_activeIssuanceResponse != null, 'Can not disclose when no issuance is active');
     final result = _pinManager.checkPin(pin);
     switch (result) {
