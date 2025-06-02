@@ -1,0 +1,5 @@
+# python venv
+venv/
+
+# Build output directories
+_build/

@@ -144,7 +144,7 @@ Finally, the issuer issues the attestations using OpenID4VCI in the pre-authoriz
 
 During OpenID4VCI, the issuer requires the wallet to include the keys of the attestations that it disclosed earlier in its Proof of Association (PoA) when it sends its Proofs of Possession (PoPs) for the keys of the attestation (copies). This enforces that the newly issued attestations are bound to the same WSCD as the one that disclosed the attestations in the first part of the protocol.
 
-```mermaid
+```{mermaid} 
 sequenceDiagram
     autonumber
     actor User

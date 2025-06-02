@@ -1,0 +1,15 @@
+build-documentation:
+  extends: .env-ont
+  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  script:
+    - cd documentation
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - pip3 install -r requirements.txt
+    - make linkcheck
+    - sphinx-build -b html -W . _build/html
+  artifacts:
+    when: always
+    paths:
+      - documentation/_build/html
+  allow_failure: true

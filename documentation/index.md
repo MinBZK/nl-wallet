@@ -1,3 +1,5 @@
+# NL-Wallet Documentation
+
 The intention of this documentation is to provide insight into how the wallet
 app and its dependent infrastructure works. We aim to document the components
 used, the communication that happens between the different layers of the app
@@ -10,7 +12,29 @@ Note that the flows (for now) will mainly serve as a guide as the project is
 still rapidly evolving. As such they should be updated when they are implemented
 or the implementation changes.
 
-[[_TOC_]]
+```{toctree}
+:maxdepth: 1
+:caption: Contents:
+relying-party
+spec-references
+generic_issuance/technical_attestation_schema
+spec-profiles/sd-jwt-vc
+api/README
+diagrams/app_startup
+diagrams/disclosure
+diagrams/disclosure_based_issuance
+diagrams/issuance
+diagrams/overview_components
+diagrams/pin_validation
+diagrams/wallet_creation
+lokalise
+chores/update-rust
+wow/definition-of-done
+wow/merge-requests
+wow/release-howto
+templates/release-notes
+release-notes/releases
+```
 
 ## Participants
 
@@ -107,7 +131,7 @@ See: [lokalise.md](./lokalise.md)
 
 We have a release note template: [release-notes.md](./templates/release-notes.md)
 
-We have release notes for various releases [here](./release-notes).
+We have release notes for various releases [here](./release-notes/releases.md).
 
 ## Way of working
 

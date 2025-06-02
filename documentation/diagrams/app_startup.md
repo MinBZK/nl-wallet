@@ -10,7 +10,7 @@ This diagram captures the communication between the different app layers which o
 
 Note that we check whether the `wallet_core` is already initialized, this is needed because the flutter engine can be destroyed while the native app (which includes `wallet_core`) is kept alive by the os. When this happens we want to rebind to the `wallet_core` instead of re-initializing it.
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     %% Force ordering by explicitly setting up participants
     actor user
@@ -45,13 +45,13 @@ sequenceDiagram
 
 ## Extra callbacks
 
-While the callback setup doesn't strictly (all) happen during the app startup (i.e. the streams are configured but the reference isn't passed on to `wallet_core` until the stream has an observer), it is relevant here because it is initiated at app startup and these callbacks have to be cleared when they become stale (i.e. `isInitialized()` returned `true` during the [initialization](#11-initialization)).
+While the callback setup doesn't strictly (all) happen during the app startup (i.e. the streams are configured but the reference isn't passed on to `wallet_core` until the stream has an observer), it is relevant here because it is initiated at app startup and these callbacks have to be cleared when they become stale (i.e. `isInitialized()` returned `true` during the [initialization](#initialization)).
 
 ### Configuration
 
 This stream provides app configuration data to the wallet_app (e.g. background lock timeout duration). And can be updated throughout the complete lifecycle of the app.
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     %% Force ordering by explicitly setting up participants
     actor user
@@ -74,7 +74,7 @@ sequenceDiagram
 
 This stream provides information on the current wallet lock state (i.e. if the user is logged in and can view her attestations)
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     %% Force ordering by explicitly setting up participants
     actor user

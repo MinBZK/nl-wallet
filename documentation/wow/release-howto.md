@@ -1,7 +1,7 @@
+# Releases Howto
+
 This guide documents how we do releases, A to Z. The goal is that any team
 member can do a release, and knows what steps and which roles are involved.
-
-[[_TOC_]]
 
 ## Assumptions
 
@@ -157,7 +157,7 @@ filters out various things which we have considered once to be unwanted in the
 public repository (note: that does not mean it is considered as such in
 perpetuity - we should allow for reconsideration from time to time).
 
-Clone the [publication-guard][3] repository, read the `README.md`. Follow the
+Clone the `/logius/wallet/publication-guard/` repository, read the `README.md`. Follow the
 instructions, for which you will find some overlap with this howto. Create any
 new to-filter-items for things you might have encountered during your review.
 
@@ -309,6 +309,5 @@ release description.
 
 ## References
 
-[1]: https://www.semver.org/
-[2]: https://www.atlassian.com/agile/tutorials/versions/
-[3]: /logius/wallet/publication-guard/
+1. [Semantic Versioning](https://www.semver.org/)
+2. [Agile Versions](https://www.atlassian.com/agile/tutorials/versions/)
