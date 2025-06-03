@@ -185,12 +185,12 @@ impl WalletEvent {
 mod test {
     use std::sync::LazyLock;
 
-    use attestation_data::identifiers::NameSpace;
     use indexmap::IndexMap;
     use rstest::rstest;
 
     use attestation_data::attributes::Entry;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::identifiers::NameSpace;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;

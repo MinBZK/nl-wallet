@@ -1,8 +1,8 @@
-use attestation_data::attributes::Attribute;
 use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Entry;
 use attestation_data::credential_payload::CredentialPayload;
