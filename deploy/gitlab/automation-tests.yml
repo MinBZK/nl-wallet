@@ -99,6 +99,10 @@ run-automation-tests-suite-web:
   extends: .run-automation-tests-default
   variables: { TESTS: "suite.WebTestSuite" }
 
+run-automation-tests-suite-disclosure:
+  extends: .run-automation-tests-default
+  variables: { TESTS: "suite.DisclosureTestSuite" }
+
 run-automation-tests-publish-results:
   rules: !reference [.run-automation-tests-default, rules]
   needs:

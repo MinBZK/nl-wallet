@@ -90,10 +90,10 @@ zap-scan-internal-wallet-server:
   script:
     - !reference [.get-session-token, script]
     - |
-      yq e ".servers[0].url=\"${INTERNAL_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-private.openapi.yaml
-      sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-private.openapi.yaml
-      sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/api/wallet-disclosure-private.openapi.yaml
-      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/api/wallet-disclosure-private.openapi.yaml documentation/api/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-internal-wallet-disclosure.openapi.yaml
+      yq e ".servers[0].url=\"${INTERNAL_WALLET_SERVER_URL}\"" -i documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
+      sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
+      sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/_static/openapi/wallet-disclosure-private.openapi.yaml documentation/_static/openapi/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-internal-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
     INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
@@ -109,11 +109,11 @@ zap-scan-public-wallet-server:
   script:
     - !reference [.get-session-token, script]
     - |
-      yq e ".servers[0].url=\"${PUBLIC_WALLET_SERVER_URL}\"" -i documentation/api/wallet-disclosure-public.openapi.yaml
-      sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/api/wallet-disclosure-public.openapi.yaml
-      sed -i "s|application/x-www-form-urlencoded|application/json|g" documentation/api/wallet-disclosure-public.openapi.yaml
-      sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/api/wallet-disclosure-public.openapi.yaml
-      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/api/wallet-disclosure-public.openapi.yaml documentation/api/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-public-wallet-disclosure.openapi.yaml
+      yq e ".servers[0].url=\"${PUBLIC_WALLET_SERVER_URL}\"" -i documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
+      sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
+      sed -i "s|application/x-www-form-urlencoded|application/json|g" documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
+      sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
+      yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/_static/openapi/wallet-disclosure-public.openapi.yaml documentation/_static/openapi/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-public-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
     INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"

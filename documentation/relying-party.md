@@ -1099,6 +1099,6 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
 [13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
-[15]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-private.openapi.yaml
-[16]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-public.openapi.yaml
+[15]: ../documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
+[16]: ../documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
 [17]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging
