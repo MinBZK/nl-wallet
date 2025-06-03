@@ -61,6 +61,9 @@ pub enum TypeMetadataError {
 
     #[error("error converting claim path to a JSON path: {0}")]
     JsonPathConversion(String),
+
+    #[error("internal attributes found in claim: {}", .0.join(", "))]
+    InternalAttributeInClaim(Vec<String>),
 }
 
 /// SD-JWT VC type metadata document.
@@ -78,6 +81,7 @@ pub enum TypeMetadataError {
 ///   attribute can be rendered for display to the user.
 /// * Claims that cover a group of attributes are not (yet) supported and will not be accepted, as rendering groups of
 ///   attributes covered by the same display data is not supported by the UI.
+/// * Claims cannot contain paths for internal attributes.
 #[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UncheckedTypeMetadata {
@@ -133,12 +137,39 @@ pub(crate) fn find_missing_svg_ids(display: &[DisplayMetadata], claims: &[ClaimM
 )]
 pub struct TypeMetadata(UncheckedTypeMetadata);
 
+const INTERNAL_ATTRIBUTES: &[&str] = &[
+    "vct",
+    "cnf",
+    "iss",
+    "nbf",
+    "exp",
+    "iat",
+    "sub",
+    "attestation_qualification",
+];
+
 impl UncheckedTypeMetadata {
     pub fn check_metadata_consistency(unchecked_metadata: &UncheckedTypeMetadata) -> Result<(), TypeMetadataError> {
+        unchecked_metadata.check_internal_attributes()?;
         unchecked_metadata.detect_path_collisions()?;
         unchecked_metadata.detect_duplicate_languages()?;
         unchecked_metadata.validate_svg_ids()?;
 
+        Ok(())
+    }
+
+    fn check_internal_attributes(&self) -> Result<(), TypeMetadataError> {
+        let internal_claims = self
+            .claims
+            .iter()
+            .filter_map(|claim| match claim.path.first() {
+                ClaimPath::SelectByKey(key) if INTERNAL_ATTRIBUTES.contains(&key.as_str()) => Some(key.clone()),
+                _ => None,
+            })
+            .collect::<Vec<String>>();
+        if !internal_claims.is_empty() {
+            return Err(TypeMetadataError::InternalAttributeInClaim(internal_claims));
+        }
         Ok(())
     }
 
@@ -1227,17 +1258,7 @@ mod test {
         .unwrap();
         metadata.claims = serde_json::from_value(claims).unwrap();
 
-        let result = metadata.validate_svg_ids();
-        match (result, expected) {
-            (Ok(()), Ok(())) => {}
-            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
-            (Err(e), Ok(())) => {
-                panic!("assertion failed\n left: {e:?}\nright: ()")
-            }
-            (Ok(()), Err(e)) => {
-                panic!("assertion failed\n left: ()\nright: {e:?}")
-            }
-        };
+        assert_type_metadata_error(metadata.validate_svg_ids(), expected);
     }
 
     #[rstest]
@@ -1277,17 +1298,7 @@ mod test {
             }
         }))
         .unwrap();
-        let result = metadata.validate_svg_ids();
-        match (result, expected) {
-            (Ok(()), Ok(())) => {}
-            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
-            (Err(e), Ok(())) => {
-                panic!("assertion failed\n left: {e:?}\nright: ()")
-            }
-            (Ok(()), Err(e)) => {
-                panic!("assertion failed\n left: ()\nright: {e:?}")
-            }
-        };
+        assert_type_metadata_error(metadata.validate_svg_ids(), expected);
     }
 
     #[test]
@@ -1325,5 +1336,42 @@ mod test {
             create_claim_meta(vec![ClaimPath::SelectByKey(String::from("a")), ClaimPath::SelectAll,]).to_json_path(),
             Err(TypeMetadataError::JsonPathConversion(_))
         );
+    }
+
+    #[rstest]
+    #[case(json![["nbf"]], Err(TypeMetadataError::InternalAttributeInClaim(vec!["nbf".to_string()])))]
+    #[case(json![["nested", "nbf"]], Ok(()))]
+    fn test_internal_attributes_in_claim(
+        #[case] path: serde_json::Value,
+        #[case] expected: Result<(), TypeMetadataError>,
+    ) {
+        let metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
+            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "claims": [{
+                "path": path,
+                "display": []
+            }],
+            "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {}
+            }
+        }))
+        .unwrap();
+
+        assert_type_metadata_error(metadata.check_internal_attributes(), expected);
+    }
+
+    fn assert_type_metadata_error(result: Result<(), TypeMetadataError>, expected: Result<(), TypeMetadataError>) {
+        match (result, expected) {
+            (Ok(()), Ok(())) => {}
+            (Err(e), Err(r)) => assert_eq!(e.to_string(), r.to_string()),
+            (Err(e), Ok(())) => {
+                panic!("assertion failed\n left: {e:?}\nright: ()")
+            }
+            (Ok(()), Err(e)) => {
+                panic!("assertion failed\n left: ()\nright: {e:?}")
+            }
+        };
     }
 }

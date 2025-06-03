@@ -136,6 +136,7 @@ impl Attribute {
         if !attributes.is_empty() {
             return Err(AttributeError::SomeAttributesNotProcessed(attributes));
         }
+        // No internal attributes can be in the array map as they are forbidden as claim in the type metadata
 
         Ok(result)
     }
