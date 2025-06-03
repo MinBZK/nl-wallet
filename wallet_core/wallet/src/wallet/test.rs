@@ -8,13 +8,13 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use parking_lot::Mutex;
 use rand_core::OsRng;
-use ssri::Integrity;
 
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
 use crypto::p256_der::DerVerifyingKey;
@@ -23,7 +23,6 @@ use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
-use mdoc::unsigned::UnsignedMdoc;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;
@@ -177,28 +176,32 @@ pub fn create_example_preview_data() -> NormalizedCredentialPreview {
 
 /// Generates a valid `Mdoc` that contains a full PID.
 pub fn create_example_pid_mdoc() -> Mdoc {
-    let (unsigned_mdoc, _metadata) = issuance::mock::create_example_unsigned_mdoc();
+    let (payload_preview, metadata) = issuance::mock::create_example_payload_preview();
 
-    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY)
+    mdoc_from_unsigned(payload_preview, metadata, &ISSUER_KEY)
 }
 
 /// Generates a valid `Mdoc` that contains a full PID, with an unauthenticated issuer certificate.
 pub fn create_example_pid_mdoc_unauthenticated() -> Mdoc {
-    let (unsigned_mdoc, _metadata) = issuance::mock::create_example_unsigned_mdoc();
+    let (payload_preview, metadata) = issuance::mock::create_example_payload_preview();
 
-    mdoc_from_unsigned(unsigned_mdoc, &ISSUER_KEY_UNAUTHENTICATED)
+    mdoc_from_unsigned(payload_preview, metadata, &ISSUER_KEY_UNAUTHENTICATED)
 }
 
-/// Generates a valid `Mdoc`, based on an `UnsignedMdoc`, the `TypeMetadata` and issuer key.
-pub fn mdoc_from_unsigned(unsigned_mdoc: UnsignedMdoc, issuer_key: &IssuerKey) -> Mdoc {
+/// Generates a valid `Mdoc`, based on an `PreviewableCredentialPayload`, the `TypeMetadata` and issuer key.
+pub fn mdoc_from_unsigned(
+    payload: PreviewableCredentialPayload,
+    metadata: TypeMetadata,
+    issuer_key: &IssuerKey,
+) -> Mdoc {
     let private_key_id = crypto::utils::random_string(16);
     let mdoc_remote_key = MockRemoteEcdsaKey::new_random(private_key_id.clone());
     let mdoc_public_key = mdoc_remote_key.verifying_key();
+    let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(metadata);
 
     Mdoc::sign::<MockRemoteEcdsaKey>(
-        unsigned_mdoc,
-        // Note that this resource integrity does not match any metadata source document.
-        Integrity::from(crypto::utils::random_bytes(32)),
+        payload,
+        metadata_integrity,
         private_key_id,
         mdoc_public_key,
         &issuer_key.issuance_key,

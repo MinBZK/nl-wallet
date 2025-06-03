@@ -28,7 +28,6 @@ use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
 use utils::date_time_seconds::DateTimeSeconds;
 
-use crate::unsigned::UnsignedAttributes;
 use crate::utils::cose::CoseKey;
 use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::CryptoError;
@@ -247,17 +246,24 @@ pub type DocType = String;
 )]
 pub struct IssuerNameSpaces(IndexMap<NameSpace, Attributes>);
 
-/// Since [`UnsignedAttributes`] is guaranteed not to be empty, we can
-/// implement `From` instead of `TryFrom` and use `unwrap()` safely.
-impl From<UnsignedAttributes> for IssuerNameSpaces {
-    fn from(value: UnsignedAttributes) -> Self {
-        value
-            .into_inner()
+#[derive(Debug, thiserror::Error)]
+pub enum IssuerNameSpacesPreConditionError {
+    #[error("precondition for namespaces failed: {0}")]
+    Validation(#[from] IssuerNameSpacesError),
+    #[error("precondition for attributes failed: {0}")]
+    AttributeValidation(#[from] AttributesError),
+}
+
+impl TryFrom<IndexMap<NameSpace, Vec<Entry>>> for IssuerNameSpaces {
+    type Error = IssuerNameSpacesPreConditionError;
+
+    fn try_from(source: IndexMap<NameSpace, Vec<Entry>>) -> Result<Self, Self::Error> {
+        let result: Self = source
             .into_iter()
-            .map(|(namespace, attrs)| (namespace, Attributes::try_from(attrs).unwrap()))
-            .collect::<IndexMap<_, _>>()
-            .try_into()
-            .unwrap()
+            .map(|(namespace, attrs)| Ok((namespace, Attributes::try_from(attrs)?)))
+            .collect::<Result<IndexMap<_, _>, AttributesError>>()?
+            .try_into()?;
+        Ok(result)
     }
 }
 

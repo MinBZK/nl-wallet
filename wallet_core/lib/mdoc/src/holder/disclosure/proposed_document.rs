@@ -13,6 +13,7 @@ use crate::iso::disclosure::DeviceSigned;
 use crate::iso::disclosure::Document;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DocType;
+use crate::Attributes;
 use crate::NameSpace;
 
 use super::StoredMdoc;
@@ -126,7 +127,9 @@ impl<I> ProposedDocument<I> {
                         .collect::<Vec<_>>();
 
                     // This will return `None` if the attributes are empty and will subsequently be filtered out.
-                    attributes.try_into().ok().map(|attributes| (name_space, attributes))
+                    Attributes::try_from(attributes)
+                        .ok()
+                        .map(|attributes| (name_space, attributes))
                 })
                 .collect::<IndexMap<_, _>>()
                 .try_into()
@@ -255,7 +258,7 @@ mod tests {
         let stored_mdoc = StoredMdoc {
             id: "id_1234",
             mdoc: Mdoc::new_mock().await,
-            normalized_metadata: NormalizedTypeMetadata::pid_example(),
+            normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
         };
         let id = stored_mdoc.id;
         let doc_type = stored_mdoc.mdoc.mso.doc_type.clone();
@@ -326,7 +329,7 @@ mod tests {
             .map(|(index, mdoc)| StoredMdoc {
                 id: format!("id_{}", index + 1),
                 mdoc,
-                normalized_metadata: NormalizedTypeMetadata::pid_example(),
+                normalized_metadata: NormalizedTypeMetadata::nl_pid_example(),
             })
             .collect();
 

@@ -290,12 +290,14 @@ mod example_constructors {
 
     use utils::vec_at_least::VecNonEmpty;
 
-    use crate::examples::ADDRESS_METADATA_BYTES;
     use crate::examples::DEGREE_METADATA_BYTES;
+    use crate::examples::EUDI_ADDRESS_METADATA_BYTES;
+    use crate::examples::EUDI_PID_METADATA_BYTES;
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::EXAMPLE_V2_METADATA_BYTES;
     use crate::examples::EXAMPLE_V3_METADATA_BYTES;
-    use crate::examples::PID_METADATA_BYTES;
+    use crate::examples::NL_ADDRESS_METADATA_BYTES;
+    use crate::examples::NL_PID_METADATA_BYTES;
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
 
@@ -350,17 +352,25 @@ mod example_constructors {
             )
         }
 
-        pub fn pid_example() -> (Integrity, Self) {
+        pub fn nl_pid_example() -> (Integrity, Self) {
             (
-                Integrity::from(PID_METADATA_BYTES),
-                Self::new(vec![PID_METADATA_BYTES.to_vec()].try_into().unwrap()),
+                Integrity::from(NL_PID_METADATA_BYTES),
+                Self::new(
+                    vec![NL_PID_METADATA_BYTES.to_vec(), EUDI_PID_METADATA_BYTES.to_vec()]
+                        .try_into()
+                        .unwrap(),
+                ),
             )
         }
 
         pub fn address_example() -> (Integrity, Self) {
             (
-                Integrity::from(ADDRESS_METADATA_BYTES),
-                Self::new(vec![ADDRESS_METADATA_BYTES.to_vec()].try_into().unwrap()),
+                Integrity::from(NL_ADDRESS_METADATA_BYTES),
+                Self::new(
+                    vec![NL_ADDRESS_METADATA_BYTES.to_vec(), EUDI_ADDRESS_METADATA_BYTES.to_vec()]
+                        .try_into()
+                        .unwrap(),
+                ),
             )
         }
 
@@ -392,8 +402,12 @@ mod example_constructors {
             Self(vec![EXAMPLE_METADATA_BYTES.to_vec()].try_into().unwrap())
         }
 
-        pub fn pid_example() -> Self {
-            Self(vec![PID_METADATA_BYTES.to_vec()].try_into().unwrap())
+        pub fn nl_pid_example() -> Self {
+            Self(
+                vec![NL_PID_METADATA_BYTES.to_vec(), EUDI_PID_METADATA_BYTES.to_vec()]
+                    .try_into()
+                    .unwrap(),
+            )
         }
     }
 }
@@ -454,7 +468,7 @@ mod test {
         "https://sd_jwt_vc_metadata.example.com/example_credential",
         TypeMetadataDocuments::example()
     )]
-    #[case("urn:eudi:pid:nl:1", TypeMetadataDocuments::pid_example())]
+    #[case("urn:eudi:pid:nl:1", TypeMetadataDocuments::nl_pid_example())]
     #[case("urn:eudi:pid-address:nl:1", TypeMetadataDocuments::address_example())]
     #[case("com.example.degree", TypeMetadataDocuments::degree_example())]
     #[case(

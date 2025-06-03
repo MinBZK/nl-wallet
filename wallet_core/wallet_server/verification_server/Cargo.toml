@@ -35,13 +35,7 @@ allow_insecure_url = ["openid4vc/allow_insecure_url", "http_utils/allow_insecure
 # Include session storage in PostgreSQL
 postgres = ["server_utils/postgres"]
 # Enable integration tests
-integration_test = [
-    "allow_insecure_url",
-    "openid4vc/test",
-    "openid4vc/mock",
-    "server_utils/parsed_key_pair_conversion",
-    "dep:ssri",
-]
+integration_test = ["allow_insecure_url", "openid4vc/test", "openid4vc/mock", "server_utils/parsed_key_pair_conversion"]
 # Include and run integration tests that depend on an external PostgreSQL database
 db_test = ["integration_test", "postgres", "futures/std", "futures/async-await", "dep:serial_test", "tokio/sync"]
 
@@ -65,7 +59,6 @@ tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 serial_test = { workspace = true, optional = true }
-ssri = { workspace = true, optional = true }
 
 attestation_data.path = "../../lib/attestation_data"
 crypto.path = "../../lib/crypto"
@@ -88,7 +81,7 @@ rstest.workspace = true
 serde_urlencoded.workspace = true
 tokio = { workspace = true, features = ["macros", "test-util"] }
 
-attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }
+attestation_data = { path = "../../lib/attestation_data", features = ["example_credential_payloads", "mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_remote_key"] }
 mdoc = { path = "../../lib/mdoc", features = ["mock_example_constructors"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }

@@ -39,8 +39,8 @@ mod test {
 
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
-    use crate::issuance::mock::create_bsn_only_unsigned_mdoc;
-    use crate::issuance::mock::create_example_unsigned_mdoc;
+    use crate::issuance::mock::create_bsn_only_mdoc_attributes;
+    use crate::issuance::mock::create_example_mdoc_attributes;
     use crate::issuance::BSN_ATTR_NAME;
     use crate::issuance::PID_DOCTYPE;
     use crate::AttestationIdentity;
@@ -48,13 +48,13 @@ mod test {
 
     #[test]
     fn test_happy() {
-        let (unsigned_mdoc, metadata) = create_example_unsigned_mdoc();
+        let (mdoc_attributes, metadata) = create_example_mdoc_attributes();
 
         let attestation = AttestationPresentation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             NormalizedTypeMetadata::from_single_example(metadata.into_inner()),
             Organization::new_mock(),
-            unsigned_mdoc.attributes.into_inner(),
+            mdoc_attributes,
         )
         .expect("creating new Attestation should be successful");
 
@@ -75,7 +75,7 @@ mod test {
                     AttestationAttributeValue::Basic(AttributeValue::Text(String::from("Willeke Liselotte")))
                 ),
                 (
-                    vec![String::from("birth_date")],
+                    vec![String::from("birthdate")],
                     AttestationAttributeValue::Date(NaiveDate::from_ymd_opt(1997, 5, 10).unwrap())
                 ),
                 (
@@ -89,10 +89,10 @@ mod test {
 
     #[test]
     fn test_attribute_not_found() {
-        let (unsigned_mdoc, _) = create_bsn_only_unsigned_mdoc();
+        let (mdoc_attributes, _) = create_bsn_only_mdoc_attributes();
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
-            &unsigned_mdoc.doc_type,
+            PID_DOCTYPE,
             &[
                 ("not_found", JsonSchemaPropertyType::String, None),
                 (BSN_ATTR_NAME, JsonSchemaPropertyType::String, None),
@@ -103,7 +103,7 @@ mod test {
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
-            unsigned_mdoc.attributes.into_inner(),
+            mdoc_attributes,
         )
         .expect("creating new Attestation should be successful");
 
@@ -124,10 +124,10 @@ mod test {
 
     #[test]
     fn test_attribute_not_processed() {
-        let (unsigned_mdoc, _) = create_example_unsigned_mdoc();
+        let (mdoc_attributes, _) = create_example_mdoc_attributes();
 
         let metadata = NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_names(
-            &unsigned_mdoc.doc_type,
+            PID_DOCTYPE,
             &[
                 ("family_name", JsonSchemaPropertyType::String, None),
                 ("given_name", JsonSchemaPropertyType::String, None),
@@ -139,7 +139,7 @@ mod test {
             AttestationIdentity::Ephemeral,
             metadata,
             Organization::new_mock(),
-            unsigned_mdoc.attributes.into_inner(),
+            mdoc_attributes,
         )
         .expect_err("creating new Attestation should not be successful");
 
@@ -149,7 +149,7 @@ mod test {
                 if claims == IndexMap::from([
                     (String::from(PID_DOCTYPE),
                     vec![Entry {
-                        name: String::from("birth_date"),
+                        name: String::from("birthdate"),
                         value: ciborium::value::Value::Text("1997-05-10".to_string())
                     }]
                 )]

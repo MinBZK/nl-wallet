@@ -4,13 +4,14 @@ use chrono::Duration;
 use chrono::Utc;
 use ciborium::Value;
 use coset::CoseSign1;
-use derive_more::Constructor;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ssri::Integrity;
 
+use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Entry;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::identifiers::AttributeIdentifier;
 use attestation_data::identifiers::AttributeIdentifierHolder;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
@@ -21,7 +22,7 @@ use crypto::EcdsaKey;
 use crypto::WithIdentifier;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
-use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
 
 use crate::holder::Mdoc;
 use crate::iso::device_retrieval::DeviceRequest;
@@ -29,7 +30,6 @@ use crate::iso::device_retrieval::DocRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DataElementValue;
-use crate::unsigned::UnsignedMdoc;
 use crate::utils::cose::CoseError;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
@@ -160,43 +160,77 @@ impl DeviceRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Constructor)]
+#[derive(Debug, Clone)]
 pub struct TestDocument {
     pub doc_type: String,
     pub issuer_uri: HttpsUri,
+    // TODO: change to: pub attributes: IndexMap<String, Attribute> in PVW-4138, or even remove TestDocument altogether?
     pub namespaces: IndexMap<String, Vec<Entry>>,
+    pub metadata_integrity: Integrity,
+    pub metadata: TypeMetadataDocuments,
 }
 
 impl TestDocument {
-    pub fn normalized_metadata(&self) -> NormalizedTypeMetadata {
-        NormalizedTypeMetadata::from_single_example(
-            TypeMetadata::empty_example_with_attestation_type(&self.doc_type).into_inner(),
-        )
+    pub fn new(
+        doc_type: String,
+        issuer_uri: HttpsUri,
+        namespaces: IndexMap<String, Vec<Entry>>,
+        (metadata_integrity, metadata): (Integrity, TypeMetadataDocuments),
+    ) -> Self {
+        Self {
+            doc_type,
+            issuer_uri,
+            namespaces,
+            metadata_integrity,
+            metadata,
+        }
     }
 
-    async fn prepare_unsigned<KF>(self, ca: &Ca, key_factory: &KF) -> (UnsignedMdoc, KeyPair, KF::Key)
+    pub fn normalized_metadata(&self) -> NormalizedTypeMetadata {
+        let (normalized_metadata, _) = self.metadata.clone().into_normalized(&self.doc_type).unwrap();
+
+        normalized_metadata
+    }
+
+    async fn prepare_credential_preview<KF>(
+        self,
+        ca: &Ca,
+        key_factory: &KF,
+    ) -> (PreviewableCredentialPayload, Integrity, KeyPair, KF::Key)
     where
         KF: KeyFactory,
     {
-        let unsigned = UnsignedMdoc::from(self);
+        let (normalized_metadata, _) = self.metadata.into_normalized(&self.doc_type).unwrap();
+        let attributes = Attribute::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
+
+        let now = Utc::now();
+        let payload_preview = PreviewableCredentialPayload {
+            attestation_type: self.doc_type,
+            issuer: self.issuer_uri,
+            expires: Some((now + Duration::days(365)).into()),
+            not_before: Some(now.into()),
+            attestation_qualification: Default::default(),
+            attributes,
+        };
 
         let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
         let mdoc_key = key_factory.generate_new().await.unwrap();
 
-        (unsigned, issuance_key, mdoc_key)
+        (payload_preview, self.metadata_integrity, issuance_key, mdoc_key)
     }
 
-    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`Mdoc`] using `ca` and `key_factory`.
+    /// Converts `self` into a [`PreviewableCredentialPayload`] and signs it into an [`Mdoc`] using `ca` and
+    /// `key_factory`.
     pub async fn sign<KF>(self, ca: &Ca, key_factory: &KF) -> Mdoc
     where
         KF: KeyFactory,
     {
-        let (unsigned, issuance_key, mdoc_key) = self.prepare_unsigned(ca, key_factory).await;
+        let (credential_preview, metadata_integrity, issuance_key, mdoc_key) =
+            self.prepare_credential_preview(ca, key_factory).await;
 
         Mdoc::sign::<KF::Key>(
-            unsigned,
-            // Note that this resource integrity does not match any metadata source document.
-            Integrity::from(crypto::utils::random_bytes(32)),
+            credential_preview,
+            metadata_integrity,
             mdoc_key.identifier().to_string(),
             &mdoc_key.verifying_key().await.unwrap(),
             &issuance_key,
@@ -205,17 +239,18 @@ impl TestDocument {
         .unwrap()
     }
 
-    /// Converts `self` into an [`UnsignedMdoc`] and signs it into an [`IssuerSigned`] using `ca` and `key_factory`.
+    /// Converts `self` into an [`PreviewableCredentialPayload`] and signs it into an [`IssuerSigned`] using `ca` and
+    /// `key_factory`.
     pub async fn issuer_signed<KF>(self, ca: &Ca, key_factory: &KF) -> (IssuerSigned, KF::Key)
     where
         KF: KeyFactory,
     {
-        let (unsigned, issuance_key, mdoc_key) = self.prepare_unsigned(ca, key_factory).await;
+        let (credential_preview, metadata_integrity, issuance_key, mdoc_key) =
+            self.prepare_credential_preview(ca, key_factory).await;
 
         let (issuer_signed, _) = IssuerSigned::sign(
-            unsigned,
-            // Note that this resource integrity does not match any metadata source document.
-            Integrity::from(crypto::utils::random_bytes(32)),
+            credential_preview,
+            metadata_integrity,
             &mdoc_key.verifying_key().await.unwrap(),
             &issuance_key,
         )
@@ -223,20 +258,6 @@ impl TestDocument {
         .unwrap();
 
         (issuer_signed, mdoc_key)
-    }
-}
-
-impl From<TestDocument> for UnsignedMdoc {
-    fn from(value: TestDocument) -> Self {
-        let now = Utc::now();
-        Self {
-            doc_type: value.doc_type,
-            valid_from: now.into(),
-            valid_until: (now + Duration::days(365)).into(),
-            attributes: value.namespaces.try_into().unwrap(),
-            issuer_uri: value.issuer_uri,
-            attestation_qualification: Default::default(),
-        }
     }
 }
 
@@ -255,7 +276,7 @@ impl From<TestDocument> for ItemsRequest {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct TestDocuments(pub Vec<TestDocument>);
 impl TestDocuments {
     pub fn len(&self) -> usize {
@@ -277,6 +298,7 @@ impl TestDocuments {
             doc_type: expected_doc_type,
             namespaces: expected_namespaces,
             issuer_uri: expected_issuer,
+            ..
         } in &self.0
         {
             // verify the disclosed attributes
@@ -368,55 +390,32 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
-    use super::*;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
 
+    use attestation_data::attributes::AttributeValue;
+    use attestation_data::credential_payload::CredentialPayload;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+
+    use super::*;
 
     pub const PID: &str = "urn:eudi:pid:nl:1";
     const ADDR: &str = "urn:eudi:pid-address:nl:1";
+    const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
 
     pub fn empty() -> TestDocuments {
         vec![].into()
     }
 
-    pub fn pid_bsn_only() -> TestDocuments {
-        vec![TestDocument::new(
-            PID.to_owned(),
-            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
-            IndexMap::from_iter(vec![(
-                PID.to_string(),
-                vec![Entry {
-                    name: "bsn".to_string(),
-                    value: Value::Text("999999999".to_string()),
-                }],
-            )]),
-        )]
-        .into()
-    }
-
-    pub fn pid_example() -> TestDocuments {
-        vec![TestDocument::new(
-            PID.to_owned(),
-            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
-            IndexMap::from_iter(vec![(
-                PID.to_string(),
-                vec![
-                    Entry {
-                        name: "bsn".to_string(),
-                        value: Value::Text("999999999".to_string()),
-                    },
-                    Entry {
-                        name: "given_name".to_string(),
-                        value: Value::Text("Willeke Liselotte".to_string()),
-                    },
-                    Entry {
-                        name: "family_name".to_string(),
-                        value: Value::Text("De Bruijn".to_string()),
-                    },
-                ],
-            )]),
-        )]
-        .into()
+    pub fn pid_example_payload() -> CredentialPayload {
+        CredentialPayload::example_with_attributes(
+            vec![
+                ("bsn", AttributeValue::Text("999999999".to_string())),
+                ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
+                ("family_name", AttributeValue::Text("De Bruijn".to_string())),
+            ],
+            SigningKey::random(&mut OsRng).verifying_key(),
+        )
     }
 
     pub fn pid_given_name() -> TestDocuments {
@@ -430,6 +429,7 @@ pub mod data {
                     value: Value::Text("Willeke Liselotte".to_string()),
                 }],
             )]),
+            TypeMetadataDocuments::nl_pid_example(),
         )]
         .into()
     }
@@ -445,6 +445,7 @@ pub mod data {
                     value: Value::Text("De Bruijn".to_string()),
                 }],
             )]),
+            TypeMetadataDocuments::nl_pid_example(),
         )]
         .into()
     }
@@ -457,15 +458,16 @@ pub mod data {
                 PID.to_string(),
                 vec![
                     Entry {
-                        name: "given_name".to_string(),
-                        value: Value::Text("Willeke Liselotte".to_string()),
-                    },
-                    Entry {
                         name: "family_name".to_string(),
                         value: Value::Text("De Bruijn".to_string()),
                     },
+                    Entry {
+                        name: "given_name".to_string(),
+                        value: Value::Text("Willeke Liselotte".to_string()),
+                    },
                 ],
             )]),
+            TypeMetadataDocuments::nl_pid_example(),
         )]
         .into()
     }
@@ -475,12 +477,13 @@ pub mod data {
             ADDR.to_owned(),
             format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
             IndexMap::from_iter(vec![(
-                format!("{ADDR}.address"),
+                ADDR_NS.to_string(),
                 vec![Entry {
                     name: "street_address".to_string(),
                     value: Value::Text("Turfmarkt".to_string()),
                 }],
             )]),
+            TypeMetadataDocuments::address_example(),
         )]
         .into()
     }

@@ -162,7 +162,7 @@ mod tests {
             mdoc.doc_type().clone(),
             vec![(
                 IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
-                NormalizedTypeMetadata::pid_example(),
+                NormalizedTypeMetadata::nl_pid_example(),
             )],
         );
 
@@ -205,7 +205,7 @@ mod tests {
             mdoc.doc_type().clone(),
             vec![(
                 IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
-                NormalizedTypeMetadata::pid_example(),
+                NormalizedTypeMetadata::nl_pid_example(),
             )],
         );
 

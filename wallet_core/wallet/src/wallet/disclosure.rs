@@ -1799,7 +1799,7 @@ mod tests {
                     IssuedCredentialCopies::MsoMdoc(
                         vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
                     ),
-                    VerifiedTypeMetadataDocuments::pid_example(),
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
                 CredentialWithMetadata::new(
                     IssuedCredentialCopies::MsoMdoc(
@@ -1807,7 +1807,7 @@ mod tests {
                     ),
                     // Note that the attestation type of this metadata does not match the mdoc doc_type,
                     // which is not relevant for this particular test.
-                    VerifiedTypeMetadataDocuments::pid_example(),
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
             ])
             .await
