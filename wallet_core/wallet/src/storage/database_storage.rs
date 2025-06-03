@@ -50,11 +50,10 @@ use entity::keyed_data;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
 use openid4vc::issuance_session::CredentialWithMetadata;
-use openid4vc::issuance_session::IssuedCredentialCopies;
+use openid4vc::issuance_session::IssuedCredential;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::hasher::Sha256Hasher;
 use sd_jwt::sd_jwt::SdJwt;
-use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
 use super::data::KeyedData;
 use super::database::Database;
@@ -514,35 +513,40 @@ where
                      attestation_type,
                      metadata_documents,
                  }| {
-                    match copies {
-                        IssuedCredentialCopies::MsoMdoc(mdocs) => {
-                            let serialized = mdocs.into_iter().map(|mdoc| cbor_serialize(&mdoc)).try_collect()?;
+                    let attestation_id = Uuid::now_v7();
 
-                            let models = create_attestation_active_models(
-                                attestation_type,
-                                AttestationFormat::Mdoc,
-                                serialized,
-                                metadata_documents,
-                            );
+                    let attestation_model = attestation::ActiveModel {
+                        id: Set(attestation_id),
+                        attestation_type: Set(attestation_type),
+                        type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
+                    };
 
-                            Ok(models)
-                        }
-                        IssuedCredentialCopies::SdJwt(sd_jwts) => {
-                            let serialized = sd_jwts
-                                .into_iter()
-                                .map(|sd_jwt| sd_jwt.to_string().into_bytes())
-                                .collect_vec();
+                    let copy_models = copies
+                        .into_inner()
+                        .into_iter()
+                        .map(|credential| match credential {
+                            IssuedCredential::MsoMdoc(mdoc) => {
+                                let model = create_attestation_copy_active_model(
+                                    attestation_id,
+                                    cbor_serialize(&mdoc)?,
+                                    AttestationFormat::Mdoc,
+                                );
 
-                            let models = create_attestation_active_models(
-                                attestation_type,
-                                AttestationFormat::SdJwt,
-                                serialized,
-                                metadata_documents,
-                            );
+                                Ok::<_, StorageError>(model)
+                            }
+                            IssuedCredential::SdJwt(sd_jwt) => {
+                                let model = create_attestation_copy_active_model(
+                                    attestation_id,
+                                    sd_jwt.to_string().into_bytes(),
+                                    AttestationFormat::SdJwt,
+                                );
 
-                            Ok(models)
-                        }
-                    }
+                                Ok(model)
+                            }
+                        })
+                        .collect::<Result<Vec<_>, _>>()?;
+
+                    Ok((attestation_model, copy_models))
                 },
             )
             .collect::<Result<Vec<_>, StorageError>>()?;
@@ -799,32 +803,18 @@ where
     }
 }
 
-fn create_attestation_active_models(
-    attestation_type: String,
+fn create_attestation_copy_active_model(
+    attestation_id: Uuid,
+    binary_attestation: Vec<u8>,
     format: AttestationFormat,
-    binary_attestations: Vec<Vec<u8>>,
-    metadata_documents: VerifiedTypeMetadataDocuments,
-) -> (attestation::ActiveModel, Vec<attestation_copy::ActiveModel>) {
-    let attestation_id = Uuid::now_v7();
-
-    let copy_models = binary_attestations
-        .into_iter()
-        .map(|binary_attestation| attestation_copy::ActiveModel {
-            id: Set(Uuid::now_v7()),
-            attestation_id: Set(attestation_id),
-            attestation: Set(binary_attestation),
-            attestation_format: Set(format),
-            ..Default::default()
-        })
-        .collect_vec();
-
-    let attestation_model = attestation::ActiveModel {
-        id: Set(attestation_id),
-        attestation_type: Set(attestation_type),
-        type_metadata: Set(TypeMetadataModel::new(metadata_documents)),
-    };
-
-    (attestation_model, copy_models)
+) -> attestation_copy::ActiveModel {
+    attestation_copy::ActiveModel {
+        id: Set(Uuid::now_v7()),
+        attestation_id: Set(attestation_id),
+        attestation: Set(binary_attestation),
+        attestation_format: Set(format),
+        ..Default::default()
+    }
 }
 
 #[cfg(test)]
@@ -843,6 +833,7 @@ pub(crate) mod tests {
     use crypto::server_keys::KeyPair;
     use crypto::utils::random_bytes;
     use mdoc::holder::Mdoc;
+    use openid4vc::issuance_session::IssuedCredentialCopies;
     use platform_support::hw_keystore::mock::MockHardwareEncryptionKey;
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
@@ -1078,9 +1069,13 @@ pub(crate) mod tests {
         // `ProtectedHeader { original_data: Some(..), .. }` so the equality check below will fail.
         // This line fixes that.
         let mdoc: Mdoc = cbor_deserialize(cbor_serialize(&mdoc).unwrap().as_slice()).unwrap();
+        let credential = IssuedCredential::MsoMdoc(Box::new(mdoc.clone()));
 
-        let issued_mdoc_copies =
-            IssuedCredentialCopies::MsoMdoc(vec![mdoc.clone(), mdoc.clone(), mdoc.clone()].try_into().unwrap());
+        let issued_mdoc_copies = IssuedCredentialCopies::new_or_panic(
+            vec![credential.clone(), credential.clone(), credential.clone()]
+                .try_into()
+                .unwrap(),
+        );
 
         // Use vct matching that of the metadata
         let attestation_type = "https://sd_jwt_vc_metadata.example.com/example_credential";
@@ -1172,9 +1167,13 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let sd_jwt = SdJwt::example_sd_jwt();
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
-        let issued_copies =
-            IssuedCredentialCopies::SdJwt(vec![sd_jwt.clone(), sd_jwt.clone(), sd_jwt.clone()].try_into().unwrap());
+        let issued_copies = IssuedCredentialCopies::new_or_panic(
+            vec![credential.clone(), credential.clone(), credential.clone()]
+                .try_into()
+                .unwrap(),
+        );
 
         let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
 

@@ -15,7 +15,7 @@ required-features = ["integration"]
 [[test]]
 name = "disclosure"
 path = "tests/disclosure.rs"
-required-features = ["integration"]
+required-features = ["integration", "example_constructors"]
 
 [features]
 # Include implementations of the axum IntoResponse trait.
@@ -30,6 +30,8 @@ test = ["jwt/test", "poa/mock", "crypto/mock_remote_key", "dep:assert_matches", 
 integration = ["mock", "test"]
 # Credential payload examples
 example_credential_payloads = []
+# Offers example constructors
+example_constructors = []
 # Generate typescript bindings for wallet_web
 ts_rs = []
 

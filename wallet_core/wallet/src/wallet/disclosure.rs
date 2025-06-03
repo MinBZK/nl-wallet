@@ -695,6 +695,7 @@ mod tests {
     use mdoc::DataElementValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::issuance_session::CredentialWithMetadata;
+    use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::ErrorResponse;
@@ -1789,6 +1790,9 @@ mod tests {
         let mdoc1 = Mdoc::new_mock().await;
         let mdoc2 = Mdoc::new_mock_with_doctype("com.example.doc_type").await;
 
+        let credential1 = IssuedCredential::MsoMdoc(Box::new(mdoc1.clone()));
+        let credential2 = IssuedCredential::MsoMdoc(Box::new(mdoc2.clone()));
+
         // Place 3 copies of each `Mdoc` into `MockStorage`.
         wallet
             .storage
@@ -1796,17 +1800,21 @@ mod tests {
             .await
             .insert_credentials(vec![
                 CredentialWithMetadata::new(
-                    IssuedCredentialCopies::MsoMdoc(
-                        vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
+                    IssuedCredentialCopies::new_or_panic(
+                        vec![credential1.clone(), credential1.clone(), credential1.clone()]
+                            .try_into()
+                            .unwrap(),
                     ),
                     String::from("https://sd_jwt_vc_metadata.example.com/example_credential"),
                     VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
                 CredentialWithMetadata::new(
-                    IssuedCredentialCopies::MsoMdoc(
-                        vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                    IssuedCredentialCopies::new_or_panic(
+                        vec![credential2.clone(), credential2.clone(), credential2.clone()]
+                            .try_into()
+                            .unwrap(),
                     ),
-                    String::from("https://sd_jwt_vc_metadata.example.com/example_credential"),
+                    String::from("com.example.doc_type"),
                     // Note that the attestation type of this metadata does not match the mdoc doc_type,
                     // which is not relevant for this particular test.
                     VerifiedTypeMetadataDocuments::nl_pid_example(),

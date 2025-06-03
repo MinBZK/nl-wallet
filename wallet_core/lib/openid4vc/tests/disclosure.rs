@@ -53,6 +53,7 @@ use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
+use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
@@ -353,7 +354,9 @@ impl MockMdocDataSource {
                     (
                         mdoc.doc_type().clone(),
                         (
-                            IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
+                            IssuedCredentialCopies::new_or_panic(
+                                vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap(),
+                            ),
                             normalized_metadata,
                         ),
                     )
@@ -374,22 +377,28 @@ impl MdocDataSource for MockMdocDataSource {
         let stored_mdocs = self
             .0
             .iter()
-            .filter_map(|(doc_type, (mdoc_copies, normalized_metadata))| match mdoc_copies {
-                IssuedCredentialCopies::MsoMdoc(mdocs) => {
-                    if doc_types.contains(doc_type.as_str()) {
-                        return vec![StoredMdoc {
-                            id: format!("{}_id", doc_type.clone()),
-                            mdoc: mdocs.first().clone(),
-                            normalized_metadata: normalized_metadata.clone(),
-                        }]
-                        .into();
-                    }
+            .flat_map(|(doc_type, (credential_copies, normalized_metadata))| {
+                credential_copies
+                    .as_ref()
+                    .iter()
+                    .filter_map(|credential| match credential {
+                        IssuedCredential::MsoMdoc(mdoc) => {
+                            if doc_types.contains(doc_type.as_str()) {
+                                return vec![StoredMdoc {
+                                    id: format!("{}_id", doc_type.clone()),
+                                    mdoc: *mdoc.clone(),
+                                    normalized_metadata: normalized_metadata.clone(),
+                                }]
+                                .into();
+                            }
 
-                    None
-                }
-                _ => None,
+                            None
+                        }
+                        IssuedCredential::SdJwt(_) => None,
+                    })
+                    .collect_vec()
             })
-            .collect();
+            .collect_vec();
 
         Ok(stored_mdocs)
     }

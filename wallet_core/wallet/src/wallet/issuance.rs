@@ -523,6 +523,7 @@ mod tests {
     use http_utils::tls::pinning::TlsPinningConfig;
     use mdoc::holder::Mdoc;
     use openid4vc::issuance_session::CredentialWithMetadata;
+    use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::oidc::OidcError;
@@ -564,9 +565,10 @@ mod tests {
 
         client.expect_issuer().return_const(issuer_registration);
 
+        let credential = IssuedCredential::MsoMdoc(Box::new(mdoc));
         client.expect_accept().return_once(move || {
             Ok(vec![CredentialWithMetadata::new(
-                IssuedCredentialCopies::MsoMdoc(VecNonEmpty::try_from(vec![mdoc]).unwrap()),
+                IssuedCredentialCopies::new_or_panic(VecNonEmpty::try_from(vec![credential]).unwrap()),
                 attestation_type,
                 type_metadata,
             )])
