@@ -221,7 +221,7 @@ class BaseWalletTheme {
     shape: LinearBorder.none, /* hides the app bar divider */
   );
 
-  static final baseTabBarTheme = TabBarTheme(
+  static final baseTabBarTheme = TabBarThemeData(
     labelStyle: baseTextTheme.titleSmall,
     unselectedLabelStyle: baseTextTheme.bodyMedium,
     indicatorSize: TabBarIndicatorSize.tab,

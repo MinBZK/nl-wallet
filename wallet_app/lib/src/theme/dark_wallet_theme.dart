@@ -40,7 +40,7 @@ class DarkWalletTheme {
   );
 
   // DialogTheme
-  static final dialogTheme = DialogTheme(
+  static final dialogTheme = DialogThemeData(
     titleTextStyle: textTheme.headlineMedium,
     surfaceTintColor: Colors.transparent,
     shape: RoundedRectangleBorder(
