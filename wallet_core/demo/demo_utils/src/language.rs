@@ -70,6 +70,7 @@ where
 
 #[cfg(test)]
 mod test {
+    use axum::http::HeaderValue;
     use rstest::rstest;
 
     use super::*;
@@ -78,9 +79,30 @@ mod test {
     #[case("en", Some(Language::En))]
     #[case("nl", Some(Language::Nl))]
     #[case("123", None)]
-    #[case("en-GB", Some(Language::En))]
-    #[case("nl-NL", Some(Language::Nl))]
+    #[case("en-gb", Some(Language::En))]
+    #[case("nl-nl", Some(Language::Nl))]
     fn test_parse_language(#[case] s: &str, #[case] expected: Option<Language>) {
         assert_eq!(Language::parse(s), expected);
+    }
+
+    #[rstest]
+    #[case("da, en-gb;q=0.8, en;q=0.7", Some(Language::En))]
+    #[case("da, en;q=0.8, nl;q=0.7", Some(Language::En))]
+    #[case("da, nl;q=0.8, en;q=0.7", Some(Language::Nl))]
+    #[case("da, nl;q=0.7, en;q=0.8", Some(Language::En))]
+    #[case("da, en-gb;q=0.8", Some(Language::En))]
+    #[case("da, en;q=0.7", Some(Language::En))]
+    #[case("nl, en-gb;q=0.8, en;q=0.7", Some(Language::Nl))]
+    #[case("en, nl-nl;q=0.8, nl;q=0.7", Some(Language::En))]
+    #[case("en, nl-be;q=0.8", Some(Language::En))]
+    #[case("nl, en", Some(Language::Nl))]
+    #[case("nl", Some(Language::Nl))]
+    #[case("en", Some(Language::En))]
+    #[case("da", None)]
+    fn test_match_accept_language(#[case] accept_language: HeaderValue, #[case] expected: Option<Language>) {
+        let mut headers = HeaderMap::new();
+        headers.append(ACCEPT_LANGUAGE, accept_language);
+
+        assert_eq!(Language::match_accept_language(&headers), expected);
     }
 }
