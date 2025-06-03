@@ -6,7 +6,7 @@ use crate::reqwest::IntoPinnedReqwestClient;
 use crate::reqwest::PinnedReqwestClient;
 use crate::urls::BaseUrl;
 
-#[derive(Debug, Clone, Constructor)]
+#[derive(Debug, Clone, Hash, Constructor)]
 pub struct InsecureHttpConfig {
     pub base_url: BaseUrl,
 }

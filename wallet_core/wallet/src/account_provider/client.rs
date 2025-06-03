@@ -1,3 +1,5 @@
+use std::hash::Hash;
+
 use http::Method;
 use http::StatusCode;
 use http_utils::reqwest::IntoPinnedReqwestClient;
@@ -22,12 +24,11 @@ use wallet_account::messages::registration::Registration;
 use wallet_account::messages::registration::WalletCertificate;
 use wallet_account::signed::ChallengeResponse;
 
+use crate::reqwest::CachedReqwestClient;
+
 use super::AccountProviderClient;
 use super::AccountProviderError;
 use super::AccountProviderResponseError;
-
-#[derive(Default)]
-pub struct HttpAccountProviderClient {}
 
 impl AccountProviderResponseError {
     fn from_json_body(status: StatusCode, body: String) -> Self {
@@ -40,24 +41,38 @@ impl AccountProviderResponseError {
     }
 }
 
-impl HttpAccountProviderClient {
-    async fn send_post_request<C, T>(&self, http_config: C, path: &str) -> Result<T, AccountProviderError>
+#[derive(Debug)]
+pub struct HttpAccountProviderClient<C = TlsPinningConfig> {
+    http_client: CachedReqwestClient<C>,
+}
+
+impl<C> HttpAccountProviderClient<C> {
+    pub fn new() -> Self {
+        Self {
+            http_client: CachedReqwestClient::new(),
+        }
+    }
+}
+
+impl<C> HttpAccountProviderClient<C>
+where
+    C: IntoPinnedReqwestClient + Clone + Hash,
+{
+    async fn send_post_request<T>(&self, http_config: &C, path: &str) -> Result<T, AccountProviderError>
     where
-        C: IntoPinnedReqwestClient,
         T: DeserializeOwned,
     {
         self.send_custom_post_request(http_config, path, std::convert::identity)
             .await
     }
 
-    async fn send_json_post_request<C, S, T>(
+    async fn send_json_post_request<S, T>(
         &self,
-        http_config: C,
+        http_config: &C,
         path: &str,
         payload: &S,
     ) -> Result<T, AccountProviderError>
     where
-        C: IntoPinnedReqwestClient,
         S: Serialize,
         T: DeserializeOwned,
     {
@@ -65,19 +80,20 @@ impl HttpAccountProviderClient {
             .await
     }
 
-    async fn send_custom_post_request<C, T, F>(
+    async fn send_custom_post_request<T, F>(
         &self,
-        http_config: C,
+        http_config: &C,
         path: &str,
         request_adapter: F,
     ) -> Result<T, AccountProviderError>
     where
-        C: IntoPinnedReqwestClient,
         T: DeserializeOwned,
         F: FnOnce(RequestBuilder) -> RequestBuilder,
     {
-        let response = http_config
-            .try_into_json_client()?
+        let http_client = self
+            .http_client
+            .get_or_try_init(http_config, IntoPinnedReqwestClient::try_into_json_client)?;
+        let response = http_client
             .send_custom_request(Method::POST, ReqwestClientUrl::Relative(path), request_adapter)
             .await?;
 
@@ -127,8 +143,14 @@ impl HttpAccountProviderClient {
     }
 }
 
-impl AccountProviderClient for HttpAccountProviderClient {
-    async fn registration_challenge(&self, client_config: TlsPinningConfig) -> Result<Vec<u8>, AccountProviderError> {
+impl<C> Default for HttpAccountProviderClient<C> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AccountProviderClient for HttpAccountProviderClient<TlsPinningConfig> {
+    async fn registration_challenge(&self, client_config: &TlsPinningConfig) -> Result<Vec<u8>, AccountProviderError> {
         let challenge: Challenge = self.send_post_request(client_config, "enroll").await?;
 
         Ok(challenge.challenge)
@@ -136,7 +158,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
 
     async fn register(
         &self,
-        client_config: TlsPinningConfig,
+        client_config: &TlsPinningConfig,
         registration_message: ChallengeResponse<Registration>,
     ) -> Result<WalletCertificate, AccountProviderError> {
         let cert: Certificate = self
@@ -148,7 +170,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
 
     async fn instruction_challenge(
         &self,
-        client_config: TlsPinningConfig,
+        client_config: &TlsPinningConfig,
         challenge_request: InstructionChallengeRequest,
     ) -> Result<Vec<u8>, AccountProviderError> {
         let challenge: Challenge = self
@@ -160,7 +182,7 @@ impl AccountProviderClient for HttpAccountProviderClient {
 
     async fn instruction<I>(
         &self,
-        client_config: TlsPinningConfig,
+        client_config: &TlsPinningConfig,
         instruction: Instruction<I>,
     ) -> Result<InstructionResult<I::Result>, AccountProviderError>
     where
@@ -214,11 +236,14 @@ mod tests {
         (server, base_url)
     }
 
-    async fn post_example_request(
-        client: &HttpAccountProviderClient,
+    async fn post_example_request<C>(
+        client: &HttpAccountProviderClient<C>,
         path: &str,
-        http_config: impl IntoPinnedReqwestClient,
-    ) -> Result<ExampleBody, AccountProviderError> {
+        http_config: &C,
+    ) -> Result<ExampleBody, AccountProviderError>
+    where
+        C: IntoPinnedReqwestClient + Clone + Hash,
+    {
         client.send_post_request(http_config, path).await
     }
 
@@ -236,8 +261,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpAccountProviderClient::default();
-        let body = post_example_request(&client, "foobar", InsecureHttpConfig::new(base_url))
+        let client = HttpAccountProviderClient::new();
+        let body = post_example_request(&client, "foobar", &InsecureHttpConfig::new(base_url))
             .await
             .expect("Could not get succesful response from server");
 
@@ -256,8 +281,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, "foobar_404", InsecureHttpConfig::new(base_url))
+        let client = HttpAccountProviderClient::new();
+        let error = post_example_request(&client, "foobar_404", &InsecureHttpConfig::new(base_url))
             .await
             .expect_err("No error received from server");
 
@@ -278,8 +303,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, "foobar_502", InsecureHttpConfig::new(base_url))
+        let client = HttpAccountProviderClient::new();
+        let error = post_example_request(&client, "foobar_502", &InsecureHttpConfig::new(base_url))
             .await
             .expect_err("No error received from server");
 
@@ -315,8 +340,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, "foobar_400", InsecureHttpConfig::new(base_url))
+        let client = HttpAccountProviderClient::new();
+        let error = post_example_request(&client, "foobar_400", &InsecureHttpConfig::new(base_url))
             .await
             .expect_err("No error received from server");
 
@@ -342,8 +367,8 @@ mod tests {
             .mount(&server)
             .await;
 
-        let client = HttpAccountProviderClient::default();
-        let error = post_example_request(&client, "foobar_503", InsecureHttpConfig::new(base_url))
+        let client = HttpAccountProviderClient::new();
+        let error = post_example_request(&client, "foobar_503", &InsecureHttpConfig::new(base_url))
             .await
             .expect_err("No error received from server");
 

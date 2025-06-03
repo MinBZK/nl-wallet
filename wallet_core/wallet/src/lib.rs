@@ -7,6 +7,7 @@ mod issuance;
 mod lock;
 mod pin;
 mod repository;
+mod reqwest;
 mod storage;
 mod update_policy;
 mod wallet;
