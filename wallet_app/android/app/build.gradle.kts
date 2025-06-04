@@ -134,9 +134,6 @@ android {
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName(signingConfigName)
-            packaging {
-                jniLibs.keepDebugSymbols += "**/*.so"
-            }
             ndk {
                 abiFilters += ndkTargets
             }

@@ -32,9 +32,6 @@ android {
             enableUnitTestCoverage = true
             enableAndroidTestCoverage = true
 
-            packaging {
-                jniLibs.keepDebugSymbols += "**/*.so"
-            }
             ndk {
                 abiFilters += ndkTargets
             }
