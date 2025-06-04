@@ -41,7 +41,7 @@ where
 
     async fn fetch_and_callback(
         wrapped: &Arc<T>,
-        config: B,
+        config: &B,
         callback: &Arc<Mutex<Option<RepositoryCallback<VersionState>>>>,
     ) -> Result<RepositoryUpdateState<VersionState>, UpdatePolicyError> {
         match wrapped.fetch(config).await {
@@ -85,7 +85,7 @@ where
             let wrapped = Arc::clone(&self.wrapped);
             let callback = Arc::clone(&self.callback);
             let background_task =
-                tokio::spawn(async move { Self::fetch_and_callback(&wrapped, config, &callback).await });
+                tokio::spawn(async move { Self::fetch_and_callback(&wrapped, &config, &callback).await });
 
             self.background_task.lock().replace(background_task);
         }
@@ -99,7 +99,7 @@ where
 {
     type Error = UpdatePolicyError;
 
-    async fn fetch(&self, config: B) -> Result<RepositoryUpdateState<VersionState>, Self::Error> {
+    async fn fetch(&self, config: &B) -> Result<RepositoryUpdateState<VersionState>, Self::Error> {
         let background_task = { self.background_task.lock().take() };
         match background_task {
             Some(task) if !task.is_finished() => task.await?,
@@ -172,7 +172,7 @@ mod tests {
     {
         type Error = UpdatePolicyError;
 
-        async fn fetch(&self, _: B) -> Result<RepositoryUpdateState<VersionState>, UpdatePolicyError> {
+        async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<VersionState>, UpdatePolicyError> {
             let mut config = self.0.write();
             let from = *config;
             *config = VersionState::Block;

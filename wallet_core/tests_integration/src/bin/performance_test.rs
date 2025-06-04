@@ -69,7 +69,10 @@ async fn main() {
     )
     .await
     .unwrap();
-    config_repository.fetch(config_server_config.http_config).await.unwrap();
+    config_repository
+        .fetch(&config_server_config.http_config)
+        .await
+        .unwrap();
     let pid_issuance_config = &config_repository.get().pid_issuance;
     let update_policy_repository = UpdatePolicyRepository::init();
 

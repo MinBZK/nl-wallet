@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::hash::Hash;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
@@ -7,12 +8,15 @@ use http::Method;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
+use crate::reqwest::CachedReqwestClient;
+
 use super::Filename;
 use super::HttpClient;
 use super::HttpClientError;
 use super::HttpResponse;
 
 pub struct ReqwestHttpClient<T, B> {
+    cached_client: CachedReqwestClient<B>,
     resource_identifier: Filename,
     _marker: PhantomData<(T, B)>, // data type to fetch and builder type
 }
@@ -20,6 +24,7 @@ pub struct ReqwestHttpClient<T, B> {
 impl<T, B> ReqwestHttpClient<T, B> {
     pub fn new(resource_identifier: Filename) -> Self {
         Self {
+            cached_client: CachedReqwestClient::new(),
             resource_identifier,
             _marker: PhantomData,
         }
@@ -28,15 +33,17 @@ impl<T, B> ReqwestHttpClient<T, B> {
 
 impl<T, B> HttpClient<T, B> for ReqwestHttpClient<T, B>
 where
-    B: IntoPinnedReqwestClient + Send + Sync,
+    B: IntoPinnedReqwestClient + Clone + Hash + Send + Sync,
     T: FromStr + Send + Sync,
     T::Err: Error + Send + Sync + 'static,
 {
     type Error = HttpClientError;
 
-    async fn fetch(&self, client_builder: B) -> Result<HttpResponse<T>, Self::Error> {
-        let response = client_builder
-            .try_into_client()?
+    async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
+        let client = self
+            .cached_client
+            .get_or_try_init(client_builder, IntoPinnedReqwestClient::try_into_client)?;
+        let response = client
             .send_request(
                 Method::GET,
                 ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),

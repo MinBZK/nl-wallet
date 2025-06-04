@@ -281,7 +281,7 @@ pub async fn setup_wallet_and_env(
     .await
     .unwrap();
     config_repository
-        .fetch(config_server_config.http_config.clone())
+        .fetch(&config_server_config.http_config)
         .await
         .unwrap();
 

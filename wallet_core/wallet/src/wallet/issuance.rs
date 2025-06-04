@@ -382,7 +382,7 @@ where
         let config = &self.config_repository.get().update_policy_server;
 
         info!("Fetching update policy");
-        self.update_policy_repository.fetch(config.http_config.clone()).await?;
+        self.update_policy_repository.fetch(&config.http_config).await?;
 
         info!("Checking if blocked");
         if self.is_blocked() {

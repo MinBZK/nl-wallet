@@ -73,14 +73,14 @@ pub enum HttpResponse<T> {
 pub trait HttpClient<T, B> {
     type Error: Error + Send + Sync + 'static;
 
-    async fn fetch(&self, client_builder: B) -> Result<HttpResponse<T>, Self::Error>;
+    async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error>;
 }
 
 #[trait_variant::make(Send)]
 pub trait UpdateableRepository<T, B>: Repository<T> {
     type Error: Error + Send + Sync + 'static;
 
-    async fn fetch(&self, client_builder: B) -> Result<RepositoryUpdateState<T>, Self::Error>;
+    async fn fetch(&self, client_builder: &B) -> Result<RepositoryUpdateState<T>, Self::Error>;
 }
 
 pub type RepositoryCallback<T> = Box<dyn FnMut(T) + Send + Sync>;

@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::path::PathBuf;
@@ -14,6 +15,8 @@ use tokio::fs;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
+use crate::reqwest::CachedReqwestClient;
+
 use super::FileStorageError;
 use super::Filename;
 use super::HttpClient;
@@ -21,6 +24,7 @@ use super::HttpClientError;
 use super::HttpResponse;
 
 pub struct EtagHttpClient<T, B, E> {
+    cached_client: CachedReqwestClient<B>,
     resource_identifier: Filename,
     etag_dir: PathBuf,
     latest_etag: Mutex<Option<HeaderValue>>,
@@ -35,6 +39,7 @@ where
         let initial_etag = Self::read_latest_etag(resource_identifier.clone(), &etag_dir).await?;
 
         let client = Self {
+            cached_client: CachedReqwestClient::new(),
             resource_identifier,
             etag_dir,
             latest_etag: Mutex::new(initial_etag),
@@ -76,15 +81,17 @@ impl<T, B, E> HttpClient<T, B> for EtagHttpClient<T, B, E>
 where
     T: FromStr + Send + Sync,
     T::Err: Error + Send + Sync + 'static,
-    B: IntoPinnedReqwestClient + Send + Sync,
+    B: IntoPinnedReqwestClient + Clone + Hash + Send + Sync,
     E: From<HttpClientError> + Error + Send + Sync + 'static,
 {
     type Error = E;
 
-    async fn fetch(&self, client_builder: B) -> Result<HttpResponse<T>, Self::Error> {
-        let response = client_builder
-            .try_into_client()
-            .map_err(HttpClientError::Networking)?
+    async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
+        let client = self
+            .cached_client
+            .get_or_try_init(client_builder, IntoPinnedReqwestClient::try_into_client)
+            .map_err(HttpClientError::Networking)?;
+        let response = client
             .send_custom_request(
                 Method::GET,
                 ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
@@ -186,10 +193,10 @@ mod test {
 
         let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
 
-        let response = client.fetch(client_builder.clone()).await.unwrap();
+        let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
 
-        let response = client.fetch(client_builder).await.unwrap();
+        let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::NotModified));
     }
 
@@ -218,10 +225,10 @@ mod test {
                 .await
                 .unwrap();
 
-        let response = client.fetch(client_builder.clone()).await.unwrap();
+        let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
 
-        let response = client.fetch(client_builder).await.unwrap();
+        let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
     }
 }

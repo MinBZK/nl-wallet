@@ -1,3 +1,4 @@
+use std::hash::Hash;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -54,11 +55,11 @@ impl<C> Repository<Arc<WalletConfiguration>> for HttpConfigurationRepository<C> 
 /// we just panic when that occurs.
 impl<B> UpdateableRepository<Arc<WalletConfiguration>, B> for HttpConfigurationRepository<B>
 where
-    B: IntoPinnedReqwestClient + Send + Sync,
+    B: IntoPinnedReqwestClient + Clone + Hash + Send + Sync,
 {
     type Error = ConfigurationError;
 
-    async fn fetch(&self, client_builder: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+    async fn fetch(&self, client_builder: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
         let response = self.client.fetch(client_builder).await?;
         match response {
             HttpResponse::Parsed(parsed_response) => {

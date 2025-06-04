@@ -65,7 +65,7 @@ where
 impl UpdateableRepository<VersionState, TlsPinningConfig> for HttpUpdatePolicyRepository {
     type Error = UpdatePolicyError;
 
-    async fn fetch(&self, config: TlsPinningConfig) -> Result<RepositoryUpdateState<VersionState>, Self::Error> {
+    async fn fetch(&self, config: &TlsPinningConfig) -> Result<RepositoryUpdateState<VersionState>, Self::Error> {
         let now = Instant::now();
         let config_hash = config.to_hash();
 

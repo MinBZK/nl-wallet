@@ -132,7 +132,7 @@ where
 
         info!("Fetching update policy");
         self.update_policy_repository
-            .fetch(config.update_policy_server.http_config.clone())
+            .fetch(&config.update_policy_server.http_config)
             .await?;
 
         info!("Checking if blocked");

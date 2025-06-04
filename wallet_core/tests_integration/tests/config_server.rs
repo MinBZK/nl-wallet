@@ -57,10 +57,7 @@ async fn test_wallet_config() {
     .unwrap();
 
     let before = http_config.get();
-    let result = http_config
-        .fetch(config_server_config.http_config.clone())
-        .await
-        .unwrap();
+    let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
     let after = http_config.get();
 
     assert_matches!(result, RepositoryUpdateState::Updated { .. });
@@ -73,7 +70,7 @@ async fn test_wallet_config() {
     assert!(quoted_hash_regex.is_match(header_value.to_str().unwrap()));
 
     // Second fetch should use earlier etag
-    let result = http_config.fetch(config_server_config.http_config).await.unwrap();
+    let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
     assert_matches!(result, RepositoryUpdateState::Unmodified(_));
 }
 
@@ -105,7 +102,7 @@ async fn test_wallet_config_stale() {
     .unwrap();
 
     let before = http_config.get();
-    let result = http_config.fetch(config_server_config.http_config).await.unwrap();
+    let result = http_config.fetch(&config_server_config.http_config).await.unwrap();
     let after = http_config.get();
 
     assert_matches!(result, RepositoryUpdateState::Unmodified(_));
@@ -155,7 +152,7 @@ async fn test_wallet_config_signature_verification_failed() {
     .unwrap();
 
     let result = http_config
-        .fetch(config_server_config.http_config)
+        .fetch(&config_server_config.http_config)
         .await
         .expect_err("Expecting invalid signature error");
 

@@ -61,7 +61,7 @@ where
 {
     type Error = ConfigurationError;
 
-    async fn fetch(&self, client_builder: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+    async fn fetch(&self, client_builder: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
         let result = self.wrapped.fetch(client_builder).await?;
 
         if let RepositoryUpdateState::Updated { ref to, .. } = result {
@@ -107,7 +107,7 @@ mod tests {
     {
         type Error = ConfigurationError;
 
-        async fn fetch(&self, _: B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
+        async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<Arc<WalletConfiguration>>, Self::Error> {
             let mut config = self.0.write();
             let from = config.clone();
             config.lock_timeouts.background_timeout = 700;
@@ -138,7 +138,7 @@ mod tests {
             "should return initial_wallet_config"
         );
 
-        repo.fetch(TlsPinningConfig {
+        repo.fetch(&TlsPinningConfig {
             base_url: "http://localhost".parse().unwrap(),
             trust_anchors: vec![],
         })

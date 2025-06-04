@@ -39,7 +39,7 @@ where
 {
     type Error = UpdatePolicyError;
 
-    async fn fetch(&self, _: B) -> Result<RepositoryUpdateState<VersionState>, Self::Error> {
+    async fn fetch(&self, _: &B) -> Result<RepositoryUpdateState<VersionState>, Self::Error> {
         Ok(RepositoryUpdateState::Unmodified(self.state))
     }
 }
