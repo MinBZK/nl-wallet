@@ -38,12 +38,12 @@ class $DisclosureBasedIssuanceResultCopyWith<$Res> {
 /// @nodoc
 
 class DisclosureBasedIssuanceResult_Ok extends DisclosureBasedIssuanceResult {
-  const DisclosureBasedIssuanceResult_Ok(final List<Attestation> field0)
+  const DisclosureBasedIssuanceResult_Ok(final List<AttestationPresentation> field0)
       : _field0 = field0,
         super._();
 
-  final List<Attestation> _field0;
-  List<Attestation> get field0 {
+  final List<AttestationPresentation> _field0;
+  List<AttestationPresentation> get field0 {
     if (_field0 is EqualUnmodifiableListView) return _field0;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_field0);
@@ -80,7 +80,7 @@ abstract mixin class $DisclosureBasedIssuanceResult_OkCopyWith<$Res>
           DisclosureBasedIssuanceResult_Ok value, $Res Function(DisclosureBasedIssuanceResult_Ok) _then) =
       _$DisclosureBasedIssuanceResult_OkCopyWithImpl;
   @useResult
-  $Res call({List<Attestation> field0});
+  $Res call({List<AttestationPresentation> field0});
 }
 
 /// @nodoc
@@ -100,7 +100,7 @@ class _$DisclosureBasedIssuanceResult_OkCopyWithImpl<$Res> implements $Disclosur
       null == field0
           ? _self._field0
           : field0 // ignore: cast_nullable_to_non_nullable
-              as List<Attestation>,
+              as List<AttestationPresentation>,
     ));
   }
 }

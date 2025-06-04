@@ -19,7 +19,7 @@ In more detail, the protocol works as follows.
 
 Notice that from the perspective of the AuthServer, the OS acts as the User Agent normally does in OpenID Connect, and the WalletServer/PidAttributeService combination acts as a normal OpenID Client: the former starts the session by navigating to the AuthServer with an Authorization Request, and the latter resumes the session with Token and User Info Requests.
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     autonumber
 
@@ -64,12 +64,12 @@ sequenceDiagram
 ## Generic issuance
 
 For generic issuance, we can implement the AttributeService as follows:
-  * The issuer feeds it a bunch of to-be-issued attestations (e.g. `Vec<UnsignedMdoc>`) and receives a fresh pre-authorized token in return, which it sends to the wallet using a UL or QR;
+  * The issuer feeds it a bunch of to-be-issued attestations (e.g. `Vec<IssuableDocument>`) and receives a fresh pre-authorized token in return, which it sends to the wallet using a UL or QR;
   * When the WalletServer calls `getAttributes(pre-authorized_code)` on the AttributeService, it looks up the attributes to be issued using the pre-authorized code and returns them.
 
 This would look like the following diagram.
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     autonumber
 

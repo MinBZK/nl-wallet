@@ -32,7 +32,15 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
 
   Organization? get relyingParty => _startDisclosureResult?.relyingParty;
 
-  bool get isLoginFlow => tryCast<StartDisclosureReadyToDisclose>(_startDisclosureResult)?.type == DisclosureType.login;
+  bool get isLoginFlow {
+    assert(_startDisclosureResult != null, '_startDisclosureResult should be set to correctly fetch isLoginFlow');
+    return tryCast<StartDisclosureReadyToDisclose>(_startDisclosureResult)?.type == DisclosureType.login;
+  }
+
+  bool get isCrossDeviceFlow {
+    assert(_startDisclosureResult != null, '_startDisclosureResult should be set to correctly fetch isCrossDeviceFlow');
+    return _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
+  }
 
   DisclosureBloc(
     this._startDisclosureUseCase,
@@ -42,7 +50,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     on<DisclosureSessionStarted>(_onSessionStarted);
     on<DisclosureStopRequested>(_onStopRequested);
     on<DisclosureBackPressed>(_onBackPressed);
-    on<DisclosureOrganizationApproved>(_onOrganizationApproved);
+    on<DisclosureUrlApproved>(_onUrlApproved);
     on<DisclosureShareRequestedAttributesApproved>(_onShareRequestedAttributesApproved);
     on<DisclosurePinConfirmed>(_onPinConfirmed);
     on<DisclosureReportPressed>(_onReportPressed);
@@ -56,80 +64,74 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     await _cancelDisclosureUseCase.invoke();
     final startDisclosureResult = await _startDisclosureUseCase.invoke(event.uri, isQrCode: event.isQrCode);
 
+    /// Handle the 4 init cases:
+    /// 1. Initiation errors
+    /// 2. Missing attributes
+    /// 3. Cross device (check url)
+    /// 4. Ready to disclose (login / attributes)
     await startDisclosureResult.process(
+      onError: (error) => _handleApplicationError(error, emit),
       onSuccess: (result) {
-        _startDisclosureResult = result; // Cache the result
-        if (isLoginFlow) {
-          _emitDisclosureResultForLogin(result, emit);
-        } else {
-          emit(
-            DisclosureCheckOrganization(
-              relyingParty: result.relyingParty,
-              originUrl: result.originUrl,
-              sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
-              sessionType: result.sessionType,
-            ),
-          );
-        }
-      },
-      onError: (error) {
-        Fimber.e('Failed to start disclosure', ex: error);
-        switch (error) {
-          case GenericError():
-            emit(DisclosureGenericError(error: error, returnUrl: error.redirectUrl));
-          case NetworkError():
-            emit(DisclosureNetworkError(hasInternet: error.hasInternet, error: error));
-          case SessionError():
-            _handleSessionError(emit, error);
-          case ExternalScannerError():
-            emit(DisclosureExternalScannerError(error: error));
-          case RelyingPartyError():
-            emit(DisclosureRelyingPartyError(error: error, organizationName: error.organizationName));
-          default:
-            emit(DisclosureGenericError(error: error));
+        _startDisclosureResult = result; // Cache the result;
+        switch (result) {
+          case StartDisclosureReadyToDisclose():
+            if (isCrossDeviceFlow) {
+              emit(DisclosureCheckUrl(originUrl: result.originUrl));
+            } else {
+              _handleReadyToDisclose(result, emit);
+            }
+          case StartDisclosureMissingAttributes():
+            emit(
+              DisclosureMissingAttributes(
+                relyingParty: result.relyingParty,
+                missingAttributes: result.missingAttributes,
+              ),
+            );
         }
       },
     );
   }
 
-  void _emitDisclosureResultForLogin(StartDisclosureResult result, Emitter<DisclosureState> emit) {
-    switch (result) {
-      case StartDisclosureReadyToDisclose():
+  void _handleReadyToDisclose(
+    StartDisclosureReadyToDisclose result,
+    Emitter<DisclosureState> emit, {
+    bool afterBackPressed = false,
+  }) {
+    switch (result.type) {
+      case DisclosureType.regular:
+        emit(
+          DisclosureConfirmDataAttributes(
+            relyingParty: result.relyingParty,
+            requestPurpose: result.requestPurpose,
+            requestedAttributes: result.requestedAttributes,
+            policy: result.policy,
+            afterBackPressed: afterBackPressed,
+            sessionType: result.sessionType,
+          ),
+        );
+      case DisclosureType.login:
         emit(
           DisclosureCheckOrganizationForLogin(
             relyingParty: result.relyingParty,
             originUrl: result.originUrl,
             sessionType: result.sessionType,
             policy: result.policy,
-            sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
             requestedAttributes: result.requestedAttributes,
-          ),
-        );
-      case StartDisclosureMissingAttributes():
-        emit(
-          DisclosureGenericError(
-            error: GenericError(
-              'Disclosing unavailable attributes in login flow is not supported',
-              sourceError: Exception('Missing attributes: this unexpected in login flow'),
-            ),
+            sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
+            afterBackPressed: afterBackPressed,
           ),
         );
     }
   }
 
-  Future<void> _onStopRequested(DisclosureStopRequested event, emit) async {
+  Future<void> _onStopRequested(DisclosureStopRequested event, Emitter<DisclosureState> emit) async {
     emit(DisclosureLoadInProgress(state.stepperProgress));
+    final relyingParty = this.relyingParty;
     final cancelResult = await _cancelDisclosureUseCase.invoke();
 
-    // Check edge case where relyingParty (needed to render stopped screen) is not available.
-    if (_startDisclosureResult?.relyingParty == null) {
-      emit(
-        DisclosureGenericError(
-          error:
-              GenericError('Invalid state, no relyingParty to render', sourceError: Exception('Relying party is null')),
-          returnUrl: cancelResult.value,
-        ),
-      );
+    // Handle the edge case where relyingParty (needed to render stopped screen) is not available.
+    if (relyingParty == null) {
+      await _handleApplicationError(const GenericError('relying party unavailable', sourceError: 'n/a'), emit);
       return;
     }
 
@@ -137,100 +139,62 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
       onSuccess: (returnUrl) {
         emit(
           DisclosureStopped(
-            organization: _startDisclosureResult!.relyingParty,
+            organization: relyingParty,
             isLoginFlow: isLoginFlow,
             returnUrl: returnUrl,
           ),
         );
       },
-      onError: (error) {
-        switch (error) {
-          case NetworkError():
-            emit(DisclosureNetworkError(error: error, hasInternet: error.hasInternet));
-          default:
-            emit(DisclosureGenericError(error: error, returnUrl: cancelResult.value));
-        }
-      },
+      onError: (error) => _handleApplicationError(error, emit),
     );
   }
 
   Future<void> _onBackPressed(DisclosureBackPressed event, emit) async {
-    final state = this.state;
-    if (state is DisclosureConfirmDataAttributes) {
-      assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
-      // No need to check for login flow as [DisclosureConfirmDataAttributes] is never used there
-      emit(
-        DisclosureCheckOrganization(
-          relyingParty: state.relyingParty,
-          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore ?? false,
-          sessionType: _startDisclosureResult!.sessionType,
-          originUrl: _startDisclosureResult!.originUrl,
-          afterBackPressed: true,
-        ),
-      );
-    } else if (state is DisclosureMissingAttributes) {
-      assert(_startDisclosureResult != null, 'StartDisclosureResult should always be available at this stage');
-      // No need to check for login flow as [DisclosureMissingAttributes] is never used there (bsn always available)
-      emit(
-        DisclosureCheckOrganization(
-          relyingParty: state.relyingParty,
-          originUrl: _startDisclosureResult!.originUrl,
-          sharedDataWithOrganizationBefore: _startDisclosureResult?.sharedDataWithOrganizationBefore ?? false,
-          sessionType: _startDisclosureResult!.sessionType,
-          afterBackPressed: true,
-        ),
-      );
-    } else if (state is DisclosureConfirmPin) {
-      assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state');
-      final result = _startDisclosureResult! as StartDisclosureReadyToDisclose;
-      if (state.isLoginFlow) {
-        emit(
-          DisclosureCheckOrganizationForLogin(
-            relyingParty: result.relyingParty,
-            originUrl: result.originUrl,
-            sessionType: result.sessionType,
-            policy: result.policy,
-            sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
-            requestedAttributes: result.requestedAttributes,
-            afterBackPressed: true,
-          ),
+    final startDisclosureResult = _startDisclosureResult;
+    if (startDisclosureResult == null) return; // Unknown state, nothing to navigate back to.
+    switch (state) {
+      case DisclosureConfirmDataAttributes():
+      case DisclosureCheckOrganizationForLogin():
+        if (isCrossDeviceFlow) {
+          emit(DisclosureCheckUrl(originUrl: startDisclosureResult.originUrl, afterBackPressed: true));
+        }
+      case DisclosureConfirmPin():
+        assert(
+          startDisclosureResult is StartDisclosureReadyToDisclose,
+          'User should never reach $state when wallet was not ready to disclose',
         );
-      } else {
-        emit(
-          DisclosureConfirmDataAttributes(
-            relyingParty: result.relyingParty,
-            requestedAttributes: result.requestedAttributes,
-            policy: result.policy,
-            requestPurpose: result.requestPurpose,
-            afterBackPressed: true,
-          ),
-        );
-      }
+        _handleReadyToDisclose(startDisclosureResult as StartDisclosureReadyToDisclose, emit, afterBackPressed: true);
+      default:
+        assert(!state.canGoBack, 'State indicates user can navigate back, but state not updated');
+        Fimber.w('State $state does not support back navigation');
     }
   }
 
-  Future<void> _onOrganizationApproved(DisclosureOrganizationApproved event, emit) async {
+  Future<void> _onUrlApproved(DisclosureUrlApproved event, emit) async {
     final startDisclosureResult = _startDisclosureResult;
+    if (startDisclosureResult == null) throw UnsupportedError('Invalid event for state: $state');
+
     switch (startDisclosureResult) {
-      case null:
-        throw UnsupportedError('Organization approved while in invalid state, i.e. no result available!');
       case StartDisclosureReadyToDisclose():
-        if (startDisclosureResult.type == DisclosureType.login) {
-          // When the user is in the login flow, skip straight to the enter pin screen
+        if (isLoginFlow) {
           emit(
-            DisclosureConfirmPin(
+            DisclosureCheckOrganizationForLogin(
               relyingParty: startDisclosureResult.relyingParty,
-              isLoginFlow: true,
+              originUrl: startDisclosureResult.originUrl,
+              policy: startDisclosureResult.policy,
+              requestedAttributes: startDisclosureResult.requestedAttributes,
+              sessionType: startDisclosureResult.sessionType,
+              sharedDataWithOrganizationBefore: startDisclosureResult.sharedDataWithOrganizationBefore,
             ),
           );
         } else {
-          // When the user is sharing other attributes, ask the user to confirm them
           emit(
             DisclosureConfirmDataAttributes(
               relyingParty: startDisclosureResult.relyingParty,
               requestPurpose: startDisclosureResult.requestPurpose,
               requestedAttributes: startDisclosureResult.requestedAttributes,
               policy: startDisclosureResult.policy,
+              sessionType: startDisclosureResult.sessionType,
             ),
           );
         }
@@ -246,12 +210,12 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
   }
 
   void _onShareRequestedAttributesApproved(DisclosureShareRequestedAttributesApproved event, emit) {
-    assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid data state to continue disclosing');
-    assert(state is DisclosureConfirmDataAttributes, 'Invalid UI state to move to pin entry');
-    if (state is DisclosureConfirmDataAttributes) {
-      final relyingParty = (state as DisclosureConfirmDataAttributes).relyingParty;
-      emit(DisclosureConfirmPin(relyingParty: relyingParty));
-    }
+    assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state to continue disclosing');
+    assert(
+      state is DisclosureConfirmDataAttributes || state is DisclosureCheckOrganizationForLogin,
+      'Invalid UI state to move to pin entry',
+    );
+    emit(DisclosureConfirmPin(relyingParty: relyingParty!));
   }
 
   Future<void> _onPinConfirmed(DisclosurePinConfirmed event, emit) async {
@@ -276,31 +240,31 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     emit(DisclosureLeftFeedback(returnUrl: cancelResult.value));
   }
 
-  Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) async {
+  Future<void> _onConfirmPinFailed(DisclosureConfirmPinFailed event, Emitter<DisclosureState> emit) =>
+      _handleApplicationError(event.error, emit);
+
+  Future<void> _handleApplicationError(ApplicationError error, Emitter<DisclosureState> emit) async {
     emit(DisclosureLoadInProgress(state.stepperProgress));
-    // {event.error} is the error that was thrown when user tried to confirm the disclosure session with a PIN.
-    final eventError = event.error;
-    switch (eventError) {
-      case SessionError():
-        _handleSessionError(emit, eventError);
-        return;
+    switch (error) {
+      case GenericError():
+        emit(DisclosureGenericError(error: error, returnUrl: error.redirectUrl));
       case NetworkError():
         await _cancelDisclosureUseCase.invoke(); // Attempt to cancel the session, but propagate original error
-        emit(DisclosureNetworkError(error: eventError, hasInternet: eventError.hasInternet));
-        return;
+        emit(DisclosureNetworkError(hasInternet: error.hasInternet, error: error));
+      case SessionError():
+        _handleSessionError(emit, error);
       case RelyingPartyError():
-        emit(DisclosureRelyingPartyError(error: eventError, organizationName: eventError.organizationName));
-        return;
+        emit(DisclosureRelyingPartyError(error: error, organizationName: error.organizationName));
+      case ExternalScannerError():
+        emit(DisclosureExternalScannerError(error: error));
       default:
-        Fimber.d('Disclosure failed unexpectedly when entering pin, cause: ${event.error}.');
+        // Call cancelSession to avoid stale session and to try and provide more context (e.g. returnUrl).
+        final cancelResult = await _cancelDisclosureUseCase.invoke();
+        await cancelResult.process(
+          onSuccess: (returnUrl) => emit(DisclosureGenericError(error: error, returnUrl: returnUrl)),
+          onError: (_) => emit(DisclosureGenericError(error: error)),
+        );
     }
-
-    // Handle other unexpected errors and cancel session to avoid stale session and to try and provide more context (e.g. returnUrl).
-    final cancelResult = await _cancelDisclosureUseCase.invoke();
-    await cancelResult.process(
-      onSuccess: (returnUrl) => emit(DisclosureGenericError(error: eventError, returnUrl: returnUrl)),
-      onError: (error) => emit(DisclosureGenericError(error: error)),
-    );
   }
 
   void _handleSessionError(Emitter<DisclosureState> emit, SessionError error) {
@@ -317,7 +281,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
         );
       case SessionState.cancelled:
         emit(
-          DisclosureCancelledSessionError(
+          DisclosureSessionCancelled(
             error: error,
             relyingParty: relyingParty,
             returnUrl: error.returnUrl,

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-05-23T10:25:50+02:00",
+    "@@last_modified": "2025-06-02T13:17:30+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -293,7 +293,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesShareWithTitle": "Do you want to share data with {organization}?",
+    "disclosureConfirmDataAttributesShareWithTitle": "Do you want to share the following details with {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
             "organization": {
@@ -319,18 +319,6 @@
     "disclosureGenericErrorPageTitle": "Something went wrong",
     "disclosureLoadingSubtitle": "Your request is being retrieved",
     "disclosureLoadingTitle": "Please wait",
-    "disclosureMissingAttributesPageCloseCta": "Stop request",
-    "disclosureMissingAttributesPageDescription": "{organization} is requesting data which is not yet in your Wallet.",
-    "@disclosureMissingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureMissingAttributesPageReportIssueCta": "Report an issue?",
-    "disclosureMissingAttributesPageTitle": "You're missing data",
     "disclosureRelyingPartyErrorCloseCta": "Close",
     "disclosureRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
@@ -357,6 +345,7 @@
         }
     },
     "disclosureStopSheetDescriptionForLoginVariant": "If you stop, you will not be able to log in.",
+    "disclosureStopSheetDescriptionForUrlCheck": "Stop if the websites don’t match. Try to find the official website of the organization.",
     "disclosureStopSheetDescriptionVariant": "If you stop, no data will be shared.",
     "disclosureStopSheetNegativeCta": "No",
     "disclosureStopSheetPositiveCta": "Yes, stop",
@@ -423,6 +412,19 @@
     "forgotPinScreenCta": "Delete Wallet",
     "forgotPinScreenDescription": "When you forget your PIN, you can no longer use your Wallet.\n\nTo continue using the NL Wallet, you have to start over. Remove your NL Wallet and select a new PIN.",
     "forgotPinScreenTitle": "Forgot PIN?",
+    "fraudCheckPageAboutCta": "About the website check",
+    "fraudCheckPageContinueCta": "Yes, continue",
+    "fraudCheckPageDescription": "Check the website where you scanned the QR code. Only continue if the addresses match. This helps you avoid fake websites.",
+    "fraudCheckPageStopCta": "Stop",
+    "fraudCheckPageTitle": "Is the website starting with: {url}?",
+    "@fraudCheckPageTitle": {
+        "placeholders": {
+            "url": {
+                "example": "https:\/\/example.org",
+                "type": "String"
+            }
+        }
+    },
     "generalAppStoreAndroid": "Play Store",
     "generalAppStoreiOS": "App Store",
     "generalBottomBackCta": "Back",
@@ -839,8 +841,9 @@
     "menuScreenTitle": "Menu",
     "menuScreenTourCta": "App tour videos",
     "menuScreenWCAGPageAnnouncement": "Menu in list {count} items",
-    "missingAttributesPageCloseCta": "Stop request",
-    "missingAttributesPageDescription": "{organization} is requesting data which is not yet in your Wallet.",
+    "missingAttributesPageBackToWebsiteCta": "Back to website",
+    "missingAttributesPageCloseCta": "Close",
+    "missingAttributesPageDescription": "The NL Wallet does not have all data requested by {organization}\n\nGo to the {organization} webpage to see what is needed. Add the missing data to your NL Wallet, then try again.",
     "@missingAttributesPageDescription": {
         "placeholders": {
             "organization": {
@@ -849,8 +852,10 @@
             }
         }
     },
-    "missingAttributesPageReportIssueCta": "Report an issue?",
-    "missingAttributesPageTitle": "You're missing data",
+    "missingAttributesPageShowDetailsCta": "See details",
+    "missingAttributesPageTitle": "Missing data",
+    "missingAttributesSheetAttributesTitle": "Requested attributes",
+    "missingAttributesSheetTitle": "Error details",
     "mockDigidScreenAcceptCta": "login",
     "mockDigidScreenDeclineCta": "cancel",
     "mockDigidScreenEnterPin": "Enter a random PIN to continue",

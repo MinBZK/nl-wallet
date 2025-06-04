@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-05-23T10:25:50+02:00",
+    "@@last_modified": "2025-06-02T13:17:30+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -289,7 +289,7 @@
             }
         }
     },
-    "disclosureConfirmDataAttributesShareWithTitle": "Wil je delen met {organization}?",
+    "disclosureConfirmDataAttributesShareWithTitle": "Wil je de volgende gegevens delen met {organization}?",
     "@disclosureConfirmDataAttributesShareWithTitle": {
         "placeholders": {
             "organization": {
@@ -315,18 +315,6 @@
     "disclosureGenericErrorPageTitle": "Er ging iets mis",
     "disclosureLoadingSubtitle": "De aanvraag wordt opgehaald",
     "disclosureLoadingTitle": "Even geduld",
-    "disclosureMissingAttributesPageCloseCta": "Aanvraag stoppen",
-    "disclosureMissingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
-    "@disclosureMissingAttributesPageDescription": {
-        "placeholders": {
-            "organization": {
-                "example": "DUO",
-                "type": "String"
-            }
-        }
-    },
-    "disclosureMissingAttributesPageReportIssueCta": "Wil je een probleem melden?",
-    "disclosureMissingAttributesPageTitle": "Je mist gegevens",
     "disclosureRelyingPartyErrorCloseCta": "Sluiten",
     "disclosureRelyingPartyErrorDescription": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van de organisatie waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met de organisatie.",
     "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "Deze actie is niet gelukt. Dit kan verschillende redenen hebben.\n\nGa terug naar de website van {organization} waar je begon en probeer het opnieuw. Lukt het nog steeds niet? Neem contact op met {organization}.",
@@ -353,6 +341,7 @@
         }
     },
     "disclosureStopSheetDescriptionForLoginVariant": "Als je stopt, kun je niet inloggen.",
+    "disclosureStopSheetDescriptionForUrlCheck": "Stop als de websites niet overeenkomen. Probeer de officiële website van de organisatie te vinden.",
     "disclosureStopSheetDescriptionVariant": "Als je stopt worden er geen gegevens gedeeld.",
     "disclosureStopSheetNegativeCta": "Nee",
     "disclosureStopSheetPositiveCta": "Ja, stoppen",
@@ -419,6 +408,19 @@
     "forgotPinScreenCta": "Verwijder Wallet",
     "forgotPinScreenDescription": "Als je jouw pincode bent vergeten kun je jouw NL Wallet niet meer gebruiken.\n\nWil je weer gebruik maken van de NL Wallet? Dan moet je opnieuw beginnen. Verwijder de NL Wallet en kies een nieuwe pincode.",
     "forgotPinScreenTitle": "Pincode vergeten?",
+    "fraudCheckPageAboutCta": "Meer over deze website-controle",
+    "fraudCheckPageContinueCta": "Ja, verder",
+    "fraudCheckPageDescription": "Controleer de website waar je de QR-code hebt gescand. Ga alleen verder als de web-adressen hetzelfde zijn. Dit helpt om nep-websites te vermijden.",
+    "fraudCheckPageStopCta": "Stop",
+    "fraudCheckPageTitle": "Begint de website met: {url}?",
+    "@fraudCheckPageTitle": {
+        "placeholders": {
+            "url": {
+                "example": "https:\/\/example.org",
+                "type": "String"
+            }
+        }
+    },
     "generalAppStoreAndroid": "Play Store",
     "generalAppStoreiOS": "App Store",
     "generalBottomBackCta": "Terug",
@@ -835,8 +837,9 @@
     "menuScreenTitle": "Menu",
     "menuScreenTourCta": "Uitleg-video's",
     "menuScreenWCAGPageAnnouncement": "Menu in lijst {count} stuks",
-    "missingAttributesPageCloseCta": "Aanvraag stoppen",
-    "missingAttributesPageDescription": "{organization} vraagt om gegevens die nog niet in je Wallet staan.",
+    "missingAttributesPageBackToWebsiteCta": "Terug naar website",
+    "missingAttributesPageCloseCta": "Sluiten",
+    "missingAttributesPageDescription": "De NL Wallet bevat niet alle gegevens die zijn opgevraagd door {organization}.\n\nGa naar de {organization} website om te zien wat er nodig is. Voeg de ontbrekende gegevens toe aan je NL Wallet en probeer het daarna opnieuw.",
     "@missingAttributesPageDescription": {
         "placeholders": {
             "organization": {
@@ -845,8 +848,10 @@
             }
         }
     },
-    "missingAttributesPageReportIssueCta": "Wil je een probleem melden?",
+    "missingAttributesPageShowDetailsCta": "Bekijk details",
     "missingAttributesPageTitle": "Je mist gegevens",
+    "missingAttributesSheetAttributesTitle": "Gevraagde attributen",
+    "missingAttributesSheetTitle": "Foutdetails",
     "mockDigidScreenAcceptCta": "inloggen",
     "mockDigidScreenDeclineCta": "annuleren",
     "mockDigidScreenEnterPin": "Voer een willekeurige pincode in om verder te gaan",

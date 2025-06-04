@@ -116,8 +116,8 @@ pub trait Storage {
     async fn delete_data<D: KeyedData>(&mut self) -> StorageResult<()>;
 
     async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()>;
+    async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
-    async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()>;
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>>;
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>>;
     async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool>;

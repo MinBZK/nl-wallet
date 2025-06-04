@@ -19,7 +19,7 @@ class TypedWalletCore {
   final BehaviorSubject<core.FlutterConfiguration> _flutterConfig = BehaviorSubject();
   final BehaviorSubject<core.FlutterVersionState> _flutterVersionState = BehaviorSubject();
   final BehaviorSubject<List<core.WalletEvent>> _recentHistory = BehaviorSubject();
-  final BehaviorSubject<List<core.Attestation>> _attestations = BehaviorSubject();
+  final BehaviorSubject<List<core.AttestationPresentation>> _attestations = BehaviorSubject();
 
   TypedWalletCore(this._errorMapper) {
     _setupLockedStream();
@@ -95,7 +95,8 @@ class TypedWalletCore {
   /// Cancel ongoing issuance session (includes PID issuance)
   Future<void> cancelIssuance() => call(core.cancelIssuance);
 
-  Future<List<core.Attestation>> continuePidIssuance(String uri) => call(() => core.continuePidIssuance(uri: uri));
+  Future<List<core.AttestationPresentation>> continuePidIssuance(String uri) =>
+      call(() => core.continuePidIssuance(uri: uri));
 
   Future<core.DisclosureBasedIssuanceResult> continueDisclosureBasedIssuance(String pin) =>
       call(() => core.continueDisclosureBasedIssuance(pin: pin));
@@ -118,7 +119,7 @@ class TypedWalletCore {
 
   Future<bool> hasActiveDisclosureSession() => call(core.hasActiveDisclosureSession);
 
-  Stream<List<core.Attestation>> observeCards() => _attestations.stream;
+  Stream<List<core.AttestationPresentation>> observeCards() => _attestations.stream;
 
   Future<void> resetWallet() => call(core.resetWallet);
 

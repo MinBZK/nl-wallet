@@ -11,11 +11,11 @@ class IssuanceOrganizationApproved extends IssuanceEvent {
   const IssuanceOrganizationApproved();
 }
 
-class IssuanceInitiated extends IssuanceEvent {
+class IssuanceSessionStarted extends IssuanceEvent {
   final String issuanceUri;
   final bool isQrCode;
 
-  const IssuanceInitiated(this.issuanceUri, {this.isQrCode = false});
+  const IssuanceSessionStarted(this.issuanceUri, {this.isQrCode = false});
 
   @override
   List<Object?> get props => [issuanceUri, isQrCode];

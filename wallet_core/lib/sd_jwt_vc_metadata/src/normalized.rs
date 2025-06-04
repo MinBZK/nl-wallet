@@ -340,6 +340,7 @@ where
 mod example_constructors {
     use crate::metadata::SchemaOption;
     use crate::metadata::UncheckedTypeMetadata;
+    use crate::VerifiedTypeMetadataDocuments;
 
     use super::NormalizedTypeMetadata;
 
@@ -366,8 +367,8 @@ mod example_constructors {
             Self::from_single_example(UncheckedTypeMetadata::example())
         }
 
-        pub fn pid_example() -> Self {
-            Self::from_single_example(UncheckedTypeMetadata::pid_example())
+        pub fn nl_pid_example() -> Self {
+            VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap()
         }
     }
 }

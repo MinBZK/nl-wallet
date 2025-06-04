@@ -14,7 +14,7 @@ use entity::disclosure_history_event::EventType;
 use mdoc::holder::ProposedAttributes;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::attestation::Attestation;
+use crate::attestation::AttestationPresentation;
 use crate::issuance::BSN_ATTR_NAME;
 use crate::issuance::PID_DOCTYPE;
 
@@ -47,12 +47,12 @@ pub enum DataDisclosureStatus {
 pub enum WalletEvent {
     Issuance {
         id: Uuid,
-        attestations: VecNonEmpty<Attestation>,
+        attestations: VecNonEmpty<AttestationPresentation>,
         timestamp: DateTime<Utc>,
     },
     Disclosure {
         id: Uuid,
-        attestations: Vec<Attestation>,
+        attestations: Vec<AttestationPresentation>,
         timestamp: DateTime<Utc>,
         // TODO (PVW-4135): Only store reader registration in event.
         reader_certificate: Box<BorrowingCertificate>,
@@ -63,7 +63,7 @@ pub enum WalletEvent {
 }
 
 impl WalletEvent {
-    pub(crate) fn new_issuance(attestations: VecNonEmpty<Attestation>) -> Self {
+    pub(crate) fn new_issuance(attestations: VecNonEmpty<AttestationPresentation>) -> Self {
         Self::Issuance {
             id: Uuid::now_v7(),
             attestations,
@@ -97,7 +97,7 @@ impl WalletEvent {
                 .expect("proposed attributes should contain valid issuer registration")
                 .expect("proposed attributes should contain issuer registration");
 
-            Attestation::create_for_disclosure(
+            AttestationPresentation::create_for_disclosure(
                 document_attributes.type_metadata,
                 reader_registration.organization,
                 document_attributes.attributes,
@@ -190,11 +190,11 @@ mod test {
 
     use attestation_data::attributes::Entry;
     use attestation_data::auth::issuer_auth::IssuerRegistration;
+    use attestation_data::identifiers::NameSpace;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
     use mdoc::holder::ProposedDocumentAttributes;
-    use mdoc::unsigned::UnsignedMdoc;
     use mdoc::DataElementValue;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -214,16 +214,16 @@ mod test {
     });
 
     #[rstest]
-    #[case(issuance::mock::create_bsn_only_unsigned_mdoc(), DisclosureType::Login)]
-    #[case(issuance::mock::create_example_unsigned_mdoc(), DisclosureType::Regular)]
+    #[case(issuance::mock::create_bsn_only_mdoc_attributes(), DisclosureType::Login)]
+    #[case(issuance::mock::create_example_mdoc_attributes(), DisclosureType::Regular)]
     fn test_disclosure_type_from_proposed_attributes(
-        #[case] (unsigned_mdoc, type_metadata): (UnsignedMdoc, TypeMetadata),
+        #[case] (proposed_attributes, type_metadata): (IndexMap<NameSpace, Vec<Entry>>, TypeMetadata),
         #[case] expected: DisclosureType,
     ) {
         let proposed_attributes = ProposedAttributes::from([(
             PID_DOCTYPE.to_string(),
             ProposedDocumentAttributes {
-                attributes: unsigned_mdoc.attributes.into_inner(),
+                attributes: proposed_attributes,
                 issuer: ISSUER_CERTIFICATE.clone(),
                 type_metadata: NormalizedTypeMetadata::from_single_example(type_metadata.into_inner()),
             },
@@ -235,7 +235,7 @@ mod test {
     fn mock_attestations_for_attestation_types(
         attestation_types: &[&str],
         issuer_certificate: &BorrowingCertificate,
-    ) -> Vec<Attestation> {
+    ) -> Vec<AttestationPresentation> {
         let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
             .unwrap()
             .unwrap();
@@ -262,8 +262,13 @@ mod test {
                     }],
                 )]);
 
-                Attestation::create_for_issuance(AttestationIdentity::Ephemeral, metadata, issuer_org, attributes)
-                    .unwrap()
+                AttestationPresentation::create_for_issuance(
+                    AttestationIdentity::Ephemeral,
+                    metadata,
+                    issuer_org,
+                    attributes,
+                )
+                .unwrap()
             })
             .collect()
     }

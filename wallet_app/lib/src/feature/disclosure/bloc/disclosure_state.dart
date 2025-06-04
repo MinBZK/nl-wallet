@@ -104,7 +104,7 @@ class DisclosureSessionExpired extends DisclosureState implements ErrorState {
 }
 
 /// State that is exposed when the session has been stopped remotely (e.g. the user pressed stop in wallet_web)
-class DisclosureCancelledSessionError extends DisclosureState implements ErrorState {
+class DisclosureSessionCancelled extends DisclosureState implements ErrorState {
   final Organization? relyingParty;
   final String? returnUrl;
 
@@ -114,7 +114,7 @@ class DisclosureCancelledSessionError extends DisclosureState implements ErrorSt
   @override
   bool get showStopConfirmation => false;
 
-  const DisclosureCancelledSessionError({
+  const DisclosureSessionCancelled({
     required this.error,
     this.relyingParty,
     this.returnUrl,
@@ -147,11 +147,8 @@ class DisclosureNetworkError extends DisclosureState implements NetworkErrorStat
   List<Object?> get props => [hasInternet, statusCode, error, ...super.props];
 }
 
-class DisclosureCheckOrganization extends DisclosureState {
-  final Organization relyingParty;
+class DisclosureCheckUrl extends DisclosureState {
   final String originUrl;
-  final bool sharedDataWithOrganizationBefore;
-  final DisclosureSessionType sessionType;
   final bool afterBackPressed;
 
   @override
@@ -160,22 +157,13 @@ class DisclosureCheckOrganization extends DisclosureState {
   @override
   bool get didGoBack => afterBackPressed;
 
-  const DisclosureCheckOrganization({
-    required this.relyingParty,
+  const DisclosureCheckUrl({
     required this.originUrl,
-    required this.sharedDataWithOrganizationBefore,
-    required this.sessionType,
     this.afterBackPressed = false,
   });
 
   @override
-  List<Object?> get props => [
-        relyingParty,
-        originUrl,
-        sharedDataWithOrganizationBefore,
-        sessionType,
-        ...super.props,
-      ];
+  List<Object?> get props => [originUrl, ...super.props];
 }
 
 class DisclosureCheckOrganizationForLogin extends DisclosureState {
@@ -192,6 +180,9 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
 
   @override
   bool get didGoBack => afterBackPressed;
+
+  @override
+  bool get canGoBack => sessionType == DisclosureSessionType.crossDevice;
 
   const DisclosureCheckOrganizationForLogin({
     required this.relyingParty,
@@ -217,7 +208,7 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
 
 class DisclosureMissingAttributes extends DisclosureState {
   final Organization relyingParty;
-  final List<Attribute> missingAttributes;
+  final List<MissingAttribute> missingAttributes;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kNormalDisclosureSteps);
@@ -247,6 +238,7 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   final Policy policy;
   final LocalizedText requestPurpose;
   final bool afterBackPressed;
+  final DisclosureSessionType sessionType;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kNormalDisclosureSteps);
@@ -255,13 +247,14 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  bool get canGoBack => true;
+  bool get canGoBack => sessionType == DisclosureSessionType.crossDevice;
 
   const DisclosureConfirmDataAttributes({
     required this.relyingParty,
     required this.requestPurpose,
     required this.requestedAttributes,
     required this.policy,
+    required this.sessionType,
     this.afterBackPressed = false,
   });
 
@@ -271,6 +264,7 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
         requestPurpose,
         requestedAttributes,
         policy,
+        sessionType,
         ...super.props,
       ];
 }

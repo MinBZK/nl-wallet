@@ -198,6 +198,7 @@ mod tests {
     use attestation_data::attributes::Entry;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
+    use http_utils::urls::HttpsUri;
 
     use crate::holder::mock::MockMdocDataSource;
     use crate::iso::mdocs::Attributes;
@@ -269,14 +270,31 @@ mod tests {
         assert_eq!(match_result, expected_match);
     }
 
+    #[derive(Debug, Clone, PartialEq)]
+    struct ExpectedDocument {
+        doc_type: String,
+        issuer_uri: HttpsUri,
+        namespaces: IndexMap<String, Vec<Entry>>,
+    }
+
+    impl From<TestDocument> for ExpectedDocument {
+        fn from(source: TestDocument) -> Self {
+            Self {
+                doc_type: source.doc_type,
+                issuer_uri: source.issuer_uri,
+                namespaces: source.namespaces,
+            }
+        }
+    }
+
     #[derive(Debug, PartialEq)]
     enum ExpectedDisclosureRequestMatch {
-        Candidates(TestDocuments),
+        Candidates(Vec<ExpectedDocument>),
         MissingAttributes(IndexSet<AttributeIdentifier>),
     }
 
     fn candidates(candidates: TestDocuments) -> ExpectedDisclosureRequestMatch {
-        ExpectedDisclosureRequestMatch::Candidates(candidates)
+        ExpectedDisclosureRequestMatch::Candidates(candidates.0.into_iter().map(Into::into).collect())
     }
     fn missing_attributes(missing_attributes: &TestDocuments) -> ExpectedDisclosureRequestMatch {
         ExpectedDisclosureRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
@@ -286,12 +304,12 @@ mod tests {
         fn from(value: DisclosureRequestMatch<T>) -> Self {
             match value {
                 DisclosureRequestMatch::Candidates(candidates) => {
-                    let candidates: Vec<TestDocument> = candidates
+                    let candidates: Vec<ExpectedDocument> = candidates
                         .into_iter()
                         .flat_map(|(_, namespaces)| namespaces)
                         .map(convert_proposed_document)
                         .collect();
-                    Self::Candidates(candidates.into())
+                    Self::Candidates(candidates)
                 }
                 DisclosureRequestMatch::MissingAttributes(missing) => {
                     Self::MissingAttributes(missing.into_iter().collect())
@@ -307,10 +325,10 @@ mod tests {
             issuer_certificate,
             ..
         }: ProposedDocument<I>,
-    ) -> TestDocument {
+    ) -> ExpectedDocument {
         let name_spaces = issuer_signed.name_spaces.expect("Expected namespaces");
 
-        TestDocument {
+        ExpectedDocument {
             doc_type,
             issuer_uri: issuer_certificate.san_dns_name_or_uris().unwrap().into_first(),
             namespaces: convert_namespaces(name_spaces),

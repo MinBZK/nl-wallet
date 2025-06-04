@@ -11,7 +11,7 @@ workspace = true
 accept-language.workspace = true
 anyhow.workspace = true
 askama.workspace = true
-axum.workspace = true
+axum = { workspace = true, features = ["query"] }
 base64.workspace = true
 nutype.workspace = true
 regex = { workspace = true }

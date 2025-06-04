@@ -1,4 +1,6 @@
-# Introduction
+# Relying Party
+
+## Introduction
 
 A Relying Party (a verifier of attestations presented by the wallet) will want
 to have a global idea of what he/she needs to do when integrating their
@@ -8,9 +10,7 @@ This document aims to provide a global outline of components used, the necessary
 decisions, data, certificate(s), and setup of the "Ontvangende Voorziening" plus
 integration thereof with their own frontend(s) and backend.
 
-[[_TOC_]]
-
-# Step-by-step
+## Step-by-step
 
 As a relying party you want to verify certain attributes of a natural person
 which are contained in the NL wallet. To be able to do so there are a few
@@ -42,7 +42,7 @@ Finally, we'll give a high-level overview of what an OV looks like, and what the
 disclosure flow looks like, and where you can find the API documentation and
 example calls.
 
-# Architecture Overview
+## Architecture Overview
 
 ![Disclosure Components](diagrams/disclosure_components.svg "An overview of the components involved in a disclosure session.")
 
@@ -53,11 +53,11 @@ session. The main components are:
 - [Pseudonym Service][2]: A service that pseudonimizes BSN numbers;
 - [(BRP-V) Authentic Source][3]: A source of attributes, made accessible by
   a so-called Verstrekkende Voorziening (VV);
-- [VV][4]: Verstrekkende Voorziening, the party that issues attributes;
-- [OV][4]: Ontvangende Voorziening, an application that runs on-premises or
+- VV: Verstrekkende Voorziening, the party that issues attributes;
+- OV: Ontvangende Voorziening, an application that runs on-premises or
   in-cloud of a relying party that can verify attributes, which this document
   is about;
-- [Relying Party Application][4]: An app running on-premises or in-cloud of
+- Relying Party Application: An app running on-premises or in-cloud of
   the relying party that needs to do something with the result of a
   verification of attributes;
 - [Wallet App][5]: The wallet app running on a mobile device;
@@ -93,7 +93,7 @@ The Wallet platform is fully open-source; you can find the project on GitHub:
 is also open-source but lags behind a bit in updates - we're intending on
 getting some currently-private changes upstreamed, work in progress).
 
-# Preparations and Onboarding
+## Preparations and Onboarding
 
 The subsections below describe the decisions you need to make as a relying
 party with regards to attributes you want to verify, what data we require from
@@ -407,13 +407,13 @@ What you'll receive from us in reply to the above is:
    the [Universal link base URL](#universal-link-base-url) section of the
    installation chapter).
 
-# Wallet server installation
+## Wallet server installation
 
 After you have obtained a certificate for your `usecase`, following the
 previously documented steps, you are ready to setup and configure your
 `verification_server`.
 
-## Obtaining the software
+### Obtaining the software
 
 The `verification_server` binary can be obtained by compiling the Rust code from
 our [repository][6], or be provided to you. As of this writing (2024-08-08) we
@@ -422,7 +422,7 @@ can either compile the source code (possible, but not supported as of yet) or
 ask us for a binary. In the short-term, especially in light of the coming shared
 testing cases, we will provide binaries to relying parties manually.
 
-## Creating a database backend (optional)
+### Creating a database backend (optional)
 
 This section is optional; You can run the `verification_server` with a storage
 URL `memory://`, which is the default, which will make it store session state in
@@ -524,12 +524,12 @@ The database in the server is called `verification_server`, and contains the
 above default schema (i.e., a `session_state` table with a primary key
 constraint and an index on `last_active_date_time`).
 
-## Creating a configuration
+### Creating a configuration
 
 In the following sections we'll create environment variables for specific
 settings, which we will finally use to construct a configuration file.
 
-### The storage settings
+#### The storage settings
 
 The default storage settings URL is `memory://` which causes the server to store
 session state in-memory, which is ephemeral. I.e., on server crash or shutdown,
@@ -672,7 +672,7 @@ the following structure.
 [hsm]
 library_path = "${HSM_LIBRARY_PATH}"
 user_pin = "${HSM_USER_PIN}"
-max_sessions = ${HSM_MAX_SESSIONS}
+max_sessions ="${HSM_MAX_SESSIONS}"
 max_session_lifetime_in_sec = "${HSM_SESSION_LIFETIME}"
 ```
 
@@ -776,7 +776,7 @@ you will see something like the following output from the `verification_server`:
 For further information about how to construct calls to the endpoints, check out
 the [API specifications](#api-specifications) section.
 
-# Background
+## Background
 
 Now that you can interact with the wallet platform, you are ready to start
 working on integration your own application with your "Ontvangende Voorziening".
@@ -790,7 +790,7 @@ In the following subsections we'll give you a high-level overview of what an
 "Ontvangende Voorziening" looks like, how to integrate it with your application
 and some directions with regards to the API specifications.
 
-## What a Disclosure Session Looks Like
+### What a Disclosure Session Looks Like
 
 ![Disclosure Flow](diagrams/disclosure_flow.svg "A high-level overview of the disclosure flow.")
 
@@ -800,8 +800,7 @@ premises or within cloud environment(s) of the relying party (i.e., you).
 
 Let's walk through a typical (cross-device, note on same-device flows in
 following section) disclosure session (for full details, have a look at the
-[VV/OV SAD][4], our detailed illustration of a [disclosure session
-flow](diagrams/session.md), and our [component interaction flow for
+VV/OV SAD and our [component interaction flow for
 disclosures](diagrams/disclosure.md)).
 
 Note the possible session states:
@@ -1100,6 +1099,6 @@ TODO: Link to VV/OV SAD, which are still in draft and not published yet.
 [12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
 [13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
 [14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
-[15]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-private.openapi.yaml
-[16]: https://raw.githubusercontent.com/MinBZK/nl-wallet/main/documentation/api/wallet-disclosure-public.openapi.yaml
+[15]: ../documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
+[16]: ../documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
 [17]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging

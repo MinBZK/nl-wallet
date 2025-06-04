@@ -78,7 +78,7 @@ class WalletEvent_Disclosure extends WalletEvent {
       {required this.dateTime,
       required this.relyingParty,
       required final List<LocalizedString> purpose,
-      final List<Attestation>? sharedAttestations,
+      final List<AttestationPresentation>? sharedAttestations,
       required this.requestPolicy,
       required this.status,
       required this.typ})
@@ -96,8 +96,8 @@ class WalletEvent_Disclosure extends WalletEvent {
     return EqualUnmodifiableListView(_purpose);
   }
 
-  final List<Attestation>? _sharedAttestations;
-  List<Attestation>? get sharedAttestations {
+  final List<AttestationPresentation>? _sharedAttestations;
+  List<AttestationPresentation>? get sharedAttestations {
     final value = _sharedAttestations;
     if (value == null) return null;
     if (_sharedAttestations is EqualUnmodifiableListView) return _sharedAttestations;
@@ -151,7 +151,7 @@ abstract mixin class $WalletEvent_DisclosureCopyWith<$Res> implements $WalletEve
       {String dateTime,
       Organization relyingParty,
       List<LocalizedString> purpose,
-      List<Attestation>? sharedAttestations,
+      List<AttestationPresentation>? sharedAttestations,
       RequestPolicy requestPolicy,
       DisclosureStatus status,
       DisclosureType typ});
@@ -193,7 +193,7 @@ class _$WalletEvent_DisclosureCopyWithImpl<$Res> implements $WalletEvent_Disclos
       sharedAttestations: freezed == sharedAttestations
           ? _self._sharedAttestations
           : sharedAttestations // ignore: cast_nullable_to_non_nullable
-              as List<Attestation>?,
+              as List<AttestationPresentation>?,
       requestPolicy: null == requestPolicy
           ? _self.requestPolicy
           : requestPolicy // ignore: cast_nullable_to_non_nullable
@@ -217,7 +217,7 @@ class WalletEvent_Issuance extends WalletEvent {
 
   @override
   final String dateTime;
-  final Attestation attestation;
+  final AttestationPresentation attestation;
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -251,7 +251,7 @@ abstract mixin class $WalletEvent_IssuanceCopyWith<$Res> implements $WalletEvent
       _$WalletEvent_IssuanceCopyWithImpl;
   @override
   @useResult
-  $Res call({String dateTime, Attestation attestation});
+  $Res call({String dateTime, AttestationPresentation attestation});
 }
 
 /// @nodoc
@@ -277,7 +277,7 @@ class _$WalletEvent_IssuanceCopyWithImpl<$Res> implements $WalletEvent_IssuanceC
       attestation: null == attestation
           ? _self.attestation
           : attestation // ignore: cast_nullable_to_non_nullable
-              as Attestation,
+              as AttestationPresentation,
     ));
   }
 }

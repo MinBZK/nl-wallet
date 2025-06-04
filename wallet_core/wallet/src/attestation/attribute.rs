@@ -15,13 +15,13 @@ use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
-use super::Attestation;
 use super::AttestationAttribute;
 use super::AttestationAttributeValue;
 use super::AttestationError;
 use super::AttestationIdentity;
+use super::AttestationPresentation;
 
-impl Attestation {
+impl AttestationPresentation {
     // Construct a new `Attestation` from a combination of metadata and nested attributes.
     // This method has different behaviour depending on the `selection_mode` parameter.
     pub fn create_from_attributes(
@@ -65,7 +65,7 @@ impl Attestation {
         }
 
         // Finally, construct the `Attestation` type.
-        let attestation = Attestation {
+        let attestation = AttestationPresentation {
             identity,
             display_metadata,
             attestation_type,

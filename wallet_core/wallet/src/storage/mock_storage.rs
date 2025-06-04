@@ -158,8 +158,8 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn increment_mdoc_copies_usage_count(&mut self, mdoc_copy_ids: Vec<Uuid>) -> StorageResult<()> {
-        mdoc_copy_ids.into_iter().for_each(|mdoc_copy_id| {
+    async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()> {
+        attestation_copy_ids.into_iter().for_each(|mdoc_copy_id| {
             self.mdoc_copies_usage_counts
                 .entry(mdoc_copy_id)
                 .and_modify(|usage_count| *usage_count += 1)

@@ -154,15 +154,15 @@ void main() {
 
   group('observeAttestations', () {
     test('observeAttestations should fetch attestation through WalletCore', () {
-      final List<Attestation> mockAttestations = [
-        const Attestation(
+      final List<AttestationPresentation> mockAttestations = [
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
-        const Attestation(
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_address',
           displayMetadata: [],
@@ -179,8 +179,8 @@ void main() {
     });
 
     test('observeAttestations should emit a new value when WalletCore exposes new attestations', () {
-      final List<Attestation> initialCards = [
-        const Attestation(
+      final List<AttestationPresentation> initialCards = [
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
           displayMetadata: [],
@@ -188,15 +188,15 @@ void main() {
           issuer: _kSampleIssuer,
         ),
       ];
-      final List<Attestation> updatedCards = [
-        const Attestation(
+      final List<AttestationPresentation> updatedCards = [
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
-        const Attestation(
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_address',
           displayMetadata: [],
@@ -214,8 +214,8 @@ void main() {
     });
 
     test('observeAttestations should emit only the last value on a new subscription', () async {
-      final List<Attestation> initialCards = [
-        const Attestation(
+      final List<AttestationPresentation> initialCards = [
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
           displayMetadata: [],
@@ -223,15 +223,15 @@ void main() {
           issuer: _kSampleIssuer,
         ),
       ];
-      final List<Attestation> updatedCards = [
-        const Attestation(
+      final List<AttestationPresentation> updatedCards = [
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_id',
           displayMetadata: [],
           attributes: [],
           issuer: _kSampleIssuer,
         ),
-        const Attestation(
+        const AttestationPresentation(
           identity: AttestationIdentity.fixed(id: '0'),
           attestationType: 'pid_address',
           displayMetadata: [],

@@ -103,11 +103,11 @@ The JSON structure is constructed using the claims paths in the Type Metadata (s
 ```json
 // doctype/vct is "com.example.address"
 {
-   "city": "The Capital",
-   "street": "Main St.",
-   "house": {
-       "number": 1,
-       "letter": "A"
-    }
+  "city": "The Capital",
+  "street": "Main St.",
+  "house": {
+      "number": 1, 
+      "letter": "A"
+   }
 } 
 ```

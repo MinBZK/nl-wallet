@@ -148,7 +148,7 @@ sealed class StartDisclosureResult with _$StartDisclosureResult {
   const factory StartDisclosureResult.request({
     required Organization relyingParty,
     required RequestPolicy policy,
-    required List<Attestation> requestedAttestations,
+    required List<AttestationPresentation> requestedAttestations,
     required bool sharedDataWithRelyingPartyBefore,
     required DisclosureSessionType sessionType,
     required List<LocalizedString> requestPurpose,

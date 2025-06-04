@@ -11,7 +11,7 @@ The reponse mode is `direct_post.jwt`. Other response modes are currently not su
 
 In more detail, the protocol works as follows:
 
-```mermaid
+```{mermaid}
 sequenceDiagram
     autonumber
 

@@ -131,14 +131,6 @@ pub enum MdocCredentialPayloadError {
     #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
     #[category(pd)]
     CoseKeyConversion(#[from] CryptoError),
-
-    #[error("no attributes present in PreviewableCredentialPayload")]
-    #[category(critical)]
-    NoAttributes,
-
-    #[error("missing either the \"exp\" or \"nbf\" timestamp")]
-    #[category(critical)]
-    MissingValidityTimestamp,
 }
 
 impl IntoCredentialPayload for Mdoc {
@@ -160,7 +152,6 @@ impl IntoCredentialPayload for MdocParts {
 
     fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
         let MdocParts { attributes, mso } = self;
-
         let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
 
         let payload = CredentialPayload {
@@ -192,27 +183,27 @@ mod test {
     use p256::ecdsa::VerifyingKey;
     use ssri::Integrity;
 
+    use attestation_data::credential_payload::PreviewableCredentialPayload;
     use crypto::server_keys::KeyPair;
     use crypto::CredentialEcdsaKey;
     use crypto::EcdsaKey;
 
     use crate::iso::disclosure::IssuerSigned;
     use crate::iso::mdocs::IssuerSignedItemBytes;
-    use crate::iso::unsigned::UnsignedMdoc;
 
     use super::Mdoc;
 
     impl Mdoc {
         /// Construct an [`Mdoc`] directly by signing, skipping validation.
         pub async fn sign<K: CredentialEcdsaKey>(
-            unsigned_mdoc: UnsignedMdoc,
+            payload: PreviewableCredentialPayload,
             metadata_integrity: Integrity,
             private_key_id: String,
             public_key: &VerifyingKey,
             issuer_keypair: &KeyPair<impl EcdsaKey>,
         ) -> crate::Result<Mdoc> {
             let (issuer_signed, mso) =
-                IssuerSigned::sign(unsigned_mdoc, metadata_integrity, public_key, issuer_keypair).await?;
+                IssuerSigned::sign(payload, metadata_integrity, public_key, issuer_keypair).await?;
 
             let mdoc = Self {
                 mso,

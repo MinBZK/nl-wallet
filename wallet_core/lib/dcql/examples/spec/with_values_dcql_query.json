@@ -1,0 +1,23 @@
+{
+    "credentials": [
+        {
+            "id": "my_credential",
+            "format": "dc+sd-jwt",
+            "meta": {
+                "vct_values": [ "https://credentials.example.com/identity_credential" ]
+            },
+            "claims": [
+                {
+                    "path": ["last_name"],
+                    "values": ["Doe"]
+                },
+                {"path": ["first_name"]},
+                {"path": ["address", "street_address"]},
+                {
+                    "path": ["postal_code"],
+                    "values": ["90210", "90211"]
+                }
+            ]
+        }
+    ]
+}

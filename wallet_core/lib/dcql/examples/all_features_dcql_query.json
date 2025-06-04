@@ -1,0 +1,59 @@
+{
+    "credentials": [
+        {
+            "id": "pid",
+            "format": "dc+sd-jwt",
+            "meta": {
+                "vct_values": ["https://credentials.example.com/identity_credential"]
+            },
+            "claims": [
+                {"id": "a", "path": ["given_name"]},
+                {"id": "b", "path": ["family_name"]},
+                {"id": "c", "path": ["address", "street_address"]}
+            ],
+            "claim_sets": [
+                ["a", "c"],
+                ["b", "c"]
+            ]
+        },
+        {
+            "id": "other_pid",
+            "format": "dc+sd-jwt",
+            "trusted_authorities": [
+                { "type": "aki", "values": ["s9tIpPmhxdiuNkHMEWNpYim8S8Y"] }
+            ],
+            "require_cryptographic_holder_binding": false,
+            "meta": {
+                "vct_values": ["https://othercredentials.example/pid"]
+            },
+            "claims": [
+                {"path": ["given_name"]},
+                {"path": ["family_name"]},
+                {"path": ["address", null, 1, "street_address"]}
+            ]
+        },
+        {
+            "id": "mdl",
+            "format": "mso_mdoc",
+            "multiple": true,
+            "meta": {
+                "doctype_value": "org.iso.7367.1.mVRC"
+            },
+            "claims": [
+                {"path": ["org.iso.7367.1", "vehicle_holder"], "intent_to_retain": true},
+                {"path": ["org.iso.18013.5.1", "first_name"], "values": ["John"]}
+            ]
+        }
+    ],
+    "credential_sets": [
+        {
+            "options": [ [ "pid" ], [ "other_pid" ] ]
+        },
+        {
+            "required": false,
+            "options": [
+                [ "mdl" ]
+            ]
+        }
+    ]
+}

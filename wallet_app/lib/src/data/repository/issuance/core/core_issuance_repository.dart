@@ -15,7 +15,7 @@ import '../issuance_repository.dart';
 class CoreIssuanceRepository implements IssuanceRepository {
   final TypedWalletCore _walletCore;
 
-  final Mapper<core.Attestation, WalletCard> _attestationMapper;
+  final Mapper<core.AttestationPresentation, WalletCard> _attestationMapper;
   final Mapper<core.MissingAttribute, MissingAttribute> _missingAttributeMapper;
   final Mapper<core.Organization, Organization> _relyingPartyMapper;
   final Mapper<core.RequestPolicy, Policy> _requestPolicyMapper;

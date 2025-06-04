@@ -11,7 +11,7 @@ import '../pid_repository.dart';
 
 class CorePidRepository extends PidRepository {
   final TypedWalletCore _walletCore;
-  final Mapper<Attestation, WalletCard> _cardMapper;
+  final Mapper<AttestationPresentation, WalletCard> _cardMapper;
 
   CorePidRepository(
     this._walletCore,

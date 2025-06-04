@@ -25,10 +25,10 @@ import screen.disclosure.DisclosureApproveOrganizationScreen
 import screen.menu.MenuScreen
 import screen.organization.OrganizationDetailScreen
 import screen.security.PinScreen
+import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.rp.RelyingPartyAmsterdamWebPage
 import screen.web.demo.rp.RelyingPartyMarketplaceWebPage
 import screen.web.demo.rp.RelyingPartyMonkeyBikeWebPage
-import screen.web.demo.DemoIndexWebPage
 import screen.web.demo.rp.RelyingPartyXyzBankWebPage
 
 class DisclosureTests : TestBase() {
@@ -84,7 +84,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.proceed()
         disclosureScreen.share()
         pinScreen.enterPin(OnboardingNavigator.PIN)
-        disclosureScreen.close()
+        disclosureScreen.goToWebsite()
         assertTrue(xyzBankWebPage.identificationSucceededMessageVisible(), "User not identified correctly")
     }
 
@@ -162,7 +162,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.goBack()
         disclosureScreen.share()
         pinScreen.enterPin(OnboardingNavigator.PIN)
-        disclosureScreen.close()
+        disclosureScreen.goToWebsite()
         assertTrue(marketPlaceWebPage.welcomeMessageVisible(), "User not identified correctly")
     }
 
@@ -185,6 +185,7 @@ class DisclosureTests : TestBase() {
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
         disclosureScreen.stopRequestAfterMissingAttributeFailure()
         disclosureScreen.closeDisclosureAfterCompletedOrUncompleted()
+        disclosureScreen.goToWebsite()
         monkeyBikeWebPage.switchToWebViewContext()
         assertTrue(monkeyBikeWebPage.loginFailedMessageVisible(), "Login failed message not visible")
     }

@@ -60,11 +60,10 @@ securityContext: {}
 ## @param ingress.annotations Additional annotations for the ingress
 ##
 ingress:
-  name: ""
-  className: ""
-  hostname: ""
-  contextPath: ""
-  tlsSecretName: ""
+  className: "nginx"
+  hostname: null
+  contextPath: null
+  tlsSecretName: null
   labels: {}
   annotations: {}
 

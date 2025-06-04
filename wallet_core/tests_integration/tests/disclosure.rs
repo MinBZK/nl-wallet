@@ -88,13 +88,6 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_given_name() + addr_street(),
     pid_given_name() + addr_street()
 )]
-#[case(
-    SessionType::SameDevice,
-    None,
-    "multiple_cards",
-    pid_given_name() + addr_street(),
-    pid_given_name() + addr_street()
-)]
 #[tokio::test]
 #[serial(hsm)]
 async fn test_disclosure_usecases_ok(
@@ -155,7 +148,7 @@ async fn test_disclosure_usecases_ok(
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-    // after creating the session it should have status "Created"
+    // after creating the session, it should have the status "Created"
     let StatusResponse::Created { ul } = get_verifier_status(&client, status_url.clone()).await else {
         panic!("should match StatusResponse::Created")
     };
@@ -172,7 +165,7 @@ async fn test_disclosure_usecases_ok(
         .expect("should start disclosure");
     assert_eq!(proposal.attestations.len(), expected_documents.len());
 
-    // after the first wallet interaction it should have status "Waiting"
+    // after the first wallet interaction it should have the status "Waiting"
     assert_matches!(
         get_verifier_status(&client, status_url.clone()).await,
         StatusResponse::WaitingForResponse
@@ -187,7 +180,7 @@ async fn test_disclosure_usecases_ok(
         .await
         .expect("Could not accept disclosure");
 
-    // after disclosure it should have status "Done"
+    // after disclosure, it should have the status "Done"
     assert_matches!(get_verifier_status(&client, status_url).await, StatusResponse::Done);
 
     // Check if we received a return URL when we should have, based on the use case and session type.

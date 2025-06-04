@@ -48,7 +48,6 @@ use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
 use mdoc::holder::MdocCredentialPayloadError;
 use mdoc::holder::MdocParts;
-use mdoc::unsigned::UnsignedMdoc;
 use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
@@ -1184,11 +1183,8 @@ impl CredentialResponse {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let unsigned_mdoc: UnsignedMdoc = preview_credential_payload.try_into()?;
-        let attributes = unsigned_mdoc.attributes.clone().into_inner();
-
         let (issuer_signed, mso) = IssuerSigned::sign(
-            unsigned_mdoc,
+            preview_credential_payload,
             attestation_config.first_metadata_integrity.clone(),
             holder_pubkey,
             &attestation_config.key_pair,
@@ -1198,7 +1194,8 @@ impl CredentialResponse {
 
         // As a last check, convert the `IssuerSigned` back to a full `CredentialPayload`
         // and validate it against the normalized metadata for this attestation.
-        let _ = MdocParts::new(attributes, mso).into_credential_payload(&attestation_config.metadata)?;
+        let _ = MdocParts::new(issuer_signed.clone().into_entries_by_namespace(), mso)
+            .into_credential_payload(&attestation_config.metadata)?;
 
         Ok(CredentialResponse::MsoMdoc {
             credential: Box::new(issuer_signed.into()),

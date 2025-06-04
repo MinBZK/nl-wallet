@@ -1451,7 +1451,7 @@ mod tests {
 
         pub fn into_response_from_holder_public_key(self, holder_public_key: &VerifyingKey) -> CredentialResponse {
             let (issuer_signed, _) = IssuerSigned::sign(
-                self.previewable_payload.try_into().unwrap(),
+                self.previewable_payload,
                 self.metadata_integrity,
                 holder_public_key,
                 &self.issuer_key,

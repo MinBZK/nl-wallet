@@ -8,9 +8,9 @@ use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
 use platform_support::attested_key::AttestedKeyHolder;
 
-use crate::attestation::Attestation;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
+use crate::attestation::AttestationPresentation;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
@@ -42,7 +42,7 @@ pub enum AttestationsError {
     Attestation(#[from] AttestationError),
 }
 
-pub type AttestationsCallback = Box<dyn FnMut(Vec<Attestation>) + Send + Sync>;
+pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
 
 impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
 where
@@ -69,7 +69,7 @@ where
                     let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
                         .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                    let attestation = Attestation::create_for_issuance(
+                    let attestation = AttestationPresentation::create_for_issuance(
                         AttestationIdentity::Fixed {
                             id: mdoc_id.to_string(),
                         },
@@ -162,7 +162,7 @@ mod tests {
             mdoc.doc_type().clone(),
             vec![(
                 IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
-                NormalizedTypeMetadata::pid_example(),
+                NormalizedTypeMetadata::nl_pid_example(),
             )],
         );
 
@@ -205,7 +205,7 @@ mod tests {
             mdoc.doc_type().clone(),
             vec![(
                 IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
-                NormalizedTypeMetadata::pid_example(),
+                NormalizedTypeMetadata::nl_pid_example(),
             )],
         );
 

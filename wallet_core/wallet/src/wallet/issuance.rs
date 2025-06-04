@@ -31,9 +31,9 @@ use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
-use crate::attestation::Attestation;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationIdentity;
+use crate::attestation::AttestationPresentation;
 use crate::config::UNIVERSAL_LINK_BASE_URL;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
@@ -124,7 +124,7 @@ pub enum IssuanceError {
 #[derive(Debug, Clone, Constructor)]
 pub struct IssuanceSession<IS> {
     is_pid: bool,
-    preview_attestations: VecNonEmpty<Attestation>,
+    preview_attestations: VecNonEmpty<AttestationPresentation>,
     protocol_state: IS,
 }
 
@@ -267,7 +267,10 @@ where
 
     #[instrument(skip_all)]
     #[sentry_capture_error]
-    pub async fn continue_pid_issuance(&mut self, redirect_uri: Url) -> Result<Vec<Attestation>, IssuanceError> {
+    pub async fn continue_pid_issuance(
+        &mut self,
+        redirect_uri: Url,
+    ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         info!("Received redirect URI, processing URI and retrieving access token");
 
         info!("Checking if blocked");
@@ -318,7 +321,7 @@ where
         issuer_url: BaseUrl,
         mdoc_trust_anchors: &Vec<TrustAnchor<'_>>,
         is_pid: bool,
-    ) -> Result<Vec<Attestation>, IssuanceError> {
+    ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         let http_client = default_reqwest_client_builder()
             .default_headers(HeaderMap::from_iter([(
                 header::ACCEPT,
@@ -341,7 +344,7 @@ where
             .normalized_credential_preview()
             .iter()
             .map(|preview_data| {
-                let attestation = Attestation::create_from_attributes(
+                let attestation = AttestationPresentation::create_from_attributes(
                     AttestationIdentity::Ephemeral,
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
@@ -540,7 +543,7 @@ mod tests {
     fn mock_issuance_session(
         mdoc: Mdoc,
         type_metadata: VerifiedTypeMetadataDocuments,
-    ) -> (MockIssuanceSession, VecNonEmpty<Attestation>) {
+    ) -> (MockIssuanceSession, VecNonEmpty<AttestationPresentation>) {
         let mut client = MockIssuanceSession::new();
         let issuer_certificate = mdoc.issuer_certificate().unwrap();
         let issuer_registration = match IssuerRegistration::from_certificate(&issuer_certificate) {
@@ -548,7 +551,7 @@ mod tests {
             _ => IssuerRegistration::new_mock(),
         };
 
-        let attestations = vec![Attestation::create_for_issuance(
+        let attestations = vec![AttestationPresentation::create_for_issuance(
             AttestationIdentity::Ephemeral,
             type_metadata.to_normalized().unwrap(),
             issuer_registration.organization.clone(),
@@ -651,7 +654,7 @@ mod tests {
         // Setup a mock OpenID4VCI session.
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
-            vec![Attestation::new_mock()].try_into().unwrap(),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
         )));
 
@@ -714,7 +717,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
-            vec![Attestation::new_mock()].try_into().unwrap(),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
 
@@ -916,7 +919,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
-            vec![Attestation::new_mock()].try_into().unwrap(),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
 
@@ -945,7 +948,7 @@ mod tests {
         // Create a mock OpenID4VCI session that accepts the PID with a single
         // instance of `MdocCopies`, which contains a single valid `Mdoc`.
         let mdoc = test::create_example_pid_mdoc();
-        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
+        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::nl_pid_example());
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
 
         // Accept the PID issuance with the PIN.
@@ -1065,7 +1068,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
-            vec![Attestation::new_mock()].try_into().unwrap(),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
 
@@ -1151,7 +1154,7 @@ mod tests {
         };
         wallet.session = Some(Session::Issuance(IssuanceSession::new(
             true,
-            vec![Attestation::new_mock()].try_into().unwrap(),
+            vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
         )));
 
@@ -1174,7 +1177,7 @@ mod tests {
 
         // Have the mock OpenID4VCI session report some mdocs upon accepting.
         let mdoc = test::create_example_pid_mdoc();
-        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::pid_example());
+        let (pid_issuer, attestations) = mock_issuance_session(mdoc, VerifiedTypeMetadataDocuments::nl_pid_example());
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
 
         // Have the mdoc storage return an error on query.

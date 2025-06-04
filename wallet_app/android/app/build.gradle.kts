@@ -8,7 +8,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-fun loadProperties(name: String) : Map<String,String> {
+fun loadProperties(name: String): Map<String, String> {
     val file = rootProject.file(name)
     return if (file.exists()) {
         val props = Properties()
@@ -27,7 +27,8 @@ val dartEnvironmentVariables = if (project.hasProperty("dart-defines")) {
     project.property("dart-defines").let { defines ->
         check(defines is String) { "dart-defines should be String" }
         defines.split(",").associate { entry ->
-            val pair = Base64.getDecoder().decode(entry).toString(Charsets.UTF_8).split("=", limit=2)
+            val pair =
+                Base64.getDecoder().decode(entry).toString(Charsets.UTF_8).split("=", limit = 2)
             check(pair.size == 2) { "Got dart define without =" }
             pair[0] to pair[1]
         }
@@ -47,13 +48,24 @@ class ULIntentFilter(
 )
 
 // Universal / deep links config
-val ulIntentFilter = dartEnvironmentVariables["UL_HOSTNAME"]?.takeIf { it.isNotEmpty() }?.let { ulHostname ->
-    ULIntentFilter(autoVerify=true, host=ulHostname, pathPrefix="/deeplink", scheme="https")
-} ?: ULIntentFilter(autoVerify=false, host="*", pathPrefix="", scheme="walletdebuginteraction")
+val ulIntentFilter =
+    dartEnvironmentVariables["UL_HOSTNAME"]?.takeIf { it.isNotEmpty() }?.let { ulHostname ->
+        ULIntentFilter(
+            autoVerify = true,
+            host = ulHostname,
+            pathPrefix = "/deeplink",
+            scheme = "https"
+        )
+    } ?: ULIntentFilter(
+        autoVerify = false,
+        host = "*",
+        pathPrefix = "",
+        scheme = "walletdebuginteraction"
+    )
 
 android {
     namespace = "nl.rijksoverheid.edi.wallet"
-    compileSdk = 34
+    compileSdk = 35
 
     // Note: When using flutter >= 3.27.1 with Java 21, you will see the
     // following (harmless) warnings:
@@ -156,7 +168,7 @@ flutter {
 dependencies {
     implementation("net.java.dev.jna:jna:5.7.0@aar") // Java Native Access
 
-    implementation(project(path=":platform_support"))
+    implementation(project(path = ":platform_support"))
 }
 
 // Target directory for the Rust library files
@@ -166,9 +178,9 @@ val jniTargetDir = android.sourceSets.getByName("main").jniLibs.srcDirs.first()
 enum class BuildMode { Debug, Profile, Release }
 data class BuildOptions(val strip: Boolean, val args: List<String> = emptyList())
 mapOf(
-    BuildMode.Debug to BuildOptions(strip=false),
-    BuildMode.Profile to BuildOptions(strip=true, args=listOf("--locked", "--release")),
-    BuildMode.Release to BuildOptions(strip=true, args=listOf("--locked", "--release")),
+    BuildMode.Debug to BuildOptions(strip = false),
+    BuildMode.Profile to BuildOptions(strip = true, args = listOf("--locked", "--release")),
+    BuildMode.Release to BuildOptions(strip = true, args = listOf("--locked", "--release")),
 ).forEach { (buildMode, options) ->
     tasks.register<Exec>("cargoBuildNativeLibrary${buildMode}") {
         workingDir("../../../wallet_core")
@@ -186,7 +198,7 @@ mapOf(
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
             args("--features", "wallet/allow_insecure_url")
         }
-     }
+    }
     tasks.named { it == "merge${buildMode}NativeLibs" }.configureEach {
         dependsOn("cargoBuildNativeLibrary${buildMode}")
     }

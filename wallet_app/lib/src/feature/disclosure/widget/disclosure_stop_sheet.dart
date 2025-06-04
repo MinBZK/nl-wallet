@@ -10,20 +10,30 @@ import '../../common/widget/wallet_scrollbar.dart';
 /// Builds upon the [ConfirmActionSheet], but supplies defaults for
 /// when the user is requesting to stop the disclosure flow.
 class DisclosureStopSheet extends StatelessWidget {
-  final String? organizationName;
-  final VoidCallback? onReportIssuePressed;
-  final VoidCallback onCancelPressed;
+  /// Callback invoked when the confirm action (stop) is pressed.
   final VoidCallback onConfirmPressed;
 
-  /// Influences the dialog's description
-  final bool isLoginFlow;
+  /// Callback invoked when the cancel action is pressed.
+  final VoidCallback onCancelPressed;
+
+  /// Optional callback invoked when the report issue action is pressed.
+  /// If null, the report issue button will not be shown.
+  final VoidCallback? onReportIssuePressed;
+
+  /// The name of the organization involved in the disclosure, if applicable.
+  /// This is used in the description text.
+  final String? organizationName;
+
+  /// The type of description to display in the sheet.
+  /// This influences the text shown to the user.
+  final StopDescriptionType descriptionType;
 
   const DisclosureStopSheet({
     required this.organizationName,
     this.onReportIssuePressed,
     required this.onCancelPressed,
     required this.onConfirmPressed,
-    this.isLoginFlow = false,
+    this.descriptionType = StopDescriptionType.generic,
     super.key,
   });
 
@@ -50,14 +60,17 @@ class DisclosureStopSheet extends StatelessWidget {
   }
 
   String _resolveDescription(BuildContext context) {
-    if (organizationName != null) {
-      return isLoginFlow
-          ? context.l10n.disclosureStopSheetDescriptionForLogin(organizationName!)
-          : context.l10n.disclosureStopSheetDescription(organizationName!);
-    } else {
-      return isLoginFlow
-          ? context.l10n.disclosureStopSheetDescriptionForLoginVariant
-          : context.l10n.disclosureStopSheetDescriptionVariant;
+    switch (descriptionType) {
+      case StopDescriptionType.forUrlCheck:
+        return context.l10n.disclosureStopSheetDescriptionForUrlCheck;
+      case StopDescriptionType.forLogin:
+        return organizationName == null
+            ? context.l10n.disclosureStopSheetDescriptionForLoginVariant
+            : context.l10n.disclosureStopSheetDescriptionForLogin(organizationName!);
+      case StopDescriptionType.generic:
+        return organizationName == null
+            ? context.l10n.disclosureStopSheetDescriptionVariant
+            : context.l10n.disclosureStopSheetDescription(organizationName!);
     }
   }
 
@@ -65,7 +78,7 @@ class DisclosureStopSheet extends StatelessWidget {
     BuildContext context, {
     LocalizedText? organizationName,
     VoidCallback? onReportIssuePressed,
-    bool isLoginFlow = false,
+    StopDescriptionType descriptionType = StopDescriptionType.generic,
   }) async {
     final confirmed = await showModalBottomSheet<bool>(
       context: context,
@@ -79,7 +92,7 @@ class DisclosureStopSheet extends StatelessWidget {
               onReportIssuePressed: onReportIssuePressed,
               onConfirmPressed: () => Navigator.pop(context, true),
               onCancelPressed: () => Navigator.pop(context, false),
-              isLoginFlow: isLoginFlow,
+              descriptionType: descriptionType,
             ),
           ),
         );
@@ -88,3 +101,5 @@ class DisclosureStopSheet extends StatelessWidget {
     return confirmed ?? false;
   }
 }
+
+enum StopDescriptionType { forUrlCheck, forLogin, generic }

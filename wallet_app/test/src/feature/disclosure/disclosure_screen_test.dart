@@ -68,19 +68,14 @@ void main() {
       await screenMatchesGolden('load_in_progress.light');
     });
 
-    testGoldens('DisclosureCheckOrganization Light', (tester) async {
+    testGoldens('DisclosureCheckUrl Light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureCheckOrganization(
-            relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
-            sharedDataWithOrganizationBefore: true,
-            sessionType: DisclosureSessionType.crossDevice,
-          ),
+          const DisclosureCheckUrl(originUrl: 'https://origin.org'),
         ),
       );
-      await screenMatchesGolden('check_organization.light');
+      await screenMatchesGolden('check_url.light');
     });
 
     testGoldens('Stop Sheet Dark (on top of check organization for login)', (tester) async {
@@ -89,7 +84,7 @@ void main() {
           MockDisclosureBloc(),
           DisclosureCheckOrganizationForLogin(
             relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
+            originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
             policy: WalletMockData.policy,
@@ -105,20 +100,59 @@ void main() {
       await screenMatchesGolden('stop_sheet.login.dark');
     });
 
-    testGoldens('DisclosureCheckOrganization Light - landscape', (tester) async {
+    testGoldens('Stop Sheet Dark (on top of check attributes)', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureCheckOrganization(
+          DisclosureConfirmDataAttributes(
             relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
+            requestPurpose: 'requestPurpose'.untranslated,
+            requestedAttributes: {
+              WalletMockData.card: [WalletMockData.textDataAttribute],
+            },
+            policy: WalletMockData.policy,
+            sessionType: DisclosureSessionType.sameDevice,
+          ),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
+        ],
+      );
+      final l10n = await TestUtils.englishLocalizations;
+      await tester.scrollUntilVisible(find.text(l10n.disclosureConfirmDataAttributesPageDenyCta), 1000);
+      await tester.tap(find.text(l10n.disclosureConfirmDataAttributesPageDenyCta));
+      await tester.pumpAndSettle();
+
+      await screenMatchesGolden('stop_sheet.confirm_attributes.light');
+    });
+
+    testGoldens('DisclosureCheckOrganizationForLogin Dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureCheckOrganizationForLogin(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
+            requestedAttributes: {},
+            policy: WalletMockData.policy,
           ),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('check_organization.dark');
+    });
+
+    testGoldens('DisclosureCheckUrl Light - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          const DisclosureCheckUrl(originUrl: 'https://origin.org'),
         ),
         surfaceSize: iphoneXSizeLandscape,
       );
-      await screenMatchesGolden('check_organization.light.landscape');
+      await screenMatchesGolden('check_url.light.landscape');
     });
 
     testGoldens('DisclosureGenericError Light', (tester) async {
@@ -192,6 +226,7 @@ void main() {
             },
             requestPurpose: 'Sample reason'.untranslated,
             policy: WalletMockData.policy,
+            sessionType: DisclosureSessionType.crossDevice,
           ),
         ),
         brightness: Brightness.dark,
@@ -214,6 +249,7 @@ void main() {
             },
             requestPurpose: 'Sample reason'.untranslated,
             policy: WalletMockData.policy,
+            sessionType: DisclosureSessionType.crossDevice,
           ),
         ),
         brightness: Brightness.light,
@@ -286,7 +322,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureCancelledSessionError(
+          DisclosureSessionCancelled(
             relyingParty: WalletMockData.organization,
             returnUrl: 'https://example.com',
             error: const SessionError(
@@ -305,12 +341,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureCheckOrganization(
-            relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
-            sharedDataWithOrganizationBefore: true,
-            sessionType: DisclosureSessionType.crossDevice,
-          ),
+          const DisclosureCheckUrl(originUrl: 'https://origin.org'),
         ),
       );
       // Find and press the close button
@@ -326,11 +357,13 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
           MockDisclosureBloc(),
-          DisclosureCheckOrganization(
+          DisclosureCheckOrganizationForLogin(
             relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
+            originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
+            policy: WalletMockData.policy,
+            requestedAttributes: {},
           ),
         ),
         providers: [
@@ -363,54 +396,6 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('when cross-device session; fraud warning is shown on organization approve page', (tester) async {
-      const originUrl = 'http://origin.org';
-
-      await tester.pumpWidgetWithAppWrapper(
-        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-          MockDisclosureBloc(),
-          DisclosureCheckOrganization(
-            relyingParty: WalletMockData.organization,
-            originUrl: originUrl,
-            sharedDataWithOrganizationBefore: true,
-            sessionType: DisclosureSessionType.crossDevice,
-          ),
-        ),
-      );
-      final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.organizationApprovePageFraudInfoPart1, findRichText: true), findsOneWidget);
-
-      final leadingPart = l10n.organizationApprovePageFraudInfoPart2(originUrl).split(originUrl).first.trim();
-      final trailingPart = l10n.organizationApprovePageFraudInfoPart2(originUrl).split(originUrl).last.trim();
-      // We match on the longest piece of text (before/after the embedded [originUrl], to avoid only matching on a "." which could cause multiple hits (e.g. with current translations).
-      // We consider onlyu checking for the longest part sufficient because the main thing we want to verify is that this warning is visible (in cross device flows).
-      final matchOn = leadingPart.length >= trailingPart.length ? leadingPart : trailingPart;
-      expect(find.textContaining(matchOn, findRichText: true), findsOneWidget);
-
-      // Verify the originUrl is visible, now in a dedicated widget (which is why this test is more convoluted in the first place,
-      // as the new [UrlSpan] is not directly matchable using the findRichText flag.
-      expect(find.text(originUrl), findsOneWidget);
-    });
-
-    testWidgets('when same-device session; fraud warning is NOT shown on organization approve page', (tester) async {
-      const originUrl = 'http://origin.org';
-
-      await tester.pumpWidgetWithAppWrapper(
-        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
-          MockDisclosureBloc(),
-          DisclosureCheckOrganization(
-            relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
-            sharedDataWithOrganizationBefore: true,
-            sessionType: DisclosureSessionType.sameDevice,
-          ),
-        ),
-      );
-      final l10n = await TestUtils.englishLocalizations;
-      expect(find.text(l10n.organizationApprovePageFraudInfoPart1, findRichText: true), findsNothing);
-      expect(find.text(l10n.organizationApprovePageFraudInfoPart2(originUrl), findRichText: true), findsNothing);
-    });
-
     testWidgets('history button is shown on the success page', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
@@ -582,11 +567,13 @@ void main() {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
             MockDisclosureBloc(),
-            DisclosureCheckOrganization(
+            DisclosureCheckOrganizationForLogin(
               relyingParty: WalletMockData.organization,
               sharedDataWithOrganizationBefore: false,
               originUrl: '',
               sessionType: DisclosureSessionType.sameDevice,
+              policy: WalletMockData.policy,
+              requestedAttributes: {},
             ),
           ),
           providers: [
@@ -603,6 +590,7 @@ void main() {
             RepositoryProvider<IsWalletInitializedUseCase>(create: (_) => MockIsWalletInitializedUseCase()),
             RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
             RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+            RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(create: (c) => PolicyBodyTextMapper()),
           ],
         );
 
@@ -611,14 +599,14 @@ void main() {
         expect(find.textContaining(title), findsAtLeast(1));
 
         // Navigate away
-        await tester.tap(find.text(l10n.organizationApprovePageMoreInfoCta));
+        await tester.tap(find.text(l10n.organizationApprovePageMoreInfoLoginCta));
         await tester.pumpAndSettle();
 
         // DisclosureScreen title should no longer be visible
         expect(find.text(title), findsNothing);
-        // Organization detail screen title should be visible
+        // Login detail screen title should be visible
         final organizationDetailScreenTitle =
-            l10n.organizationDetailScreenTitle(WalletMockData.organization.displayName.testValue);
+            l10n.loginDetailScreenTitle(WalletMockData.organization.displayName.testValue);
         expect(find.text(organizationDetailScreenTitle), findsAtLeast(1));
       },
     );
@@ -699,7 +687,7 @@ void main() {
     );
 
     testWidgets(
-      'DisclosureScreen with DisclosureMissingAttributes displays the missing attributes',
+      'DisclosureScreen with DisclosureMissingAttributes displays the missing attributes in details sheet',
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
@@ -707,12 +695,17 @@ void main() {
             DisclosureMissingAttributes(
               relyingParty: WalletMockData.organization,
               missingAttributes: [
-                WalletMockData.textDataAttribute,
-                WalletMockData.textDataAttribute,
+                MissingAttribute.untranslated(key: 'text_key', label: 'Label'),
+                MissingAttribute.untranslated(key: 'text_key', label: 'Label'),
               ],
             ),
           ),
         );
+
+        // Tap show details button to open details sheet
+        final l10n = await TestUtils.englishLocalizations;
+        await tester.tap(find.text(l10n.missingAttributesPageShowDetailsCta));
+        await tester.pumpAndSettle();
 
         expect(find.byType(MissingAttributesPage), findsOneWidget);
         expect(find.text(WalletMockData.textDataAttribute.label.testValue), findsNWidgets(2));
@@ -730,6 +723,7 @@ void main() {
               requestPurpose: 'test purpose'.untranslated,
               requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
               policy: WalletMockData.policy,
+              sessionType: DisclosureSessionType.crossDevice,
             ),
           ),
           providers: [

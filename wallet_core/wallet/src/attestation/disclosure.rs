@@ -6,11 +6,11 @@ use attestation_data::auth::Organization;
 use mdoc::NameSpace;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
-use super::Attestation;
 use super::AttestationError;
 use super::AttestationIdentity;
+use super::AttestationPresentation;
 
-impl Attestation {
+impl AttestationPresentation {
     pub(crate) fn create_for_disclosure(
         metadata: NormalizedTypeMetadata,
         issuer_organization: Organization,
@@ -42,9 +42,9 @@ mod test {
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
     use crate::attestation::attribute::test::claim_metadata;
-    use crate::attestation::Attestation;
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
+    use crate::attestation::AttestationPresentation;
 
     fn example_metadata() -> NormalizedTypeMetadata {
         NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata {
@@ -76,8 +76,12 @@ mod test {
             ],
         )]);
 
-        let attestation =
-            Attestation::create_for_disclosure(example_metadata(), Organization::new_mock(), mdoc_attributes).unwrap();
+        let attestation = AttestationPresentation::create_for_disclosure(
+            example_metadata(),
+            Organization::new_mock(),
+            mdoc_attributes,
+        )
+        .unwrap();
 
         let attrs = attestation
             .attributes
@@ -110,8 +114,11 @@ mod test {
             }],
         )]);
 
-        let attestation =
-            Attestation::create_for_disclosure(example_metadata(), Organization::new_mock(), mdoc_attributes);
+        let attestation = AttestationPresentation::create_for_disclosure(
+            example_metadata(),
+            Organization::new_mock(),
+            mdoc_attributes,
+        );
 
         assert!(attestation.is_ok());
     }
@@ -144,7 +151,8 @@ mod test {
             ],
         )]);
 
-        let attestation = Attestation::create_for_disclosure(metadata, Organization::new_mock(), mdoc_attributes);
+        let attestation =
+            AttestationPresentation::create_for_disclosure(metadata, Organization::new_mock(), mdoc_attributes);
 
         assert_matches!(
             attestation,

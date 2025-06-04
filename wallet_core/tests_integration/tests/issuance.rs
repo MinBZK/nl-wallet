@@ -23,13 +23,13 @@ use wallet::mock::BSN_ATTR_NAME;
 use wallet::mock::PID_DOCTYPE;
 use wallet::openid4vc::SessionType;
 use wallet::utils::BaseUrl;
-use wallet::Attestation;
 use wallet::AttestationAttributeValue;
+use wallet::AttestationPresentation;
 use wallet::DisclosureUriSource;
 
-pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<Attestation> {
+pub async fn wallet_attestations(wallet: &mut WalletWithMocks) -> Vec<AttestationPresentation> {
     // Emit attestations into this local variable
-    let attestations: Arc<std::sync::Mutex<Vec<Attestation>>> = Arc::new(std::sync::Mutex::new(vec![]));
+    let attestations: Arc<std::sync::Mutex<Vec<AttestationPresentation>>> = Arc::new(std::sync::Mutex::new(vec![]));
 
     {
         let attestations = Arc::clone(&attestations);
@@ -263,7 +263,7 @@ async fn test_disclosure_based_issuance_ok() {
 
     // With collecting into this map, we willfully ignore the possibility here that the wallet might have
     // multiple attestation for a single attestation type.
-    let attestations: HashMap<String, Attestation> = wallet_attestations(&mut wallet)
+    let attestations: HashMap<String, AttestationPresentation> = wallet_attestations(&mut wallet)
         .await
         .into_iter()
         .map(|att| (att.attestation_type.clone(), att))

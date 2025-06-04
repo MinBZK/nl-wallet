@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::future;
 use std::future::Future;
 use std::net::IpAddr;
-use std::ops::Add;
 use std::process;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -11,7 +10,6 @@ use std::time::Duration;
 
 use assert_matches::assert_matches;
 use chrono::DateTime;
-use chrono::Days;
 use chrono::Utc;
 use http::StatusCode;
 use indexmap::IndexMap;
@@ -21,12 +19,10 @@ use reqwest::Client;
 use reqwest::Response;
 use rstest::rstest;
 use rustls_pki_types::TrustAnchor;
-use ssri::Integrity;
 use tokio::net::TcpListener;
 use tokio::time;
 use url::Url;
 
-use attestation_data::attributes::Entry;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
@@ -37,18 +33,14 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
-use mdoc::examples::Example;
 use mdoc::examples::EXAMPLE_ATTR_NAME;
-use mdoc::examples::EXAMPLE_ATTR_VALUE;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
 use mdoc::holder::Mdoc;
-use mdoc::unsigned::UnsignedMdoc;
+use mdoc::test::data::pid_example_payload;
 use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
-use mdoc::utils::serialization::TaggedBytes;
 use mdoc::verifier::DisclosedAttributes;
-use mdoc::DeviceResponse;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
@@ -68,6 +60,8 @@ use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadata;
+use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 use server_utils::settings::Authentication;
 use server_utils::settings::RequesterAuth;
 use server_utils::settings::Server;
@@ -78,6 +72,7 @@ use verification_server::server;
 use verification_server::settings::UseCaseSettings;
 use verification_server::settings::VerifierSettings;
 
+const PID_ATTESTATION_TYPE: &str = "urn:eudi:pid:nl:1";
 const USECASE_NAME: &str = "usecase";
 
 static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = LazyLock::new(|| StartDisclosureRequest {
@@ -99,6 +94,27 @@ static EXAMPLE_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> = Lazy
         .into(),
     ),
 });
+
+static EXAMPLE_PID_START_DISCLOSURE_REQUEST: LazyLock<StartDisclosureRequest> =
+    LazyLock::new(|| StartDisclosureRequest {
+        usecase: USECASE_NAME.to_string(),
+        return_url_template: Some("https://return.url/{session_token}".parse().unwrap()),
+        items_requests: Some(
+            vec![ItemsRequest {
+                doc_type: PID_ATTESTATION_TYPE.to_string(),
+                request_info: None,
+                name_spaces: IndexMap::from([(
+                    PID_ATTESTATION_TYPE.to_string(),
+                    IndexMap::from_iter(
+                        [(EXAMPLE_ATTR_NAME.to_string(), true)]
+                            .into_iter()
+                            .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
+                    ),
+                )]),
+            }]
+            .into(),
+        ),
+    });
 
 fn memory_storage_settings() -> Storage {
     // Set up the default storage timeouts.
@@ -130,6 +146,7 @@ async fn request_server_settings_and_listener() -> (RequesterAuth, Option<TcpLis
 
 async fn wallet_server_settings_and_listener(
     requester_server: RequesterAuth,
+    request: &StartDisclosureRequest,
 ) -> (VerifierSettings, TcpListener, Ca, TrustAnchor<'static>) {
     // Set up the listener.
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
@@ -149,7 +166,7 @@ async fn wallet_server_settings_and_listener(
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
     let reader_registration = Some(reader_registration_mock_from_requests(
-        EXAMPLE_START_DISCLOSURE_REQUEST.items_requests.as_ref().unwrap(),
+        request.items_requests.as_ref().unwrap(),
     ));
 
     // Set up the use case, based on RP CA and reader registration.
@@ -284,7 +301,8 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
         }
     };
 
-    let (settings, wallet_listener, _, _) = wallet_server_settings_and_listener(auth).await;
+    let (settings, wallet_listener, _, _) =
+        wallet_server_settings_and_listener(auth, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -442,7 +460,8 @@ async fn test_http_json_error_body(
 #[tokio::test]
 async fn test_new_session_parameters_error() {
     let (requester_server, requester_listener) = request_server_settings_and_listener().await;
-    let (settings, wallet_listener, _, _) = wallet_server_settings_and_listener(requester_server).await;
+    let (settings, wallet_listener, _, _) =
+        wallet_server_settings_and_listener(requester_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -495,7 +514,8 @@ async fn test_new_session_parameters_error() {
 #[tokio::test]
 async fn test_disclosure_not_found() {
     let (requester_server, requester_listener) = request_server_settings_and_listener().await;
-    let (settings, wallet_listener, _, _) = wallet_server_settings_and_listener(requester_server).await;
+    let (settings, wallet_listener, _, _) =
+        wallet_server_settings_and_listener(requester_server, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -575,6 +595,7 @@ async fn get_status_ok(client: &Client, status_url: Url) -> StatusResponse {
 
 async fn start_disclosure<S>(
     disclosure_sessions: S,
+    request: &StartDisclosureRequest,
 ) -> (
     VerifierSettings,
     Client,
@@ -588,7 +609,7 @@ where
 {
     let (requester_server, requester_listener) = request_server_settings_and_listener().await;
     let (settings, wallet_listener, issuer_ca, rp_trust_anchor) =
-        wallet_server_settings_and_listener(requester_server).await;
+        wallet_server_settings_and_listener(requester_server, request).await;
     let hsm = settings
         .server_settings
         .hsm
@@ -612,7 +633,7 @@ where
     let client = default_reqwest_client_builder().build().unwrap();
     let response = client
         .post(internal_url.join("disclosure/sessions"))
-        .json(LazyLock::force(&EXAMPLE_START_DISCLOSURE_REQUEST))
+        .json(request)
         .send()
         .await
         .unwrap();
@@ -631,7 +652,8 @@ where
 
 #[tokio::test]
 async fn test_disclosure_missing_session_type() {
-    let (settings, client, session_token, _, _, _) = start_disclosure(MemorySessionStore::default()).await;
+    let (settings, client, session_token, _, _, _) =
+        start_disclosure(MemorySessionStore::default(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     // Check if requesting the session status without a session_type returns a 200, but without the universal link.
     let status_url = format_status_url(&settings.server_settings.public_url, &session_token, None);
@@ -644,7 +666,8 @@ async fn test_disclosure_missing_session_type() {
 
 #[tokio::test]
 async fn test_disclosure_cancel() {
-    let (settings, client, session_token, internal_url, _, _) = start_disclosure(MemorySessionStore::default()).await;
+    let (settings, client, session_token, internal_url, _, _) =
+        start_disclosure(MemorySessionStore::default(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     // Fetching the status should return OK and be in the Created state.
     let status_url = format_status_url(
@@ -707,7 +730,8 @@ async fn test_disclosure_expired<S, F, Fut>(
     F: Fn() -> Fut,
     Fut: Future<Output = ()>,
 {
-    let (settings, client, session_token, internal_url, _, _) = start_disclosure(session_store).await;
+    let (settings, client, session_token, internal_url, _, _) =
+        start_disclosure(session_store, &EXAMPLE_START_DISCLOSURE_REQUEST).await;
     let timeouts = SessionStoreTimeouts::from(&storage);
 
     // Fetch the status, this should return OK and be in the Created state.
@@ -913,63 +937,25 @@ mod db_test {
     }
 }
 
-/// This utility function is used to prepare the two mocks necessary to emulate a valid holder.
-/// It will populate a [`MockMdocDataSource`] with a single [`Mdoc`] that is based on the
-/// attributes in the example from the ISO spec, resigned with the keys generated during test
-/// setup. The private key used to sign this [`Mdoc`] is placed in a [`SoftwareKeyFactory`].
 async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, MockRemoteKeyFactory) {
-    // Extract the the attributes from the example DeviceResponse in the ISO specs.
-    let example_document = DeviceResponse::example().documents.unwrap().into_iter().next().unwrap();
-    let example_attributes = example_document
-        .issuer_signed
-        .name_spaces
-        .unwrap()
-        .into_inner()
-        .into_iter()
-        .map(|(namespace, attributes)| {
-            let attributes = attributes
-                .into_inner()
-                .into_iter()
-                .map(|TaggedBytes(item)| Entry {
-                    name: item.element_identifier,
-                    value: item.element_value,
-                })
-                .collect();
-
-            (namespace, attributes)
-        })
-        .collect::<IndexMap<_, Vec<_>>>();
+    let payload_preview = pid_example_payload().previewable_payload;
 
     let issuer_key_pair = generate_issuer_mock(issuer_ca, Some(IssuerRegistration::new_mock())).unwrap();
-    // Use these attributes to create an unsigned Mdoc.
-    let now = Utc::now();
-    let unsigned_mdoc = UnsignedMdoc {
-        doc_type: example_document.doc_type,
-        valid_from: now.into(),
-        valid_until: now.add(Days::new(365)).into(),
-        attributes: example_attributes.try_into().unwrap(),
-        issuer_uri: issuer_key_pair
-            .certificate()
-            .san_dns_name_or_uris()
-            .unwrap()
-            .into_first(),
-        attestation_qualification: Default::default(),
-    };
 
-    // NOTE: This metadata does not match the attributes.
-    let normalized_metadata = NormalizedTypeMetadata::from_single_example(
-        TypeMetadata::empty_example_with_attestation_type(&unsigned_mdoc.doc_type).into_inner(),
-    );
+    let unchecked_metadata = UncheckedTypeMetadata::pid_example();
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let mdoc_private_key_id = crypto::utils::random_string(16);
     let mdoc_private_key = MockRemoteEcdsaKey::new_random(mdoc_private_key_id.clone());
     let mdoc_public_key = mdoc_private_key.verifying_key();
 
+    let type_metadata = TypeMetadata::try_new(unchecked_metadata.clone()).unwrap();
+    let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(type_metadata);
+    let normalized_metadata = NormalizedTypeMetadata::from_single_example(unchecked_metadata);
+
     let mdoc = Mdoc::sign::<MockRemoteEcdsaKey>(
-        unsigned_mdoc,
-        // Note that this resource integrity does not match any metadata source document.
-        Integrity::from(crypto::utils::random_bytes(32)),
+        payload_preview,
+        metadata_integrity,
         mdoc_private_key_id,
         mdoc_public_key,
         &issuer_key_pair,
@@ -987,7 +973,7 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
 async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionToken, BaseUrl, Option<BaseUrl>) {
     // Start the verification_server and create a disclosure request.
     let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) =
-        start_disclosure(MemorySessionStore::default()).await;
+        start_disclosure(MemorySessionStore::default(), &EXAMPLE_PID_START_DISCLOSURE_REQUEST).await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
     let status_url = format_status_url(&settings.server_settings.public_url, &session_token, Some(session_type));
@@ -1039,12 +1025,12 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
 }
 
 fn check_example_disclosed_attributes(disclosed_attributes: &DisclosedAttributes) {
-    itertools::assert_equal(disclosed_attributes.keys(), [EXAMPLE_DOC_TYPE]);
-    let attributes = &disclosed_attributes.get(EXAMPLE_DOC_TYPE).unwrap().attributes;
-    itertools::assert_equal(attributes.keys(), [EXAMPLE_NAMESPACE]);
-    let (first_entry_name, first_entry_value) = attributes.get(EXAMPLE_NAMESPACE).unwrap().first().unwrap();
+    itertools::assert_equal(disclosed_attributes.keys(), [PID_ATTESTATION_TYPE]);
+    let attributes = &disclosed_attributes.get(PID_ATTESTATION_TYPE).unwrap().attributes;
+    itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
+    let (first_entry_name, first_entry_value) = attributes.get(PID_ATTESTATION_TYPE).unwrap().first().unwrap();
     assert_eq!(first_entry_name, EXAMPLE_ATTR_NAME);
-    assert_eq!(first_entry_value, LazyLock::force(&EXAMPLE_ATTR_VALUE));
+    assert_eq!(first_entry_value.as_text(), "De Bruijn".into());
 }
 
 #[tokio::test]
@@ -1118,7 +1104,7 @@ async fn test_disclosed_attributes_with_nonce() {
 async fn test_disclosed_attributes_failed_session() {
     // Start the verification_server and create a disclosure request.
     let (settings, client, session_token, internal_url, issuer_ca, rp_trust_anchor) =
-        start_disclosure(MemorySessionStore::default()).await;
+        start_disclosure(MemorySessionStore::default(), &EXAMPLE_START_DISCLOSURE_REQUEST).await;
 
     // Fetching the status should return OK, be in the Created state and include a universal link.
     let status_url = format_status_url(

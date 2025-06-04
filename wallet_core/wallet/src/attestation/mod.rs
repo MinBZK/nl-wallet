@@ -37,7 +37,7 @@ pub enum AttestationError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Attestation {
+pub struct AttestationPresentation {
     pub identity: AttestationIdentity,
     pub attestation_type: String,
     pub display_metadata: VecNonEmpty<DisplayMetadata>,
@@ -70,12 +70,12 @@ pub enum AttestationAttributeValue {
 mod mock {
     use attestation_data::auth::Organization;
 
-    use super::Attestation;
     use super::AttestationIdentity;
+    use super::AttestationPresentation;
     use super::DisplayMetadata;
 
-    impl Attestation {
-        /// Create a nearly empty [`Attestation`] for tests that absolutely need this type.
+    impl AttestationPresentation {
+        /// Create a nearly empty [`AttestationPresentation`] for tests that absolutely need this type.
         pub fn new_mock() -> Self {
             Self {
                 identity: AttestationIdentity::Ephemeral,

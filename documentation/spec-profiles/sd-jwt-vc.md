@@ -1,5 +1,4 @@
 # SD-JWT VC Profile for the NL Wallet, VV and OV
-[[_TOC_]]
 
 ## Introduction
 The NL Wallet, VV, and OV implement the [SD-JWT VC Draft 08](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08) [SD-JWT-VC] specification, with *additional constraints and customizations* outlined in the profile below.
@@ -48,7 +47,7 @@ Example:
 If the values of the `firstname` and `lastname` are `John` and `Doe` respectively, then in the NL Wallet this will be rendered as `Person data for John Doe`.
 
 Example display of a credential in compact card form, using the `summary` from the example above:
-```json
+```
 +----------------------------+
 | PID card                   | // `name` from Display Metadata
 +----------------------------+

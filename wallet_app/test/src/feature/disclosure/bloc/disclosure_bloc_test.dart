@@ -54,7 +54,10 @@ void main() {
         .thenAnswer((_) async => const Result.error(GenericError('', sourceError: 'test'))),
     build: create,
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
-    expect: () => [isA<DisclosureGenericError>()],
+    expect: () => [
+      isA<DisclosureLoadInProgress>(),
+      isA<DisclosureGenericError>(),
+    ],
   );
 
   blocTest(
@@ -110,7 +113,7 @@ void main() {
     },
     build: create,
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
-    expect: () => [isA<DisclosureCheckOrganization>()],
+    expect: () => [isA<DisclosureCheckUrl>()],
   );
 
   blocTest(
@@ -122,7 +125,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             originUrl: 'http://origin.org',
             requestPurpose: 'requestPurpose'.untranslated,
-            sessionType: DisclosureSessionType.crossDevice,
+            sessionType: DisclosureSessionType.sameDevice,
             type: DisclosureType.login,
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
@@ -137,7 +140,7 @@ void main() {
   );
 
   blocTest(
-    'when startDisclosure returns StartDisclosureMissingAttributes, the bloc emits DisclosureCheckOrganization',
+    'when startDisclosure returns StartDisclosureMissingAttributes, the bloc emits DisclosureMissingAttributes',
     setUp: () {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
@@ -154,7 +157,7 @@ void main() {
     },
     build: create,
     act: (bloc) => bloc.add(const DisclosureSessionStarted('')),
-    expect: () => [isA<DisclosureCheckOrganization>()],
+    expect: () => [isA<DisclosureMissingAttributes>()],
   );
 
   blocTest(
@@ -182,7 +185,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureStopRequested());
     },
-    expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureLoadInProgress>(), isA<DisclosureStopped>()],
+    expect: () => [isA<DisclosureCheckUrl>(), isA<DisclosureLoadInProgress>(), isA<DisclosureStopped>()],
     verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
   );
 
@@ -209,7 +212,11 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureStopRequested());
     },
-    expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureLoadInProgress>(), isA<DisclosureStopped>()],
+    expect: () => [
+      isA<DisclosureMissingAttributes>(),
+      isA<DisclosureLoadInProgress>(),
+      isA<DisclosureStopped>(),
+    ],
     verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
   );
 
@@ -236,9 +243,9 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
     },
-    expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureConfirmDataAttributes>()],
+    expect: () => [isA<DisclosureCheckUrl>(), isA<DisclosureConfirmDataAttributes>()],
   );
 
   blocTest(
@@ -250,7 +257,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             originUrl: 'http://origin.org',
             requestPurpose: 'requestPurpose'.untranslated,
-            sessionType: DisclosureSessionType.crossDevice,
+            sessionType: DisclosureSessionType.sameDevice,
             type: DisclosureType.login,
             requestedAttributes: {},
             policy: WalletMockData.policy,
@@ -264,72 +271,16 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureShareRequestedAttributesApproved());
     },
-    expect: () => [isA<DisclosureCheckOrganizationForLogin>(), isA<DisclosureConfirmPin>()],
-  );
-
-  blocTest(
-    'when the user continues disclosure after checking the organization based on StartDisclosureMissingAttributes, the bloc emits DisclosureMissingAttributes',
-    setUp: () {
-      when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
-        return Result.success(
-          StartDisclosureMissingAttributes(
-            relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
-            requestPurpose: 'requestPurpose'.untranslated,
-            sessionType: DisclosureSessionType.crossDevice,
-            missingAttributes: [],
-            sharedDataWithOrganizationBefore: false,
-          ),
-        );
-      });
-    },
-    build: create,
-    act: (bloc) async {
-      bloc.add(const DisclosureSessionStarted(''));
-      // Give the bloc 25ms to process the previous event
-      await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
-    },
-    expect: () => [isA<DisclosureCheckOrganization>(), isA<DisclosureMissingAttributes>()],
-  );
-
-  blocTest(
-    'when users stops the flow reviewing the DisclosureMissingAttributes state, the bloc emits DisclosureLoadInProgress and DisclosureStopped states and cancels disclosure',
-    setUp: () {
-      when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
-        return Result.success(
-          StartDisclosureMissingAttributes(
-            relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
-            requestPurpose: 'requestPurpose'.untranslated,
-            sessionType: DisclosureSessionType.crossDevice,
-            missingAttributes: [],
-            sharedDataWithOrganizationBefore: false,
-          ),
-        );
-      });
-    },
-    build: create,
-    act: (bloc) async {
-      bloc.add(const DisclosureSessionStarted(''));
-      // Give the bloc 25ms to process the previous event
-      await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
-      bloc.add(const DisclosureStopRequested());
-    },
-    verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
     expect: () => [
-      isA<DisclosureCheckOrganization>(),
-      isA<DisclosureMissingAttributes>(),
-      isA<DisclosureLoadInProgress>(),
-      isA<DisclosureStopped>(),
+      isA<DisclosureCheckOrganizationForLogin>(),
+      isA<DisclosureConfirmPin>(),
     ],
   );
 
   blocTest(
-    'when the user opts so share the requested attributes, the bloc emits DisclosureConfirmPin',
+    'when the user opts to share the requested attributes, the bloc emits DisclosureConfirmPin',
     setUp: () {
       when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
         return Result.success(
@@ -351,7 +302,7 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
       bloc.add(const DisclosureShareRequestedAttributesApproved());
     },
     skip: 2,
@@ -382,7 +333,7 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
       bloc.add(const DisclosureShareRequestedAttributesApproved());
       bloc.add(const DisclosurePinConfirmed());
     },
@@ -417,7 +368,7 @@ void main() {
     },
     verify: (bloc) => verify(cancelDisclosureUseCase.invoke()).called(greaterThan(0)),
     expect: () => [
-      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureCheckUrl>(),
       isA<DisclosureLoadInProgress>(),
       isA<DisclosureLeftFeedback>(),
     ],
@@ -446,13 +397,13 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
       bloc.add(const DisclosureBackPressed());
     },
     expect: () => [
-      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureCheckUrl>(),
       isA<DisclosureConfirmDataAttributes>(),
-      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureCheckUrl>(),
     ],
   );
 
@@ -483,7 +434,7 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
       bloc.add(const DisclosureShareRequestedAttributesApproved());
       bloc.add(const DisclosureConfirmPinFailed(error: NetworkError(hasInternet: false, sourceError: 'test')));
     },
@@ -515,7 +466,7 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
       bloc.add(const DisclosureShareRequestedAttributesApproved());
       bloc.add(const DisclosureBackPressed());
     },
@@ -536,7 +487,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             originUrl: 'http://origin.org',
             requestPurpose: 'requestPurpose'.untranslated,
-            sessionType: DisclosureSessionType.crossDevice,
+            sessionType: DisclosureSessionType.sameDevice,
             type: DisclosureType.login,
             requestedAttributes: {},
             policy: WalletMockData.policy,
@@ -550,44 +501,13 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureShareRequestedAttributesApproved());
       bloc.add(const DisclosureBackPressed());
     },
     skip: 1,
     expect: () => [
       isA<DisclosureConfirmPin>(),
       isA<DisclosureCheckOrganizationForLogin>(),
-    ],
-  );
-
-  blocTest(
-    'when user presses back from the DisclosureMissingAttributes state, the bloc emits DisclosureCheckOrganization ',
-    setUp: () {
-      when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
-        return Result.success(
-          StartDisclosureMissingAttributes(
-            relyingParty: WalletMockData.organization,
-            originUrl: 'http://origin.org',
-            requestPurpose: 'requestPurpose'.untranslated,
-            sessionType: DisclosureSessionType.crossDevice,
-            missingAttributes: [],
-            sharedDataWithOrganizationBefore: false,
-          ),
-        );
-      });
-    },
-    build: create,
-    act: (bloc) async {
-      bloc.add(const DisclosureSessionStarted(''));
-      // Give the bloc 25ms to process the previous event
-      await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureOrganizationApproved());
-      bloc.add(const DisclosureBackPressed());
-    },
-    expect: () => [
-      isA<DisclosureCheckOrganization>(),
-      isA<DisclosureMissingAttributes>(),
-      isA<DisclosureCheckOrganization>(),
     ],
   );
 
@@ -620,7 +540,10 @@ void main() {
     ),
     build: create,
     act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
-    expect: () => [isA<DisclosureExternalScannerError>()],
+    expect: () => [
+      isA<DisclosureLoadInProgress>(),
+      isA<DisclosureExternalScannerError>(),
+    ],
   );
 
   blocTest(
@@ -633,6 +556,7 @@ void main() {
     build: create,
     act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [
+      isA<DisclosureLoadInProgress>(),
       isA<DisclosureSessionExpired>()
           .having((error) => error.canRetry, 'canRetry', true)
           .having((error) => error.isCrossDevice, 'isCrossDevice', false),
@@ -659,7 +583,7 @@ void main() {
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
       await Future.delayed(const Duration(milliseconds: 20));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
       await Future.delayed(const Duration(milliseconds: 20));
       bloc.add(
         const DisclosureConfirmPinFailed(
@@ -673,7 +597,7 @@ void main() {
       );
     },
     expect: () => [
-      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureCheckUrl>(),
       isA<DisclosureConfirmDataAttributes>(),
       isA<DisclosureLoadInProgress>(),
       const DisclosureSessionExpired(
@@ -701,6 +625,7 @@ void main() {
     build: create,
     act: (bloc) async => bloc.add(const DisclosureSessionStarted('')),
     expect: () => [
+      isA<DisclosureLoadInProgress>(),
       isA<DisclosureGenericError>()
           .having((error) => error.returnUrl, 'return url matches that of the error', 'https://example.org'),
     ],
@@ -715,7 +640,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             originUrl: 'http://origin.org',
             requestPurpose: 'requestPurpose'.untranslated,
-            sessionType: DisclosureSessionType.crossDevice,
+            sessionType: DisclosureSessionType.sameDevice,
             type: DisclosureType.login,
             requestedAttributes: {},
             policy: WalletMockData.policy,
@@ -728,11 +653,12 @@ void main() {
     build: create,
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
+      await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureStopRequested());
     },
     expect: () => [
-      isA<DisclosureLoadInProgress>(),
       isA<DisclosureCheckOrganizationForLogin>(),
+      isA<DisclosureLoadInProgress>(),
       DisclosureStopped(
         organization: WalletMockData.organization,
         isLoginFlow: true,
@@ -761,7 +687,7 @@ void main() {
     act: (bloc) async {
       bloc.add(const DisclosureSessionStarted(''));
       await Future.delayed(const Duration(milliseconds: 20));
-      bloc.add(const DisclosureOrganizationApproved());
+      bloc.add(const DisclosureUrlApproved());
       await Future.delayed(const Duration(milliseconds: 20));
       bloc.add(
         const DisclosureConfirmPinFailed(
@@ -774,10 +700,10 @@ void main() {
       );
     },
     expect: () => [
-      isA<DisclosureCheckOrganization>(),
+      isA<DisclosureCheckUrl>(),
       isA<DisclosureConfirmDataAttributes>(),
       isA<DisclosureLoadInProgress>(),
-      DisclosureCancelledSessionError(
+      DisclosureSessionCancelled(
         error: const SessionError(
           state: SessionState.cancelled,
           crossDevice: SessionType.crossDevice,

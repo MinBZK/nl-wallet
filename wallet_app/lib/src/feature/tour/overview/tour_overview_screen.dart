@@ -87,6 +87,7 @@ class TourOverviewScreen extends StatelessWidget {
               tourVideo.title,
               style: context.textTheme.headlineMedium,
             ),
+            const SizedBox(height: 16),
             BulletList(
               items: tourVideo.bulletPoints.split('\n'),
               icon: Icon(
@@ -96,6 +97,7 @@ class TourOverviewScreen extends StatelessWidget {
               ),
               rowCrossAxisAlignment: CrossAxisAlignment.start,
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

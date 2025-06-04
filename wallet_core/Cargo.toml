@@ -12,6 +12,7 @@ members = [
     "lib/apple_app_attest",
     "lib/attestation_data",
     "lib/crypto",
+    "lib/dcql",
     "lib/error_category",
     "lib/error_category/error_category_derive",
     "lib/hsm",

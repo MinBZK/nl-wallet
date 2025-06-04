@@ -27,12 +27,10 @@ class IssuanceInitial extends IssuanceState {
 }
 
 class IssuanceLoadInProgress extends IssuanceState {
-  final int step;
-
-  const IssuanceLoadInProgress({required this.step});
-
   @override
-  FlowProgress get stepperProgress => FlowProgress(currentStep: step, totalSteps: kIssuanceSteps);
+  final FlowProgress stepperProgress;
+
+  const IssuanceLoadInProgress(this.stepperProgress);
 }
 
 class IssuanceCheckOrganization extends IssuanceState {
