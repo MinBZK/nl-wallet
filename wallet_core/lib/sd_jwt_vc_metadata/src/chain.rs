@@ -86,7 +86,7 @@ impl SortedTypeMetadata {
 /// a [`SortedTypeMetadataDocuments`] type, which then can be turned into [`VerifiedTypeMetadataDocuments`] by verifying
 /// its integrity.
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, AsRef, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, AsRef, Serialize, Deserialize)]
 pub struct TypeMetadataDocuments(
     #[serde_as(as = "IfIsHumanReadable<Vec<Base64<UrlSafe, Unpadded>>, Vec<Bytes>>")] VecNonEmpty<Vec<u8>>,
 );

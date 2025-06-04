@@ -10,9 +10,8 @@ use rand_core::OsRng;
 use serde_json::json;
 use ssri::Integrity;
 
-use crypto::server_keys::generate::Ca;
+use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
-use crypto::x509::BorrowingCertificate;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 
@@ -69,30 +68,19 @@ impl SdJwt {
         .unwrap()
     }
 
-    pub fn example_sd_jwt() -> SdJwt {
+    pub fn example_pid_sd_jwt(issuer_keypair: KeyPair) -> SdJwt {
         let object = json!({
-          "vct": "vct_pid_1",
+          "vct": "urn:eudi:pid:nl:1",
+          "iat": 1683000000,
+          "exp": 1883000000,
+          "iss": "https://cert.issuer.example.com",
+          "attestation_qualification": "QEAA",
+          "bsn": "999991772",
           "given_name": "John",
           "family_name": "Doe",
-          "email": "johndoe@example.com",
-          "phone_number": "+1-202-555-0101",
-          "phone_number_verified": true,
-          "address": {
-            "street_address": "123 Main St",
-            "locality": "Anytown",
-            "region": "Anystate",
-            "country": "US"
-          },
-          "birth_date": "1940-01-01",
-          "updated_at": 1570000000,
-          "nationalities": [
-            "US",
-            "DE"
-          ]
+          "birthdate": "1940-01-01"
         });
 
-        let ca = Ca::generate("myca", Default::default()).unwrap();
-        let issuer_certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone()).unwrap();
         let holder_privkey = SigningKey::random(&mut OsRng);
 
         // issuer signs SD-JWT
@@ -100,25 +88,15 @@ impl SdJwt {
             .unwrap()
             .make_concealable("/family_name")
             .unwrap()
-            .make_concealable("/email")
-            .unwrap()
-            .make_concealable("/phone_number")
-            .unwrap()
-            .make_concealable("/address/street_address")
-            .unwrap()
-            .make_concealable("/address")
-            .unwrap()
-            .make_concealable("/nationalities/0")
-            .unwrap()
-            .add_decoys("/nationalities", 1)
+            .make_concealable("/bsn")
             .unwrap()
             .add_decoys("", 2)
             .unwrap()
             .finish(
                 Algorithm::ES256,
                 Integrity::from(random_string(32)),
-                &ca.to_signing_key().unwrap(),
-                vec![issuer_certificate.clone()],
+                issuer_keypair.private_key(),
+                vec![issuer_keypair.certificate().clone()],
                 holder_privkey.verifying_key(),
             )
             .now_or_never()

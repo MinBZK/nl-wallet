@@ -1,6 +1,8 @@
 use tracing::info;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
@@ -13,7 +15,8 @@ use crate::attestation::AttestationIdentity;
 use crate::attestation::AttestationPresentation;
 use crate::storage::Storage;
 use crate::storage::StorageError;
-use crate::storage::StoredMdocCopy;
+use crate::storage::StoredAttestationCopy;
+use crate::storage::StoredAttestationFormat;
 
 use super::Wallet;
 
@@ -33,9 +36,17 @@ pub enum AttestationsError {
     #[category(critical)]
     MissingIssuerRegistration,
 
+    #[error("Sd-JWT does not contain an issuer certificate")]
+    #[category(critical)]
+    MissingIssuerCertificate,
+
     #[error("could not extract type metadata from mdoc: {0}")]
     #[category(defer)]
     Metadata(#[source] mdoc::Error),
+
+    #[error("could not convert SD-JWT to a CredentialPayload: {0}")]
+    #[category(defer)]
+    CredentialPayloadConversion(#[from] SdJwtCredentialPayloadError),
 
     #[error("error converting credential payload to attestation: {0}")]
     #[category(defer)]
@@ -50,34 +61,58 @@ where
     AKH: AttestedKeyHolder,
 {
     pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
-        info!("Emit mdocs from storage");
+        info!("Emit attestations from storage");
 
         let storage = self.storage.read().await;
 
         let attestations = storage
-            .fetch_unique_mdocs()
+            .fetch_unique_attestations()
             .await?
             .into_iter()
             .map(
-                |StoredMdocCopy {
-                     mdoc_id,
-                     mdoc,
+                |StoredAttestationCopy {
+                     attestation_id,
+                     attestation,
                      normalized_metadata,
                      ..
                  }| {
-                    let issuer_certificate = mdoc.issuer_certificate()?;
-                    let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
-                        .ok_or(AttestationsError::MissingIssuerRegistration)?;
+                    match attestation {
+                        StoredAttestationFormat::MsoMdoc { mdoc } => {
+                            let issuer_certificate = mdoc.issuer_certificate()?;
+                            let issuer_registration = IssuerRegistration::from_certificate(&issuer_certificate)?
+                                .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                    let attestation = AttestationPresentation::create_for_issuance(
-                        AttestationIdentity::Fixed {
-                            id: mdoc_id.to_string(),
-                        },
-                        normalized_metadata,
-                        issuer_registration.organization,
-                        mdoc.issuer_signed.into_entries_by_namespace(),
-                    )?;
-                    Ok(attestation)
+                            let attestation = AttestationPresentation::create_for_issuance(
+                                AttestationIdentity::Fixed {
+                                    id: attestation_id.to_string(),
+                                },
+                                normalized_metadata,
+                                issuer_registration.organization,
+                                mdoc.issuer_signed.into_entries_by_namespace(),
+                            )?;
+
+                            Ok(attestation)
+                        }
+                        StoredAttestationFormat::SdJwt { sd_jwt } => {
+                            let issuer_certificate = sd_jwt
+                                .issuer_certificate()
+                                .ok_or(AttestationsError::MissingIssuerCertificate)?;
+                            let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)?
+                                .ok_or(AttestationsError::MissingIssuerRegistration)?;
+
+                            let payload = sd_jwt.into_credential_payload(&normalized_metadata)?;
+                            let attestation = AttestationPresentation::create_from_attributes(
+                                AttestationIdentity::Fixed {
+                                    id: attestation_id.to_string(),
+                                },
+                                normalized_metadata,
+                                issuer_registration.organization,
+                                payload.previewable_payload.attributes,
+                            )?;
+
+                            Ok(attestation)
+                        }
+                    }
                 },
             )
             .collect::<Result<Vec<_>, AttestationsError>>()?;
@@ -114,9 +149,13 @@ mod tests {
 
     use assert_matches::assert_matches;
 
+    use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use crypto::server_keys::generate::Ca;
+    use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
-    use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -156,16 +195,39 @@ mod tests {
     async fn test_wallet_set_clear_documents_callback_registered() {
         let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        // The database contains a single `Mdoc`.
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
+
         let mdoc = test::create_example_pid_mdoc();
-        let credential = IssuedCredential::MsoMdoc(Box::new(mdoc.clone()));
-        let mdoc_doc_type = mdoc.doc_type().clone();
+        let sd_jwt = SdJwt::example_pid_sd_jwt(issuance_keypair);
+
+        let attestation_type = sd_jwt
+            .claims()
+            .properties
+            .get("vct")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string();
+
         wallet.storage.write().await.issued_credential_copies.insert(
-            mdoc.doc_type().clone(),
-            vec![(
-                IssuedCredentialCopies::new_or_panic(vec![credential].try_into().unwrap()),
-                NormalizedTypeMetadata::nl_pid_example(),
-            )],
+            attestation_type.clone(),
+            vec![
+                CredentialWithMetadata::new(
+                    IssuedCredentialCopies::new_or_panic(
+                        vec![IssuedCredential::SdJwt(Box::new(sd_jwt))].try_into().unwrap(),
+                    ),
+                    attestation_type.clone(),
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
+                ),
+                CredentialWithMetadata::new(
+                    IssuedCredentialCopies::new_or_panic(
+                        vec![IssuedCredential::MsoMdoc(Box::new(mdoc))].try_into().unwrap(),
+                    ),
+                    attestation_type.clone(),
+                    VerifiedTypeMetadataDocuments::nl_pid_example(),
+                ),
+            ],
         );
 
         // Register mock document_callback
@@ -185,7 +247,7 @@ mod tests {
                 .expect("Attestations callback should have been called")
                 .first()
                 .expect("Attestations callback should have been provided an Mdoc");
-            assert_eq!(attestation.attestation_type, mdoc_doc_type);
+            assert_eq!(attestation.attestation_type, attestation_type);
         }
 
         // Clear the documents callback on the `Wallet.`
@@ -207,9 +269,10 @@ mod tests {
 
         wallet.storage.write().await.issued_credential_copies.insert(
             mdoc.doc_type().clone(),
-            vec![(
+            vec![CredentialWithMetadata::new(
                 IssuedCredentialCopies::new_or_panic(vec![credential].try_into().unwrap()),
-                NormalizedTypeMetadata::nl_pid_example(),
+                mdoc.doc_type().clone(),
+                VerifiedTypeMetadataDocuments::nl_pid_example(),
             )],
         );
 

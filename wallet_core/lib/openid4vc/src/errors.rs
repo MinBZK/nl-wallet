@@ -90,7 +90,10 @@ impl From<CredentialRequestError> for ErrorResponse<CredentialErrorCode> {
                 | CredentialRequestError::MissingWte
                 | CredentialRequestError::WteAlreadyUsed
                 | CredentialRequestError::MissingPoa
-                | CredentialRequestError::CredentialTypeMismatch
+                | CredentialRequestError::CredentialTypeMismatch {
+                    requested: _,
+                    offered: _,
+                }
                 | CredentialRequestError::CredentialTypeNotOffered(_) => CredentialErrorCode::InvalidCredentialRequest,
 
                 CredentialRequestError::Unauthorized | CredentialRequestError::MalformedToken => {

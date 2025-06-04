@@ -1,6 +1,7 @@
 use std::num::NonZeroU8;
 use std::time::Duration;
 
+use derive_more::Debug;
 use derive_more::From;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
@@ -154,6 +155,7 @@ pub struct TokenResponseWithPreviews {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CredentialPreviewContent {
     /// The amount of copies of this attestation that the holder will receive per credential format.
+    #[serde(with = "indexmap::map::serde_seq")]
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
 
     pub credential_payload: PreviewableCredentialPayload,
@@ -168,6 +170,7 @@ pub struct CredentialPreview {
     #[serde(flatten)]
     pub content: CredentialPreviewContent,
 
+    #[debug(skip)]
     pub type_metadata: TypeMetadataDocuments,
 }
 

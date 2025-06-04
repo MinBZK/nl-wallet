@@ -4,19 +4,19 @@ use std::collections::HashSet;
 use chrono::Duration;
 use chrono::Utc;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
 use crypto::x509::BorrowingCertificate;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
-use openid4vc::issuance_session::IssuedCredentialCopies;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;
 use super::event_log::WalletEvent;
 use super::Storage;
+use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
 use super::StoredAttestationCopy;
@@ -34,7 +34,7 @@ pub enum KeyedDataResult {
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
-    pub issued_credential_copies: IndexMap<String, Vec<(IssuedCredentialCopies, NormalizedTypeMetadata)>>,
+    pub issued_credential_copies: IndexMap<String, Vec<CredentialWithMetadata>>,
     pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
@@ -139,16 +139,11 @@ impl Storage for MockStorage {
     async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()> {
         self.check_query_error()?;
 
-        for CredentialWithMetadata {
-            copies,
-            attestation_type,
-            metadata_documents,
-        } in credentials
-        {
+        for credential in credentials {
             self.issued_credential_copies
-                .entry(attestation_type)
+                .entry(credential.attestation_type.clone())
                 .or_default()
-                .push((copies, metadata_documents.to_normalized()?));
+                .push(credential);
         }
 
         Ok(())
@@ -172,20 +167,20 @@ impl Storage for MockStorage {
             .issued_credential_copies
             .values()
             .flatten()
-            .map(|(credential_copies, metadata)| {
-                let attestation = match credential_copies.as_ref().first() {
+            .map(|credential| {
+                let attestation = match credential.copies.as_ref().first() {
                     IssuedCredential::MsoMdoc(mdoc) => StoredAttestationFormat::MsoMdoc { mdoc: mdoc.clone() },
                     IssuedCredential::SdJwt(sd_jwt) => StoredAttestationFormat::SdJwt { sd_jwt: sd_jwt.clone() },
                 };
 
-                StoredAttestationCopy {
+                Ok::<_, StorageError>(StoredAttestationCopy {
                     attestation_id: Uuid::now_v7(),
                     attestation_copy_id: Uuid::now_v7(),
                     attestation,
-                    normalized_metadata: metadata.clone(),
-                }
+                    normalized_metadata: credential.metadata_documents.to_normalized()?,
+                })
             })
-            .collect();
+            .try_collect()?;
 
         Ok(mdocs)
     }
@@ -198,17 +193,21 @@ impl Storage for MockStorage {
             .issued_credential_copies
             .values()
             .flatten()
-            .filter_map(
-                |(credential_copies, metadata)| match credential_copies.as_ref().first() {
-                    IssuedCredential::MsoMdoc(mdoc) => Some(StoredMdocCopy {
-                        mdoc_id: Uuid::now_v7(),
-                        mdoc_copy_id: Uuid::now_v7(),
-                        mdoc: *mdoc.clone(),
-                        normalized_metadata: metadata.clone(),
-                    }),
-                    IssuedCredential::SdJwt(_) => None,
-                },
-            )
+            .filter_map(|credential| match credential.copies.as_ref().first() {
+                IssuedCredential::MsoMdoc(mdoc) => {
+                    credential
+                        .metadata_documents
+                        .to_normalized()
+                        .ok()
+                        .map(|metadata| StoredMdocCopy {
+                            mdoc_id: Uuid::now_v7(),
+                            mdoc_copy_id: Uuid::now_v7(),
+                            mdoc: *mdoc.clone(),
+                            normalized_metadata: metadata,
+                        })
+                }
+                IssuedCredential::SdJwt(_) => None,
+            })
             .collect();
 
         Ok(mdocs)
