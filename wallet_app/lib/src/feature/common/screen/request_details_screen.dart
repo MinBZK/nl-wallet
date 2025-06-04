@@ -54,7 +54,7 @@ class RequestDetailsScreen extends StatelessWidget {
 
   factory RequestDetailsScreen.forDisclosureEvent(String title, DisclosureEvent event) => RequestDetailsScreen(
         title: title,
-        requestedAttributes: event.cards,
+        requestedAttributes: event.cards.takeIf((it) => it.any((card) => card.attributes.isNotEmpty)),
         purpose: event.purpose,
         organization: event.relyingParty,
         policy: OrganizationPolicy(organization: event.relyingParty, policy: event.policy),
