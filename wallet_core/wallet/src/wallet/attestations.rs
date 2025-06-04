@@ -199,7 +199,7 @@ mod tests {
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
 
         let mdoc = test::create_example_pid_mdoc();
-        let sd_jwt = SdJwt::example_pid_sd_jwt(issuance_keypair);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
 
         let attestation_type = sd_jwt
             .claims()

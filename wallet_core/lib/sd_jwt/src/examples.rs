@@ -68,7 +68,7 @@ impl SdJwt {
         .unwrap()
     }
 
-    pub fn example_pid_sd_jwt(issuer_keypair: KeyPair) -> SdJwt {
+    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair) -> SdJwt {
         let object = json!({
           "vct": "urn:eudi:pid:nl:1",
           "iat": 1683000000,

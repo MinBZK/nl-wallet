@@ -1168,7 +1168,7 @@ pub(crate) mod tests {
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwt::example_pid_sd_jwt(issuance_keypair);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
@@ -1214,7 +1214,7 @@ pub(crate) mod tests {
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwt::example_pid_sd_jwt(issuance_keypair);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
