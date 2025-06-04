@@ -19,8 +19,7 @@ void main() {
     final dummyChannels = [
       'dev.steenbakker.mobile_scanner/scanner/method',
       'dev.steenbakker.mobile_scanner/scanner/event',
-      'native_device_orientation',
-      'native_device_orientation_events',
+      'dev.steenbakker.mobile_scanner/scanner/deviceOrientation',
     ];
     for (final channel in dummyChannels) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
