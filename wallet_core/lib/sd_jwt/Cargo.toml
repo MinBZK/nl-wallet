@@ -40,6 +40,7 @@ utils.path = "../utils"
 
 [dev-dependencies]
 assert_matches.workspace = true
+futures.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "fs", "macros"] }

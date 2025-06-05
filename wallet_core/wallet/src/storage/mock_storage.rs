@@ -163,7 +163,7 @@ impl Storage for MockStorage {
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.check_query_error()?;
 
-        let mdocs = self
+        let attestations = self
             .issued_credential_copies
             .values()
             .flatten()
@@ -182,7 +182,7 @@ impl Storage for MockStorage {
             })
             .try_collect()?;
 
-        Ok(mdocs)
+        Ok(attestations)
     }
 
     async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
