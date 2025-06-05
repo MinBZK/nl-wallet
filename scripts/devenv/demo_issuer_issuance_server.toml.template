@@ -46,7 +46,7 @@ private_key = "${DEMO_ISSUER_KEY_INSURANCE_READER}"
 certificate = "${DEMO_ISSUER_CRT_INSURANCE_READER}"
 
 [disclosure_settings.insurance.attestation_url_config]
-base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/university/"
+base_url = "https://${SERVICES_HOST}:${DEMO_ISSUER_IS_PORT}/insurance/"
 trust_anchors = ["${DEMO_ISSUER_ATTESTATION_SERVER_CA_CRT}"]
 
 [[disclosure_settings.insurance.to_disclose]]
