@@ -8,7 +8,6 @@ import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../theme/base_wallet_theme.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
@@ -20,12 +19,12 @@ import '../../policy/policy_screen.dart';
 import '../screen/placeholder_screen.dart';
 import '../screen/request_details_screen.dart';
 import '../widget/app_image.dart';
+import '../widget/button/link_button.dart';
 import '../widget/button/list_button.dart';
 import '../widget/card/shared_attributes_card.dart';
+import '../widget/list/list_item.dart';
 import '../widget/spacer/sliver_divider.dart';
 import '../widget/spacer/sliver_sized_box.dart';
-import '../widget/text/body_text.dart';
-import '../widget/text/title_text.dart';
 
 class RequestDetailCommonBuilders {
   RequestDetailCommonBuilders._();
@@ -51,39 +50,14 @@ class RequestDetailCommonBuilders {
     required LocalizedText purpose,
     DividerSide side = DividerSide.none,
   }) {
-    return SliverMainAxisGroup(
-      slivers: [
-        if (side.top) const SliverDivider(),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  size: 24,
-                  color: context.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TitleText(
-                      context.l10n.historyDetailScreenPurposeTitle,
-                      style: BaseWalletTheme.headlineExtraSmallTextStyle,
-                    ),
-                    const SizedBox(height: 8),
-                    BodyText(purpose.l10nValue(context)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (side.bottom) const SliverDivider(),
-      ],
+    return SliverToBoxAdapter(
+      child: ListItem(
+        label: Text.rich(context.l10n.historyDetailScreenPurposeTitle.toTextSpan(context)),
+        subtitle: Text.rich(purpose.l10nSpan(context)),
+        icon: const Icon(Icons.info_outline_rounded),
+        style: ListItemStyle.vertical,
+        dividerSide: side,
+      ),
     );
   }
 
@@ -116,6 +90,16 @@ class RequestDetailCommonBuilders {
     required String subtitle,
     DividerSide side = DividerSide.none,
   }) {
+    final headerSliver = SliverToBoxAdapter(
+      child: ListItem(
+        label: Text.rich(title.toTextSpan(context)),
+        subtitle: Text.rich(subtitle.toTextSpan(context)),
+        icon: const Icon(Icons.credit_card_outlined),
+        style: ListItemStyle.vertical,
+        dividerSide: DividerSide.none /* handled below */,
+      ),
+    );
+
     final attributesSliver = SliverList.separated(
       itemCount: cards.length,
       itemBuilder: (context, i) {
@@ -136,39 +120,10 @@ class RequestDetailCommonBuilders {
     return SliverMainAxisGroup(
       slivers: [
         if (side.top) const SliverDivider(),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.credit_card_outlined,
-                  size: 24,
-                  color: context.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TitleText(
-                      title,
-                      style: BaseWalletTheme.headlineExtraSmallTextStyle,
-                    ),
-                    const SizedBox(height: 8),
-                    BodyText(
-                      subtitle,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
+        headerSliver,
         SliverPadding(
-          sliver: attributesSliver,
           padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: attributesSliver,
         ),
         const SliverSizedBox(height: 24),
         if (side.bottom) const SliverDivider(),
@@ -184,49 +139,18 @@ class RequestDetailCommonBuilders {
   }) {
     final OrganizationPolicy orgPolicy = OrganizationPolicy(policy: policy, organization: organization);
     final policyTextMapper = context.read<ContextMapper<OrganizationPolicy, String>>();
-    return SliverMainAxisGroup(
-      slivers: [
-        if (side.top) const SliverDivider(),
-        const SliverSizedBox(height: 24),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.handshake_outlined,
-                  size: 24,
-                  color: context.colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TitleText(
-                      context.l10n.historyDetailScreenTermsTitle,
-                      style: BaseWalletTheme.headlineExtraSmallTextStyle,
-                    ),
-                    const SizedBox(height: 8),
-                    BodyText(
-                      policyTextMapper.map(context, orgPolicy),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+    return SliverToBoxAdapter(
+      child: ListItem(
+        label: Text.rich(context.l10n.historyDetailScreenTermsTitle.toTextSpan(context)),
+        subtitle: Text.rich(policyTextMapper.map(context, orgPolicy).toTextSpan(context)),
+        icon: const Icon(Icons.handshake_outlined),
+        button: LinkButton(
+          text: Text.rich(context.l10n.historyDetailScreenTermsCta.toTextSpan(context)),
+          onPressed: () => PolicyScreen.show(context, organization, policy),
         ),
-        SliverToBoxAdapter(
-          child: ListButton(
-            text: Text.rich(context.l10n.historyDetailScreenTermsCta.toTextSpan(context)),
-            dividerSide: DividerSide.none,
-            onPressed: () => PolicyScreen.show(context, organization, policy),
-          ),
-        ),
-        if (side.bottom) const SliverDivider(),
-      ],
+        style: ListItemStyle.vertical,
+        dividerSide: side,
+      ),
     );
   }
 

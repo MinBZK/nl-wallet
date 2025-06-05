@@ -12,7 +12,7 @@ import '../../organization/detail/organization_detail_screen.dart';
 import '../builder/request_detail_common_builders.dart';
 import '../widget/button/bottom_back_button.dart';
 import '../widget/divider_side.dart';
-import '../widget/info_row.dart';
+import '../widget/menu_item.dart';
 import '../widget/organization/organization_logo.dart';
 import '../widget/sliver_wallet_app_bar.dart';
 import '../widget/spacer/sliver_divider.dart';
@@ -119,30 +119,24 @@ class RequestDetailsScreen extends StatelessWidget {
   }
 
   Widget _buildOrganizationSliver(BuildContext context, Organization organization, DividerSide side) {
-    return SliverMainAxisGroup(
-      slivers: [
-        if (side.top) const SliverDivider(),
-        SliverToBoxAdapter(
-          child: InfoRow(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            leading: OrganizationLogo(image: organization.logo, size: 24),
-            title: Text(
-              context.l10n.requestDetailScreenAboutOrganizationCta(
-                organization.displayName.l10nValue(context),
-              ),
-            ),
-            subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf(
-              (_) => organization.category != null,
-            ),
-            onTap: () => OrganizationDetailScreen.showPreloaded(
-              context,
-              organization,
-              sharedDataWithOrganizationBefore: false,
-            ),
+    return SliverToBoxAdapter(
+      child: MenuItem(
+        leftIcon: OrganizationLogo(image: organization.logo, size: kMenuItemNormalIconSize),
+        dividerSide: side,
+        label: Text(
+          context.l10n.requestDetailScreenAboutOrganizationCta(
+            organization.displayName.l10nValue(context),
           ),
         ),
-        if (side.bottom) const SliverDivider(),
-      ],
+        subtitle: Text(organization.category?.l10nValue(context) ?? '').takeIf(
+          (_) => organization.category != null,
+        ),
+        onPressed: () => OrganizationDetailScreen.showPreloaded(
+          context,
+          organization,
+          sharedDataWithOrganizationBefore: false,
+        ),
+      ),
     );
   }
 

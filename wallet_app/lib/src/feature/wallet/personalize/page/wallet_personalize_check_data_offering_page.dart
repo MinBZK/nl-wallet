@@ -74,7 +74,7 @@ class WalletPersonalizeCheckDataOfferingPage extends StatelessWidget {
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         child: AttributeRow(attribute: attributes[index]),
       ),
       childCount: attributes.length,

@@ -66,17 +66,13 @@ class CardPreviewScreen extends StatelessWidget {
 
     // Data attributes
     slivers.add(const SliverSizedBox(height: 16));
-    for (final attribute in attributes) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: DataAttributeRow(attribute: attribute),
-          ),
-        ),
-      );
-    }
-
+    slivers.add(
+      SliverList.separated(
+        itemBuilder: (context, i) => DataAttributeRow(attribute: attributes[i]),
+        separatorBuilder: (context, i) => const SizedBox(height: 16),
+        itemCount: attributes.length,
+      ),
+    );
     // Incorrect button
     slivers.add(const SliverSizedBox(height: 16));
     slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));

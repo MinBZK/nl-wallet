@@ -61,7 +61,15 @@ class CardDataScreen extends StatelessWidget {
               final Widget contentSliver = switch (state) {
                 CardDataInitial() => _buildLoading(),
                 CardDataLoadInProgress() => _buildLoading(),
-                CardDataLoadSuccess() => _buildDataAttributes(context, state.card.attributes),
+                CardDataLoadSuccess() => SliverMainAxisGroup(
+                    slivers: [
+                      const SliverSizedBox(height: 24),
+                      _buildDataAttributes(context, state.card.attributes),
+                      const SliverSizedBox(height: 24),
+                      _buildDataIncorrectButtonSliver(context),
+                      const SliverSizedBox(height: 24),
+                    ],
+                  ),
                 CardDataLoadFailure() => _buildError(context),
               };
               return WalletScrollbar(
@@ -98,28 +106,16 @@ class CardDataScreen extends StatelessWidget {
   }
 
   Widget _buildDataAttributes(BuildContext context, List<DataAttribute> attributes) {
-    final List<Widget> slivers = [];
-
-    // Data attributes
-    slivers.add(const SliverSizedBox(height: 24));
-    for (final element in attributes) {
-      slivers.add(
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: DataAttributeRow(attribute: element),
-          ),
-        ),
-      );
-    }
-
-    // Incorrect button
-    slivers.add(const SliverSizedBox(height: 16));
-    slivers.add(SliverToBoxAdapter(child: _buildIncorrectButton(context)));
-    slivers.add(const SliverSizedBox(height: 24));
-
-    return SliverMainAxisGroup(slivers: slivers);
+    return SliverList.separated(
+      itemBuilder: (context, i) => DataAttributeRow(attribute: attributes[i]),
+      separatorBuilder: (context, i) => const SizedBox(height: 24),
+      itemCount: attributes.length,
+    );
   }
+
+  Widget _buildDataIncorrectButtonSliver(BuildContext context) => SliverToBoxAdapter(
+        child: _buildIncorrectButton(context),
+      );
 
   Widget _buildIncorrectButton(BuildContext context) {
     return ListButton(

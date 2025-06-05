@@ -5,7 +5,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/formatter/report_option_title_formatter.dart';
 import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
-import '../common/widget/info_row.dart';
+import '../common/widget/menu_item.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/wallet_scrollbar.dart';
@@ -67,10 +67,10 @@ class ReportIssueScreen extends StatelessWidget {
   Widget _buildOptionsSliver(BuildContext context) {
     return SliverList.separated(
       itemBuilder: (c, i) {
-        return InfoRow(
-          icon: Icons.history,
-          title: Text(ReportOptionTitleFormatter.map(context, options[i])),
-          onTap: () => PlaceholderScreen.showGeneric(context),
+        return MenuItem(
+          leftIcon: const Icon(Icons.history),
+          label: Text(ReportOptionTitleFormatter.map(context, options[i])),
+          onPressed: () => PlaceholderScreen.showGeneric(context),
         );
       },
       separatorBuilder: (c, i) => const Divider(),
