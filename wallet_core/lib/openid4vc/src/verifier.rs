@@ -210,7 +210,7 @@ pub struct Created {
     items_requests: ItemsRequests,
     usecase_id: String,
     client_id: String,
-    redirect_uri_template: Option<ReturnUrlTemplate>,
+    redirect_uri_template: Option<RedirectUriTemplate>,
 }
 
 /// State for a session that is waiting for the user's disclosure, i.e., the device has contacted us at the session URL.
@@ -244,9 +244,16 @@ enum SessionResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RedirectUriTemplate {
+    pub template: ReturnUrlTemplate,
+    pub share_on_error: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RedirectUri {
     uri: BaseUrl,
     nonce: String,
+    share_on_error: bool,
 }
 
 /// Wrapper for [`EcKeyPair`] that can be serialized.
@@ -598,13 +605,18 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
         // if not then we use the one configured in `self` (if any).
-        let return_url_template = return_url_template.or_else(|| self.return_url_template.clone());
+        let redirect_uri_template = return_url_template
+            .or_else(|| self.return_url_template.clone())
+            .map(|template| RedirectUriTemplate {
+                template,
+                share_on_error: true,
+            });
 
         // Check if we should or should not have received a return URL
         // template, based on the configuration for the use case.
         if match self.data.session_type_return_url {
-            SessionTypeReturnUrl::Neither => return_url_template.is_some(),
-            SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => return_url_template.is_none(),
+            SessionTypeReturnUrl::Neither => redirect_uri_template.is_some(),
+            SessionTypeReturnUrl::SameDevice | SessionTypeReturnUrl::Both => redirect_uri_template.is_none(),
         } {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
@@ -622,8 +634,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             .or_else(|| self.items_requests.clone())
             .ok_or_else(|| NewSessionError::NoItemsRequests)?;
 
-        let session = Session::<Created>::new(items_requests, id, self.data.client_id.clone(), return_url_template);
-
+        let session = Session::<Created>::new(items_requests, id, self.data.client_id.clone(), redirect_uri_template);
         Ok(session)
     }
 }
@@ -771,7 +782,10 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
             self.items_requests.clone(),
             id,
             self.data.client_id.clone(),
-            Some(self.return_url_template.clone()),
+            Some(RedirectUriTemplate {
+                template: self.return_url_template.clone(),
+                share_on_error: false,
+            }),
         );
 
         Ok(session)
@@ -1182,7 +1196,7 @@ impl Session<Created> {
         items_requests: ItemsRequests,
         usecase_id: String,
         client_id: String,
-        return_url_template: Option<ReturnUrlTemplate>,
+        redirect_uri_template: Option<RedirectUriTemplate>,
     ) -> Session<Created> {
         Session::<Created> {
             state: SessionState::new(
@@ -1191,7 +1205,7 @@ impl Session<Created> {
                     items_requests,
                     usecase_id,
                     client_id,
-                    redirect_uri_template: return_url_template,
+                    redirect_uri_template,
                 },
             ),
         }
@@ -1283,8 +1297,14 @@ impl Session<Created> {
 
         // Construct the Authorization Request.
         let nonce = random_string(32);
-        let encryption_keypair = EcKeyPair::generate(EcCurve::P256)
-            .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
+        let encryption_keypair = EcKeyPair::generate(EcCurve::P256).map_err(|err| {
+            WithRedirectUri::new(
+                err.into(),
+                redirect_uri
+                    .as_ref()
+                    .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
+            )
+        })?;
         let auth_request = IsoVpAuthorizationRequest::new(
             &self.state.data.items_requests,
             usecase.key_pair.certificate(),
@@ -1293,7 +1313,14 @@ impl Session<Created> {
             response_uri,
             wallet_nonce,
         )
-        .map_err(|err| WithRedirectUri::new(err.into(), redirect_uri.as_ref().map(|u| u.uri.clone())))?;
+        .map_err(|err| {
+            WithRedirectUri::new(
+                err.into(),
+                redirect_uri
+                    .as_ref()
+                    .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
+            )
+        })?;
 
         let vp_auth_request = VpAuthorizationRequest::from(auth_request.clone());
         let jws = Jwt::sign_with_certificate(&vp_auth_request, &usecase.key_pair)
@@ -1307,17 +1334,18 @@ impl Session<Created> {
         session_token: &SessionToken,
         session_type_return_url: SessionTypeReturnUrl,
         session_type: SessionType,
-        template: Option<ReturnUrlTemplate>,
+        return_url: Option<RedirectUriTemplate>,
     ) -> Result<Option<RedirectUri>, GetAuthRequestError> {
-        match (session_type_return_url, session_type, template) {
-            (SessionTypeReturnUrl::Both, _, Some(uri_template))
-            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(uri_template)) => {
+        match (session_type_return_url, session_type, return_url) {
+            (SessionTypeReturnUrl::Both, _, Some(return_url_config))
+            | (SessionTypeReturnUrl::SameDevice, SessionType::SameDevice, Some(return_url_config)) => {
                 let nonce = random_string(32);
-                let mut redirect_uri = uri_template.into_url(session_token);
+                let mut redirect_uri = return_url_config.template.into_url(session_token);
                 redirect_uri.query_pairs_mut().append_pair("nonce", &nonce);
                 Ok(Some(RedirectUri {
                     uri: redirect_uri.try_into().unwrap(),
                     nonce,
+                    share_on_error: return_url_config.share_on_error,
                 }))
             }
             (SessionTypeReturnUrl::Neither, _, _) | (SessionTypeReturnUrl::SameDevice, SessionType::CrossDevice, _) => {
@@ -1367,7 +1395,7 @@ impl Session<WaitingForResponse> {
                     VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
                 );
 
-                let response = self.ok_response(&HashMap::new());
+                let response = self.err_response();
                 let next = if user_refused {
                     self.transition_abort()
                 } else {
@@ -1425,7 +1453,11 @@ impl Session<WaitingForResponse> {
         Result<VpResponse, WithRedirectUri<PostAuthResponseError>>,
         Session<Done>,
     ) {
-        let redirect_uri = self.state().redirect_uri.as_ref().map(|u| u.uri.clone());
+        let redirect_uri = self
+            .state()
+            .redirect_uri
+            .as_ref()
+            .and_then(|u| u.share_on_error.then_some(u.uri.clone()));
         let next = self.transition_fail(&err);
         (Err(WithRedirectUri::new(err, redirect_uri)), next)
     }
@@ -1442,6 +1474,16 @@ impl Session<WaitingForResponse> {
                 // This is safe as this URI was obtained from a BaseUrl
                 uri.try_into().unwrap()
             }),
+        }
+    }
+
+    fn err_response(&self) -> VpResponse {
+        VpResponse {
+            redirect_uri: self
+                .state()
+                .redirect_uri
+                .as_ref()
+                .and_then(|u| u.share_on_error.then_some(u.uri.clone())),
         }
     }
 
