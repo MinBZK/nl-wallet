@@ -1,5 +1,4 @@
 build-documentation:
-  extends: .env-ont
   rules: !reference [.default-or-release-or-merge-request-manual, rules]
   script:
     - cd documentation
@@ -9,7 +8,28 @@ build-documentation:
     - make linkcheck
     - sphinx-build -b html -W . _build/html
   artifacts:
+    name: documentation
     when: always
     paths:
       - documentation/_build/html
+  allow_failure: true
+
+publish-documentation:
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-documentation
+      artifacts: true
+  script:
+    - git clone --branch documentation --depth 1 https://$GITHUB_BOT_USER:$GH_TOKEN@github.com/MinBZK/nl-wallet.git public
+    - cd public
+    - rm -rf *
+    - mv ../documentation/_build/html/* .
+    - git add .
+    - |
+      if [[ -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
+        git commit -m "Update documentation"
+        git push origin documentation;
+      else
+        git status
+      fi
   allow_failure: true
