@@ -35,5 +35,6 @@ sealed class WalletEvent with _$WalletEvent {
   const factory WalletEvent.issuance({
     required String dateTime,
     required AttestationPresentation attestation,
+    required bool renewed,
   }) = WalletEvent_Issuance;
 }

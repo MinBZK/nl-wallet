@@ -86,6 +86,7 @@ class WalletEventLog {
     final event = WalletEvent.issuance(
       dateTime: DateTime.now().toIso8601String(),
       attestation: attestation,
+      renewed: false,
     );
     _logEvent(event);
   }
