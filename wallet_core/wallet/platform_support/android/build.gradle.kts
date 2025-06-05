@@ -32,9 +32,6 @@ android {
             enableUnitTestCoverage = true
             enableAndroidTestCoverage = true
 
-            packaging {
-                jniLibs.keepDebugSymbols += "**/*.so"
-            }
             ndk {
                 abiFilters += ndkTargets
             }
@@ -161,11 +158,11 @@ tasks.register<Exec>("cargoBuildNativeBindings") {
 
 // Register tasks to build the Rust code and copy the resulting library files
 enum class BuildMode { Debug, Profile, Release }
-data class BuildOptions(val strip: Boolean, val args: List<String> = emptyList())
+data class BuildOptions(val args: List<String> = emptyList())
 mapOf(
-    BuildMode.Debug to BuildOptions(strip=false, args=listOf("--features", "hardware_integration_test")),
-    BuildMode.Profile to BuildOptions(strip=true, args=listOf("--locked", "--release")),
-    BuildMode.Release to BuildOptions(strip=true, args=listOf("--locked", "--release")),
+    BuildMode.Debug to BuildOptions(args=listOf("--features", "hardware_integration_test")),
+    BuildMode.Profile to BuildOptions(args=listOf("--locked", "--release")),
+    BuildMode.Release to BuildOptions(args=listOf("--locked", "--release")),
 ).forEach { (buildMode, options) ->
     tasks.named { it == "compile${buildMode}Kotlin" }.configureEach {
         dependsOn("cargoBuildNativeBindings")
@@ -177,9 +174,7 @@ mapOf(
         args("ndk")
         args(ndkTargets.flatMap { listOf("-t", it) })
         args("-o", jniTargetDir)
-        if (!options.strip) {
-            args("--no-strip")
-        }
+        args("--no-strip")
         args("build")
         args(options.args)
     }

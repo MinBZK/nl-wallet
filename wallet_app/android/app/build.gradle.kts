@@ -134,9 +134,6 @@ android {
     buildTypes {
         debug {
             signingConfig = signingConfigs.getByName(signingConfigName)
-            packaging {
-                jniLibs.keepDebugSymbols += "**/*.so"
-            }
             ndk {
                 abiFilters += ndkTargets
             }
@@ -176,11 +173,11 @@ val jniTargetDir = android.sourceSets.getByName("main").jniLibs.srcDirs.first()
 
 // Register tasks to build the Rust code and copy the resulting library files
 enum class BuildMode { Debug, Profile, Release }
-data class BuildOptions(val strip: Boolean, val args: List<String> = emptyList())
+data class BuildOptions(val args: List<String> = emptyList())
 mapOf(
-    BuildMode.Debug to BuildOptions(strip = false),
-    BuildMode.Profile to BuildOptions(strip = true, args = listOf("--locked", "--release")),
-    BuildMode.Release to BuildOptions(strip = true, args = listOf("--locked", "--release")),
+    BuildMode.Debug to BuildOptions(),
+    BuildMode.Profile to BuildOptions(args = listOf("--locked", "--release")),
+    BuildMode.Release to BuildOptions(args = listOf("--locked", "--release")),
 ).forEach { (buildMode, options) ->
     tasks.register<Exec>("cargoBuildNativeLibrary${buildMode}") {
         workingDir("../../../wallet_core")
@@ -190,9 +187,7 @@ mapOf(
         args("ndk")
         args(ndkTargets.flatMap { listOf("-t", it) })
         args("-o", jniTargetDir)
-        if (!options.strip) {
-            args("--no-strip")
-        }
+        args("--no-strip")
         args("build", "-p", "flutter_api")
         args(options.args)
         if (dartEnvironmentVariables["ALLOW_INSECURE_URL"] == "true") {
