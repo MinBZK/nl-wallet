@@ -66,6 +66,8 @@ val ulIntentFilter =
 android {
     namespace = "nl.rijksoverheid.edi.wallet"
     compileSdk = 35
+    // Use NDK r28b to get 16kB page size
+    ndkVersion = "28.1.13356709"
 
     // Note: When using flutter >= 3.27.1 with Java 21, you will see the
     // following (harmless) warnings:
