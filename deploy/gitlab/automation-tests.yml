@@ -171,7 +171,7 @@ run-wallet-web-browsertest-test-ont:
     - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml qt/quality-time/junit-results/browsertest-wallet-web.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip browsertests/packages/wallet-web/allure-results/*
   artifacts:
-    name: browsertest-demo-rp
+    name: browsertest-wallet-web
     when: always
     paths:
       - browsertests/packages/wallet-web/test-results/
