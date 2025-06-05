@@ -35,8 +35,8 @@ import '../../common/widget/fade_in_at_offset.dart';
 import '../../common/widget/history/history_section_header.dart';
 import '../../common/widget/history/wallet_event_row.dart';
 import '../../common/widget/icon_row.dart';
-import '../../common/widget/info_row.dart';
 import '../../common/widget/loading_indicator.dart';
+import '../../common/widget/menu_item.dart';
 import '../../common/widget/numbered_list.dart';
 import '../../common/widget/pin_field_demo.dart';
 import '../../common/widget/pin_header.dart';
@@ -337,15 +337,6 @@ class OtherStylesTab extends StatelessWidget {
             key: _kMockOtherKey,
           ),
         ),
-        const ThemeSectionSubHeader(title: 'UiAttributeRow'),
-        AttributeRow(
-          attribute: UiAttribute.untranslated(
-            value: const StringValue('This is a UiAttributeRow'),
-            key: _kMockOtherKey,
-            label: 'Label',
-            icon: Icons.remove_red_eye,
-          ),
-        ),
         const ThemeSectionSubHeader(title: 'CardAttributeRow'),
         CardAttributeRow(
           entry: MapEntry(
@@ -534,10 +525,10 @@ class OtherStylesTab extends StatelessWidget {
           icon: Icon(Icons.ac_unit),
           text: Text('IconRow'),
         ),
-        const ThemeSectionSubHeader(title: 'InfoRow'),
-        const InfoRow(
-          icon: Icons.ac_unit,
-          title: Text('Title'),
+        const ThemeSectionSubHeader(title: 'MenuItem'),
+        const MenuItem(
+          leftIcon: Icon(Icons.ac_unit),
+          label: Text('Title'),
           subtitle: Text('Subtitle'),
         ),
         const ThemeSectionSubHeader(title: 'PinField'),

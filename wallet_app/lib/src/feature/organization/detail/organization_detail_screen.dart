@@ -14,6 +14,7 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/centered_loading_indicator.dart';
+import '../../common/widget/list/list_item.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/url_span.dart';
@@ -176,37 +177,33 @@ class OrganizationDetailScreen extends StatelessWidget {
   }
 
   Widget _buildLegalNameRow(BuildContext context, Organization organization) {
-    return _buildInfoRow(
-      context,
-      icon: Icons.balance_outlined,
-      title: Text.rich(context.l10n.organizationDetailScreenLegalNameInfo.toTextSpan(context)),
+    return ListItem(
+      icon: const Icon(Icons.balance_outlined),
+      label: Text.rich(context.l10n.organizationDetailScreenLegalNameInfo.toTextSpan(context)),
       subtitle: Text(organization.legalName.l10nValue(context)),
     );
   }
 
   Widget _buildCategoryRow(BuildContext context, Organization organization) {
-    return _buildInfoRow(
-      context,
-      icon: Icons.apartment_outlined,
-      title: Text.rich(context.l10n.organizationDetailScreenCategoryInfo.toTextSpan(context)),
+    return ListItem(
+      icon: const Icon(Icons.apartment_outlined),
+      label: Text.rich(context.l10n.organizationDetailScreenCategoryInfo.toTextSpan(context)),
       subtitle: Text.rich(organization.category?.l10nSpan(context) ?? ''.toTextSpan(context)),
     );
   }
 
   Widget _buildDepartmentRow(BuildContext context, Organization organization) {
-    return _buildInfoRow(
-      context,
-      icon: Icons.meeting_room_outlined,
-      title: Text.rich(context.l10n.organizationDetailScreenDepartmentInfo.toTextSpan(context)),
+    return ListItem(
+      icon: const Icon(Icons.meeting_room_outlined),
+      label: Text.rich(context.l10n.organizationDetailScreenDepartmentInfo.toTextSpan(context)),
       subtitle: Text.rich(organization.department!.l10nSpan(context)),
     );
   }
 
   Widget _buildLocationRow(BuildContext context, String? country, Organization organization) {
-    return _buildInfoRow(
-      context,
-      icon: Icons.location_on_outlined,
-      title: Text.rich(context.l10n.organizationDetailScreenLocationInfo.toTextSpan(context)),
+    return ListItem(
+      icon: const Icon(Icons.location_on_outlined),
+      label: Text.rich(context.l10n.organizationDetailScreenLocationInfo.toTextSpan(context)),
       subtitle: Text.rich(_generateLocationLabel(context, country, organization.city).toTextSpan(context)),
     );
   }
@@ -245,51 +242,13 @@ class OrganizationDetailScreen extends StatelessWidget {
         SpellOutStringAttribute(range: kvkRange),
       ],
     );
-    return _buildInfoRow(
-      context,
-      icon: Icons.storefront_outlined,
-      title: Text.rich(context.l10n.organizationDetailScreenKvkInfo.toTextSpan(context)),
+    return ListItem(
+      icon: const Icon(Icons.storefront_outlined),
+      label: Text.rich(context.l10n.organizationDetailScreenKvkInfo.toTextSpan(context)),
       subtitle: Semantics(
         attributedLabel: label,
         excludeSemantics: true,
         child: Text(organization.kvk ?? ''),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(
-    BuildContext context, {
-    required IconData icon,
-    required Widget title,
-    required Widget subtitle,
-  }) {
-    /// Note: not relying on [InfoRow] widget because the styling here is a bit too custom.
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 44),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Icon(icon, size: 24),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                DefaultTextStyle(
-                  style: context.textTheme.bodyMedium!,
-                  child: title,
-                ),
-                DefaultTextStyle(
-                  style: context.textTheme.titleMedium!,
-                  child: subtitle,
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -308,10 +267,9 @@ class OrganizationDetailScreen extends StatelessWidget {
       attributedLabel: semanticsLabel.toAttributedString(context),
       link: true,
       onTap: onTap,
-      child: _buildInfoRow(
-        context,
-        icon: icon,
-        title: Text(title),
+      child: ListItem(
+        icon: Icon(icon),
+        label: Text(title),
         subtitle: Text.rich(
           UrlSpan(
             ctaText: url,

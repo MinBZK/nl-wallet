@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../util/extension/build_context_extension.dart';
+import '../../../../util/extension/string_extension.dart';
+import '../list/list_item.dart';
 
 class MissingAttributeRow extends StatelessWidget {
   final String label;
@@ -9,17 +10,10 @@ class MissingAttributeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Icon(Icons.do_not_disturb_on_outlined, size: 20),
-        const SizedBox(width: 16),
-        Text(
-          label,
-          style: context.textTheme.bodyLarge,
-        ),
-      ],
+    return ListItem(
+      label: Text.rich(label.toTextSpan(context)),
+      subtitle: const SizedBox.shrink(),
+      icon: const Icon(Icons.do_not_disturb_on_outlined),
     );
   }
 }

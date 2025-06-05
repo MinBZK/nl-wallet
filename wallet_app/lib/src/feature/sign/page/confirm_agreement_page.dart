@@ -98,7 +98,7 @@ class ConfirmAgreementPage extends StatelessWidget {
   SliverChildBuilderDelegate _getDataAttributesDelegate() {
     return SliverChildBuilderDelegate(
       (context, index) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: DataAttributeRow(attribute: requestedAttributes[index]),
       ),
       childCount: requestedAttributes.length,

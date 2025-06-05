@@ -74,14 +74,13 @@ class HistoryDetailIssuePage extends StatelessWidget {
       slivers: [
         SliverToBoxAdapter(
           child: OrganizationRow(
-            subtitle: organization.displayName.l10nValue(context),
-            onTap: () => OrganizationDetailScreen.showPreloaded(
+            organization: organization,
+            onPressed: () => OrganizationDetailScreen.showPreloaded(
               context,
               organization,
               sharedDataWithOrganizationBefore: false,
               onReportIssuePressed: () => PlaceholderScreen.showGeneric(context),
             ),
-            image: organization.logo,
           ),
         ),
         const SliverDivider(),

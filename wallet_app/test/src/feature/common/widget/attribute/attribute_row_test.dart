@@ -15,42 +15,6 @@ void main() {
     'goldens',
     () {
       testGoldens(
-        'light ui attribute',
-        (tester) async {
-          await tester.pumpWidgetWithAppWrapper(
-            AttributeRow(
-              attribute: UiAttribute.untranslated(
-                key: 'key',
-                label: 'Label',
-                value: const StringValue('Value'),
-                icon: Icons.add_card_outlined,
-              ),
-            ),
-            surfaceSize: kGoldenSize,
-          );
-          await screenMatchesGolden('attribute_row/light.ui');
-        },
-      );
-      testGoldens(
-        'dark ui attribute',
-        (tester) async {
-          await tester.pumpWidgetWithAppWrapper(
-            AttributeRow(
-              attribute: UiAttribute.untranslated(
-                key: 'key',
-                label: 'Label',
-                value: const StringValue('Value'),
-                icon: Icons.add_card_outlined,
-              ),
-            ),
-            brightness: Brightness.dark,
-            surfaceSize: kGoldenSize,
-          );
-          await screenMatchesGolden('attribute_row/dark.ui');
-        },
-      );
-
-      testGoldens(
         'light missing text attribute',
         (tester) async {
           await tester.pumpWidgetWithAppWrapper(
@@ -90,11 +54,11 @@ void main() {
     testWidgets('Label and value are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         AttributeRow(
-          attribute: UiAttribute.untranslated(
+          attribute: DataAttribute.untranslated(
             key: 'K',
             label: 'L',
             value: const StringValue('V'),
-            icon: Icons.add_card_outlined,
+            sourceCardDocType: '',
           ),
         ),
       );

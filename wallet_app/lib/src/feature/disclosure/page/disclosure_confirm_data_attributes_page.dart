@@ -16,6 +16,7 @@ import '../../common/widget/button/link_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/card/shared_attributes_card.dart';
+import '../../common/widget/list/list_item.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
@@ -59,13 +60,12 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
             const SliverDivider(),
             SliverToBoxAdapter(child: _buildReasonSection(context)),
             const SliverDivider(),
-            const SliverSizedBox(height: 32),
             SliverToBoxAdapter(child: _buildCardsSectionHeader(context)),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: _buildSharedAttributeCardsSliver(),
             ),
-            const SliverSizedBox(height: 8),
+            const SliverSizedBox(height: 24),
             const SliverDivider(),
             SliverToBoxAdapter(child: _buildPrivacySection(context)),
             SliverFillRemaining(
@@ -141,77 +141,40 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
   }
 
   Widget _buildReasonSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.info_outline_rounded, size: 24),
-          const SizedBox(height: 16),
-          TitleText(
-            context.l10n.disclosureConfirmDataAttributesSubtitlePurpose,
-            style: context.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 4),
-          BodyText(
-            requestPurpose.l10nValue(context),
-          ),
-        ],
-      ),
+    return ListItem(
+      icon: const Icon(Icons.info_outline_rounded),
+      label: Text.rich(context.l10n.disclosureConfirmDataAttributesSubtitlePurpose.toTextSpan(context)),
+      subtitle: Text.rich(requestPurpose.l10nSpan(context)),
+      style: ListItemStyle.vertical,
     );
   }
 
   Widget _buildCardsSectionHeader(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.credit_card_outlined, size: 24),
-          const SizedBox(height: 16),
-          TitleText(
-            context.l10n.disclosureConfirmDataAttributesSubtitleData(totalNrOfAttributes),
-            style: context.textTheme.titleLarge,
-          ),
-          const SizedBox(height: 4),
-          BodyText(
-            context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes),
-          ),
-        ],
+    return ListItem(
+      icon: const Icon(Icons.credit_card_outlined),
+      label: Text.rich(
+        context.l10n.disclosureConfirmDataAttributesSubtitleData(totalNrOfAttributes).toTextSpan(context),
       ),
+      subtitle: Text.rich(
+        context.l10n.disclosureConfirmDataAttributesSharedAttributesInfo(totalNrOfAttributes).toTextSpan(context),
+      ),
+      style: ListItemStyle.vertical,
     );
   }
 
   Widget _buildPrivacySection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.handshake_outlined, size: 24),
-          const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TitleText(
-                context.l10n.disclosureConfirmDataAttributesSubtitleTerms,
-                style: context.textTheme.titleLarge,
-              ),
-              const SizedBox(height: 4),
-              BodyText(
-                context.read<ContextMapper<OrganizationPolicy, String>>().map(
-                      context,
-                      OrganizationPolicy(organization: relyingParty, policy: policy),
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          LinkButton(
-            text: Text.rich(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta.toTextSpan(context)),
-            onPressed: () => PolicyScreen.show(context, relyingParty, policy),
-          ),
-        ],
+    final subtitle = context.read<ContextMapper<OrganizationPolicy, String>>().map(
+          context,
+          OrganizationPolicy(organization: relyingParty, policy: policy),
+        );
+    return ListItem(
+      icon: const Icon(Icons.handshake_outlined),
+      label: Text.rich(context.l10n.disclosureConfirmDataAttributesSubtitleTerms.toTextSpan(context)),
+      subtitle: Text.rich(subtitle.toTextSpan(context)),
+      style: ListItemStyle.vertical,
+      button: LinkButton(
+        text: Text.rich(context.l10n.disclosureConfirmDataAttributesCheckConditionsCta.toTextSpan(context)),
+        onPressed: () => PolicyScreen.show(context, relyingParty, policy),
       ),
     );
   }

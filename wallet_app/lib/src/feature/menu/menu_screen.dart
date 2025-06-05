@@ -15,13 +15,13 @@ import '../common/screen/placeholder_screen.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/secondary_button.dart';
+import '../common/widget/menu_item.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
 import '../common/widget/utility/do_on_init.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'bloc/menu_bloc.dart';
-import 'widget/menu_row.dart';
 
 class MenuScreen extends StatefulWidget {
   final bool showDesignSystemRow;
@@ -104,56 +104,56 @@ class _MenuScreenState extends State<MenuScreen> with LockStateMixin<MenuScreen>
 
   List<Widget> _buildMenuItems(BuildContext context) {
     final defaultMenuItems = [
-      MenuRow(
-        label: context.l10n.menuScreenTourCta,
-        icon: Icons.play_arrow,
-        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.tourRoute),
+      MenuItem(
+        label: Text.rich(context.l10n.menuScreenTourCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.play_arrow),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.tourRoute),
       ),
-      MenuRow(
-        label: context.l10n.menuScreenHelpCta,
-        icon: Icons.help_outline,
-        onTap: () => PlaceholderScreen.showHelp(context),
+      MenuItem(
+        label: Text.rich(context.l10n.menuScreenHelpCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.help_outline),
+        onPressed: () => PlaceholderScreen.showHelp(context),
       ),
-      MenuRow(
-        label: context.l10n.menuScreenScanQrCta,
-        icon: Icons.qr_code_rounded,
-        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.qrRoute),
+      MenuItem(
+        label: Text.rich(context.l10n.menuScreenScanQrCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.qr_code_rounded),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.qrRoute),
       ),
-      MenuRow(
-        label: context.l10n.menuScreenHistoryCta,
-        icon: Icons.history,
-        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
+      MenuItem(
+        label: Text.rich(context.l10n.menuScreenHistoryCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.history),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.walletHistoryRoute),
       ),
-      MenuRow(
-        label: context.l10n.menuScreenSettingsCta,
-        icon: Icons.settings_outlined,
-        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.settingsRoute),
+      MenuItem(
+        label: Text.rich(context.l10n.menuScreenSettingsCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.settings_outlined),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.settingsRoute),
       ),
-      MenuRow(
-        label: context.l10n.menuScreenFeedbackCta,
-        icon: Icons.comment_outlined,
-        onTap: () => PlaceholderScreen.showGeneric(context),
+      MenuItem(
+        label: Text.rich(context.l10n.menuScreenFeedbackCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.comment_outlined),
+        onPressed: () => PlaceholderScreen.showGeneric(context),
       ),
-      MenuRow(
-        label: context.l10n.menuScreenAboutCta,
-        icon: Icons.info_outline,
-        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
+      MenuItem(
+        label: Text.rich(context.l10n.menuScreenAboutCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.info_outline),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.aboutRoute),
       ),
     ];
     if (widget.showDesignSystemRow) {
-      final designSystemItem = MenuRow(
-        label: context.l10n.menuScreenDesignCta,
-        icon: Icons.design_services,
-        onTap: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
+      final designSystemItem = MenuItem(
+        label: Text.rich(context.l10n.menuScreenDesignCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.design_services),
+        onPressed: () => Navigator.restorablePushNamed(context, WalletRoutes.themeRoute),
       );
       defaultMenuItems.add(designSystemItem);
     }
     if (Environment.demoRelyingPartyUrl.isNotEmpty) {
-      final browserTestItem = MenuRow(
-        label: context.l10n.menuScreenBrowserCta,
-        subtitle: 'Open url: ${Environment.demoRelyingPartyUrl}',
-        icon: Icons.web,
-        onTap: () => launchUrlString(Environment.demoRelyingPartyUrl, mode: LaunchMode.externalApplication),
+      final browserTestItem = MenuItem(
+        label: Text.rich(context.l10n.menuScreenBrowserCta.toTextSpan(context)),
+        leftIcon: const Icon(Icons.web),
+        onPressed: () => launchUrlString(Environment.demoRelyingPartyUrl, mode: LaunchMode.externalApplication),
+        subtitle: Text('Open url: ${Environment.demoRelyingPartyUrl}'),
       );
       defaultMenuItems.add(browserTestItem);
     }

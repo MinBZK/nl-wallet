@@ -4,11 +4,9 @@ import '../../domain/model/organization.dart';
 import '../../domain/model/policy/policy.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/duration_extension.dart';
-import '../common/widget/text/body_text.dart';
-import '../common/widget/text/title_text.dart';
-import 'widget/policy_entry_row.dart';
+import '../common/widget/list/list_item.dart';
 
-/// Helper class to organize all the provided policy attributes into list of [PolicyEntryRow] widgets.
+/// Helper class to organize all the provided policy attributes into list of [ListItem] widgets.
 class PolicyRowBuilder {
   final BuildContext context;
   final bool addSignatureEntry;
@@ -45,13 +43,11 @@ class PolicyRowBuilder {
     required String description,
     required IconData icon,
   }) {
-    return PolicyEntryRow(
-      title: TitleText(
-        title,
-        style: context.textTheme.titleMedium,
-      ),
-      description: BodyText(description),
+    return ListItem(
+      label: Text(title),
+      subtitle: Text(description),
       icon: Icon(icon),
+      style: ListItemStyle.horizontal,
     );
   }
 

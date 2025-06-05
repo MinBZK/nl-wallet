@@ -22,7 +22,7 @@ import '../../common/widget/button/bottom_back_button.dart';
 import '../../common/widget/button/icon/help_icon_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
-import '../../common/widget/info_row.dart';
+import '../../common/widget/menu_item.dart';
 import '../../common/widget/organization/organization_logo.dart';
 import '../../common/widget/sliver_wallet_app_bar.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
@@ -184,22 +184,22 @@ class CardDetailScreen extends StatelessWidget {
   Widget _buildDetailContent(BuildContext context, WalletCardDetail detail) {
     final card = detail.card;
     final rows = [
-      InfoRow(
-        icon: Icons.description_outlined,
-        title: Text.rich(context.l10n.cardDetailScreenCardDataCta.toTextSpan(context)),
-        onTap: () => _onCardDataPressed(context, card),
+      MenuItem(
+        leftIcon: const Icon(Icons.description_outlined),
+        label: Text.rich(context.l10n.cardDetailScreenCardDataCta.toTextSpan(context)),
+        onPressed: () => _onCardDataPressed(context, card),
       ),
-      InfoRow(
-        icon: Icons.history_outlined,
-        title: Text.rich(context.l10n.cardDetailScreenCardHistoryCta.toTextSpan(context)),
+      MenuItem(
+        leftIcon: const Icon(Icons.history_outlined),
+        label: Text.rich(context.l10n.cardDetailScreenCardHistoryCta.toTextSpan(context)),
         subtitle: Text.rich(_createInteractionText(context, detail.mostRecentSuccessfulDisclosure).toTextSpan(context)),
-        onTap: () => _onCardHistoryPressed(context, card.docType),
+        onPressed: () => _onCardHistoryPressed(context, card.docType),
       ),
-      InfoRow(
-        leading: OrganizationLogo(image: card.issuer.logo, size: 24),
-        title: Text.rich(context.l10n.cardDetailScreenIssuerCta.toTextSpan(context)),
+      MenuItem(
+        leftIcon: OrganizationLogo(image: card.issuer.logo, size: 24),
+        label: Text.rich(context.l10n.cardDetailScreenIssuerCta.toTextSpan(context)),
         subtitle: Text.rich(card.issuer.displayName.l10nSpan(context)),
-        onTap: () => OrganizationDetailScreen.showPreloaded(
+        onPressed: () => OrganizationDetailScreen.showPreloaded(
           context,
           card.issuer,
           sharedDataWithOrganizationBefore: false,
@@ -207,17 +207,17 @@ class CardDetailScreen extends StatelessWidget {
         ),
       ),
       if (card.config.updatable)
-        InfoRow(
-          icon: Icons.replay_outlined,
-          title: Text.rich(context.l10n.cardDetailScreenCardUpdateCta.toTextSpan(context)),
+        MenuItem(
+          leftIcon: const Icon(Icons.replay_outlined),
+          label: Text.rich(context.l10n.cardDetailScreenCardUpdateCta.toTextSpan(context)),
           subtitle: Text.rich(_createOperationText(context, detail.mostRecentIssuance).toTextSpan(context)),
-          onTap: () => _onCardUpdatePressed(context, card),
+          onPressed: () => _onCardUpdatePressed(context, card),
         ),
       if (card.config.removable)
-        InfoRow(
-          icon: Icons.delete_outline_rounded,
-          title: Text.rich(context.l10n.cardDetailScreenCardDeleteCta.toTextSpan(context)),
-          onTap: () => _onCardDeletePressed(context),
+        MenuItem(
+          leftIcon: const Icon(Icons.delete_outline_rounded),
+          label: Text.rich(context.l10n.cardDetailScreenCardDeleteCta.toTextSpan(context)),
+          onPressed: () => _onCardDeletePressed(context),
         ),
     ];
     return ListView.separated(

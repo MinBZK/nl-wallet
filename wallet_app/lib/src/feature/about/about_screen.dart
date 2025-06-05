@@ -4,8 +4,11 @@ import 'package:url_launcher/url_launcher_string.dart';
 
 import '../../navigation/wallet_routes.dart';
 import '../../util/extension/build_context_extension.dart';
+import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/widget/button/bottom_back_button.dart';
+import '../common/widget/button/list_button.dart';
+import '../common/widget/menu_item.dart';
 import '../common/widget/mock_indicator_text.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/text/body_text.dart';
@@ -13,7 +16,6 @@ import '../common/widget/text_with_link.dart';
 import '../common/widget/version/config_version_text.dart';
 import '../common/widget/version/string_version_text.dart';
 import '../common/widget/wallet_scrollbar.dart';
-import '../menu/widget/menu_row.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -53,12 +55,11 @@ class AboutScreen extends StatelessWidget {
           child: _buildDescription(context),
         ),
         const SizedBox(height: 16),
-        const Divider(),
-        MenuRow(
-          label: context.l10n.aboutScreenPrivacyCta,
-          onTap: () => Navigator.pushNamed(context, WalletRoutes.privacyPolicyRoute),
+        MenuItem(
+          label: Text.rich(context.l10n.aboutScreenPrivacyCta.toTextSpan(context)),
+          onPressed: () => Navigator.pushNamed(context, WalletRoutes.privacyPolicyRoute),
+          dividerSide: DividerSide.both,
         ),
-        const Divider(),
         const Padding(
           padding: EdgeInsets.all(16),
           child: Column(

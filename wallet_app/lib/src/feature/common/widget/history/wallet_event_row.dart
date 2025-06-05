@@ -10,12 +10,12 @@ import '../../../../util/mapper/event/wallet_event_status_color_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_icon_mapper.dart';
 import '../../../../util/mapper/event/wallet_event_status_text_mapper.dart';
 import '../card/wallet_card_item.dart';
-import '../default_text_and_focus_style.dart';
+import '../menu_item.dart';
 import '../organization/organization_logo.dart';
 
 const _kThumbnailSize = 40.0;
 
-class WalletEventRow extends StatefulWidget {
+class WalletEventRow extends StatelessWidget {
   final WalletEvent event;
   final VoidCallback onPressed;
 
@@ -26,104 +26,30 @@ class WalletEventRow extends StatefulWidget {
   });
 
   @override
-  State<WalletEventRow> createState() => _WalletEventRowState();
-}
-
-class _WalletEventRowState extends State<WalletEventRow> {
-  late WidgetStatesController _statesController;
-
-  @override
-  void initState() {
-    super.initState();
-    _statesController = WidgetStatesController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController.addListener(() => setState(() {})));
-  }
-
-  @override
-  void dispose() {
-    _statesController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final String titleText = WalletEventTitleFormatter.format(context, widget.event);
+    final String titleText = WalletEventTitleFormatter.format(context, event);
     final DateFormat dateFormat = DateFormat(DateFormat.MONTH_DAY, context.l10n.localeName);
-    final String formattedTime = dateFormat.format(widget.event.dateTime);
-    final Color? textPressedColor =
-        context.theme.textButtonTheme.style?.foregroundColor?.resolve({WidgetState.pressed});
-    final IconData? errorStatusIcon = WalletEventStatusIconMapper().map(widget.event);
-    final String typeText = WalletEventStatusTextMapper().map(context, widget.event);
-    final Color typeTextColor = WalletEventStatusColorMapper().map(context, widget.event);
+    final String formattedTime = dateFormat.format(event.dateTime);
+    final IconData? errorStatusIcon = WalletEventStatusIconMapper().map(event);
+    final String typeText = WalletEventStatusTextMapper().map(context, event);
+    final Color? typeTextColor = WalletEventStatusColorMapper().useErrorColor(event) ? context.colorScheme.error : null;
 
-    return TextButton.icon(
-      onPressed: widget.onPressed,
-      icon: const Icon(Icons.chevron_right),
-      iconAlignment: IconAlignment.end,
-      statesController: _statesController,
-      style: context.theme.iconButtonTheme.style?.copyWith(
-        shape: WidgetStateProperty.all(
-          const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-        ),
+    return MenuItem(
+      label: Text.rich(titleText.toTextSpan(context)),
+      subtitle: Builder(
+        builder: (context) {
+          // Resolve DefaultTextStyle using builder to inherit the underline behaviour and color
+          return Text.rich(
+            typeText.toTextSpan(context),
+            style: DefaultTextStyle.of(context).style.copyWith(color: typeTextColor),
+          );
+        },
       ),
-      label: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                ExcludeSemantics(
-                  child: _buildThumbnail(context, widget.event),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Visibility(
-                        visible: titleText.isNotEmpty,
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 2),
-                          child: DefaultTextAndFocusStyle(
-                            statesController: _statesController,
-                            textStyle: context.textTheme.titleMedium,
-                            pressedOrFocusedColor: textPressedColor,
-                            child: Text.rich(
-                              titleText.toTextSpan(context),
-                            ),
-                          ),
-                        ),
-                      ),
-                      DefaultTextAndFocusStyle(
-                        statesController: _statesController,
-                        textStyle: context.textTheme.bodyLarge?.copyWith(
-                          color: typeTextColor,
-                        ),
-                        pressedOrFocusedColor: textPressedColor,
-                        child: _buildTypeRow(
-                          context,
-                          errorStatusIcon,
-                          typeText,
-                        ),
-                      ),
-                      DefaultTextAndFocusStyle(
-                        statesController: _statesController,
-                        textStyle: context.textTheme.bodySmall,
-                        pressedOrFocusedColor: textPressedColor,
-                        child: Text.rich(
-                          formattedTime.toTextSpan(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      underline: Text.rich(formattedTime.toTextSpan(context)),
+      largeIcon: true,
+      leftIcon: ExcludeSemantics(child: _buildThumbnail(context, event)),
+      errorIcon: errorStatusIcon == null ? null : Icon(errorStatusIcon),
+      onPressed: onPressed,
     );
   }
 
@@ -145,25 +71,6 @@ class _WalletEventRowState extends State<WalletEventRow> {
     return OrganizationLogo(
       image: event.relyingPartyOrIssuer.logo,
       size: _kThumbnailSize,
-    );
-  }
-
-  Widget _buildTypeRow(BuildContext context, IconData? icon, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: Row(
-        children: [
-          if (icon != null) ...[
-            Icon(icon, color: context.colorScheme.error, size: 16),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Text.rich(
-              text.toTextSpan(context),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,8 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter/widgets.dart';
 import 'package:json_annotation/json_annotation.dart';
 
-import '../../../feature/common/widget/attribute/ui_attribute_row.dart';
 import '../localized_text.dart';
 import 'attribute_value.dart';
 import 'converter/attribute_value_converter.dart';
@@ -67,36 +65,6 @@ class DataAttribute extends Attribute {
 
   @override
   List<Object?> get props => [key, label, value, sourceCardDocType, svgId];
-}
-
-/// The sole purpose of a [UiAttribute] is to be rendered to the screen, it should not be used for any (business) logic.
-/// A [UiAttribute] is contains an optional [icon] that relates to the data it represents. Note that the
-/// alignment of the visualization changes based on the availability of [icon], see [UiAttributeRow].
-class UiAttribute extends Attribute {
-  @override
-  AttributeValue get value => super.value!;
-
-  final IconData? icon;
-
-  const UiAttribute({
-    required AttributeValue super.value,
-    this.icon,
-    super.key = '',
-    required super.label,
-  });
-
-  UiAttribute.untranslated({
-    required super.value,
-    required this.icon,
-    super.key = '',
-    required String label,
-  }) : super(label: {const Locale('en'): label});
-
-  @override
-  String get key => throw UnsupportedError('UiAttributes should only be used to render data to the screen');
-
-  @override
-  List<Object?> get props => [value, icon, label];
 }
 
 /// A [MissingAttribute] is used to represent an attribute that was requested by a relying party, but is not (currently)

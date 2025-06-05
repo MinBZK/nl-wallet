@@ -11,15 +11,14 @@ import '../../util/extension/string_extension.dart';
 import '../../util/launch_util.dart';
 import '../common/widget/button/bottom_back_button.dart';
 import '../common/widget/button/list_button.dart';
+import '../common/widget/list/list_item.dart';
 import '../common/widget/sliver_wallet_app_bar.dart';
 import '../common/widget/spacer/sliver_divider.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
-import '../common/widget/text/title_text.dart';
 import '../common/widget/url_span.dart';
 import '../common/widget/wallet_scrollbar.dart';
 import 'policy_row_builder.dart';
 import 'policy_screen_arguments.dart';
-import 'widget/policy_entry_row.dart';
 
 class PolicyScreen extends StatelessWidget {
   static PolicyScreenArguments getArguments(RouteSettings settings) {
@@ -129,12 +128,9 @@ class PolicyScreen extends StatelessWidget {
     return Column(
       children: [
         const Divider(),
-        PolicyEntryRow(
-          title: TitleText(
-            context.l10n.policyScreenPolicySectionTitle,
-            style: context.textTheme.titleMedium,
-          ),
-          description: Semantics(
+        ListItem(
+          label: Text(context.l10n.policyScreenPolicySectionTitle),
+          subtitle: Semantics(
             onTap: () => launchUrlStringCatching(policyUrl, mode: LaunchMode.externalApplication),
             onTapHint: context.l10n.generalWCAGOpenLink,
             child: Text.rich(
@@ -142,6 +138,7 @@ class PolicyScreen extends StatelessWidget {
               semanticsLabel: descriptionSemanticLabel,
             ),
           ),
+          style: ListItemStyle.horizontal,
         ),
       ],
     );
