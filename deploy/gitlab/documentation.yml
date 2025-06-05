@@ -8,6 +8,7 @@ build-documentation:
     - make linkcheck
     - sphinx-build -b html -W . _build/html
   artifacts:
+    name: documentation
     when: always
     paths:
       - documentation/_build/html
