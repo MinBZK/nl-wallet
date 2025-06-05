@@ -30,7 +30,7 @@ build-test-report:
     - job: run-automation-tests-publish-results
       artifacts: false
       optional: true
-    - job: run-demo-pages-browsertest-test-ont
+    - job: run-wallet-web-browsertest-test-ont
       artifacts: false
       optional: true
     - job: run-fallback-pages-browsertest-test-ont
@@ -49,7 +49,7 @@ build-test-report:
     - npm run fetch-results
     - >
       npm run generate
-      allure-results/browsertest-{demo-pages,fallback-pages,gba-fetch}.zip
+      allure-results/browsertest-{wallet-web,fallback-pages,gba-fetch}.zip
       allure-results/{e2e,web}.zip
       junit-results/{android,flutter,flutter-ui,ios,rust,rust-gba-pid}.xml
     - mv allure-report/index.html allure-report-$CI_COMMIT_SHORT_SHA.html

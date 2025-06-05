@@ -247,6 +247,27 @@ test.describe("UC 13.1 Verifier displays disclosure procedure on their front-end
     await visualCheck("wallet-web-canceled.png")
   })
 
+  test('The library polls the status of this session. Upon "Success", the library confirms to the user that action was successful', async ({
+    page,
+    demoPage,
+    accessibilityCheck,
+    visualCheck,
+  }) => {
+    await page.route("**/disclosure/sessions/**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "DONE" }),
+      })
+    })
+    await demoPage.goToAmsterdamMunicipality()
+    await demoPage.openWalletLogin()
+    expect(await demoPage.getModalMessageHeaderText()).toBe("Success!")
+    await expect(await demoPage.getCloseButton()).toBeVisible()
+    await accessibilityCheck()
+    await visualCheck("wallet-web-success.png")
+  })
+
   test("The library supports the following languages: Dutch, English. The language to be used is specified by the relying party.", async ({
     demoPage,
     isMobileDevice,
