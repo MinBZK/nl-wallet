@@ -152,7 +152,7 @@ browsertests-format-lint:
   image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
   extends: .env-ont-k8s
 
-run-demo-pages-browsertest-test-ont:
+run-wallet-web-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
     - !reference [.default-branch, rules]
@@ -162,22 +162,22 @@ run-demo-pages-browsertest-test-ont:
   script: |
     cd browsertests
     npm ci
-    cd packages/demo-pages
+    cd packages/wallet-web
     npx playwright install chromium webkit
     npm run test:ci
   variables:
     DEMO_INDEX_EXTERNAL_HOSTNAME: "${DEMO_INDEX_EXTERNAL_HOSTNAME_ONT}"
   after_script:
-    - deploy/bin/store-artifact.sh browsertests/packages/demo-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-demo-pages.xml
-    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-demo-pages.zip browsertests/packages/demo-pages/allure-results/*
+    - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml qt/quality-time/junit-results/browsertest-wallet-web.xml
+    - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip browsertests/packages/wallet-web/allure-results/*
   artifacts:
     name: browsertest-demo-rp
     when: always
     paths:
-      - browsertests/packages/demo-pages/test-results/
-      - browsertests/packages/demo-pages/allure-results/
+      - browsertests/packages/wallet-web/test-results/
+      - browsertests/packages/wallet-web/allure-results/
     reports:
-      junit: browsertests/packages/demo-pages/test-results/*.xml
+      junit: browsertests/packages/wallet-web/test-results/*.xml
 
 run-fallback-pages-browsertest-test-ont:
   extends: .run-browsertest-common

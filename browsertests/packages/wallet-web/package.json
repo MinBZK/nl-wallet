@@ -1,6 +1,6 @@
 {
-  "name": "demo-pages-browsertests",
-  "description": "Browsertest for demo Issuer and Relying Party",
+  "name": "wallet-web-browsertests",
+  "description": "Browsertest for wallet-web hosted by demo Issuer and Relying Party",
   "scripts": {
     "test:ci": "npx playwright test --config=config/ci.config.js",
     "test:local": "npx playwright test --config=config/local.config.js"
