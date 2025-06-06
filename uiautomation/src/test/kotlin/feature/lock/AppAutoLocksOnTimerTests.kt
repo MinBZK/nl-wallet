@@ -37,8 +37,8 @@ class AppAutoLocksOnTimerTests : TestBase() {
     fun verifyAppLocksAfterInactive(testInfo: TestInfo) {
         setUp(testInfo)
         MenuNavigator().toScreen(MenuNavigatorScreen.Menu)
-        //for test x is configured to 30 seconds
-        Thread.sleep(31000)
+        //for test x is configured to 60 seconds
+        Thread.sleep(61000)
         pinScreen = PinScreen()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
     }
@@ -49,7 +49,7 @@ class AppAutoLocksOnTimerTests : TestBase() {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
         personalizeInformScreen = PersonalizeInformScreen()
-        personalizeInformScreen.putAppInBackground(35)
+        personalizeInformScreen.putAppInBackground(65)
         pinScreen = PinScreen()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
         pinScreen.enterPin("122222")
@@ -62,13 +62,13 @@ class AppAutoLocksOnTimerTests : TestBase() {
         setUp(testInfo)
         OnboardingNavigator().toScreen(OnboardingNavigatorScreen.PersonalizePidPreview)
         personalizeInformScreen = PersonalizeInformScreen()
-        Thread.sleep(5000)
+        Thread.sleep(25000)
         inactivityLockWarningNotification = InactivityLockWarningNotification()
         assertTrue(inactivityLockWarningNotification.visible())
         assertTrue(inactivityLockWarningNotification.confirmButtonVisible())
         inactivityLockWarningNotification.clickConfirmButton()
         assertTrue(!inactivityLockWarningNotification.visible(), "inactivity warning notification is visible")
-        Thread.sleep(22000)
+        Thread.sleep(42000)
         inactivityLockWarningNotification.clickLockButton()
         pinScreen = PinScreen()
         assertTrue(pinScreen.pinScreenVisible(), "pin screen is not visible")
