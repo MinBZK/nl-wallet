@@ -12,7 +12,9 @@ val ndkTargets = System.getenv("ANDROID_NDK_TARGETS")?.split(' ')
 
 android {
     namespace  = "nl.rijksoverheid.edi.wallet.platform_support"
-    compileSdk = 34
+    compileSdk = 35
+    // Use NDK r28b to get 16kB page size
+    ndkVersion = "28.1.13356709"
 
     defaultConfig {
         minSdk = 24
