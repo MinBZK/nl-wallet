@@ -24,6 +24,7 @@ pub enum WalletEvent {
         // ISO8601
         date_time: String,
         attestation: AttestationPresentation,
+        renewed: bool,
     },
 }
 
@@ -53,6 +54,7 @@ impl From<wallet::WalletEvent> for WalletEvents {
                 .map(|attestation| WalletEvent::Issuance {
                     date_time: timestamp.to_rfc3339(),
                     attestation: attestation.into(),
+                    renewed: false,
                 })
                 .collect(),
             wallet::WalletEvent::Disclosure {

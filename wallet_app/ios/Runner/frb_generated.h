@@ -229,6 +229,7 @@ typedef struct wire_cst_WalletEvent_Disclosure {
 typedef struct wire_cst_WalletEvent_Issuance {
   struct wire_cst_list_prim_u_8_strict *date_time;
   struct wire_cst_attestation_presentation *attestation;
+  bool renewed;
 } wire_cst_WalletEvent_Issuance;
 
 typedef union WalletEventKind {

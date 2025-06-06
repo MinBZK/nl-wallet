@@ -1778,9 +1778,11 @@ impl SseDecode for crate::models::wallet_event::WalletEvent {
                 let mut var_dateTime = <String>::sse_decode(deserializer);
                 let mut var_attestation =
                     <crate::models::attestation::AttestationPresentation>::sse_decode(deserializer);
+                let mut var_renewed = <bool>::sse_decode(deserializer);
                 return crate::models::wallet_event::WalletEvent::Issuance {
                     date_time: var_dateTime,
                     attestation: var_attestation,
+                    renewed: var_renewed,
                 };
             }
             _ => {
@@ -2422,10 +2424,15 @@ impl flutter_rust_bridge::IntoDart for crate::models::wallet_event::WalletEvent 
                 typ.into_into_dart().into_dart(),
             ]
             .into_dart(),
-            crate::models::wallet_event::WalletEvent::Issuance { date_time, attestation } => [
+            crate::models::wallet_event::WalletEvent::Issuance {
+                date_time,
+                attestation,
+                renewed,
+            } => [
                 1.into_dart(),
                 date_time.into_into_dart().into_dart(),
                 attestation.into_into_dart().into_dart(),
+                renewed.into_into_dart().into_dart(),
             ]
             .into_dart(),
             _ => {
@@ -3181,10 +3188,15 @@ impl SseEncode for crate::models::wallet_event::WalletEvent {
                 <crate::models::wallet_event::DisclosureStatus>::sse_encode(status, serializer);
                 <crate::models::disclosure::DisclosureType>::sse_encode(typ, serializer);
             }
-            crate::models::wallet_event::WalletEvent::Issuance { date_time, attestation } => {
+            crate::models::wallet_event::WalletEvent::Issuance {
+                date_time,
+                attestation,
+                renewed,
+            } => {
                 <i32>::sse_encode(1, serializer);
                 <String>::sse_encode(date_time, serializer);
                 <crate::models::attestation::AttestationPresentation>::sse_encode(attestation, serializer);
+                <bool>::sse_encode(renewed, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -3790,6 +3802,7 @@ mod io {
                     crate::models::wallet_event::WalletEvent::Issuance {
                         date_time: ans.date_time.cst_decode(),
                         attestation: ans.attestation.cst_decode(),
+                        renewed: ans.renewed.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -4886,6 +4899,7 @@ mod io {
     pub struct wire_cst_WalletEvent_Issuance {
         date_time: *mut wire_cst_list_prim_u_8_strict,
         attestation: *mut wire_cst_attestation_presentation,
+        renewed: bool,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

@@ -1010,9 +1010,11 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
     if (apiObj is WalletEvent_Issuance) {
       var pre_date_time = cst_encode_String(apiObj.dateTime);
       var pre_attestation = cst_encode_box_autoadd_attestation_presentation(apiObj.attestation);
+      var pre_renewed = cst_encode_bool(apiObj.renewed);
       wireObj.tag = 1;
       wireObj.kind.Issuance.date_time = pre_date_time;
       wireObj.kind.Issuance.attestation = pre_attestation;
+      wireObj.kind.Issuance.renewed = pre_renewed;
       return;
     }
   }
@@ -2379,6 +2381,9 @@ final class wire_cst_WalletEvent_Issuance extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> date_time;
 
   external ffi.Pointer<wire_cst_attestation_presentation> attestation;
+
+  @ffi.Bool()
+  external bool renewed;
 }
 
 final class WalletEventKind extends ffi.Union {

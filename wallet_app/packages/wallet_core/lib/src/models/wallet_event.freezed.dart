@@ -213,11 +213,12 @@ class _$WalletEvent_DisclosureCopyWithImpl<$Res> implements $WalletEvent_Disclos
 /// @nodoc
 
 class WalletEvent_Issuance extends WalletEvent {
-  const WalletEvent_Issuance({required this.dateTime, required this.attestation}) : super._();
+  const WalletEvent_Issuance({required this.dateTime, required this.attestation, required this.renewed}) : super._();
 
   @override
   final String dateTime;
   final AttestationPresentation attestation;
+  final bool renewed;
 
   /// Create a copy of WalletEvent
   /// with the given fields replaced by the non-null parameter values.
@@ -233,15 +234,16 @@ class WalletEvent_Issuance extends WalletEvent {
         (other.runtimeType == runtimeType &&
             other is WalletEvent_Issuance &&
             (identical(other.dateTime, dateTime) || other.dateTime == dateTime) &&
-            (identical(other.attestation, attestation) || other.attestation == attestation));
+            (identical(other.attestation, attestation) || other.attestation == attestation) &&
+            (identical(other.renewed, renewed) || other.renewed == renewed));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, dateTime, attestation);
+  int get hashCode => Object.hash(runtimeType, dateTime, attestation, renewed);
 
   @override
   String toString() {
-    return 'WalletEvent.issuance(dateTime: $dateTime, attestation: $attestation)';
+    return 'WalletEvent.issuance(dateTime: $dateTime, attestation: $attestation, renewed: $renewed)';
   }
 }
 
@@ -251,7 +253,7 @@ abstract mixin class $WalletEvent_IssuanceCopyWith<$Res> implements $WalletEvent
       _$WalletEvent_IssuanceCopyWithImpl;
   @override
   @useResult
-  $Res call({String dateTime, AttestationPresentation attestation});
+  $Res call({String dateTime, AttestationPresentation attestation, bool renewed});
 }
 
 /// @nodoc
@@ -268,6 +270,7 @@ class _$WalletEvent_IssuanceCopyWithImpl<$Res> implements $WalletEvent_IssuanceC
   $Res call({
     Object? dateTime = null,
     Object? attestation = null,
+    Object? renewed = null,
   }) {
     return _then(WalletEvent_Issuance(
       dateTime: null == dateTime
@@ -278,6 +281,10 @@ class _$WalletEvent_IssuanceCopyWithImpl<$Res> implements $WalletEvent_IssuanceC
           ? _self.attestation
           : attestation // ignore: cast_nullable_to_non_nullable
               as AttestationPresentation,
+      renewed: null == renewed
+          ? _self.renewed
+          : renewed // ignore: cast_nullable_to_non_nullable
+              as bool,
     ));
   }
 }

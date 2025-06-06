@@ -1566,6 +1566,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         return WalletEvent_Issuance(
           dateTime: dco_decode_String(raw[1]),
           attestation: dco_decode_box_autoadd_attestation_presentation(raw[2]),
+          renewed: dco_decode_bool(raw[3]),
         );
       default:
         throw Exception("unreachable");
@@ -2276,7 +2277,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 1:
         var var_dateTime = sse_decode_String(deserializer);
         var var_attestation = sse_decode_box_autoadd_attestation_presentation(deserializer);
-        return WalletEvent_Issuance(dateTime: var_dateTime, attestation: var_attestation);
+        var var_renewed = sse_decode_bool(deserializer);
+        return WalletEvent_Issuance(dateTime: var_dateTime, attestation: var_attestation, renewed: var_renewed);
       default:
         throw UnimplementedError('');
     }
@@ -2979,10 +2981,11 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_box_autoadd_request_policy(requestPolicy, serializer);
         sse_encode_disclosure_status(status, serializer);
         sse_encode_disclosure_type(typ, serializer);
-      case WalletEvent_Issuance(dateTime: final dateTime, attestation: final attestation):
+      case WalletEvent_Issuance(dateTime: final dateTime, attestation: final attestation, renewed: final renewed):
         sse_encode_i_32(1, serializer);
         sse_encode_String(dateTime, serializer);
         sse_encode_box_autoadd_attestation_presentation(attestation, serializer);
+        sse_encode_bool(renewed, serializer);
     }
   }
 
