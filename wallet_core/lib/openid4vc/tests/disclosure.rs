@@ -340,7 +340,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
 const NO_RETURN_URL_USE_CASE: &str = "no_return_url";
 const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
-const WALLET_INITUATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
+const WALLET_INITIATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
 
 struct MockMdocDataSource(HashMap<String, (IssuedCredentialCopies, NormalizedTypeMetadata)>);
 
@@ -847,7 +847,7 @@ async fn test_disclosure_invalid_poa() {
 async fn test_wallet_initiated_usecase_verifier() {
     let (verifier, rp_trust_anchor, issuer_ca) = setup_wallet_initiated_usecase_verifier();
 
-    let mut request_uri: Url = format!("https://example.com/{WALLET_INITUATED_RETURN_URL_USE_CASE}/request_uri")
+    let mut request_uri: Url = format!("https://example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
         .parse()
         .unwrap();
     request_uri.set_query(Some(
@@ -887,6 +887,85 @@ async fn test_wallet_initiated_usecase_verifier() {
     proposal.disclose(&key_factory).await.unwrap().unwrap();
 }
 
+#[tokio::test]
+async fn test_wallet_initiated_usecase_verifier_cancel() {
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_wallet_initiated_usecase_verifier();
+
+    let mut request_uri: Url = format!("https://example.com/{WALLET_INITIATED_RETURN_URL_USE_CASE}/request_uri")
+        .parse()
+        .unwrap();
+    request_uri.set_query(Some(
+        &serde_urlencoded::to_string(VerifierUrlParameters {
+            session_type: SessionType::SameDevice,
+            ephemeral_id_params: None,
+        })
+        .unwrap(),
+    ));
+
+    let universal_link_query = serde_urlencoded::to_string(VpRequestUriObject {
+        request_uri: request_uri.try_into().unwrap(),
+        request_uri_method: Some(RequestUriMethod::POST),
+        client_id: RP_CERT_CN.to_string(),
+    })
+    .unwrap();
+
+    let key_factory = MockRemoteKeyFactory::default();
+
+    let session = start_disclosure_session(
+        verifier,
+        pid_full_name(),
+        &issuer_ca,
+        DisclosureUriSource::Link,
+        &universal_link_query,
+        rp_trust_anchor,
+        &key_factory,
+    )
+    .await
+    .unwrap();
+
+    // Cancel and verify that we don't get a return URL
+    assert!(session.terminate().await.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn test_rp_initiated_usecase_verifier_cancel() {
+    let stored_documents = pid_full_name();
+    let items_requests = pid_full_name().into();
+
+    let (verifier, rp_trust_anchor, issuer_ca) = setup_verifier(&items_requests, None);
+
+    // Start the session
+    let session_token = verifier
+        .new_session(
+            DEFAULT_RETURN_URL_USE_CASE.to_string(),
+            Some(items_requests),
+            Some(ReturnUrlTemplate::from_str("https://example.com/redirect_uri/{session_token}").unwrap()),
+        )
+        .await
+        .unwrap();
+
+    // The front-end receives the UL to feed to the wallet when fetching the session status
+    // (this also verifies that the status is Created)
+    let request_uri = request_uri_from_status_endpoint(&verifier, &session_token, SessionType::SameDevice).await;
+
+    // Start session in the wallet
+    let key_factory = MockRemoteKeyFactory::default();
+    let session = start_disclosure_session(
+        Arc::clone(&verifier),
+        stored_documents,
+        &issuer_ca,
+        DisclosureUriSource::Link,
+        &request_uri,
+        rp_trust_anchor,
+        &key_factory,
+    )
+    .await
+    .unwrap();
+
+    // Cancel and verify that we don't get a return URL
+    assert!(session.terminate().await.unwrap().is_some());
+}
+
 fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseVerifier>, TrustAnchor<'static>, Ca) {
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
@@ -895,7 +974,7 @@ fn setup_wallet_initiated_usecase_verifier() -> (Arc<MockWalletInitiatedUseCaseV
     let items_requests: ItemsRequests = pid_full_name().into();
     let reader_registration = Some(reader_registration_mock_from_requests(&items_requests));
     let usecases = HashMap::from([(
-        WALLET_INITUATED_RETURN_URL_USE_CASE.to_string(),
+        WALLET_INITIATED_RETURN_URL_USE_CASE.to_string(),
         WalletInitiatedUseCase::try_new(
             generate_reader_mock(&rp_ca, reader_registration.clone()).unwrap(),
             SessionTypeReturnUrl::SameDevice,
@@ -1109,9 +1188,18 @@ where
 
     async fn send_error(
         &self,
-        _url: BaseUrl,
+        url: BaseUrl,
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        panic!("error: {:?}", error)
+        let path_segments = url.as_ref().path_segments().unwrap().collect_vec();
+        let session_token = path_segments[path_segments.len() - 2].to_owned().into();
+
+        let response = self
+            .verifier
+            .process_authorization_response(&session_token, WalletAuthResponse::Error(error), &TimeGenerator)
+            .await
+            .map_err(|error| VpMessageClientError::AuthPostResponse(Box::new(error.into())))?;
+
+        Ok(response.redirect_uri)
     }
 }
