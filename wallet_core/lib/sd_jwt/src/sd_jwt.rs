@@ -85,7 +85,7 @@ impl SdJwtPresentation {
     pub fn parse_and_verify(
         sd_jwt: &str,
         issuer_pubkey: &EcdsaDecodingKey,
-        hasher: &dyn Hasher,
+        hasher: &impl Hasher,
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
@@ -199,7 +199,7 @@ impl SdJwt {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey, hasher: &dyn Hasher) -> Result<Self> {
+    pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey, hasher: &impl Hasher) -> Result<Self> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
@@ -235,7 +235,7 @@ impl SdJwt {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn dangerous_parse(sd_jwt: &str, hasher: &dyn Hasher) -> Result<Self> {
+    pub fn dangerous_parse(sd_jwt: &str, hasher: &impl Hasher) -> Result<Self> {
         let jwt: Jwt<SdJwtClaims> = sd_jwt.into();
         let (header, _) = jwt.dangerous_parse_unverified()?;
 
