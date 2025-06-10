@@ -74,5 +74,7 @@
 			<string>filza</string>
 			<string>activator</string>
 		</array>
+		<key>FlutterDeepLinkingEnabled</key>
+        	<false/>
 	</dict>
 </plist>
