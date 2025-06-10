@@ -15,7 +15,7 @@ pub struct TlsServerConfig {
 }
 
 impl TlsServerConfig {
-    pub async fn to_rustls_config(&self) -> Result<RustlsConfig, io::Error> {
-        RustlsConfig::from_der(vec![self.cert.to_vec()], self.key.to_vec()).await
+    pub async fn into_rustls_config(self) -> Result<RustlsConfig, io::Error> {
+        RustlsConfig::from_der(vec![self.cert], self.key).await
     }
 }

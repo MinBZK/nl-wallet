@@ -53,7 +53,7 @@ impl HttpGbavClient {
         let vraag_request_template_path = prefix_local_path("resources/remote/bsn_zoeken_template.xml".as_ref());
         let vraag_request_template = tokio::fs::read_to_string(vraag_request_template_path).await?;
 
-        let http_client = tls_pinned_client_builder(vec![trust_anchor])
+        let http_client = tls_pinned_client_builder(std::iter::once(trust_anchor))
             .identity(Identity::from_pem(cert_buf.as_bytes())?)
             .build()
             .expect("Could not build reqwest HTTP client");
