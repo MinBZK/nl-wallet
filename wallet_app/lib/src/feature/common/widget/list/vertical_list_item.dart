@@ -5,7 +5,7 @@ import '../../../../util/extension/build_context_extension.dart';
 
 class VerticalListItem extends StatelessWidget {
   /// The main text displayed in the vertical list item.
-  final Widget label;
+  final Widget title;
 
   /// The secondary text displayed below the label.
   final Widget subtitle;
@@ -16,7 +16,7 @@ class VerticalListItem extends StatelessWidget {
   /// The optional button displayed at the bottom of the list item.
   final Widget? button;
 
-  const VerticalListItem({super.key, this.icon, required this.label, required this.subtitle, this.button});
+  const VerticalListItem({super.key, this.icon, required this.title, required this.subtitle, this.button});
 
   @override
   Widget build(BuildContext context) {
@@ -29,11 +29,14 @@ class VerticalListItem extends StatelessWidget {
         children: [
           Align(alignment: Alignment.centerLeft, child: icon ?? const SizedBox.shrink()),
           SizedBox(height: icon == null ? 0 : 16),
-          DefaultTextStyle(
-            style: BaseWalletTheme.headlineExtraSmallTextStyle.copyWith(
-              color: context.textTheme.titleMedium?.color,
+          Semantics(
+            header: true,
+            child: DefaultTextStyle(
+              style: BaseWalletTheme.headlineExtraSmallTextStyle.copyWith(
+                color: context.textTheme.titleMedium?.color,
+              ),
+              child: title,
             ),
-            child: label,
           ),
           const SizedBox(height: 8),
           DefaultTextStyle(style: context.textTheme.bodyLarge!, child: subtitle),
