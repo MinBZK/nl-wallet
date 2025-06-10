@@ -23,7 +23,7 @@ picobox==4.0.0
 Pygments==2.19.1
 PyYAML==6.0.2
 referencing==0.36.2
-requests==2.32.3
+requests==2.32.4
 rpds-py==0.24.0
 six==1.17.0
 snowballstemmer==3.0.0.1
