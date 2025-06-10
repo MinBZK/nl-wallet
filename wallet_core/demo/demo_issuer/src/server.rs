@@ -35,7 +35,11 @@ pub async fn serve(settings: Settings) -> Result<()> {
         if let Some(tls_config) = &settings.issuance_server_tls_config {
             axum_server::from_tcp_rustls(
                 issuance_listener,
-                tls_config.to_rustls_config().await.expect("TLS config should be valid"),
+                tls_config
+                    .clone()
+                    .into_rustls_config()
+                    .await
+                    .expect("TLS config should be valid"),
             )
             .serve(issuance_router.into_make_service())
             .await

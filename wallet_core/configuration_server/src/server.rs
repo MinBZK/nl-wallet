@@ -36,7 +36,7 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
             .with_state(settings.wallet_config_jwt.into_bytes()),
     );
 
-    axum_server::from_tcp_rustls(listener, settings.tls_config.to_rustls_config().await?)
+    axum_server::from_tcp_rustls(listener, settings.tls_config.into_rustls_config().await?)
         .serve(app.into_make_service())
         .await?;
 

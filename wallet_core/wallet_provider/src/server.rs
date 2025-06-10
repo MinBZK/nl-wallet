@@ -48,7 +48,7 @@ where
     let app = router::router(router_state);
 
     if let Some(tls_config) = tls_config {
-        axum_server::from_tcp_rustls(listener, tls_config.to_rustls_config().await?)
+        axum_server::from_tcp_rustls(listener, tls_config.into_rustls_config().await?)
             .serve(app.into_make_service())
             .await?;
     } else {

@@ -288,12 +288,12 @@ where
         .await?;
 
     let jws = match encryption {
-        Some((decrypter, expected_enc_alg)) => decrypt_jwe(&jwt, decrypter, expected_enc_alg)?,
-        None => jwt.as_bytes().to_vec(),
+        Some((decrypter, expected_enc_alg)) => &decrypt_jwe(&jwt, decrypter, expected_enc_alg)?,
+        None => jwt.as_bytes(),
     };
 
     // Get a JWS from the (decrypted) JWT and decode it using the JWK set.
-    let decoded_jws = JWT::<C, H>::from_bytes(&jws)?.decode_with_jwks(&jwks, Some(expected_sig_alg))?;
+    let decoded_jws = JWT::<C, H>::from_bytes(jws)?.decode_with_jwks(&jwks, Some(expected_sig_alg))?;
 
     decoded_jws
         .payload()?
