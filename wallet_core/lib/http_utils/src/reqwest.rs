@@ -105,6 +105,7 @@ pub trait IntoPinnedReqwestClient {
 
 #[derive(Debug, Clone)]
 pub enum ReqwestClientUrl<'a> {
+    Base,
     Absolute(Url),
     Relative(&'a str),
 }
@@ -130,6 +131,7 @@ impl PinnedReqwestClient {
         F: FnOnce(RequestBuilder) -> RequestBuilder,
     {
         let url = match url {
+            ReqwestClientUrl::Base => self.base_url.as_ref().clone(),
             ReqwestClientUrl::Absolute(url) => url,
             ReqwestClientUrl::Relative(path) => self.base_url.clone().join(path),
         };

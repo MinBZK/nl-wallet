@@ -76,8 +76,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
             .ok_or_else(|| AttributesFetcherError::UnknownUsecase(usecase_id.to_string()))?;
 
         let to_issue = http_client
-            // The base URL of the client is exactly the URl we need, so pass an empty relative path.
-            .send_custom_post(ReqwestClientUrl::Relative(""), |request| request.json(disclosed))
+            .send_custom_post(ReqwestClientUrl::Base, |request| request.json(disclosed))
             .await?
             .error_for_status()?
             .json()
