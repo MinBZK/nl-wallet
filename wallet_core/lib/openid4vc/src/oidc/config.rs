@@ -8,10 +8,11 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use http_utils::reqwest::JsonReqwestBuilder;
+use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::urls::BaseUrl;
 
 use super::OidcError;
+use super::OidcReqwestClient;
 
 /// OpenID metadata as defind by https://openid.net/specs/openid-connect-discovery-1_0.html,
 /// to be published at `.well-known/openid-configuration`.
@@ -142,20 +143,32 @@ impl Config {
         }
     }
 
-    pub async fn discover(http_config: &impl JsonReqwestBuilder) -> Result<Self, OidcError> {
+    pub async fn discover(http_client: &OidcReqwestClient) -> Result<Self, OidcError> {
         // If the Issuer value contains a path component, any terminating / MUST be removed before
         // appending /.well-known/openid-configuration.
-        let (http_client, request) = http_config.get(".well-known/openid-configuration");
+        let config = http_client
+            .as_ref()
+            .send_get(ReqwestClientUrl::Relative(".well-known/openid-configuration"))
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
 
-        let resp = http_client.execute(request.build()?).await?.error_for_status()?;
-        resp.json().await.map_err(OidcError::from)
+        Ok(config)
     }
 
     /// Get the JWK set from the given Url. Errors are either a reqwest error or an Insecure error if
     /// the url isn't https.
-    pub(crate) async fn jwks(&self, client: &reqwest::Client) -> Result<JWKSet<Empty>, OidcError> {
-        let resp = client.get(self.jwks_uri.as_ref()).send().await?.error_for_status()?;
-        resp.json().await.map_err(OidcError::from)
+    pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JWKSet<Empty>, OidcError> {
+        let jwks = http_client
+            .as_ref()
+            .send_get(ReqwestClientUrl::Absolute(self.jwks_uri.clone()))
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+
+        Ok(jwks)
     }
 }
 
@@ -172,10 +185,10 @@ pub mod tests {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::reqwest::JsonClientBuilder;
-    use http_utils::tls::test::HttpConfig;
+    use http_utils::tls::insecure::InsecureHttpConfig;
     use http_utils::urls::BaseUrl;
 
+    use super::super::OidcReqwestClient;
     use super::Config;
 
     pub async fn start_discovery_server() -> (MockServer, BaseUrl) {
@@ -213,11 +226,9 @@ pub mod tests {
     #[tokio::test]
     async fn test_discovery() {
         let (_server, server_url) = start_discovery_server().await;
-        let http_config = HttpConfig {
-            base_url: server_url.clone(),
-        };
+        let client = OidcReqwestClient::try_new(InsecureHttpConfig::new(server_url.clone())).unwrap();
 
-        let discovered = Config::discover(&http_config).await.unwrap();
+        let discovered = Config::discover(&client).await.unwrap();
 
         assert_eq!(&discovered.issuer, &server_url);
         assert_eq!(
@@ -225,10 +236,7 @@ pub mod tests {
             &server_url.join("/oauth2/authorize")
         );
 
-        let jwks = discovered
-            .jwks(&http_config.json_builder().build().unwrap())
-            .await
-            .unwrap();
+        let jwks = discovered.jwks(&client).await.unwrap();
         assert!(jwks.keys.is_empty());
     }
 }

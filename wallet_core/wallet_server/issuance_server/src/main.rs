@@ -30,13 +30,13 @@ async fn main_impl(settings: IssuanceServerSettings) -> Result<()> {
     let issuance_sessions = Arc::new(SessionStoreVariant::new(db_connection.clone(), storage_settings.into()));
     let disclosure_sessions = Arc::new(SessionStoreVariant::new(db_connection, storage_settings.into()));
 
-    let attributes_fetcher = HttpAttributesFetcher::new(
+    let attributes_fetcher = HttpAttributesFetcher::try_new(
         settings
             .disclosure_settings
             .iter()
             .map(|(id, s)| (id.clone(), s.attestation_url_config.clone()))
             .collect(),
-    );
+    )?;
 
     // This will block until the server shuts down.
     server::serve(

@@ -9,7 +9,7 @@ use serde::Deserialize;
 use serde_tuple::Deserialize_tuple;
 
 use attestation_data::issuable_document::IssuableDocuments;
-use http_utils::tls::TlsServerConfig;
+use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use utils::path::prefix_local_path;

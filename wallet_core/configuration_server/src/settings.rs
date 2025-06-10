@@ -6,7 +6,7 @@ use config::Environment;
 use config::File;
 use serde::Deserialize;
 
-use http_utils::tls::TlsServerConfig;
+use http_utils::tls::server::TlsServerConfig;
 use utils::path::prefix_local_path;
 
 #[derive(Clone, Deserialize)]

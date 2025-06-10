@@ -1,10 +1,10 @@
 use std::sync::LazyLock;
 
+use derive_more::AsRef;
 use http::header::LOCATION;
 use http::StatusCode;
 use regex::Regex;
 use reqwest::redirect::Policy;
-use reqwest::Client;
 use reqwest::Response;
 use serde::Deserialize;
 use serde::Serialize;
@@ -15,10 +15,13 @@ use tracing::info;
 use tracing::warn;
 use url::Url;
 
-use http_utils::reqwest::JsonReqwestBuilder;
+use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::urls;
 use openid4vc::oidc::HttpOidcClient;
 use openid4vc::oidc::OidcClient;
+use openid4vc::oidc::OidcReqwestClient;
 use openid4vc::token::TokenRequest;
 use wallet_configuration::wallet_config::DigidConfiguration;
 
@@ -96,9 +99,22 @@ pub struct SamlReturnUrlParameters {
     relay_state: Option<String>,
 }
 
+#[derive(Debug, Clone, AsRef)]
+pub struct App2AppReqwestClient(PinnedReqwestClient);
+
+impl App2AppReqwestClient {
+    pub fn try_new<C>(client_source: C) -> Result<Self, reqwest::Error>
+    where
+        C: IntoPinnedReqwestClient,
+    {
+        let client = client_source.try_into_custom_client(|client_builder| client_builder.redirect(Policy::none()))?;
+
+        Ok(Self(client))
+    }
+}
+
 struct App2AppSession {
-    http_client: Client,
-    acs_request: reqwest::RequestBuilder,
+    http_client: App2AppReqwestClient,
 }
 
 pub struct HttpDigidSession<OIC = HttpOidcClient> {
@@ -112,31 +128,45 @@ where
 {
     async fn start<C>(
         digid_config: DigidConfiguration,
-        http_config: &C,
+        http_config: C,
         redirect_uri: Url,
     ) -> Result<(Self, Url), DigidSessionError>
     where
+        C: IntoPinnedReqwestClient + Clone + 'static,
         Self: Sized,
-        C: JsonReqwestBuilder + 'static,
     {
         // the icon must be within the same domain as the return URL, but the path is stripped off the UL
         const LOGO_PATH: &str = "/.well-known/logo.png";
         static ICON_URL: LazyLock<Url> = LazyLock::new(|| UNIVERSAL_LINK_BASE_URL.as_ref().join(LOGO_PATH).unwrap());
 
-        let (oidc_client, mut auth_url) = OIC::start(http_config, digid_config.client_id, redirect_uri).await?;
+        let app2app_configs = digid_config
+            .app2app
+            .map(|app2app_config| (app2app_config, http_config.clone()));
 
-        let (app2app_config, auth_url) = match digid_config.app2app {
-            Some(digid_app2app) => {
+        // Note that http_config contains the TLS pinning configuration for both the OIDC discovery quest and any
+        // subsequent requests, including potential app2app requests. This means that any TLS certificate presented to
+        // the client should be issued under the same (set of) CA(s), even though the requests could in theory end up
+        // connecting to different hosts. In practice however, this will most likely be the same host.
+        let http_client = OidcReqwestClient::try_new(http_config)?;
+        let (oidc_client, mut auth_url) = OIC::start(&http_client, digid_config.client_id, redirect_uri).await?;
+
+        let (app2app_session, auth_url) = match app2app_configs {
+            Some((app2app_config, http_config)) => {
                 info!("Constructing DigiD universal link from Auth URL");
 
                 // this enforces DigiD, even if others are supported by rdo-max
                 auth_url.query_pairs_mut().append_pair("login_hint", "digid");
 
-                let http_client = http_config.builder().redirect(Policy::none()).build()?;
+                // Create a second HTTP client, based on the same configuration as the OidcReqwestClient.
+                let http_client = App2AppReqwestClient::try_new(http_config)?;
 
                 info!("Sending get request to Auth URL, expecting an HTTP Redirect");
-                let res = http_client.get(auth_url).send().await?.error_for_status()?;
-                let location = Self::extract_location_header(&res)?;
+                let response = http_client
+                    .as_ref()
+                    .send_get(ReqwestClientUrl::Absolute(auth_url))
+                    .await?
+                    .error_for_status()?;
+                let location = Self::extract_location_header(&response)?;
 
                 let saml_parameters =
                     serde_urlencoded::from_str(location.query().ok_or(DigidSessionError::MissingLocationQuery)?)?;
@@ -145,23 +175,14 @@ where
                 let json_request = DigidJsonRequest {
                     icon: ICON_URL.to_owned(),
                     return_url: urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).into_inner(),
-                    host: digid_app2app.host().map(|h| h.to_string()),
+                    host: app2app_config.host().map(|h| h.to_string()),
                     saml_parameters,
                 };
 
-                let app2app_url = Self::format_app2app_url(digid_app2app.universal_link().to_owned(), json_request)?;
-
-                // this route is standard for rdo-max
-                let acs_request = http_config.get_with_client(&http_client, "acs");
+                let app2app_url = Self::format_app2app_url(app2app_config.universal_link().to_owned(), json_request)?;
 
                 info!("DigiD app2app URL generated");
-                (
-                    Some(App2AppSession {
-                        http_client,
-                        acs_request,
-                    }),
-                    app2app_url,
-                )
+                (Some(App2AppSession { http_client }), app2app_url)
             }
             _ => (None, auth_url),
         };
@@ -169,7 +190,7 @@ where
         let session = (
             Self {
                 oidc_client,
-                app2app_session: app2app_config,
+                app2app_session,
             },
             auth_url,
         );
@@ -179,7 +200,7 @@ where
     async fn into_token_request(self, received_redirect_uri: Url) -> Result<TokenRequest, DigidSessionError> {
         let location = match self.app2app_session {
             None => received_redirect_uri,
-            Some(config) => {
+            Some(app2app_session) => {
                 info!("Constructing redirect_uri from JsonResponse");
 
                 let ReturnUrlParameters { app_app } = serde_urlencoded::from_str(
@@ -193,13 +214,19 @@ where
                     return Err(DigidSessionError::App2AppError(error));
                 }
 
-                let acs_request = config.acs_request.query(&app_app.saml_parameters).build()?;
-
                 // pass saml artifact and relay_state to rdo-max, exchange for redirect_uri
                 info!("Sending SAML artifact and Relay State to acs URL, expecting a redirect");
-                let res = config.http_client.execute(acs_request).await?.error_for_status()?;
+                let response = app2app_session
+                    .http_client
+                    .as_ref()
+                    // this route is standard for rdo-max
+                    .send_custom_get(ReqwestClientUrl::Relative("acs"), |request_builder| {
+                        request_builder.query(&app_app.saml_parameters)
+                    })
+                    .await?
+                    .error_for_status()?;
 
-                Self::extract_location_header(&res)?
+                Self::extract_location_header(&response)?
             }
         };
 
@@ -278,8 +305,7 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::reqwest::default_reqwest_client_builder;
-    use http_utils::tls::test::HttpConfig;
+    use http_utils::tls::insecure::InsecureHttpConfig;
     use http_utils::urls::BaseUrl;
     use openid4vc::oidc::MockOidcClient;
     use openid4vc::oidc::OidcError;
@@ -304,13 +330,13 @@ mod test {
     #[serial(MockOidcClient)]
     async fn test_start_no_app2app() {
         let client = MockOidcClient::start_context();
-        client.expect().return_once(|_: &HttpConfig, _, _| {
-            Ok((MockOidcClient::default(), Url::parse("https://example.com/").unwrap()))
-        });
+        client
+            .expect()
+            .return_once(|_, _, _| Ok((MockOidcClient::default(), Url::parse("https://example.com/").unwrap())));
 
         let session = HttpDigidSession::<MockOidcClient>::start(
             DigidConfiguration::default(),
-            &HttpConfig {
+            InsecureHttpConfig {
                 base_url: "https://digid.example.com".parse().unwrap(),
             },
             "https://app.example.com".parse().unwrap(),
@@ -486,7 +512,7 @@ mod test {
 
         let client = MockOidcClient::start_context();
         let auth_url = base_url.clone();
-        client.expect().return_once(move |_: &HttpConfig, _, _| {
+        client.expect().return_once(move |_, _, _| {
             if let Some(err) = oidc_error {
                 return Err(err);
             }
@@ -496,7 +522,7 @@ mod test {
 
         let session = HttpDigidSession::<MockOidcClient>::start(
             digid_config,
-            &HttpConfig {
+            InsecureHttpConfig {
                 base_url: "https://digid.example.com".parse().unwrap(),
             },
             "https://app.example.com".parse().unwrap(),
@@ -627,19 +653,12 @@ mod test {
             Ok(default_token_request())
         });
 
-        let http_client = default_reqwest_client_builder()
-            .redirect(Policy::none())
-            .build()
-            .unwrap();
-        let acs_request = http_client.get(base_url.join("acs"));
+        let http_client = App2AppReqwestClient::try_new(InsecureHttpConfig::new(base_url)).unwrap();
 
         // same as a call to `HttpDigidSession::start`
         let session = HttpDigidSession::<MockOidcClient> {
             oidc_client: client,
-            app2app_session: Some(App2AppSession {
-                http_client,
-                acs_request,
-            }),
+            app2app_session: Some(App2AppSession { http_client }),
         };
 
         let token_request = session.into_token_request(redirect_uri).await;

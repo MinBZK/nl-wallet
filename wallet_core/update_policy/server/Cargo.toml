@@ -39,7 +39,7 @@ tracing-subscriber = { workspace = true, features = [
     "ansi",
 ] }
 
-http_utils.path = "../../lib/http_utils"
+http_utils = { path = "../../lib/http_utils", features = ["server"] }
 update_policy_model.path = "../model"
 utils.path = "../../lib/utils"
 

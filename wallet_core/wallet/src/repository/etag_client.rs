@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::hash::Hash;
 use std::marker::PhantomData;
 use std::path::Path;
 use std::path::PathBuf;
@@ -10,7 +11,10 @@ use http::StatusCode;
 use parking_lot::Mutex;
 use tokio::fs;
 
-use http_utils::reqwest::RequestBuilder;
+use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::ReqwestClientUrl;
+
+use crate::reqwest::CachedReqwestClient;
 
 use super::FileStorageError;
 use super::Filename;
@@ -19,6 +23,7 @@ use super::HttpClientError;
 use super::HttpResponse;
 
 pub struct EtagHttpClient<T, B, E> {
+    cached_client: CachedReqwestClient<B>,
     resource_identifier: Filename,
     etag_dir: PathBuf,
     latest_etag: Mutex<Option<HeaderValue>>,
@@ -33,6 +38,7 @@ where
         let initial_etag = Self::read_latest_etag(resource_identifier.clone(), &etag_dir).await?;
 
         let client = Self {
+            cached_client: CachedReqwestClient::new(),
             resource_identifier,
             etag_dir,
             latest_etag: Mutex::new(initial_etag),
@@ -74,20 +80,26 @@ impl<T, B, E> HttpClient<T, B> for EtagHttpClient<T, B, E>
 where
     T: FromStr + Send + Sync,
     T::Err: Error + Send + Sync + 'static,
-    B: RequestBuilder + Send + Sync,
+    B: IntoPinnedReqwestClient + Clone + Hash + Send + Sync,
     E: From<HttpClientError> + Error + Send + Sync + 'static,
 {
     type Error = E;
 
     async fn fetch(&self, client_builder: &B) -> Result<HttpResponse<T>, Self::Error> {
-        let (client, mut request_builder) = client_builder.get(self.resource_identifier.as_ref());
-
-        if let Some(etag) = self.latest_etag.lock().as_ref() {
-            request_builder = request_builder.header(header::IF_NONE_MATCH, etag);
-        }
-
-        let request = request_builder.build().map_err(HttpClientError::Networking)?;
-        let response = client.execute(request).await.map_err(HttpClientError::Networking)?;
+        let client = self
+            .cached_client
+            .get_or_try_init(client_builder, IntoPinnedReqwestClient::try_into_client)
+            .map_err(HttpClientError::Networking)?;
+        let response = client
+            .send_custom_get(
+                ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
+                |request| match self.latest_etag.lock().as_ref() {
+                    Some(etag) => request.header(header::IF_NONE_MATCH, etag),
+                    None => request,
+                },
+            )
+            .await
+            .map_err(HttpClientError::Networking)?;
 
         // Try to get the body from any 4xx or 5xx error responses, in order to create an Error::Response.
         let response = match response.error_for_status_ref() {
@@ -135,7 +147,7 @@ mod test {
     use wiremock::MockServer;
     use wiremock::ResponseTemplate;
 
-    use http_utils::tls::test::HttpConfig;
+    use http_utils::tls::insecure::InsecureHttpConfig;
 
     use crate::repository::HttpClient;
     use crate::repository::HttpClientError;
@@ -172,14 +184,12 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client: EtagHttpClient<Stub, HttpConfig, HttpClientError> =
+        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().into_path())
                 .await
                 .unwrap();
 
-        let client_builder = HttpConfig {
-            base_url: mock_server.uri().parse().unwrap(),
-        };
+        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
 
         let response = client.fetch(&client_builder).await.unwrap();
         assert!(matches!(response, HttpResponse::Parsed(_)));
@@ -207,10 +217,8 @@ mod test {
             .mount(&mock_server)
             .await;
 
-        let client_builder = HttpConfig {
-            base_url: mock_server.uri().parse().unwrap(),
-        };
-        let client: EtagHttpClient<Stub, HttpConfig, HttpClientError> =
+        let client_builder = InsecureHttpConfig::new(mock_server.uri().parse().unwrap());
+        let client: EtagHttpClient<Stub, InsecureHttpConfig, HttpClientError> =
             EtagHttpClient::new("config".parse().unwrap(), tempfile::tempdir().unwrap().into_path())
                 .await
                 .unwrap();

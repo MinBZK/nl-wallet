@@ -10,7 +10,6 @@ use axum::response::Response;
 use axum::routing::get;
 use axum::Json;
 use axum::Router;
-use axum_server::tls_rustls::RustlsConfig;
 use etag::EntityTag;
 use http::header;
 use http::HeaderMap;
@@ -18,7 +17,6 @@ use http::HeaderValue;
 use tracing::debug;
 use tracing::info;
 
-use http_utils::tls::TlsServerConfig;
 use utils::built_info::version_string;
 use utils::generator::TimeGenerator;
 
@@ -51,9 +49,8 @@ pub async fn serve_with_listener(listener: TcpListener, settings: Settings) -> R
             .with_state(application_state),
     );
 
-    if let Some(TlsServerConfig { key, cert }) = settings.tls_config.clone() {
-        let config = RustlsConfig::from_der(vec![cert], key).await?;
-        axum_server::from_tcp_rustls(listener, config)
+    if let Some(tls_config) = settings.tls_config.clone() {
+        axum_server::from_tcp_rustls(listener, tls_config.to_rustls_config().await?)
             .serve(app.into_make_service())
             .await?;
     } else {

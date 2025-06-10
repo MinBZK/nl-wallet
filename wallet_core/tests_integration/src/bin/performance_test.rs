@@ -95,7 +95,12 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(&authorization_url, &pid_issuance_config.digid_http_config, "999991772").await;
+    let redirect_url = fake_digid_auth(
+        authorization_url,
+        pid_issuance_config.digid_http_config.clone(),
+        "999991772",
+    )
+    .await;
 
     let _attestations = wallet
         .continue_pid_issuance(redirect_url)

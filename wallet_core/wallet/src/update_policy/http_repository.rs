@@ -67,13 +67,14 @@ impl UpdateableRepository<VersionState, TlsPinningConfig> for HttpUpdatePolicyRe
 
     async fn fetch(&self, config: &TlsPinningConfig) -> Result<RepositoryUpdateState<VersionState>, Self::Error> {
         let now = Instant::now();
+        let config_hash = config.to_hash();
 
         {
             let (current_state, last_fetched) = *self.state.read();
             if last_fetched.is_some_and(|(last_fetch, fetched_for)| {
                 now.checked_duration_since(last_fetch)
                     .is_some_and(|diff| diff < *CACHE_DURATION)
-                    && fetched_for == config.to_hash()
+                    && fetched_for == config_hash
             }) {
                 info!("Using cached version state for version {}", *CURRENT_VERSION);
                 return Ok(RepositoryUpdateState::Cached(current_state));
@@ -90,7 +91,7 @@ impl UpdateableRepository<VersionState, TlsPinningConfig> for HttpUpdatePolicyRe
         };
 
         let mut lock = self.state.write();
-        lock.1 = Some((now, config.to_hash()));
+        lock.1 = Some((now, config_hash));
 
         if new_state == lock.0 {
             info!("Received new update policy, nothing changed");

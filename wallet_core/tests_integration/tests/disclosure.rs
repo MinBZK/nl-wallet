@@ -229,7 +229,7 @@ async fn test_disclosure_usecases_ok(
 #[serial(hsm)]
 async fn test_disclosure_without_pid() {
     let digid_context = MockDigidSession::start_context();
-    digid_context.expect().return_once(|_, _: &TlsPinningConfig, _| {
+    digid_context.expect().return_once(|_, _: TlsPinningConfig, _| {
         let session = MockDigidSession::default();
         Ok((session, Url::parse("http://localhost/").unwrap()))
     });

@@ -178,7 +178,7 @@ where
         let pid_issuance_config = &self.config_repository.get().pid_issuance;
         let (session, auth_url) = DS::start(
             pid_issuance_config.digid.clone(),
-            &pid_issuance_config.digid_http_config,
+            pid_issuance_config.digid_http_config.clone(),
             urls::issuance_base_uri(&UNIVERSAL_LINK_BASE_URL).as_ref().to_owned(),
         )
         .await
@@ -584,7 +584,7 @@ mod tests {
 
         // Set up a mock DigiD session.
         let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _: &TlsPinningConfig, _| {
+        session_start_context.expect().returning(|_, _: TlsPinningConfig, _| {
             let client = MockDigidSession::default();
             Ok((client, Url::parse(AUTH_URL).unwrap()))
         });
@@ -677,7 +677,7 @@ mod tests {
         let session_start_context = MockDigidSession::start_context();
         session_start_context
             .expect()
-            .return_once(|_, _: &TlsPinningConfig, _| Err(OidcError::NoAuthCode.into()));
+            .return_once(|_, _: TlsPinningConfig, _| Err(OidcError::NoAuthCode.into()));
 
         // The error should be forwarded when attempting to create a DigiD authentication URL.
         let error = wallet
@@ -986,7 +986,7 @@ mod tests {
         const AUTH_URL: &str = "http://example.com/auth";
         // Set up a mock DigiD session.
         let session_start_context = MockDigidSession::start_context();
-        session_start_context.expect().returning(|_, _: &TlsPinningConfig, _| {
+        session_start_context.expect().returning(|_, _: TlsPinningConfig, _| {
             let client = MockDigidSession::default();
             Ok((client, Url::parse(AUTH_URL).unwrap()))
         });

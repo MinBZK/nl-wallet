@@ -5,9 +5,12 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 
 use attestation_data::issuable_document::IssuableDocument;
-use http_utils::reqwest::ClientBuilder;
+use http_utils::reqwest::IntoPinnedReqwestClient;
+use http_utils::reqwest::PinnedReqwestClient;
+use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use itertools::Itertools;
 use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
@@ -45,25 +48,17 @@ pub trait AttributesFetcher {
 }
 
 pub struct HttpAttributesFetcher {
-    urls: HashMap<String, (BaseUrl, reqwest::Client)>,
+    urls: HashMap<String, PinnedReqwestClient>,
 }
 
 impl HttpAttributesFetcher {
-    pub fn new(urls: HashMap<String, TlsPinningConfig>) -> Self {
+    pub fn try_new(urls: HashMap<String, TlsPinningConfig>) -> Result<Self, reqwest::Error> {
         let urls = urls
             .into_iter()
-            .map(|(id, config)| {
-                (
-                    id,
-                    (
-                        config.base_url.clone(),
-                        config.builder().build().expect("failed to construct reqwest instance"),
-                    ),
-                )
-            })
-            .collect::<HashMap<_, _>>();
+            .map(|(id, config)| Ok((id, config.try_into_json_client()?)))
+            .try_collect()?;
 
-        Self { urls }
+        Ok(Self { urls })
     }
 }
 
@@ -75,15 +70,13 @@ impl AttributesFetcher for HttpAttributesFetcher {
         usecase_id: &str,
         disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
     ) -> Result<Vec<IssuableDocument>, Self::Error> {
-        let (usecase_url, http_client) = self
+        let http_client = self
             .urls
             .get(usecase_id)
             .ok_or_else(|| AttributesFetcherError::UnknownUsecase(usecase_id.to_string()))?;
 
         let to_issue = http_client
-            .post(usecase_url.clone().into_inner())
-            .json(disclosed)
-            .send()
+            .send_custom_post(ReqwestClientUrl::Base, |request| request.json(disclosed))
             .await?
             .error_for_status()?
             .json()

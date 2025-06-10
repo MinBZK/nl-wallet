@@ -188,6 +188,7 @@ axum = { workspace = true, optional = true, features = ["http1", "json", "tokio"
 axum-server = { workspace = true, optional = true, features = ["tls-rustls-no-provider"] }
 ctor = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
+http = { workspace = true, optional = true }
 indexmap = { workspace = true, optional = true }
 insta = { workspace = true, optional = true, features = ["ron"] }
 jsonwebtoken = { workspace = true, optional = true, features = ["use_pem"] }
@@ -232,7 +233,7 @@ configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 hsm = { path = "../lib/hsm", optional = true, features = ["test"] }
-http_utils = { path = "../lib/http_utils", optional = true }
+http_utils = { path = "../lib/http_utils", optional = true, features = ["client", "server"] }
 issuance_server = { path = "../wallet_server/issuance_server", optional = true }
 jwt.path = "../lib/jwt"
 mdoc = { path = "../lib/mdoc", optional = true, features = ["test"] }
