@@ -145,8 +145,8 @@ where
 
         // Note that http_config contains the TLS pinning configuration for both the OIDC discovery quest and any
         // subsequent requests, including potential app2app requests. This means that any TLS certificate presented to
-        // the client should be issued under the (set of) CA(s), even though the requests may end up connecting to
-        // different hosts.
+        // the client should be issued under the same (set of) CA(s), even though the requests could in theory end up
+        // connecting to different hosts. In practice however, this will most likely be the same host.
         let http_client = OidcReqwestClient::try_new(http_config)?;
         let (oidc_client, mut auth_url) = OIC::start(&http_client, digid_config.client_id, redirect_uri).await?;
 

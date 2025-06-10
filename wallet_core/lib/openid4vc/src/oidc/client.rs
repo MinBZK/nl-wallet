@@ -129,8 +129,8 @@ where
     where
         Self: Sized,
     {
-        // Note that the same TLS pinning configuration is used for both the discovery request
-        // and the JWKS request, even though the URLs may point to different hosts.
+        // Note that the same TLS pinning configuration is used for both the discovery request and the JWKS request,
+        // even though the URLs could in theory point to different hosts.
         let config = Config::discover(http_client).await?;
         let jwks = config.jwks(http_client).await?;
 
@@ -222,8 +222,8 @@ pub async fn request_token(
     http_client: &OidcReqwestClient,
     token_request: TokenRequest,
 ) -> Result<TokenResponse, OidcError> {
-    // Note that the same TLS pinning configuration is used for both the discovery request
-    // and the token request, even though the URLs may point to different hosts.
+    // Note that the same TLS pinning configuration is used for both the discovery request and the token request, even
+    // though the URLs could in theory point to different hosts.
     let config = Config::discover(http_client).await?;
 
     let token_response = http_client
@@ -257,8 +257,8 @@ where
     ClaimsSet<C>: CompactPart,
     H: CompactJson,
 {
-    // Note that the same TLS pinning configuration is used for both the discovery request
-    // and the user info request, even though the URLs may point to different hosts.
+    // Note that the same TLS pinning configuration is used for both the discovery request and any of the subsequent
+    // requests, even though the URLs could in theory point to different hosts.
     let config = Config::discover(http_client).await?;
     let jwks = config.jwks(http_client).await?;
 
