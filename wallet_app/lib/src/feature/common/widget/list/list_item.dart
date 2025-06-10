@@ -78,7 +78,7 @@ class ListItem extends StatelessWidget {
     final item = switch (style) {
       ListItemStyle.compact => CompactListItem(label: label, subtitle: subtitle, icon: styledIcon),
       ListItemStyle.horizontal => HorizontalListItem(label: label, subtitle: subtitle, icon: styledIcon),
-      ListItemStyle.vertical => VerticalListItem(label: label, subtitle: subtitle, icon: styledIcon, button: button),
+      ListItemStyle.vertical => VerticalListItem(title: label, subtitle: subtitle, icon: styledIcon, button: button),
     };
     return Column(
       mainAxisSize: MainAxisSize.min,
