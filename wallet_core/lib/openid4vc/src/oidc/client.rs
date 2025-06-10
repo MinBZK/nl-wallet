@@ -10,7 +10,6 @@ pub use biscuit::Empty;
 pub use biscuit::ValidationOptions;
 pub use biscuit::JWT;
 use futures::TryFutureExt;
-use http::Method;
 pub use josekit::jwe::alg;
 pub use josekit::jwe::enc;
 pub use josekit::jwe::JweContentEncryption;
@@ -225,11 +224,9 @@ pub async fn request_token(
 
     let token_response = http_client
         .as_ref()
-        .send_custom_request(
-            Method::POST,
-            ReqwestClientUrl::Absolute(config.token_endpoint.clone()),
-            |request| request.form(&token_request),
-        )
+        .send_custom_post(ReqwestClientUrl::Absolute(config.token_endpoint.clone()), |request| {
+            request.form(&token_request)
+        })
         .map_err(OidcError::from)
         .and_then(|response| async {
             // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
@@ -265,7 +262,7 @@ where
     // Use the access_token to retrieve the userinfo as a JWT.
     let jwt = http_client
         .as_ref()
-        .send_custom_request(Method::POST, ReqwestClientUrl::Absolute(endpoint.clone()), |request| {
+        .send_custom_post(ReqwestClientUrl::Absolute(endpoint.clone()), |request| {
             request
                 .header(header::ACCEPT, APPLICATION_JWT)
                 .bearer_auth(access_token.as_ref())

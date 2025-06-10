@@ -1,4 +1,3 @@
-use http::Method;
 use reqwest::header::LOCATION;
 use reqwest::redirect::Policy;
 use reqwest::Response;
@@ -49,7 +48,7 @@ pub async fn fake_digid_auth(mut authorization_url: Url, digid_http_config: TlsP
 }
 
 async fn do_get_request(client: &PinnedReqwestClient, url: ReqwestClientUrl<'_>) -> Response {
-    client.send_request(Method::GET, url).await.expect("failed to GET URL")
+    client.send_get(url).await.expect("failed to GET URL")
 }
 
 async fn do_get_as_text(client: &PinnedReqwestClient, url: ReqwestClientUrl<'_>) -> String {

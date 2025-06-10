@@ -3,8 +3,6 @@ use std::hash::Hash;
 use std::marker::PhantomData;
 use std::str::FromStr;
 
-use http::Method;
-
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 
@@ -44,10 +42,9 @@ where
             .cached_client
             .get_or_try_init(client_builder, IntoPinnedReqwestClient::try_into_client)?;
         let response = client
-            .send_request(
-                Method::GET,
-                ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
-            )
+            .send_get(ReqwestClientUrl::Relative(
+                &self.resource_identifier.as_ref().to_string_lossy(),
+            ))
             .await?;
 
         // Try to get the body from any 4xx or 5xx error responses, in order to create an Error::Response.

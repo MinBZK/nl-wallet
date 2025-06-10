@@ -120,7 +120,7 @@ impl PinnedReqwestClient {
         Self { client, base_url }
     }
 
-    pub async fn send_custom_request<F>(
+    async fn send_custom_request<F>(
         &self,
         method: Method,
         url: ReqwestClientUrl<'_>,
@@ -140,8 +140,38 @@ impl PinnedReqwestClient {
         Ok(response)
     }
 
-    pub async fn send_request(&self, method: Method, url: ReqwestClientUrl<'_>) -> Result<Response, reqwest::Error> {
+    async fn send_request(&self, method: Method, url: ReqwestClientUrl<'_>) -> Result<Response, reqwest::Error> {
         self.send_custom_request(method, url, std::convert::identity).await
+    }
+
+    pub async fn send_custom_get<F>(
+        &self,
+        url: ReqwestClientUrl<'_>,
+        request_adapter: F,
+    ) -> Result<Response, reqwest::Error>
+    where
+        F: FnOnce(RequestBuilder) -> RequestBuilder,
+    {
+        self.send_custom_request(Method::GET, url, request_adapter).await
+    }
+
+    pub async fn send_get(&self, url: ReqwestClientUrl<'_>) -> Result<Response, reqwest::Error> {
+        self.send_request(Method::GET, url).await
+    }
+
+    pub async fn send_custom_post<F>(
+        &self,
+        url: ReqwestClientUrl<'_>,
+        request_adapter: F,
+    ) -> Result<Response, reqwest::Error>
+    where
+        F: FnOnce(RequestBuilder) -> RequestBuilder,
+    {
+        self.send_custom_request(Method::POST, url, request_adapter).await
+    }
+
+    pub async fn send_post(&self, url: ReqwestClientUrl<'_>) -> Result<Response, reqwest::Error> {
+        self.send_request(Method::POST, url).await
     }
 }
 

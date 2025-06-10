@@ -1,6 +1,5 @@
 use std::hash::Hash;
 
-use http::Method;
 use http::StatusCode;
 use reqwest::RequestBuilder;
 use serde::de::DeserializeOwned;
@@ -94,7 +93,7 @@ where
             .http_client
             .get_or_try_init(http_config, IntoPinnedReqwestClient::try_into_json_client)?;
         let response = http_client
-            .send_custom_request(Method::POST, ReqwestClientUrl::Relative(path), request_adapter)
+            .send_custom_post(ReqwestClientUrl::Relative(path), request_adapter)
             .await?;
 
         let status = response.status();

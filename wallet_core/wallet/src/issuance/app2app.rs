@@ -2,7 +2,6 @@ use std::sync::LazyLock;
 
 use derive_more::AsRef;
 use http::header::LOCATION;
-use http::Method;
 use http::StatusCode;
 use regex::Regex;
 use reqwest::redirect::Policy;
@@ -160,7 +159,7 @@ where
                 info!("Sending get request to Auth URL, expecting an HTTP Redirect");
                 let response = http_client
                     .as_ref()
-                    .send_request(Method::GET, ReqwestClientUrl::Absolute(auth_url))
+                    .send_get(ReqwestClientUrl::Absolute(auth_url))
                     .await?
                     .error_for_status()?;
                 let location = Self::extract_location_header(&response)?;
@@ -217,7 +216,7 @@ where
                     .http_client
                     .as_ref()
                     // this route is standard for rdo-max
-                    .send_custom_request(Method::GET, ReqwestClientUrl::Relative("acs"), |request_builder| {
+                    .send_custom_get(ReqwestClientUrl::Relative("acs"), |request_builder| {
                         request_builder.query(&app_app.saml_parameters)
                     })
                     .await?

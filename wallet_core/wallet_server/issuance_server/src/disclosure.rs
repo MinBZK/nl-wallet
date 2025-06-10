@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use http::Method;
 use indexmap::IndexMap;
 
 use attestation_data::issuable_document::IssuableDocument;
@@ -78,9 +77,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
 
         let to_issue = http_client
             // The base URL of the client is exactly the URl we need, so pass an empty relative path.
-            .send_custom_request(Method::POST, ReqwestClientUrl::Relative(""), |request| {
-                request.json(disclosed)
-            })
+            .send_custom_post(ReqwestClientUrl::Relative(""), |request| request.json(disclosed))
             .await?
             .error_for_status()?
             .json()

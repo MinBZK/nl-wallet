@@ -2,7 +2,6 @@
 
 use biscuit::jwk::JWKSet;
 use biscuit::Empty;
-use http::Method;
 use indexmap::IndexSet;
 use serde::Deserialize;
 use serde::Serialize;
@@ -149,10 +148,7 @@ impl Config {
         // appending /.well-known/openid-configuration.
         let config = http_client
             .as_ref()
-            .send_request(
-                Method::GET,
-                ReqwestClientUrl::Relative(".well-known/openid-configuration"),
-            )
+            .send_get(ReqwestClientUrl::Relative(".well-known/openid-configuration"))
             .await?
             .error_for_status()?
             .json()
@@ -166,7 +162,7 @@ impl Config {
     pub(super) async fn jwks(&self, http_client: &OidcReqwestClient) -> Result<JWKSet<Empty>, OidcError> {
         let jwks = http_client
             .as_ref()
-            .send_request(Method::GET, ReqwestClientUrl::Absolute(self.jwks_uri.clone()))
+            .send_get(ReqwestClientUrl::Absolute(self.jwks_uri.clone()))
             .await?
             .error_for_status()?
             .json()

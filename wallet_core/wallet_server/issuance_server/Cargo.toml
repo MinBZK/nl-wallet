@@ -35,7 +35,6 @@ axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio"
 config = { workspace = true, features = ["toml"] }
 chrono.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
-http.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }

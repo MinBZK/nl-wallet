@@ -7,7 +7,6 @@ use std::str::FromStr;
 
 use http::header;
 use http::HeaderValue;
-use http::Method;
 use http::StatusCode;
 use parking_lot::Mutex;
 use tokio::fs;
@@ -92,8 +91,7 @@ where
             .get_or_try_init(client_builder, IntoPinnedReqwestClient::try_into_client)
             .map_err(HttpClientError::Networking)?;
         let response = client
-            .send_custom_request(
-                Method::GET,
+            .send_custom_get(
                 ReqwestClientUrl::Relative(&self.resource_identifier.as_ref().to_string_lossy()),
                 |request| match self.latest_etag.lock().as_ref() {
                     Some(etag) => request.header(header::IF_NONE_MATCH, etag),

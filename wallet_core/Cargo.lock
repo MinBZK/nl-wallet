@@ -3357,7 +3357,6 @@ dependencies = [
  "crypto",
  "futures",
  "hsm",
- "http",
  "http_utils",
  "indexmap 2.7.1",
  "issuer_settings",
