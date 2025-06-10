@@ -1,4 +1,3 @@
-use base64::prelude::*;
 pub use biscuit::errors::Error as BiscuitError;
 pub use biscuit::jwa;
 pub use biscuit::jwa::SignatureAlgorithm;
@@ -9,17 +8,19 @@ pub use biscuit::CompactPart;
 pub use biscuit::Empty;
 pub use biscuit::ValidationOptions;
 pub use biscuit::JWT;
-use futures::TryFutureExt;
 pub use josekit::jwe::alg;
 pub use josekit::jwe::enc;
 pub use josekit::jwe::JweContentEncryption;
 pub use josekit::jwe::JweDecrypter;
 pub use josekit::JoseError;
+
+use base64::prelude::*;
+use error_category::ErrorCategory;
+use futures::try_join;
+use futures::TryFutureExt;
+use http_utils::reqwest::ReqwestClientUrl;
 use reqwest::header;
 use url::Url;
-
-use error_category::ErrorCategory;
-use http_utils::reqwest::ReqwestClientUrl;
 
 use crate::authorization::AuthorizationRequest;
 use crate::authorization::AuthorizationResponse;
@@ -27,7 +28,6 @@ use crate::authorization::PkceCodeChallenge;
 use crate::authorization::ResponseType;
 use crate::pkce::PkcePair;
 use crate::pkce::S256PkcePair;
-use crate::token::AccessToken;
 use crate::token::AuthorizationCode;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
@@ -218,13 +218,13 @@ impl<P: PkcePair> HttpOidcClient<P> {
     }
 }
 
-pub async fn request_token(
+async fn request_userinfo_jwt(
     http_client: &OidcReqwestClient,
+    config: &Config,
     token_request: TokenRequest,
-) -> Result<TokenResponse, OidcError> {
-    // Note that the same TLS pinning configuration is used for both the discovery request and the token request, even
-    // though the URLs could in theory point to different hosts.
-    let config = Config::discover(http_client).await?;
+) -> Result<String, OidcError> {
+    // Get userinfo endpoint from discovery, throw an error otherwise.
+    let endpoint = config.userinfo_endpoint.as_ref().ok_or(OidcError::NoUserinfoUrl)?;
 
     let token_response = http_client
         .as_ref()
@@ -239,31 +239,12 @@ pub async fn request_token(
                 let error = response.json::<ErrorResponse<TokenErrorCode>>().await?;
                 Err(OidcError::RequestingAccessToken(error.into()))
             } else {
-                Ok(response.json().await?)
+                let token_response = response.json::<TokenResponse>().await?;
+
+                Ok(token_response)
             }
         })
         .await?;
-
-    Ok(token_response)
-}
-
-pub async fn request_userinfo<C, H>(
-    http_client: &OidcReqwestClient,
-    access_token: &AccessToken,
-    expected_sig_alg: SignatureAlgorithm,
-    encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
-) -> Result<JWT<C, H>, OidcError>
-where
-    ClaimsSet<C>: CompactPart,
-    H: CompactJson,
-{
-    // Note that the same TLS pinning configuration is used for both the discovery request and any of the subsequent
-    // requests, even though the URLs could in theory point to different hosts.
-    let config = Config::discover(http_client).await?;
-    let jwks = config.jwks(http_client).await?;
-
-    // Get userinfo endpoint from discovery, throw an error otherwise.
-    let endpoint = config.userinfo_endpoint.clone().ok_or(OidcError::NoUserinfoUrl)?;
 
     // Use the access_token to retrieve the userinfo as a JWT.
     let jwt = http_client
@@ -271,7 +252,7 @@ where
         .send_custom_post(ReqwestClientUrl::Absolute(endpoint.clone()), |request| {
             request
                 .header(header::ACCEPT, APPLICATION_JWT)
-                .bearer_auth(access_token.as_ref())
+                .bearer_auth(token_response.access_token.as_ref())
         })
         .map_err(OidcError::from)
         .and_then(|response| async {
@@ -279,28 +260,17 @@ where
             let status = response.status();
             if status.is_client_error() || status.is_server_error() {
                 let error = response.json::<ErrorResponse<AuthBearerErrorCode>>().await?;
+
                 Err(OidcError::RequestingUserInfo(error.into()))
             } else {
                 let text = response.text().await?;
+
                 Ok(text)
             }
         })
         .await?;
 
-    let jws = match encryption {
-        Some((decrypter, expected_enc_alg)) => decrypt_jwe(&jwt, decrypter, expected_enc_alg)?,
-        None => jwt.as_bytes().to_vec(),
-    };
-
-    // Get a JWS from the (decrypted) JWT and decode it using the JWK set.
-    let decoded_jws = JWT::<C, H>::from_bytes(&jws)?.decode_with_jwks(&jwks, Some(expected_sig_alg))?;
-
-    decoded_jws
-        .payload()?
-        .registered
-        .validate(ValidationOptions::default())?;
-
-    Ok(decoded_jws)
+    Ok(jwt)
 }
 
 fn decrypt_jwe(
@@ -320,6 +290,41 @@ fn decrypt_jwe(
         // This is the error that would have been returned, if the biscuit crate had done the algorithm checking.
         Err(biscuit::errors::ValidationError::WrongAlgorithmHeader)?
     }
+}
+
+pub async fn request_userinfo<C, H>(
+    http_client: &OidcReqwestClient,
+    token_request: TokenRequest,
+    expected_sig_alg: SignatureAlgorithm,
+    encryption: Option<(&impl JweDecrypter, &impl JweContentEncryption)>,
+) -> Result<JWT<C, H>, OidcError>
+where
+    ClaimsSet<C>: CompactPart,
+    H: CompactJson,
+{
+    // Note that the same TLS pinning configuration is used for both the discovery request and any of the subsequent
+    // requests, even though the URLs could in theory point to different hosts.
+    let config = Config::discover(http_client).await?;
+
+    let (jwt, jwks) = try_join!(
+        request_userinfo_jwt(http_client, &config, token_request),
+        config.jwks(http_client)
+    )?;
+
+    let jws = match encryption {
+        Some((decrypter, expected_enc_alg)) => decrypt_jwe(&jwt, decrypter, expected_enc_alg)?,
+        None => jwt.as_bytes().to_vec(),
+    };
+
+    // Get a JWS from the (decrypted) JWT and decode it using the JWK set.
+    let decoded_jws = JWT::<C, H>::from_bytes(&jws)?.decode_with_jwks(&jwks, Some(expected_sig_alg))?;
+
+    decoded_jws
+        .payload()?
+        .registered
+        .validate(ValidationOptions::default())?;
+
+    Ok(decoded_jws)
 }
 
 #[cfg(test)]
