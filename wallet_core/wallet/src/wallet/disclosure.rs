@@ -823,7 +823,7 @@ mod tests {
         );
 
         // Starting disclosure should not cause mdoc copy usage counts to be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -1110,7 +1110,7 @@ mod tests {
         );
 
         // Cancelling disclosure should not cause mdoc copy usage counts to be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -1305,7 +1305,7 @@ mod tests {
             .unwrap());
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),
@@ -1343,7 +1343,7 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // The mdoc copy usage counts should not be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
 
         // Verify no Disclosure events are logged
         assert!(wallet
@@ -1422,7 +1422,7 @@ mod tests {
         assert!(!wallet.is_locked());
 
         // The mdoc copy usage counts should not be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
 
         // Verify no Disclosure events are logged
         assert!(wallet
@@ -1486,13 +1486,13 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        assert_eq!(wallet.storage.read().await.mdoc_copies_usage_counts.len(), 1);
+        assert_eq!(wallet.storage.read().await.attestation_copies_usage_counts.len(), 1);
         assert_eq!(
             wallet
                 .storage
                 .read()
                 .await
-                .mdoc_copies_usage_counts
+                .attestation_copies_usage_counts
                 .get(&PROPOSED_ID)
                 .copied()
                 .unwrap_or_default(),
@@ -1545,7 +1545,7 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented again for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),
@@ -1626,7 +1626,7 @@ mod tests {
         }
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),
@@ -1728,7 +1728,7 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),

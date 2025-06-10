@@ -93,8 +93,10 @@ pub enum IssuanceError {
     #[error("no signature received from Wallet Provider")]
     #[category(critical)]
     MissingSignature,
-    #[error("could not insert mdocs in database: {0}")]
-    MdocStorage(#[source] StorageError),
+    #[error("could not insert attestations in database: {0}")]
+    AttestationStorage(#[source] StorageError),
+    #[error("could not query attestations in database: {0}")]
+    AttestationQuery(#[source] StorageError),
     #[error("could not store event in history database: {0}")]
     EventStorage(#[source] StorageError),
     #[error("key '{0}' not found in Wallet Provider")]
@@ -168,9 +170,9 @@ where
             .storage
             .write()
             .await
-            .has_any_mdocs_with_doctype(PID_DOCTYPE)
+            .has_any_attestations_with_type(PID_DOCTYPE)
             .await
-            .map_err(IssuanceError::MdocStorage)?;
+            .map_err(IssuanceError::AttestationQuery)?;
         if has_pid {
             return Err(IssuanceError::PidAlreadyPresent);
         }
@@ -497,7 +499,7 @@ where
             .await
             .insert_credentials(issued_credentials_with_metadata)
             .await
-            .map_err(IssuanceError::MdocStorage)?;
+            .map_err(IssuanceError::AttestationStorage)?;
 
         self.store_history_event(WalletEvent::new_issuance(issuance_session.preview_attestations))
             .await
@@ -1201,7 +1203,7 @@ mod tests {
             .await
             .expect_err("Accepting PID issuance should have resulted in an error");
 
-        assert_matches!(error, IssuanceError::MdocStorage(_));
+        assert_matches!(error, IssuanceError::AttestationStorage(_));
 
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());

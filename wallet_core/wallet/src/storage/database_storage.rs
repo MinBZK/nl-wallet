@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::convert::identity;
 use std::path::PathBuf;
 
 use futures::try_join;
@@ -217,6 +218,71 @@ impl<K> DatabaseStorage<K> {
             BinOper::GreaterThan,
             Box::new(SimpleExpr::Custom("DATETIME('now', '-31 day')".to_owned())),
         )
+    }
+
+    async fn query_unique_attestations<F>(&self, transform_select: F) -> StorageResult<Vec<StoredAttestationCopy>>
+    where
+        F: FnOnce(Select<attestation_copy::Entity>) -> Select<attestation_copy::Entity>,
+    {
+        let database = self.database()?;
+
+        // As this query only contains one `MIN()` aggregate function, the columns that
+        // do not appear in the `GROUP BY` clause are taken from whichever `mdoc_copy`
+        // row has the lowest disclosure count. This uses the "bare columns in aggregate
+        // queries" feature that SQLite provides.
+        //
+        // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
+        let select = attestation_copy::Entity::find()
+            .select_only()
+            .inner_join(attestation::Entity)
+            .column(attestation_copy::Column::Id)
+            .column(attestation_copy::Column::AttestationId)
+            .column(attestation_copy::Column::Attestation)
+            .column(attestation_copy::Column::AttestationFormat)
+            .column(attestation::Column::TypeMetadata)
+            .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
+            .group_by(attestation_copy::Column::AttestationId)
+            .order_by(attestation_copy::Column::Id, Order::Asc);
+
+        let copies: Vec<(Uuid, Uuid, Vec<u8>, AttestationFormat, TypeMetadataModel)> =
+            transform_select(select).into_tuple().all(database.connection()).await?;
+
+        let attestations = copies
+            .into_iter()
+            .map(
+                |(attestation_copy_id, attestation_id, attestation_bytes, attestation_format, metadata)| {
+                    let attestation = match attestation_format {
+                        AttestationFormat::Mdoc => {
+                            let mdoc = cbor_deserialize(attestation_bytes.as_slice())?;
+                            StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) }
+                        }
+                        AttestationFormat::SdJwt => {
+                            let sd_jwt = SdJwt::dangerous_parse(
+                                // Since we put utf-8 bytes into the database, we are certain we also get them out.
+                                String::from_utf8(attestation_bytes).unwrap().as_str(),
+                                &Sha256Hasher,
+                            )?;
+                            StoredAttestationFormat::SdJwt {
+                                sd_jwt: Box::new(sd_jwt),
+                            }
+                        }
+                    };
+
+                    let normalized_metadata = metadata.documents.to_normalized()?;
+
+                    let stored_copy = StoredAttestationCopy {
+                        attestation_id,
+                        attestation_copy_id,
+                        attestation,
+                        normalized_metadata,
+                    };
+
+                    Ok(stored_copy)
+                },
+            )
+            .collect::<Result<_, StorageError>>()?;
+
+        Ok(attestations)
     }
 
     async fn query_unique_mdocs<F>(&self, transform_select: F) -> StorageResult<Vec<StoredMdocCopy>>
@@ -582,69 +648,7 @@ where
     }
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
-        let database = self.database()?;
-
-        // As this query only contains one `MIN()` aggregate function, the columns that
-        // do not appear in the `GROUP BY` clause are taken from whichever `mdoc_copy`
-        // row has the lowest disclosure count. This uses the "bare columns in aggregate
-        // queries" feature that SQLite provides.
-        //
-        // See: https://www.sqlite.org/lang_select.html#bare_columns_in_an_aggregate_query
-        let select = attestation_copy::Entity::find()
-            .select_only()
-            .inner_join(attestation::Entity)
-            .column(attestation_copy::Column::Id)
-            .column(attestation_copy::Column::AttestationId)
-            .column(attestation_copy::Column::Attestation)
-            .column(attestation_copy::Column::AttestationFormat)
-            .column(attestation::Column::TypeMetadata)
-            .column_as(attestation_copy::Column::DisclosureCount.min(), "disclosure_count")
-            .group_by(attestation_copy::Column::AttestationId)
-            .order_by(attestation_copy::Column::Id, Order::Asc);
-
-        let copies: Vec<(Uuid, Uuid, Vec<u8>, AttestationFormat, TypeMetadataModel)> =
-            select.into_tuple().all(database.connection()).await?;
-
-        let attestations = copies
-            .into_iter()
-            .map(
-                |(attestation_copy_id, attestation_id, attestation_bytes, attestation_format, metadata)| {
-                    let attestation = match attestation_format {
-                        AttestationFormat::Mdoc => {
-                            let mdoc = cbor_deserialize(attestation_bytes.as_slice())?;
-                            StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) }
-                        }
-                        AttestationFormat::SdJwt => {
-                            let sd_jwt = SdJwt::dangerous_parse(
-                                // Since we put utf-8 bytes into the database, we are certain we also get them out.
-                                String::from_utf8(attestation_bytes).unwrap().as_str(),
-                                &Sha256Hasher,
-                            )?;
-                            StoredAttestationFormat::SdJwt {
-                                sd_jwt: Box::new(sd_jwt),
-                            }
-                        }
-                    };
-
-                    let normalized_metadata = metadata.documents.to_normalized()?;
-
-                    let stored_copy = StoredAttestationCopy {
-                        attestation_id,
-                        attestation_copy_id,
-                        attestation,
-                        normalized_metadata,
-                    };
-
-                    Ok(stored_copy)
-                },
-            )
-            .collect::<Result<_, StorageError>>()?;
-
-        Ok(attestations)
-    }
-
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
-        self.query_unique_mdocs(|select| select).await
+        self.query_unique_attestations(identity).await
     }
 
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
@@ -654,8 +658,20 @@ where
             .await
     }
 
-    async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool> {
-        let result = self.fetch_unique_mdocs_by_doctypes(&HashSet::from([doc_type])).await?;
+    async fn fetch_unique_attestations_by_type(
+        &self,
+        attestation_types: &HashSet<&str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        self.query_unique_attestations(move |select| {
+            select.filter(attestation::Column::AttestationType.is_in(attestation_types.iter().copied()))
+        })
+        .await
+    }
+
+    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
+        let result = self
+            .fetch_unique_mdocs_by_doctypes(&HashSet::from([attestation_type]))
+            .await?;
         Ok(!result.is_empty())
     }
 
@@ -821,6 +837,7 @@ fn create_attestation_copy_active_model(
 pub(crate) mod tests {
     use std::sync::LazyLock;
 
+    use assert_matches::assert_matches;
     use chrono::TimeZone;
     use chrono::Utc;
     use tokio::fs;
@@ -1054,14 +1071,13 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_mdoc_storage() {
+    async fn test_attestation_storage() {
         let mut storage = open_test_database_storage().await;
 
         // State should be Opened.
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        // Create MdocsMap from mock Mdoc
         let mdoc = Mdoc::new_mock().await;
 
         // The mock mdoc is never deserialized, so it contains `ProtectedHeader { original_data: None, .. }`.
@@ -1088,70 +1104,79 @@ pub(crate) mod tests {
                 VerifiedTypeMetadataDocuments::example(),
             )])
             .await
-            .expect("Could not insert mdocs");
+            .expect("Could not insert attestations");
 
-        // Fetch unique mdocs
         let fetched_unique = storage
-            .fetch_unique_mdocs()
+            .fetch_unique_attestations()
             .await
-            .expect("Could not fetch unique mdocs");
+            .expect("Could not fetch unique attestations");
 
-        // Only one unique `Mdoc` should be returned and it should match all copies.
+        // Only one unique `AttestationCopy` should be returned and it should match all copies.
         assert_eq!(fetched_unique.len(), 1);
-        let mdoc_copy1 = fetched_unique.first().unwrap();
-        assert_eq!(&mdoc_copy1.mdoc, &mdoc);
-        assert_eq!(mdoc_copy1.normalized_metadata, NormalizedTypeMetadata::example());
+        let attestation_copy1 = fetched_unique.first().unwrap();
+
+        assert_matches!(
+            &attestation_copy1.attestation,
+            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+        );
+        assert_eq!(attestation_copy1.normalized_metadata, NormalizedTypeMetadata::example());
+
+        // Increment the usage count for this attestation copy.
+        storage
+            .increment_attestation_copies_usage_count(vec![attestation_copy1.attestation_copy_id])
+            .await
+            .expect("Could not increment usage count for attestation copy");
+
+        // Fetch unique mdocs based on attestation_type
+        let fetched_unique_attestation_type = storage
+            .fetch_unique_attestations_by_type(&HashSet::from(["foo", attestation_type]))
+            .await
+            .expect("Could not fetch unique mdocs by attestation_type");
+
+        // One matching `AttestationCopy` should be returned and it should be a different copy than the fist one.
+        assert_eq!(fetched_unique_attestation_type.len(), 1);
+        let attestation_copy2 = fetched_unique_attestation_type.first().unwrap();
+        assert_matches!(
+            &attestation_copy2.attestation,
+            StoredAttestationFormat::MsoMdoc { mdoc: stored } if **stored == mdoc
+        );
+        assert_eq!(attestation_copy2.normalized_metadata, NormalizedTypeMetadata::example());
+        assert_ne!(
+            attestation_copy1.attestation_copy_id,
+            attestation_copy2.attestation_copy_id
+        );
 
         // Increment the usage count for this mdoc.
         storage
-            .increment_attestation_copies_usage_count(vec![mdoc_copy1.mdoc_copy_id])
+            .increment_attestation_copies_usage_count(vec![attestation_copy2.attestation_copy_id])
             .await
-            .expect("Could not increment usage count for mdoc copy");
+            .expect("Could not increment usage count for attestation copy");
 
-        // Fetch unique mdocs based on doctype
-        let fetched_unique_doctype = storage
-            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", attestation_type]))
-            .await
-            .expect("Could not fetch unique mdocs by doctypes");
-
-        // One matching `Mdoc` should be returned and it should be a different copy than the fist one.
-        assert_eq!(fetched_unique_doctype.len(), 1);
-        let mdoc_copy2 = fetched_unique_doctype.first().unwrap();
-        assert_eq!(mdoc_copy2.mdoc, mdoc);
-        assert_eq!(mdoc_copy2.normalized_metadata, NormalizedTypeMetadata::example());
-        assert_ne!(mdoc_copy1.mdoc_copy_id, mdoc_copy2.mdoc_copy_id);
-
-        // Increment the usage count for this mdoc.
-        storage
-            .increment_attestation_copies_usage_count(vec![mdoc_copy2.mdoc_copy_id])
-            .await
-            .expect("Could not increment usage count for mdoc copy");
-
-        // Fetch unique mdocs twice, which should result in exactly the same
+        // Fetch unique attestations twice, which should result in exactly the same
         // copy, since it is the last one that has a `usage_count` of 0.
         let fetched_unique_remaining1 = storage
-            .fetch_unique_mdocs()
+            .fetch_unique_attestations()
             .await
-            .expect("Could not fetch unique mdocs");
+            .expect("Could not fetch unique attestations");
         let fetched_unique_remaining2 = storage
-            .fetch_unique_mdocs()
+            .fetch_unique_attestations()
             .await
-            .expect("Could not fetch unique mdocs");
+            .expect("Could not fetch unique attestations");
 
         // Test that the copy identifiers are the same and that they
-        // are different from the other two mdoc copy identifiers.
+        // are different from the other two attestation copy identifiers.
         assert_eq!(fetched_unique_remaining1.len(), 1);
-        let remaning_mdoc_copy_id1 = fetched_unique_remaining1.first().unwrap().mdoc_copy_id;
+        let remaning_attestation_copy_id1 = fetched_unique_remaining1.first().unwrap().attestation_copy_id;
         assert_eq!(fetched_unique_remaining2.len(), 1);
-        let remaning_mdoc_copy_id2 = fetched_unique_remaining2.first().unwrap().mdoc_copy_id;
+        let remaning_attestation_copy_id2 = fetched_unique_remaining2.first().unwrap().attestation_copy_id;
 
-        assert_eq!(remaning_mdoc_copy_id1, remaning_mdoc_copy_id2);
-        assert_ne!(mdoc_copy1.mdoc_copy_id, remaning_mdoc_copy_id1);
-        assert_ne!(mdoc_copy2.mdoc_copy_id, remaning_mdoc_copy_id1);
+        assert_eq!(remaning_attestation_copy_id1, remaning_attestation_copy_id2);
+        assert_ne!(attestation_copy1.attestation_copy_id, remaning_attestation_copy_id1);
+        assert_ne!(attestation_copy2.attestation_copy_id, remaning_attestation_copy_id1);
 
         // Fetch unique mdocs based on non-existent doctype
         let fetched_unique_doctype_mismatch = storage
-            .fetch_unique_mdocs_by_doctypes(&HashSet::from(["foo", "bar"]))
+            .fetch_unique_attestations_by_type(&HashSet::from(["foo", "bar"]))
             .await
             .unwrap();
 

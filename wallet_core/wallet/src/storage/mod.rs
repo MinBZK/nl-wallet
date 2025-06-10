@@ -146,10 +146,13 @@ pub trait Storage {
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
+    async fn fetch_unique_attestations_by_type(
+        &self,
+        attestation_types: &HashSet<&str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>>;
+    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
 
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>>;
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>>;
-    async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool>;
 
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()>;
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
