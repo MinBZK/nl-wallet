@@ -2,13 +2,13 @@ use std::hash::Hash;
 
 use http::Method;
 use http::StatusCode;
-use http_utils::reqwest::IntoPinnedReqwestClient;
 use reqwest::RequestBuilder;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::reqwest::parse_content_type;
+use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::tls::pinning::TlsPinningConfig;
 use wallet_account::messages::errors::AccountError;
