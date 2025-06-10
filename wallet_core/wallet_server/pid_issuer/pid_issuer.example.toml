@@ -27,7 +27,11 @@ max_session_lifetime_in_sec = 900
 bsn_privkey = ""
 
 [digid.http_config]
+# This is the base URL for the DigiD OIDC discovery host.
 base_url = "https://localhost:8006"
+# The TLS pinning trust anchors used for any OIDC HTTP request made, including
+# those sent to URLs that are the result of discovery. Note that these may be
+# on a different host than the base_url above.
 trust_anchors = [""]
 
 [attestation_settings."com.example.pid"]
