@@ -43,7 +43,7 @@ where
         server::serve(listener, gbav_client).await.unwrap();
     });
 
-    wait_for_server(format!("http://localhost:{port}").parse().unwrap(), vec![]).await;
+    wait_for_server(format!("http://localhost:{port}").parse().unwrap(), std::iter::empty()).await;
     port
 }
 

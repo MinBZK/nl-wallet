@@ -363,7 +363,7 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrus
     });
 
     let base_url = local_config_base_url(port);
-    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
+    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
     port
 }
 
@@ -379,7 +379,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     });
 
     let base_url = local_ups_base_url(port);
-    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
+    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
     port
 }
 
@@ -409,7 +409,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
     });
 
     let base_url = local_wp_base_url(port);
-    wait_for_server(remove_path(&base_url), vec![trust_anchor.into_certificate()]).await;
+    wait_for_server(remove_path(&base_url), std::iter::once(trust_anchor.into_certificate())).await;
     port
 }
 
@@ -494,7 +494,7 @@ async fn start_mock_attestation_server(
     });
 
     let url: BaseUrl = format!("https://localhost:{}/", port).as_str().parse().unwrap();
-    wait_for_server(url.clone(), vec![trust_anchor.into_certificate()]).await;
+    wait_for_server(url.clone(), std::iter::once(trust_anchor.into_certificate())).await;
     url
 }
 
@@ -534,7 +534,7 @@ pub async fn start_issuance_server(
         }
     });
 
-    wait_for_server(public_url.clone(), vec![]).await;
+    wait_for_server(public_url.clone(), std::iter::empty()).await;
     public_url
 }
 
@@ -575,7 +575,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         }
     });
 
-    wait_for_server(public_url, vec![]).await;
+    wait_for_server(public_url, std::iter::empty()).await;
     port
 }
 
@@ -621,14 +621,14 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         }
     });
 
-    wait_for_server(public_url.clone(), vec![]).await;
+    wait_for_server(public_url.clone(), std::iter::empty()).await;
     DisclosureParameters {
         verifier_url: public_url,
         verifier_internal_url: internal_url,
     }
 }
 
-pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: Vec<Certificate>) {
+pub async fn wait_for_server(base_url: BaseUrl, trust_anchors: impl Iterator<Item = Certificate>) {
     let client = trusted_reqwest_client_builder(trust_anchors).build().unwrap();
 
     time::timeout(Duration::from_secs(3), async {
@@ -675,7 +675,7 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
         }
     });
 
-    wait_for_server(base_url, vec![]).await;
+    wait_for_server(base_url, std::iter::empty()).await;
 }
 
 pub async fn do_wallet_registration(mut wallet: WalletWithMocks, pin: &str) -> WalletWithMocks {

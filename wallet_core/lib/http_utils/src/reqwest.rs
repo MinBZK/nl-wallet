@@ -198,17 +198,15 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
 
 /// Create a [`ClientBuilder`] that validates certificates signed with the supplied trust anchors (root certificates) as
 /// well as the built-in root certificates.
-pub fn trusted_reqwest_client_builder(trust_anchors: Vec<Certificate>) -> ClientBuilder {
-    trust_anchors
-        .into_iter()
-        .fold(default_reqwest_client_builder(), |builder, root_ca| {
-            builder.add_root_certificate(root_ca)
-        })
+pub fn trusted_reqwest_client_builder(trust_anchors: impl Iterator<Item = Certificate>) -> ClientBuilder {
+    trust_anchors.fold(default_reqwest_client_builder(), |builder, root_ca| {
+        builder.add_root_certificate(root_ca)
+    })
 }
 
 /// Create a [`ClientBuilder`] that only validates certificates signed with the supplied trust anchors (root
 /// certificates). The built-in root certificates are therefore disabled and the client will only work over https.
-pub fn tls_pinned_client_builder(trust_anchors: Vec<Certificate>) -> ClientBuilder {
+pub fn tls_pinned_client_builder(trust_anchors: impl Iterator<Item = Certificate>) -> ClientBuilder {
     trusted_reqwest_client_builder(trust_anchors)
         .https_only(true)
         .tls_built_in_root_certs(false)

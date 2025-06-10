@@ -39,11 +39,7 @@ impl IntoPinnedReqwestClient for TlsPinningConfig {
     where
         F: FnOnce(ClientBuilder) -> ClientBuilder,
     {
-        let certificates = self
-            .trust_anchors
-            .into_iter()
-            .map(ReqwestTrustAnchor::into_certificate)
-            .collect();
+        let certificates = self.trust_anchors.into_iter().map(ReqwestTrustAnchor::into_certificate);
         let client = builder_adapter(tls_pinned_client_builder(certificates)).build()?;
         let pinned_client = PinnedReqwestClient::new(client, self.base_url);
 
