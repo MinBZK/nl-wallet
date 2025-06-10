@@ -483,7 +483,7 @@ async fn start_mock_attestation_server(
     let port = listener.local_addr().unwrap().port();
 
     tokio::spawn(async move {
-        axum_server::from_tcp_rustls(listener, tls_server_config.to_rustls_config().await.unwrap())
+        axum_server::from_tcp_rustls(listener, tls_server_config.into_rustls_config().await.unwrap())
             .serve(
                 Router::new()
                     .route("/", post(|| async { Json(issuable_documents) }))
