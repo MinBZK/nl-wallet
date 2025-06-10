@@ -230,7 +230,7 @@ impl SdJwt {
         })
     }
 
-    /// Parses an SD-JWT into its components as [`SdJwt`] but extract the issue public key from the
+    /// Parses an SD-JWT into its components as [`SdJwt`], but extract the issuer public key from the
     /// JWT x5c header.
     ///
     /// ## Error
