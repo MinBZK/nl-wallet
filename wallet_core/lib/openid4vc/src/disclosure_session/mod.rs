@@ -1,16 +1,9 @@
 use std::hash::Hash;
-use std::sync::LazyLock;
 
 use derive_more::Constructor;
-use derive_more::From;
 use futures::TryFutureExt;
 use itertools::Itertools;
-use mime::Mime;
-use reqwest::header::ACCEPT;
-use reqwest::Method;
-use reqwest::Response;
 use rustls_pki_types::TrustAnchor;
-use serde::de::DeserializeOwned;
 use tracing::info;
 use tracing::warn;
 
@@ -25,7 +18,6 @@ use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
 use error_category::ErrorCategory;
 use http_utils::urls::BaseUrl;
-use jwt::Jwt;
 use mdoc::disclosure::DeviceResponse;
 use mdoc::engagement::SessionTranscript;
 use mdoc::holder::DisclosureRequestMatch;
@@ -35,6 +27,9 @@ use mdoc::holder::ProposedDocument;
 use poa::factory::PoaFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 
+use crate::errors::AuthorizationErrorCode;
+use crate::errors::ErrorResponse;
+use crate::errors::VpAuthorizationErrorCode;
 use crate::openid4vp::AuthRequestValidationError;
 use crate::openid4vp::AuthResponseError;
 use crate::openid4vp::IsoVpAuthorizationRequest;
@@ -42,17 +37,16 @@ use crate::openid4vp::RequestUriMethod;
 use crate::openid4vp::VpAuthorizationRequest;
 use crate::openid4vp::VpAuthorizationResponse;
 use crate::openid4vp::VpRequestUriObject;
-use crate::openid4vp::VpResponse;
-use crate::openid4vp::WalletRequest;
 use crate::verifier::SessionType;
 use crate::verifier::VerifierUrlParameters;
-use crate::verifier::VpToken;
-use crate::AuthorizationErrorCode;
-use crate::DisclosureErrorResponse;
-use crate::ErrorResponse;
-use crate::GetRequestErrorCode;
-use crate::PostAuthResponseErrorCode;
-use crate::VpAuthorizationErrorCode;
+
+pub use self::client::HttpVpMessageClient;
+pub use self::client::VpMessageClient;
+pub use self::client::VpMessageClientError;
+pub use self::client::VpMessageClientErrorType;
+pub use self::client::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
+
+mod client;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
@@ -147,69 +141,6 @@ pub enum VpVerifierError {
     RpCertificate(#[source] CertificateError),
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-#[category(pd)]
-pub enum VpMessageClientError {
-    #[error("HTTP request error: {0}")]
-    #[category(expected)]
-    Http(#[from] reqwest::Error),
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("auth request server error response: {0:?}")]
-    AuthGetResponse(Box<DisclosureErrorResponse<GetRequestErrorCode>>),
-    #[error("auth request server error response: {0:?}")]
-    AuthPostResponse(Box<DisclosureErrorResponse<PostAuthResponseErrorCode>>),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VpMessageClientErrorType {
-    Expired { can_retry: bool },
-    Cancelled,
-    Other,
-}
-
-impl From<DisclosureErrorResponse<GetRequestErrorCode>> for VpMessageClientError {
-    fn from(value: DisclosureErrorResponse<GetRequestErrorCode>) -> Self {
-        Self::AuthGetResponse(value.into())
-    }
-}
-
-impl From<DisclosureErrorResponse<PostAuthResponseErrorCode>> for VpMessageClientError {
-    fn from(value: DisclosureErrorResponse<PostAuthResponseErrorCode>) -> Self {
-        Self::AuthPostResponse(value.into())
-    }
-}
-
-impl VpMessageClientError {
-    pub fn error_type(&self) -> VpMessageClientErrorType {
-        match self {
-            // Consider the different error codes when getting the disclosure request.
-            Self::AuthGetResponse(error) => match error.response_error() {
-                GetRequestErrorCode::ExpiredEphemeralId => VpMessageClientErrorType::Expired { can_retry: true },
-                GetRequestErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
-                GetRequestErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
-                _ => VpMessageClientErrorType::Other,
-            },
-            // Consider the different error codes when posting the disclosure response.
-            Self::AuthPostResponse(error) => match error.response_error() {
-                PostAuthResponseErrorCode::ExpiredSession => VpMessageClientErrorType::Expired { can_retry: false },
-                PostAuthResponseErrorCode::CancelledSession => VpMessageClientErrorType::Cancelled,
-                _ => VpMessageClientErrorType::Other,
-            },
-            // Any other reported error is classified under `VpMessageClientErrorType::Other`.
-            _ => VpMessageClientErrorType::Other,
-        }
-    }
-
-    pub fn redirect_uri(&self) -> Option<&BaseUrl> {
-        match self {
-            Self::AuthGetResponse(response) => response.redirect_uri.as_ref(),
-            Self::AuthPostResponse(response) => response.redirect_uri.as_ref(),
-            _ => None,
-        }
-    }
-}
-
 #[derive(thiserror::Error, Debug, Constructor)]
 #[error("could not perform actual disclosure, attributes were shared: {data_shared}, error: {error}")]
 pub struct DisclosureError<E: std::error::Error> {
@@ -231,156 +162,6 @@ impl<E: std::error::Error> DisclosureError<E> {
             data_shared: true,
             error,
         }
-    }
-}
-
-/// Contract for sending OpenID4VP protocol messages.
-pub trait VpMessageClient {
-    async fn get_authorization_request(
-        &self,
-        url: BaseUrl,
-        wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError>;
-
-    async fn send_authorization_response(
-        &self,
-        url: BaseUrl,
-        jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError>;
-
-    async fn send_error(
-        &self,
-        url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError>;
-
-    async fn terminate(&self, url: BaseUrl) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.send_error(
-            url,
-            ErrorResponse {
-                error: VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied),
-                error_description: None,
-                error_uri: None,
-            },
-        )
-        .await
-    }
-}
-
-pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: LazyLock<Mime> = LazyLock::new(|| {
-    "application/oauth-authz-req+jwt"
-        .parse()
-        .expect("could not parse MIME type")
-});
-
-#[derive(From)]
-pub struct HttpVpMessageClient {
-    http_client: reqwest::Client,
-}
-
-impl VpMessageClient for HttpVpMessageClient {
-    async fn get_authorization_request(
-        &self,
-        url: BaseUrl,
-        wallet_nonce: Option<String>,
-    ) -> Result<Jwt<VpAuthorizationRequest>, VpMessageClientError> {
-        let method = match wallet_nonce {
-            Some(_) => Method::POST,
-            None => Method::GET,
-        };
-
-        let mut request = self
-            .http_client
-            .request(method, url.into_inner())
-            .header(ACCEPT, APPLICATION_OAUTH_AUTHZ_REQ_JWT.as_ref());
-
-        if wallet_nonce.is_some() {
-            request = request.form(&WalletRequest { wallet_nonce });
-        }
-
-        request
-            .send()
-            .map_err(VpMessageClientError::from)
-            .and_then(|response| async {
-                let jwt = Self::get_body_from_response::<GetRequestErrorCode>(response)
-                    .await?
-                    .into();
-
-                Ok(jwt)
-            })
-            .await
-    }
-
-    async fn send_authorization_response(
-        &self,
-        url: BaseUrl,
-        jwe: String,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.http_client
-            .post(url.into_inner())
-            .form(&VpToken { vp_token: jwe })
-            .send()
-            .map_err(VpMessageClientError::from)
-            .and_then(|response| async {
-                let redirect_uri = Self::handle_vp_response::<PostAuthResponseErrorCode>(response).await?;
-
-                Ok(redirect_uri)
-            })
-            .await
-    }
-
-    async fn send_error(
-        &self,
-        url: BaseUrl,
-        error: ErrorResponse<VpAuthorizationErrorCode>,
-    ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-        self.http_client
-            .post(url.into_inner())
-            .form(&error)
-            .send()
-            .map_err(VpMessageClientError::from)
-            .and_then(|response| async {
-                let redirect_uri = Self::handle_vp_response::<PostAuthResponseErrorCode>(response).await?;
-
-                Ok(redirect_uri)
-            })
-            .await
-    }
-}
-
-impl HttpVpMessageClient {
-    async fn get_body_from_response<T>(response: Response) -> Result<String, VpMessageClientError>
-    where
-        T: DeserializeOwned,
-        DisclosureErrorResponse<T>: Into<VpMessageClientError>,
-    {
-        // If the HTTP response code is 4xx or 5xx, parse the JSON as an error
-        let status = response.status();
-        if status.is_client_error() || status.is_server_error() {
-            let error = response.json::<DisclosureErrorResponse<T>>().await?;
-
-            return Err(error.into());
-        }
-        let body = response.text().await?;
-
-        Ok(body)
-    }
-
-    /// If the RP does not wish to specify a redirect URI, e.g. in case of cross device flows, then the spec does not
-    /// say whether the RP should send an empty JSON object, i.e. `{}`, or no body at all. So this function accepts
-    /// both.
-    async fn handle_vp_response<T>(response: Response) -> Result<Option<BaseUrl>, VpMessageClientError>
-    where
-        T: DeserializeOwned,
-        DisclosureErrorResponse<T>: Into<VpMessageClientError>,
-    {
-        let response_body = Self::get_body_from_response(response).await?;
-
-        if response_body.is_empty() {
-            return Ok(None);
-        }
-        let response: VpResponse = serde_json::from_str(&response_body)?;
-        Ok(response.redirect_uri)
     }
 }
 
@@ -782,11 +563,14 @@ mod tests {
     use std::convert::identity;
     use std::hash::Hash;
     use std::iter;
+    use std::str::FromStr;
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
     use indexmap::IndexSet;
+    use josekit::jwk::alg::ec::EcCurve;
+    use josekit::jwk::alg::ec::EcKeyPair;
     use p256::ecdsa::Signature;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -812,11 +596,13 @@ mod tests {
     use crypto::utils::random_string;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
+    use http_utils::urls::BaseUrl;
     use jwt::error::JwtX5cError;
     use mdoc::examples::EXAMPLE_ATTRIBUTES;
     use mdoc::examples::EXAMPLE_DOC_TYPE;
     use mdoc::examples::EXAMPLE_NAMESPACE;
     use mdoc::holder::mock::MdocDataSourceError;
+    use mdoc::holder::mock::MockMdocDataSource;
     use mdoc::holder::HolderError;
     use mdoc::holder::ProposedDocument;
     use mdoc::utils::cose::ClonePayload;
@@ -836,22 +622,24 @@ mod tests {
 
     use crate::disclosure_session::VpSessionError;
     use crate::disclosure_session::VpVerifierError;
+    use crate::errors::AuthorizationErrorCode;
+    use crate::errors::VpAuthorizationErrorCode;
     use crate::openid4vp::AuthRequestValidationError;
+    use crate::openid4vp::IsoVpAuthorizationRequest;
     use crate::openid4vp::VerifiablePresentation;
+    use crate::openid4vp::VpAuthorizationRequest;
     use crate::openid4vp::VpAuthorizationResponse;
     use crate::openid4vp::VpClientMetadata;
     use crate::openid4vp::VpJwks;
     use crate::openid4vp::VpRequestUriObject;
-    use crate::test::disclosure_session_start;
-    use crate::test::iso_auth_request;
-    use crate::test::test_disclosure_session_start_error_http_client;
-    use crate::test::test_disclosure_session_terminate;
-    use crate::test::MockErrorFactoryVpMessageClient;
-    use crate::test::ReaderCertificateKind;
-    use crate::test::WalletMessage;
-    use crate::test::VERIFIER_URL;
     use crate::verifier::SessionType;
 
+    use super::client::mock::request_uri_object;
+    use super::client::mock::MockErrorFactoryVpMessageClient;
+    use super::client::mock::MockVerifierSession;
+    use super::client::mock::MockVerifierVpMessageClient;
+    use super::client::mock::WalletMessage;
+    use super::client::VpMessageClient;
     use super::CommonDisclosureData;
     use super::DisclosureError;
     use super::DisclosureMissingAttributes;
@@ -860,6 +648,83 @@ mod tests {
     use super::DisclosureUriSource;
     use super::VpClientError;
     use super::VpMessageClientError;
+
+    // Constants for testing.
+    const VERIFIER_URL: &str = "http://example.com/disclosure";
+
+    pub enum ReaderCertificateKind {
+        NoReaderRegistration,
+        WithReaderRegistration,
+    }
+
+    /// Perform a [`DisclosureSession`] start with test defaults.
+    /// This function takes several closures for modifying these
+    /// defaults just before they are actually used.
+    pub async fn disclosure_session_start<FS, FM, FD>(
+        session_type: SessionType,
+        disclosure_uri_source: DisclosureUriSource,
+        certificate_kind: ReaderCertificateKind,
+        transform_verfier_session: FS,
+        transform_mdoc: FM,
+        transform_device_request: FD,
+    ) -> Result<
+        (
+            DisclosureSession<MockVerifierVpMessageClient<FD>, String>,
+            Arc<MockVerifierSession<FD>>,
+        ),
+        (VpSessionError, Arc<MockVerifierSession<FD>>),
+    >
+    where
+        FS: FnOnce(MockVerifierSession<FD>) -> MockVerifierSession<FD>,
+        FM: FnOnce(MockMdocDataSource) -> MockMdocDataSource,
+        FD: Fn(VpAuthorizationRequest) -> VpAuthorizationRequest,
+    {
+        // Create a reader registration with all of the example attributes,
+        // if we should have a reader registration at all.
+        let reader_registration = match certificate_kind {
+            ReaderCertificateKind::NoReaderRegistration => None,
+            ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
+                attributes: ReaderRegistration::create_attributes(
+                    EXAMPLE_DOC_TYPE.to_string(),
+                    EXAMPLE_NAMESPACE.to_string(),
+                    EXAMPLE_ATTRIBUTES.iter().copied(),
+                ),
+                ..ReaderRegistration::new_mock()
+            }
+            .into(),
+        };
+
+        // Create a mock session and call the transform callback.
+        let verifier_session = MockVerifierSession::<FD>::new(
+            session_type,
+            &VERIFIER_URL.parse().unwrap(),
+            Some(BaseUrl::from_str(VERIFIER_URL).unwrap().join_base_url("redirect_uri")),
+            reader_registration,
+            transform_device_request,
+        );
+        let verifier_session = Arc::new(transform_verfier_session(verifier_session));
+
+        let client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
+
+        let ca = Ca::generate_issuer_mock_ca().unwrap();
+        // Set up the mock data source.
+        let mdoc_data_source = transform_mdoc(MockMdocDataSource::new_example_resigned(&ca).await);
+
+        // Starting disclosure and return the result.
+        let result = DisclosureSession::start(
+            client,
+            &verifier_session.request_uri_query(),
+            disclosure_uri_source,
+            &mdoc_data_source,
+            &verifier_session.trust_anchors,
+        )
+        .await;
+
+        match result {
+            Ok(disclosure_session) => Ok((disclosure_session, Arc::clone(&verifier_session))),
+            Err(err) => Err((err, verifier_session)),
+        }
+    }
 
     // This is the full happy path test of `DisclosureSession`.
     #[tokio::test]
@@ -1249,6 +1114,43 @@ mod tests {
         assert_eq!(verifier_session.wallet_messages.lock().len(), 0);
     }
 
+    async fn test_disclosure_session_start_error_http_client<F>(
+        error_factory: F,
+    ) -> (VpSessionError, Vec<WalletMessage>)
+    where
+        F: Fn() -> Option<VpMessageClientError>,
+    {
+        let wallet_messages = Arc::new(Mutex::new(Vec::new()));
+        let client = MockErrorFactoryVpMessageClient::new(error_factory, Arc::clone(&wallet_messages));
+
+        let request_query = serde_urlencoded::to_string(request_uri_object(
+            BaseUrl::from_str(VERIFIER_URL)
+                .unwrap()
+                .join_base_url("redirect_uri")
+                .into_inner(),
+            SessionType::SameDevice,
+            "client_id".to_string(),
+        ))
+        .unwrap();
+
+        // This mdoc data source is not actually consulted.
+        let mdoc_data_source = MockMdocDataSource::default();
+
+        let error = DisclosureSession::start(
+            client,
+            &request_query,
+            DisclosureUriSource::Link,
+            &mdoc_data_source,
+            &[],
+        )
+        .await
+        .expect_err("Starting disclosure session should have resulted in an error");
+
+        // Collect the messages sent through the `VpMessageClient`.
+        let wallet_messages = wallet_messages.lock();
+        (error, wallet_messages.clone())
+    }
+
     #[tokio::test]
     async fn test_disclosure_session_start_error_http_client_data_serialization() {
         let (error, wallet_messages) =
@@ -1561,6 +1463,36 @@ mod tests {
         _ = wallet_messages.last().unwrap().error(); // This RP error should be reported back to the RP
     }
 
+    fn iso_auth_request() -> IsoVpAuthorizationRequest {
+        let ca = Ca::generate_reader_mock_ca().unwrap();
+        let key_pair = generate_reader_mock(
+            &ca,
+            Some(ReaderRegistration {
+                attributes: ReaderRegistration::create_attributes(
+                    EXAMPLE_DOC_TYPE.to_string(),
+                    EXAMPLE_NAMESPACE.to_string(),
+                    EXAMPLE_ATTRIBUTES.iter().copied(),
+                ),
+                ..ReaderRegistration::new_mock()
+            }),
+        )
+        .unwrap();
+
+        IsoVpAuthorizationRequest::new(
+            &vec![ItemsRequest::new_example()].into(),
+            key_pair.certificate(),
+            random_string(32),
+            EcKeyPair::generate(EcCurve::P256)
+                .unwrap()
+                .to_jwk_public_key()
+                .try_into()
+                .unwrap(),
+            VERIFIER_URL.parse().unwrap(),
+            Some(random_string(32)),
+        )
+        .unwrap()
+    }
+
     #[allow(clippy::type_complexity)]
     async fn create_disclosure_session_proposal<F>(
         response_factory: F,
@@ -1601,6 +1533,27 @@ mod tests {
         });
 
         (proposal_session, wallet_messages)
+    }
+
+    async fn test_disclosure_session_terminate<H>(
+        session: DisclosureSession<H, String>,
+        wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
+    ) -> Result<Option<BaseUrl>, VpSessionError>
+    where
+        H: VpMessageClient,
+    {
+        let result = session.terminate().await;
+
+        let wallet_messages = wallet_messages.lock();
+        let WalletMessage::Error(error) = wallet_messages.last().unwrap() else {
+            panic!("wallet should have sent an error");
+        };
+        assert_matches!(
+            error.error,
+            VpAuthorizationErrorCode::AuthorizationError(AuthorizationErrorCode::AccessDenied)
+        );
+
+        result
     }
 
     #[tokio::test]
