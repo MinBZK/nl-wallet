@@ -1,4 +1,4 @@
-use derive_more::From;
+use derive_more::Constructor;
 use futures::TryFutureExt;
 use reqwest::header::ACCEPT;
 use reqwest::Method;
@@ -22,7 +22,7 @@ use super::VpMessageClient;
 use super::VpMessageClientError;
 use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 
-#[derive(From)]
+#[derive(Debug, Clone, Constructor)]
 pub struct HttpVpMessageClient {
     http_client: reqwest::Client,
 }
@@ -59,6 +59,7 @@ impl HttpVpMessageClient {
             return Ok(None);
         }
         let response: VpResponse = serde_json::from_str(&response_body)?;
+
         Ok(response.redirect_uri)
     }
 }

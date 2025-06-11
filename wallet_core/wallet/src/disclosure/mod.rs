@@ -122,10 +122,10 @@ where
     where
         Self: Sized,
     {
-        let client = default_reqwest_client_builder()
+        let http_client = default_reqwest_client_builder()
             .build()
-            .expect("Could not build reqwest HTTP client")
-            .into();
+            .expect("Could not build reqwest HTTP client");
+        let client = HttpVpMessageClient::new(http_client);
         let session = Self::start(
             client,
             &disclosure_uri.query,

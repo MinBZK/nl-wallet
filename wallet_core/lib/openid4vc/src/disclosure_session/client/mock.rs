@@ -3,6 +3,7 @@ use std::sync::Arc;
 use chrono::Utc;
 use derive_more::Constructor;
 use derive_more::Debug;
+use futures::FutureExt;
 use josekit::jwk::alg::ec::EcCurve;
 use josekit::jwk::alg::ec::EcKeyPair;
 use parking_lot::Mutex;
@@ -13,7 +14,7 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
-use crypto::utils::random_string;
+use crypto::utils;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 use mdoc::iso::device_retrieval::ItemsRequest;
@@ -66,20 +67,11 @@ impl WalletMessage {
 
 /// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
 /// allowing inspection of the messages that were sent.
-#[derive(Debug)]
+#[derive(Debug, Clone, Constructor)]
 pub struct MockErrorFactoryVpMessageClient<F> {
     #[debug(skip)]
     pub response_factory: F,
     pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
-}
-
-impl<F> MockErrorFactoryVpMessageClient<F> {
-    pub fn new(response_factory: F, wallet_messages: Arc<Mutex<Vec<WalletMessage>>>) -> Self {
-        Self {
-            response_factory,
-            wallet_messages,
-        }
-    }
 }
 
 impl<F> VpMessageClient for MockErrorFactoryVpMessageClient<F>
@@ -94,7 +86,9 @@ where
         self.wallet_messages
             .lock()
             .push(WalletMessage::Request(WalletRequest { wallet_nonce }));
-        Err((self.response_factory)().unwrap())
+        let error = (self.response_factory)().unwrap();
+
+        Err(error)
     }
 
     async fn send_authorization_response(
@@ -103,7 +97,9 @@ where
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Disclosure(jwe));
-        Err((self.response_factory)().unwrap())
+        let error = (self.response_factory)().unwrap();
+
+        Err(error)
     }
 
     async fn send_error(
@@ -176,7 +172,7 @@ where
         let key_pair = generate_reader_mock(&ca, reader_registration.clone()).unwrap();
 
         // Generate some OpenID4VP specific session material.
-        let nonce = random_string(32);
+        let nonce = utils::random_string(32);
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
         let response_uri = verifier_url.join_base_url("response_uri");
         let request_uri_object = request_uri_object(
@@ -213,7 +209,7 @@ where
     }
 
     /// Generate the first protocol message of the verifier.
-    async fn auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
+    fn auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
         let request = IsoVpAuthorizationRequest::new(
             &self.items_requests,
             self.key_pair.certificate(),
@@ -227,12 +223,15 @@ where
 
         let request = (self.transform_auth_request)(request);
 
-        Jwt::sign_with_certificate(&request, &self.key_pair).await.unwrap()
+        Jwt::sign_with_certificate(&request, &self.key_pair)
+            .now_or_never()
+            .unwrap()
+            .unwrap()
     }
 }
 
 /// Implements [`VpMessageClient`] by simply forwarding the requests to an instance of [`MockVerifierSession<F>`].
-#[derive(Constructor, Debug)]
+#[derive(Debug, Clone, Constructor)]
 pub struct MockVerifierVpMessageClient<F> {
     session: Arc<MockVerifierSession<F>>,
 }
@@ -254,8 +253,9 @@ where
             .wallet_messages
             .lock()
             .push(WalletMessage::Request(wallet_request.clone()));
+        let auth_request = self.session.auth_request(wallet_request);
 
-        Ok(self.session.auth_request(wallet_request).await)
+        Ok(auth_request)
     }
 
     async fn send_authorization_response(
@@ -264,8 +264,9 @@ where
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.session.wallet_messages.lock().push(WalletMessage::Disclosure(jwe));
+        let redirect_uri = self.session.redirect_uri.clone();
 
-        Ok(self.session.redirect_uri.clone())
+        Ok(redirect_uri)
     }
 
     async fn send_error(
@@ -274,7 +275,8 @@ where
         error: ErrorResponse<VpAuthorizationErrorCode>,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.session.wallet_messages.lock().push(WalletMessage::Error(error));
+        let redirect_uri = self.session.redirect_uri.clone();
 
-        Ok(self.session.redirect_uri.clone())
+        Ok(redirect_uri)
     }
 }

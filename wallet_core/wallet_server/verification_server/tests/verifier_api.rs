@@ -993,7 +993,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         SessionType::CrossDevice => DisclosureUriSource::QrCode,
     };
     let disclosure_session = DisclosureSession::start(
-        HttpVpMessageClient::from(client.clone()),
+        HttpVpMessageClient::new(client.clone()),
         &request_uri_query,
         uri_source,
         &mdoc_data_source,
@@ -1122,7 +1122,7 @@ async fn test_disclosed_attributes_failed_session() {
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let mdocs = MockMdocDataSource::new_example_resigned(&issuer_ca).await;
     let disclosure_session = DisclosureSession::start(
-        HttpVpMessageClient::from(client.clone()),
+        HttpVpMessageClient::new(client.clone()),
         &request_uri_query,
         DisclosureUriSource::QrCode,
         &mdocs,
