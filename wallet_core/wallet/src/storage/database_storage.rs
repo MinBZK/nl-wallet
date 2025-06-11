@@ -592,20 +592,24 @@ where
                         .into_iter()
                         .map(|credential| match credential {
                             IssuedCredential::MsoMdoc(mdoc) => {
-                                let model = create_attestation_copy_active_model(
-                                    attestation_id,
-                                    cbor_serialize(&mdoc)?,
-                                    AttestationFormat::Mdoc,
-                                );
+                                let model = attestation_copy::ActiveModel {
+                                    id: Set(Uuid::now_v7()),
+                                    attestation_id: Set(attestation_id),
+                                    attestation: Set(cbor_serialize(&mdoc)?),
+                                    attestation_format: Set(AttestationFormat::Mdoc),
+                                    ..Default::default()
+                                };
 
                                 Ok::<_, StorageError>(model)
                             }
                             IssuedCredential::SdJwt(sd_jwt) => {
-                                let model = create_attestation_copy_active_model(
-                                    attestation_id,
-                                    sd_jwt.to_string().into_bytes(),
-                                    AttestationFormat::SdJwt,
-                                );
+                                let model = attestation_copy::ActiveModel {
+                                    id: Set(Uuid::now_v7()),
+                                    attestation_id: Set(attestation_id),
+                                    attestation: Set(sd_jwt.to_string().into_bytes()),
+                                    attestation_format: Set(AttestationFormat::SdJwt),
+                                    ..Default::default()
+                                };
 
                                 Ok(model)
                             }
@@ -816,20 +820,6 @@ where
             .unwrap_or(false);
 
         Ok(exists)
-    }
-}
-
-fn create_attestation_copy_active_model(
-    attestation_id: Uuid,
-    binary_attestation: Vec<u8>,
-    format: AttestationFormat,
-) -> attestation_copy::ActiveModel {
-    attestation_copy::ActiveModel {
-        id: Set(Uuid::now_v7()),
-        attestation_id: Set(attestation_id),
-        attestation: Set(binary_attestation),
-        attestation_format: Set(format),
-        ..Default::default()
     }
 }
 
