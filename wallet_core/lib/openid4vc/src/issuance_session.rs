@@ -836,7 +836,11 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                 let verified_metadata = preview.raw_metadata.clone().into_verified(integrity.clone())?;
 
                 Ok::<_, IssuanceSessionError>(CredentialWithMetadata::new(
-                    IssuedCredentialCopies(copies.try_into().unwrap()),
+                    IssuedCredentialCopies(
+                        copies
+                            .try_into()
+                            .expect("the resulting vector is never empty since 'copies' is nonzero"),
+                    ),
                     preview.content.credential_payload.attestation_type.clone(),
                     verified_metadata,
                 ))
