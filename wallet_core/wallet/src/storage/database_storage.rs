@@ -1273,7 +1273,9 @@ pub(crate) mod tests {
             .expect("Could not fetch unique attestations");
 
         // One matching attestation should be returned
-        assert_eq!(attestations.len(), 1);
+        assert_matches!(
+            &attestations.first().unwrap().attestation,
+            StoredAttestationFormat::SdJwt { sd_jwt: stored } if **stored == sd_jwt);
     }
 
     #[tokio::test]
