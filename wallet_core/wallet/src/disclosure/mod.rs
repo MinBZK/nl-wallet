@@ -18,6 +18,9 @@ use mdoc::holder::ProposedAttributes;
 use openid4vc::disclosure_session::DisclosureError;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
+use openid4vc::disclosure_session::VpDisclosureMissingAttributes;
+use openid4vc::disclosure_session::VpDisclosureProposal;
+use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::verifier::SessionType;
 use poa::factory::PoaFactory;
@@ -97,16 +100,12 @@ pub trait MdocDisclosureProposal {
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
 }
 
-type VpDisclosureSession = openid4vc::disclosure_session::DisclosureSession<HttpVpMessageClient, Uuid>;
-type VpDisclosureMissingAttributes = openid4vc::disclosure_session::DisclosureMissingAttributes<HttpVpMessageClient>;
-type VpDisclosureProposal = openid4vc::disclosure_session::DisclosureProposal<HttpVpMessageClient, Uuid>;
-
-impl<D> MdocDisclosureSession<D> for VpDisclosureSession
+impl<D> MdocDisclosureSession<D> for VpDisclosureSession<HttpVpMessageClient, Uuid>
 where
     D: MdocDataSource<MdocIdentifier = Uuid>,
 {
-    type MissingAttributes = VpDisclosureMissingAttributes;
-    type Proposal = VpDisclosureProposal;
+    type MissingAttributes = VpDisclosureMissingAttributes<HttpVpMessageClient>;
+    type Proposal = VpDisclosureProposal<HttpVpMessageClient, Uuid>;
     type DisclosureUriData = VpDisclosureUriData;
 
     fn parse_url(uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
@@ -146,7 +145,12 @@ where
         self.reader_registration()
     }
 
-    fn session_state(&self) -> MdocDisclosureSessionState<&VpDisclosureMissingAttributes, &VpDisclosureProposal> {
+    fn session_state(
+        &self,
+    ) -> MdocDisclosureSessionState<
+        &<Self as MdocDisclosureSession<D>>::MissingAttributes,
+        &<Self as MdocDisclosureSession<D>>::Proposal,
+    > {
         match self {
             Self::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
             Self::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
@@ -164,13 +168,13 @@ where
     }
 }
 
-impl MdocDisclosureMissingAttributes for VpDisclosureMissingAttributes {
+impl MdocDisclosureMissingAttributes for VpDisclosureMissingAttributes<HttpVpMessageClient> {
     fn missing_attributes(&self) -> &[AttributeIdentifier] {
         self.missing_attributes()
     }
 }
 
-impl MdocDisclosureProposal for VpDisclosureProposal {
+impl MdocDisclosureProposal for VpDisclosureProposal<HttpVpMessageClient, Uuid> {
     fn proposed_source_identifiers(&self) -> Vec<Uuid> {
         self.proposed_source_identifiers().into_iter().copied().collect()
     }

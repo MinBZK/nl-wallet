@@ -43,19 +43,19 @@ use super::error::VpVerifierError;
 use super::uri_source::DisclosureUriSource;
 
 #[derive(Debug)]
-pub enum DisclosureSession<H, I> {
-    MissingAttributes(DisclosureMissingAttributes<H>),
-    Proposal(DisclosureProposal<H, I>),
+pub enum VpDisclosureSession<H, I> {
+    MissingAttributes(VpDisclosureMissingAttributes<H>),
+    Proposal(VpDisclosureProposal<H, I>),
 }
 
 #[derive(Debug)]
-pub struct DisclosureMissingAttributes<H> {
+pub struct VpDisclosureMissingAttributes<H> {
     data: CommonDisclosureData<H>,
     missing_attributes: Vec<AttributeIdentifier>,
 }
 
 #[derive(Debug)]
-pub struct DisclosureProposal<H, I> {
+pub struct VpDisclosureProposal<H, I> {
     data: CommonDisclosureData<H>,
     proposed_documents: Vec<ProposedDocument<I>>,
     mdoc_nonce: String,
@@ -76,7 +76,7 @@ enum VerifierSessionDataCheckResult<I> {
     ProposedDocuments(Vec<ProposedDocument<I>>),
 }
 
-impl<H, I> DisclosureSession<H, I>
+impl<H, I> VpDisclosureSession<H, I>
 where
     H: VpMessageClient,
 {
@@ -166,13 +166,13 @@ where
         // all of the information needed to either abort of finish the session.
         let session = match check_result {
             VerifierSessionDataCheckResult::MissingAttributes(missing_attributes) => {
-                DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+                VpDisclosureSession::MissingAttributes(VpDisclosureMissingAttributes {
                     data,
                     missing_attributes,
                 })
             }
             VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
-                DisclosureSession::Proposal(DisclosureProposal {
+                VpDisclosureSession::Proposal(VpDisclosureProposal {
                     data,
                     proposed_documents,
                     mdoc_nonce,
@@ -283,15 +283,15 @@ where
 
     fn data(&self) -> &CommonDisclosureData<H> {
         match self {
-            DisclosureSession::MissingAttributes(session) => &session.data,
-            DisclosureSession::Proposal(session) => &session.data,
+            VpDisclosureSession::MissingAttributes(session) => &session.data,
+            VpDisclosureSession::Proposal(session) => &session.data,
         }
     }
 
     fn into_data(self) -> CommonDisclosureData<H> {
         match self {
-            DisclosureSession::MissingAttributes(session) => session.data,
-            DisclosureSession::Proposal(session) => session.data,
+            VpDisclosureSession::MissingAttributes(session) => session.data,
+            VpDisclosureSession::Proposal(session) => session.data,
         }
     }
 
@@ -315,13 +315,13 @@ where
     }
 }
 
-impl<H> DisclosureMissingAttributes<H> {
+impl<H> VpDisclosureMissingAttributes<H> {
     pub fn missing_attributes(&self) -> &[AttributeIdentifier] {
         &self.missing_attributes
     }
 }
 
-impl<H, I> DisclosureProposal<H, I>
+impl<H, I> VpDisclosureProposal<H, I>
 where
     H: VpMessageClient,
     I: Clone,
@@ -487,9 +487,9 @@ mod tests {
     use super::super::error::DisclosureError;
     use super::super::error::VpClientError;
     use super::super::uri_source::DisclosureUriSource;
-    use super::super::DisclosureMissingAttributes;
-    use super::super::DisclosureProposal;
-    use super::super::DisclosureSession;
+    use super::super::VpDisclosureMissingAttributes;
+    use super::super::VpDisclosureProposal;
+    use super::super::VpDisclosureSession;
     use super::CommonDisclosureData;
 
     // Constants for testing.
@@ -513,7 +513,7 @@ mod tests {
         transform_device_request: FD,
     ) -> Result<
         (
-            DisclosureSession<MockVerifierVpMessageClient<FD>, String>,
+            VpDisclosureSession<MockVerifierVpMessageClient<FD>, String>,
             Arc<MockVerifierSession<FD>>,
         ),
         (VpSessionError, Arc<MockVerifierSession<FD>>),
@@ -555,7 +555,7 @@ mod tests {
         let mdoc_data_source = transform_mdoc(MockMdocDataSource::new_example_resigned(&ca).await);
 
         // Starting disclosure and return the result.
-        let result = DisclosureSession::start(
+        let result = VpDisclosureSession::start(
             client,
             &verifier_session.request_uri_query(),
             disclosure_uri_source,
@@ -594,7 +594,7 @@ mod tests {
             .collect::<IndexSet<_>>();
 
         // Make sure starting the session resulted in a proposal.
-        let DisclosureSession::Proposal(proposal) = disclosure_session else {
+        let VpDisclosureSession::Proposal(proposal) = disclosure_session else {
             panic!("Disclosure session should not have missing attributes");
         };
 
@@ -695,7 +695,7 @@ mod tests {
         .expect("Could not start disclosure session");
 
         // Check that the correct session type is returned.
-        let DisclosureSession::Proposal(ref proposal_session) = disclosure_session else {
+        let VpDisclosureSession::Proposal(ref proposal_session) = disclosure_session else {
             panic!("Disclosure session should not have missing attributes")
         };
 
@@ -747,7 +747,7 @@ mod tests {
         .expect("Could not start disclosure session");
 
         // Check that the correct session type is returned.
-        let DisclosureSession::MissingAttributes(ref missing_attr_session) = disclosure_session else {
+        let VpDisclosureSession::MissingAttributes(ref missing_attr_session) = disclosure_session else {
             panic!("Disclosure session should have missing attributes")
         };
 
@@ -788,7 +788,7 @@ mod tests {
         .expect("Could not start disclosure session");
 
         // Check that the correct session type is returned.
-        let DisclosureSession::MissingAttributes(ref missing_attr_session) = disclosure_session else {
+        let VpDisclosureSession::MissingAttributes(ref missing_attr_session) = disclosure_session else {
             panic!("Disclosure session should have missing attributes")
         };
 
@@ -980,7 +980,7 @@ mod tests {
         // This mdoc data source is not actually consulted.
         let mdoc_data_source = MockMdocDataSource::default();
 
-        let error = DisclosureSession::start(
+        let error = VpDisclosureSession::start(
             client,
             &request_query,
             DisclosureUriSource::Link,
@@ -1341,7 +1341,7 @@ mod tests {
         response_factory: F,
         device_key: &MockRemoteEcdsaKey,
     ) -> (
-        DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
+        VpDisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         Arc<Mutex<Vec<WalletMessage>>>,
     )
     where
@@ -1363,7 +1363,7 @@ mod tests {
             )
             .unwrap();
 
-        let proposal_session = DisclosureSession::Proposal(DisclosureProposal {
+        let proposal_session = VpDisclosureSession::Proposal(VpDisclosureProposal {
             data: CommonDisclosureData {
                 client,
                 certificate: mock_key_pair.certificate().clone(),
@@ -1379,7 +1379,7 @@ mod tests {
     }
 
     async fn test_disclosure_session_terminate<H>(
-        session: DisclosureSession<H, String>,
+        session: VpDisclosureSession<H, String>,
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
     ) -> Result<Option<BaseUrl>, VpSessionError>
     where
@@ -1436,13 +1436,13 @@ mod tests {
 
     fn missing_attributes_session<F>(
         client: MockErrorFactoryVpMessageClient<F>,
-    ) -> DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>
+    ) -> VpDisclosureSession<MockErrorFactoryVpMessageClient<F>, String>
     where
         F: Fn() -> Option<VpMessageClientError>,
     {
         let ca = Ca::generate_reader_mock_ca().unwrap();
         let mock_key_pair = generate_reader_mock(&ca, None).unwrap();
-        DisclosureSession::MissingAttributes(DisclosureMissingAttributes {
+        VpDisclosureSession::MissingAttributes(VpDisclosureMissingAttributes {
             data: CommonDisclosureData {
                 client,
                 certificate: mock_key_pair.certificate().clone(),
@@ -1490,7 +1490,7 @@ mod tests {
     }
 
     async fn try_disclose<F, K, KF>(
-        proposal_session: DisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
+        proposal_session: VpDisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
         key_factory: &KF,
         expect_report_error: bool,
@@ -1502,7 +1502,7 @@ mod tests {
     {
         // Disclosing the session should result in the payload being sent while returning an error.
         let error = match proposal_session {
-            DisclosureSession::Proposal(proposal) => proposal
+            VpDisclosureSession::Proposal(proposal) => proposal
                 .disclose(key_factory)
                 .await
                 .expect_err("disclosing should have resulted in an error"),
@@ -1591,7 +1591,7 @@ mod tests {
         // Attempting to encrypt a disclosure to a malformed encryption key should result in an error.
         let (mut proposal_session, wallet_messages) = create_disclosure_session_proposal(|| None, &device_key).await;
 
-        let DisclosureSession::Proposal(ref mut proposal) = proposal_session else {
+        let VpDisclosureSession::Proposal(ref mut proposal) = proposal_session else {
             panic!("disclosure session should have been a proposal")
         };
         proposal

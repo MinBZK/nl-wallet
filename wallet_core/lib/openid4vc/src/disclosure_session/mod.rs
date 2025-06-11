@@ -7,9 +7,9 @@ pub use self::error::DisclosureError;
 pub use self::error::VpClientError;
 pub use self::error::VpSessionError;
 pub use self::error::VpVerifierError;
-pub use self::session::DisclosureMissingAttributes;
-pub use self::session::DisclosureProposal;
-pub use self::session::DisclosureSession;
+pub use self::session::VpDisclosureMissingAttributes;
+pub use self::session::VpDisclosureProposal;
+pub use self::session::VpDisclosureSession;
 pub use self::uri_source::DisclosureUriSource;
 
 mod client;

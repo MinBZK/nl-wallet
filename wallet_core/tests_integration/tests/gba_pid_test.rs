@@ -2,8 +2,8 @@ use indexmap::IndexMap;
 use rstest::rstest;
 use uuid::Uuid;
 
-use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::ErrorResponse;
@@ -124,7 +124,7 @@ type TestWallet = Wallet<
     HttpAccountProviderClient,
     HttpDigidSession,
     HttpIssuanceSession,
-    DisclosureSession<HttpVpMessageClient, Uuid>,
+    VpDisclosureSession<HttpVpMessageClient, Uuid>,
     WpWteIssuanceClient,
 >;
 

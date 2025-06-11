@@ -21,8 +21,8 @@ use cfg_if::cfg_if;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use openid4vc::disclosure_session::DisclosureSession as Openid4vcDisclosureSession;
 use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::disclosure_session::VpDisclosureSession as Openid4vcDisclosureSession;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
