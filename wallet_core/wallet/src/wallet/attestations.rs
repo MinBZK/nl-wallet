@@ -36,7 +36,7 @@ pub enum AttestationsError {
     #[category(critical)]
     MissingIssuerRegistration,
 
-    #[error("Sd-JWT does not contain an issuer certificate")]
+    #[error("SD-JWT does not contain an issuer certificate")]
     #[category(critical)]
     MissingIssuerCertificate,
 
