@@ -182,19 +182,20 @@ class WalletCardItem extends StatefulWidget {
 }
 
 class _WalletCardItemState extends State<WalletCardItem> {
-  late WidgetStatesController _statesController;
+  WidgetStatesController? _statesController;
 
   @override
   void initState() {
     super.initState();
     _statesController = WidgetStatesController();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController.addListener(_onWidgetStateChanged));
+    WidgetsBinding.instance.addPostFrameCallback((_) => _statesController?.addListener(_onWidgetStateChanged));
   }
 
   @override
   void dispose() {
-    _statesController.removeListener(_onWidgetStateChanged);
-    _statesController.dispose();
+    _statesController?.removeListener(_onWidgetStateChanged);
+    _statesController?.dispose();
+    _statesController = null;
     super.dispose();
   }
 
@@ -206,7 +207,7 @@ class _WalletCardItemState extends State<WalletCardItem> {
       textTheme: context.textTheme.apply(
         bodyColor: widget.textColor,
         displayColor: widget.textColor,
-        decoration: _statesController.value.isPressedOrFocused ? TextDecoration.underline : null,
+        decoration: _statesController?.value.isPressedOrFocused ?? false ? TextDecoration.underline : null,
       ),
     );
     return Theme(

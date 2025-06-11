@@ -23,6 +23,8 @@ import '../../common/widget/text/body_text.dart';
 import '../../common/widget/text/title_text.dart';
 import '../../common/widget/wallet_scrollbar.dart';
 import '../../info/info_screen.dart';
+import '../../organization/detail/organization_detail_screen.dart';
+import '../../organization/widget/organization_row.dart';
 import '../../policy/policy_screen.dart';
 
 class DisclosureConfirmDataAttributesPage extends StatelessWidget {
@@ -57,6 +59,13 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
           slivers: <Widget>[
             const SliverSizedBox(height: 8),
             SliverToBoxAdapter(child: _buildHeaderSection(context)),
+            const SliverDivider(),
+            SliverToBoxAdapter(
+              child: OrganizationRow(
+                organization: relyingParty,
+                onPressed: () => OrganizationDetailScreen.showPreloaded(context, relyingParty),
+              ),
+            ),
             const SliverDivider(),
             SliverToBoxAdapter(child: _buildReasonSection(context)),
             const SliverDivider(),
