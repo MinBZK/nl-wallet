@@ -18,6 +18,7 @@ use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
@@ -364,7 +365,7 @@ where
             DataDisclosureStatus::NotDisclosed,
         );
 
-        let return_url = session.terminate().await?;
+        let return_url = session.terminate().await?.map(BaseUrl::into_inner);
 
         self.store_history_event(event)
             .await
@@ -545,7 +546,7 @@ where
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         let result = session_proposal.disclose(&remote_key_factory).await;
         let return_url = match result {
-            Ok(return_url) => return_url,
+            Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err(error) => {
                 let organization = session.reader_registration().organization.clone();
                 let disclosure_error = DisclosureError::with_organization(error.error, organization);
@@ -672,6 +673,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
     use std::sync::atomic::Ordering;
     use std::sync::Arc;
     use std::sync::LazyLock;
@@ -1075,7 +1077,7 @@ mod tests {
             ..Default::default()
         };
 
-        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        let return_url = BaseUrl::from_str("https://example.com/return/here").unwrap();
 
         MockMdocDisclosureSession::next_fields(
             reader_registration,
@@ -1105,7 +1107,7 @@ mod tests {
         // session, while the session that was there should be terminated.
         let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
 
-        assert_eq!(cancel_return_url, Some(return_url));
+        assert_eq!(cancel_return_url.as_ref(), Some(return_url.as_ref()));
 
         // Verify disclosure session is terminated
         assert!(wallet.session.is_none());
@@ -1144,7 +1146,7 @@ mod tests {
             .expect_missing_attributes()
             .return_const(missing_attributes);
 
-        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        let return_url = BaseUrl::from_str("https://example.com/return/here").unwrap();
 
         MockMdocDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
@@ -1176,7 +1178,7 @@ mod tests {
         // session, while the session that was there should be terminated.
         let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
 
-        assert_eq!(cancel_return_url, Some(return_url));
+        assert_eq!(cancel_return_url.as_ref(), Some(return_url.as_ref()));
 
         // Verify disclosure session is terminated
         assert!(wallet.session.is_none());
@@ -1256,11 +1258,11 @@ mod tests {
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
-        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        let return_url = BaseUrl::from_str("https://example.com/return/here").unwrap();
 
         let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
         let disclosure_session = MockMdocDisclosureProposal {
-            disclose_return_url: return_url.clone().into(),
+            disclose_return_url: Some(return_url.clone()),
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
@@ -1288,7 +1290,7 @@ mod tests {
             .await
             .expect("Could not accept disclosure");
 
-        assert_matches!(accept_result, Some(result_return_url) if result_return_url == return_url);
+        assert_matches!(accept_result, Some(result_return_url) if &result_return_url == return_url.as_ref());
 
         // Check that the disclosure session is no longer
         // present and that the disclosure count is 1.
