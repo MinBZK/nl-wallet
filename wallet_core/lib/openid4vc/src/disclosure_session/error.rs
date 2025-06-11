@@ -148,13 +148,13 @@ impl<E: Error> DisclosureError<E> {
     }
 }
 
-impl From<VpMessageClientError> for DisclosureError<VpClientError> {
-    fn from(source: VpMessageClientError) -> Self {
-        let data_shared = match &source {
+impl From<VpMessageClientError> for DisclosureError<VpSessionError> {
+    fn from(value: VpMessageClientError) -> Self {
+        let data_shared = match &value {
             VpMessageClientError::Http(reqwest_error) => !reqwest_error.is_connect(),
             _ => true,
         };
 
-        Self::new(data_shared, VpClientError::Request(source))
+        Self::new(data_shared, value.into())
     }
 }

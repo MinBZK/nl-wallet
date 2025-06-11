@@ -191,7 +191,7 @@ impl MdocDisclosureProposal for VpDisclosureProposal<HttpVpMessageClient, Uuid> 
         let redirect_uri = self
             .disclose(key_factory)
             .await
-            .map_err(|err| DisclosureError::new(err.data_shared, VpSessionError::from(err.error).into()))?;
+            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
         Ok(redirect_uri.map(|u| u.into_inner()))
     }
 }

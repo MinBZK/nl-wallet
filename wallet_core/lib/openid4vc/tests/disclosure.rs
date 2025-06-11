@@ -743,7 +743,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
 
     assert_matches!(
         error.error,
-        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+        VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthPostResponse(error)))
             if error.error_response.error == PostAuthResponseErrorCode::CancelledSession
     );
 }
@@ -838,7 +838,7 @@ async fn test_disclosure_invalid_poa() {
         .expect_err("should not be able to disclose attributes");
     assert_matches!(
         error.error,
-        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+        VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthPostResponse(error)))
             if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
     );
 }

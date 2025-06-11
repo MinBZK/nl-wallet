@@ -342,7 +342,7 @@ where
             .collect()
     }
 
-    pub async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpClientError>>
+    pub async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpSessionError>>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
@@ -357,7 +357,7 @@ where
 
         let (device_response, keys) = DeviceResponse::from_proposed_documents(proposed_documents, key_factory)
             .await
-            .map_err(|err| DisclosureError::before_sharing(VpClientError::DeviceResponse(err)))?;
+            .map_err(|err| DisclosureError::before_sharing(VpClientError::DeviceResponse(err).into()))?;
 
         let poa = match VecAtLeastTwoUnique::try_from(keys) {
             Ok(keys) => {
@@ -373,7 +373,7 @@ where
                         Some(self.mdoc_nonce.clone()),
                     )
                     .await
-                    .map_err(|e| DisclosureError::before_sharing(VpClientError::Poa(Box::new(e))))?;
+                    .map_err(|e| DisclosureError::before_sharing(VpClientError::Poa(Box::new(e)).into()))?;
                 Some(poa)
             }
             Err(_) => None,
@@ -383,7 +383,7 @@ where
 
         let jwe =
             VpAuthorizationResponse::new_encrypted(device_response, &self.data.auth_request, &self.mdoc_nonce, poa)
-                .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err)))?;
+                .map_err(|err| DisclosureError::before_sharing(VpClientError::AuthResponseEncryption(err).into()))?;
 
         info!("send Authorization Response to verifier");
 
@@ -1494,7 +1494,7 @@ mod tests {
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
         key_factory: &KF,
         expect_report_error: bool,
-    ) -> DisclosureError<VpClientError>
+    ) -> DisclosureError<VpSessionError>
     where
         F: Fn() -> Option<VpMessageClientError>,
         K: CredentialEcdsaKey + Eq + Hash,
@@ -1578,7 +1578,7 @@ mod tests {
             try_disclose(proposal_session, wallet_messages, &key_factory, false).await,
             DisclosureError {
                 data_shared,
-                error: VpClientError::DeviceResponse(_)
+                error: VpSessionError::Client(VpClientError::DeviceResponse(_))
             } if !data_shared
         );
     }
@@ -1605,7 +1605,7 @@ mod tests {
             try_disclose(proposal_session, wallet_messages, &key_factory, false).await,
             DisclosureError {
                 data_shared,
-                error: VpClientError::AuthResponseEncryption(_)
+                error: VpSessionError::Client(VpClientError::AuthResponseEncryption(_))
             } if !data_shared
         );
     }
@@ -1635,7 +1635,7 @@ mod tests {
             try_disclose(proposal_session, wallet_messages, &key_factory, true).await,
             DisclosureError {
                 data_shared,
-                error: VpClientError::Request(VpMessageClientError::Http(_))
+                error: VpSessionError::Client(VpClientError::Request(VpMessageClientError::Http(_)))
             } if data_shared
         );
     }
@@ -1665,7 +1665,7 @@ mod tests {
             try_disclose(proposal_session, wallet_messages, &key_factory, true).await,
             DisclosureError {
                 data_shared,
-                error: VpClientError::Request(VpMessageClientError::Http(_))
+                error: VpSessionError::Client(VpClientError::Request(VpMessageClientError::Http(_)))
             } if !data_shared
         );
     }
