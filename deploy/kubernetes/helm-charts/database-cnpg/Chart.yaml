@@ -10,5 +10,5 @@ appVersion: "16.7-bookworm"
 
 dependencies:
   - name: sp-common
-    repository: "file://../../sp-common"
+    repository: "file://../sp-common"
     version: 1.x.x

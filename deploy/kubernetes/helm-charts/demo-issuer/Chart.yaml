@@ -1,6 +1,6 @@
 apiVersion: v2
-name: demo-relying-party
-description: A Helm chart for demo-relying-party
+name: demo-issuer
+description: A Helm chart for demo-issuer
 
 type: application
 
@@ -10,5 +10,5 @@ appVersion: ""
 
 dependencies:
   - name: sp-common
-    repository: "file://../../sp-common"
+    repository: "file://../sp-common"
     version: 1.x.x
