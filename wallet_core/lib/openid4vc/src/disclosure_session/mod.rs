@@ -43,34 +43,11 @@ pub use self::error::DisclosureError;
 pub use self::error::VpClientError;
 pub use self::error::VpSessionError;
 pub use self::error::VpVerifierError;
+pub use self::uri_source::DisclosureUriSource;
 
 mod client;
 mod error;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
-#[strum(serialize_all = "snake_case")] // Symmetrical to `SessionType`.
-pub enum DisclosureUriSource {
-    Link,
-    QrCode,
-}
-
-impl DisclosureUriSource {
-    pub fn new(is_qr_code: bool) -> Self {
-        if is_qr_code {
-            Self::QrCode
-        } else {
-            Self::Link
-        }
-    }
-
-    /// Returns the expected session type for a source of the received [`ReaderEngagement`].
-    pub fn session_type(&self) -> SessionType {
-        match self {
-            Self::Link => SessionType::SameDevice,
-            Self::QrCode => SessionType::CrossDevice,
-        }
-    }
-}
+mod uri_source;
 
 #[derive(Debug)]
 pub enum DisclosureSession<H, I> {
@@ -515,11 +492,11 @@ mod tests {
     use super::client::VpMessageClientError;
     use super::error::DisclosureError;
     use super::error::VpClientError;
+    use super::uri_source::DisclosureUriSource;
     use super::CommonDisclosureData;
     use super::DisclosureMissingAttributes;
     use super::DisclosureProposal;
     use super::DisclosureSession;
-    use super::DisclosureUriSource;
 
     // Constants for testing.
     const VERIFIER_URL: &str = "http://example.com/disclosure";
