@@ -53,13 +53,9 @@ impl OpenIdClient {
     }
 
     pub async fn bsn(&self, token_request: TokenRequest) -> Result<String> {
-        let access_token = &oidc::request_token(&self.http_client, token_request)
-            .await?
-            .access_token;
-
         let userinfo_claims: JWT<UserInfo, Empty> = oidc::request_userinfo(
             &self.http_client,
-            access_token,
+            token_request,
             SignatureAlgorithm::RS256,
             Some((&self.decrypter_private_key, &AescbcHmacJweEncryption::A128cbcHs256)),
         )
