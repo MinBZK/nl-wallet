@@ -242,6 +242,8 @@ mod tests {
         {
             let attestations = attestations.lock();
 
+            assert_eq!(attestations.first().unwrap().len(), 2);
+
             let attestation = attestations
                 .first()
                 .expect("Attestations callback should have been called")
