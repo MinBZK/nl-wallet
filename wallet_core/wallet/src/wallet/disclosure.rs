@@ -207,7 +207,7 @@ impl<MDS> DisclosureSession<MDS> {
 impl RedirectUriPurpose {
     fn from_uri(uri: &Url) -> Result<Self, DisclosureError> {
         let uri_type = identify_uri(uri)
-            .map_err(|_| DisclosureError::DisclosureUri(DisclosureUriError::Malformed(uri.clone())))?;
+            .ok_or_else(|| DisclosureError::DisclosureUri(DisclosureUriError::Malformed(uri.clone())))?;
 
         let purpose = match uri_type {
             UriType::PidIssuance => {
