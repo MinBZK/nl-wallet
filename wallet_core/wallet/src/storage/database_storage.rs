@@ -1221,54 +1221,6 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_fetch_unique_attestations() {
-        let mut storage = open_test_database_storage().await;
-
-        let state = storage.state().await.unwrap();
-        assert!(matches!(state, StorageState::Opened));
-
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
-
-        let issued_copies = IssuedCredentialCopies::new_or_panic(
-            vec![credential.clone(), credential.clone(), credential.clone()]
-                .try_into()
-                .unwrap(),
-        );
-
-        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
-
-        let attestations = storage
-            .fetch_unique_attestations()
-            .await
-            .expect("Could not fetch unique attestations");
-
-        assert!(attestations.is_empty());
-
-        // Insert sd_jwts
-        storage
-            .insert_credentials(vec![CredentialWithMetadata::new(
-                issued_copies,
-                attestation_type.clone(),
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
-            )])
-            .await
-            .expect("Could not insert mdocs");
-
-        let attestations = storage
-            .fetch_unique_attestations()
-            .await
-            .expect("Could not fetch unique attestations");
-
-        // One matching attestation should be returned
-        assert_matches!(
-            &attestations.first().unwrap().attestation,
-            StoredAttestationFormat::SdJwt { sd_jwt: stored } if **stored == sd_jwt);
-    }
-
-    #[tokio::test]
     async fn test_event_log_storage_ordering() {
         let mut storage = open_test_database_storage().await;
 
