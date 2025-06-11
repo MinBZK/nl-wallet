@@ -82,6 +82,7 @@ smv_branch_whitelist = r'^main$'
 
 linkcheck_ignore = [
     r'https://www\.iso\.org/obp/ui/en/#iso:std:iso-iec:18013:-5:ed-1:v1:en',
+    r'https://github\.com/mgaitan/sphinxcontrib-mermaid#markdown-support',
 ]
 
 nitpicky = True

@@ -20,6 +20,7 @@ following channels to allow you to contribute:
 - The user interface of the app is available on [Figma][3].
 - The source code is published in this [GitHub repository][4].
 - More information, events and discussions can be found on [Pleio][5].
+- Project documentation is available on [Github pages][26].
 
 Feel free to look around and share your [feedback and ideas][6].
 
@@ -571,7 +572,7 @@ read the text in a regular text editor or pager to see them.
 
 [25]: https://docs.docker.com/get-started/get-docker/
 
-[26]: ./documentation/index.md
+[26]: https://minbzk.github.io/nl-wallet/
 
 [27]: https://github.com/minvws/nl-rdo-max
 
