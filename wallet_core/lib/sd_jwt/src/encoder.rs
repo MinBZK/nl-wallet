@@ -63,8 +63,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
         self.object
     }
 
-    /// Substitutes a value with the digest of its disclosure. If the value is optional and not present, `None` is
-    /// returned.
+    /// Substitutes a value with the digest of its disclosure. If the value is not present, `None` is returned.
     ///
     /// `path` indicates the pointer to the value that will be concealed using the syntax of
     /// [JSON pointer](https://datatracker.ietf.org/doc/html/rfc6901).

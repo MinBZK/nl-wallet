@@ -239,16 +239,6 @@ impl Storage for MockStorage {
         Ok(mdocs)
     }
 
-    // async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool> {
-    //     let mdoc_copies = self.fetch_unique_mdocs().await?;
-    //
-    //     let result = mdoc_copies
-    //         .into_iter()
-    //         .any(|mdoc_copy| doc_type == mdoc_copy.mdoc.doc_type().as_str());
-    //
-    //     Ok(result)
-    // }
-
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
         self.event_log.push(event);
         Ok(())
