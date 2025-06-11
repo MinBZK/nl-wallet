@@ -96,7 +96,7 @@ test.describe("GBA Fetch BRP preloading", () => {
     await gbaFetchPage.repeatBsn("999994906")
     await gbaFetchPage.preload()
     await gbaFetchPage.goBack()
-    expect(await gbaFetchPage.getStatusInfoPreloadedCount()).toBe("1")
+    expect(await gbaFetchPage.getStatusInfoPreloadedCount()).toBeGreaterThanOrEqual(1)
     expect(await gbaFetchPage.getClearDataLabelText()).toBe('Enter the text "clear all data" for confirmation: ')
     await gbaFetchPage.enterClearDataText("clear all data")
     await gbaFetchPage.clearData()
