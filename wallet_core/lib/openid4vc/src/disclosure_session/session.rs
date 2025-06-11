@@ -6,12 +6,13 @@ use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use tracing::warn;
 
+use ::utils::vec_at_least::VecAtLeastTwoUnique;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::identifiers::AttributeIdentifier;
 use attestation_data::x509::CertificateType;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
-use crypto::utils::random_string;
+use crypto::utils;
 use crypto::x509::BorrowingCertificate;
 use http_utils::urls::BaseUrl;
 use mdoc::disclosure::DeviceResponse;
@@ -21,7 +22,6 @@ use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use mdoc::holder::ProposedDocument;
 use poa::factory::PoaFactory;
-use utils::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -70,6 +70,7 @@ struct CommonDisclosureData<H> {
     session_type: SessionType,
 }
 
+#[derive(Debug)]
 enum VerifierSessionDataCheckResult<I> {
     MissingAttributes(Vec<AttributeIdentifier>),
     ProposedDocuments(Vec<ProposedDocument<I>>),
@@ -115,7 +116,7 @@ where
         let method = request_uri_object.request_uri_method.unwrap_or_default();
         let request_nonce = match method {
             RequestUriMethod::GET => None,
-            RequestUriMethod::POST => Some(random_string(32)),
+            RequestUriMethod::POST => Some(utils::random_string(32)),
         };
 
         let jws = client
@@ -135,7 +136,7 @@ where
             })
             .await?;
 
-        let mdoc_nonce = random_string(32);
+        let mdoc_nonce = utils::random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
             &auth_request.client_id,
@@ -396,13 +397,13 @@ where
             })?;
 
         info!("sending Authorization Response succeeded");
+
         Ok(redirect_uri)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::convert::identity;
     use std::hash::Hash;
     use std::iter;
     use std::str::FromStr;
@@ -423,6 +424,7 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
+    use ::utils::vec_at_least::VecAtLeastTwoUnique;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
     use attestation_data::identifiers::AttributeIdentifier;
@@ -435,7 +437,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::mock_remote::MockRemoteKeyFactoryError;
     use crypto::server_keys::generate::Ca;
-    use crypto::utils::random_string;
+    use crypto::utils;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use http_utils::urls::BaseUrl;
@@ -460,7 +462,6 @@ mod tests {
     use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
-    use utils::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::disclosure_session::VpSessionError;
     use crate::disclosure_session::VpVerifierError;
@@ -476,7 +477,7 @@ mod tests {
     use crate::openid4vp::VpRequestUriObject;
     use crate::verifier::SessionType;
 
-    use super::super::client::mock::request_uri_object;
+    use super::super::client::mock;
     use super::super::client::mock::MockErrorFactoryVpMessageClient;
     use super::super::client::mock::MockVerifierSession;
     use super::super::client::mock::MockVerifierVpMessageClient;
@@ -494,6 +495,7 @@ mod tests {
     // Constants for testing.
     const VERIFIER_URL: &str = "http://example.com/disclosure";
 
+    #[derive(Debug, Clone, Copy)]
     pub enum ReaderCertificateKind {
         NoReaderRegistration,
         WithReaderRegistration,
@@ -576,9 +578,9 @@ mod tests {
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect("Could not start DisclosureSession");
@@ -685,9 +687,9 @@ mod tests {
             SessionType::CrossDevice,
             DisclosureUriSource::QrCode,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect("Could not start disclosure session");
@@ -725,7 +727,7 @@ mod tests {
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
+            std::convert::identity,
             |mut mdoc_source| {
                 // Remove the last attribute from the first mdoc.
                 mdoc_source
@@ -739,7 +741,7 @@ mod tests {
 
                 mdoc_source
             },
-            identity,
+            std::convert::identity,
         )
         .await
         .expect("Could not start disclosure session");
@@ -775,12 +777,12 @@ mod tests {
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
+            std::convert::identity,
             |mut mdoc_source| {
                 mdoc_source.mdocs.clear();
                 mdoc_source
             },
-            identity,
+            std::convert::identity,
         )
         .await
         .expect("Could not start disclosure session");
@@ -826,8 +828,8 @@ mod tests {
 
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -852,8 +854,8 @@ mod tests {
                 verifier_session.request_uri_override = Some(serde_urlencoded::to_string(params).unwrap());
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -884,8 +886,8 @@ mod tests {
                 verifier_session.request_uri_object = request_uri_object;
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -913,8 +915,8 @@ mod tests {
                 verifier_session.request_uri_object = request_uri_object;
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -940,9 +942,9 @@ mod tests {
             session_type,
             uri_source,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -965,7 +967,7 @@ mod tests {
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
         let client = MockErrorFactoryVpMessageClient::new(error_factory, Arc::clone(&wallet_messages));
 
-        let request_query = serde_urlencoded::to_string(request_uri_object(
+        let request_query = serde_urlencoded::to_string(mock::request_uri_object(
             BaseUrl::from_str(VERIFIER_URL)
                 .unwrap()
                 .join_base_url("redirect_uri")
@@ -1045,8 +1047,8 @@ mod tests {
                 verifier_session.request_uri_object.request_uri = request_uri.try_into().unwrap();
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1067,8 +1069,8 @@ mod tests {
                 verifier_session.request_uri_object.client_id = "client_id_from_request_uri_object".to_string();
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1095,8 +1097,8 @@ mod tests {
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
             |mut auth_request| {
                 let VpClientMetadata::Direct(ref mut client_metadata) = auth_request.client_metadata.as_mut().unwrap()
                 else {
@@ -1138,8 +1140,8 @@ mod tests {
                 verifier_session.items_requests = items_requests.into();
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1168,8 +1170,8 @@ mod tests {
                 verifier_session.trust_anchors.clear();
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1209,8 +1211,8 @@ mod tests {
 
                 verifier_session
             },
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1238,12 +1240,12 @@ mod tests {
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
+            std::convert::identity,
             |mut mdoc_source| {
                 mdoc_source.has_error = true;
                 mdoc_source
             },
-            identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1264,12 +1266,12 @@ mod tests {
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             ReaderCertificateKind::WithReaderRegistration,
-            identity,
+            std::convert::identity,
             |mut mdoc_source| {
                 mdoc_source.mdocs.push(mdoc_source.mdocs.first().unwrap().clone());
                 mdoc_source
             },
-            identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1288,9 +1290,9 @@ mod tests {
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             ReaderCertificateKind::NoReaderRegistration,
-            identity,
-            identity,
-            identity,
+            std::convert::identity,
+            std::convert::identity,
+            std::convert::identity,
         )
         .await
         .expect_err("Starting disclosure session should have resulted in an error");
@@ -1323,19 +1325,18 @@ mod tests {
         IsoVpAuthorizationRequest::new(
             &vec![ItemsRequest::new_example()].into(),
             key_pair.certificate(),
-            random_string(32),
+            utils::random_string(32),
             EcKeyPair::generate(EcCurve::P256)
                 .unwrap()
                 .to_jwk_public_key()
                 .try_into()
                 .unwrap(),
             VERIFIER_URL.parse().unwrap(),
-            Some(random_string(32)),
+            Some(utils::random_string(32)),
         )
         .unwrap()
     }
 
-    #[allow(clippy::type_complexity)]
     async fn create_disclosure_session_proposal<F>(
         response_factory: F,
         device_key: &MockRemoteEcdsaKey,
@@ -1351,7 +1352,7 @@ mod tests {
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
         let client = MockErrorFactoryVpMessageClient::new(response_factory, Arc::clone(&wallet_messages));
 
-        let mdoc_nonce = random_string(32);
+        let mdoc_nonce = utils::random_string(32);
 
         let ca = Ca::generate("my_ca", CertificateConfiguration::default()).unwrap();
         let mock_key_pair = ca
@@ -1545,10 +1546,11 @@ mod tests {
             }
 
             async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-                let keys =
-                    iter::repeat_with(|| MockRemoteEcdsaKey::new(random_string(32), SigningKey::random(&mut OsRng)))
-                        .take(count as usize)
-                        .collect::<Vec<_>>();
+                let keys = iter::repeat_with(|| {
+                    MockRemoteEcdsaKey::new(utils::random_string(32), SigningKey::random(&mut OsRng))
+                })
+                .take(count as usize)
+                .collect::<Vec<_>>();
                 Ok(keys)
             }
         }
