@@ -2,7 +2,6 @@ mod uri;
 
 use std::hash::Hash;
 
-use openid4vc::disclosure_session::VpVerifierError;
 use rustls_pki_types::TrustAnchor;
 use url::Url;
 use uuid::Uuid;
@@ -17,7 +16,6 @@ use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use openid4vc::disclosure_session::DisclosureError;
 use openid4vc::disclosure_session::HttpVpMessageClient;
-use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpDisclosureMissingAttributes;
 use openid4vc::disclosure_session::VpDisclosureProposal;
 use openid4vc::disclosure_session::VpDisclosureSession;
@@ -35,30 +33,10 @@ pub use self::mock::MockMdocDisclosureProposal;
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::MockMdocDisclosureSession;
 
-pub type DisclosureResult<T, E> = std::result::Result<T, DisclosureError<E>>;
-
 #[derive(Debug)]
 pub enum MdocDisclosureSessionState<M, P> {
     MissingAttributes(M),
     Proposal(P),
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum MdocDisclosureError {
-    #[error("error in OpenID4VP disclosure session: {0}")]
-    Vp(#[from] VpSessionError),
-}
-
-impl From<VpClientError> for MdocDisclosureError {
-    fn from(source: VpClientError) -> Self {
-        Self::Vp(VpSessionError::Client(source))
-    }
-}
-
-impl From<VpVerifierError> for MdocDisclosureError {
-    fn from(source: VpVerifierError) -> Self {
-        Self::Vp(VpSessionError::Verifier(source))
-    }
 }
 
 pub trait MdocDisclosureSession<D> {
@@ -73,7 +51,7 @@ pub trait MdocDisclosureSession<D> {
         disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, MdocDisclosureError>
+    ) -> Result<Self, VpSessionError>
     where
         Self: Sized;
 
@@ -82,7 +60,7 @@ pub trait MdocDisclosureSession<D> {
     fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
     fn session_type(&self) -> SessionType;
 
-    async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError>;
+    async fn terminate(self) -> Result<Option<Url>, VpSessionError>;
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
@@ -94,7 +72,7 @@ pub trait MdocDisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
-    async fn disclose<K, KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
+    async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<Url>, DisclosureError<VpSessionError>>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
@@ -117,7 +95,7 @@ where
         uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, MdocDisclosureError>
+    ) -> Result<Self, VpSessionError>
     where
         Self: Sized,
     {
@@ -161,7 +139,7 @@ where
         self.session_type()
     }
 
-    async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError> {
+    async fn terminate(self) -> Result<Option<Url>, VpSessionError> {
         let return_url = self.terminate().await?.map(|url| url.into_inner());
 
         Ok(return_url)
@@ -183,15 +161,12 @@ impl MdocDisclosureProposal for VpDisclosureProposal<HttpVpMessageClient, Uuid> 
         self.proposed_attributes()
     }
 
-    async fn disclose<K, KF>(&self, key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError>
+    async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<Url>, DisclosureError<VpSessionError>>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
     {
-        let redirect_uri = self
-            .disclose(key_factory)
-            .await
-            .map_err(|err| DisclosureError::new(err.data_shared, err.error.into()))?;
+        let redirect_uri = self.disclose(key_factory).await?;
         Ok(redirect_uri.map(|u| u.into_inner()))
     }
 }
@@ -215,7 +190,7 @@ mod mock {
     type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
     type MockFields = (ReaderRegistration, SessionState, Option<Url>);
 
-    pub static NEXT_START_ERROR: Mutex<Option<MdocDisclosureError>> = Mutex::new(None);
+    pub static NEXT_START_ERROR: Mutex<Option<VpSessionError>> = Mutex::new(None);
     pub static NEXT_MOCK_FIELDS: Mutex<Option<MockFields>> = Mutex::new(None);
 
     // For convenience, the default `SessionState` is a proposal.
@@ -231,7 +206,7 @@ mod mock {
         pub proposed_source_identifiers: Vec<Uuid>,
         pub proposed_attributes: ProposedAttributes,
         pub disclosure_count: Arc<AtomicUsize>,
-        pub next_error: Mutex<Option<MdocDisclosureError>>,
+        pub next_error: Mutex<Option<VpSessionError>>,
         pub attributes_shared: bool,
         pub session_type: SessionType,
     }
@@ -259,7 +234,7 @@ mod mock {
             self.proposed_attributes.clone()
         }
 
-        async fn disclose<K, KF>(&self, _key_factory: &KF) -> DisclosureResult<Option<Url>, MdocDisclosureError> {
+        async fn disclose<K, KF>(&self, _key_factory: &KF) -> Result<Option<Url>, DisclosureError<VpSessionError>> {
             if let Some(error) = self.next_error.lock().take() {
                 return Err(DisclosureError::new(self.attributes_shared, error));
             }
@@ -293,7 +268,7 @@ mod mock {
                 .replace((reader_registration, session_state, terminate_return_url));
         }
 
-        pub fn next_start_error(error: MdocDisclosureError) {
+        pub fn next_start_error(error: VpSessionError) {
             NEXT_START_ERROR.lock().replace(error);
         }
     }
@@ -337,7 +312,7 @@ mod mock {
             disclosure_uri_source: DisclosureUriSource,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'_>],
-        ) -> Result<Self, MdocDisclosureError> {
+        ) -> Result<Self, VpSessionError> {
             if let Some(error) = NEXT_START_ERROR.lock().take() {
                 Err(error)?;
             }
@@ -371,7 +346,7 @@ mod mock {
             &self.reader_registration
         }
 
-        async fn terminate(self) -> Result<Option<Url>, MdocDisclosureError> {
+        async fn terminate(self) -> Result<Option<Url>, VpSessionError> {
             self.was_terminated.store(true, Ordering::Relaxed);
 
             Ok(self.terminate_return_url)

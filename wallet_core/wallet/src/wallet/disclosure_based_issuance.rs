@@ -172,6 +172,7 @@ mod tests {
     use openid4vc::credential::GrantPreAuthorizedCode;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
     use openid4vc::disclosure_session::VpClientError;
+    use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::mock::MockIssuanceSession;
     use openid4vc::verifier::DisclosureResultHandlerError;
     use openid4vc::verifier::PostAuthResponseError;
@@ -179,7 +180,6 @@ mod tests {
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
 
-    use crate::disclosure::MdocDisclosureError;
     use crate::disclosure::MdocDisclosureSessionState;
     use crate::disclosure::MockMdocDisclosureProposal;
     use crate::disclosure::MockMdocDisclosureSession;
@@ -268,19 +268,16 @@ mod tests {
             RedirectUriPurpose::Issuance,
             MockMdocDisclosureSession {
                 session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
-                    next_error: Mutex::new(Some(MdocDisclosureError::Vp(
-                        VpClientError::Request(
-                            DisclosureErrorResponse {
-                                error_response: PostAuthResponseError::HandlingDisclosureResult(
-                                    DisclosureResultHandlerError::new(MockError),
-                                )
-                                .into(),
-                                redirect_uri: None,
-                            }
+                    next_error: Mutex::new(Some(VpSessionError::Client(VpClientError::Request(
+                        DisclosureErrorResponse {
+                            error_response: PostAuthResponseError::HandlingDisclosureResult(
+                                DisclosureResultHandlerError::new(MockError),
+                            )
                             .into(),
-                        )
+                            redirect_uri: None,
+                        }
                         .into(),
-                    ))),
+                    )))),
                     ..Default::default()
                 }),
                 ..Default::default()

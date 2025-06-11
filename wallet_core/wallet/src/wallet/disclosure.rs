@@ -34,7 +34,6 @@ use crate::attestation::AttestationError;
 use crate::attestation::AttestationPresentation;
 use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
-use crate::disclosure::MdocDisclosureError;
 use crate::disclosure::MdocDisclosureMissingAttributes;
 use crate::disclosure::MdocDisclosureProposal;
 use crate::disclosure::MdocDisclosureSession;
@@ -131,9 +130,9 @@ pub enum DisclosureError {
 }
 
 impl DisclosureError {
-    fn with_organization(error: MdocDisclosureError, organization: Organization) -> Self {
+    fn with_organization(error: VpSessionError, organization: Organization) -> Self {
         match error {
-            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => Self::VpVerifierServer {
+            VpSessionError::Verifier(error) => Self::VpVerifierServer {
                 organization: Some(Box::new(organization)),
                 error,
             },
@@ -153,30 +152,31 @@ impl DisclosureError {
     }
 }
 
-impl From<MdocDisclosureError> for DisclosureError {
-    fn from(error: MdocDisclosureError) -> Self {
-        // Note that the `.unwrap()` and `panic!()` statements below are safe,
-        // as checking is performed within the guard statements.
-        match error {
+impl From<VpSessionError> for DisclosureError {
+    fn from(value: VpSessionError) -> Self {
+        match value {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
-            MdocDisclosureError::Vp(VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(
-                CoseError::Signing(error),
+            VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                signing_error,
             )))) if matches!(
-                error.downcast_ref::<RemoteEcdsaKeyError>(),
+                signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
                 Some(RemoteEcdsaKeyError::Instruction(_))
             ) =>
             {
-                if let RemoteEcdsaKeyError::Instruction(error) = *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                    DisclosureError::Instruction(error)
+                // Note that this statement is safe, as checking is performed within the guard statements above.
+                if let Ok(RemoteEcdsaKeyError::Instruction(instruction_error)) =
+                    signing_error.downcast::<RemoteEcdsaKeyError>().map(|error| *error)
+                {
+                    DisclosureError::Instruction(instruction_error)
                 } else {
-                    panic!()
+                    unreachable!()
                 }
             }
             // Any other error should result in its generic top-level error variant.
-            MdocDisclosureError::Vp(VpSessionError::Client(error)) => DisclosureError::VpClient(error),
-            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => DisclosureError::VpVerifierServer {
+            VpSessionError::Client(client_error) => DisclosureError::VpClient(client_error),
+            VpSessionError::Verifier(verifier_error) => DisclosureError::VpVerifierServer {
                 organization: None,
-                error,
+                error: verifier_error,
             },
         }
     }
@@ -1454,9 +1454,7 @@ mod tests {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
-                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpSessionError::Client(
-                    VpClientError::Request(response.into()),
-                )))),
+                next_error: Mutex::new(Some(VpSessionError::Client(VpClientError::Request(response.into())))),
                 ..Default::default()
             }),
             ..Default::default()
@@ -1585,10 +1583,10 @@ mod tests {
             session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
-                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpSessionError::Client(
-                    VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                next_error: Mutex::new(Some(VpSessionError::Client(VpClientError::DeviceResponse(
+                    mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(instruction_error).into(),
-                    ))),
+                    )),
                 )))),
                 ..Default::default()
             }),
