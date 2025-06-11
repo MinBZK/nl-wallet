@@ -1,5 +1,3 @@
-mod uri;
-
 use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
@@ -25,9 +23,6 @@ use poa::factory::PoaFactory;
 
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
-pub use self::uri::DisclosureUriError;
-pub use self::uri::VpDisclosureUriData;
-
 #[cfg(any(test, feature = "mock"))]
 pub use self::mock::MockMdocDisclosureProposal;
 #[cfg(any(test, feature = "mock"))]
@@ -42,12 +37,9 @@ pub enum MdocDisclosureSessionState<M, P> {
 pub trait MdocDisclosureSession<D> {
     type MissingAttributes: MdocDisclosureMissingAttributes;
     type Proposal: MdocDisclosureProposal;
-    type DisclosureUriData;
-
-    fn parse_url(uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError>;
 
     async fn start(
-        disclosure_uri: Self::DisclosureUriData,
+        disclosure_uri_query: &str,
         disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'_>],
@@ -84,14 +76,9 @@ where
 {
     type MissingAttributes = VpDisclosureMissingAttributes<HttpVpMessageClient>;
     type Proposal = VpDisclosureProposal<HttpVpMessageClient, Uuid>;
-    type DisclosureUriData = VpDisclosureUriData;
-
-    fn parse_url(uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
-        VpDisclosureUriData::parse_from_uri(uri)
-    }
 
     async fn start(
-        disclosure_uri: VpDisclosureUriData,
+        disclosure_uri_query: &str,
         uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
         trust_anchors: &[TrustAnchor<'_>],
@@ -105,7 +92,7 @@ where
         let client = HttpVpMessageClient::new(http_client);
         let session = Self::start(
             client,
-            &disclosure_uri.query,
+            disclosure_uri_query,
             uri_source,
             mdoc_data_source,
             trust_anchors,
@@ -297,18 +284,9 @@ mod mock {
     impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
         type MissingAttributes = MockMdocDisclosureMissingAttributes;
         type Proposal = MockMdocDisclosureProposal;
-        type DisclosureUriData = ();
-
-        fn parse_url(uri: &Url) -> Result<Self::DisclosureUriData, DisclosureUriError> {
-            if uri.query_pairs().any(|(param, _)| param == "invalid") {
-                Err(DisclosureUriError::Malformed(uri.clone()))
-            } else {
-                Ok(())
-            }
-        }
 
         async fn start(
-            _disclosure_uri: Self::DisclosureUriData,
+            _disclosure_uri_query: &str,
             disclosure_uri_source: DisclosureUriSource,
             _mdoc_data_source: &D,
             _trust_anchors: &[TrustAnchor<'_>],

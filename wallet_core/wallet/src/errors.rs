@@ -17,7 +17,6 @@ pub mod openid4vc {
 pub use crate::account_provider::AccountProviderError;
 pub use crate::account_provider::AccountProviderResponseError;
 pub use crate::config::ConfigurationError;
-pub use crate::disclosure::DisclosureUriError;
 pub use crate::instruction::InstructionError;
 pub use crate::instruction::RemoteEcdsaKeyError;
 pub use crate::issuance::DigidSessionError;

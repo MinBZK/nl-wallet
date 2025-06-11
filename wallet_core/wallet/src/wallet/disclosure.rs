@@ -32,7 +32,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationPresentation;
-use crate::disclosure::DisclosureUriError;
 use crate::disclosure::DisclosureUriSource;
 use crate::disclosure::MdocDisclosureMissingAttributes;
 use crate::disclosure::MdocDisclosureProposal;
@@ -83,8 +82,12 @@ pub enum DisclosureError {
     #[error("disclosure session is not in the correct state")]
     #[category(expected)]
     SessionState,
-    #[error("could not parse disclosure URI: {0}")]
-    DisclosureUri(#[source] DisclosureUriError),
+    #[error("did not recognize disclosure URI: {0}")]
+    #[category(pd)]
+    DisclosureUri(Url),
+    #[error("disclosure URI is missing query parameter(s): {0}")]
+    #[category(pd)]
+    DisclosureUriQuery(Url),
     #[error("error in OpenID4VP disclosure session: {0}")]
     VpClient(#[source] VpClientError),
     #[error("error in OpenID4VP disclosure session: {error}")]
@@ -206,18 +209,13 @@ impl<MDS> DisclosureSession<MDS> {
 
 impl RedirectUriPurpose {
     fn from_uri(uri: &Url) -> Result<Self, DisclosureError> {
-        let uri_type = identify_uri(uri)
-            .ok_or_else(|| DisclosureError::DisclosureUri(DisclosureUriError::Malformed(uri.clone())))?;
-
-        let purpose = match uri_type {
-            UriType::PidIssuance => {
-                return Err(DisclosureError::DisclosureUri(DisclosureUriError::Malformed(
-                    uri.clone(),
-                )))
-            }
-            UriType::Disclosure => Self::Browser,
-            UriType::DisclosureBasedIssuance => Self::Issuance,
-        };
+        let purpose = identify_uri(uri)
+            .and_then(|uri_type| match uri_type {
+                UriType::PidIssuance => None,
+                UriType::Disclosure => Some(Self::Browser),
+                UriType::DisclosureBasedIssuance => Some(Self::Issuance),
+            })
+            .ok_or_else(|| DisclosureError::DisclosureUri(uri.clone()))?;
 
         Ok(purpose)
     }
@@ -263,10 +261,12 @@ where
         let config = &self.config_repository.get().disclosure;
 
         let purpose = RedirectUriPurpose::from_uri(uri)?;
-        let disclosure_uri = MDS::parse_url(uri).map_err(DisclosureError::DisclosureUri)?;
+        let disclosure_uri_query = uri
+            .query()
+            .ok_or_else(|| DisclosureError::DisclosureUriQuery(uri.clone()))?;
 
         // Start the disclosure session based on the parsed disclosure URI.
-        let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors()).await?;
+        let session = MDS::start(disclosure_uri_query, source, self, &config.rp_trust_anchors()).await?;
 
         let shared_data_with_relying_party_before = self
             .storage
@@ -721,7 +721,7 @@ mod tests {
     use super::*;
 
     static DISCLOSURE_URI: LazyLock<Url> =
-        LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
+        LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
     impl<MDS> DisclosureSession<MDS> {
@@ -879,9 +879,7 @@ mod tests {
     async fn test_wallet_start_disclosure_error_disclosure_uri() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
-        // (The `MockMdocDisclosureSession` used by `WalletWithMocks` rejects URLs containing an `invalid`
-        // query parameter.)
+        // Starting disclosure on a wallet with an unknown disclosure URI should result in an error.
         let error = wallet
             .start_disclosure(
                 &Url::parse("http://example.com?invalid").unwrap(),
@@ -891,6 +889,23 @@ mod tests {
             .expect_err("Starting disclosure should have resulted in an error");
 
         assert_matches!(error, DisclosureError::DisclosureUri(_));
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_wallet_start_disclosure_error_disclosure_uri_query() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        // Starting disclosure on a wallet with a disclosure URI with no query parameters should result in an error.
+        let error = wallet
+            .start_disclosure(
+                &urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"),
+                DisclosureUriSource::Link,
+            )
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::DisclosureUriQuery(_));
         assert!(wallet.session.is_none());
     }
 
