@@ -845,6 +845,7 @@ pub(crate) mod tests {
     use platform_support::utils::mock::MockHardwareUtilities;
     use platform_support::utils::PlatformUtilities;
     use sd_jwt::sd_jwt::SdJwt;
+    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use wallet_account::messages::registration::WalletCertificate;
@@ -1084,7 +1085,7 @@ pub(crate) mod tests {
         );
 
         // Use vct matching that of the metadata
-        let attestation_type = "https://sd_jwt_vc_metadata.example.com/example_credential";
+        let attestation_type = VCT_EXAMPLE_CREDENTIAL;
 
         // Insert mdocs
         storage

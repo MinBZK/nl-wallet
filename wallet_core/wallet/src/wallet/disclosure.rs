@@ -701,6 +701,7 @@ mod tests {
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
+    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -1805,7 +1806,7 @@ mod tests {
                             .try_into()
                             .unwrap(),
                     ),
-                    String::from("https://sd_jwt_vc_metadata.example.com/example_credential"),
+                    String::from(VCT_EXAMPLE_CREDENTIAL),
                     VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
                 CredentialWithMetadata::new(

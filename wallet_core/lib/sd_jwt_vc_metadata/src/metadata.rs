@@ -818,16 +818,14 @@ mod test {
 
     use crate::examples::EXAMPLE_METADATA_BYTES;
     use crate::examples::RED_DOT_BYTES;
+    use crate::examples::VCT_EXAMPLE_CREDENTIAL;
 
     use super::*;
 
     #[test]
     fn test_deserialize() {
         let metadata = TypeMetadata::example();
-        assert_eq!(
-            "https://sd_jwt_vc_metadata.example.com/example_credential",
-            metadata.as_ref().vct
-        );
+        assert_eq!(VCT_EXAMPLE_CREDENTIAL, metadata.as_ref().vct);
     }
 
     #[test]
@@ -902,7 +900,7 @@ mod test {
     #[test]
     fn test_extends() {
         let metadata = serde_json::from_value::<TypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
             "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
             "display": [],
@@ -918,7 +916,7 @@ mod test {
     #[test]
     fn test_embedded_schema_validation() {
         assert!(serde_json::from_value::<TypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "extends": "https://sd_jwt_vc_metadata.example.com/other_schema",
             "extends#integrity": "sha256-LmXfh-9cLlJNXN-TsMk-PmKjZ5t0WRL5ca_xGgX3c1V",
             "display": [],
@@ -1058,7 +1056,7 @@ mod test {
     #[case(vec![vec!["x", "y.z"], vec!["x.y", "z"]], "x.y.z")]
     fn test_claim_path_collision(#[case] claims: Vec<Vec<&str>>, #[case] expected_path: &str) {
         let result = serde_json::from_value::<UncheckedTypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "claims": claims.into_iter().map(|claim| HashMap::from([("path", claim)])).collect::<Vec<_>>(),
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1075,7 +1073,7 @@ mod test {
     #[test]
     fn should_detect_claim_path_collision_for_deserializing_typemetadata() {
         let result = serde_json::from_value::<TypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "claims": [
                 { "path": ["address.street"] },
                 { "path": ["address", "street"] },
@@ -1093,7 +1091,7 @@ mod test {
 
     fn duplicate_display_language_metadata_json() -> serde_json::Value {
         json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "display": [
                 { "lang": "en", "name": "Name" },
                 { "lang": "en", "name": "Other name" }
@@ -1129,7 +1127,7 @@ mod test {
 
     fn duplicate_claim_display_language_metadata_json() -> serde_json::Value {
         json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "claims": [
                 {
                     "path": ["address.street"],
@@ -1216,7 +1214,7 @@ mod test {
         #[case] expected: Result<(), TypeMetadataError>,
     ) {
         let mut metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "claims": [],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1257,7 +1255,7 @@ mod test {
     ])))]
     fn test_validate_svg_ids_missing(#[case] summary: &str, #[case] expected: Result<(), TypeMetadataError>) {
         let metadata = serde_json::from_value::<UncheckedTypeMetadata>(json!({
-            "vct": "https://sd_jwt_vc_metadata.example.com/example_credential",
+            "vct": VCT_EXAMPLE_CREDENTIAL,
             "display": [{
                     "lang": "en",
                     "name": "Example Credential",

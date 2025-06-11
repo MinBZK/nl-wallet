@@ -531,6 +531,7 @@ mod tests {
     use openid4vc::oidc::OidcError;
     use openid4vc::token::TokenRequest;
     use openid4vc::token::TokenRequestGrantType;
+    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
 
     use crate::attestation::AttestationAttributeValue;
@@ -956,7 +957,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from("https://sd_jwt_vc_metadata.example.com/example_credential"),
+            String::from(VCT_EXAMPLE_CREDENTIAL),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
@@ -1189,7 +1190,7 @@ mod tests {
         let mdoc = test::create_example_pid_mdoc();
         let (pid_issuer, attestations) = mock_issuance_session(
             mdoc,
-            String::from("https://sd_jwt_vc_metadata.example.com/example_credential"),
+            String::from(VCT_EXAMPLE_CREDENTIAL),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
         wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
