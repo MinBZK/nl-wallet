@@ -42,7 +42,7 @@ async fn test_gba_pid_conversion_error(
 
 #[tokio::test]
 #[rstest]
-async fn test_gba_pid_unknown_bsn(#[values("900265462", "900253010")] bsn: &str) {
+async fn test_gba_pid_unknown_bsn(#[values("900200005", "900200017")] bsn: &str) {
     assert_eq!(
         TestError::UnknownBsn,
         gba_pid(bsn).await.expect_err("should return error")
