@@ -23,19 +23,19 @@ use poa::factory::PoaFactory;
 pub use openid4vc::disclosure_session::DisclosureUriSource;
 
 #[cfg(any(test, feature = "mock"))]
-pub use self::mock::MockMdocDisclosureProposal;
+pub use self::mock::MockDisclosureProposal;
 #[cfg(any(test, feature = "mock"))]
-pub use self::mock::MockMdocDisclosureSession;
+pub use self::mock::MockDisclosureSession;
 
 #[derive(Debug)]
-pub enum MdocDisclosureSessionState<M, P> {
+pub enum DisclosureSessionState<M, P> {
     MissingAttributes(M),
     Proposal(P),
 }
 
-pub trait MdocDisclosureSession<D> {
-    type MissingAttributes: MdocDisclosureMissingAttributes;
-    type Proposal: MdocDisclosureProposal;
+pub trait DisclosureSession<D> {
+    type MissingAttributes: DisclosureMissingAttributes;
+    type Proposal: DisclosureProposal;
 
     async fn start(
         client: HttpVpMessageClient,
@@ -49,18 +49,18 @@ pub trait MdocDisclosureSession<D> {
 
     fn rp_certificate(&self) -> &BorrowingCertificate;
     fn reader_registration(&self) -> &ReaderRegistration;
-    fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
+    fn session_state(&self) -> DisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
     fn session_type(&self) -> SessionType;
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
 }
 
 #[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-pub trait MdocDisclosureMissingAttributes {
+pub trait DisclosureMissingAttributes {
     fn missing_attributes(&self) -> &[AttributeIdentifier];
 }
 
-pub trait MdocDisclosureProposal {
+pub trait DisclosureProposal {
     fn proposed_source_identifiers(&self) -> Vec<Uuid>;
     fn proposed_attributes(&self) -> ProposedAttributes;
 
@@ -70,7 +70,7 @@ pub trait MdocDisclosureProposal {
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
 }
 
-impl<D> MdocDisclosureSession<D> for VpDisclosureSession<HttpVpMessageClient, Uuid>
+impl<D> DisclosureSession<D> for VpDisclosureSession<HttpVpMessageClient, Uuid>
 where
     D: MdocDataSource<MdocIdentifier = Uuid>,
 {
@@ -109,13 +109,13 @@ where
 
     fn session_state(
         &self,
-    ) -> MdocDisclosureSessionState<
-        &<Self as MdocDisclosureSession<D>>::MissingAttributes,
-        &<Self as MdocDisclosureSession<D>>::Proposal,
+    ) -> DisclosureSessionState<
+        &<Self as DisclosureSession<D>>::MissingAttributes,
+        &<Self as DisclosureSession<D>>::Proposal,
     > {
         match self {
-            Self::MissingAttributes(session) => MdocDisclosureSessionState::MissingAttributes(session),
-            Self::Proposal(session) => MdocDisclosureSessionState::Proposal(session),
+            Self::MissingAttributes(session) => DisclosureSessionState::MissingAttributes(session),
+            Self::Proposal(session) => DisclosureSessionState::Proposal(session),
         }
     }
 
@@ -128,13 +128,13 @@ where
     }
 }
 
-impl MdocDisclosureMissingAttributes for VpDisclosureMissingAttributes<HttpVpMessageClient> {
+impl DisclosureMissingAttributes for VpDisclosureMissingAttributes<HttpVpMessageClient> {
     fn missing_attributes(&self) -> &[AttributeIdentifier] {
         self.missing_attributes()
     }
 }
 
-impl MdocDisclosureProposal for VpDisclosureProposal<HttpVpMessageClient, Uuid> {
+impl DisclosureProposal for VpDisclosureProposal<HttpVpMessageClient, Uuid> {
     fn proposed_source_identifiers(&self) -> Vec<Uuid> {
         self.proposed_source_identifiers().into_iter().copied().collect()
     }
@@ -168,7 +168,7 @@ mod mock {
 
     use super::*;
 
-    type SessionState = MdocDisclosureSessionState<MockMdocDisclosureMissingAttributes, MockMdocDisclosureProposal>;
+    type SessionState = DisclosureSessionState<MockDisclosureMissingAttributes, MockDisclosureProposal>;
     type MockFields = (ReaderRegistration, SessionState, Option<BaseUrl>);
 
     pub static NEXT_START_ERROR: Mutex<Option<VpSessionError>> = Mutex::new(None);
@@ -177,12 +177,12 @@ mod mock {
     // For convenience, the default `SessionState` is a proposal.
     impl Default for SessionState {
         fn default() -> Self {
-            MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal::default())
+            DisclosureSessionState::Proposal(MockDisclosureProposal::default())
         }
     }
 
     #[derive(Debug)]
-    pub struct MockMdocDisclosureProposal {
+    pub struct MockDisclosureProposal {
         pub disclose_return_url: Option<BaseUrl>,
         pub proposed_source_identifiers: Vec<Uuid>,
         pub proposed_attributes: ProposedAttributes,
@@ -192,7 +192,7 @@ mod mock {
         pub session_type: SessionType,
     }
 
-    impl Default for MockMdocDisclosureProposal {
+    impl Default for MockDisclosureProposal {
         fn default() -> Self {
             Self {
                 disclose_return_url: Default::default(),
@@ -206,7 +206,7 @@ mod mock {
         }
     }
 
-    impl MdocDisclosureProposal for MockMdocDisclosureProposal {
+    impl DisclosureProposal for MockDisclosureProposal {
         fn proposed_source_identifiers(&self) -> Vec<Uuid> {
             self.proposed_source_identifiers.clone()
         }
@@ -228,7 +228,7 @@ mod mock {
     }
 
     #[derive(Debug)]
-    pub struct MockMdocDisclosureSession {
+    pub struct MockDisclosureSession {
         pub disclosure_uri_source: DisclosureUriSource,
         pub certificate: BorrowingCertificate,
         pub reader_registration: ReaderRegistration,
@@ -238,7 +238,7 @@ mod mock {
         pub terminate_return_url: Option<BaseUrl>,
     }
 
-    impl MockMdocDisclosureSession {
+    impl MockDisclosureSession {
         pub fn next_fields(
             reader_registration: ReaderRegistration,
             session_state: SessionState,
@@ -261,7 +261,7 @@ mod mock {
         generate_reader_mock(&reader_ca, ReaderRegistration::new_mock().into()).unwrap()
     });
 
-    impl Default for MockMdocDisclosureSession {
+    impl Default for MockDisclosureSession {
         fn default() -> Self {
             Self {
                 disclosure_uri_source: DisclosureUriSource::Link,
@@ -275,9 +275,9 @@ mod mock {
         }
     }
 
-    impl<D> MdocDisclosureSession<D> for MockMdocDisclosureSession {
-        type MissingAttributes = MockMdocDisclosureMissingAttributes;
-        type Proposal = MockMdocDisclosureProposal;
+    impl<D> DisclosureSession<D> for MockDisclosureSession {
+        type MissingAttributes = MockDisclosureMissingAttributes;
+        type Proposal = MockDisclosureProposal;
 
         async fn start(
             _client: HttpVpMessageClient,
@@ -295,7 +295,7 @@ mod mock {
                 .take()
                 .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default(), None));
 
-            let session = MockMdocDisclosureSession {
+            let session = MockDisclosureSession {
                 disclosure_uri_source,
                 reader_registration,
                 session_state,
@@ -306,12 +306,12 @@ mod mock {
             Ok(session)
         }
 
-        fn session_state(&self) -> MdocDisclosureSessionState<&Self::MissingAttributes, &Self::Proposal> {
+        fn session_state(&self) -> DisclosureSessionState<&Self::MissingAttributes, &Self::Proposal> {
             match self.session_state {
-                MdocDisclosureSessionState::MissingAttributes(ref session) => {
-                    MdocDisclosureSessionState::MissingAttributes(session)
+                DisclosureSessionState::MissingAttributes(ref session) => {
+                    DisclosureSessionState::MissingAttributes(session)
                 }
-                MdocDisclosureSessionState::Proposal(ref session) => MdocDisclosureSessionState::Proposal(session),
+                DisclosureSessionState::Proposal(ref session) => DisclosureSessionState::Proposal(session),
             }
         }
 

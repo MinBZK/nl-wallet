@@ -24,7 +24,7 @@ pub use crate::pin::validation::validate_pin;
 pub use crate::storage::DisclosureStatus;
 pub use crate::storage::DisclosureType;
 pub use crate::storage::WalletEvent;
-pub use crate::wallet::DisclosureProposal;
+pub use crate::wallet::DisclosureProposalPresentation;
 pub use crate::wallet::LockCallback;
 pub use crate::wallet::UnlockMethod;
 pub use crate::wallet::UriType;
@@ -77,10 +77,10 @@ pub mod wallet_deps {
     pub use crate::config::FileStorageConfigurationRepository;
     pub use crate::config::HttpConfigurationRepository;
     pub use crate::config::WalletConfigurationRepository;
-    pub use crate::disclosure::MdocDisclosureMissingAttributes;
-    pub use crate::disclosure::MdocDisclosureProposal;
-    pub use crate::disclosure::MdocDisclosureSession;
-    pub use crate::disclosure::MdocDisclosureSessionState;
+    pub use crate::disclosure::DisclosureMissingAttributes;
+    pub use crate::disclosure::DisclosureProposal;
+    pub use crate::disclosure::DisclosureSession;
+    pub use crate::disclosure::DisclosureSessionState;
     pub use crate::issuance::DigidSession;
     pub use crate::issuance::HttpDigidSession;
     pub use crate::repository::BackgroundUpdateableRepository;
@@ -97,9 +97,9 @@ pub mod wallet_deps {
 pub mod mock {
     pub use crate::account_provider::MockAccountProviderClient;
     pub use crate::config::LocalConfigurationRepository;
-    pub use crate::disclosure::MockMdocDisclosureMissingAttributes;
-    pub use crate::disclosure::MockMdocDisclosureProposal;
-    pub use crate::disclosure::MockMdocDisclosureSession;
+    pub use crate::disclosure::MockDisclosureMissingAttributes;
+    pub use crate::disclosure::MockDisclosureProposal;
+    pub use crate::disclosure::MockDisclosureSession;
     pub use crate::issuance::MockDigidSession;
     pub use crate::issuance::BSN_ATTR_NAME;
     pub use crate::issuance::PID_DOCTYPE;

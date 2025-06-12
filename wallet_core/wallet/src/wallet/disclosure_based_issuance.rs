@@ -22,7 +22,7 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
-use crate::disclosure::MdocDisclosureSession;
+use crate::disclosure::DisclosureSession;
 use crate::errors::UpdatePolicyError;
 use crate::issuance::DigidSession;
 use crate::repository::Repository;
@@ -79,7 +79,7 @@ where
     APC: AccountProviderClient,
     DS: DigidSession,
     IS: Openid4vcIssuanceSession,
-    MDS: MdocDisclosureSession<Self>,
+    MDS: DisclosureSession<Self>,
     WIC: Default,
 {
     #[instrument(skip_all)]
@@ -180,9 +180,9 @@ mod tests {
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
 
-    use crate::disclosure::MdocDisclosureSessionState;
-    use crate::disclosure::MockMdocDisclosureProposal;
-    use crate::disclosure::MockMdocDisclosureSession;
+    use crate::disclosure::DisclosureSessionState;
+    use crate::disclosure::MockDisclosureProposal;
+    use crate::disclosure::MockDisclosureSession;
     use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
     use crate::wallet::test::create_example_preview_data;
@@ -215,8 +215,8 @@ mod tests {
             .unwrap();
         wallet.session = Some(Session::Disclosure(DisclosureSession::new(
             RedirectUriPurpose::Issuance,
-            MockMdocDisclosureSession {
-                session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+            MockDisclosureSession {
+                session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
                     disclose_return_url: Some(credential_offer),
                     ..Default::default()
                 }),
@@ -266,8 +266,8 @@ mod tests {
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
         wallet.session = Some(Session::Disclosure(DisclosureSession::new(
             RedirectUriPurpose::Issuance,
-            MockMdocDisclosureSession {
-                session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+            MockDisclosureSession {
+                session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
                     next_error: Mutex::new(Some(VpSessionError::Client(VpClientError::Request(
                         DisclosureErrorResponse {
                             error_response: PostAuthResponseError::HandlingDisclosureResult(
@@ -298,7 +298,7 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        let disclosure_session = MockMdocDisclosureSession::default();
+        let disclosure_session = MockDisclosureSession::default();
         wallet.session = Some(Session::Disclosure(DisclosureSession::new(
             RedirectUriPurpose::Browser,
             disclosure_session,

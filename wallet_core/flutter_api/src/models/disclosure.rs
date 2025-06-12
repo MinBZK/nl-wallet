@@ -3,7 +3,7 @@ use url::Url;
 use wallet::attestation_data::ReaderRegistration;
 use wallet::errors::DisclosureError;
 use wallet::openid4vc::SessionType;
-use wallet::DisclosureProposal;
+use wallet::DisclosureProposalPresentation;
 
 use super::attestation::AttestationPresentation;
 use super::image::Image;
@@ -171,10 +171,10 @@ impl From<wallet::DisclosureType> for DisclosureType {
     }
 }
 
-impl TryFrom<Result<DisclosureProposal, DisclosureError>> for StartDisclosureResult {
+impl TryFrom<Result<DisclosureProposalPresentation, DisclosureError>> for StartDisclosureResult {
     type Error = DisclosureError;
 
-    fn try_from(value: Result<DisclosureProposal, DisclosureError>) -> Result<Self, Self::Error> {
+    fn try_from(value: Result<DisclosureProposalPresentation, DisclosureError>) -> Result<Self, Self::Error> {
         match value {
             Ok(proposal) => {
                 let policy: RequestPolicy = (&proposal.reader_registration).into();

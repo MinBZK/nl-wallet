@@ -22,7 +22,7 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use openid4vc::disclosure_session::HttpVpMessageClient;
-use openid4vc::disclosure_session::VpDisclosureSession as Openid4vcDisclosureSession;
+use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -42,7 +42,7 @@ use self::disclosure::DisclosureSession;
 use self::issuance::IssuanceSession;
 
 pub use self::disclosure::DisclosureError;
-pub use self::disclosure::DisclosureProposal;
+pub use self::disclosure::DisclosureProposalPresentation;
 pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
@@ -106,7 +106,7 @@ pub struct Wallet<
     APC = HttpAccountProviderClient,            // AccountProviderClient
     DS = HttpDigidSession,                      // DigidSession
     IS = HttpIssuanceSession,                   // IssuanceSession
-    MDS = Openid4vcDisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
+    MDS = VpDisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
     WIC = WpWteIssuanceClient,                  // WteIssuanceClient
 > where
     AKH: AttestedKeyHolder,
