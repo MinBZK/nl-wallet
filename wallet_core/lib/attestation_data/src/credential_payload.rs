@@ -159,7 +159,7 @@ impl CredentialPayload {
                         .make_concealable(&json_path)
                         .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
                 }
-                _ => Ok(builder),
+                ClaimSelectiveDisclosureMetadata::Never => Ok(builder),
             })?
             .finish(
                 Algorithm::ES256,
