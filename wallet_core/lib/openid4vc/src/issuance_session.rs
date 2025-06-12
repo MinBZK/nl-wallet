@@ -1231,7 +1231,7 @@ mod tests {
         } = &session.normalized_credential_preview()[0];
 
         assert_matches!(
-                &content.credential_payload.attributes["family_name"],
+                &content.credential_payload.attributes.as_inner()["family_name"],
                 Attribute::Single(AttributeValue::Text(v)) if v == "De Bruijn");
 
         assert_eq!(

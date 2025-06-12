@@ -1,6 +1,5 @@
 use chrono::DateTime;
 use chrono::Utc;
-use indexmap::IndexMap;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_valid::Validate;
@@ -8,7 +7,7 @@ use serde_valid::Validate;
 use http_utils::urls::HttpsUri;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::attributes::Attribute;
+use crate::attributes::Attributes;
 use crate::credential_payload::PreviewableCredentialPayload;
 use crate::qualification::AttestationQualification;
 
@@ -27,14 +26,11 @@ use crate::qualification::AttestationQualification;
 #[validate(custom = IssuableDocument::validate)]
 pub struct IssuableDocument {
     attestation_type: String,
-    attributes: IndexMap<String, Attribute>,
+    attributes: Attributes,
 }
 
 impl IssuableDocument {
-    pub fn try_new(
-        attestation_type: String,
-        attributes: IndexMap<String, Attribute>,
-    ) -> Result<Self, serde_valid::validation::Error> {
+    pub fn try_new(attestation_type: String, attributes: Attributes) -> Result<Self, serde_valid::validation::Error> {
         let document = Self {
             attestation_type,
             attributes,
@@ -45,6 +41,7 @@ impl IssuableDocument {
 
     fn validate(&self) -> Result<(), serde_valid::validation::Error> {
         self.attributes
+            .as_inner()
             .len()
             .ge(&1)
             .then_some(())
@@ -81,6 +78,9 @@ pub type IssuableDocuments = VecNonEmpty<IssuableDocument>;
 pub mod mock {
     use super::*;
 
+    use indexmap::IndexMap;
+
+    use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
 
     impl IssuableDocument {
@@ -105,7 +105,8 @@ pub mod mock {
                         Attribute::Single(AttributeValue::Text("A".to_string())),
                     ),
                     ("cum_laude".to_string(), Attribute::Single(AttributeValue::Bool(true))),
-                ]),
+                ])
+                .into(),
             )
             .unwrap()
         }

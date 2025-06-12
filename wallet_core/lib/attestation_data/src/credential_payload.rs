@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -22,7 +21,7 @@ use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::date_time_seconds::DateTimeSeconds;
 
-use crate::attributes::Attribute;
+use crate::attributes::Attributes;
 use crate::qualification::AttestationQualification;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -95,7 +94,7 @@ pub struct PreviewableCredentialPayload {
     pub attestation_qualification: AttestationQualification,
 
     #[serde(flatten)]
-    pub attributes: IndexMap<String, Attribute>,
+    pub attributes: Attributes,
 }
 
 pub trait IntoCredentialPayload {
@@ -187,6 +186,7 @@ mod examples {
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeValue;
+    use crate::attributes::Attributes;
 
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
@@ -206,7 +206,7 @@ mod examples {
                     expires: Some((now + Duration::days(365)).into()),
                     not_before: Some((now - Duration::days(1)).into()),
                     attestation_qualification: Default::default(),
-                    attributes: IndexMap::new(),
+                    attributes: Attributes::new(),
                 },
             }
         }
@@ -224,14 +224,19 @@ mod examples {
         }
 
         pub fn example_with_attributes(attrs: Vec<(&str, AttributeValue)>, verifying_key: &VerifyingKey) -> Self {
-            let mut payload = CredentialPayload::example_empty(verifying_key);
-            for (key, attr_value) in attrs {
-                payload
-                    .previewable_payload
-                    .attributes
-                    .insert(String::from(key), Attribute::Single(attr_value));
+            let empty = CredentialPayload::example_empty(verifying_key);
+            CredentialPayload {
+                previewable_payload: PreviewableCredentialPayload {
+                    attributes: IndexMap::from_iter(
+                        attrs
+                            .into_iter()
+                            .map(|(name, attr)| (name.to_string(), Attribute::Single(attr))),
+                    )
+                    .into(),
+                    ..empty.previewable_payload
+                },
+                ..empty
             }
-            payload
         }
     }
 }
@@ -325,7 +330,8 @@ mod test {
                             ),
                         ])),
                     ),
-                ]),
+                ])
+                .into(),
             },
         };
 

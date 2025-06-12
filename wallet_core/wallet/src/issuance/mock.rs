@@ -2,7 +2,6 @@ use indexmap::IndexMap;
 use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 
-use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
 use attestation_data::attributes::Entry;
 use attestation_data::credential_payload::CredentialPayload;
@@ -31,7 +30,7 @@ pub fn create_bsn_only_mdoc_attributes() -> (IndexMap<String, Vec<Entry>>, TypeM
     let (payload, metadata) = create_bsn_only_payload_preview();
 
     (
-        Attribute::from_attributes(&payload.attestation_type, payload.attributes),
+        payload.attributes.to_mdoc_attributes(&payload.attestation_type),
         metadata,
     )
 }
@@ -70,7 +69,7 @@ pub fn create_example_mdoc_attributes() -> (IndexMap<String, Vec<Entry>>, TypeMe
     let (payload, metadata) = create_example_payload_preview();
 
     (
-        Attribute::from_attributes(&payload.attestation_type, payload.attributes),
+        payload.attributes.to_mdoc_attributes(&payload.attestation_type),
         metadata,
     )
 }

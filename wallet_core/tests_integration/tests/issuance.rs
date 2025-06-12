@@ -118,7 +118,8 @@ fn pid_without_optionals() -> IssuableDocument {
                 PID_BSN.to_string(),
                 Attribute::Single(AttributeValue::Text("999991772".to_string())),
             ),
-        ]),
+        ])
+        .into(),
     )
     .unwrap()
 }
@@ -140,7 +141,8 @@ fn pid_missing_required() -> IssuableDocument {
                 Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
             ),
             // bsn is missing, which is required
-        ]),
+        ])
+        .into(),
     )
     .unwrap()
 }

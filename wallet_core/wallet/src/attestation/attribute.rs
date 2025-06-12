@@ -7,6 +7,7 @@ use itertools::Itertools;
 
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::Attributes;
 use attestation_data::auth::Organization;
 use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::JsonSchemaProperty;
@@ -22,13 +23,13 @@ use super::AttestationIdentity;
 use super::AttestationPresentation;
 
 impl AttestationPresentation {
-    // Construct a new `Attestation` from a combination of metadata and nested attributes.
+    // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
     // This method has different behaviour depending on the `selection_mode` parameter.
     pub fn create_from_attributes(
         identity: AttestationIdentity,
         metadata: NormalizedTypeMetadata,
         issuer: Organization,
-        mut nested_attributes: IndexMap<String, Attribute>,
+        nested_attributes: Attributes,
     ) -> Result<Self, AttestationError> {
         let (attestation_type, display_metadata, claims, schema) = metadata.into_presentation_components();
 
@@ -39,6 +40,7 @@ impl AttestationPresentation {
 
         // For every claim in the metadata, traverse the nested attributes to find it,
         // then convert it to a `AttestationAttribute` value.
+        let mut nested_attributes = nested_attributes.into_inner();
         let attributes = claims
             .into_iter()
             .filter_map(|claim| {

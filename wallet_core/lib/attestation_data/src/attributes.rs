@@ -78,7 +78,34 @@ pub enum Attribute {
     Nested(IndexMap<String, Attribute>),
 }
 
-impl Attribute {
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct Attributes(IndexMap<String, Attribute>);
+
+impl Default for Attributes {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl From<IndexMap<String, Attribute>> for Attributes {
+    fn from(attributes: IndexMap<String, Attribute>) -> Self {
+        Self(attributes)
+    }
+}
+
+impl Attributes {
+    pub fn new() -> Self {
+        IndexMap::new().into()
+    }
+
+    pub fn into_inner(self) -> IndexMap<String, Attribute> {
+        self.0
+    }
+
+    pub fn as_inner(&self) -> &IndexMap<String, Attribute> {
+        &self.0
+    }
+
     /// Convert a map of namespaced entries (`Entry`) to a (nested) map of attributes by key.
     /// The namespace is required to consist of nested group names, joined by a '.' and prefixed
     /// with the attestation_type.
@@ -118,7 +145,7 @@ impl Attribute {
     pub fn from_mdoc_attributes(
         type_metadata: &NormalizedTypeMetadata,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
-    ) -> Result<IndexMap<String, Self>, AttributeError> {
+    ) -> Result<Self, AttributeError> {
         let mut result = IndexMap::new();
 
         // The claims list determines the final order of the converted attributes.
@@ -138,7 +165,7 @@ impl Attribute {
         }
         // No internal attributes can be in the array map as they are forbidden as claim in the type metadata
 
-        Ok(result)
+        Ok(result.into())
     }
 
     fn traverse_attributes_by_claim(
@@ -217,12 +244,9 @@ impl Attribute {
     ///     }
     /// }
     /// ```
-    pub fn from_attributes(
-        attestation_type: &str,
-        attributes: IndexMap<String, Self>,
-    ) -> IndexMap<NameSpace, Vec<Entry>> {
+    pub fn to_mdoc_attributes(self, attestation_type: &str) -> IndexMap<NameSpace, Vec<Entry>> {
         let mut flattened = IndexMap::new();
-        Self::walk_attributes_recursive(attestation_type, attributes, &mut flattened);
+        Self::walk_attributes_recursive(attestation_type, self.0, &mut flattened);
         flattened
     }
 
@@ -265,6 +289,7 @@ mod test {
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
     use crate::attributes::AttributeValue;
+    use crate::attributes::Attributes;
     use crate::identifiers::NameSpace;
 
     use super::Entry;
@@ -340,7 +365,7 @@ mod test {
                 }],
             ),
         ]);
-        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
 
         let expected_json = json!({
             "birthdate": "1963-08-12",
@@ -391,7 +416,7 @@ mod test {
             }],
         )]);
 
-        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
 
         let expected_json = json!({"nest.ed": { "birth.date": "1963-08-12" }});
         assert_eq!(
@@ -437,7 +462,7 @@ mod test {
             ],
         )]);
 
-        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes);
+        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes);
         assert_matches!(result, Err(AttributeError::SomeAttributesNotProcessed(attrs))
         if attrs == IndexMap::from([(
             String::from("com.example.pid.a"),
@@ -486,7 +511,7 @@ mod test {
             ],
         )]);
 
-        let result = Attribute::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
+        let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes).unwrap();
         let expected_json = json!({"b": { "b1": "1", "b3": "3", "b2": "2" }});
         assert_eq!(
             serde_json::to_value(result).unwrap().to_json_string_pretty().unwrap(),
@@ -494,7 +519,7 @@ mod test {
         );
     }
 
-    fn setup_issuable_attributes() -> IndexMap<String, Attribute> {
+    fn setup_issuable_attributes() -> Attributes {
         IndexMap::from_iter(vec![
             (
                 "city".to_string(),
@@ -515,6 +540,7 @@ mod test {
                 ])),
             ),
         ])
+        .into()
     }
 
     #[test]
@@ -548,8 +574,8 @@ mod test {
     }
 
     #[test]
-    fn test_attribute_from_attributes() {
-        let attributes = Attribute::from_attributes("com.example.address", setup_issuable_attributes());
+    fn test_attribute_to_mdoc_attributes() {
+        let attributes = setup_issuable_attributes().to_mdoc_attributes("com.example.address");
 
         assert_eq!(
             serde_json::to_value(readable_mdoc_attributes(attributes)).unwrap(),
@@ -567,17 +593,18 @@ mod test {
     }
 
     #[test]
-    fn test_attribute_from_attributes_empty_root() {
+    fn test_attribute_to_mdoc_attributes_empty_root() {
         let attestation_type = "com.example.address";
-        let nested_attributes = IndexMap::from_iter(vec![(
+        let nested_attributes: Attributes = IndexMap::from_iter(vec![(
             "house".to_string(),
             Attribute::Nested(IndexMap::from_iter(vec![(
                 "number".to_string(),
                 Attribute::Single(AttributeValue::Integer(1)),
             )])),
-        )]);
+        )])
+        .into();
 
-        let attributes = Attribute::from_attributes(attestation_type, nested_attributes);
+        let attributes = nested_attributes.to_mdoc_attributes(attestation_type);
 
         assert_eq!(
             serde_json::to_value(readable_mdoc_attributes(attributes)).unwrap(),

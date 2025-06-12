@@ -73,7 +73,8 @@ impl AttributeService for BrpPidAttributeService {
             .into_inner()
             .into_iter()
             .map(|(attestation_type, attributes)| {
-                IssuableDocument::try_new(attestation_type, attributes).map_err(|_| Error::InvalidIssuableDocuments)
+                IssuableDocument::try_new(attestation_type, attributes.into())
+                    .map_err(|_| Error::InvalidIssuableDocuments)
             })
             .collect::<Result<Vec<_>, Error>>()?
             .try_into()
