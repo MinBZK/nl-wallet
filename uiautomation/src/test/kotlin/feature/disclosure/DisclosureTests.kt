@@ -7,7 +7,6 @@ import helper.LocalizationHelper
 import helper.OrganizationAuthMetadataHelper
 import helper.OrganizationAuthMetadataHelper.Organization.AMSTERDAM
 import helper.OrganizationAuthMetadataHelper.Organization.MARKETPLACE
-import helper.OrganizationAuthMetadataHelper.Organization.MONKEYBIKE
 import helper.OrganizationAuthMetadataHelper.Organization.XYZ
 import helper.TasDataHelper
 import helper.TestBase
@@ -50,7 +49,6 @@ class DisclosureTests : TestBase() {
     private lateinit var organizationAuthMetadata: OrganizationAuthMetadataHelper
     private lateinit var gbaData: GbaDataHelper
 
-
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
         overviewWebPage = DemoIndexWebPage()
@@ -74,12 +72,12 @@ class DisclosureTests : TestBase() {
         xyzBankWebPage.openSameDeviceWalletFlow(platform)
         xyzBankWebPage.switchToAppContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", XYZ)))
-        disclosureScreen.viewDisclosureDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails()
         assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", XYZ)))
         disclosureScreen.goBack();
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
-        assertTrue(disclosureScreen.reportOptionUnknownOrganizationVisible(), "Reporting option not visible")
+        assertTrue(disclosureScreen.reportOptionUntrustedVisible(), "Reporting option not visible")
         disclosureScreen.goBack()
         disclosureScreen.proceed()
         disclosureScreen.share()
@@ -111,7 +109,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
-        assertTrue(disclosureScreen.reportOptionUnknownOrganizationVisible(), "Reporting option not visible")
+        assertTrue(disclosureScreen.reportOptionSuspiciousVisible(), "Reporting option not visible")
         disclosureScreen.goBack()
         disclosureScreen.viewLoginDisclosureDetails()
         disclosureScreen.readTerms()
@@ -136,7 +134,7 @@ class DisclosureTests : TestBase() {
         marketPlaceWebPage.openSameDeviceWalletFlow(platform)
         marketPlaceWebPage.switchToAppContext()
         assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MARKETPLACE)))
-        disclosureScreen.viewDisclosureDetails()
+        disclosureScreen.viewDisclosureOrganizationDetails()
         assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", MARKETPLACE)))
         disclosureScreen.goBack();
         disclosureScreen.proceed()
@@ -177,11 +175,6 @@ class DisclosureTests : TestBase() {
         val platform = overviewWebPage.platformName()
         monkeyBikeWebPage.openSameDeviceWalletFlow(platform)
         monkeyBikeWebPage.switchToAppContext()
-        assertTrue(disclosureScreen.organizationNameForSharingFlowVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.displayName", MONKEYBIKE)))
-        disclosureScreen.viewDisclosureDetails()
-        assertTrue(disclosureScreen.organizationDescriptionOnDetailsVisible(organizationAuthMetadata.getAttributeValueForOrganization("organization.description", MONKEYBIKE)))
-        disclosureScreen.goBack();
-        disclosureScreen.proceed()
         assertTrue(disclosureScreen.attributesMissingMessageVisible(), "Attributes missing message not visible")
         disclosureScreen.stopRequestAfterMissingAttributeFailure()
         disclosureScreen.closeDisclosureAfterCompletedOrUncompleted()
