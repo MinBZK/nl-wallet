@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
 use derive_more::Constructor;
-use http::header;
-use http::HeaderMap;
-use http::HeaderValue;
 use p256::ecdsa::signature;
 use rustls_pki_types::TrustAnchor;
 use tracing::info;
@@ -14,6 +11,7 @@ use attestation_data::auth::Organization;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::reqwest::client_builder_accept_json;
 use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls;
@@ -322,11 +320,7 @@ where
         mdoc_trust_anchors: &Vec<TrustAnchor<'_>>,
         is_pid: bool,
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
-        let http_client = default_reqwest_client_builder()
-            .default_headers(HeaderMap::from_iter([(
-                header::ACCEPT,
-                HeaderValue::from_static(mime::APPLICATION_JSON.as_ref()),
-            )]))
+        let http_client = client_builder_accept_json(default_reqwest_client_builder())
             .build()
             .expect("Could not build reqwest HTTP client");
 

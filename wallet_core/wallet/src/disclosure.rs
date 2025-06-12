@@ -9,7 +9,6 @@ use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
 use crypto::x509::BorrowingCertificate;
-use http_utils::reqwest::default_reqwest_client_builder;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use openid4vc::disclosure_session::DisclosureError;
@@ -39,6 +38,7 @@ pub trait MdocDisclosureSession<D> {
     type Proposal: MdocDisclosureProposal;
 
     async fn start(
+        client: HttpVpMessageClient,
         disclosure_uri_query: &str,
         disclosure_uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
@@ -78,6 +78,7 @@ where
     type Proposal = VpDisclosureProposal<HttpVpMessageClient, Uuid>;
 
     async fn start(
+        client: HttpVpMessageClient,
         disclosure_uri_query: &str,
         uri_source: DisclosureUriSource,
         mdoc_data_source: &D,
@@ -86,10 +87,6 @@ where
     where
         Self: Sized,
     {
-        let http_client = default_reqwest_client_builder()
-            .build()
-            .expect("Could not build reqwest HTTP client");
-        let client = HttpVpMessageClient::new(http_client);
         let session = Self::start(
             client,
             disclosure_uri_query,
@@ -283,6 +280,7 @@ mod mock {
         type Proposal = MockMdocDisclosureProposal;
 
         async fn start(
+            _client: HttpVpMessageClient,
             _disclosure_uri_query: &str,
             disclosure_uri_source: DisclosureUriSource,
             _mdoc_data_source: &D,

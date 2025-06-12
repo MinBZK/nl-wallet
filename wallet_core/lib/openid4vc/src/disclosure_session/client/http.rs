@@ -1,6 +1,7 @@
-use derive_more::Constructor;
 use futures::TryFutureExt;
+use http_utils::reqwest::client_builder_accept_json;
 use reqwest::header::ACCEPT;
+use reqwest::ClientBuilder;
 use reqwest::Method;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
@@ -22,12 +23,20 @@ use super::VpMessageClient;
 use super::VpMessageClientError;
 use super::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 
-#[derive(Debug, Clone, Constructor)]
+#[derive(Debug, Clone)]
 pub struct HttpVpMessageClient {
     http_client: reqwest::Client,
 }
 
 impl HttpVpMessageClient {
+    pub fn new(client_builder: ClientBuilder) -> Result<Self, reqwest::Error> {
+        let http_client = client_builder_accept_json(client_builder).build()?;
+
+        let message_client = Self { http_client };
+
+        Ok(message_client)
+    }
+
     async fn get_body_from_response<T>(response: Response) -> Result<String, VpMessageClientError>
     where
         T: DeserializeOwned,

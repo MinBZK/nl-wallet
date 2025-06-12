@@ -17,11 +17,13 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
+use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
@@ -89,6 +91,9 @@ pub enum DisclosureError {
     #[error("disclosure URI is missing query parameter(s): {0}")]
     #[category(pd)]
     DisclosureUriQuery(Url),
+    #[error("could not create HTTP client: {0}")]
+    #[category(critical)]
+    HttpClient(#[source] reqwest::Error),
     #[error("error in OpenID4VP disclosure session: {0}")]
     VpClient(#[source] VpClientError),
     #[error("error in OpenID4VP disclosure session: {error}")]
@@ -267,7 +272,8 @@ where
             .ok_or_else(|| DisclosureError::DisclosureUriQuery(uri.clone()))?;
 
         // Start the disclosure session based on the parsed disclosure URI.
-        let session = MDS::start(disclosure_uri_query, source, self, &config.rp_trust_anchors()).await?;
+        let client = HttpVpMessageClient::new(default_reqwest_client_builder()).map_err(DisclosureError::HttpClient)?;
+        let session = MDS::start(client, disclosure_uri_query, source, self, &config.rp_trust_anchors()).await?;
 
         let shared_data_with_relying_party_before = self
             .storage
