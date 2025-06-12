@@ -1,7 +1,7 @@
 From 5575a9f549e4a451269a70d6c159dfc5fecf812e Mon Sep 17 00:00:00 2001
 From: Arjen <edi@minbzk.nl>
 Date: Fri, 23 Feb 2024 10:10:41 +0100
-Subject: [PATCH 4/5] Show primary_idp on redirect page (instead of hardcoded
+Subject: [PATCH 4/4] Show primary_idp on redirect page (instead of hardcoded
  value)
 
 ---
