@@ -1,9 +1,9 @@
 // Copyright 2020-2023 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use crypto::x509::CertificateError;
 use jwt::error::JwkConversionError;
 use jwt::error::JwtError;
+use jwt::error::JwtX5cError;
 
 /// Alias for a `Result` with the error type [`Error`].
 pub type Result<T> = core::result::Result<T, Error>;
@@ -50,6 +50,9 @@ pub enum Error {
     #[error("error parsing JWT: {0}")]
     JwtParsing(#[from] JwtError),
 
+    #[error("failed to verify SD-JWT: {0}")]
+    JwtVerification(#[from] JwtX5cError),
+
     #[error("error creating JWK from verifying key: {0}")]
     Jwk(#[from] JwkConversionError),
 
@@ -58,13 +61,4 @@ pub enum Error {
 
     #[error("missing required JWK key binding")]
     MissingJwkKeybinding,
-
-    #[error("error decoding base64: {0}")]
-    Base64Decode(#[from] base64::DecodeError),
-
-    #[error("missing issuer certificate")]
-    MissingIssuerCertificate,
-
-    #[error("error constructing issuer certificate: {0}")]
-    IssuerCertificate(#[from] CertificateError),
 }

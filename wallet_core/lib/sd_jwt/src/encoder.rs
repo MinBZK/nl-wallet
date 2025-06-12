@@ -83,6 +83,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
         let element_key = parent_pointer.pop().ok_or(Error::InvalidPath(path.to_string()))?;
 
         let Ok(parent) = parent_pointer.get(&self.object) else {
+            // TODO: restore previous behaviour of returning error when value cannot be found (PVW-4508)
             // In case of optional values, there is no need to conceal
             return Ok(None);
         };
@@ -96,6 +97,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                     .ok_or_else(|| Error::InvalidPath(path.to_string()))?;
 
                 let Some(value) = parent.remove(&element_key) else {
+                    // TODO: restore previous behaviour of returning error when value cannot be found (PVW-4508)
                     // In case of optional values, there is no need to conceal
                     return Ok(None);
                 };

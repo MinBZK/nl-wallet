@@ -257,7 +257,7 @@ impl<K> DatabaseStorage<K> {
                             StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) }
                         }
                         AttestationFormat::SdJwt => {
-                            let sd_jwt = SdJwt::dangerous_parse(
+                            let sd_jwt = SdJwt::dangerous_parse_unverified(
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
                                 String::from_utf8(attestation_bytes).unwrap().as_str(),
                                 &Sha256Hasher,

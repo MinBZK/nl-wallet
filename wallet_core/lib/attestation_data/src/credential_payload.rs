@@ -147,6 +147,7 @@ impl CredentialPayload {
         issuer_key: &KeyPair<impl EcdsaKeySend>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
+        // TODO: conceal using attributes instead of from metadata (PVW-4508)
         let sd_jwt = type_metadata
             .claims()
             .iter()

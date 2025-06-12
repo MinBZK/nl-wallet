@@ -988,6 +988,8 @@ impl CredentialResponse {
                 let sd_jwt =
                     SdJwt::parse_and_verify(&credential, &EcdsaDecodingKey::from(issuer_pubkey), &Sha256Hasher)?;
 
+                // TODO: validate issuer certificate against trust anchors (PVW-4507)
+
                 let credential_issuer_certificate = sd_jwt
                     .issuer_certificate()
                     .ok_or(IssuanceSessionError::MissingIssuerCertificate)?;

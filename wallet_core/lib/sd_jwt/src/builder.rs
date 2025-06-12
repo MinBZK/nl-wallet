@@ -144,7 +144,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
 
         let verified_jwt = VerifiedJwt::sign(claims, header, issuer_signing_key).await?;
 
-        Ok(SdJwt::new(verified_jwt, issuer_certificates, disclosures))
+        Ok(SdJwt::new(verified_jwt, issuer_certificates.into(), disclosures))
     }
 }
 
