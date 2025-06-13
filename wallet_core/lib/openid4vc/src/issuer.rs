@@ -25,6 +25,7 @@ use ssri::Integrity;
 use tokio::task::JoinHandle;
 use tracing::info;
 
+use attestation_data::attributes::AttributesError;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
 use attestation_data::credential_payload::MdocCredentialPayloadError;
@@ -90,14 +91,14 @@ use crate::token::TokenResponseWithPreviews;
 use crate::token::TokenType;
 use crate::Format;
 
-// Errors are structured as follow in this module: the handler for a token request on the one hand, and the handlers for
-// the other endpoints on the other hand, have specific error types. (There is also a general error type included by
-// both of them for errors that can occur in all endpoints.) The reason for this split in the errors is because per the
-// OpenID4VCI and OAuth specs, these endpoints each have to return error codes that are specific to them, i.e., the
+// Errors are structured as follows in this module: the handler for a token request on the one hand, and the handlers
+// for the other endpoints on the other hand, have specific error types. (There is also a general error type included
+// by both of them for errors that can occur in all endpoints.) The reason for this split in the errors is that per
+// the OpenID4VCI and OAuth specs, these endpoints each have to return error codes that are specific to them, i.e., the
 // token request endpoint can return error codes that the credential endpoint can't and vice versa, so we want to keep
 // the errors separate in the type system here.
 
-/// Errors that can occur during processing of any of the endpoints.
+/// Errors that can occur during processing of any endpoint.
 #[derive(Debug, thiserror::Error)]
 pub enum IssuanceError {
     #[error("session not in expected state")]
@@ -124,6 +125,9 @@ pub enum TokenRequestError {
 
     #[error("failed to get attributes to be issued: {0}")]
     AttributeService(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
+    #[error("attributes do not match type metadata: {0}")]
+    AttributesError(#[from] AttributesError),
 
     #[error("credential type not offered: {0}")]
     CredentialTypeNotOffered(String),
@@ -809,6 +813,7 @@ impl Session<Created> {
                         TokenRequestError::CredentialTypeNotOffered(document.attestation_type().to_string())
                     })?;
 
+                document.validate_with_metadata(&attestation_data.metadata)?;
                 let preview = Self::credential_preview_from_issuable_document(document, attestation_data);
 
                 Ok(preview)

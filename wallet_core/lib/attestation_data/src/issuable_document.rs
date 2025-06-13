@@ -6,9 +6,11 @@ use serde_valid::Validate;
 
 use attestation_types::qualification::AttestationQualification;
 use http_utils::urls::HttpsUri;
+use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attributes::Attributes;
+use crate::attributes::AttributesError;
 use crate::credential_payload::PreviewableCredentialPayload;
 
 /// Generic data model used to pass the attributes to be issued from the issuer backend to the wallet server. This model
@@ -69,6 +71,10 @@ impl IssuableDocument {
 
     pub fn attestation_type(&self) -> &str {
         &self.attestation_type
+    }
+
+    pub fn validate_with_metadata(&self, type_metadata: &NormalizedTypeMetadata) -> Result<(), AttributesError> {
+        self.attributes.validate(type_metadata)
     }
 }
 

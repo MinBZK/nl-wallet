@@ -153,6 +153,7 @@ impl From<TokenRequestError> for ErrorResponse<TokenErrorCode> {
         ErrorResponse {
             error: match err {
                 TokenRequestError::IssuanceError(IssuanceError::SessionStore(_))
+                | TokenRequestError::AttributesError(_)
                 | TokenRequestError::AttributeService(_)
                 | TokenRequestError::CredentialTypeNotOffered(_) => TokenErrorCode::ServerError,
                 TokenRequestError::IssuanceError(_) => TokenErrorCode::InvalidRequest,
