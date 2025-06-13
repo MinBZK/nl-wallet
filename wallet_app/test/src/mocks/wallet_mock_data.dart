@@ -164,6 +164,14 @@ abstract class WalletMockData {
         dateTime: DateTime(2023, 12, 1),
         status: EventStatus.success,
         card: card,
+        renewed: false,
+      ) as IssuanceEvent;
+
+  static IssuanceEvent get renewEvent => WalletEvent.issuance(
+        dateTime: DateTime(2025, 2, 1),
+        status: EventStatus.success,
+        card: card,
+        renewed: true,
       ) as IssuanceEvent;
 
   static DisclosureEvent get failedDisclosureEvent => WalletEvent.disclosure(

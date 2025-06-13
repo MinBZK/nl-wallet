@@ -39,6 +39,7 @@ class WalletEventMapper extends Mapper<core.WalletEvent, WalletEvent> {
           dateTime: DateTime.parse(input.dateTime).toLocal(),
           status: EventStatus.success,
           card: _cardMapper.map(input.attestation),
+          renewed: input.renewed,
         ),
     };
   }

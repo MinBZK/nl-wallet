@@ -11,5 +11,5 @@ appVersion: ""
 
 dependencies:
   - name: sp-common
-    repository: "file://../../sp-common"
+    repository: "file://../sp-common"
     version: 1.x.x

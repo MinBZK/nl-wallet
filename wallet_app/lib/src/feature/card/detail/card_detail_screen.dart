@@ -117,7 +117,7 @@ class CardDetailScreen extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: 0.6,
               child: Hero(
-                tag: card.id,
+                tag: card.hashCode,
                 flightShuttleBuilder: (
                   BuildContext flightContext,
                   Animation<double> animation,
@@ -154,7 +154,7 @@ class CardDetailScreen extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: 0.6,
               child: Hero(
-                tag: card.id,
+                tag: card.hashCode,
                 flightShuttleBuilder: (
                   BuildContext flightContext,
                   Animation<double> animation,
@@ -287,11 +287,15 @@ class CardDetailScreen extends StatelessWidget {
   }
 
   void _onCardDataPressed(BuildContext context, WalletCard card) {
+    assert(
+      card.isPersisted,
+      'To view the data, the card should be persisted and thus have an id. Otherwise the CardDataScreen will render an error.',
+    );
     Navigator.restorablePushNamed(
       context,
       WalletRoutes.cardDataRoute,
       arguments: CardDataScreenArgument(
-        cardId: card.id,
+        cardId: card.id ?? '',
         cardTitle: card.title.l10nValue(context),
       ).toMap(),
     );

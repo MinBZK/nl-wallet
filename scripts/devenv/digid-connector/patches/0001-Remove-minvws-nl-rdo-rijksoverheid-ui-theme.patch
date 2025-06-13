@@ -1,7 +1,7 @@
 From e15930731d254c555f9e4f9874582f78f5778abe Mon Sep 17 00:00:00 2001
 From: confiks <confiks@scriptbase.org>
 Date: Thu, 15 Aug 2024 09:44:31 +0200
-Subject: [PATCH 1/5] Remove @minvws/nl-rdo-rijksoverheid-ui-theme and don't
+Subject: [PATCH 1/4] Remove @minvws/nl-rdo-rijksoverheid-ui-theme and don't
  handle NPM token in scripts/setup-npm.sh
 
 ---

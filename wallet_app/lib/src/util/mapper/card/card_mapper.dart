@@ -24,8 +24,8 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
 
   @override
   WalletCard map(core.AttestationPresentation input) {
-    final String cardId = switch (input.identity) {
-      core.AttestationIdentity_Ephemeral() => input.attestationType,
+    final String? cardId = switch (input.identity) {
+      core.AttestationIdentity_Ephemeral() => null,
       core.AttestationIdentity_Fixed(:final id) => id,
     };
 

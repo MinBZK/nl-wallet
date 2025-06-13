@@ -284,7 +284,7 @@ class OrganizationDetailScreen extends StatelessWidget {
   static Future<void> showPreloaded(
     BuildContext context,
     Organization organization, {
-    required bool sharedDataWithOrganizationBefore,
+    bool sharedDataWithOrganizationBefore = false,
     VoidCallback? onReportIssuePressed,
   }) {
     return Navigator.push(

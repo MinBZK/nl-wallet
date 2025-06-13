@@ -53,9 +53,12 @@ void main() {
       ),
     );
 
-    // Check if the card title is shown and if the agreement section shows the org. name
+    // Organization name should be shown 3 times on this screen:
+    // - title
+    // - organization detail row
+    // - agreements section
     final orgNameFinder = find.textContaining(WalletMockData.organization.displayName.testValue);
-    expect(orgNameFinder, findsNWidgets(2));
+    expect(orgNameFinder, findsNWidgets(3));
   });
 
   testWidgets('data purpose is shown', (tester) async {

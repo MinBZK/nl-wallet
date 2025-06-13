@@ -91,10 +91,18 @@ class IssuanceProvidePinForDisclosure extends IssuanceState {
 }
 
 class IssuanceReviewCards extends IssuanceState {
+  /// A map of all cards available for selection, where the key is the [WalletCard]
+  /// and the value represents whether the card is selected.
   final Map<WalletCard, bool /* selected */ > selectableCards;
 
-  List<WalletCard> get cards => selectableCards.keys.toList();
+  /// Returns the list of cards that are not persisted (i.e., newly created cards).
+  List<WalletCard> get offeredCards => selectableCards.keys.where((card) => !card.isPersisted).toList();
 
+  /// Returns the list of persisted cards (i.e., updated cards).
+  List<WalletCard> get renewedCards => selectableCards.keys.where((card) => card.isPersisted).toList();
+
+  /// Returns the list of currently selected cards based on the [selectableCards] map.
+  /// Includes both newly created and updated cards that are selected.
   List<WalletCard> get selectedCards =>
       selectableCards.entries.where((entry) => entry.value).map((entry) => entry.key).toList();
 
@@ -113,10 +121,9 @@ class IssuanceReviewCards extends IssuanceState {
 
   /// Create an IssuanceReviewCards state for which the provided card's selected state is toggled
   IssuanceReviewCards toggleCard(WalletCard card) {
-    assert(cards.contains(card), 'Can not toggle card that does not exist');
-    final updatedCards = Map<WalletCard, bool>.from(selectableCards);
-    updatedCards.update(card, (selected) => !selected);
-    return IssuanceReviewCards(selectableCards: updatedCards);
+    assert(selectableCards.containsKey(card), 'Can not toggle card that does not exist');
+    final updatedSelection = Map<WalletCard, bool>.from(selectableCards)..update(card, (selected) => !selected);
+    return IssuanceReviewCards(selectableCards: updatedSelection);
   }
 
   @override

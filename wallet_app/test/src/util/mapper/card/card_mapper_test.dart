@@ -51,9 +51,9 @@ void main() {
   });
 
   group('map', () {
-    test('card with `InMemory` persistence should return docType as `id`', () {
+    test('card with `InMemory` persistence should return null as `id`', () {
       final WalletCard actual = mapper.map(_kSampleCard);
-      expect(actual.id, _kSampleCard.attestationType);
+      expect(actual.id, isNull);
     });
 
     test('card with `stored` persistence should return storage `id`', () {

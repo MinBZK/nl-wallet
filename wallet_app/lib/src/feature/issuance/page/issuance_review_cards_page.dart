@@ -10,10 +10,12 @@ import '../../../util/extension/build_context_extension.dart';
 import '../../../wallet_constants.dart';
 import '../../card/preview/card_preview_screen.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
+import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
 import '../../common/widget/button/secondary_button.dart';
 import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/card/wallet_card_item.dart';
+import '../../common/widget/list/list_item.dart';
 import '../../common/widget/spacer/sliver_divider.dart';
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../../common/widget/text/body_text.dart';
@@ -24,8 +26,11 @@ const kReviewCardsAcceptButtonKey = Key('reviewCardsAcceptButton');
 const kReviewCardsDeclineButtonKey = Key('reviewCardsDeclineButton');
 
 class IssuanceReviewCardsPage extends StatelessWidget {
-  /// The cards to be approved by the user
-  final List<WalletCard> cards;
+  /// The new cards to be approved by the user
+  final List<WalletCard> offeredCards;
+
+  /// The updated cards to be approved by the user
+  final List<WalletCard> renewedCards;
 
   /// Callback triggered when the user accepts, [acceptedCards] are the cards which the user would like to add
   final Function(List<WalletCard> acceptedCards) onAccept;
@@ -33,8 +38,18 @@ class IssuanceReviewCardsPage extends StatelessWidget {
   /// Callback triggered when the user declines all offered cards
   final VoidCallback onDecline;
 
+  /// Returns a combined list of all offered and renewed cards.
+  List<WalletCard> get allCards => offeredCards + renewedCards;
+
+  /// Returns true if there are any cards offered to the user.
+  bool get hasOfferedCards => offeredCards.isNotEmpty;
+
+  /// Returns true if there are any cards available for renewal.
+  bool get hasRenewedCards => renewedCards.isNotEmpty;
+
   const IssuanceReviewCardsPage({
-    required this.cards,
+    required this.offeredCards,
+    required this.renewedCards,
     required this.onAccept,
     required this.onDecline,
     super.key,
@@ -51,9 +66,9 @@ class IssuanceReviewCardsPage extends StatelessWidget {
               slivers: <Widget>[
                 const SliverSizedBox(height: 24),
                 SliverToBoxAdapter(child: _buildHeaderSection(context)),
-                const SliverDivider(height: 48),
-                _buildCardsSliver(context),
                 const SliverSizedBox(height: 24),
+                _buildOfferedCardsSection(context),
+                _buildRenewedCardsSection(context),
               ],
             ),
           ),
@@ -63,7 +78,8 @@ class IssuanceReviewCardsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCardsSliver(BuildContext context) {
+  Widget _buildCardsSliver(BuildContext context, List<WalletCard> cards) {
+    if (cards.isEmpty) return const SliverSizedBox();
     final crossAxisCount = max(1, (context.mediaQuery.size.width / kCardBreakPointWidth).floor());
     return SliverMasonryGrid(
       gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
@@ -136,21 +152,37 @@ class IssuanceReviewCardsPage extends StatelessWidget {
   }
 
   Widget _buildHeaderSection(BuildContext context) {
-    final title = context.l10n.issuanceReviewCardsPageTitle(cards.length);
-    final subtitle = context.l10n.issuanceReviewCardsPageSubtitle(
-      cards.length,
-      cards.first.issuer.displayName.l10nValue(context),
-    );
+    final title = _buildTitle(context);
+    final subtitle = context.l10n.issuanceReviewCardsPageSubtitle(offeredCards.length, _getOrganizationName(context));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
           TitleText(title),
+          const SizedBox(height: 8),
           BodyText(subtitle),
         ],
       ),
     );
+  }
+
+  String _getOrganizationName(BuildContext context) {
+    if (hasOfferedCards) return offeredCards.first.issuer.displayName.l10nValue(context);
+    if (hasRenewedCards) return renewedCards.first.issuer.displayName.l10nValue(context);
+    return context.l10n.organizationFallbackName;
+  }
+
+  String _buildTitle(BuildContext context) {
+    if (hasOfferedCards && hasRenewedCards) {
+      // Copy for situation where there are both new and updated cards
+      return context.l10n.issuanceReviewCardsPageAddAndRenewTitle(offeredCards.length + renewedCards.length);
+    } else if (!hasOfferedCards && hasRenewedCards) {
+      // Copy for situation where there are only updated cards
+      return context.l10n.issuanceReviewCardsPageRenewOnlyTitle(renewedCards.length);
+    }
+    // Default (only new cards) copy
+    return context.l10n.issuanceReviewCardsPageTitle(offeredCards.length);
   }
 
   Widget _buildBottomSection(BuildContext context) {
@@ -163,8 +195,8 @@ class IssuanceReviewCardsPage extends StatelessWidget {
           ConfirmButtons(
             primaryButton: PrimaryButton(
               key: kReviewCardsAcceptButtonKey,
-              onPressed: () => onAccept(cards),
-              text: Text(context.l10n.issuanceReviewCardsPageAcceptCta(cards.length)),
+              onPressed: () => onAccept(allCards),
+              text: Text(context.l10n.issuanceReviewCardsPageAcceptCta(allCards.length)),
             ),
             secondaryButton: SecondaryButton(
               key: kReviewCardsDeclineButtonKey,
@@ -175,6 +207,36 @@ class IssuanceReviewCardsPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildOfferedCardsSection(BuildContext context) {
+    if (!hasOfferedCards) return const SliverSizedBox(height: 0);
+    return SliverMainAxisGroup(
+      slivers: [
+        const SliverDivider(),
+        const SliverSizedBox(height: 24),
+        _buildCardsSliver(context, offeredCards),
+        const SliverSizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildRenewedCardsSection(BuildContext context) {
+    if (!hasRenewedCards) return const SliverSizedBox(height: 0);
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: ListItem.vertical(
+            label: Text(context.l10n.issuanceReviewCardsPageRenewSectionTitle(renewedCards.length)),
+            subtitle: Text(context.l10n.issuanceReviewCardsPageRenewSectionSubtitle(renewedCards.length)),
+            icon: const Icon(Icons.credit_card_outlined),
+            dividerSide: DividerSide.top,
+          ),
+        ),
+        _buildCardsSliver(context, renewedCards),
+        const SliverSizedBox(height: 24),
+      ],
     );
   }
 }

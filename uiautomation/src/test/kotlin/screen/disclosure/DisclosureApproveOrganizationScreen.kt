@@ -6,13 +6,13 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
 
     private val loginButton = find.byText(l10n.getString("organizationApprovePageLoginCta"))
     private val goToWebsiteButton = find.byText(l10n.getString("disclosureSuccessPageToWebsiteCta"))
-    private val yesProceedButton = find.byText(l10n.getString("organizationApprovePageShareWithApproveCta"))
+    private val yesProceedButton = find.byText(l10n.getString("disclosureConfirmDataAttributesPageApproveCta"))
     private val shareButton = find.byText(l10n.getString("disclosureConfirmDataAttributesPageApproveCta"))
     private val closeButton = find.byText(l10n.getString("disclosureSuccessPageCloseCta"))
     private val attributesMissingMessage = find.byText(l10n.getString("missingAttributesPageTitle"))
     private val viewActivitiesButton = find.byText(l10n.getString("disclosureSuccessPageShowHistoryCta"))
     private val viewLoginDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoLoginCta"))
-    private val viewDisclosureDetailsButton = find.byText(l10n.getString("organizationApprovePageMoreInfoCta"))
+    private val viewDisclosureOrganizationDetailsButton = find.byText(l10n.getString("organizationButtonLabel"))
     private val goBackButton = find.byText(l10n.getString("generalBottomBackCta"))
     private val closeDialogButton = find.byValueKey("close_icon_button")
     private val stopRequestButton = find.byText(l10n.getString("missingAttributesPageCloseCta"))
@@ -20,10 +20,10 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     private val termsSubtitle = find.byText(l10n.getString("policyScreenSubtitle"))
     private val organizationApprovePageDenyCta = find.byText(l10n.getString("organizationApprovePageDenyCta"))
     private val disclosureStopSheetReportIssueCta = find.byText(l10n.getString("disclosureStopSheetReportIssueCta"))
-    private val reportOptionUnknownOrganization = find.byText(l10n.getString("reportOptionUnknownOrganization"))
     private val disclosureConfirmDataAttributesSubtitleTerms = find.byText(l10n.getString("disclosureConfirmDataAttributesSubtitleTerms"))
     private val disclosureConfirmDataAttributesCheckConditionsCta = find.byText(l10n.getString("disclosureConfirmDataAttributesCheckConditionsCta"))
     private val reportOptionUntrusted = find.byText(l10n.getString("reportOptionUntrusted"))
+    private val reportOptionSuspiciousOrganization = find.byText(l10n.getString("reportOptionSuspiciousOrganization"))
 
 
     fun login() = clickElement(loginButton)
@@ -52,7 +52,7 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
     }
 
     fun organizationNameForSharingFlowVisible(organizationName: String): Boolean {
-        val selector = l10n.getString("organizationApprovePageGenericTitle").replace("{organization}", organizationName)
+        val selector = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organizationName)
         val element = find.byText(selector)
         return isElementVisible(element);
     }
@@ -63,8 +63,8 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         return isElementVisible(element);
     }
 
-    fun viewDisclosureDetails() {
-        clickElement(viewDisclosureDetailsButton)
+    fun viewDisclosureOrganizationDetails() {
+        clickElement(viewDisclosureOrganizationDetailsButton)
     }
 
     fun viewLoginDisclosureDetails() {
@@ -114,13 +114,17 @@ class DisclosureApproveOrganizationScreen : MobileActions() {
         clickElement(find.byText(organization))
     }
 
-    fun cancel() = clickElement(organizationApprovePageDenyCta)
+    fun cancel() {
+        scrollToEnd(ScrollableType.CustomScrollView)
+        clickElement(organizationApprovePageDenyCta)
+    }
 
     fun reportProblem() = clickElement(disclosureStopSheetReportIssueCta)
 
-    fun reportOptionUnknownOrganizationVisible() = isElementVisible(reportOptionUnknownOrganization)
-
     fun reportOptionUntrustedVisible() = isElementVisible(reportOptionUntrusted)
+
+    fun reportOptionSuspiciousVisible() = isElementVisible(reportOptionSuspiciousOrganization)
+
 
     fun organizationInPresentationRequestHeaderVisible(organization: String): Boolean {
         val selector = l10n.getString("disclosureConfirmDataAttributesShareWithTitle").replace("{organization}", organization)

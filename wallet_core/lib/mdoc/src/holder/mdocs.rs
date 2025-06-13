@@ -172,7 +172,7 @@ impl IntoCredentialPayload for MdocParts {
             },
         };
 
-        CredentialPayload::validate(&serde_json::to_value(&payload)?, metadata)?;
+        metadata.validate(&serde_json::to_value(&payload)?)?;
 
         Ok(payload)
     }

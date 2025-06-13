@@ -1,7 +1,7 @@
 From 14515fbf3bcbe716ebaee6d6bb6029a62aa2472f Mon Sep 17 00:00:00 2001
 From: Arjen <edi@minbzk.nl>
 Date: Mon, 5 Feb 2024 13:18:07 +0100
-Subject: [PATCH 3/5] Add create_jwk Makefile task
+Subject: [PATCH 3/4] Add create_jwk Makefile task
 
 ---
  Makefile          |  3 +++

@@ -112,8 +112,7 @@ impl IntoCredentialPayload for SdJwt {
                 .map_err(SdJwtCredentialPayloadError::SdJwtSerialization)?,
         );
 
-        CredentialPayload::validate(&json, metadata)?;
-
+        metadata.validate(&json)?;
         let payload = serde_json::from_value(json)?;
 
         Ok(payload)
@@ -135,8 +134,7 @@ impl CredentialPayload {
             previewable_payload,
         };
 
-        Self::validate(&serde_json::to_value(&payload)?, metadata)?;
-
+        metadata.validate(&serde_json::to_value(&payload)?)?;
         Ok(payload)
     }
 
@@ -171,13 +169,6 @@ impl CredentialPayload {
             .await?;
 
         Ok(sd_jwt)
-    }
-
-    pub fn validate(
-        credential_payload: &serde_json::Value,
-        metadata: &NormalizedTypeMetadata,
-    ) -> Result<(), TypeMetadataValidationError> {
-        metadata.validate(credential_payload)
     }
 }
 
@@ -366,7 +357,7 @@ mod test {
         assert_eq!(json, expected_json);
 
         let metadata = NormalizedTypeMetadata::example();
-        CredentialPayload::validate(&json, &metadata).expect("CredentialPayload should be valid");
+        metadata.validate(&json).expect("CredentialPayload should be valid");
     }
 
     #[test]

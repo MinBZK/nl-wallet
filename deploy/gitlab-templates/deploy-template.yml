@@ -15,7 +15,7 @@ variables:
 .build-helm-dependency:
   script: |
     chmod 0600 "${KUBECONFIG}"
-    helm dependency build ${HELM_CHARTS_PATH}/${CHART_NAME}/chart
+    helm dependency build ${HELM_CHARTS_PATH}/${CHART_NAME}
 
 .docker-login:
   script: |
@@ -24,7 +24,7 @@ variables:
 
 .replace-chart-app-version:
   script: |
-    yq -i ".appVersion = \"${IMAGE_TAG}\"" ${HELM_CHARTS_PATH}/${CHART_NAME}/chart/Chart.yaml
+    yq -i ".appVersion = \"${IMAGE_TAG}\"" ${HELM_CHARTS_PATH}/${CHART_NAME}/Chart.yaml
 
 .check-helm-install-status:
   script:
@@ -40,7 +40,7 @@ variables:
     - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       $FILE_OPTIONS
 
@@ -132,7 +132,7 @@ db-cluster-pid-${DEPLOY_ENV}:
     - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
       $FILE_OPTIONS
@@ -194,7 +194,7 @@ demo-relying-party-${DEPLOY_ENV}:
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
       cat variables/${DEPLOY_ENV}/demo-relying-party.yaml
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
        $FILE_OPTIONS
@@ -230,7 +230,7 @@ demo-issuer-${DEPLOY_ENV}:
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
       cat variables/${DEPLOY_ENV}/demo-issuer.yaml
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
        $FILE_OPTIONS
@@ -275,7 +275,7 @@ brpproxy-${DEPLOY_ENV}:
     - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
        $FILE_OPTIONS
     - !reference [.check-helm-install-status, script]
@@ -295,7 +295,7 @@ gbamock-${DEPLOY_ENV}:
     - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
        $FILE_OPTIONS
     - !reference [.check-helm-install-status, script]
@@ -316,11 +316,11 @@ gba-hc-converter-${DEPLOY_ENV}:
     - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - sed -i 's/{{bsn}}/{{`{{bsn}}`}}/g' wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml
-    - cp wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml ${PATH_CHART}/chart/files/
-    - cp wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh ${PATH_CHART}/chart/shell-scripts/
-    - cp -r wallet_core/gba_hc_converter/resources/gba-v-responses/ ${PATH_CHART}/chart/
+    - cp wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml ${PATH_CHART}/files/
+    - cp wallet_core/gba_hc_converter/resources/remote/encrypt_all.sh ${PATH_CHART}/shell-scripts/
+    - cp -r wallet_core/gba_hc_converter/resources/gba-v-responses/ ${PATH_CHART}/
     - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART}/chart \
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
        $FILE_OPTIONS

@@ -1,7 +1,7 @@
 From 6d576c859c63ac9fb894f4d3b88d85a9813ef370 Mon Sep 17 00:00:00 2001
 From: confiks <confiks@scriptbase.org>
 Date: Thu, 15 Aug 2024 09:50:32 +0200
-Subject: [PATCH 2/5] Add Docker and docker-compose files
+Subject: [PATCH 2/4] Add Docker and docker-compose files
 
 ---
  .dockerignore      |  1 +

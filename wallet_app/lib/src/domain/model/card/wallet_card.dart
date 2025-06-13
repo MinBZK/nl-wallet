@@ -13,12 +13,26 @@ part 'wallet_card.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class WalletCard extends Equatable {
-  final String id;
+  /// ID of the card, null when the card is not persisted in the database
+  final String? id;
+
+  /// Type of document
   final String docType;
+
+  /// Organization that issued this card
   final Organization issuer;
+
+  /// Card display metadata for UI rendering
   final List<CardDisplayMetadata> metadata;
+
+  /// Data attributes stored in the card
   final List<DataAttribute> attributes;
+
+  /// Configuration settings for card behavior/appearance (used in mock builds)
   final CardConfig config;
+
+  /// Indicates whether the card is persisted in the database.
+  bool get isPersisted => id != null;
 
   LocalizedText get title => metadata.name ?? ''.untranslated;
 
@@ -48,4 +62,22 @@ class WalletCard extends Equatable {
         metadata,
         config,
       ];
+
+  WalletCard copyWith({
+    String? Function()? id,
+    String? docType,
+    Organization? issuer,
+    List<DataAttribute>? attributes,
+    List<CardDisplayMetadata>? metadata,
+    CardConfig? config,
+  }) {
+    return WalletCard(
+      id: id != null ? id() : this.id,
+      docType: docType ?? this.docType,
+      issuer: issuer ?? this.issuer,
+      attributes: attributes ?? this.attributes,
+      metadata: metadata ?? this.metadata,
+      config: config ?? this.config,
+    );
+  }
 }

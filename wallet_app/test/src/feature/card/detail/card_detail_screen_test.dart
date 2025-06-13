@@ -80,7 +80,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          CardDetailLoadFailure(WalletMockData.card.id),
+          CardDetailLoadFailure(WalletMockData.card.id!),
         ),
       );
       await screenMatchesGolden('error.light');
@@ -150,7 +150,7 @@ void main() {
           cardTitle: WalletMockData.card.title.testValue,
         ).withState<CardDetailBloc, CardDetailState>(
           MockCardSummaryBloc(),
-          CardDetailLoadFailure(WalletMockData.card.id),
+          CardDetailLoadFailure(WalletMockData.card.id!),
         ),
       );
 
@@ -306,7 +306,7 @@ void main() {
       );
       final CardDetailScreenArgument inputArgument = CardDetailScreenArgument(
         card: inputCard,
-        cardId: inputCard.id,
+        cardId: inputCard.id!,
         cardTitle: ''.untranslated,
       );
       final resultArgument = CardDetailScreen.getArgument(RouteSettings(arguments: inputArgument.toJson()));
