@@ -268,35 +268,20 @@ impl Attributes {
     /// }
     /// ```
     pub fn to_mdoc_attributes(self, attestation_type: &str) -> IndexMap<NameSpace, Vec<Entry>> {
-        let mut flattened = IndexMap::new();
-        Self::walk_attributes_recursive(attestation_type, self.0, &mut flattened);
-        flattened
-    }
-
-    fn walk_attributes_recursive(
-        namespace: &str,
-        attributes: IndexMap<String, Attribute>,
-        result: &mut IndexMap<NameSpace, Vec<Entry>>,
-    ) {
-        let mut entries = vec![];
-        for (key, value) in attributes {
-            match value {
-                Attribute::Single(single) => {
-                    entries.push(Entry {
-                        name: key,
-                        value: single.into(),
-                    });
-                }
-                Attribute::Nested(nested) => {
-                    let key = format!("{}.{}", namespace, key);
-                    Self::walk_attributes_recursive(key.as_str(), nested, result);
-                }
-            }
+        let mut result = IndexMap::new();
+        for (path, attribute) in self.flattened() {
+            let mut prefix: Vec<&str> = [attestation_type].iter().chain(path.iter()).copied().collect();
+            // path is non-empty so it has at least one element
+            let name = prefix.pop().unwrap().to_string();
+            result
+                .entry(prefix.iter().join("."))
+                .or_insert_with(Vec::new)
+                .push(Entry {
+                    name,
+                    value: attribute.clone().into(),
+                })
         }
-
-        if !entries.is_empty() {
-            result.insert(String::from(namespace), entries);
-        }
+        result
     }
 }
 
