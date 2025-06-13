@@ -1,172 +1,31 @@
-use std::hash::Hash;
-
-use http_utils::urls::BaseUrl;
-use rustls_pki_types::TrustAnchor;
-use uuid::Uuid;
-
-use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::identifiers::AttributeIdentifier;
-use crypto::factory::KeyFactory;
-use crypto::keys::CredentialEcdsaKey;
-use crypto::x509::BorrowingCertificate;
-use mdoc::holder::MdocDataSource;
-use mdoc::holder::ProposedAttributes;
-use openid4vc::disclosure_session::DisclosureError;
-use openid4vc::disclosure_session::HttpVpMessageClient;
-use openid4vc::disclosure_session::VpDisclosureMissingAttributes;
-use openid4vc::disclosure_session::VpDisclosureProposal;
-use openid4vc::disclosure_session::VpDisclosureSession;
-use openid4vc::disclosure_session::VpSessionError;
-use openid4vc::verifier::SessionType;
-use poa::factory::PoaFactory;
-
-pub use openid4vc::disclosure_session::DisclosureUriSource;
-
-#[cfg(any(test, feature = "mock"))]
-pub use self::mock::MockDisclosureProposal;
-#[cfg(any(test, feature = "mock"))]
-pub use self::mock::MockDisclosureSession;
-
-#[derive(Debug)]
-pub enum DisclosureSessionState<M, P> {
-    MissingAttributes(M),
-    Proposal(P),
-}
-
-pub trait DisclosureSession<D> {
-    type MissingAttributes: DisclosureMissingAttributes;
-    type Proposal: DisclosureProposal;
-
-    async fn start(
-        client: HttpVpMessageClient,
-        disclosure_uri_query: &str,
-        disclosure_uri_source: DisclosureUriSource,
-        mdoc_data_source: &D,
-        trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, VpSessionError>
-    where
-        Self: Sized;
-
-    fn rp_certificate(&self) -> &BorrowingCertificate;
-    fn reader_registration(&self) -> &ReaderRegistration;
-    fn session_state(&self) -> DisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
-    fn session_type(&self) -> SessionType;
-
-    async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
-}
-
-#[cfg_attr(any(test, feature = "mock"), mockall::automock)]
-pub trait DisclosureMissingAttributes {
-    fn missing_attributes(&self) -> &[AttributeIdentifier];
-}
-
-pub trait DisclosureProposal {
-    fn proposed_source_identifiers(&self) -> Vec<Uuid>;
-    fn proposed_attributes(&self) -> ProposedAttributes;
-
-    async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpSessionError>>
-    where
-        K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
-}
-
-impl<D> DisclosureSession<D> for VpDisclosureSession<HttpVpMessageClient, Uuid>
-where
-    D: MdocDataSource<MdocIdentifier = Uuid>,
-{
-    type MissingAttributes = VpDisclosureMissingAttributes<HttpVpMessageClient>;
-    type Proposal = VpDisclosureProposal<HttpVpMessageClient, Uuid>;
-
-    async fn start(
-        client: HttpVpMessageClient,
-        disclosure_uri_query: &str,
-        uri_source: DisclosureUriSource,
-        mdoc_data_source: &D,
-        trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, VpSessionError>
-    where
-        Self: Sized,
-    {
-        let session = Self::start(
-            client,
-            disclosure_uri_query,
-            uri_source,
-            mdoc_data_source,
-            trust_anchors,
-        )
-        .await?;
-
-        Ok(session)
-    }
-
-    fn rp_certificate(&self) -> &BorrowingCertificate {
-        self.verifier_certificate()
-    }
-
-    fn reader_registration(&self) -> &ReaderRegistration {
-        self.reader_registration()
-    }
-
-    fn session_state(
-        &self,
-    ) -> DisclosureSessionState<
-        &<Self as DisclosureSession<D>>::MissingAttributes,
-        &<Self as DisclosureSession<D>>::Proposal,
-    > {
-        match self {
-            Self::MissingAttributes(session) => DisclosureSessionState::MissingAttributes(session),
-            Self::Proposal(session) => DisclosureSessionState::Proposal(session),
-        }
-    }
-
-    fn session_type(&self) -> SessionType {
-        self.session_type()
-    }
-
-    async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError> {
-        self.terminate().await
-    }
-}
-
-impl DisclosureMissingAttributes for VpDisclosureMissingAttributes<HttpVpMessageClient> {
-    fn missing_attributes(&self) -> &[AttributeIdentifier] {
-        self.missing_attributes()
-    }
-}
-
-impl DisclosureProposal for VpDisclosureProposal<HttpVpMessageClient, Uuid> {
-    fn proposed_source_identifiers(&self) -> Vec<Uuid> {
-        self.proposed_source_identifiers().into_iter().copied().collect()
-    }
-
-    fn proposed_attributes(&self) -> ProposedAttributes {
-        self.proposed_attributes()
-    }
-
-    async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpSessionError>>
-    where
-        K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
-    {
-        self.disclose(key_factory).await
-    }
-}
-
-#[cfg(any(test, feature = "mock"))]
-mod mock {
+#[cfg(test)]
+pub mod mock {
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::AtomicUsize;
     use std::sync::atomic::Ordering;
     use std::sync::Arc;
     use std::sync::LazyLock;
 
-    use attestation_data::x509::generate::mock::generate_reader_mock;
     use parking_lot::Mutex;
+    use rustls_pki_types::TrustAnchor;
+    use uuid::Uuid;
 
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::identifiers::AttributeIdentifier;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
-
-    use super::*;
+    use crypto::x509::BorrowingCertificate;
+    use http_utils::urls::BaseUrl;
+    use mdoc::holder::ProposedAttributes;
+    use openid4vc::disclosure_session::DisclosureError;
+    use openid4vc::disclosure_session::DisclosureMissingAttributes;
+    use openid4vc::disclosure_session::DisclosureProposal;
+    use openid4vc::disclosure_session::DisclosureSession;
+    use openid4vc::disclosure_session::DisclosureSessionState;
+    use openid4vc::disclosure_session::DisclosureUriSource;
+    use openid4vc::disclosure_session::VpSessionError;
+    use openid4vc::verifier::SessionType;
 
     type SessionState = DisclosureSessionState<MockDisclosureMissingAttributes, MockDisclosureProposal>;
     type MockFields = (ReaderRegistration, SessionState, Option<BaseUrl>);
@@ -174,10 +33,16 @@ mod mock {
     pub static NEXT_START_ERROR: Mutex<Option<VpSessionError>> = Mutex::new(None);
     pub static NEXT_MOCK_FIELDS: Mutex<Option<MockFields>> = Mutex::new(None);
 
-    // For convenience, the default `SessionState` is a proposal.
-    impl Default for SessionState {
-        fn default() -> Self {
-            DisclosureSessionState::Proposal(MockDisclosureProposal::default())
+    mockall::mock! {
+        #[derive(Debug)]
+        pub DisclosureMissingAttributes {
+            pub fn missing_attributes(&self) -> &[AttributeIdentifier];
+        }
+    }
+
+    impl DisclosureMissingAttributes for MockDisclosureMissingAttributes {
+        fn missing_attributes(&self) -> impl Iterator<Item = &AttributeIdentifier> {
+            Self::missing_attributes(self).iter()
         }
     }
 
@@ -206,9 +71,12 @@ mod mock {
         }
     }
 
-    impl DisclosureProposal for MockDisclosureProposal {
-        fn proposed_source_identifiers(&self) -> Vec<Uuid> {
-            self.proposed_source_identifiers.clone()
+    impl DisclosureProposal<Uuid> for MockDisclosureProposal {
+        fn proposed_source_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a Uuid>
+        where
+            Uuid: 'a,
+        {
+            self.proposed_source_identifiers.iter()
         }
 
         fn proposed_attributes(&self) -> ProposedAttributes {
@@ -229,7 +97,7 @@ mod mock {
 
     #[derive(Debug)]
     pub struct MockDisclosureSession {
-        pub disclosure_uri_source: DisclosureUriSource,
+        pub uri_source: DisclosureUriSource,
         pub certificate: BorrowingCertificate,
         pub reader_registration: ReaderRegistration,
         pub session_state: SessionState,
@@ -264,10 +132,11 @@ mod mock {
     impl Default for MockDisclosureSession {
         fn default() -> Self {
             Self {
-                disclosure_uri_source: DisclosureUriSource::Link,
+                uri_source: DisclosureUriSource::Link,
                 certificate: READER_KEY.certificate().clone(),
                 reader_registration: ReaderRegistration::new_mock(),
-                session_state: Default::default(),
+                // For convenience, the default `SessionState` is a proposal.
+                session_state: DisclosureSessionState::Proposal(MockDisclosureProposal::default()),
                 was_terminated: Default::default(),
                 session_type: SessionType::SameDevice,
                 terminate_return_url: Default::default(),
@@ -275,28 +144,32 @@ mod mock {
         }
     }
 
-    impl<D> DisclosureSession<D> for MockDisclosureSession {
+    impl<H> DisclosureSession<Uuid, H> for MockDisclosureSession {
         type MissingAttributes = MockDisclosureMissingAttributes;
         type Proposal = MockDisclosureProposal;
 
-        async fn start(
-            _client: HttpVpMessageClient,
-            _disclosure_uri_query: &str,
-            disclosure_uri_source: DisclosureUriSource,
-            _mdoc_data_source: &D,
+        async fn start<S>(
+            _client: H,
+            _request_uri_query: &str,
+            uri_source: DisclosureUriSource,
+            _mdoc_data_source: &S,
             _trust_anchors: &[TrustAnchor<'_>],
         ) -> Result<Self, VpSessionError> {
             if let Some(error) = NEXT_START_ERROR.lock().take() {
                 Err(error)?;
             }
 
-            let (reader_registration, session_state, terminate_return_url) = NEXT_MOCK_FIELDS
-                .lock()
-                .take()
-                .unwrap_or_else(|| (ReaderRegistration::new_mock(), SessionState::default(), None));
+            let (reader_registration, session_state, terminate_return_url) =
+                NEXT_MOCK_FIELDS.lock().take().unwrap_or_else(|| {
+                    (
+                        ReaderRegistration::new_mock(),
+                        DisclosureSessionState::Proposal(MockDisclosureProposal::default()),
+                        None,
+                    )
+                });
 
             let session = MockDisclosureSession {
-                disclosure_uri_source,
+                uri_source,
                 reader_registration,
                 session_state,
                 terminate_return_url,
@@ -325,7 +198,7 @@ mod mock {
             Ok(self.terminate_return_url)
         }
 
-        fn rp_certificate(&self) -> &BorrowingCertificate {
+        fn verifier_certificate(&self) -> &BorrowingCertificate {
             &self.certificate
         }
 

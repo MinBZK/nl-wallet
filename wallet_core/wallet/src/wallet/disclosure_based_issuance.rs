@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use tracing::info;
 use tracing::instrument;
+use uuid::Uuid;
 
 use attestation_data::auth::Organization;
 use error_category::sentry_capture_error;
@@ -9,6 +10,7 @@ use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
+use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
@@ -22,7 +24,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationPresentation;
-use crate::disclosure::DisclosureSession;
 use crate::errors::UpdatePolicyError;
 use crate::issuance::DigidSession;
 use crate::repository::Repository;
@@ -79,7 +80,7 @@ where
     APC: AccountProviderClient,
     DS: DigidSession,
     IS: Openid4vcIssuanceSession,
-    MDS: DisclosureSession<Self>,
+    MDS: DisclosureSession<Uuid>,
     WIC: Default,
 {
     #[instrument(skip_all)]
@@ -171,6 +172,7 @@ mod tests {
     use openid4vc::credential::CredentialOfferContainer;
     use openid4vc::credential::GrantPreAuthorizedCode;
     use openid4vc::credential::OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME;
+    use openid4vc::disclosure_session::DisclosureSessionState;
     use openid4vc::disclosure_session::VpClientError;
     use openid4vc::disclosure_session::VpSessionError;
     use openid4vc::mock::MockIssuanceSession;
@@ -180,9 +182,8 @@ mod tests {
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::PostAuthResponseErrorCode;
 
-    use crate::disclosure::DisclosureSessionState;
-    use crate::disclosure::MockDisclosureProposal;
-    use crate::disclosure::MockDisclosureSession;
+    use crate::disclosure::mock::MockDisclosureProposal;
+    use crate::disclosure::mock::MockDisclosureSession;
     use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
     use crate::wallet::test::create_example_preview_data;

@@ -10,6 +10,8 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
+pub use openid4vc::disclosure_session::DisclosureUriSource;
+
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::auth::Organization;
@@ -23,6 +25,10 @@ use http_utils::urls::BaseUrl;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
+use openid4vc::disclosure_session::DisclosureMissingAttributes;
+use openid4vc::disclosure_session::DisclosureProposal;
+use openid4vc::disclosure_session::DisclosureSession as Openid4vcDisclosureSession;
+use openid4vc::disclosure_session::DisclosureSessionState;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
@@ -35,11 +41,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationPresentation;
-use crate::disclosure::DisclosureMissingAttributes;
-use crate::disclosure::DisclosureProposal;
-use crate::disclosure::DisclosureSession as Openid4vcDisclosureSession;
-use crate::disclosure::DisclosureSessionState;
-use crate::disclosure::DisclosureUriSource;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
@@ -232,7 +233,7 @@ where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    MDS: Openid4vcDisclosureSession<Self>,
+    MDS: Openid4vcDisclosureSession<Uuid>,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -279,7 +280,7 @@ where
             .storage
             .read()
             .await
-            .did_share_data_with_relying_party(session.rp_certificate())
+            .did_share_data_with_relying_party(session.verifier_certificate())
             .await
             .map_err(DisclosureError::HistoryRetrieval)?;
 
@@ -294,7 +295,6 @@ where
                 let reader_registration = session.reader_registration().clone().into();
                 let missing_attributes = missing_attr_session
                     .missing_attributes()
-                    .iter()
                     .map(ToString::to_string)
                     .collect();
                 let session_type = session.session_type();
@@ -366,7 +366,7 @@ where
 
         let event = WalletEvent::new_disclosure_cancel(
             proposed_attributes,
-            session.rp_certificate().clone(),
+            session.verifier_certificate().clone(),
             session.reader_registration().clone(),
             DataDisclosureStatus::NotDisclosed,
         );
@@ -516,13 +516,13 @@ where
             .storage
             .write()
             .await
-            .increment_attestation_copies_usage_count(session_proposal.proposed_source_identifiers())
+            .increment_attestation_copies_usage_count(session_proposal.proposed_source_identifiers().copied().collect())
             .await;
 
         if let Err(error) = result {
             let event = WalletEvent::new_disclosure_error(
                 session_proposal.proposed_attributes(),
-                session.rp_certificate().clone(),
+                session.verifier_certificate().clone(),
                 session.reader_registration().clone(),
                 DataDisclosureStatus::NotDisclosed,
             );
@@ -569,7 +569,7 @@ where
                     };
                     let event = WalletEvent::new_disclosure_error(
                         session_proposal.proposed_attributes(),
-                        session.rp_certificate().clone(),
+                        session.verifier_certificate().clone(),
                         session.reader_registration().clone(),
                         data_status,
                     );
@@ -608,7 +608,7 @@ where
         // as disclosure is now successful. Any errors that occur after this point will result in the
         // `Wallet` not having an active disclosure session anymore.
         let proposed_attributes = session_proposal.proposed_attributes();
-        let reader_certificate = session.rp_certificate().clone();
+        let reader_certificate = session.verifier_certificate().clone();
         let reader_registration = session.reader_registration().clone();
 
         self.session.take();
@@ -716,9 +716,9 @@ mod tests {
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::disclosure::MockDisclosureMissingAttributes;
-    use crate::disclosure::MockDisclosureProposal;
-    use crate::disclosure::MockDisclosureSession;
+    use crate::disclosure::mock::MockDisclosureMissingAttributes;
+    use crate::disclosure::mock::MockDisclosureProposal;
+    use crate::disclosure::mock::MockDisclosureSession;
     use crate::storage::DisclosureStatus;
     use crate::AttestationAttribute;
 
@@ -811,7 +811,7 @@ mod tests {
         assert!(matches!(
             wallet.session,
             Some(Session::Disclosure(session))
-                if session.protocol_state.disclosure_uri_source == DisclosureUriSource::QrCode
+                if session.protocol_state.uri_source == DisclosureUriSource::QrCode
         ));
 
         // Test that the returned `DisclosureProposal` contains the

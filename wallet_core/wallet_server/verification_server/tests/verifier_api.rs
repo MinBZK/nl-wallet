@@ -42,6 +42,8 @@ use mdoc::test::data::pid_example_payload;
 use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::ItemsRequest;
+use openid4vc::disclosure_session::DisclosureProposal;
+use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureSession;

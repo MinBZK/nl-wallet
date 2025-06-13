@@ -34,6 +34,7 @@ use crate::openid4vp::VpRequestUriObject;
 use crate::verifier::SessionType;
 use crate::verifier::VerifierUrlParameters;
 
+use super::client::HttpVpMessageClient;
 use super::client::VpMessageClient;
 use super::client::VpMessageClientError;
 use super::error::DisclosureError;
@@ -41,11 +42,15 @@ use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::error::VpVerifierError;
 use super::uri_source::DisclosureUriSource;
+use super::DisclosureMissingAttributes;
+use super::DisclosureProposal;
+use super::DisclosureSession;
+use super::DisclosureSessionState;
 
 #[derive(Debug)]
-pub enum VpDisclosureSession<H, I> {
+pub enum VpDisclosureSession<I, H = HttpVpMessageClient> {
     MissingAttributes(VpDisclosureMissingAttributes<H>),
-    Proposal(VpDisclosureProposal<H, I>),
+    Proposal(VpDisclosureProposal<I, H>),
 }
 
 #[derive(Debug)]
@@ -55,7 +60,7 @@ pub struct VpDisclosureMissingAttributes<H> {
 }
 
 #[derive(Debug)]
-pub struct VpDisclosureProposal<H, I> {
+pub struct VpDisclosureProposal<I, H> {
     data: CommonDisclosureData<H>,
     proposed_documents: Vec<ProposedDocument<I>>,
     mdoc_nonce: String,
@@ -76,113 +81,10 @@ enum VerifierSessionDataCheckResult<I> {
     ProposedDocuments(Vec<ProposedDocument<I>>),
 }
 
-impl<H, I> VpDisclosureSession<H, I>
+impl<I, H> VpDisclosureSession<I, H>
 where
     H: VpMessageClient,
 {
-    pub async fn start<S>(
-        client: H,
-        request_uri_query: &str,
-        uri_source: DisclosureUriSource,
-        mdoc_data_source: &S,
-        trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, VpSessionError>
-    where
-        S: MdocDataSource<MdocIdentifier = I>,
-    {
-        info!("start disclosure session");
-
-        let request_uri_object: VpRequestUriObject =
-            serde_urlencoded::from_str(request_uri_query).map_err(VpClientError::RequestUri)?;
-
-        // Parse the `SessionType` from the verifier URL.
-        let VerifierUrlParameters { session_type, .. } = serde_urlencoded::from_str(
-            request_uri_object
-                .request_uri
-                .as_ref()
-                .query()
-                .ok_or(VpVerifierError::MissingSessionType)?,
-        )
-        .map_err(VpVerifierError::MalformedSessionType)?;
-
-        // Check the `SessionType` that was contained in the verifier URL against the source of the URI.
-        // A same-device session is expected to come from a Universal Link,
-        // while a cross-device session should come from a scanned QR code.
-        if uri_source.session_type() != session_type {
-            return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source).into());
-        }
-
-        // If the server supports it, require it to include a nonce in the Authorization Request JWT
-        let method = request_uri_object.request_uri_method.unwrap_or_default();
-        let request_nonce = match method {
-            RequestUriMethod::GET => None,
-            RequestUriMethod::POST => Some(utils::random_string(32)),
-        };
-
-        let jws = client
-            .get_authorization_request(request_uri_object.request_uri.clone(), request_nonce.clone())
-            .await?;
-
-        let (vp_auth_request, certificate) = VpAuthorizationRequest::try_new(&jws, trust_anchors)?;
-        let response_uri = vp_auth_request.response_uri.clone();
-
-        // Use async here so we get the async-version of .or_else(), as report_error_back() is async.
-        let auth_request = async { vp_auth_request.validate(&certificate, request_nonce.as_deref()) }
-            .or_else(|error| async {
-                match response_uri {
-                    None => Err(error.into()), // just return the error if we don't know the URL to report it to
-                    Some(response_uri) => Self::report_error_back(error.into(), &client, response_uri).await,
-                }
-            })
-            .await?;
-
-        let mdoc_nonce = utils::random_string(32);
-        let session_transcript = SessionTranscript::new_oid4vp(
-            &auth_request.response_uri,
-            &auth_request.client_id,
-            auth_request.nonce.clone(),
-            &mdoc_nonce,
-        );
-
-        let (check_result, reader_registration) = Self::process_request(
-            &auth_request,
-            &certificate,
-            &session_transcript,
-            &request_uri_object,
-            mdoc_data_source,
-        )
-        .or_else(|error| Self::report_error_back(error, &client, auth_request.response_uri.clone()))
-        .await?;
-
-        let data = CommonDisclosureData {
-            client,
-            certificate,
-            reader_registration,
-            auth_request,
-            session_type,
-        };
-
-        // Create the appropriate `DisclosureSession` invariant, which contains
-        // all of the information needed to either abort of finish the session.
-        let session = match check_result {
-            VerifierSessionDataCheckResult::MissingAttributes(missing_attributes) => {
-                VpDisclosureSession::MissingAttributes(VpDisclosureMissingAttributes {
-                    data,
-                    missing_attributes,
-                })
-            }
-            VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
-                VpDisclosureSession::Proposal(VpDisclosureProposal {
-                    data,
-                    proposed_documents,
-                    mdoc_nonce,
-                })
-            }
-        };
-
-        Ok(session)
-    }
-
     /// Report an error back to the RP. Note: this function only reports errors that are the RP's fault.
     async fn report_error_back<T>(error: VpSessionError, client: &H, url: BaseUrl) -> Result<T, VpSessionError> {
         let error_code = match error {
@@ -294,20 +196,144 @@ where
             VpDisclosureSession::Proposal(session) => session.data,
         }
     }
+}
 
-    pub fn reader_registration(&self) -> &ReaderRegistration {
-        &self.data().reader_registration
+impl<I, H> DisclosureSession<I, H> for VpDisclosureSession<I, H>
+where
+    I: Clone,
+    H: VpMessageClient,
+{
+    type MissingAttributes = VpDisclosureMissingAttributes<H>;
+    type Proposal = VpDisclosureProposal<I, H>;
+
+    async fn start<S>(
+        client: H,
+        request_uri_query: &str,
+        uri_source: DisclosureUriSource,
+        mdoc_data_source: &S,
+        trust_anchors: &[TrustAnchor<'_>],
+    ) -> Result<Self, VpSessionError>
+    where
+        S: MdocDataSource<MdocIdentifier = I>,
+    {
+        info!("start disclosure session");
+
+        let request_uri_object: VpRequestUriObject =
+            serde_urlencoded::from_str(request_uri_query).map_err(VpClientError::RequestUri)?;
+
+        // Parse the `SessionType` from the verifier URL.
+        let VerifierUrlParameters { session_type, .. } = serde_urlencoded::from_str(
+            request_uri_object
+                .request_uri
+                .as_ref()
+                .query()
+                .ok_or(VpVerifierError::MissingSessionType)?,
+        )
+        .map_err(VpVerifierError::MalformedSessionType)?;
+
+        // Check the `SessionType` that was contained in the verifier URL against the source of the URI.
+        // A same-device session is expected to come from a Universal Link,
+        // while a cross-device session should come from a scanned QR code.
+        if uri_source.session_type() != session_type {
+            return Err(VpClientError::DisclosureUriSourceMismatch(session_type, uri_source).into());
+        }
+
+        // If the server supports it, require it to include a nonce in the Authorization Request JWT
+        let method = request_uri_object.request_uri_method.unwrap_or_default();
+        let request_nonce = match method {
+            RequestUriMethod::GET => None,
+            RequestUriMethod::POST => Some(utils::random_string(32)),
+        };
+
+        let jws = client
+            .get_authorization_request(request_uri_object.request_uri.clone(), request_nonce.clone())
+            .await?;
+
+        let (vp_auth_request, certificate) = VpAuthorizationRequest::try_new(&jws, trust_anchors)?;
+        let response_uri = vp_auth_request.response_uri.clone();
+
+        // Use async here so we get the async-version of .or_else(), as report_error_back() is async.
+        let auth_request = async { vp_auth_request.validate(&certificate, request_nonce.as_deref()) }
+            .or_else(|error| async {
+                match response_uri {
+                    None => Err(error.into()), // just return the error if we don't know the URL to report it to
+                    Some(response_uri) => Self::report_error_back(error.into(), &client, response_uri).await,
+                }
+            })
+            .await?;
+
+        let mdoc_nonce = utils::random_string(32);
+        let session_transcript = SessionTranscript::new_oid4vp(
+            &auth_request.response_uri,
+            &auth_request.client_id,
+            auth_request.nonce.clone(),
+            &mdoc_nonce,
+        );
+
+        let (check_result, reader_registration) = Self::process_request(
+            &auth_request,
+            &certificate,
+            &session_transcript,
+            &request_uri_object,
+            mdoc_data_source,
+        )
+        .or_else(|error| Self::report_error_back(error, &client, auth_request.response_uri.clone()))
+        .await?;
+
+        let data = CommonDisclosureData {
+            client,
+            certificate,
+            reader_registration,
+            auth_request,
+            session_type,
+        };
+
+        // Create the appropriate `DisclosureSession` invariant, which contains
+        // all of the information needed to either abort of finish the session.
+        let session = match check_result {
+            VerifierSessionDataCheckResult::MissingAttributes(missing_attributes) => {
+                VpDisclosureSession::MissingAttributes(VpDisclosureMissingAttributes {
+                    data,
+                    missing_attributes,
+                })
+            }
+            VerifierSessionDataCheckResult::ProposedDocuments(proposed_documents) => {
+                VpDisclosureSession::Proposal(VpDisclosureProposal {
+                    data,
+                    proposed_documents,
+                    mdoc_nonce,
+                })
+            }
+        };
+
+        Ok(session)
     }
 
-    pub fn verifier_certificate(&self) -> &BorrowingCertificate {
+    fn verifier_certificate(&self) -> &BorrowingCertificate {
         &self.data().certificate
     }
 
-    pub fn session_type(&self) -> SessionType {
+    fn reader_registration(&self) -> &ReaderRegistration {
+        &self.data().reader_registration
+    }
+
+    fn session_state(
+        &self,
+    ) -> DisclosureSessionState<
+        &<Self as DisclosureSession<I, H>>::MissingAttributes,
+        &<Self as DisclosureSession<I, H>>::Proposal,
+    > {
+        match self {
+            Self::MissingAttributes(session) => DisclosureSessionState::MissingAttributes(session),
+            Self::Proposal(session) => DisclosureSessionState::Proposal(session),
+        }
+    }
+
+    fn session_type(&self) -> SessionType {
         self.data().session_type
     }
 
-    pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError> {
+    async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError> {
         let data = self.into_data();
         let return_url = data.client.terminate(data.auth_request.response_uri).await?;
 
@@ -315,25 +341,27 @@ where
     }
 }
 
-impl<H> VpDisclosureMissingAttributes<H> {
-    pub fn missing_attributes(&self) -> &[AttributeIdentifier] {
-        &self.missing_attributes
+impl<H> DisclosureMissingAttributes for VpDisclosureMissingAttributes<H> {
+    fn missing_attributes(&self) -> impl Iterator<Item = &AttributeIdentifier> {
+        self.missing_attributes.iter()
     }
 }
 
-impl<H, I> VpDisclosureProposal<H, I>
+impl<I, H> DisclosureProposal<I> for VpDisclosureProposal<I, H>
 where
-    H: VpMessageClient,
     I: Clone,
+    H: VpMessageClient,
 {
-    pub fn proposed_source_identifiers(&self) -> Vec<&I> {
+    fn proposed_source_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a I>
+    where
+        I: 'a,
+    {
         self.proposed_documents
             .iter()
             .map(|document| &document.source_identifier)
-            .collect()
     }
 
-    pub fn proposed_attributes(&self) -> ProposedAttributes {
+    fn proposed_attributes(&self) -> ProposedAttributes {
         // Get all of the attributes to be disclosed from the
         // prepared `IssuerSigned` on the `ProposedDocument`s.
         self.proposed_documents
@@ -342,7 +370,7 @@ where
             .collect()
     }
 
-    pub async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpSessionError>>
+    async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpSessionError>>
     where
         K: CredentialEcdsaKey + Eq + Hash,
         KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
@@ -487,6 +515,9 @@ mod tests {
     use super::super::error::DisclosureError;
     use super::super::error::VpClientError;
     use super::super::uri_source::DisclosureUriSource;
+    use super::super::DisclosureMissingAttributes;
+    use super::super::DisclosureProposal;
+    use super::super::DisclosureSession;
     use super::super::VpDisclosureMissingAttributes;
     use super::super::VpDisclosureProposal;
     use super::super::VpDisclosureSession;
@@ -513,7 +544,7 @@ mod tests {
         transform_device_request: FD,
     ) -> Result<
         (
-            VpDisclosureSession<MockVerifierVpMessageClient<FD>, String>,
+            VpDisclosureSession<String, MockVerifierVpMessageClient<FD>>,
             Arc<MockVerifierSession<FD>>,
         ),
         (VpSessionError, Arc<MockVerifierSession<FD>>),
@@ -705,7 +736,7 @@ mod tests {
         assert!(wallet_messages.first().unwrap().request().wallet_nonce.is_some());
 
         // Test that the proposal session contains the example mdoc identifier.
-        assert_eq!(proposal_session.proposed_source_identifiers(), ["id_1"]);
+        itertools::assert_equal(proposal_session.proposed_source_identifiers(), ["id_1"]);
 
         // Test that the proposal for disclosure contains the example attributes, in order.
         // Note that `swap_remove()` is used to quickly gain ownership of the `Entry`s
@@ -765,7 +796,7 @@ mod tests {
             AttributeIdentifier::new_example_index_set_from_attributes(["driving_privileges"]);
 
         itertools::assert_equal(
-            missing_attr_session.missing_attributes().iter(),
+            missing_attr_session.missing_attributes(),
             expected_missing_attributes.iter(),
         );
     }
@@ -811,7 +842,7 @@ mod tests {
         ]);
 
         itertools::assert_equal(
-            missing_attr_session.missing_attributes().iter(),
+            missing_attr_session.missing_attributes(),
             expected_missing_attributes.iter(),
         );
     }
@@ -1341,7 +1372,7 @@ mod tests {
         response_factory: F,
         device_key: &MockRemoteEcdsaKey,
     ) -> (
-        VpDisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
+        VpDisclosureSession<String, MockErrorFactoryVpMessageClient<F>>,
         Arc<Mutex<Vec<WalletMessage>>>,
     )
     where
@@ -1379,7 +1410,7 @@ mod tests {
     }
 
     async fn test_disclosure_session_terminate<H>(
-        session: VpDisclosureSession<H, String>,
+        session: VpDisclosureSession<String, H>,
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
     ) -> Result<Option<BaseUrl>, VpSessionError>
     where
@@ -1436,7 +1467,7 @@ mod tests {
 
     fn missing_attributes_session<F>(
         client: MockErrorFactoryVpMessageClient<F>,
-    ) -> VpDisclosureSession<MockErrorFactoryVpMessageClient<F>, String>
+    ) -> VpDisclosureSession<String, MockErrorFactoryVpMessageClient<F>>
     where
         F: Fn() -> Option<VpMessageClientError>,
     {
@@ -1490,7 +1521,7 @@ mod tests {
     }
 
     async fn try_disclose<F, K, KF>(
-        proposal_session: VpDisclosureSession<MockErrorFactoryVpMessageClient<F>, String>,
+        proposal_session: VpDisclosureSession<String, MockErrorFactoryVpMessageClient<F>>,
         wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
         key_factory: &KF,
         expect_report_error: bool,

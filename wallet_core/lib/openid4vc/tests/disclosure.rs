@@ -47,6 +47,8 @@ use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
+use openid4vc::disclosure_session::DisclosureProposal;
+use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpDisclosureSession;
@@ -1065,7 +1067,7 @@ async fn start_disclosure_session<KF, K, US, UC>(
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,
     key_factory: &KF,
-) -> Result<VpDisclosureSession<VerifierMockVpMessageClient<MockVerifier<US>>, String>, VpSessionError>
+) -> Result<VpDisclosureSession<String, VerifierMockVpMessageClient<MockVerifier<US>>>, VpSessionError>
 where
     KF: KeyFactory<Key = K>,
     US: UseCases<UseCase = UC, Key = SigningKey>,

@@ -43,7 +43,6 @@ use http_utils::urls::BaseUrl;
 use issuance_server::disclosure::AttributesFetcher;
 use issuance_server::disclosure::HttpAttributesFetcher;
 use issuance_server::settings::IssuanceServerSettings;
-use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuer::AttributeService;
@@ -134,7 +133,7 @@ pub type WalletWithMocks = Wallet<
     HttpAccountProviderClient,
     MockDigidSession,
     HttpIssuanceSession,
-    VpDisclosureSession<HttpVpMessageClient, Uuid>,
+    VpDisclosureSession<Uuid>,
     WpWteIssuanceClient,
 >;
 
