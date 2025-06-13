@@ -1,4 +1,5 @@
 import 'package:bloc_test/bloc_test.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -15,12 +16,15 @@ class MockHistoryOverviewBloc extends MockBloc<HistoryOverviewEvent, HistoryOver
     implements HistoryOverviewBloc {}
 
 void main() {
-  final historyOverviewLoadSuccessMock = HistoryOverviewLoadSuccess([
-    WalletMockData.disclosureEvent,
-    WalletMockData.disclosureEvent,
-    WalletMockData.signEvent,
-    WalletMockData.issuanceEvent,
-  ]);
+  final historyOverviewLoadSuccessMock = HistoryOverviewLoadSuccess(
+    [
+      WalletMockData.disclosureEvent,
+      WalletMockData.disclosureEvent,
+      WalletMockData.signEvent,
+      WalletMockData.issuanceEvent,
+      WalletMockData.renewEvent,
+    ].sortedBy((card) => card.dateTime).reversed.toList() /* sorting is normally handled by repo layer */,
+  );
 
   group('goldens', () {
     testGoldens('HistoryOverviewLoadSuccess light', (tester) async {

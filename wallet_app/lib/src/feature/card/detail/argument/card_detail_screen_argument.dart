@@ -15,11 +15,17 @@ class CardDetailScreenArgument extends Equatable {
 
   const CardDetailScreenArgument({this.card, required this.cardId, required this.cardTitle});
 
-  factory CardDetailScreenArgument.forCard(WalletCard card) => CardDetailScreenArgument(
-        card: card,
-        cardId: card.id,
-        cardTitle: card.title,
-      );
+  factory CardDetailScreenArgument.forCard(WalletCard card) {
+    assert(
+      card.isPersisted,
+      'Card details screen can only be opened for persisted cards, providing id-less cards will render an error screen.',
+    );
+    return CardDetailScreenArgument(
+      card: card,
+      cardId: card.id ?? '',
+      cardTitle: card.title,
+    );
+  }
 
   factory CardDetailScreenArgument.fromJson(Map<String, dynamic> json) => _$CardDetailScreenArgumentFromJson(json);
 

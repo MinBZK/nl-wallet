@@ -44,10 +44,8 @@ class WalletEventStatusTextMapper extends ContextMapper<WalletEvent, String> {
   }
 
   String mapIssuanceEvent(BuildContext context, IssuanceEvent event) {
+    if (event.renewed) return context.l10n.cardHistoryTimelineOperationRenewed;
     return context.l10n.cardHistoryIssuanceSuccess;
-    // In the future, I imagine we re-introduce renewal/expiry through separate events.
-    // For reference keeping the correct translations here:
-    // renewal --> context.l10n.cardHistoryTimelineOperationRenewed;
     // expiry --> context.l10n.cardHistoryTimelineOperationExpired;
   }
 

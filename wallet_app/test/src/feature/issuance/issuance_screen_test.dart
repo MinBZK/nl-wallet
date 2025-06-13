@@ -171,11 +171,58 @@ void main() {
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
           IssuanceReviewCards.init(
-            cards: [WalletMockData.card],
+            cards: [WalletMockData.card.copyWith(id: () => null)],
           ),
         ),
       );
       await screenMatchesGolden('review_card.light');
+    });
+
+    testGoldens('IssuanceReviewCards Light - New and updated cards', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewCards.init(
+            cards: [
+              WalletMockData.altCard.copyWith(id: () => null),
+              WalletMockData.card,
+            ],
+          ),
+        ),
+      );
+      await screenMatchesGolden('review_new_and_updated_cards.light');
+    });
+
+    testGoldens('IssuanceReviewCards Light - Only updated cards', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewCards.init(
+            cards: [
+              WalletMockData.card.copyWith(id: () => '1'),
+              WalletMockData.altCard.copyWith(id: () => '2'),
+            ],
+          ),
+        ),
+      );
+      await screenMatchesGolden('review_updated_cards.light');
+    });
+
+    testGoldens('IssuanceReviewCards Dark Landscape - Only updated cards', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewCards.init(
+            cards: [
+              WalletMockData.card.copyWith(id: () => '1'),
+              WalletMockData.altCard.copyWith(id: () => '2'),
+            ],
+          ),
+        ),
+        surfaceSize: iphoneXSizeLandscape,
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('review_updated_cards.dark.landscape');
     });
 
     testGoldens('IssuanceReviewCards Dark Landscape - Multi card', (tester) async {
@@ -183,7 +230,10 @@ void main() {
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
           IssuanceReviewCards.init(
-            cards: [WalletMockData.card, WalletMockData.altCard],
+            cards: [
+              WalletMockData.card.copyWith(id: () => null),
+              WalletMockData.altCard.copyWith(id: () => null),
+            ],
           ),
         ),
         brightness: Brightness.dark,
@@ -439,7 +489,7 @@ void main() {
       await tester.pumpWidgetWithAppWrapper(
         const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
           MockIssuanceBloc(),
-          IssuanceReviewCards.init(cards: [WalletMockData.card]),
+          IssuanceReviewCards.init(cards: [WalletMockData.card.copyWith(id: () => null)]),
         ),
       );
 

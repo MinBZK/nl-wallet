@@ -27,10 +27,14 @@ class HistoryDetailIssuePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cardName = event.card.title.l10nValue(context);
+    final title = event.renewed
+        ? context.l10n.historyDetailScreenTitleForRenewal(cardName)
+        : context.l10n.historyDetailScreenTitleForIssuance(cardName);
     return CustomScrollView(
       slivers: [
         SliverWalletAppBar(
-          title: context.l10n.historyDetailScreenTitleForIssuance(event.card.title.l10nValue(context)),
+          title: title,
           scrollController: PrimaryScrollController.maybeOf(context),
         ),
         SliverToBoxAdapter(

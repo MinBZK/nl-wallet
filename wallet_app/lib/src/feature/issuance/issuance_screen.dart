@@ -215,7 +215,8 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildReviewCardsPage(BuildContext context, IssuanceReviewCards state) {
     return IssuanceReviewCardsPage(
-      cards: state.cards,
+      offeredCards: state.offeredCards,
+      renewedCards: state.renewedCards,
       onAccept: (acceptedCards) => context.bloc.add(IssuanceApproveCards(cards: acceptedCards)),
       onDecline: () => _stopIssuance(context),
     );
