@@ -22,6 +22,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use url::Url;
 
+use attestation_data::attributes::AttributesError;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
@@ -130,6 +131,10 @@ pub enum IssuanceSessionError {
     #[error("type metadata verification failed: {0}")]
     #[category(critical)]
     TypeMetadataVerification(#[from] TypeMetadataChainError),
+
+    #[error("attributes do not match type metadata: {0}")]
+    #[category(pd)]
+    AttributesVerification(#[from] AttributesError),
 
     #[error("error requesting access token: {0:?}")]
     #[category(pd)]
@@ -492,6 +497,11 @@ impl NormalizedCredentialPreview {
         let (normalized_metadata, raw_metadata) = preview
             .type_metadata
             .into_normalized(&preview.content.credential_payload.attestation_type)?;
+        preview
+            .content
+            .credential_payload
+            .attributes
+            .validate(&normalized_metadata)?;
 
         Ok(Self {
             content: preview.content,
