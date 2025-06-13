@@ -41,6 +41,36 @@ void main() {
       await screenMatchesGolden('success.light');
     });
 
+    testGoldens('HistoryDetailLoadSuccess issuance - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.issuanceEvent, [WalletMockData.card]),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.issuance.light');
+    });
+
+    testGoldens('HistoryDetailLoadSuccess renewal - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.renewEvent, [WalletMockData.card]),
+        ),
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+      );
+      await screenMatchesGolden('success.renewal.light');
+    });
+
     testGoldens('HistoryDetailLoadSuccess dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
@@ -55,6 +85,23 @@ void main() {
         ],
       );
       await screenMatchesGolden('success.dark');
+    });
+
+    testGoldens('HistoryDetailLoadSuccess - dark landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const HistoryDetailScreen().withState<HistoryDetailBloc, HistoryDetailState>(
+          MockHistoryDetailBloc(),
+          HistoryDetailLoadSuccess(WalletMockData.disclosureEvent, [WalletMockData.card]),
+        ),
+        brightness: Brightness.dark,
+        providers: [
+          RepositoryProvider<ContextMapper<OrganizationPolicy, String>>(
+            create: (c) => PolicyBodyTextMapper(),
+          ),
+        ],
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('success.dark.landscape');
     });
 
     testGoldens('HistoryDetailLoadInProgress light', (tester) async {

@@ -13,6 +13,7 @@ void main() {
           dateTime: DateTime(2024),
           card: WalletMockData.card,
           status: EventStatus.success,
+          renewed: false,
         ),
       );
       final serialized = expected.toMap();

@@ -24,7 +24,7 @@ class StackedWalletCards extends StatelessWidget {
       return Padding(
         padding: EdgeInsets.fromLTRB(0, index * cardOffsetY, 0, 0),
         child: Hero(
-          tag: cards[index].id,
+          tag: cards[index].hashCode,
           flightShuttleBuilder: (
             BuildContext flightContext,
             Animation<double> animation,

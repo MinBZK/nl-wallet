@@ -28,21 +28,21 @@ void main() {
   blocTest(
     'verify loading state without preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, null),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
     expect: () => [const CardDetailLoadInProgress()],
   );
 
   blocTest(
     'verify loading state with mismatched preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.altCard),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
     expect: () => [const CardDetailLoadInProgress()],
   );
 
   blocTest(
     'verify success state with preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.card),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
     setUp: () {
       when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.id))
           .thenAnswer((_) => Stream.value(WalletMockData.cardDetail));
@@ -53,11 +53,11 @@ void main() {
   blocTest(
     'verify error state with preloaded card',
     build: () => CardDetailBloc(observeWalletCardDetailUseCase, WalletMockData.card),
-    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id)),
+    act: (bloc) => bloc.add(CardDetailLoadTriggered(WalletMockData.card.id!)),
     setUp: () {
       when(observeWalletCardDetailUseCase.invoke(WalletMockData.card.id))
           .thenAnswer((_) => Stream.error('Failed to load card details'));
     },
-    expect: () => [CardDetailLoadFailure(WalletMockData.card.id)],
+    expect: () => [CardDetailLoadFailure(WalletMockData.card.id!)],
   );
 }

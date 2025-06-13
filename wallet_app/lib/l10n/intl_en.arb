@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-06-02T13:17:30+02:00",
+    "@@last_modified": "2025-06-06T14:47:24+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -162,7 +162,7 @@
     "cardHistorySigningError": "Signing failed",
     "cardHistorySigningSuccess": "Signed",
     "cardHistoryTimelineOperationExpired": "Card is expired",
-    "cardHistoryTimelineOperationRenewed": "Card updated",
+    "cardHistoryTimelineOperationRenewed": "Card renewed",
     "cardPreviewScreenIncorrectCta": "Are your details incorrect?",
     "cardPreviewScreenIssuedBy": "Card issued by {organization}.",
     "@cardPreviewScreenIssuedBy": {
@@ -635,6 +635,7 @@
     "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
     "historyDetailScreenTitleForIssuance": "Created {card} card",
     "historyDetailScreenTitleForLogin": "Logged in to {organization}",
+    "historyDetailScreenTitleForRenewal": "{card} card renewed",
     "historyOverviewScreenTitle": "Activities",
     "idleWarningDialogContinueCta": "Yes, continue",
     "idleWarningDialogDescription": "You will be logged out soon because you haven’t used the app for a while. Choose \"Yes, continue\" for more time.",
@@ -735,7 +736,43 @@
             }
         }
     },
+    "issuanceReviewCardsPageAddAndRenewTitle": "{cards, plural, one {Do you want to add or renew this card?} other {Do you want to add or renew these cards?}}",
+    "@issuanceReviewCardsPageAddAndRenewTitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
     "issuanceReviewCardsPageDeclineCta": "Stop",
+    "issuanceReviewCardsPageRenewOnlyTitle": "{cards, plural, one {Do you want to renew this card?} other {Do you want to renew these cards?}}",
+    "@issuanceReviewCardsPageRenewOnlyTitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceReviewCardsPageRenewSectionSubtitle": "{cards, plural, one {You already have 1 card and can replace it.} other {You already have {cards} cards and can replace them.}}",
+    "@issuanceReviewCardsPageRenewSectionSubtitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceReviewCardsPageRenewSectionTitle": "{cards, plural, one {Renew card} other {Renew cards}}",
+    "@issuanceReviewCardsPageRenewSectionTitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
     "issuanceReviewCardsPageShowDetailsCta": "Check details",
     "issuanceReviewCardsPageSubtitle": "{cards, plural, one {This card is provided by {organization}.} other {These cards are provided by {organization}.}}",
     "@issuanceReviewCardsPageSubtitle": {

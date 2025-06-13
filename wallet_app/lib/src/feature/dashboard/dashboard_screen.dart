@@ -195,7 +195,7 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildCardListItem(BuildContext context, WalletCard walletCard) {
     return Hero(
-      tag: walletCard.id,
+      tag: walletCard.hashCode,
       child: WalletCardItem.fromWalletCard(
         context,
         walletCard,

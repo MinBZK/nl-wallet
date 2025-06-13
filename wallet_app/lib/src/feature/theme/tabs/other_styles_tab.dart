@@ -132,6 +132,7 @@ final _kSampleIssuanceEvent = WalletEvent.issuance(
   dateTime: DateTime.now(),
   status: EventStatus.success,
   card: _kSampleCard,
+  renewed: false,
 );
 
 final _kSampleInteractionAttribute = WalletEvent.disclosure(

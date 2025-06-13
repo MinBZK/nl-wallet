@@ -20,11 +20,11 @@ void main() {
     'bloc emits loading followed by the requested card',
     build: () => bloc,
     setUp: () {
-      when(usecase.invoke(WalletMockData.card.id)).thenAnswer(
+      when(usecase.invoke(WalletMockData.card.id!)).thenAnswer(
         (_) => Stream.value(WalletMockData.card),
       );
     },
-    act: (bloc) async => bloc.add(CardDataLoadTriggered(WalletMockData.card.id)),
+    act: (bloc) async => bloc.add(CardDataLoadTriggered(WalletMockData.card.id!)),
     expect: () async => [
       const CardDataLoadInProgress(),
       CardDataLoadSuccess(WalletMockData.card),
@@ -35,11 +35,11 @@ void main() {
     "bloc emits failure when card can't be loaded",
     build: () => bloc,
     setUp: () {
-      when(usecase.invoke(WalletMockData.card.id)).thenAnswer(
+      when(usecase.invoke(WalletMockData.card.id!)).thenAnswer(
         (_) => Stream.error('no card'),
       );
     },
-    act: (bloc) async => bloc.add(CardDataLoadTriggered(WalletMockData.card.id)),
+    act: (bloc) async => bloc.add(CardDataLoadTriggered(WalletMockData.card.id!)),
     expect: () async => [const CardDataLoadInProgress(), const CardDataLoadFailure()],
   );
 }
