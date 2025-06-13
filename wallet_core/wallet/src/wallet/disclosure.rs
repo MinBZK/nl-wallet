@@ -692,8 +692,8 @@ mod tests {
     use serial_test::serial;
     use uuid::uuid;
 
-    use attestation_data::attributes::AttributeError;
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::AttributesError;
     use http_utils::urls;
     use mdoc::holder::Mdoc;
     use mdoc::holder::ProposedAttributes;
@@ -1054,7 +1054,7 @@ mod tests {
         assert_matches!(
             error,
             DisclosureError::AttestationAttributes(
-                AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims)))
+                AttestationError::Attributes(AttributesError::SomeAttributesNotProcessed(claims)))
                 if claims == IndexMap::from([
                     (String::from("com.example.pid"),
                     vec![Entry {

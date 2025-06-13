@@ -32,8 +32,8 @@ mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
 
-    use attestation_data::attributes::AttributeError;
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::AttributesError;
     use attestation_data::auth::Organization;
     use mdoc::DataElementValue;
     use mdoc::Entry;
@@ -156,7 +156,7 @@ mod test {
 
         assert_matches!(
             attestation,
-            Err(AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims)))
+            Err(AttestationError::Attributes(AttributesError::SomeAttributesNotProcessed(claims)))
                 if claims == IndexMap::from([
                     (String::from("example_attestation_type"),
                     vec![Entry {

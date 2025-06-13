@@ -29,8 +29,8 @@ mod test {
     use chrono::NaiveDate;
     use indexmap::IndexMap;
 
-    use attestation_data::attributes::AttributeError;
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::attributes::AttributesError;
     use attestation_data::auth::Organization;
     use mdoc::Entry;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
@@ -145,7 +145,7 @@ mod test {
 
         assert_matches!(
             error,
-            AttestationError::Attribute(AttributeError::SomeAttributesNotProcessed(claims))
+            AttestationError::Attributes(AttributesError::SomeAttributesNotProcessed(claims))
                 if claims == IndexMap::from([
                     (String::from(PID_DOCTYPE),
                     vec![Entry {

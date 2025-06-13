@@ -78,6 +78,7 @@ impl Mdoc {
         Ok(integrity)
     }
 }
+
 #[cfg(any(test, feature = "test"))]
 mod test {
     use crypto::CredentialKeyType;

@@ -28,8 +28,8 @@ use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::date_time_seconds::DateTimeSeconds;
 
-use crate::attributes::AttributeError;
 use crate::attributes::Attributes;
+use crate::attributes::AttributesError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum SdJwtCredentialPayloadError {
@@ -151,9 +151,9 @@ pub enum MdocCredentialPayloadError {
     #[category(critical)]
     MissingMetadataIntegrity,
 
-    #[error("attribute error: {0}")]
+    #[error("attributes error: {0}")]
     #[category(pd)]
-    Attribute(#[from] AttributeError),
+    Attributes(#[from] AttributesError),
 
     #[error("error converting holder VerifyingKey to JWK: {0}")]
     #[category(pd)]
