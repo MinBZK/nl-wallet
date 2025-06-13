@@ -1,7 +1,7 @@
 // Copyright 2020-2024 IOTA Stiftung
 // SPDX-License-Identifier: Apache-2.0
 
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
+use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -134,7 +134,7 @@ impl<H: Hasher> SdJwtBuilder<H> {
         header.x5c = Some(
             issuer_certificates
                 .iter()
-                .map(|cert| BASE64_URL_SAFE_NO_PAD.encode(cert.to_vec()))
+                .map(|cert| BASE64_STANDARD.encode(cert.to_vec()))
                 .collect_vec(),
         );
 
