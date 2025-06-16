@@ -344,7 +344,7 @@ where
                     AttestationIdentity::Ephemeral,
                     preview_data.normalized_metadata.clone(),
                     organization.clone(),
-                    preview_data.content.credential_payload.attributes.clone(),
+                    &preview_data.content.credential_payload.attributes,
                 )
                 .map_err(|error| IssuanceError::Attestation {
                     organization: Box::new(organization.clone()),

@@ -14,18 +14,18 @@ use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
 use sd_jwt_vc_metadata::DisplayMetadata;
-use sd_jwt_vc_metadata::JsonSchemaProperty;
+use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum AttestationError {
     #[error("some attributes not processed by claim: {0:?}")]
     #[category(pd)]
-    AttributeNotProcessedByClaim(HashSet<Vec<String>>),
+    AttributesNotProcessedByClaim(HashSet<Vec<String>>),
 
-    #[error("unable to convert into attestation attribute value: {0:?} having metadata: {1:?}")]
+    #[error("unable to convert into attestation attribute value: {0:?} having property type: {1:?}")]
     #[category(pd)]
-    AttributeConversion(AttributeValue, JsonSchemaProperty),
+    AttributeConversion(AttributeValue, Option<JsonSchemaPropertyType>),
 
     #[error("unable to parse attribute value into date: {0:?}")]
     #[category(pd)]
