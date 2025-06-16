@@ -41,7 +41,7 @@ impl IssuableDocument {
 
     fn validate(&self) -> Result<(), serde_valid::validation::Error> {
         self.attributes
-            .as_inner()
+            .as_ref()
             .len()
             .ge(&1)
             .then_some(())

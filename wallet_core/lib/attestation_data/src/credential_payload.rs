@@ -206,7 +206,7 @@ mod examples {
                     expires: Some((now + Duration::days(365)).into()),
                     not_before: Some((now - Duration::days(1)).into()),
                     attestation_qualification: Default::default(),
-                    attributes: Attributes::new(),
+                    attributes: Attributes::default(),
                 },
             }
         }

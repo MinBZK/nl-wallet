@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 use std::num::TryFromIntError;
 
+use derive_more::AsRef;
+use derive_more::From;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
@@ -78,32 +80,12 @@ pub enum Attribute {
     Nested(IndexMap<String, Attribute>),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Attributes(IndexMap<String, Attribute>);
-
-impl Default for Attributes {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl From<IndexMap<String, Attribute>> for Attributes {
-    fn from(attributes: IndexMap<String, Attribute>) -> Self {
-        Self(attributes)
-    }
-}
+#[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
+pub struct Attributes(#[from] IndexMap<String, Attribute>);
 
 impl Attributes {
-    pub fn new() -> Self {
-        IndexMap::new().into()
-    }
-
     pub fn into_inner(self) -> IndexMap<String, Attribute> {
         self.0
-    }
-
-    pub fn as_inner(&self) -> &IndexMap<String, Attribute> {
-        &self.0
     }
 
     /// Convert a map of namespaced entries (`Entry`) to a (nested) map of attributes by key.
@@ -165,7 +147,7 @@ impl Attributes {
         }
         // No internal attributes can be in the array map as they are forbidden as claim in the type metadata
 
-        Ok(result.into())
+        Ok(Self(result))
     }
 
     fn traverse_attributes_by_claim(
