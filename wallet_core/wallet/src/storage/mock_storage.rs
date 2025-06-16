@@ -225,14 +225,17 @@ impl Storage for MockStorage {
                 StoredAttestationFormat::MsoMdoc { mdoc } => doc_types.contains(mdoc.doc_type().as_str()),
                 _ => false,
             })
-            .map(|copy| StoredMdocCopy {
-                mdoc_id: copy.attestation_id,
-                mdoc_copy_id: copy.attestation_copy_id,
-                mdoc: match copy.attestation {
-                    StoredAttestationFormat::MsoMdoc { mdoc } => *mdoc,
-                    _ => panic!("unexpected attestation format"),
-                },
-                normalized_metadata: copy.normalized_metadata,
+            .filter_map(|copy| {
+                match copy.attestation {
+                    StoredAttestationFormat::MsoMdoc { mdoc } => Some(*mdoc),
+                    _ => None,
+                }
+                .map(|mdoc| StoredMdocCopy {
+                    mdoc_id: copy.attestation_id,
+                    mdoc_copy_id: copy.attestation_copy_id,
+                    mdoc,
+                    normalized_metadata: copy.normalized_metadata,
+                })
             })
             .collect();
 
