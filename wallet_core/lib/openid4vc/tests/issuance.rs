@@ -544,7 +544,8 @@ fn mock_issuable_attestation(attestation_count: NonZeroUsize) -> VecNonEmpty<Iss
                         key.to_string(),
                         Attribute::Single(AttributeValue::Text(val.to_string())),
                     )
-                })),
+                }))
+                .into(),
             )
             .unwrap()
         })

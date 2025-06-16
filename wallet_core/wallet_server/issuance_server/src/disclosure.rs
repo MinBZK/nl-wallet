@@ -245,7 +245,8 @@ mod tests {
                 IndexMap::from([(
                     "attr_name".to_string(),
                     Attribute::Single(AttributeValue::Text("attrvalue".to_string())),
-                )]),
+                )])
+                .into(),
             )
             .unwrap()])
         }

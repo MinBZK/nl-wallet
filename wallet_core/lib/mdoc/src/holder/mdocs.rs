@@ -10,8 +10,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use ssri::Integrity;
 
-use attestation_data::attributes::Attribute;
 use attestation_data::attributes::AttributeError;
+use attestation_data::attributes::Attributes;
 use attestation_data::attributes::Entry;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
@@ -168,7 +168,7 @@ impl IntoCredentialPayload for MdocParts {
                 attestation_qualification: mso
                     .attestation_qualification
                     .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
-                attributes: Attribute::from_mdoc_attributes(metadata, attributes)?,
+                attributes: Attributes::from_mdoc_attributes(metadata, attributes)?,
             },
         };
 
@@ -253,7 +253,12 @@ mod tests {
             .expect("creating and validating CredentialPayload from Mdoc should succeed");
 
         assert_eq!(
-            payload.previewable_payload.attributes.into_values().collect_vec(),
+            payload
+                .previewable_payload
+                .attributes
+                .into_inner()
+                .into_values()
+                .collect_vec(),
             vec![
                 Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
                 Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),
@@ -272,7 +277,12 @@ mod tests {
             .expect("creating and validating CredentialPayload from Mdoc should succeed");
 
         assert_eq!(
-            payload.previewable_payload.attributes.into_values().collect_vec(),
+            payload
+                .previewable_payload
+                .attributes
+                .into_inner()
+                .into_values()
+                .collect_vec(),
             vec![
                 Attribute::Single(AttributeValue::Text("De Bruijn".to_string())),
                 Attribute::Single(AttributeValue::Text("Willeke Liselotte".to_string())),

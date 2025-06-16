@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ssri::Integrity;
 
-use attestation_data::attributes::Attribute;
+use attestation_data::attributes::Attributes;
 use attestation_data::attributes::Entry;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
@@ -201,7 +201,7 @@ impl TestDocument {
         KF: KeyFactory,
     {
         let (normalized_metadata, _) = self.metadata.into_normalized(&self.doc_type).unwrap();
-        let attributes = Attribute::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
+        let attributes = Attributes::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
 
         let now = Utc::now();
         let payload_preview = PreviewableCredentialPayload {

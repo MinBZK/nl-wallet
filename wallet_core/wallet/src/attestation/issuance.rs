@@ -1,6 +1,6 @@
 use indexmap::IndexMap;
 
-use attestation_data::attributes::Attribute;
+use attestation_data::attributes::Attributes;
 use attestation_data::attributes::Entry;
 use attestation_data::auth::Organization;
 use mdoc::NameSpace;
@@ -17,7 +17,7 @@ impl AttestationPresentation {
         issuer_organization: Organization,
         mdoc_attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttestationError> {
-        let nested_attributes = Attribute::from_mdoc_attributes(&metadata, mdoc_attributes)?;
+        let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
         Self::create_from_attributes(identity, metadata, issuer_organization, nested_attributes)
     }

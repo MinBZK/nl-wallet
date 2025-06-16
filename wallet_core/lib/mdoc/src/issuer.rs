@@ -6,7 +6,6 @@ use coset::HeaderBuilder;
 use p256::ecdsa::VerifyingKey;
 use ssri::Integrity;
 
-use attestation_data::attributes::Attribute;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
@@ -40,7 +39,7 @@ impl IssuerSigned {
             expected_update: None,
         };
 
-        let attributes = Attribute::from_attributes(&payload.attestation_type, payload.attributes);
+        let attributes = payload.attributes.to_mdoc_attributes(&payload.attestation_type);
         let attrs = IssuerNameSpaces::try_from(attributes).map_err(Error::MissingOrEmptyNamespace)?;
 
         let doc_type = payload.attestation_type;
