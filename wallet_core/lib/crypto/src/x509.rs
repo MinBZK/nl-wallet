@@ -166,7 +166,9 @@ pub enum CertificateError {
 struct ParsedCertificate<'a> {
     #[debug(skip)]
     end_entity_cert: EndEntityCert<'a>,
+    #[debug("subject: {}, issuer: {}, serial: {}", x509_cert.subject(), x509_cert.issuer(), x509_cert.tbs_certificate.raw_serial_as_string())]
     x509_cert: X509Certificate<'a>,
+    #[debug(skip)]
     public_key: VerifyingKey,
 }
 
@@ -181,7 +183,7 @@ type YokedCertificate = Yoke<ParsedCertificate<'static>, Arc<CertificateDer<'sta
 /// It can be constructed using the `from_der`, `from_pem` or `from_certificate_der` methods. The various types are
 /// parsed on construction as borrowed types.
 #[derive(Debug)]
-pub struct BorrowingCertificate(YokedCertificate);
+pub struct BorrowingCertificate(#[debug("{:?}", _0.get())] YokedCertificate);
 
 impl BorrowingCertificate {
     pub fn from_der(der_bytes: impl Into<Vec<u8>>) -> Result<Self, CertificateError> {

@@ -82,6 +82,12 @@ where
         Ok(Self { header, payload, jwt })
     }
 
+    pub fn new_dangerous(jwt: Jwt<T>) -> Result<Self> {
+        let (header, payload) = jwt.dangerous_parse_unverified()?;
+
+        Ok(Self { header, payload, jwt })
+    }
+
     pub fn header(&self) -> &Header {
         &self.header
     }
@@ -198,6 +204,24 @@ where
         Ok((header, body))
     }
 
+    pub fn extract_x5c_certificates(&self) -> Result<VecDeque<BorrowingCertificate>, JwtX5cError> {
+        let header = jsonwebtoken::decode_header(&self.0).map_err(JwtError::Validation)?;
+
+        let Some(encoded_x5c) = header.x5c else {
+            return Ok(VecDeque::new());
+        };
+
+        encoded_x5c
+            .iter()
+            .map(|encoded_cert| {
+                BASE64_STANDARD
+                    .decode(encoded_cert)
+                    .map_err(JwtX5cError::CertificateBase64)
+                    .and_then(|bytes| BorrowingCertificate::from_der(bytes).map_err(JwtX5cError::CertificateParsing))
+            })
+            .try_collect()
+    }
+
     /// Verify the JWS against the provided trust anchors, using the X.509 certificate(s) present in the `x5c` JWT
     /// header.
     pub fn verify_against_trust_anchors<A: ToString>(
@@ -206,29 +230,23 @@ where
         trust_anchors: &[TrustAnchor],
         time: &impl Generator<DateTime<Utc>>,
     ) -> Result<(T, BorrowingCertificate), JwtX5cError> {
-        let header = jsonwebtoken::decode_header(&self.0).map_err(JwtError::Validation)?;
-        let mut certs = header
-            .x5c
-            .ok_or(JwtX5cError::MissingCertificates)?
-            .into_iter()
-            .map(|cert_base64| {
-                let cert = CertificateDer::from(
-                    BASE64_STANDARD
-                        .decode(cert_base64)
-                        .map_err(JwtX5cError::CertificateBase64)?,
-                );
-                Ok(cert)
-            })
-            .collect::<Result<VecDeque<_>, JwtX5cError>>()?;
+        let mut certs = self.extract_x5c_certificates()?;
 
         // Verify the certificate chain against the trust anchors.
-        let leaf_cert =
-            BorrowingCertificate::from_certificate_der(certs.pop_front().ok_or(JwtX5cError::MissingCertificates)?)
-                .map_err(JwtX5cError::CertificateParsing)?;
+        let leaf_cert = certs.pop_front().ok_or(JwtX5cError::MissingCertificates)?;
         // The `VecDeque` containing the certificates will be contiguous at this point, so the second value is empty.
         let (intermediates, _) = certs.as_slices();
         leaf_cert
-            .verify(CertificateUsage::ReaderAuth, intermediates, time, trust_anchors)
+            .verify(
+                CertificateUsage::ReaderAuth,
+                &intermediates
+                    .iter()
+                    .map(AsRef::as_ref)
+                    .map(CertificateDer::from_slice)
+                    .collect_vec(),
+                time,
+                trust_anchors,
+            )
             .map_err(JwtX5cError::CertificateValidation)?;
 
         // The leaf certificate is trusted, we can now use its public key to verify the JWS.

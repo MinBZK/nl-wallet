@@ -8,7 +8,6 @@ use sea_orm::DatabaseConnection;
 use sea_orm::DbErr;
 use sea_orm::TransactionTrait;
 use tokio::fs;
-
 use tracing::log::LevelFilter;
 
 use wallet_migrations::Migrator;

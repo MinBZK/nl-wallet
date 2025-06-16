@@ -27,9 +27,11 @@ mock = ["dep:mockall", "poa/mock"]
 # Include miscellaneous test utilities
 test = ["jwt/test", "poa/mock", "crypto/mock_remote_key", "dep:assert_matches", "dep:parking_lot"]
 # All features needed to run the integration test
-integration = ["mock", "test"]
+integration = ["mock", "test", "example_constructors"]
 # Credential payload examples
 example_credential_payloads = []
+# Offers example constructors
+example_constructors = []
 # Generate typescript bindings for wallet_web
 ts_rs = []
 

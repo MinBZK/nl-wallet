@@ -14,3 +14,6 @@ pub const SIMPLE_EMBEDDED_BYTES: &[u8] = include_bytes!("../examples/simple-embe
 pub const SIMPLE_REMOTE_BYTES: &[u8] = include_bytes!("../examples/simple-remote-metadata.json");
 #[cfg(test)]
 pub const RED_DOT_BYTES: &[u8] = include_bytes!("../examples/red-dot.png");
+pub const VCT_EXAMPLE_CREDENTIAL: &str = "https://sd_jwt_vc_metadata.example.com/example_credential";
+pub const VCT_EXAMPLE_CREDENTIAL_V2: &str = "https://sd_jwt_vc_metadata.example.com/example_credential_v2";
+pub const VCT_EXAMPLE_CREDENTIAL_V3: &str = "https://sd_jwt_vc_metadata.example.com/example_credential_v3";

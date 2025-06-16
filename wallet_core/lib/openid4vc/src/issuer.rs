@@ -176,8 +176,8 @@ pub enum CredentialRequestError {
     #[error("failed to sign credential: {0}")]
     CredentialSigning(mdoc::Error),
 
-    #[error("mismatch between rquested and offered doctypes")]
-    CredentialTypeMismatch,
+    #[error("mismatch between requested: {requested} and offered attestation types: {offered}")]
+    CredentialTypeMismatch { requested: String, offered: String },
 
     #[error("missing credential request proof of possession")]
     MissingCredentialRequestPoP,
@@ -221,6 +221,9 @@ pub struct WaitingForResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CredentialPreviewState {
+    /// The amount of copies of this attestation that the holder will receive per credential format. This is serialized
+    /// as a list of pairs in order to guarantee the order across system boundaries.
+    #[serde(with = "indexmap::map::serde_seq")]
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
     pub credential_payload: PreviewableCredentialPayload,
 }
@@ -344,6 +347,7 @@ pub struct AttestationTypeConfig<K> {
     pub copies_per_format: IndexMap<Format, NonZeroU8>,
     pub issuer_uri: HttpsUri,
     pub attestation_qualification: AttestationQualification,
+    #[debug(skip)]
     pub metadata_documents: TypeMetadataDocuments,
     first_metadata_integrity: Integrity,
     metadata: NormalizedTypeMetadata,
@@ -1075,7 +1079,10 @@ impl Session<WaitingForResponse> {
                 // Verify the assumption that the order of the incoming requests matches exactly
                 // that of the flattened copies_per_format by matching the requested format.
                 if format != cred_req.credential_type.as_ref().format() {
-                    return Err(CredentialRequestError::CredentialTypeMismatch);
+                    return Err(CredentialRequestError::CredentialTypeMismatch {
+                        offered: format.to_string(),
+                        requested: cred_req.credential_type.as_ref().format().to_string(),
+                    });
                 }
 
                 let key = cred_req.verify(&session_data.c_nonce, issuer_data)?;

@@ -53,7 +53,6 @@ use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
-use openid4vc::issuance_session::IssuedCredentialCopies;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::openid4vp::IsoVpAuthorizationRequest;
 use openid4vc::openid4vp::RequestUriMethod;
@@ -342,22 +341,14 @@ const DEFAULT_RETURN_URL_USE_CASE: &str = "default_return_url";
 const ALL_RETURN_URL_USE_CASE: &str = "all_return_url";
 const WALLET_INITIATED_RETURN_URL_USE_CASE: &str = "wallet_initiated_return_url";
 
-struct MockMdocDataSource(HashMap<String, (IssuedCredentialCopies, NormalizedTypeMetadata)>);
+struct MockMdocDataSource(HashMap<String, (Mdoc, NormalizedTypeMetadata)>);
 
 impl MockMdocDataSource {
     fn new(mdocs: Vec<(Mdoc, NormalizedTypeMetadata)>) -> Self {
         Self(
             mdocs
                 .into_iter()
-                .map(|(mdoc, normalized_metadata)| {
-                    (
-                        mdoc.doc_type().clone(),
-                        (
-                            IssuedCredentialCopies::MsoMdoc(vec![mdoc].try_into().unwrap()),
-                            normalized_metadata,
-                        ),
-                    )
-                })
+                .map(|(mdoc, normalized_metadata)| (mdoc.doc_type().clone(), (mdoc, normalized_metadata)))
                 .collect(),
         )
     }
@@ -371,27 +362,26 @@ impl MdocDataSource for MockMdocDataSource {
         &self,
         doc_types: &HashSet<&str>,
     ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
-        let stored_mdocs = self
+        let mdoc_by_doc_type = self
             .0
             .iter()
-            .filter_map(|(doc_type, (mdoc_copies, normalized_metadata))| match mdoc_copies {
-                IssuedCredentialCopies::MsoMdoc(mdocs) => {
-                    if doc_types.contains(doc_type.as_str()) {
-                        return vec![StoredMdoc {
-                            id: format!("{}_id", doc_type.clone()),
-                            mdoc: mdocs.first().clone(),
+            .chunk_by(|(doc_type, _)| *doc_type)
+            .into_iter()
+            .filter_map(|(doc_type, mdocs)| {
+                doc_types.contains(doc_type.as_str()).then(|| {
+                    mdocs
+                        .into_iter()
+                        .map(|(_, (mdoc, normalized_metadata))| StoredMdoc {
+                            id: doc_type.clone(),
+                            mdoc: mdoc.clone(),
                             normalized_metadata: normalized_metadata.clone(),
-                        }]
-                        .into();
-                    }
-
-                    None
-                }
-                _ => None,
+                        })
+                        .collect()
+                })
             })
             .collect();
 
-        Ok(stored_mdocs)
+        Ok(mdoc_by_doc_type)
     }
 }
 

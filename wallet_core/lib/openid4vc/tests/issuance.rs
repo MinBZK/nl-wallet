@@ -34,7 +34,7 @@ use openid4vc::issuance_session::mock_wte;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
-use openid4vc::issuance_session::IssuedCredentialCopies;
+use openid4vc::issuance_session::IssuedCredential;
 use openid4vc::issuance_session::VcMessageClient;
 use openid4vc::issuer::AttestationTypeConfig;
 use openid4vc::issuer::AttributeService;
@@ -166,21 +166,27 @@ async fn accept_issuance(
         .unwrap();
 
     assert_eq!(issued_creds.len(), attestation_count.get());
-    assert_eq!(issued_creds.first().unwrap().copies.len(), copy_count);
+    assert_eq!(issued_creds.first().unwrap().copies.as_ref().len().get(), copy_count);
 
     issued_creds
         .into_iter()
         .zip(session.normalized_credential_preview().iter())
-        .for_each(|(credential, preview_data)| match credential.copies {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => {
-                let mdoc = mdocs.first().clone();
-                let payload = mdoc.into_credential_payload(&preview_data.normalized_metadata).unwrap();
-
-                assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
-            }
-            IssuedCredentialCopies::SdJwt(_) => {
-                panic!("SdJwt should not be issued");
-            }
+        .for_each(|(credential, preview_data)| {
+            credential
+                .copies
+                .into_inner()
+                .into_iter()
+                .for_each(|issued_credential| match issued_credential {
+                    IssuedCredential::MsoMdoc(mdoc) => {
+                        let payload = (*mdoc)
+                            .into_credential_payload(&preview_data.normalized_metadata)
+                            .unwrap();
+                        assert_eq!(payload.previewable_payload, preview_data.content.credential_payload);
+                    }
+                    IssuedCredential::SdJwt(_) => {
+                        panic!("SdJwt should not be issued");
+                    }
+                })
         });
 }
 

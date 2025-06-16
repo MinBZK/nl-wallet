@@ -144,6 +144,7 @@ impl CredentialPayload {
         issuer_key: &KeyPair<impl EcdsaKeySend>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
+        // TODO: conceal using attributes instead of from metadata (PVW-4508)
         let sd_jwt = type_metadata
             .claims()
             .iter()
@@ -156,7 +157,7 @@ impl CredentialPayload {
                         .make_concealable(&json_path)
                         .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
                 }
-                _ => Ok(builder),
+                ClaimSelectiveDisclosureMetadata::Never => Ok(builder),
             })?
             .finish(
                 Algorithm::ES256,

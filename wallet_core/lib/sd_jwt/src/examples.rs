@@ -1,13 +1,21 @@
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
 use base64::Engine;
 use chrono::Duration;
+use futures::FutureExt;
 use indexmap::IndexMap;
 use jsonwebtoken::jwk::Jwk;
+use jsonwebtoken::Algorithm;
+use p256::ecdsa::SigningKey;
+use rand_core::OsRng;
 use serde_json::json;
+use ssri::Integrity;
 
+use crypto::server_keys::KeyPair;
+use crypto::utils::random_string;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 
+use crate::builder::SdJwtBuilder;
 use crate::disclosure::Disclosure;
 use crate::disclosure::DisclosureContent;
 use crate::hasher::Hasher;
@@ -58,6 +66,42 @@ impl SdJwt {
             Duration::minutes(2),
         )
         .unwrap()
+    }
+
+    pub fn example_pid_sd_jwt(issuer_keypair: &KeyPair) -> SdJwt {
+        let object = json!({
+          "vct": "urn:eudi:pid:nl:1",
+          "iat": 1683000000,
+          "exp": 1883000000,
+          "iss": "https://cert.issuer.example.com",
+          "attestation_qualification": "QEAA",
+          "bsn": "999991772",
+          "given_name": "John",
+          "family_name": "Doe",
+          "birthdate": "1940-01-01"
+        });
+
+        let holder_privkey = SigningKey::random(&mut OsRng);
+
+        // issuer signs SD-JWT
+        SdJwtBuilder::new(object)
+            .unwrap()
+            .make_concealable("/family_name")
+            .unwrap()
+            .make_concealable("/bsn")
+            .unwrap()
+            .add_decoys("", 2)
+            .unwrap()
+            .finish(
+                Algorithm::ES256,
+                Integrity::from(random_string(32)),
+                issuer_keypair.private_key(),
+                vec![issuer_keypair.certificate().clone()],
+                holder_privkey.verifying_key(),
+            )
+            .now_or_never()
+            .unwrap()
+            .unwrap()
     }
 }
 

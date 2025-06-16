@@ -4,21 +4,23 @@ use std::collections::HashSet;
 use chrono::Duration;
 use chrono::Utc;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
 use crypto::x509::BorrowingCertificate;
-use mdoc::DocType;
 use openid4vc::issuance_session::CredentialWithMetadata;
-use openid4vc::issuance_session::IssuedCredentialCopies;
-use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use openid4vc::issuance_session::IssuedCredential;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;
 use super::event_log::WalletEvent;
 use super::Storage;
+use super::StorageError;
 use super::StorageResult;
 use super::StorageState;
+use super::StoredAttestationCopy;
+use super::StoredAttestationFormat;
 use super::StoredMdocCopy;
 
 #[derive(Debug)]
@@ -32,8 +34,8 @@ pub enum KeyedDataResult {
 pub struct MockStorage {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
-    pub issued_credential_copies: IndexMap<DocType, Vec<(IssuedCredentialCopies, NormalizedTypeMetadata)>>,
-    pub mdoc_copies_usage_counts: HashMap<Uuid, u32>,
+    pub issued_credential_copies: IndexMap<String, Vec<CredentialWithMetadata>>,
+    pub attestation_copies_usage_counts: HashMap<Uuid, u32>,
     pub event_log: Vec<WalletEvent>,
     pub has_query_error: bool,
 }
@@ -53,7 +55,7 @@ impl MockStorage {
             state,
             data,
             issued_credential_copies: IndexMap::new(),
-            mdoc_copies_usage_counts: HashMap::new(),
+            attestation_copies_usage_counts: HashMap::new(),
             event_log: vec![],
             has_query_error: false,
         }
@@ -137,22 +139,11 @@ impl Storage for MockStorage {
     async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()> {
         self.check_query_error()?;
 
-        for CredentialWithMetadata {
-            copies,
-            metadata_documents,
-        } in credentials
-        {
-            match &copies {
-                IssuedCredentialCopies::MsoMdoc(mdocs) => {
-                    self.issued_credential_copies
-                        .entry(mdocs.first().doc_type().clone())
-                        .or_default()
-                        .push((copies, metadata_documents.to_normalized()?));
-                }
-                IssuedCredentialCopies::SdJwt(_sd_jwts) => {
-                    // todo!("implement in PVW-4109")
-                }
-            }
+        for credential in credentials {
+            self.issued_credential_copies
+                .entry(credential.attestation_type.clone())
+                .or_default()
+                .push(credential);
         }
 
         Ok(())
@@ -160,7 +151,7 @@ impl Storage for MockStorage {
 
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()> {
         attestation_copy_ids.into_iter().for_each(|mdoc_copy_id| {
-            self.mdoc_copies_usage_counts
+            self.attestation_copies_usage_counts
                 .entry(mdoc_copy_id)
                 .and_modify(|usage_count| *usage_count += 1)
                 .or_insert(1);
@@ -169,48 +160,84 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn fetch_unique_mdocs(&self) -> StorageResult<Vec<StoredMdocCopy>> {
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.check_query_error()?;
 
-        // Get a single copy of every unique Mdoc, along with a random `Uuid`.
-        let mdocs = self
+        let attestations = self
             .issued_credential_copies
             .values()
             .flatten()
-            .map(|(credential_copies, metadata)| match &credential_copies {
-                IssuedCredentialCopies::MsoMdoc(mdocs) => StoredMdocCopy {
-                    mdoc_id: Uuid::now_v7(),
-                    mdoc_copy_id: Uuid::now_v7(),
-                    mdoc: mdocs.first().clone(),
-                    normalized_metadata: metadata.clone(),
-                },
-                IssuedCredentialCopies::SdJwt(_) => todo!("implement in PVW-4109"),
+            .map(|credential| {
+                let attestation = match credential.copies.as_ref().first() {
+                    IssuedCredential::MsoMdoc(mdoc) => StoredAttestationFormat::MsoMdoc { mdoc: mdoc.clone() },
+                    IssuedCredential::SdJwt(sd_jwt) => StoredAttestationFormat::SdJwt { sd_jwt: sd_jwt.clone() },
+                };
+
+                Ok::<_, StorageError>(StoredAttestationCopy {
+                    attestation_id: Uuid::now_v7(),
+                    attestation_copy_id: Uuid::now_v7(),
+                    attestation,
+                    normalized_metadata: credential.metadata_documents.to_normalized()?,
+                })
+            })
+            .try_collect()?;
+
+        Ok(attestations)
+    }
+
+    async fn fetch_unique_attestations_by_type(
+        &self,
+        attestation_types: &HashSet<&str>,
+    ) -> StorageResult<Vec<StoredAttestationCopy>> {
+        let copies = self.fetch_unique_attestations().await?;
+
+        let copies = copies
+            .into_iter()
+            .filter(|copy| {
+                let attestation_type = match &copy.attestation {
+                    StoredAttestationFormat::MsoMdoc { mdoc } => mdoc.doc_type().as_str(),
+                    StoredAttestationFormat::SdJwt { sd_jwt } => {
+                        sd_jwt.claims().properties.get("vct").unwrap().as_str().unwrap()
+                    }
+                };
+                attestation_types.contains(attestation_type)
             })
             .collect();
 
-        Ok(mdocs)
+        Ok(copies)
+    }
+
+    async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
+        Ok(!self
+            .fetch_unique_attestations_by_type(&HashSet::from([attestation_type]))
+            .await
+            .unwrap()
+            .is_empty())
     }
 
     async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
         // Get every unique Mdoc and filter them based on the requested doc types.
-        let mdoc_copies = self.fetch_unique_mdocs().await?;
+        let copies = self.fetch_unique_attestations().await?;
 
-        let mdocs = mdoc_copies
+        let mdocs = copies
             .into_iter()
-            .filter(|mdoc_copy| doc_types.contains(mdoc_copy.mdoc.doc_type().as_str()))
+            .filter_map(|copy| {
+                match copy.attestation {
+                    StoredAttestationFormat::MsoMdoc { mdoc } if doc_types.contains(mdoc.doc_type().as_str()) => {
+                        Some(*mdoc)
+                    }
+                    _ => None,
+                }
+                .map(|mdoc| StoredMdocCopy {
+                    mdoc_id: copy.attestation_id,
+                    mdoc_copy_id: copy.attestation_copy_id,
+                    mdoc,
+                    normalized_metadata: copy.normalized_metadata,
+                })
+            })
             .collect();
 
         Ok(mdocs)
-    }
-
-    async fn has_any_mdocs_with_doctype(&self, doc_type: &str) -> StorageResult<bool> {
-        let mdoc_copies = self.fetch_unique_mdocs().await?;
-
-        let result = mdoc_copies
-            .into_iter()
-            .any(|mdoc_copy| doc_type == mdoc_copy.mdoc.doc_type().as_str());
-
-        Ok(result)
     }
 
     async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {

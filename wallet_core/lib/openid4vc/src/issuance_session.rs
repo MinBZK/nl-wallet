@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::collections::VecDeque;
 use std::hash::Hash;
 
+use derive_more::AsRef;
 use derive_more::Constructor;
 use derive_more::Debug;
 use futures::future::try_join_all;
@@ -226,43 +227,39 @@ pub enum IssuedCredential {
 #[derive(Clone, Debug, Constructor)]
 pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
+    pub attestation_type: String,
     pub metadata_documents: VerifiedTypeMetadataDocuments,
 }
 
-#[derive(Clone, Debug)]
-pub enum IssuedCredentialCopies {
-    MsoMdoc(VecNonEmpty<Mdoc>),
-    SdJwt(VecNonEmpty<SdJwt>),
-}
+#[derive(Clone, Debug, AsRef)]
+pub struct IssuedCredentialCopies(VecNonEmpty<IssuedCredential>);
 
 impl IssuedCredentialCopies {
-    pub fn len(&self) -> usize {
-        match self {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs.len().into(),
-            IssuedCredentialCopies::SdJwt(sdjwts) => sdjwts.len().into(),
-        }
+    pub fn into_inner(self) -> VecNonEmpty<IssuedCredential> {
+        self.0
     }
+}
 
-    // Required by clippy
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
+#[cfg(feature = "example_constructors")]
+mod example_constructors {
+    use std::mem;
 
-    pub fn issuer_certificate(&self) -> Result<BorrowingCertificate, IssuanceSessionError> {
-        match self {
-            IssuedCredentialCopies::MsoMdoc(mdocs) => mdocs
-                .first()
-                .issuer_certificate()
-                .map_err(mdoc::Error::Cose)
-                .map_err(IssuanceSessionError::MdocVerification),
-            IssuedCredentialCopies::SdJwt(sd_jwts) => {
-                let cert = sd_jwts
-                    .first()
-                    .issuer_certificate()
-                    .ok_or(IssuanceSessionError::MissingIssuerCertificate)?;
-                Ok(cert.clone())
+    use utils::vec_at_least::VecNonEmpty;
+
+    use crate::issuance_session::IssuedCredential;
+    use crate::issuance_session::IssuedCredentialCopies;
+
+    impl IssuedCredentialCopies {
+        pub fn new_or_panic(copies: VecNonEmpty<IssuedCredential>) -> Self {
+            let first = copies.first();
+            if copies
+                .iter()
+                .any(|credential| mem::discriminant(credential) != mem::discriminant(first))
+            {
+                panic!("different credential format encountered in issued copies");
             }
+
+            Self(copies)
         }
     }
 }
@@ -785,16 +782,16 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
             .normalized_credential_previews
             .iter()
             .map(|preview| {
-                preview
-                    .content
-                    .copies_per_format
-                    .iter()
-                    .map(|(format, copies)| {
-                        let copy_count: usize = copies.get().into();
+                let copies =
+                    preview
+                        .content
+                        .copies_per_format
+                        .iter()
+                        .try_fold(vec![], |mut acc, (format, copies)| {
+                            let copy_count: usize = copies.get().into();
 
-                        // Consume the amount of copies from the front of `responses_and_keys`.
-                        let cred_copies = VecNonEmpty::try_from(
-                            responses_and_pubkeys
+                            // Consume the amount of copies from the front of `responses_and_keys`.
+                            let mut cred_copies = responses_and_pubkeys
                                 .drain(..copy_count)
                                 .map(|(cred_response, (pubkey, key_id))| {
                                     if !cred_response.matches_format(*format) {
@@ -808,72 +805,47 @@ impl<H: VcMessageClient> IssuanceSession<H> for HttpIssuanceSession<H> {
                                     // trust anchors and the credential preview we received in the preview.
                                     cred_response.into_credential::<K>(key_id, &pubkey, preview, trust_anchors)
                                 })
-                                .collect::<Result<Vec<IssuedCredential>, _>>()?,
-                        )
-                        .expect("the resulting vector is never empty since 'copies' is nonzero");
+                                .collect::<Result<Vec<IssuedCredential>, _>>()?;
 
-                        // Verify that each of the resulting mdocs contain exactly the same metadata integrity digest.
-                        let integrity = cred_copies
-                            .iter()
-                            .map(|cred_copy| match cred_copy {
-                                IssuedCredential::MsoMdoc(mdoc) => {
-                                    mdoc.type_metadata_integrity().map_err(IssuanceSessionError::Metadata)
-                                }
-                                IssuedCredential::SdJwt(sd_jwt) => sd_jwt
-                                    .claims()
-                                    .vct_integrity
-                                    .as_ref()
-                                    .ok_or(IssuanceSessionError::MetadataIntegrityMissing),
-                            })
-                            .process_results(|iter| {
-                                iter.dedup()
-                                    .exactly_one()
-                                    .map_err(|_| IssuanceSessionError::MetadataIntegrityInconsistent)
-                            })??;
+                            acc.append(&mut cred_copies);
 
-                        // Check that the integrity hash received in the credential matches
-                        // that of encoded JSON of the first metadata document.
-                        let verified_metadata = preview.raw_metadata.clone().into_verified(integrity.clone())?;
+                            Ok::<_, IssuanceSessionError>(acc)
+                        })?;
 
-                        let copies = match format {
-                            Format::MsoMdoc => IssuedCredentialCopies::MsoMdoc(
-                                VecNonEmpty::try_from(
-                                    cred_copies
-                                        .into_inner()
-                                        .into_iter()
-                                        .map(|credential| match credential {
-                                            IssuedCredential::MsoMdoc(mdoc) => *mdoc,
-                                            _ => panic!("format and responses have already been verified"),
-                                        })
-                                        .collect_vec(),
-                                )
-                                .unwrap(), // This safe since `cred_copies` is never empty
-                            ),
-                            Format::SdJwt => IssuedCredentialCopies::SdJwt(
-                                VecNonEmpty::try_from(
-                                    cred_copies
-                                        .into_inner()
-                                        .into_iter()
-                                        .map(|credential| match credential {
-                                            IssuedCredential::SdJwt(sd_jwt) => *sd_jwt,
-                                            _ => panic!("format and responses have already been verified"),
-                                        })
-                                        .collect_vec(),
-                                )
-                                .unwrap(), // This safe since `cred_copies` is never empty
-                            ),
-                            other => Err(IssuanceSessionError::UnsupportedCredentialFormat(
-                                preview.content.credential_payload.attestation_type.clone(),
-                                HashSet::from([*other]),
-                            ))?,
-                        };
-
-                        Ok(CredentialWithMetadata::new(copies, verified_metadata))
+                // Verify that each of the resulting mdocs contain exactly the same metadata integrity digest.
+                let integrity = copies
+                    .iter()
+                    .map(|cred_copy| match cred_copy {
+                        IssuedCredential::MsoMdoc(mdoc) => {
+                            mdoc.type_metadata_integrity().map_err(IssuanceSessionError::Metadata)
+                        }
+                        IssuedCredential::SdJwt(sd_jwt) => sd_jwt
+                            .claims()
+                            .vct_integrity
+                            .as_ref()
+                            .ok_or(IssuanceSessionError::MetadataIntegrityMissing),
                     })
-                    .collect::<Result<Vec<_>, IssuanceSessionError>>()
+                    .process_results(|iter| {
+                        iter.dedup()
+                            .exactly_one()
+                            .map_err(|_| IssuanceSessionError::MetadataIntegrityInconsistent)
+                    })??;
+
+                // Check that the integrity hash received in the credential matches
+                // that of encoded JSON of the first metadata document.
+                let verified_metadata = preview.raw_metadata.clone().into_verified(integrity.clone())?;
+
+                Ok::<_, IssuanceSessionError>(CredentialWithMetadata::new(
+                    IssuedCredentialCopies(
+                        copies
+                            .try_into()
+                            .expect("the resulting vector is never empty since 'copies' is nonzero"),
+                    ),
+                    preview.content.credential_payload.attestation_type.clone(),
+                    verified_metadata,
+                ))
             })
-            // Flatten the results, s.t. we're left with a mixed vector of IssuedCredentialCopies
-            .process_results(|i| i.flatten().collect())?;
+            .try_collect()?;
 
         Ok(docs)
     }
@@ -1015,6 +987,8 @@ impl CredentialResponse {
 
                 let sd_jwt =
                     SdJwt::parse_and_verify(&credential, &EcdsaDecodingKey::from(issuer_pubkey), &Sha256Hasher)?;
+
+                // TODO: validate issuer certificate against trust anchors (PVW-4507)
 
                 let credential_issuer_certificate = sd_jwt
                     .issuer_certificate()

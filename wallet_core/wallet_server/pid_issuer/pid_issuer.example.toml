@@ -37,7 +37,7 @@ trust_anchors = [""]
 
 [attestation_settings."com.example.pid"]
 valid_days = 365
-copy_count = 4
+copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 attestation_qualification = "QEAA" # QEAA, PuB-EAA or EAA (default)
 private_key_type = "hsm"
 private_key = "pid_issuer_key"     # label for the private key in the HSM
@@ -45,7 +45,7 @@ certificate = "MIJ..."
 
 [attestation_settings."com.example.address"]
 valid_days = 365
-copy_count = 4
+copies_per_format = { "mso_mdoc" = 4, "dc+sd-jwt" = 4 }
 private_key_type = "software"
 private_key = "MIG..."        # DER-encoded private key
 certificate = "MIJ..."
