@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -15,12 +16,16 @@ use jwt::jwk::jwk_from_p256;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt_vc_metadata::claim_paths_to_json_path;
+use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::date_time_seconds::DateTimeSeconds;
+use utils::vec_at_least::VecNonEmpty;
 
+use crate::attributes::Attribute;
 use crate::attributes::Attributes;
 use crate::qualification::AttestationQualification;
 
@@ -144,20 +149,29 @@ impl CredentialPayload {
         issuer_key: &KeyPair<impl EcdsaKeySend>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
-        // TODO: conceal using attributes instead of from metadata (PVW-4508)
-        let sd_jwt = type_metadata
-            .claims()
-            .iter()
-            .try_fold(SdJwtBuilder::new(self)?, |builder, claim| match claim.sd {
-                ClaimSelectiveDisclosureMetadata::Always | ClaimSelectiveDisclosureMetadata::Allowed => {
-                    let json_path = claim
-                        .to_json_path()
-                        .map_err(SdJwtCredentialPayloadError::ClaimPathConversion)?;
-                    builder
-                        .make_concealable(&json_path)
-                        .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
+        let attr_claim_paths = Self::claim_paths_from_attributes(self.previewable_payload.attributes.as_ref());
+        let mut metadata_claims = type_metadata.claims().iter();
+
+        let sd_jwt = attr_claim_paths
+            .into_iter()
+            .try_fold(SdJwtBuilder::new(self)?, |builder, claims| {
+                let claim_opt = metadata_claims.find(|c| c.path == claims);
+
+                let should_be_selectively_discloseable = match claim_opt {
+                    Some(c) => !matches!(c.sd, ClaimSelectiveDisclosureMetadata::Never),
+                    None => true,
+                };
+
+                if !should_be_selectively_discloseable {
+                    return Ok(builder);
                 }
-                ClaimSelectiveDisclosureMetadata::Never => Ok(builder),
+
+                let json_path =
+                    claim_paths_to_json_path(&claims).map_err(SdJwtCredentialPayloadError::ClaimPathConversion)?;
+
+                builder
+                    .make_concealable(&json_path)
+                    .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
             })?
             .finish(
                 Algorithm::ES256,
@@ -169,6 +183,22 @@ impl CredentialPayload {
             .await?;
 
         Ok(sd_jwt)
+    }
+
+    fn claim_paths_from_attributes(attributes: &IndexMap<String, Attribute>) -> Vec<VecNonEmpty<ClaimPath>> {
+        attributes
+            .iter()
+            .flat_map(|(key, attr)| match attr {
+                Attribute::Single(_) => vec![VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(key.clone())]).unwrap()],
+                Attribute::Nested(nested) => Self::claim_paths_from_attributes(nested)
+                    .into_iter()
+                    .map(|mut path| {
+                        path.insert(0, ClaimPath::SelectByKey(key.clone()));
+                        path
+                    })
+                    .collect(),
+            })
+            .collect()
     }
 }
 
@@ -279,6 +309,48 @@ mod test {
     use super::CredentialPayload;
     use super::PreviewableCredentialPayload;
 
+    fn complex_attributes() -> IndexMap<String, Attribute> {
+        IndexMap::from([
+            (
+                String::from("birth_date"),
+                Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
+            ),
+            (
+                String::from("place_of_birth"),
+                Attribute::Nested(IndexMap::from([
+                    (
+                        String::from("locality"),
+                        Attribute::Single(AttributeValue::Text(String::from("The Hague"))),
+                    ),
+                    (
+                        String::from("country"),
+                        Attribute::Nested(IndexMap::from([
+                            (
+                                String::from("name"),
+                                Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
+                            ),
+                            (
+                                String::from("area_code"),
+                                Attribute::Single(AttributeValue::Integer(33)),
+                            ),
+                        ])),
+                    ),
+                ])),
+            ),
+            (
+                String::from("financial"),
+                Attribute::Nested(IndexMap::from([
+                    (String::from("has_debt"), Attribute::Single(AttributeValue::Bool(true))),
+                    (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
+                    (
+                        String::from("debt_amount"),
+                        Attribute::Single(AttributeValue::Integer(-10_000)),
+                    ),
+                ])),
+            ),
+        ])
+    }
+
     #[test]
     fn test_serialize_deserialize_and_validate() {
         let confirmation_key = jwk_from_p256(SigningKey::random(&mut OsRng).verifying_key()).unwrap();
@@ -293,46 +365,7 @@ mod test {
                 expires: None,
                 not_before: None,
                 attestation_qualification: "QEAA".parse().unwrap(),
-                attributes: IndexMap::from([
-                    (
-                        String::from("birth_date"),
-                        Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
-                    ),
-                    (
-                        String::from("place_of_birth"),
-                        Attribute::Nested(IndexMap::from([
-                            (
-                                String::from("locality"),
-                                Attribute::Single(AttributeValue::Text(String::from("The Hague"))),
-                            ),
-                            (
-                                String::from("country"),
-                                Attribute::Nested(IndexMap::from([
-                                    (
-                                        String::from("name"),
-                                        Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
-                                    ),
-                                    (
-                                        String::from("area_code"),
-                                        Attribute::Single(AttributeValue::Integer(33)),
-                                    ),
-                                ])),
-                            ),
-                        ])),
-                    ),
-                    (
-                        String::from("financial"),
-                        Attribute::Nested(IndexMap::from([
-                            (String::from("has_debt"), Attribute::Single(AttributeValue::Bool(true))),
-                            (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
-                            (
-                                String::from("debt_amount"),
-                                Attribute::Single(AttributeValue::Integer(-10_000)),
-                            ),
-                        ])),
-                    ),
-                ])
-                .into(),
+                attributes: complex_attributes().into(),
             },
         };
 
@@ -533,5 +566,90 @@ mod test {
             Duration::days(36500),
         )
         .unwrap();
+    }
+
+    mod test_claim_paths_from_attributes {
+        use crate::credential_payload::ClaimPath;
+        use utils::vec_at_least::VecNonEmpty;
+
+        use super::*;
+
+        #[test]
+        fn single_attribute_should_return_correct_claimpaths() {
+            let result = CredentialPayload::claim_paths_from_attributes(&IndexMap::from([(
+                String::from("a"),
+                Attribute::Single(AttributeValue::Text(String::from("1234"))),
+            )]));
+
+            let expected: Vec<VecNonEmpty<_>> =
+                vec![VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("a"))]).unwrap()];
+
+            assert_eq!(result, expected);
+        }
+
+        #[test]
+        fn nested_attribute_should_return_correct_claimpaths() {
+            let result = CredentialPayload::claim_paths_from_attributes(&IndexMap::from([(
+                String::from("a"),
+                Attribute::Nested(IndexMap::from([(
+                    String::from("a1"),
+                    Attribute::Nested(IndexMap::from([(
+                        String::from("a2"),
+                        Attribute::Single(AttributeValue::Text(String::from("1234"))),
+                    )])),
+                )])),
+            )]));
+
+            let expected: Vec<VecNonEmpty<_>> = vec![vec![
+                ClaimPath::SelectByKey(String::from("a")),
+                ClaimPath::SelectByKey(String::from("a1")),
+                ClaimPath::SelectByKey(String::from("a2")),
+            ]]
+            .into_iter()
+            .map(|v| VecNonEmpty::try_from(v).unwrap())
+            .collect();
+
+            assert_eq!(result, expected);
+        }
+
+        #[test]
+        fn test_complex() {
+            let result = CredentialPayload::claim_paths_from_attributes(&complex_attributes());
+
+            let expected: Vec<VecNonEmpty<_>> = vec![
+                vec![ClaimPath::SelectByKey(String::from("birth_date"))],
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("locality")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("name")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("area_code")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_debt")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_job")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("debt_amount")),
+                ],
+            ]
+            .into_iter()
+            .map(|v| VecNonEmpty::try_from(v).unwrap())
+            .collect();
+
+            assert_eq!(result, expected);
+        }
     }
 }

@@ -63,7 +63,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
         self.object
     }
 
-    /// Substitutes a value with the digest of its disclosure. If the value is not present, `None` is returned.
+    /// Substitutes a value with the digest of its disclosure.
     ///
     /// `path` indicates the pointer to the value that will be concealed using the syntax of
     /// [JSON pointer](https://datatracker.ietf.org/doc/html/rfc6901).
@@ -71,7 +71,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
     /// ## Error
     /// * [`Error::InvalidPath`] if pointer is invalid.
     /// * [`Error::DataTypeMismatch`] if existing SD format is invalid.
-    pub fn conceal(&mut self, path: &str) -> Result<Option<Disclosure>> {
+    pub fn conceal(&mut self, path: &str) -> Result<Disclosure> {
         // Determine salt.
         let salt = Self::gen_rand(self.salt_size);
 
@@ -82,11 +82,9 @@ impl<H: Hasher> SdObjectEncoder<H> {
         let mut parent_pointer = element_pointer.clone();
         let element_key = parent_pointer.pop().ok_or(Error::InvalidPath(path.to_string()))?;
 
-        let Ok(parent) = parent_pointer.get(&self.object) else {
-            // TODO: restore previous behaviour of returning error when value cannot be found (PVW-4508)
-            // In case of optional values, there is no need to conceal
-            return Ok(None);
-        };
+        let parent = parent_pointer
+            .get(&self.object)
+            .map_err(|_| Error::InvalidPath(path.to_string()))?;
 
         match parent {
             Value::Object(_) => {
@@ -96,22 +94,21 @@ impl<H: Hasher> SdObjectEncoder<H> {
                     .as_object_mut()
                     .ok_or_else(|| Error::InvalidPath(path.to_string()))?;
 
-                let Some(value) = parent.remove(&element_key) else {
-                    // TODO: restore previous behaviour of returning error when value cannot be found (PVW-4508)
-                    // In case of optional values, there is no need to conceal
-                    return Ok(None);
-                };
-
                 // Remove the value from the parent and create a disclosure for it.
-                let disclosure =
-                    Disclosure::try_new(DisclosureContent::ObjectProperty(salt, element_key.to_owned(), value))?;
+                let disclosure = Disclosure::try_new(DisclosureContent::ObjectProperty(
+                    salt,
+                    element_key.to_owned(),
+                    parent
+                        .remove(&element_key)
+                        .ok_or_else(|| Error::InvalidPath(path.to_string()))?,
+                ))?;
 
                 // Hash the disclosure.
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
 
                 // Add the hash to the "_sd" array if exists; otherwise, create the array and insert the hash.
                 Self::add_digest_to_object(parent, hash)?;
-                Ok(Some(disclosure))
+                Ok(disclosure)
             }
             Value::Array(_) => {
                 let element = element_pointer
@@ -121,7 +118,7 @@ impl<H: Hasher> SdObjectEncoder<H> {
                 let hash = self.hasher.encoded_digest(disclosure.as_str());
                 let tripledot = json!({ARRAY_DIGEST_KEY: hash});
                 *element = tripledot;
-                Ok(Some(disclosure))
+                Ok(disclosure)
             }
             _ => Err(Error::Unspecified(
                 "parent of element can can only be an object or an array".to_string(),
@@ -253,19 +250,15 @@ mod test {
     }
 
     #[test]
-    fn errors() {
+    fn test_wrong_path() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
-        encoder.conceal("/claim1/abc").unwrap();
         assert!(matches!(
-            encoder.conceal("claim2/2").unwrap_err(),
+            encoder.conceal("/claim12").unwrap_err(),
             Error::InvalidPath(_)
         ));
-    }
-
-    #[test]
-    fn test_path_for_optional_attributes() {
-        let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
-        encoder.conceal("/claim12").expect("optional attributes are allowed");
-        encoder.conceal("/claim12/0").expect("optional attributes are allowed");
+        assert!(matches!(
+            encoder.conceal("/claim12/0").unwrap_err(),
+            Error::InvalidPath(_)
+        ));
     }
 }

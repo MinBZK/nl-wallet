@@ -515,19 +515,19 @@ pub struct ClaimMetadata {
     pub svg_id: Option<SvgId>,
 }
 
+pub fn claim_paths_to_json_path(paths: &VecNonEmpty<ClaimPath>) -> Result<String, TypeMetadataError> {
+    let json_path = paths.iter().try_fold(String::new(), |mut acc, path| match path {
+        ClaimPath::SelectByKey(_) => {
+            acc.push_str(&format!("/{path}"));
+            Ok(acc)
+        }
+        other => Err(TypeMetadataError::JsonPathConversion(other.to_string())),
+    })?;
+
+    Ok(json_path)
+}
+
 impl ClaimMetadata {
-    pub fn to_json_path(&self) -> Result<String, TypeMetadataError> {
-        let json_path = self.path.iter().try_fold(String::new(), |mut acc, path| match path {
-            ClaimPath::SelectByKey(_) => {
-                acc.push_str(&format!("/{path}"));
-                Ok(acc)
-            }
-            other => Err(TypeMetadataError::JsonPathConversion(other.to_string())),
-        })?;
-
-        Ok(json_path)
-    }
-
     pub(crate) fn path_to_string(path: &[ClaimPath]) -> String {
         path.iter().fold(String::new(), |mut output, path| {
             let _ = write!(output, "[{path}]");
@@ -1301,37 +1301,34 @@ mod test {
 
     #[test]
     fn test_to_json_path() {
-        fn create_claim_meta(paths: Vec<ClaimPath>) -> ClaimMetadata {
-            ClaimMetadata {
-                path: VecNonEmpty::try_from(paths).unwrap(),
-                display: vec![],
-                sd: ClaimSelectiveDisclosureMetadata::Allowed,
-                svg_id: None,
-            }
-        }
-
         assert_eq!(
             "/a/b/c",
-            create_claim_meta(vec![
-                ClaimPath::SelectByKey(String::from("a")),
-                ClaimPath::SelectByKey(String::from("b")),
-                ClaimPath::SelectByKey(String::from("c")),
-            ])
-            .to_json_path()
+            claim_paths_to_json_path(
+                &VecNonEmpty::try_from(vec![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("b")),
+                    ClaimPath::SelectByKey(String::from("c")),
+                ])
+                .unwrap()
+            )
             .unwrap()
         );
 
         assert_matches!(
-            create_claim_meta(vec![
-                ClaimPath::SelectByKey(String::from("a")),
-                ClaimPath::SelectByIndex(0),
-            ])
-            .to_json_path(),
+            claim_paths_to_json_path(
+                &VecNonEmpty::try_from(vec![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByIndex(0),
+                ])
+                .unwrap()
+            ),
             Err(TypeMetadataError::JsonPathConversion(_))
         );
 
         assert_matches!(
-            create_claim_meta(vec![ClaimPath::SelectByKey(String::from("a")), ClaimPath::SelectAll,]).to_json_path(),
+            claim_paths_to_json_path(
+                &VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("a")), ClaimPath::SelectAll,]).unwrap()
+            ),
             Err(TypeMetadataError::JsonPathConversion(_))
         );
     }
