@@ -213,11 +213,11 @@ where
 
         encoded_x5c
             .iter()
-            .flat_map(|encoded_cert| {
+            .map(|encoded_cert| {
                 BASE64_STANDARD
                     .decode(encoded_cert)
                     .map_err(JwtX5cError::CertificateBase64)
-                    .map(|bytes| BorrowingCertificate::from_der(bytes).map_err(JwtX5cError::CertificateParsing))
+                    .and_then(|bytes| BorrowingCertificate::from_der(bytes).map_err(JwtX5cError::CertificateParsing))
             })
             .try_collect()
     }
