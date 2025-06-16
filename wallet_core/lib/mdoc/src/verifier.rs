@@ -26,7 +26,6 @@ use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::dh_hmac_key;
 use crate::utils::serialization::cbor_serialize;
-use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::JsonCborValue;
 use crate::utils::serialization::TaggedBytes;
 use crate::Result;
@@ -303,9 +302,8 @@ impl Document {
 
         debug!("serializing session transcript");
         let session_transcript_bts = cbor_serialize(&TaggedBytes(session_transcript))?;
-        let device_authentication = DeviceAuthenticationKeyed::new(&self.doc_type, session_transcript);
         debug!("serializing device_authentication");
-        let device_authentication_bts = cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
+        let device_authentication_bts = DeviceAuthenticationKeyed::challenge(&self.doc_type, session_transcript)?;
 
         debug!("extracting device_key");
         let device_key = (&mso.device_key_info.device_key).try_into()?;

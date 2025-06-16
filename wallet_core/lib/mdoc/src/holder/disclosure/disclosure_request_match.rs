@@ -11,9 +11,6 @@ use crate::holder::HolderError;
 use crate::identifiers::AttributeIdentifier;
 use crate::identifiers::AttributeIdentifierHolder;
 use crate::mdocs::DocType;
-use crate::utils::serialization;
-use crate::utils::serialization::CborSeq;
-use crate::utils::serialization::TaggedBytes;
 use crate::ItemsRequest;
 
 use super::proposed_document::ProposedDocument;
@@ -131,9 +128,7 @@ impl<I> DisclosureRequestMatch<I> {
 
                 // Calculate the `DeviceAuthentication` for this `doc_type` and turn it into bytes,
                 // so that it can be used as a challenge when constructing `DeviceSigned` later on.
-                let device_authentication = DeviceAuthenticationKeyed::new(doc_type, session_transcript);
-                let device_signed_challenge =
-                    serialization::cbor_serialize(&TaggedBytes(CborSeq(device_authentication)))?;
+                let device_signed_challenge = DeviceAuthenticationKeyed::challenge(doc_type, session_transcript)?;
 
                 // Get all the candidates and missing attributes from the provided `Mdoc`s.
                 let (candidates, missing_attributes) =
@@ -211,6 +206,7 @@ mod tests {
     use crate::test::data::pid_given_name;
     use crate::test::TestDocument;
     use crate::test::TestDocuments;
+    use crate::utils::serialization::TaggedBytes;
 
     use super::*;
 

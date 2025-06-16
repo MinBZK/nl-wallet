@@ -477,9 +477,7 @@ mod tests {
     use mdoc::identifiers::AttributeIdentifier;
     use mdoc::identifiers::AttributeIdentifierHolder;
     use mdoc::utils::cose::ClonePayload;
-    use mdoc::utils::serialization::cbor_serialize;
     use mdoc::utils::serialization::CborBase64;
-    use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::TaggedBytes;
     use mdoc::DeviceAuth;
     use mdoc::DeviceAuthenticationKeyed;
@@ -690,8 +688,8 @@ mod tests {
             .into_iter()
             .zip(public_keys)
             .for_each(|(document, public_key)| {
-                let device_authentication = DeviceAuthenticationKeyed::new(&document.doc_type, &session_transcript);
-                let device_authentication_bytes = cbor_serialize(&TaggedBytes(CborSeq(device_authentication))).unwrap();
+                let device_authentication_bytes =
+                    DeviceAuthenticationKeyed::challenge(&document.doc_type, &session_transcript).unwrap();
 
                 match document.device_signed.device_auth {
                     DeviceAuth::DeviceSignature(signature) => signature
