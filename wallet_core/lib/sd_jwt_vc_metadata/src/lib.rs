@@ -7,4 +7,4 @@ mod metadata;
 mod normalized;
 
 #[cfg(any(test, feature = "example_constructors"))]
-mod examples;
+pub mod examples;

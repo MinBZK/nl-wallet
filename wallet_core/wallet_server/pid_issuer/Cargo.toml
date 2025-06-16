@@ -41,7 +41,7 @@ integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversi
 anyhow.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
 chrono = { workspace = true, features = ["serde", "std"] }
-config = { workspace = true, features = ["toml"] }
+config = { workspace = true, features = ["toml", "preserve_order"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, features = ["serde"] }
 p256 = { workspace = true, features = ["ecdsa", "pkcs8"] }

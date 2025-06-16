@@ -41,7 +41,8 @@ pub fn mock_issuable_document_pid() -> IssuableDocument {
                 PID_BSN.to_string(),
                 Attribute::Single(AttributeValue::Text("999991772".to_string())),
             ),
-        ]),
+        ])
+        .into(),
     )
     .unwrap()
 }
@@ -73,7 +74,8 @@ pub fn mock_issuable_document_address() -> IssuableDocument {
                     Attribute::Single(AttributeValue::Text("Nederland".to_string())),
                 ),
             ])),
-        )]),
+        )])
+        .into(),
     )
     .unwrap()
 }

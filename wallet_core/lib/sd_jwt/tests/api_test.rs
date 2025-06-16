@@ -234,8 +234,8 @@ async fn test_presentation() -> anyhow::Result<()> {
       ]
     });
 
-    let ca = Ca::generate("myca", Default::default()).unwrap();
-    let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone()).unwrap();
+    let ca = Ca::generate("myca", Default::default())?;
+    let certificate = BorrowingCertificate::from_certificate_der(ca.as_certificate_der().clone())?;
 
     let issuer_privkey = SigningKey::random(&mut OsRng);
     println!(

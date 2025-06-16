@@ -703,11 +703,13 @@ mod tests {
     use mdoc::DataElementValue;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::issuance_session::CredentialWithMetadata;
+    use openid4vc::issuance_session::IssuedCredential;
     use openid4vc::issuance_session::IssuedCredentialCopies;
     use openid4vc::DisclosureErrorResponse;
     use openid4vc::ErrorResponse;
     use openid4vc::GetRequestErrorCode;
     use openid4vc::PostAuthResponseErrorCode;
+    use sd_jwt_vc_metadata::examples::VCT_EXAMPLE_CREDENTIAL;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
@@ -830,7 +832,7 @@ mod tests {
         );
 
         // Starting disclosure should not cause mdoc copy usage counts to be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -1132,7 +1134,7 @@ mod tests {
         );
 
         // Cancelling disclosure should not cause mdoc copy usage counts to be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
     }
 
     #[tokio::test]
@@ -1327,7 +1329,7 @@ mod tests {
             .unwrap());
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),
@@ -1365,7 +1367,7 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // The mdoc copy usage counts should not be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
 
         // Verify no Disclosure events are logged
         assert!(wallet
@@ -1444,7 +1446,7 @@ mod tests {
         assert!(!wallet.is_locked());
 
         // The mdoc copy usage counts should not be incremented.
-        assert!(wallet.storage.read().await.mdoc_copies_usage_counts.is_empty());
+        assert!(wallet.storage.read().await.attestation_copies_usage_counts.is_empty());
 
         // Verify no Disclosure events are logged
         assert!(wallet
@@ -1506,13 +1508,13 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        assert_eq!(wallet.storage.read().await.mdoc_copies_usage_counts.len(), 1);
+        assert_eq!(wallet.storage.read().await.attestation_copies_usage_counts.len(), 1);
         assert_eq!(
             wallet
                 .storage
                 .read()
                 .await
-                .mdoc_copies_usage_counts
+                .attestation_copies_usage_counts
                 .get(&PROPOSED_ID)
                 .copied()
                 .unwrap_or_default(),
@@ -1565,7 +1567,7 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented again for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),
@@ -1646,7 +1648,7 @@ mod tests {
         }
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),
@@ -1748,7 +1750,7 @@ mod tests {
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
 
         // Test that the usage count got incremented for the proposed mdoc copy id.
-        let mdoc_copies_usage_counts = &wallet.storage.read().await.mdoc_copies_usage_counts;
+        let mdoc_copies_usage_counts = &wallet.storage.read().await.attestation_copies_usage_counts;
         assert_eq!(mdoc_copies_usage_counts.len(), 1);
         assert_eq!(
             mdoc_copies_usage_counts.get(&PROPOSED_ID).copied().unwrap_or_default(),
@@ -1810,6 +1812,9 @@ mod tests {
         let mdoc1 = Mdoc::new_mock().await;
         let mdoc2 = Mdoc::new_mock_with_doctype("com.example.doc_type").await;
 
+        let credential1 = IssuedCredential::MsoMdoc(Box::new(mdoc1.clone()));
+        let credential2 = IssuedCredential::MsoMdoc(Box::new(mdoc2.clone()));
+
         // Place 3 copies of each `Mdoc` into `MockStorage`.
         wallet
             .storage
@@ -1817,15 +1822,21 @@ mod tests {
             .await
             .insert_credentials(vec![
                 CredentialWithMetadata::new(
-                    IssuedCredentialCopies::MsoMdoc(
-                        vec![mdoc1.clone(), mdoc1.clone(), mdoc1.clone()].try_into().unwrap(),
+                    IssuedCredentialCopies::new_or_panic(
+                        vec![credential1.clone(), credential1.clone(), credential1.clone()]
+                            .try_into()
+                            .unwrap(),
                     ),
+                    String::from(VCT_EXAMPLE_CREDENTIAL),
                     VerifiedTypeMetadataDocuments::nl_pid_example(),
                 ),
                 CredentialWithMetadata::new(
-                    IssuedCredentialCopies::MsoMdoc(
-                        vec![mdoc2.clone(), mdoc2.clone(), mdoc2.clone()].try_into().unwrap(),
+                    IssuedCredentialCopies::new_or_panic(
+                        vec![credential2.clone(), credential2.clone(), credential2.clone()]
+                            .try_into()
+                            .unwrap(),
                     ),
+                    String::from("com.example.doc_type"),
                     // Note that the attestation type of this metadata does not match the mdoc doc_type,
                     // which is not relevant for this particular test.
                     VerifiedTypeMetadataDocuments::nl_pid_example(),

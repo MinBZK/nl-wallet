@@ -118,7 +118,8 @@ fn pid_without_optionals() -> IssuableDocument {
                 PID_BSN.to_string(),
                 Attribute::Single(AttributeValue::Text("999991772".to_string())),
             ),
-        ]),
+        ])
+        .into(),
     )
     .unwrap()
 }
@@ -140,7 +141,8 @@ fn pid_missing_required() -> IssuableDocument {
                 Attribute::Single(AttributeValue::Text("1997-05-10".to_string())),
             ),
             // bsn is missing, which is required
-        ]),
+        ])
+        .into(),
     )
     .unwrap()
 }
@@ -228,7 +230,7 @@ async fn test_pid_missing_required_attributes() {
         IssuanceError::IssuerServer {
             error: IssuanceSessionError::CredentialRequest(ErrorResponse { error_description: Some(description), .. }),
             ..
-            } if description == "error converting CredentialPayload to Mdoc: metadata validation error: JSON schema validation failed for vct \"urn:eudi:pid:nl:1\": \"bsn\" is a required property"
+            } if description.contains("\"urn:eudi:pid:nl:1\": \"bsn\" is a required property")
     ));
 }
 

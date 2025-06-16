@@ -1,14 +1,15 @@
-use std::fmt::Debug;
+use std::fmt;
 
 use chrono::Duration;
 use chrono::Utc;
 use ciborium::Value;
 use coset::CoseSign1;
+use derive_more::Debug;
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ssri::Integrity;
 
-use attestation_data::attributes::Attribute;
+use attestation_data::attributes::Attributes;
 use attestation_data::attributes::Entry;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
@@ -79,9 +80,9 @@ impl<T> From<T> for DebugCollapseBts<T> {
     }
 }
 
-impl<T> Debug for DebugCollapseBts<T>
+impl<T> fmt::Debug for DebugCollapseBts<T>
 where
-    T: Debug,
+    T: fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // Match numbers within square brackets, e.g.: [1, 2, 3]
@@ -164,9 +165,11 @@ impl DeviceRequest {
 pub struct TestDocument {
     pub doc_type: String,
     pub issuer_uri: HttpsUri,
-    // TODO: change to: pub attributes: IndexMap<String, Attribute> in PVW-4138, or even remove TestDocument altogether?
+    // TODO: change to: pub attributes: IndexMap<String, Attribute> in PVW-4138, or even remove TestDocument
+    // altogether?
     pub namespaces: IndexMap<String, Vec<Entry>>,
     pub metadata_integrity: Integrity,
+    #[debug(skip)]
     pub metadata: TypeMetadataDocuments,
 }
 
@@ -201,7 +204,7 @@ impl TestDocument {
         KF: KeyFactory,
     {
         let (normalized_metadata, _) = self.metadata.into_normalized(&self.doc_type).unwrap();
-        let attributes = Attribute::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
+        let attributes = Attributes::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
 
         let now = Utc::now();
         let payload_preview = PreviewableCredentialPayload {

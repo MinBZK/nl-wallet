@@ -96,5 +96,5 @@ async fn test_pid_issuance_digid_bridge() {
         .unwrap();
 
     assert_eq!(2, credential_with_metadata.len());
-    assert_eq!(2, credential_with_metadata[0].copies.len());
+    assert_eq!(2, credential_with_metadata[0].copies.as_ref().as_slice().len());
 }

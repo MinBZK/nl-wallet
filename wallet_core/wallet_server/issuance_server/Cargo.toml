@@ -32,7 +32,7 @@ integration_test = []
 anyhow.workspace = true
 async-trait.workspace = true
 axum = { workspace = true, features = ["form", "http1", "json", "query", "tokio", "tower-log", "tracing"] }
-config = { workspace = true, features = ["toml"] }
+config = { workspace = true, features = ["toml", "preserve_order"] }
 chrono.workspace = true
 futures = { workspace = true, features = ["std", "async-await"] }
 indexmap = { workspace = true, features = ["serde"] }

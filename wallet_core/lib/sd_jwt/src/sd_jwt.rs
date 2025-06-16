@@ -4,8 +4,6 @@
 use std::collections::HashSet;
 use std::fmt::Display;
 
-use base64::prelude::BASE64_URL_SAFE_NO_PAD;
-use base64::Engine;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
@@ -23,6 +21,7 @@ use crypto::x509::BorrowingCertificate;
 use crypto::EcdsaKeySend;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
+use jwt::Jwt;
 use jwt::VerifiedJwt;
 use utils::spec::SpecOptional;
 
@@ -84,7 +83,7 @@ impl SdJwtPresentation {
     pub fn parse_and_verify(
         sd_jwt: &str,
         issuer_pubkey: &EcdsaDecodingKey,
-        hasher: &dyn Hasher,
+        hasher: &impl Hasher,
         kb_expected_aud: &str,
         kb_expected_nonce: &str,
         kb_iat_acceptance_window: Duration,
@@ -198,7 +197,40 @@ impl SdJwt {
     ///
     /// ## Error
     /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey, hasher: &dyn Hasher) -> Result<Self> {
+    pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey, hasher: &impl Hasher) -> Result<Self> {
+        let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt, hasher)?;
+
+        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
+        let issuer_signed_jwt = VerifiedJwt::try_new(jwt, pubkey, &sd_jwt_validation())?;
+
+        Ok(Self {
+            issuer_signed_jwt,
+            issuer_certificates,
+            disclosures,
+        })
+    }
+
+    /// Parses an SD-JWT into its components as [`SdJwt`] without verifying the signature.
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn dangerous_parse_unverified(sd_jwt: &str, hasher: &impl Hasher) -> Result<Self> {
+        let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt, hasher)?;
+
+        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
+        let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt)?;
+
+        Ok(Self {
+            issuer_signed_jwt,
+            issuer_certificates,
+            disclosures,
+        })
+    }
+
+    fn parse_sd_jwt_unverified(
+        sd_jwt: &str,
+        hasher: &impl Hasher,
+    ) -> Result<(Jwt<SdJwtClaims>, IndexMap<String, Disclosure>)> {
         if !sd_jwt.ends_with("~") {
             return Err(Error::Deserialization(
                 "SD-JWT format is invalid, input doesn't and with '~'".to_string(),
@@ -209,9 +241,7 @@ impl SdJwt {
             "SD-JWT format is invalid, input doesn't contain a '~'".to_string(),
         ))?;
 
-        let issuer_signed_jwt = VerifiedJwt::try_new(sd_jwt_segment.parse()?, pubkey, &sd_jwt_validation())?;
-
-        let issuer_certificates = Self::parse_x5c_header(&issuer_signed_jwt)?;
+        let jwt: Jwt<SdJwtClaims> = sd_jwt_segment.parse()?;
 
         let disclosures = disclosure_segments
             .split("~")
@@ -222,11 +252,7 @@ impl SdJwt {
                 Ok::<_, Error>(acc)
             })?;
 
-        Ok(Self {
-            issuer_signed_jwt,
-            issuer_certificates,
-            disclosures,
-        })
+        Ok((jwt, disclosures))
     }
 
     /// Prepares this [`SdJwt`] for a presentation, returning an [`SdJwtPresentationBuilder`].
@@ -255,22 +281,6 @@ impl SdJwt {
         let object = serde_json::to_value(self.claims())?;
 
         decoder.decode(object.as_object().unwrap(), &self.disclosures)
-    }
-
-    fn parse_x5c_header(jwt: &VerifiedJwt<SdJwtClaims>) -> Result<Vec<BorrowingCertificate>> {
-        let Some(encoded_x5c) = &jwt.header().x5c else {
-            return Ok(vec![]);
-        };
-
-        encoded_x5c
-            .iter()
-            .flat_map(|encoded_cert| {
-                BASE64_URL_SAFE_NO_PAD
-                    .decode(encoded_cert)
-                    .map_err(Error::Base64Decode)
-                    .map(|bytes| BorrowingCertificate::from_der(bytes).map_err(Error::IssuerCertificate))
-            })
-            .try_collect()
     }
 }
 

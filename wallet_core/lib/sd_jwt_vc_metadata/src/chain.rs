@@ -86,7 +86,7 @@ impl SortedTypeMetadata {
 /// a [`SortedTypeMetadataDocuments`] type, which then can be turned into [`VerifiedTypeMetadataDocuments`] by verifying
 /// its integrity.
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, AsRef, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, AsRef, Serialize, Deserialize)]
 pub struct TypeMetadataDocuments(
     #[serde_as(as = "IfIsHumanReadable<Vec<Base64<UrlSafe, Unpadded>>, Vec<Bytes>>")] VecNonEmpty<Vec<u8>>,
 );
@@ -428,6 +428,9 @@ mod test {
     use crate::examples::EXAMPLE_V2_METADATA_BYTES;
     use crate::examples::EXAMPLE_V3_METADATA_BYTES;
     use crate::examples::PID_METADATA_BYTES;
+    use crate::examples::VCT_EXAMPLE_CREDENTIAL;
+    use crate::examples::VCT_EXAMPLE_CREDENTIAL_V2;
+    use crate::examples::VCT_EXAMPLE_CREDENTIAL_V3;
     use crate::metadata::MetadataExtends;
     use crate::metadata::TypeMetadata;
     use crate::metadata::UncheckedTypeMetadata;
@@ -464,21 +467,12 @@ mod test {
     }
 
     #[rstest]
-    #[case(
-        "https://sd_jwt_vc_metadata.example.com/example_credential",
-        TypeMetadataDocuments::example()
-    )]
+    #[case(VCT_EXAMPLE_CREDENTIAL, TypeMetadataDocuments::example())]
     #[case("urn:eudi:pid:nl:1", TypeMetadataDocuments::nl_pid_example())]
     #[case("urn:eudi:pid-address:nl:1", TypeMetadataDocuments::address_example())]
     #[case("com.example.degree", TypeMetadataDocuments::degree_example())]
-    #[case(
-        "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
-        TypeMetadataDocuments::example_with_extensions()
-    )]
-    #[case(
-        "https://sd_jwt_vc_metadata.example.com/example_credential_v3",
-        reversed_example_with_extension()
-    )]
+    #[case(VCT_EXAMPLE_CREDENTIAL_V3, TypeMetadataDocuments::example_with_extensions())]
+    #[case(VCT_EXAMPLE_CREDENTIAL_V3, reversed_example_with_extension())]
     fn test_type_metadata_documents(
         #[case] vct: &str,
         #[case] (integrity, source_documents): (Integrity, TypeMetadataDocuments),
@@ -541,7 +535,7 @@ mod test {
 
         let mut example_metadata = TypeMetadata::example().into_inner();
         example_metadata.extends = Some(MetadataExtends {
-            extends: "https://sd_jwt_vc_metadata.example.com/example_credential".to_string(),
+            extends: VCT_EXAMPLE_CREDENTIAL.to_string(),
             extends_integrity: Integrity::from(&example_extension_document).into(),
         });
         let example_metadata = TypeMetadata::try_new(example_metadata).unwrap();
@@ -558,7 +552,7 @@ mod test {
         assert_matches!(
             error,
             TypeMetadataChainError::CircularChain(vct)
-                if vct == "https://sd_jwt_vc_metadata.example.com/example_credential"
+                if vct == VCT_EXAMPLE_CREDENTIAL
         );
     }
 
@@ -571,7 +565,7 @@ mod test {
         let documents = TypeMetadataDocuments::new(json_documents.try_into().unwrap());
 
         let error = documents
-            .into_normalized("https://sd_jwt_vc_metadata.example.com/example_credential_v3")
+            .into_normalized(VCT_EXAMPLE_CREDENTIAL_V3)
             .expect_err("parsing metadata document chain should not succeed");
 
         assert_matches!(error, TypeMetadataChainError::ExcessDocuments(vcts) if vcts == vec!["urn:eudi:pid:nl:1"]);
@@ -594,7 +588,7 @@ mod test {
         );
 
         documents
-            .into_normalized("https://sd_jwt_vc_metadata.example.com/example_credential_v2")
+            .into_normalized(VCT_EXAMPLE_CREDENTIAL_V2)
             .expect_err("parsing metadata document chain should not succeed")
     }
 
@@ -624,7 +618,7 @@ mod test {
             .result();
         let (_, documents) = TypeMetadataDocuments::example_with_extensions();
         let (_, leaf_document) = documents
-            .into_normalized("https://sd_jwt_vc_metadata.example.com/example_credential_v3")
+            .into_normalized(VCT_EXAMPLE_CREDENTIAL_V3)
             .expect("parsing metadata document chain should succeed");
         let error = leaf_document
             .into_verified(integrity)
