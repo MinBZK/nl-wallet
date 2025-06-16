@@ -556,7 +556,7 @@ mod test {
     }
 
     #[test]
-    fn test_attribute_to_mdoc_attributes() {
+    fn test_attributes_to_mdoc_attributes() {
         let attributes = setup_issuable_attributes().to_mdoc_attributes("com.example.address");
 
         assert_eq!(
@@ -575,7 +575,7 @@ mod test {
     }
 
     #[test]
-    fn test_attribute_to_mdoc_attributes_empty_root() {
+    fn test_attributes_to_mdoc_attributes_empty_root() {
         let attestation_type = "com.example.address";
         let nested_attributes: Attributes = IndexMap::from_iter(vec![(
             "house".to_string(),
