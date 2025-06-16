@@ -362,28 +362,26 @@ impl MdocDataSource for MockMdocDataSource {
         &self,
         doc_types: &HashSet<&str>,
     ) -> Result<Vec<Vec<StoredMdoc<Self::MdocIdentifier>>>, Self::Error> {
-        let mut grouped = Vec::new();
-
-        for (doc_type, chunk) in &self.0.iter().chunk_by(|(doc_type, _)| *doc_type) {
-            let mdocs = chunk
-                .into_iter()
-                .filter_map(|(_, (mdoc, normalized_metadata))| {
-                    if doc_types.contains(doc_type.as_str()) {
-                        Some(StoredMdoc {
+        let mdoc_by_doc_type = self
+            .0
+            .iter()
+            .chunk_by(|(doc_type, _)| *doc_type)
+            .into_iter()
+            .filter_map(|(doc_type, mdocs)| {
+                doc_types.contains(doc_type.as_str()).then(|| {
+                    mdocs
+                        .into_iter()
+                        .map(|(_, (mdoc, normalized_metadata))| StoredMdoc {
                             id: doc_type.clone(),
                             mdoc: mdoc.clone(),
                             normalized_metadata: normalized_metadata.clone(),
                         })
-                    } else {
-                        None
-                    }
+                        .collect()
                 })
-                .collect_vec();
+            })
+            .collect();
 
-            grouped.push(mdocs);
-        }
-
-        Ok(grouped)
+        Ok(mdoc_by_doc_type)
     }
 }
 
