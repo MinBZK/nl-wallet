@@ -221,13 +221,11 @@ impl Storage for MockStorage {
 
         let mdocs = copies
             .into_iter()
-            .filter(|copy| match &copy.attestation {
-                StoredAttestationFormat::MsoMdoc { mdoc } => doc_types.contains(mdoc.doc_type().as_str()),
-                _ => false,
-            })
             .filter_map(|copy| {
                 match copy.attestation {
-                    StoredAttestationFormat::MsoMdoc { mdoc } => Some(*mdoc),
+                    StoredAttestationFormat::MsoMdoc { mdoc } if doc_types.contains(mdoc.doc_type().as_str()) => {
+                        Some(*mdoc)
+                    }
                     _ => None,
                 }
                 .map(|mdoc| StoredMdocCopy {
