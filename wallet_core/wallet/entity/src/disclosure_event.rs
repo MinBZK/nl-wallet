@@ -2,8 +2,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use sea_orm::entity::prelude::*;
 
-use crate::disclosure_history_event_attestation_type;
-use crate::history_attestation_type;
+use super::disclosure_event_attestation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Text")]
@@ -26,32 +25,33 @@ pub enum EventType {
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
-#[sea_orm(table_name = "disclosure_history_event")]
+#[sea_orm(table_name = "disclosure_event")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub timestamp: DateTime<Utc>,
     pub relying_party_certificate: Vec<u8>,
     pub status: EventStatus,
-    pub attestations: Option<Json>,
     pub r#type: EventType,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {}
+#[derive(Copy, Clone, Debug, EnumIter)]
+pub enum Relation {
+    DisclosureEventAttestation,
+}
 
-impl ActiveModelBehavior for ActiveModel {}
-
-impl Related<history_attestation_type::Entity> for Entity {
-    fn to() -> RelationDef {
-        disclosure_history_event_attestation_type::Relation::HistoryAttestationType.def()
-    }
-
-    fn via() -> Option<RelationDef> {
-        Some(
-            disclosure_history_event_attestation_type::Relation::HistoryEvent
-                .def()
-                .rev(),
-        )
+impl RelationTrait for Relation {
+    fn def(&self) -> RelationDef {
+        match self {
+            Self::DisclosureEventAttestation => Entity::has_many(disclosure_event_attestation::Entity).into(),
+        }
     }
 }
+
+impl Related<disclosure_event_attestation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::DisclosureEventAttestation.def()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}

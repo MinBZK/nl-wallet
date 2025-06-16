@@ -1,9 +1,11 @@
 use std::collections::HashSet;
 use std::convert::identity;
 use std::path::PathBuf;
+use std::str::FromStr;
 
+use chrono::DateTime;
+use chrono::Utc;
 use futures::try_join;
-use itertools::Itertools;
 use sea_orm::sea_query::Alias;
 use sea_orm::sea_query::BinOper;
 use sea_orm::sea_query::Expr;
@@ -12,17 +14,11 @@ use sea_orm::sea_query::Query;
 use sea_orm::ActiveModelTrait;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
-use sea_orm::DbErr;
 use sea_orm::EntityTrait;
-use sea_orm::IntoSimpleExpr;
-use sea_orm::JoinType;
-use sea_orm::ModelTrait;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QueryResult;
 use sea_orm::QuerySelect;
-use sea_orm::RelationDef;
-use sea_orm::RelationTrait;
 use sea_orm::Select;
 use sea_orm::Set;
 use sea_orm::StatementBuilder;
@@ -41,12 +37,11 @@ use entity::attestation;
 use entity::attestation::TypeMetadataModel;
 use entity::attestation_copy;
 use entity::attestation_copy::AttestationFormat;
-use entity::disclosure_history_event;
-use entity::disclosure_history_event::EventStatus;
-use entity::disclosure_history_event_attestation_type;
-use entity::history_attestation_type;
-use entity::issuance_history_event;
-use entity::issuance_history_event_attestation_type;
+use entity::disclosure_event;
+use entity::disclosure_event::EventStatus;
+use entity::disclosure_event_attestation;
+use entity::issuance_event;
+use entity::issuance_event_attestation;
 use entity::keyed_data;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
@@ -69,90 +64,15 @@ use super::StorageState;
 use super::StoredAttestationCopy;
 use super::StoredAttestationFormat;
 use super::StoredMdocCopy;
+use crate::AttestationIdentity;
+use crate::AttestationPresentation;
+use crate::DisclosureStatus;
+use crate::DisclosureType;
 
 const DATABASE_NAME: &str = "wallet";
 const KEY_FILE_SUFFIX: &str = "_db";
 const DATABASE_FILE_EXT: &str = "db";
 const KEY_IDENTIFIER_PREFIX: &str = "keyfile_";
-
-/// Enumerates the different database models for a [`WalletEvent`].
-enum WalletEventModel {
-    Issuance(issuance_history_event::Model),
-    Disclosure(disclosure_history_event::Model),
-}
-
-impl WalletEventModel {
-    /// Convert a [`WalletEvent`] to one of two database models.
-    fn from_wallet_event(wallet_event: WalletEvent) -> Result<Self, serde_json::Error> {
-        let result = match wallet_event {
-            WalletEvent::Issuance {
-                id,
-                attestations,
-                timestamp,
-            } => Self::Issuance(issuance_history_event::Model {
-                id,
-                timestamp,
-                attestations: serde_json::to_value(attestations)?,
-            }),
-            WalletEvent::Disclosure {
-                id,
-                attestations,
-                timestamp,
-                reader_certificate,
-                status,
-                r#type,
-                ..
-            } => Self::Disclosure(disclosure_history_event::Model {
-                id,
-                timestamp,
-                relying_party_certificate: (*reader_certificate).into(),
-                status,
-                attestations: (!attestations.is_empty())
-                    .then(|| serde_json::to_value(attestations))
-                    .transpose()?,
-                r#type,
-            }),
-        };
-        Ok(result)
-    }
-}
-
-/// Convert the database model to a [`WalletEvent`].
-impl WalletEvent {
-    fn from_issuance_model(event: issuance_history_event::Model) -> Result<Self, serde_json::Error> {
-        let wallet_event = Self::Issuance {
-            id: event.id,
-            attestations: serde_json::from_value(event.attestations)?,
-            timestamp: event.timestamp,
-        };
-
-        Ok(wallet_event)
-    }
-
-    fn from_disclosure_model(event: disclosure_history_event::Model) -> Result<Self, serde_json::Error> {
-        // Unwrapping here is safe since the certificate has been parsed before
-        let reader_certificate = BorrowingCertificate::from_der(event.relying_party_certificate).unwrap();
-        let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
-            .unwrap()
-            .unwrap();
-
-        let wallet_event = Self::Disclosure {
-            id: event.id,
-            attestations: event
-                .attestations
-                .map(serde_json::from_value)
-                .transpose()?
-                .unwrap_or_default(),
-            timestamp: event.timestamp,
-            reader_certificate: Box::new(reader_certificate),
-            reader_registration: Box::new(reader_registration),
-            status: event.status,
-            r#type: event.r#type,
-        };
-
-        Ok(wallet_event)
-    }
-}
 
 fn key_file_alias_for_name(database_name: &str) -> String {
     // Append suffix to database name to get key file alias
@@ -332,94 +252,71 @@ impl<K> DatabaseStorage<K> {
         Ok(mdocs)
     }
 
-    async fn insert_entity_types(
-        connection: &impl ConnectionTrait,
-        new_entity_type_entities: Vec<history_attestation_type::Model>,
-    ) -> Result<(), DbErr> {
-        if !new_entity_type_entities.is_empty() {
-            let new_entity_type_entities = new_entity_type_entities
-                .into_iter()
-                .map(history_attestation_type::ActiveModel::from)
-                .collect::<Vec<_>>();
-
-            history_attestation_type::Entity::insert_many(new_entity_type_entities)
-                .exec(connection)
-                .await?;
-        }
-        Ok(())
-    }
-
-    async fn query_history_events_by_entity_type<
-        Entity: EntityTrait<Model = Model>,
-        Model: ModelTrait<Entity = Entity>,
-        TimestampColumn: IntoSimpleExpr,
-    >(
-        entity_type: &str,
-        connection: &impl ConnectionTrait,
-        event_relation: RelationDef,
-        entity_type_relation: RelationDef,
-        timestamp_column: TimestampColumn,
-    ) -> Result<Vec<Model>, DbErr> {
-        Entity::find()
-            .join_rev(JoinType::InnerJoin, event_relation)
-            .join(JoinType::InnerJoin, entity_type_relation)
-            .filter(history_attestation_type::Column::AttestationType.eq(entity_type))
-            .order_by_desc(timestamp_column)
-            .all(connection)
-            .await
-    }
-
-    async fn insert_history_event_and_entity_type_mappings<
-        EventEntity: EntityTrait,
-        EventActiveModel: ActiveModelTrait<Entity = EventEntity>,
-        EventEntityTypeEntity: EntityTrait,
-        EventEntityTypeActiveModel: ActiveModelTrait<Entity = EventEntityTypeEntity>,
-        EntityTypeMapper,
-    >(
-        connection: &impl ConnectionTrait,
-        event_entity: EventActiveModel,
-        new_entity_type_entities: Vec<history_attestation_type::Model>,
-        existing_entity_type_entities: Vec<history_attestation_type::Model>,
-        entity_type_mapper: EntityTypeMapper,
-    ) -> StorageResult<()>
-    where
-        EntityTypeMapper: Fn((&EventActiveModel, Uuid)) -> EventEntityTypeActiveModel,
-    {
-        // Prepare the event <-> entity_type mapping entities.
-        // This is done before inserting the `event_entity`, in order to avoid cloning.
-        let event_entity_type_entities = new_entity_type_entities
-            .iter()
-            .chain(existing_entity_type_entities.iter())
-            .map(|entity_type| entity_type_mapper((&event_entity, entity_type.id)))
-            .collect::<Vec<_>>();
-
-        // Insert the event and the new entity_types simultaneously, as they are independent
-        let insert_event = EventEntity::insert(event_entity).exec(connection);
-        let insert_new_entity_types = Self::insert_entity_types(connection, new_entity_type_entities);
-        try_join!(insert_event, insert_new_entity_types)?;
-
-        // Insert the event <-> entity_type mappings
-        if !event_entity_type_entities.is_empty() {
-            EventEntityTypeEntity::insert_many(event_entity_type_entities)
-                .exec(connection)
-                .await?;
-        }
-        Ok(())
-    }
-
-    fn combine_history_events(
-        issuance_events: Vec<issuance_history_event::Model>,
-        disclosure_events: Vec<disclosure_history_event::Model>,
+    fn combine_events(
+        issuance_events: Vec<(issuance_event::Model, Option<issuance_event_attestation::Model>)>,
+        disclosure_events: Vec<(disclosure_event::Model, Option<disclosure_event_attestation::Model>)>,
     ) -> StorageResult<Vec<WalletEvent>> {
-        let mut events: Vec<WalletEvent> = issuance_events
-            .into_iter()
-            .map(WalletEvent::from_issuance_model)
-            .chain(disclosure_events.into_iter().map(WalletEvent::from_disclosure_model))
-            .try_collect()?;
+        // Collect into list of WalletEvent enum
+        let mut wallet_events: Vec<WalletEvent> = Vec::new();
 
-        events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
+        for (event, event_attestation) in issuance_events {
+            // Unwrap is safe here because of inner join
+            let event_attestation = event_attestation.unwrap();
 
-        Ok(events)
+            let attestation =
+                serde_json::from_value::<AttestationPresentation>(event_attestation.attestation_presentation)?;
+
+            let wallet_event = WalletEvent::Issuance {
+                id: event.id,
+                attestation: Box::new(attestation),
+                timestamp: event.timestamp,
+                renewed: event_attestation.renewed,
+            };
+
+            wallet_events.push(wallet_event);
+        }
+
+        let mut disclosure_wallet_events: Vec<WalletEvent> = vec![];
+
+        for (event, att_opt) in disclosure_events {
+            let mut attestations = vec![];
+            if let Some(att) = att_opt {
+                let attestation = serde_json::from_value::<AttestationPresentation>(att.attestation_presentation)?;
+
+                if let Some(WalletEvent::Disclosure { id, attestations, .. }) = disclosure_wallet_events.last_mut() {
+                    if &event.id == id {
+                        attestations.push(attestation);
+                        break;
+                    }
+                } else {
+                    attestations.push(attestation);
+                }
+            }
+
+            // Unwrapping here is safe since the certificate has been parsed before
+            let reader_certificate = BorrowingCertificate::from_der(event.relying_party_certificate).unwrap();
+            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+                .unwrap()
+                .unwrap();
+
+            let wallet_event = WalletEvent::Disclosure {
+                id: event.id,
+                attestations: Box::new(attestations),
+                timestamp: event.timestamp,
+                reader_certificate: Box::new(reader_certificate),
+                reader_registration: Box::new(reader_registration),
+                status: event.status,
+                r#type: event.r#type,
+            };
+
+            disclosure_wallet_events.push(wallet_event);
+        }
+        wallet_events.append(&mut disclosure_wallet_events);
+
+        // Sort by timestamp descending
+        wallet_events.sort_by(|a, b| b.timestamp().cmp(a.timestamp()));
+
+        Ok(wallet_events)
     }
 }
 
@@ -568,17 +465,31 @@ where
         Ok(())
     }
 
-    async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()> {
+    async fn insert_credentials(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+    ) -> StorageResult<()> {
+        let issuance_event_id = Uuid::now_v7();
+
+        let issuance_event = issuance_event::ActiveModel {
+            id: Set(issuance_event_id),
+            timestamp: Set(timestamp),
+        };
+
         // Construct a vec of tuples of 1 `attestation` and 1 or more `attestation_copy` models to be inserted
         // into the database.
         let attestation_models = credentials
             .into_iter()
             .map(
-                |CredentialWithMetadata {
-                     copies,
-                     attestation_type,
-                     metadata_documents,
-                 }| {
+                |(
+                    CredentialWithMetadata {
+                        copies,
+                        attestation_type,
+                        metadata_documents,
+                    },
+                    attestation_presentation,
+                )| {
                     let attestation_id = Uuid::now_v7();
 
                     let attestation_model = attestation::ActiveModel {
@@ -616,13 +527,22 @@ where
                         })
                         .collect::<Result<Vec<_>, _>>()?;
 
-                    Ok((attestation_model, copy_models))
+                    let issuance_event_attestation = issuance_event_attestation::ActiveModel {
+                        id: Set(Uuid::now_v7()),
+                        issuance_event_id: Set(issuance_event_id),
+                        attestation_id: Set(Some(attestation_id)),
+                        attestation_presentation: Set(serde_json::to_value(attestation_presentation)?),
+                        renewed: Set(false),
+                    };
+
+                    Ok((attestation_model, copy_models, issuance_event_attestation))
                 },
             )
             .collect::<Result<Vec<_>, StorageError>>()?;
 
         // Make two separate vecs out of the vec of tuples.
-        let (attestation_models, copy_models): (Vec<_>, Vec<_>) = attestation_models.into_iter().unzip();
+        let (attestation_models, copy_models, issuance_event_attestations): (Vec<_>, Vec<_>, Vec<_>) =
+            itertools::MultiUnzip::multiunzip(attestation_models.into_iter());
 
         let transaction = self.database()?.connection().begin().await?;
 
@@ -630,6 +550,12 @@ where
             .exec(&transaction)
             .await?;
         attestation_copy::Entity::insert_many(copy_models.into_iter().flatten())
+            .exec(&transaction)
+            .await?;
+        issuance_event::Entity::insert(issuance_event)
+            .exec(&transaction)
+            .await?;
+        issuance_event_attestation::Entity::insert_many(issuance_event_attestations)
             .exec(&transaction)
             .await?;
 
@@ -679,61 +605,52 @@ where
         Ok(!result.is_empty())
     }
 
-    async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
+    async fn log_disclosure_event(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        proposed_attestation_presentations: Vec<AttestationPresentation>,
+        reader_certificate: BorrowingCertificate,
+        status: DisclosureStatus,
+        r#type: DisclosureType,
+    ) -> StorageResult<()> {
         let transaction = self.database()?.connection().begin().await?;
 
-        let event_entity_types = event.associated_attestation_types();
+        let event_id = Uuid::now_v7();
 
-        // Find existing entity_type entities
-        let existing_entity_type_entities = history_attestation_type::Entity::find()
-            .filter(history_attestation_type::Column::AttestationType.is_in(event_entity_types.clone()))
-            .all(&transaction)
+        let disclosure_event = disclosure_event::ActiveModel {
+            id: Set(event_id),
+            timestamp: Set(timestamp),
+            relying_party_certificate: Set(reader_certificate.to_vec()),
+            status: Set(status),
+            r#type: Set(r#type),
+        };
+
+        let disclosure_event_attestations = proposed_attestation_presentations
+            .into_iter()
+            .map(|attestation_presentation| {
+                let attestation_id = match &attestation_presentation.identity {
+                    AttestationIdentity::Ephemeral => None,
+                    AttestationIdentity::Fixed { id } => Some(id.clone()),
+                }
+                .ok_or(StorageError::EventEphemeralIdentity)?;
+
+                Ok(disclosure_event_attestation::ActiveModel {
+                    id: Set(Uuid::now_v7()),
+                    disclosure_event_id: Set(event_id),
+                    attestation_id: Set(Some(Uuid::from_str(attestation_id.as_str())?)),
+                    attestation_presentation: Set(serde_json::to_value(attestation_presentation)?),
+                })
+            })
+            .collect::<Result<Vec<_>, StorageError>>()?;
+
+        disclosure_event::Entity::insert(disclosure_event)
+            .exec(&transaction)
             .await?;
 
-        // Get Vec of existing entity_types
-        let existing_entity_types = existing_entity_type_entities
-            .iter()
-            .map(|e| e.attestation_type.as_str())
-            .collect::<Vec<_>>();
-
-        // Determine what new entity_type entries need to be inserted
-        let new_entity_type_entities = event_entity_types
-            .into_iter()
-            .filter(|entity_type| !existing_entity_types.contains(entity_type))
-            .map(|entity_type| history_attestation_type::Model {
-                id: Uuid::now_v7(),
-                attestation_type: entity_type.to_owned(),
-            })
-            .collect::<Vec<_>>();
-
-        // Insert the history event
-        match WalletEventModel::from_wallet_event(event)? {
-            WalletEventModel::Issuance(event_entity) => {
-                Self::insert_history_event_and_entity_type_mappings(
-                    &transaction,
-                    issuance_history_event::ActiveModel::from(event_entity),
-                    new_entity_type_entities,
-                    existing_entity_type_entities,
-                    |(event, entity_type_id)| issuance_history_event_attestation_type::ActiveModel {
-                        issuance_history_event_id: event.id.clone(),
-                        history_attestation_type_id: Set(entity_type_id),
-                    },
-                )
+        if !disclosure_event_attestations.is_empty() {
+            disclosure_event_attestation::Entity::insert_many(disclosure_event_attestations)
+                .exec(&transaction)
                 .await?;
-            }
-            WalletEventModel::Disclosure(event_entity) => {
-                Self::insert_history_event_and_entity_type_mappings(
-                    &transaction,
-                    disclosure_history_event::ActiveModel::from(event_entity),
-                    new_entity_type_entities,
-                    existing_entity_type_entities,
-                    |(event, entity_type_id)| disclosure_history_event_attestation_type::ActiveModel {
-                        disclosure_history_event_id: event.id.clone(),
-                        history_attestation_type_id: Set(entity_type_id),
-                    },
-                )
-                .await?;
-            }
         }
 
         transaction.commit().await?;
@@ -744,68 +661,81 @@ where
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let fetch_issuance_events = issuance_history_event::Entity::find()
-            .order_by_desc(issuance_history_event::Column::Timestamp)
+        let fetch_issuance_events = issuance_event::Entity::find()
+            .inner_join(issuance_event_attestation::Entity)
+            .select_also(issuance_event_attestation::Entity)
+            .order_by_desc(issuance_event::Column::Timestamp)
             .all(connection);
 
-        let fetch_disclosure_events = disclosure_history_event::Entity::find()
-            .order_by_desc(disclosure_history_event::Column::Timestamp)
+        let fetch_disclosure_events = disclosure_event::Entity::find()
+            .left_join(disclosure_event_attestation::Entity)
+            .select_also(disclosure_event_attestation::Entity)
+            .order_by_desc(disclosure_event::Column::Timestamp)
             .all(connection);
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
 
-        Self::combine_history_events(issuance_events, disclosure_events)
+        Self::combine_events(issuance_events, disclosure_events)
     }
 
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let fetch_issuance_events = issuance_history_event::Entity::find()
-            .filter(Self::newer_than_31_days(issuance_history_event::Column::Timestamp))
-            .order_by_desc(issuance_history_event::Column::Timestamp)
+        let fetch_issuance_events = issuance_event::Entity::find()
+            .inner_join(issuance_event_attestation::Entity)
+            .select_also(issuance_event_attestation::Entity)
+            .filter(Self::newer_than_31_days(issuance_event::Column::Timestamp))
+            .order_by_desc(issuance_event::Column::Timestamp)
             .all(connection);
 
-        let fetch_disclosure_events = disclosure_history_event::Entity::find()
-            .filter(Self::newer_than_31_days(disclosure_history_event::Column::Timestamp))
-            .order_by_desc(disclosure_history_event::Column::Timestamp)
+        let fetch_disclosure_events = disclosure_event::Entity::find()
+            .left_join(disclosure_event_attestation::Entity)
+            .select_also(disclosure_event_attestation::Entity)
+            .filter(Self::newer_than_31_days(disclosure_event::Column::Timestamp))
+            .order_by_desc(disclosure_event::Column::Timestamp)
             .all(connection);
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
 
-        Self::combine_history_events(issuance_events, disclosure_events)
+        Self::combine_events(issuance_events, disclosure_events)
     }
 
-    async fn fetch_wallet_events_by_attestation_type(&self, attestation_type: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: &str) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
-        let fetch_issuance_events = Self::query_history_events_by_entity_type(
-            attestation_type,
-            connection,
-            issuance_history_event_attestation_type::Relation::HistoryEvent.def(),
-            issuance_history_event_attestation_type::Relation::HistoryAttestationType.def(),
-            issuance_history_event::Column::Timestamp,
-        );
-        let fetch_disclosure_events = Self::query_history_events_by_entity_type(
-            attestation_type,
-            connection,
-            disclosure_history_event_attestation_type::Relation::HistoryEvent.def(),
-            disclosure_history_event_attestation_type::Relation::HistoryAttestationType.def(),
-            disclosure_history_event::Column::Timestamp,
-        );
+        let fetch_issuance_events = issuance_event::Entity::find()
+            .inner_join(issuance_event_attestation::Entity)
+            .select_also(issuance_event_attestation::Entity)
+            .filter(issuance_event_attestation::Column::AttestationId.eq(attestation_id))
+            .order_by_desc(issuance_event::Column::Timestamp)
+            .all(connection);
+
+        let fetch_disclosure_events = disclosure_event::Entity::find()
+            .left_join(disclosure_event_attestation::Entity)
+            .select_also(disclosure_event_attestation::Entity)
+            .filter(disclosure_event_attestation::Column::AttestationId.eq(attestation_id))
+            .order_by_desc(disclosure_event::Column::Timestamp)
+            .all(connection);
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
 
-        Self::combine_history_events(issuance_events, disclosure_events)
+        Self::combine_events(issuance_events, disclosure_events)
     }
 
     // TODO (PVW-4135): Fix logic to uniquely identify an RP, since its certificate may change.
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool> {
         let select_statement = Query::select()
-            .column(disclosure_history_event::Column::RelyingPartyCertificate)
-            .from(disclosure_history_event::Entity)
-            .and_where(Expr::col(disclosure_history_event::Column::RelyingPartyCertificate).eq(certificate.as_ref()))
-            .and_where(Expr::col(disclosure_history_event::Column::Status).eq(EventStatus::Success))
-            .and_where(Expr::col(disclosure_history_event::Column::Attestations).is_not_null())
+            .column((disclosure_event::Entity, disclosure_event::Column::Id))
+            .from(disclosure_event_attestation::Entity)
+            .inner_join(
+                disclosure_event::Entity,
+                Expr::col((disclosure_event::Entity, disclosure_event::Column::Id)).eq(Expr::col((
+                    disclosure_event_attestation::Entity,
+                    disclosure_event_attestation::Column::DisclosureEventId,
+                ))),
+            )
+            .and_where(Expr::col(disclosure_event::Column::RelyingPartyCertificate).eq(certificate.as_ref()))
+            .and_where(Expr::col(disclosure_event::Column::Status).eq(EventStatus::Success))
             .limit(1)
             .take();
 
@@ -830,10 +760,12 @@ pub(crate) mod tests {
     use assert_matches::assert_matches;
     use chrono::TimeZone;
     use chrono::Utc;
+    use itertools::Itertools;
     use tokio::fs;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::credential_payload::IntoCredentialPayload;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
@@ -853,9 +785,6 @@ pub(crate) mod tests {
     use crate::storage::data::RegistrationData;
 
     use super::*;
-
-    const PID_DOCTYPE: &str = "com.example.pid";
-    const ADDRESS_DOCTYPE: &str = "com.example.address";
 
     static ISSUER_KEY: LazyLock<KeyPair> = LazyLock::new(|| {
         let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
@@ -1089,11 +1018,17 @@ pub(crate) mod tests {
 
         // Insert mdocs
         storage
-            .insert_credentials(vec![CredentialWithMetadata::new(
-                issued_mdoc_copies,
-                String::from(attestation_type),
-                VerifiedTypeMetadataDocuments::example(),
-            )])
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_mdoc_copies,
+                        String::from(attestation_type),
+                        VerifiedTypeMetadataDocuments::example(),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
             .await
             .expect("Could not insert attestations");
 
@@ -1182,9 +1117,7 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
-        let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
         let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
@@ -1204,11 +1137,17 @@ pub(crate) mod tests {
 
         // Insert sd_jwts
         storage
-            .insert_credentials(vec![CredentialWithMetadata::new(
-                issued_copies,
-                attestation_type.clone(),
-                VerifiedTypeMetadataDocuments::nl_pid_example(),
-            )])
+            .insert_credentials(
+                Utc::now(),
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies,
+                        attestation_type.clone(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
             .await
             .expect("Could not insert mdocs");
 
@@ -1222,27 +1161,6 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn test_event_log_storage_ordering() {
-        let mut storage = open_test_database_storage().await;
-
-        // State should be Opened.
-        let state = storage.state().await.unwrap();
-        assert!(matches!(state, StorageState::Opened));
-        test_history_ordering(&mut storage).await;
-    }
-
-    #[tokio::test]
-    async fn test_event_log_storage_by_entity_type() {
-        let mut storage = open_test_database_storage().await;
-
-        // State should be Opened.
-        let state = storage.state().await.unwrap();
-        assert!(matches!(state, StorageState::Opened));
-
-        test_history_by_entity_type(&mut storage).await;
-    }
-
-    #[tokio::test]
     async fn test_storing_disclosure_cancel_event() {
         let mut storage = open_test_database_storage().await;
 
@@ -1251,7 +1169,6 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_cancel = WalletEvent::disclosure_cancel(timestamp, READER_KEY.certificate().clone());
 
         // No data shared with RP
         assert!(!storage
@@ -1260,13 +1177,22 @@ pub(crate) mod tests {
             .unwrap());
 
         // Log cancel event
-        storage.log_wallet_event(disclosure_cancel.clone()).await.unwrap();
+        storage
+            .log_disclosure_event(
+                timestamp,
+                vec![],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Cancelled,
+                DisclosureType::Regular,
+            )
+            .await
+            .unwrap();
+
+        let fetched_events = storage.fetch_wallet_events().await.unwrap();
 
         // Cancel event should exist
-        assert_eq!(
-            storage.fetch_wallet_events().await.unwrap(),
-            vec![disclosure_cancel.clone(),]
-        );
+        assert_eq!(fetched_events.len(), 1);
+        assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
 
         // Still no data shared with RP
         assert!(!storage
@@ -1284,7 +1210,6 @@ pub(crate) mod tests {
         assert!(matches!(state, StorageState::Opened));
 
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error = WalletEvent::disclosure_error(timestamp, READER_KEY.certificate().clone());
 
         // No data shared with RP
         assert!(!storage
@@ -1293,13 +1218,22 @@ pub(crate) mod tests {
             .unwrap());
 
         // Log error event
-        storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
+        storage
+            .log_disclosure_event(
+                timestamp,
+                vec![],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Error,
+                DisclosureType::Regular,
+            )
+            .await
+            .unwrap();
+
+        let fetched_events = storage.fetch_wallet_events().await.unwrap();
 
         // Error event should exist
-        assert_eq!(
-            storage.fetch_wallet_events().await.unwrap(),
-            vec![disclosure_error.clone(),]
-        );
+        assert_eq!(fetched_events.len(), 1);
+        assert_eq!(fetched_events.first().unwrap().timestamp(), &timestamp);
 
         // Still no data shared with RP
         assert!(!storage
@@ -1316,13 +1250,8 @@ pub(crate) mod tests {
         let state = storage.state().await.unwrap();
         assert!(matches!(state, StorageState::Opened));
 
-        let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-        let disclosure_error = WalletEvent::disclosure_error_from_str(
-            &[PID_DOCTYPE],
-            timestamp,
-            READER_KEY.certificate().clone(),
-            ISSUER_KEY.certificate(),
-        );
+        let issuance_timestamp = Utc.with_ymd_and_hms(2023, 11, 28, 10, 50, 44).unwrap();
+        let disclosure_timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
 
         // No data shared with RP
         assert!(!storage
@@ -1330,12 +1259,85 @@ pub(crate) mod tests {
             .await
             .unwrap());
 
-        storage.log_wallet_event(disclosure_error.clone()).await.unwrap();
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
-        assert_eq!(
-            storage.fetch_wallet_events().await.unwrap(),
-            vec![disclosure_error.clone(),]
+        let issued_copies = IssuedCredentialCopies::new_or_panic(
+            vec![credential.clone(), credential.clone(), credential.clone()]
+                .try_into()
+                .unwrap(),
         );
+
+        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+
+        // Insert sd_jwt
+        storage
+            .insert_credentials(
+                issuance_timestamp,
+                vec![(
+                    CredentialWithMetadata::new(
+                        issued_copies,
+                        attestation_type.clone(),
+                        VerifiedTypeMetadataDocuments::nl_pid_example(),
+                    ),
+                    AttestationPresentation::new_mock(),
+                )],
+            )
+            .await
+            .expect("Could not insert mdocs");
+
+        let StoredAttestationCopy {
+            attestation: StoredAttestationFormat::SdJwt { sd_jwt },
+            attestation_id,
+            ..
+        } = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("Could not fetch unique attestations")
+            .first()
+            .cloned()
+            .unwrap()
+        else {
+            panic!("should fetch SD-JWT");
+        };
+
+        let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
+
+        let issuer_certificate = sd_jwt.as_ref().as_ref().issuer_certificate().unwrap();
+        let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
+            .unwrap()
+            .unwrap();
+
+        let payload = sd_jwt
+            .into_inner()
+            .into_credential_payload(&normalized_metadata)
+            .unwrap();
+        let attestation = AttestationPresentation::create_from_attributes(
+            AttestationIdentity::Fixed {
+                id: attestation_id.to_string(),
+            },
+            normalized_metadata,
+            issuer_registration.organization,
+            &payload.previewable_payload.attributes,
+        )
+        .unwrap();
+
+        storage
+            .log_disclosure_event(
+                disclosure_timestamp,
+                vec![attestation],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Error,
+                DisclosureType::Regular,
+            )
+            .await
+            .unwrap();
+
+        let fetched_events = storage.fetch_wallet_events().await.unwrap();
+
+        // Error event should exist
+        assert_eq!(fetched_events.len(), 2);
+        assert_eq!(fetched_events.first().unwrap().timestamp(), &disclosure_timestamp);
 
         // Still no data has been shared with RP, because we only consider Successful events
         assert!(!storage
@@ -1344,21 +1346,90 @@ pub(crate) mod tests {
             .unwrap());
     }
 
+    #[tokio::test]
+    async fn test_event_log_storage_ordering() {
+        let mut storage = open_test_database_storage().await;
+
+        // State should be Opened.
+        let state = storage.state().await.unwrap();
+        assert!(matches!(state, StorageState::Opened));
+        test_history_ordering(&mut storage).await;
+    }
+
     pub(crate) async fn test_history_ordering(storage: &mut impl Storage) {
         let timestamp = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
         let timestamp_older = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
         let timestamp_even_older = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
 
-        let disclosure_at_timestamp = WalletEvent::disclosure_from_str(
-            &[PID_DOCTYPE],
-            timestamp,
-            READER_KEY.certificate().clone(),
-            ISSUER_KEY.certificate(),
-        );
-        let issuance_at_older_timestamp =
-            WalletEvent::issuance_from_str(&[ADDRESS_DOCTYPE], timestamp_older, ISSUER_KEY.certificate());
-        let issuance_at_even_older_timestamp =
-            WalletEvent::issuance_from_str(&[PID_DOCTYPE], timestamp_even_older, ISSUER_KEY.certificate());
+        let sd_jwt = SdJwt::example_pid_sd_jwt(&ISSUER_KEY);
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
+
+        let issued_copies = IssuedCredentialCopies::new_or_panic(vec![credential.clone()].try_into().unwrap());
+        let attestation_type = sd_jwt.claims().properties.get("vct").unwrap().to_string();
+
+        // Insert sd_jwts
+        storage
+            .insert_credentials(
+                timestamp,
+                vec![
+                    (
+                        CredentialWithMetadata::new(
+                            issued_copies.clone(),
+                            attestation_type.clone(),
+                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                        ),
+                        AttestationPresentation::new_mock(),
+                    ),
+                    (
+                        CredentialWithMetadata::new(
+                            issued_copies,
+                            attestation_type.clone(),
+                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                        ),
+                        AttestationPresentation::new_mock(),
+                    ),
+                ],
+            )
+            .await
+            .expect("Could not insert mdocs");
+
+        let attestations = storage
+            .fetch_unique_attestations()
+            .await
+            .expect("Could not fetch unique attestations")
+            .into_iter()
+            .map(|attestation| {
+                let StoredAttestationCopy {
+                    attestation: StoredAttestationFormat::SdJwt { sd_jwt },
+                    attestation_id,
+                    ..
+                } = attestation
+                else {
+                    panic!("should fetch SD-JWT");
+                };
+
+                let normalized_metadata = VerifiedTypeMetadataDocuments::nl_pid_example().to_normalized().unwrap();
+
+                let issuer_certificate = sd_jwt.as_ref().as_ref().issuer_certificate().unwrap();
+                let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
+                    .unwrap()
+                    .unwrap();
+
+                let payload = sd_jwt
+                    .into_inner()
+                    .into_credential_payload(&normalized_metadata)
+                    .unwrap();
+                AttestationPresentation::create_from_attributes(
+                    AttestationIdentity::Fixed {
+                        id: attestation_id.to_string(),
+                    },
+                    normalized_metadata,
+                    issuer_registration.organization,
+                    &payload.previewable_payload.attributes,
+                )
+                .unwrap()
+            })
+            .collect_vec();
 
         // No data shared with RP
         assert!(!storage
@@ -1366,14 +1437,28 @@ pub(crate) mod tests {
             .await
             .unwrap());
 
-        // Insert events, in non-standard order, from new to old
-        storage.log_wallet_event(disclosure_at_timestamp.clone()).await.unwrap();
+        let attestation1 = attestations[0].clone();
+        let attestation2 = attestations[1].clone();
+
         storage
-            .log_wallet_event(issuance_at_older_timestamp.clone())
+            .log_disclosure_event(
+                timestamp_even_older,
+                vec![attestation1],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Success,
+                DisclosureType::Regular,
+            )
             .await
             .unwrap();
+
         storage
-            .log_wallet_event(issuance_at_even_older_timestamp.clone())
+            .log_disclosure_event(
+                timestamp_older,
+                vec![attestation2],
+                READER_KEY.certificate().clone(),
+                DisclosureStatus::Success,
+                DisclosureType::Regular,
+            )
             .await
             .unwrap();
 
@@ -1385,93 +1470,14 @@ pub(crate) mod tests {
 
         // Fetch and verify events are sorted descending by timestamp
         assert_eq!(
-            storage.fetch_wallet_events().await.unwrap(),
-            vec![
-                disclosure_at_timestamp.clone(),
-                issuance_at_older_timestamp.clone(),
-                issuance_at_even_older_timestamp.clone()
-            ]
-        );
-        // Fetch event by pid and verify events are sorted descending by timestamp
-        assert_eq!(
             storage
-                .fetch_wallet_events_by_attestation_type(PID_DOCTYPE)
+                .fetch_wallet_events()
                 .await
-                .unwrap(),
-            vec![
-                disclosure_at_timestamp.clone(),
-                issuance_at_even_older_timestamp.clone()
-            ]
-        );
-        // Fetch event by address
-        assert_eq!(
-            storage
-                .fetch_wallet_events_by_attestation_type(ADDRESS_DOCTYPE)
-                .await
-                .unwrap(),
-            vec![issuance_at_older_timestamp]
-        );
-        // Fetching for unknown-doc-type returns empty Vec
-        assert_eq!(
-            storage
-                .fetch_wallet_events_by_attestation_type("unknown-doc-type")
-                .await
-                .unwrap(),
-            vec![]
-        );
-    }
-
-    pub(crate) async fn test_history_by_entity_type(storage: &mut impl Storage) {
-        let timestamp = Utc.with_ymd_and_hms(2023, 11, 11, 11, 11, 00).unwrap();
-        let timestamp_newer = Utc.with_ymd_and_hms(2023, 11, 21, 13, 37, 00).unwrap();
-        let timestamp_newest = Utc.with_ymd_and_hms(2023, 11, 29, 10, 50, 45).unwrap();
-
-        // Log Issuance of pid and address cards
-        let issuance =
-            WalletEvent::issuance_from_str(&[PID_DOCTYPE, ADDRESS_DOCTYPE], timestamp, ISSUER_KEY.certificate());
-        storage.log_wallet_event(issuance.clone()).await.unwrap();
-
-        // Log Disclosure of pid and address cards
-        let disclosure_pid_and_address = WalletEvent::disclosure_from_str(
-            &[PID_DOCTYPE, ADDRESS_DOCTYPE],
-            timestamp_newer,
-            READER_KEY.certificate().clone(),
-            ISSUER_KEY.certificate(),
-        );
-        storage
-            .log_wallet_event(disclosure_pid_and_address.clone())
-            .await
-            .unwrap();
-
-        // Log Disclosure of pid card only
-        let disclosure_pid_only = WalletEvent::disclosure_from_str(
-            &[PID_DOCTYPE],
-            timestamp_newest,
-            READER_KEY.certificate().clone(),
-            ISSUER_KEY.certificate(),
-        );
-        storage.log_wallet_event(disclosure_pid_only.clone()).await.unwrap();
-
-        // Fetch event by pid and verify events contain issuance of pid, and both full disclosure transactions with pid
-        assert_eq!(
-            storage
-                .fetch_wallet_events_by_attestation_type(PID_DOCTYPE)
-                .await
-                .unwrap(),
-            vec![
-                disclosure_pid_only.clone(),
-                disclosure_pid_and_address.clone(),
-                issuance.clone(),
-            ]
-        );
-        // Fetch event by address and verify events contain issuance of address, and one full disclosure transactions
-        // with address
-        assert_eq!(
-            storage
-                .fetch_wallet_events_by_attestation_type(ADDRESS_DOCTYPE)
-                .await
-                .unwrap(),
-            vec![disclosure_pid_and_address, issuance,]
+                .unwrap()
+                .iter()
+                .map(|event| event.timestamp())
+                .collect_vec(),
+            vec![&timestamp, &timestamp, &timestamp_older, &timestamp_even_older]
         );
     }
 }

@@ -1,18 +1,13 @@
-use std::collections::HashSet;
-
 use chrono::DateTime;
 use chrono::Utc;
 use itertools::Itertools;
 use uuid::Uuid;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificate;
-use crypto::x509::BorrowingCertificateExtension;
-use entity::disclosure_history_event::EventStatus;
-use entity::disclosure_history_event::EventType;
+use entity::disclosure_event::EventStatus;
+use entity::disclosure_event::EventType;
 use mdoc::holder::ProposedAttributes;
-use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::AttestationPresentation;
 use crate::issuance::BSN_ATTR_NAME;
@@ -47,12 +42,13 @@ pub enum DataDisclosureStatus {
 pub enum WalletEvent {
     Issuance {
         id: Uuid,
-        attestations: VecNonEmpty<AttestationPresentation>,
+        attestation: Box<AttestationPresentation>,
         timestamp: DateTime<Utc>,
+        renewed: bool,
     },
     Disclosure {
         id: Uuid,
-        attestations: Vec<AttestationPresentation>,
+        attestations: Box<Vec<AttestationPresentation>>,
         timestamp: DateTime<Utc>,
         // TODO (PVW-4135): Only store reader registration in event.
         reader_certificate: Box<BorrowingCertificate>,
@@ -63,116 +59,6 @@ pub enum WalletEvent {
 }
 
 impl WalletEvent {
-    pub(crate) fn new_issuance(attestations: VecNonEmpty<AttestationPresentation>) -> Self {
-        Self::Issuance {
-            id: Uuid::now_v7(),
-            attestations,
-            timestamp: Utc::now(),
-        }
-    }
-
-    fn new_disclosure(
-        proposed_attributes: Option<ProposedAttributes>,
-        reader_certificate: BorrowingCertificate,
-        reader_registration: ReaderRegistration,
-        status: DisclosureStatus,
-        data_status: DataDisclosureStatus,
-    ) -> Self {
-        // If no attributes are available, do not record that this disclosure was for the purposes of logging in.
-        let r#type = proposed_attributes
-            .as_ref()
-            .map(disclosure_type_for_proposed_attributes)
-            .unwrap_or(DisclosureType::Regular);
-
-        let attestations = match data_status {
-            DataDisclosureStatus::Disclosed => proposed_attributes,
-            DataDisclosureStatus::NotDisclosed => None,
-        }
-        .unwrap_or_default()
-        .into_values()
-        .map(|document_attributes| {
-            // As the proposed attributes come from the database, we can make assumptions about them and use `expect()`.
-            // TODO (PVW-4132): Use the type system to codify these assumptions.
-            let reader_registration = IssuerRegistration::from_certificate(&document_attributes.issuer)
-                .expect("proposed attributes should contain valid issuer registration")
-                .expect("proposed attributes should contain issuer registration");
-
-            AttestationPresentation::create_for_disclosure(
-                document_attributes.type_metadata,
-                reader_registration.organization,
-                document_attributes.attributes,
-            )
-            .expect("proposed attributes should succesfully be transformed for display by metadata")
-        })
-        .collect();
-
-        Self::Disclosure {
-            id: Uuid::now_v7(),
-            attestations,
-            timestamp: Utc::now(),
-            reader_certificate: Box::new(reader_certificate),
-            reader_registration: Box::new(reader_registration),
-            status,
-            r#type,
-        }
-    }
-
-    pub(crate) fn new_disclosure_success(
-        proposed_attributes: ProposedAttributes,
-        reader_certificate: BorrowingCertificate,
-        reader_registration: ReaderRegistration,
-        data_status: DataDisclosureStatus,
-    ) -> Self {
-        Self::new_disclosure(
-            Some(proposed_attributes),
-            reader_certificate,
-            reader_registration,
-            EventStatus::Success,
-            data_status,
-        )
-    }
-
-    pub(crate) fn new_disclosure_error(
-        proposed_attributes: ProposedAttributes,
-        reader_certificate: BorrowingCertificate,
-        reader_registration: ReaderRegistration,
-        data_status: DataDisclosureStatus,
-    ) -> Self {
-        Self::new_disclosure(
-            Some(proposed_attributes),
-            reader_certificate,
-            reader_registration,
-            EventStatus::Error,
-            data_status,
-        )
-    }
-
-    pub(crate) fn new_disclosure_cancel(
-        proposed_attributes: Option<ProposedAttributes>,
-        reader_certificate: BorrowingCertificate,
-        reader_registration: ReaderRegistration,
-        data_status: DataDisclosureStatus,
-    ) -> Self {
-        Self::new_disclosure(
-            proposed_attributes,
-            reader_certificate,
-            reader_registration,
-            EventStatus::Cancelled,
-            data_status,
-        )
-    }
-
-    /// Returns the associated doc_types for this event. Will return an empty set if there are no attributes.
-    pub(super) fn associated_attestation_types(&self) -> HashSet<&str> {
-        match self {
-            Self::Issuance { attestations, .. } => attestations.as_slice(),
-            Self::Disclosure { attestations, .. } => attestations,
-        }
-        .iter()
-        .map(|attestation| attestation.attestation_type.as_str())
-        .collect()
-    }
-
     pub fn timestamp(&self) -> &DateTime<Utc> {
         match self {
             Self::Issuance { timestamp, .. } => timestamp,
@@ -193,15 +79,11 @@ mod test {
     use crypto::server_keys::generate::Ca;
     use crypto::x509::BorrowingCertificate;
     use mdoc::holder::ProposedDocumentAttributes;
-    use mdoc::DataElementValue;
     use mdoc::Entry;
     use mdoc::NameSpace;
-    use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadata;
-    use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
-    use crate::attestation::AttestationIdentity;
     use crate::issuance;
 
     use super::*;
@@ -230,136 +112,5 @@ mod test {
         )]);
 
         assert_eq!(disclosure_type_for_proposed_attributes(&proposed_attributes), expected);
-    }
-
-    fn mock_attestations_for_attestation_types(
-        attestation_types: &[&str],
-        issuer_certificate: &BorrowingCertificate,
-    ) -> Vec<AttestationPresentation> {
-        let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)
-            .unwrap()
-            .unwrap();
-
-        attestation_types
-            .iter()
-            .zip(itertools::repeat_n(
-                issuer_registration.organization,
-                attestation_types.len(),
-            ))
-            .map(|(attestation_type, issuer_org)| {
-                let metadata =
-                    NormalizedTypeMetadata::from_single_example(UncheckedTypeMetadata::example_with_claim_name(
-                        attestation_type,
-                        BSN_ATTR_NAME,
-                        JsonSchemaPropertyType::String,
-                        None,
-                    ));
-                let attributes = IndexMap::from([(
-                    attestation_type.to_string(),
-                    vec![Entry {
-                        name: BSN_ATTR_NAME.to_string(),
-                        value: DataElementValue::Text("999999999".to_string()),
-                    }],
-                )]);
-
-                AttestationPresentation::create_for_issuance(
-                    AttestationIdentity::Ephemeral,
-                    metadata,
-                    issuer_org,
-                    attributes,
-                )
-                .unwrap()
-            })
-            .collect()
-    }
-
-    impl WalletEvent {
-        pub fn issuance_from_str(
-            attestation_types: &[&str],
-            timestamp: DateTime<Utc>,
-            issuer_certificate: &BorrowingCertificate,
-        ) -> Self {
-            Self::Issuance {
-                id: Uuid::now_v7(),
-                attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate)
-                    .try_into()
-                    .unwrap(),
-                timestamp,
-            }
-        }
-
-        pub fn disclosure_from_str(
-            attestation_types: &[&str],
-            timestamp: DateTime<Utc>,
-            reader_certificate: BorrowingCertificate,
-            issuer_certificate: &BorrowingCertificate,
-        ) -> Self {
-            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
-                .unwrap()
-                .unwrap();
-
-            Self::Disclosure {
-                id: Uuid::now_v7(),
-                attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate),
-                timestamp,
-                reader_certificate: Box::new(reader_certificate),
-                reader_registration: Box::new(reader_registration),
-                status: DisclosureStatus::Success,
-                r#type: DisclosureType::Regular,
-            }
-        }
-
-        pub fn disclosure_error_from_str(
-            attestation_types: &[&str],
-            timestamp: DateTime<Utc>,
-            reader_certificate: BorrowingCertificate,
-            issuer_certificate: &BorrowingCertificate,
-        ) -> Self {
-            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
-                .unwrap()
-                .unwrap();
-
-            Self::Disclosure {
-                id: Uuid::now_v7(),
-                attestations: mock_attestations_for_attestation_types(attestation_types, issuer_certificate),
-                timestamp,
-                reader_certificate: Box::new(reader_certificate),
-                reader_registration: Box::new(reader_registration),
-                status: DisclosureStatus::Error,
-                r#type: DisclosureType::Regular,
-            }
-        }
-
-        pub fn disclosure_cancel(timestamp: DateTime<Utc>, reader_certificate: BorrowingCertificate) -> Self {
-            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
-                .unwrap()
-                .unwrap();
-
-            Self::Disclosure {
-                id: Uuid::now_v7(),
-                attestations: Vec::new(),
-                timestamp,
-                reader_certificate: Box::new(reader_certificate),
-                reader_registration: Box::new(reader_registration),
-                status: DisclosureStatus::Cancelled,
-                r#type: DisclosureType::Regular,
-            }
-        }
-
-        pub fn disclosure_error(timestamp: DateTime<Utc>, reader_certificate: BorrowingCertificate) -> Self {
-            let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
-                .unwrap()
-                .unwrap();
-
-            Self::Disclosure {
-                id: Uuid::now_v7(),
-                attestations: Vec::new(),
-                timestamp,
-                reader_certificate: Box::new(reader_certificate),
-                reader_registration: Box::new(reader_registration),
-                status: DisclosureStatus::Error,
-                r#type: DisclosureType::Regular,
-            }
-        }
     }
 }

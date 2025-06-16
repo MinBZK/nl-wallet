@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
 use indexmap::IndexMap;
@@ -8,9 +9,15 @@ use itertools::Itertools;
 use sea_orm::DbErr;
 use uuid::Uuid;
 
+use attestation_data::auth::reader_auth::ReaderRegistration;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::BorrowingCertificateExtension;
 use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
+
+use crate::AttestationPresentation;
+use crate::DisclosureStatus;
+use crate::DisclosureType;
 
 use super::data::KeyedData;
 use super::data::RegistrationData;
@@ -31,7 +38,7 @@ pub enum KeyedDataResult {
 
 /// This is a mock implementation of [`Storage`], used for testing [`crate::Wallet`].
 #[derive(Debug)]
-pub struct MockStorage {
+pub struct StorageStub {
     pub state: StorageState,
     pub data: HashMap<&'static str, KeyedDataResult>,
     pub issued_credential_copies: IndexMap<String, Vec<CredentialWithMetadata>>,
@@ -40,7 +47,7 @@ pub struct MockStorage {
     pub has_query_error: bool,
 }
 
-impl MockStorage {
+impl StorageStub {
     pub fn new(state: StorageState, registration: Option<RegistrationData>) -> Self {
         let mut data = HashMap::new();
 
@@ -51,7 +58,7 @@ impl MockStorage {
             );
         }
 
-        MockStorage {
+        StorageStub {
             state,
             data,
             issued_credential_copies: IndexMap::new(),
@@ -74,13 +81,13 @@ impl MockStorage {
     }
 }
 
-impl Default for MockStorage {
+impl Default for StorageStub {
     fn default() -> Self {
         Self::new(StorageState::Uninitialized, None)
     }
 }
 
-impl Storage for MockStorage {
+impl Storage for StorageStub {
     async fn state(&self) -> StorageResult<StorageState> {
         Ok(self.state)
     }
@@ -136,14 +143,25 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    async fn insert_credentials(&mut self, credentials: Vec<CredentialWithMetadata>) -> StorageResult<()> {
+    async fn insert_credentials(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        credentials: Vec<(CredentialWithMetadata, AttestationPresentation)>,
+    ) -> StorageResult<()> {
         self.check_query_error()?;
 
-        for credential in credentials {
+        for (credential, attestation) in credentials {
             self.issued_credential_copies
                 .entry(credential.attestation_type.clone())
                 .or_default()
                 .push(credential);
+
+            self.event_log.push(WalletEvent::Issuance {
+                id: Uuid::new_v4(),
+                attestation: Box::new(attestation),
+                timestamp,
+                renewed: false,
+            })
         }
 
         Ok(())
@@ -246,8 +264,28 @@ impl Storage for MockStorage {
         Ok(mdocs)
     }
 
-    async fn log_wallet_event(&mut self, event: WalletEvent) -> StorageResult<()> {
-        self.event_log.push(event);
+    async fn log_disclosure_event(
+        &mut self,
+        timestamp: DateTime<Utc>,
+        proposed_attestation_presentations: Vec<AttestationPresentation>,
+        reader_certificate: BorrowingCertificate,
+        status: DisclosureStatus,
+        r#type: DisclosureType,
+    ) -> StorageResult<()> {
+        let reader_registration = ReaderRegistration::from_certificate(&reader_certificate)
+            .unwrap()
+            .unwrap();
+
+        self.event_log.push(WalletEvent::Disclosure {
+            id: Uuid::new_v4(),
+            attestations: Box::new(proposed_attestation_presentations),
+            timestamp,
+            reader_certificate: Box::new(reader_certificate),
+            reader_registration: Box::new(reader_registration),
+            status,
+            r#type,
+        });
+
         Ok(())
     }
 
@@ -272,15 +310,18 @@ impl Storage for MockStorage {
         Ok(events)
     }
 
-    async fn fetch_wallet_events_by_attestation_type(&self, attestation_type: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: &str) -> StorageResult<Vec<WalletEvent>> {
         self.check_query_error()?;
 
-        let mut events = self
+        let mut events: Vec<_> = self
             .event_log
-            .clone()
-            .into_iter()
-            .filter(|e| e.associated_attestation_types().contains(attestation_type))
-            .collect::<Vec<_>>();
+            .iter()
+            .filter(|event| match *event {
+                WalletEvent::Issuance { id, .. } => id.to_string().as_str() == attestation_id,
+                WalletEvent::Disclosure { id, .. } => id.to_string().as_str() == attestation_id,
+            })
+            .cloned()
+            .collect();
         events.sort_by(|e1, e2| e2.timestamp().cmp(e1.timestamp()));
         Ok(events)
     }
@@ -298,15 +339,13 @@ impl Storage for MockStorage {
 
 #[cfg(test)]
 mod tests {
-    use serde::Deserialize;
-    use serde::Serialize;
-
-    use crate::storage::database_storage::tests::test_history_by_entity_type;
     use crate::storage::database_storage::tests::test_history_ordering;
     use crate::storage::KeyedData;
     use crate::storage::Storage;
+    use serde::Deserialize;
+    use serde::Serialize;
 
-    use super::MockStorage;
+    use super::StorageStub;
 
     #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
     struct Data {
@@ -320,7 +359,7 @@ mod tests {
 
     #[tokio::test]
     async fn it_works() {
-        let mut storage = MockStorage::default();
+        let mut storage = StorageStub::default();
         storage.open().await.unwrap();
 
         let data = Data {
@@ -349,15 +388,8 @@ mod tests {
 
     #[tokio::test]
     async fn history_events_ordering() {
-        let mut storage = MockStorage::default();
+        let mut storage = StorageStub::default();
         storage.open().await.unwrap();
         test_history_ordering(&mut storage).await;
-    }
-
-    #[tokio::test]
-    async fn history_events_work() {
-        let mut storage = MockStorage::default();
-        storage.open().await.unwrap();
-        test_history_by_entity_type(&mut storage).await;
     }
 }

@@ -96,6 +96,6 @@ pub mod mock {
     pub use crate::issuance::MockDigidSession;
     pub use crate::issuance::BSN_ATTR_NAME;
     pub use crate::issuance::PID_DOCTYPE;
-    pub use crate::storage::MockStorage;
+    pub use crate::storage::StorageStub;
     pub use crate::update_policy::MockUpdatePolicyRepository;
 }

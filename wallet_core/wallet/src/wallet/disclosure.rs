@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
+use chrono::Utc;
 use derive_more::Constructor;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -17,6 +18,7 @@ use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::auth::Organization;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
+use entity::disclosure_event::EventStatus;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::reqwest::default_reqwest_client_builder;
@@ -54,7 +56,6 @@ use crate::storage::DisclosureType;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::StoredMdocCopy;
-use crate::storage::WalletEvent;
 use crate::wallet::Session;
 
 use super::uri::identify_uri;
@@ -364,18 +365,19 @@ where
             DisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
         };
 
-        let event = WalletEvent::new_disclosure_cancel(
-            proposed_attributes,
-            session.verifier_certificate().clone(),
-            session.reader_registration().clone(),
-            DataDisclosureStatus::NotDisclosed,
-        );
+        let reader_certificate = session.verifier_certificate().clone();
 
         let return_url = session.terminate().await?.map(BaseUrl::into_inner);
 
-        self.store_history_event(event)
-            .await
-            .map_err(DisclosureError::EventStorage)?;
+        self.store_disclosure_event(
+            Utc::now(),
+            proposed_attributes,
+            reader_certificate,
+            EventStatus::Cancelled,
+            DataDisclosureStatus::NotDisclosed,
+        )
+        .await
+        .map_err(DisclosureError::EventStorage)?;
 
         Ok(return_url)
     }
@@ -520,13 +522,16 @@ where
             .await;
 
         if let Err(error) = result {
-            let event = WalletEvent::new_disclosure_error(
-                session_proposal.proposed_attributes(),
-                session.verifier_certificate().clone(),
-                session.reader_registration().clone(),
-                DataDisclosureStatus::NotDisclosed,
-            );
-            if let Err(e) = self.store_history_event(event).await {
+            if let Err(e) = self
+                .store_disclosure_event(
+                    Utc::now(),
+                    Some(session_proposal.proposed_attributes()),
+                    session.verifier_certificate().clone(),
+                    EventStatus::Error,
+                    DataDisclosureStatus::NotDisclosed,
+                )
+                .await
+            {
                 error!("Could not store error in history: {e}");
             }
 
@@ -567,13 +572,16 @@ where
                     } else {
                         DataDisclosureStatus::NotDisclosed
                     };
-                    let event = WalletEvent::new_disclosure_error(
-                        session_proposal.proposed_attributes(),
-                        session.verifier_certificate().clone(),
-                        session.reader_registration().clone(),
-                        data_status,
-                    );
-                    if let Err(e) = self.store_history_event(event).await {
+                    if let Err(e) = self
+                        .store_disclosure_event(
+                            Utc::now(),
+                            Some(session_proposal.proposed_attributes()),
+                            session.verifier_certificate().clone(),
+                            EventStatus::Error,
+                            data_status,
+                        )
+                        .await
+                    {
                         error!("Could not store error in history: {e}");
                     }
                 }
@@ -609,20 +617,19 @@ where
         // `Wallet` not having an active disclosure session anymore.
         let proposed_attributes = session_proposal.proposed_attributes();
         let reader_certificate = session.verifier_certificate().clone();
-        let reader_registration = session.reader_registration().clone();
 
         self.session.take();
 
         // Save data for disclosure in event log.
-        let event = WalletEvent::new_disclosure_success(
-            proposed_attributes,
+        self.store_disclosure_event(
+            Utc::now(),
+            Some(proposed_attributes),
             reader_certificate,
-            reader_registration,
+            EventStatus::Success,
             DataDisclosureStatus::Disclosed,
-        );
-        self.store_history_event(event)
-            .await
-            .map_err(DisclosureError::EventStorage)?;
+        )
+        .await
+        .map_err(DisclosureError::EventStorage)?;
 
         Ok(return_url)
     }
@@ -685,6 +692,7 @@ mod tests {
     use std::sync::LazyLock;
 
     use assert_matches::assert_matches;
+    use chrono::Utc;
     use itertools::Itertools;
     use mockall::predicate::*;
     use parking_lot::Mutex;
@@ -723,6 +731,7 @@ mod tests {
     use crate::disclosure::mock::MockDisclosureSession;
     use crate::storage::DisclosureStatus;
     use crate::AttestationAttribute;
+    use crate::WalletEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -1321,6 +1330,7 @@ mod tests {
                 ..
             } if !attestations.is_empty()
         );
+
         // Verify that `did_share_data_with_relying_party()` now returns `true`
         assert!(wallet
             .storage
@@ -1529,6 +1539,7 @@ mod tests {
 
         // Get latest emitted recent_history events
         let events = events.lock().pop().unwrap();
+
         // Verify a Disclosure error event is logged, with no documents shared
         assert_eq!(events.len(), 1);
         assert_matches!(
@@ -1830,28 +1841,37 @@ mod tests {
             .storage
             .write()
             .await
-            .insert_credentials(vec![
-                CredentialWithMetadata::new(
-                    IssuedCredentialCopies::new_or_panic(
-                        vec![credential1.clone(), credential1.clone(), credential1.clone()]
-                            .try_into()
-                            .unwrap(),
+            .insert_credentials(
+                Utc::now(),
+                vec![
+                    (
+                        CredentialWithMetadata::new(
+                            IssuedCredentialCopies::new_or_panic(
+                                vec![credential1.clone(), credential1.clone(), credential1.clone()]
+                                    .try_into()
+                                    .unwrap(),
+                            ),
+                            String::from(VCT_EXAMPLE_CREDENTIAL),
+                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                        ),
+                        AttestationPresentation::new_mock(),
                     ),
-                    String::from(VCT_EXAMPLE_CREDENTIAL),
-                    VerifiedTypeMetadataDocuments::nl_pid_example(),
-                ),
-                CredentialWithMetadata::new(
-                    IssuedCredentialCopies::new_or_panic(
-                        vec![credential2.clone(), credential2.clone(), credential2.clone()]
-                            .try_into()
-                            .unwrap(),
+                    (
+                        CredentialWithMetadata::new(
+                            IssuedCredentialCopies::new_or_panic(
+                                vec![credential2.clone(), credential2.clone(), credential2.clone()]
+                                    .try_into()
+                                    .unwrap(),
+                            ),
+                            String::from("com.example.doc_type"),
+                            // Note that the attestation type of this metadata does not match the mdoc doc_type,
+                            // which is not relevant for this particular test.
+                            VerifiedTypeMetadataDocuments::nl_pid_example(),
+                        ),
+                        AttestationPresentation::new_mock(),
                     ),
-                    String::from("com.example.doc_type"),
-                    // Note that the attestation type of this metadata does not match the mdoc doc_type,
-                    // which is not relevant for this particular test.
-                    VerifiedTypeMetadataDocuments::nl_pid_example(),
-                ),
-            ])
+                ],
+            )
             .await
             .unwrap();
 

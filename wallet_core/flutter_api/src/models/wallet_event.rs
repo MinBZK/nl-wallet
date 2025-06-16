@@ -42,21 +42,16 @@ impl IntoIterator for WalletEvents {
     }
 }
 
-impl From<wallet::WalletEvent> for WalletEvents {
+impl From<wallet::WalletEvent> for WalletEvent {
     fn from(source: wallet::WalletEvent) -> Self {
-        let result = match source {
+        match source {
             wallet::WalletEvent::Issuance {
-                attestations,
-                timestamp,
-                ..
-            } => attestations
-                .into_iter()
-                .map(|attestation| WalletEvent::Issuance {
-                    date_time: timestamp.to_rfc3339(),
-                    attestation: attestation.into(),
-                    renewed: false,
-                })
-                .collect(),
+                attestation, timestamp, ..
+            } => WalletEvent::Issuance {
+                date_time: timestamp.to_rfc3339(),
+                attestation: (*attestation).into(),
+                renewed: false,
+            },
             wallet::WalletEvent::Disclosure {
                 attestations,
                 timestamp,
@@ -72,7 +67,7 @@ impl From<wallet::WalletEvent> for WalletEvents {
                     .map(AttestationPresentation::from)
                     .collect_vec();
 
-                vec![WalletEvent::Disclosure {
+                WalletEvent::Disclosure {
                     date_time: timestamp.to_rfc3339(),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),
@@ -80,10 +75,9 @@ impl From<wallet::WalletEvent> for WalletEvents {
                     shared_attestations: (!attestations.is_empty()).then_some(attestations),
                     status: status.into(),
                     typ: r#type.into(),
-                }]
+                }
             }
-        };
-        WalletEvents(result)
+        }
     }
 }
 
