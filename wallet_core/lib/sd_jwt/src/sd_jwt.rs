@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use std::collections::HashSet;
-use std::collections::VecDeque;
 use std::fmt::Display;
 
 use chrono::DateTime;
@@ -65,7 +64,7 @@ pub struct SdJwt {
 
     // To not having to parse the certificates from the JWT header x5c field every time,
     // the certificates are stored here redunantly for convenience as well.
-    issuer_certificates: VecDeque<BorrowingCertificate>,
+    issuer_certificates: Vec<BorrowingCertificate>,
 
     disclosures: IndexMap<String, Disclosure>,
 }
@@ -147,7 +146,7 @@ impl SdJwt {
     /// Creates a new [`SdJwt`] from its components.
     pub(crate) fn new(
         issuer_signed_jwt: VerifiedJwt<SdJwtClaims>,
-        issuer_certificates: VecDeque<BorrowingCertificate>,
+        issuer_certificates: Vec<BorrowingCertificate>,
         disclosures: IndexMap<String, Disclosure>,
     ) -> Self {
         Self {
@@ -173,7 +172,7 @@ impl SdJwt {
         self.claims().cnf.as_ref()
     }
 
-    pub fn issuer_certificate_chain(&self) -> &VecDeque<BorrowingCertificate> {
+    pub fn issuer_certificate_chain(&self) -> &Vec<BorrowingCertificate> {
         &self.issuer_certificates
     }
 
@@ -181,7 +180,7 @@ impl SdJwt {
         // From https://datatracker.ietf.org/doc/html/rfc7515:
         // The certificate containing the public key corresponding to the key used to digitally sign the
         // JWS MUST be the first certificate.
-        self.issuer_certificates.front()
+        self.issuer_certificates.first()
     }
 
     /// Serializes the components into the final SD-JWT.
@@ -201,7 +200,7 @@ impl SdJwt {
     pub fn parse_and_verify(sd_jwt: &str, pubkey: &EcdsaDecodingKey, hasher: &impl Hasher) -> Result<Self> {
         let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt, hasher)?;
 
-        let issuer_certificates = jwt.extract_x5c_certificates()?;
+        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
         let issuer_signed_jwt = VerifiedJwt::try_new(jwt, pubkey, &sd_jwt_validation())?;
 
         Ok(Self {
@@ -218,7 +217,7 @@ impl SdJwt {
     pub fn dangerous_parse_unverified(sd_jwt: &str, hasher: &impl Hasher) -> Result<Self> {
         let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt, hasher)?;
 
-        let issuer_certificates = jwt.extract_x5c_certificates()?;
+        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
         let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt)?;
 
         Ok(Self {
