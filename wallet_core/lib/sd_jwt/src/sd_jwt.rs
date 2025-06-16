@@ -218,9 +218,8 @@ impl SdJwt {
     pub fn dangerous_parse_unverified(sd_jwt: &str, hasher: &impl Hasher) -> Result<Self> {
         let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt, hasher)?;
 
-        let (header, payload) = jwt.dangerous_parse_unverified()?;
         let issuer_certificates = jwt.extract_x5c_certificates()?;
-        let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt, header, payload);
+        let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt)?;
 
         Ok(Self {
             issuer_signed_jwt,

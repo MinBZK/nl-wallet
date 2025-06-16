@@ -82,8 +82,10 @@ where
         Ok(Self { header, payload, jwt })
     }
 
-    pub fn new_dangerous(jwt: Jwt<T>, header: Header, payload: T) -> Self {
-        Self { header, payload, jwt }
+    pub fn new_dangerous(jwt: Jwt<T>) -> Result<Self> {
+        let (header, payload) = jwt.dangerous_parse_unverified()?;
+
+        Ok(Self { header, payload, jwt })
     }
 
     pub fn header(&self) -> &Header {
