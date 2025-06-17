@@ -17,6 +17,7 @@ use axum::Json;
 use axum::Router;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
@@ -70,7 +71,7 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         help_base_url: settings.help_base_url,
     });
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/{usecase}/", get(usecase))
         .fallback_service(
             ServiceBuilder::new()
@@ -93,6 +94,10 @@ pub fn create_routers(settings: Settings) -> (Router, Router) {
         .route("/{usecase}/", post(attestation))
         .with_state(application_state)
         .layer(TraceLayer::new_for_http());
+
+    if settings.log_requests {
+        app = app.layer(axum::middleware::from_fn(log_request_response));
+    }
 
     (app, attestation_router)
 }

@@ -13,6 +13,7 @@ use utils::path::prefix_local_path;
 pub struct Settings {
     pub webserver: Server,
     pub structured_logging: bool,
+    pub log_requests: bool,
     pub demo_services: Vec<DemoService>,
 }
 
@@ -34,6 +35,7 @@ impl Settings {
             .set_default("webserver.ip", "0.0.0.0")?
             .set_default("webserver.port", 8001)?
             .set_default("structured_logging", false)?
+            .set_default("log_requests", false)?
             .add_source(File::from(prefix_local_path("demo_index.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("demo_index")

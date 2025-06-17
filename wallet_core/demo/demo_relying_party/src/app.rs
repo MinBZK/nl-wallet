@@ -24,6 +24,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
+use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
@@ -119,6 +120,10 @@ pub fn create_router(settings: Settings) -> Router {
 
     if let Some(cors_origin) = settings.allow_origins {
         app = app.layer(cors_layer(cors_origin));
+    }
+
+    if settings.log_requests {
+        app = app.layer(axum::middleware::from_fn(log_request_response));
     }
 
     app
