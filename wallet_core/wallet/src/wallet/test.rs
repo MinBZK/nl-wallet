@@ -43,7 +43,7 @@ use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
-use crate::disclosure::MockMdocDisclosureSession;
+use crate::disclosure::mock::MockDisclosureSession;
 use crate::issuance;
 use crate::issuance::MockDigidSession;
 use crate::issuance::PID_DOCTYPE;
@@ -92,7 +92,7 @@ pub type WalletWithMocks = Wallet<
     MockAccountProviderClient,
     MockDigidSession,
     MockIssuanceSession,
-    MockMdocDisclosureSession,
+    MockDisclosureSession,
     MockWteIssuanceClient,
 >;
 

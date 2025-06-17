@@ -47,9 +47,11 @@ use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
+use openid4vc::disclosure_session::DisclosureProposal;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::VpClientError;
+use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::disclosure_session::VpMessageClient;
 use openid4vc::disclosure_session::VpMessageClientError;
 use openid4vc::disclosure_session::VpSessionError;
@@ -205,7 +207,7 @@ async fn disclosure_using_message_client() {
     let request_uri = message_client.start_session();
 
     // Perform the first part of the session, resulting in the proposed disclosure.
-    let session = DisclosureSession::start(
+    let session = VpDisclosureSession::start(
         message_client,
         &request_uri,
         DisclosureUriSource::Link,
@@ -215,7 +217,7 @@ async fn disclosure_using_message_client() {
     .await
     .unwrap();
 
-    let DisclosureSession::Proposal(proposal) = session else {
+    let VpDisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
     };
 
@@ -558,7 +560,7 @@ async fn test_client_and_server(
     .await
     .unwrap();
 
-    let DisclosureSession::Proposal(proposal) = session else {
+    let VpDisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
     };
 
@@ -722,7 +724,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
     assert_matches!(status_response, StatusResponse::Cancelled);
 
     // Disclosing attributes at this point should result in an error.
-    let DisclosureSession::Proposal(proposal) = session else {
+    let VpDisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
     };
 
@@ -733,7 +735,7 @@ async fn test_client_and_server_cancel_after_wallet_start() {
 
     assert_matches!(
         error.error,
-        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+        VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthPostResponse(error)))
             if error.error_response.error == PostAuthResponseErrorCode::CancelledSession
     );
 }
@@ -817,7 +819,7 @@ async fn test_disclosure_invalid_poa() {
     .await
     .unwrap();
 
-    let DisclosureSession::Proposal(proposal) = session else {
+    let VpDisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
     };
 
@@ -828,7 +830,7 @@ async fn test_disclosure_invalid_poa() {
         .expect_err("should not be able to disclose attributes");
     assert_matches!(
         error.error,
-        VpClientError::Request(VpMessageClientError::AuthPostResponse(error))
+        VpSessionError::Client(VpClientError::Request(VpMessageClientError::AuthPostResponse(error)))
             if error.error_response.error == PostAuthResponseErrorCode::InvalidRequest
     );
 }
@@ -869,7 +871,7 @@ async fn test_wallet_initiated_usecase_verifier() {
     .await
     .unwrap();
 
-    let DisclosureSession::Proposal(proposal) = session else {
+    let VpDisclosureSession::Proposal(proposal) = session else {
         panic!("should have requested attributes")
     };
 
@@ -1055,7 +1057,7 @@ async fn start_disclosure_session<KF, K, US, UC>(
     request_uri: &str,
     trust_anchor: TrustAnchor<'static>,
     key_factory: &KF,
-) -> Result<DisclosureSession<VerifierMockVpMessageClient<MockVerifier<US>>, String>, VpSessionError>
+) -> Result<VpDisclosureSession<String, VerifierMockVpMessageClient<MockVerifier<US>>>, VpSessionError>
 where
     KF: KeyFactory<Key = K>,
     US: UseCases<UseCase = UC, Key = SigningKey>,
@@ -1071,7 +1073,7 @@ where
     let mdocs = MockMdocDataSource::new(mdocs);
 
     // Start session in the wallet
-    DisclosureSession::start(
+    VpDisclosureSession::start(
         VerifierMockVpMessageClient::new(verifier),
         request_uri,
         uri_source,

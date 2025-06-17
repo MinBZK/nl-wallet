@@ -113,7 +113,7 @@ mod tests {
     use crate::storage::StorageState;
     use crate::wallet::Session;
 
-    use super::super::issuance::IssuanceSession;
+    use super::super::issuance::WalletIssuanceSession;
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::WalletWithMocks;
@@ -165,7 +165,7 @@ mod tests {
     #[tokio::test]
     async fn test_wallet_reset_full() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             true,
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),

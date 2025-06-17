@@ -42,9 +42,11 @@ use mdoc::test::data::pid_example_payload;
 use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::ItemsRequest;
+use openid4vc::disclosure_session::DisclosureProposal;
 use openid4vc::disclosure_session::DisclosureSession;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::mock::MOCK_WALLET_CLIENT_ID;
 use openid4vc::server_state::MemorySessionStore;
 use openid4vc::server_state::SessionStore;
@@ -992,8 +994,8 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
         SessionType::SameDevice => DisclosureUriSource::Link,
         SessionType::CrossDevice => DisclosureUriSource::QrCode,
     };
-    let disclosure_session = DisclosureSession::start(
-        HttpVpMessageClient::from(client.clone()),
+    let disclosure_session = VpDisclosureSession::start(
+        HttpVpMessageClient::new(default_reqwest_client_builder()).unwrap(),
         &request_uri_query,
         uri_source,
         &mdoc_data_source,
@@ -1002,7 +1004,7 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     .await
     .expect("disclosure session should start at client side");
 
-    let DisclosureSession::Proposal(proposal) = disclosure_session else {
+    let VpDisclosureSession::Proposal(proposal) = disclosure_session else {
         panic!("should have received a disclosure proposal")
     };
 
@@ -1121,8 +1123,8 @@ async fn test_disclosed_attributes_failed_session() {
     // attestations from the examples in the ISO specifications, then disclose those.
     let request_uri_query = ul.as_ref().query().unwrap().to_string();
     let mdocs = MockMdocDataSource::new_example_resigned(&issuer_ca).await;
-    let disclosure_session = DisclosureSession::start(
-        HttpVpMessageClient::from(client.clone()),
+    let disclosure_session = VpDisclosureSession::start(
+        HttpVpMessageClient::new(default_reqwest_client_builder()).unwrap(),
         &request_uri_query,
         DisclosureUriSource::QrCode,
         &mdocs,
@@ -1131,7 +1133,7 @@ async fn test_disclosed_attributes_failed_session() {
     .await
     .expect("disclosure session should start at client side");
 
-    let DisclosureSession::Proposal(proposal) = disclosure_session else {
+    let VpDisclosureSession::Proposal(proposal) = disclosure_session else {
         panic!("should have received a disclosure proposal")
     };
 

@@ -21,8 +21,7 @@ use cfg_if::cfg_if;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use openid4vc::disclosure_session::DisclosureSession as Openid4vcDisclosureSession;
-use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -38,11 +37,12 @@ use crate::update_policy::UpdatePolicyRepository;
 use crate::wte::WpWteIssuanceClient;
 
 use self::attestations::AttestationsCallback;
-use self::disclosure::DisclosureSession;
-use self::issuance::IssuanceSession;
+use self::disclosure::WalletDisclosureSession;
+use self::issuance::WalletIssuanceSession;
 
 pub use self::disclosure::DisclosureError;
-pub use self::disclosure::DisclosureProposal;
+pub use self::disclosure::DisclosureProposalPresentation;
+pub use self::disclosure::DisclosureUriSource;
 pub use self::disclosure_based_issuance::DisclosureBasedIssuanceError;
 pub use self::history::HistoryError;
 pub use self::history::RecentHistoryCallback;
@@ -94,8 +94,8 @@ impl<A, G> WalletRegistration<A, G> {
 #[derive(Debug)]
 enum Session<DS, IS, MDS> {
     Digid(DS),
-    Issuance(IssuanceSession<IS>),
-    Disclosure(DisclosureSession<MDS>),
+    Issuance(WalletIssuanceSession<IS>),
+    Disclosure(WalletDisclosureSession<MDS>),
 }
 
 pub struct Wallet<
@@ -106,7 +106,7 @@ pub struct Wallet<
     APC = HttpAccountProviderClient,            // AccountProviderClient
     DS = HttpDigidSession,                      // DigidSession
     IS = HttpIssuanceSession,                   // IssuanceSession
-    MDS = Openid4vcDisclosureSession<HttpVpMessageClient, Uuid>, // MdocDisclosureSession
+    MDS = VpDisclosureSession<Uuid>,            // DisclosureSession
     WIC = WpWteIssuanceClient,                  // WteIssuanceClient
 > where
     AKH: AttestedKeyHolder,

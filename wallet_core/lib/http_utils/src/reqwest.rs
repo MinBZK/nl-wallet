@@ -78,14 +78,7 @@ pub trait IntoPinnedReqwestClient {
         F: FnOnce(ClientBuilder) -> ClientBuilder,
         Self: Sized,
     {
-        self.try_into_custom_client(|builder| {
-            let builder = builder.default_headers(HeaderMap::from_iter([(
-                header::ACCEPT,
-                HeaderValue::from_static(APPLICATION_JSON.as_ref()),
-            )]));
-
-            builder_adapter(builder)
-        })
+        self.try_into_custom_client(|builder| builder_adapter(client_builder_accept_json(builder)))
     }
 
     fn try_into_client(self) -> Result<PinnedReqwestClient, reqwest::Error>
@@ -210,4 +203,11 @@ pub fn tls_pinned_client_builder(trust_anchors: impl Iterator<Item = Certificate
     trusted_reqwest_client_builder(trust_anchors)
         .https_only(true)
         .tls_built_in_root_certs(false)
+}
+
+pub fn client_builder_accept_json(builder: ClientBuilder) -> ClientBuilder {
+    builder.default_headers(HeaderMap::from_iter([(
+        header::ACCEPT,
+        HeaderValue::from_static(APPLICATION_JSON.as_ref()),
+    )]))
 }

@@ -10,6 +10,8 @@ use tracing::instrument;
 use url::Url;
 use uuid::Uuid;
 
+pub use openid4vc::disclosure_session::DisclosureUriSource;
+
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::auth::Organization;
@@ -17,10 +19,17 @@ use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::tls::pinning::TlsPinningConfig;
+use http_utils::urls::BaseUrl;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::utils::cose::CoseError;
+use openid4vc::disclosure_session::DisclosureMissingAttributes;
+use openid4vc::disclosure_session::DisclosureProposal;
+use openid4vc::disclosure_session::DisclosureSession;
+use openid4vc::disclosure_session::DisclosureSessionState;
+use openid4vc::disclosure_session::HttpVpMessageClient;
 use openid4vc::disclosure_session::VpClientError;
 use openid4vc::disclosure_session::VpSessionError;
 use openid4vc::disclosure_session::VpVerifierError;
@@ -32,13 +41,6 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationPresentation;
-use crate::disclosure::DisclosureUriError;
-use crate::disclosure::DisclosureUriSource;
-use crate::disclosure::MdocDisclosureError;
-use crate::disclosure::MdocDisclosureMissingAttributes;
-use crate::disclosure::MdocDisclosureProposal;
-use crate::disclosure::MdocDisclosureSession;
-use crate::disclosure::MdocDisclosureSessionState;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
@@ -60,7 +62,7 @@ use super::UriType;
 use super::Wallet;
 
 #[derive(Debug, Clone)]
-pub struct DisclosureProposal {
+pub struct DisclosureProposalPresentation {
     pub attestations: Vec<AttestationPresentation>,
     pub reader_registration: ReaderRegistration,
     pub shared_data_with_relying_party_before: bool,
@@ -84,8 +86,15 @@ pub enum DisclosureError {
     #[error("disclosure session is not in the correct state")]
     #[category(expected)]
     SessionState,
-    #[error("could not parse disclosure URI: {0}")]
-    DisclosureUri(#[source] DisclosureUriError),
+    #[error("did not recognize disclosure URI: {0}")]
+    #[category(pd)]
+    DisclosureUri(Url),
+    #[error("disclosure URI is missing query parameter(s): {0}")]
+    #[category(pd)]
+    DisclosureUriQuery(Url),
+    #[error("could not create HTTP client: {0}")]
+    #[category(critical)]
+    HttpClient(#[source] reqwest::Error),
     #[error("error in OpenID4VP disclosure session: {0}")]
     VpClient(#[source] VpClientError),
     #[error("error in OpenID4VP disclosure session: {error}")]
@@ -131,9 +140,9 @@ pub enum DisclosureError {
 }
 
 impl DisclosureError {
-    fn with_organization(error: MdocDisclosureError, organization: Organization) -> Self {
+    fn with_organization(error: VpSessionError, organization: Organization) -> Self {
         match error {
-            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => Self::VpVerifierServer {
+            VpSessionError::Verifier(error) => Self::VpVerifierServer {
                 organization: Some(Box::new(organization)),
                 error,
             },
@@ -153,30 +162,31 @@ impl DisclosureError {
     }
 }
 
-impl From<MdocDisclosureError> for DisclosureError {
-    fn from(error: MdocDisclosureError) -> Self {
-        // Note that the `.unwrap()` and `panic!()` statements below are safe,
-        // as checking is performed within the guard statements.
-        match error {
+impl From<VpSessionError> for DisclosureError {
+    fn from(value: VpSessionError) -> Self {
+        match value {
             // Upgrade any signing errors that are caused an instruction error to `DisclosureError::Instruction`.
-            MdocDisclosureError::Vp(VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(
-                CoseError::Signing(error),
+            VpSessionError::Client(VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                signing_error,
             )))) if matches!(
-                error.downcast_ref::<RemoteEcdsaKeyError>(),
+                signing_error.downcast_ref::<RemoteEcdsaKeyError>(),
                 Some(RemoteEcdsaKeyError::Instruction(_))
             ) =>
             {
-                if let RemoteEcdsaKeyError::Instruction(error) = *error.downcast::<RemoteEcdsaKeyError>().unwrap() {
-                    DisclosureError::Instruction(error)
+                // Note that this statement is safe, as checking is performed within the guard statements above.
+                if let Ok(RemoteEcdsaKeyError::Instruction(instruction_error)) =
+                    signing_error.downcast::<RemoteEcdsaKeyError>().map(|error| *error)
+                {
+                    DisclosureError::Instruction(instruction_error)
                 } else {
-                    panic!()
+                    unreachable!()
                 }
             }
             // Any other error should result in its generic top-level error variant.
-            MdocDisclosureError::Vp(VpSessionError::Client(error)) => DisclosureError::VpClient(error),
-            MdocDisclosureError::Vp(VpSessionError::Verifier(error)) => DisclosureError::VpVerifierServer {
+            VpSessionError::Client(client_error) => DisclosureError::VpClient(client_error),
+            VpSessionError::Verifier(verifier_error) => DisclosureError::VpVerifierServer {
                 organization: None,
-                error,
+                error: verifier_error,
             },
         }
     }
@@ -193,12 +203,12 @@ pub enum RedirectUriPurpose {
 }
 
 #[derive(Debug, Clone, Constructor)]
-pub struct DisclosureSession<MDS> {
+pub struct WalletDisclosureSession<MDS> {
     redirect_uri_purpose: RedirectUriPurpose,
     protocol_state: MDS,
 }
 
-impl<MDS> DisclosureSession<MDS> {
+impl<MDS> WalletDisclosureSession<MDS> {
     pub(super) fn protocol_state(&self) -> &MDS {
         &self.protocol_state
     }
@@ -206,18 +216,13 @@ impl<MDS> DisclosureSession<MDS> {
 
 impl RedirectUriPurpose {
     fn from_uri(uri: &Url) -> Result<Self, DisclosureError> {
-        let uri_type = identify_uri(uri)
-            .map_err(|_| DisclosureError::DisclosureUri(DisclosureUriError::Malformed(uri.clone())))?;
-
-        let purpose = match uri_type {
-            UriType::PidIssuance => {
-                return Err(DisclosureError::DisclosureUri(DisclosureUriError::Malformed(
-                    uri.clone(),
-                )))
-            }
-            UriType::Disclosure => Self::Browser,
-            UriType::DisclosureBasedIssuance => Self::Issuance,
-        };
+        let purpose = identify_uri(uri)
+            .and_then(|uri_type| match uri_type {
+                UriType::PidIssuance => None,
+                UriType::Disclosure => Some(Self::Browser),
+                UriType::DisclosureBasedIssuance => Some(Self::Issuance),
+            })
+            .ok_or_else(|| DisclosureError::DisclosureUri(uri.clone()))?;
 
         Ok(purpose)
     }
@@ -228,7 +233,7 @@ where
     CR: Repository<Arc<WalletConfiguration>>,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
-    MDS: MdocDisclosureSession<Self>,
+    MDS: DisclosureSession<Uuid>,
     S: Storage,
 {
     #[instrument(skip_all)]
@@ -237,7 +242,7 @@ where
         &mut self,
         uri: &Url,
         source: DisclosureUriSource,
-    ) -> Result<DisclosureProposal, DisclosureError> {
+    ) -> Result<DisclosureProposalPresentation, DisclosureError> {
         info!("Performing disclosure based on received URI: {}", uri);
 
         info!("Checking if blocked");
@@ -263,21 +268,24 @@ where
         let config = &self.config_repository.get().disclosure;
 
         let purpose = RedirectUriPurpose::from_uri(uri)?;
-        let disclosure_uri = MDS::parse_url(uri).map_err(DisclosureError::DisclosureUri)?;
+        let disclosure_uri_query = uri
+            .query()
+            .ok_or_else(|| DisclosureError::DisclosureUriQuery(uri.clone()))?;
 
         // Start the disclosure session based on the parsed disclosure URI.
-        let session = MDS::start(disclosure_uri, source, self, &config.rp_trust_anchors()).await?;
+        let client = HttpVpMessageClient::new(default_reqwest_client_builder()).map_err(DisclosureError::HttpClient)?;
+        let session = MDS::start(client, disclosure_uri_query, source, self, &config.rp_trust_anchors()).await?;
 
         let shared_data_with_relying_party_before = self
             .storage
             .read()
             .await
-            .did_share_data_with_relying_party(session.rp_certificate())
+            .did_share_data_with_relying_party(session.verifier_certificate())
             .await
             .map_err(DisclosureError::HistoryRetrieval)?;
 
         let proposal_session = match session.session_state() {
-            MdocDisclosureSessionState::MissingAttributes(missing_attr_session) => {
+            DisclosureSessionState::MissingAttributes(missing_attr_session) => {
                 // TODO (PVW-3813): Attempt to translate the missing attributes using the TAS cache.
                 //                  If translation fails, the missing attributes cannot be presented to
                 //                  the user and we should simply never respond to the verifier in order
@@ -287,7 +295,6 @@ where
                 let reader_registration = session.reader_registration().clone().into();
                 let missing_attributes = missing_attr_session
                     .missing_attributes()
-                    .iter()
                     .map(ToString::to_string)
                     .collect();
                 let session_type = session.session_type();
@@ -295,7 +302,7 @@ where
                 // Store the session so that it will only be terminated on user interaction.
                 // This prevents gleaning of missing attributes by a verifier.
                 self.session
-                    .replace(Session::Disclosure(DisclosureSession::new(purpose, session)));
+                    .replace(Session::Disclosure(WalletDisclosureSession::new(purpose, session)));
 
                 return Err(DisclosureError::AttributesNotAvailable {
                     reader_registration,
@@ -304,7 +311,7 @@ where
                     session_type,
                 });
             }
-            MdocDisclosureSessionState::Proposal(proposal_session) => proposal_session,
+            DisclosureSessionState::Proposal(proposal_session) => proposal_session,
         };
 
         info!("All attributes in the disclosure request are present in the database, return a proposal to the user");
@@ -332,7 +339,7 @@ where
             .try_collect()?;
 
         // Place this in a `DisclosureProposal`, along with a copy of the `ReaderRegistration`.
-        let proposal = DisclosureProposal {
+        let proposal = DisclosureProposalPresentation {
             attestations,
             reader_registration: session.reader_registration().clone(),
             shared_data_with_relying_party_before,
@@ -343,7 +350,7 @@ where
 
         // Retain the session as `Wallet` state.
         self.session
-            .replace(Session::Disclosure(DisclosureSession::new(purpose, session)));
+            .replace(Session::Disclosure(WalletDisclosureSession::new(purpose, session)));
 
         Ok(proposal)
     }
@@ -353,18 +360,18 @@ where
     /// or "real", use from_proposed_attributes to determine the disclosure_type.
     async fn terminate_disclosure_session(&mut self, session: MDS) -> Result<Option<Url>, DisclosureError> {
         let proposed_attributes = match session.session_state() {
-            MdocDisclosureSessionState::MissingAttributes(_) => None,
-            MdocDisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
+            DisclosureSessionState::MissingAttributes(_) => None,
+            DisclosureSessionState::Proposal(proposal_session) => Some(proposal_session.proposed_attributes()),
         };
 
         let event = WalletEvent::new_disclosure_cancel(
             proposed_attributes,
-            session.rp_certificate().clone(),
+            session.verifier_certificate().clone(),
             session.reader_registration().clone(),
             DataDisclosureStatus::NotDisclosed,
         );
 
-        let return_url = session.terminate().await?;
+        let return_url = session.terminate().await?.map(BaseUrl::into_inner);
 
         self.store_history_event(event)
             .await
@@ -492,7 +499,7 @@ where
         let session = &session.protocol_state;
 
         let session_proposal = match session.session_state() {
-            MdocDisclosureSessionState::Proposal(session_proposal) => session_proposal,
+            DisclosureSessionState::Proposal(session_proposal) => session_proposal,
             _ => return Err(DisclosureError::SessionState),
         };
 
@@ -509,13 +516,13 @@ where
             .storage
             .write()
             .await
-            .increment_attestation_copies_usage_count(session_proposal.proposed_source_identifiers())
+            .increment_attestation_copies_usage_count(session_proposal.proposed_source_identifiers().copied().collect())
             .await;
 
         if let Err(error) = result {
             let event = WalletEvent::new_disclosure_error(
                 session_proposal.proposed_attributes(),
-                session.rp_certificate().clone(),
+                session.verifier_certificate().clone(),
                 session.reader_registration().clone(),
                 DataDisclosureStatus::NotDisclosed,
             );
@@ -545,7 +552,7 @@ where
         // occur during signing to `RemoteEcdsaKeyError::Instruction`.
         let result = session_proposal.disclose(&remote_key_factory).await;
         let return_url = match result {
-            Ok(return_url) => return_url,
+            Ok(return_url) => return_url.map(BaseUrl::into_inner),
             Err(error) => {
                 let organization = session.reader_registration().organization.clone();
                 let disclosure_error = DisclosureError::with_organization(error.error, organization);
@@ -562,7 +569,7 @@ where
                     };
                     let event = WalletEvent::new_disclosure_error(
                         session_proposal.proposed_attributes(),
-                        session.rp_certificate().clone(),
+                        session.verifier_certificate().clone(),
                         session.reader_registration().clone(),
                         data_status,
                     );
@@ -601,7 +608,7 @@ where
         // as disclosure is now successful. Any errors that occur after this point will result in the
         // `Wallet` not having an active disclosure session anymore.
         let proposed_attributes = session_proposal.proposed_attributes();
-        let reader_certificate = session.rp_certificate().clone();
+        let reader_certificate = session.verifier_certificate().clone();
         let reader_registration = session.reader_registration().clone();
 
         self.session.take();
@@ -672,6 +679,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
     use std::sync::atomic::Ordering;
     use std::sync::Arc;
     use std::sync::LazyLock;
@@ -710,9 +718,9 @@ mod tests {
     use crate::attestation::AttestationAttributeValue;
     use crate::attestation::AttestationError;
     use crate::config::UNIVERSAL_LINK_BASE_URL;
-    use crate::disclosure::MockMdocDisclosureMissingAttributes;
-    use crate::disclosure::MockMdocDisclosureProposal;
-    use crate::disclosure::MockMdocDisclosureSession;
+    use crate::disclosure::mock::MockDisclosureMissingAttributes;
+    use crate::disclosure::mock::MockDisclosureProposal;
+    use crate::disclosure::mock::MockDisclosureSession;
     use crate::storage::DisclosureStatus;
     use crate::AttestationAttribute;
 
@@ -723,12 +731,12 @@ mod tests {
     use super::*;
 
     static DISCLOSURE_URI: LazyLock<Url> =
-        LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"));
+        LazyLock::<Url>::new(|| urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy?foo=bar"));
     const PROPOSED_ID: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
 
-    impl<MDS> DisclosureSession<MDS> {
+    impl<MDS> WalletDisclosureSession<MDS> {
         pub(crate) fn new_browser(protocol_state: MDS) -> Self {
-            DisclosureSession {
+            WalletDisclosureSession {
                 redirect_uri_purpose: RedirectUriPurpose::Browser,
                 protocol_state,
             }
@@ -783,15 +791,15 @@ mod tests {
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
-        let proposal_session = MockMdocDisclosureProposal {
+        let proposal_session = MockDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
         };
 
-        MockMdocDisclosureSession::next_fields(
+        MockDisclosureSession::next_fields(
             reader_registration,
-            MdocDisclosureSessionState::Proposal(proposal_session),
+            DisclosureSessionState::Proposal(proposal_session),
             None,
         );
 
@@ -805,7 +813,7 @@ mod tests {
         assert!(matches!(
             wallet.session,
             Some(Session::Disclosure(session))
-                if session.protocol_state.disclosure_uri_source == DisclosureUriSource::QrCode
+                if session.protocol_state.uri_source == DisclosureUriSource::QrCode
         ));
 
         // Test that the returned `DisclosureProposal` contains the
@@ -863,8 +871,8 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Start an active disclosure session.
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(
-            MockMdocDisclosureSession::default(),
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            MockDisclosureSession::default(),
         )));
 
         // Starting disclosure on a wallet with an active disclosure should result in an error.
@@ -881,9 +889,7 @@ mod tests {
     async fn test_wallet_start_disclosure_error_disclosure_uri() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        // Starting disclosure on a wallet with a malformed disclosure URI should result in an error.
-        // (The `MockMdocDisclosureSession` used by `WalletWithMocks` rejects URLs containing an `invalid`
-        // query parameter.)
+        // Starting disclosure on a wallet with an unknown disclosure URI should result in an error.
         let error = wallet
             .start_disclosure(
                 &Url::parse("http://example.com?invalid").unwrap(),
@@ -897,12 +903,29 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_wallet_start_disclosure_error_disclosure_uri_query() {
+        let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        // Starting disclosure on a wallet with a disclosure URI with no query parameters should result in an error.
+        let error = wallet
+            .start_disclosure(
+                &urls::disclosure_base_uri(&UNIVERSAL_LINK_BASE_URL).join("Zm9vYmFy"),
+                DisclosureUriSource::Link,
+            )
+            .await
+            .expect_err("Starting disclosure should have resulted in an error");
+
+        assert_matches!(error, DisclosureError::DisclosureUriQuery(_));
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
     #[serial(MockMdocDisclosureSession)]
     async fn test_wallet_start_disclosure_error_disclosure_session() {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Set up an `MdocDisclosureSession` start to return the following error.
-        MockMdocDisclosureSession::next_start_error(VpVerifierError::MissingSessionType.into());
+        MockDisclosureSession::next_start_error(VpVerifierError::MissingSessionType.into());
 
         // Starting disclosure which returns an error should forward that error.
         let error = wallet
@@ -927,7 +950,7 @@ mod tests {
 
         // Set up an `MdocDisclosureSession` start to return the following error.
         let return_url = Url::parse("https://example.com/return/here").unwrap();
-        MockMdocDisclosureSession::next_start_error(
+        MockDisclosureSession::next_start_error(
             VpClientError::Request(
                 DisclosureErrorResponse {
                     error_response: ErrorResponse {
@@ -961,14 +984,14 @@ mod tests {
 
         // Set up an `MdocDisclosureSession` start to return that attributes are not available.
         let missing_attributes = vec!["com.example.pid/com.example.pid/age_over_18".parse().unwrap()];
-        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
+        let mut missing_attr_session = MockDisclosureMissingAttributes::default();
         missing_attr_session
             .expect_missing_attributes()
             .return_const(missing_attributes);
 
-        MockMdocDisclosureSession::next_fields(
+        MockDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
-            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            DisclosureSessionState::MissingAttributes(missing_attr_session),
             None,
         );
 
@@ -1011,14 +1034,14 @@ mod tests {
                 value: DataElementValue::Text("bar".to_string()),
             });
 
-        let proposal_session = MockMdocDisclosureProposal {
+        let proposal_session = MockDisclosureProposal {
             proposed_attributes,
             ..Default::default()
         };
 
-        MockMdocDisclosureSession::next_fields(
+        MockDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
-            MdocDisclosureSessionState::Proposal(proposal_session),
+            DisclosureSessionState::Proposal(proposal_session),
             None,
         );
 
@@ -1056,17 +1079,17 @@ mod tests {
         // Set up an `MdocDisclosureSession` to be returned with the following values.
         let reader_registration = ReaderRegistration::new_mock();
         let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
-        let proposal_session = MockMdocDisclosureProposal {
+        let proposal_session = MockDisclosureProposal {
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
         };
 
-        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        let return_url = BaseUrl::from_str("https://example.com/return/here").unwrap();
 
-        MockMdocDisclosureSession::next_fields(
+        MockDisclosureSession::next_fields(
             reader_registration,
-            MdocDisclosureSessionState::Proposal(proposal_session),
+            DisclosureSessionState::Proposal(proposal_session),
             Some(return_url.clone()),
         );
 
@@ -1092,7 +1115,7 @@ mod tests {
         // session, while the session that was there should be terminated.
         let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
 
-        assert_eq!(cancel_return_url, Some(return_url));
+        assert_eq!(cancel_return_url.as_ref(), Some(return_url.as_ref()));
 
         // Verify disclosure session is terminated
         assert!(wallet.session.is_none());
@@ -1126,16 +1149,16 @@ mod tests {
             "com.example.pid/com.example.pid/bsn".parse().unwrap(),
             "com.example.pid/com.example.pid/age_over_18".parse().unwrap(),
         ];
-        let mut missing_attr_session = MockMdocDisclosureMissingAttributes::default();
+        let mut missing_attr_session = MockDisclosureMissingAttributes::default();
         missing_attr_session
             .expect_missing_attributes()
             .return_const(missing_attributes);
 
-        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        let return_url = BaseUrl::from_str("https://example.com/return/here").unwrap();
 
-        MockMdocDisclosureSession::next_fields(
+        MockDisclosureSession::next_fields(
             ReaderRegistration::new_mock(),
-            MdocDisclosureSessionState::MissingAttributes(missing_attr_session),
+            DisclosureSessionState::MissingAttributes(missing_attr_session),
             Some(return_url.clone()),
         );
 
@@ -1163,7 +1186,7 @@ mod tests {
         // session, while the session that was there should be terminated.
         let cancel_return_url = wallet.cancel_disclosure().await.expect("Could not cancel disclosure");
 
-        assert_eq!(cancel_return_url, Some(return_url));
+        assert_eq!(cancel_return_url.as_ref(), Some(return_url.as_ref()));
 
         // Verify disclosure session is terminated
         assert!(wallet.session.is_none());
@@ -1187,8 +1210,8 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(
-            MockMdocDisclosureSession::default(),
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            MockDisclosureSession::default(),
         )));
 
         wallet.lock();
@@ -1243,11 +1266,11 @@ mod tests {
 
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
-        let return_url = Url::parse("https://example.com/return/here").unwrap();
+        let return_url = BaseUrl::from_str("https://example.com/return/here").unwrap();
 
         let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
-        let disclosure_session = MockMdocDisclosureProposal {
-            disclose_return_url: return_url.clone().into(),
+        let disclosure_session = MockDisclosureProposal {
+            disclose_return_url: Some(return_url.clone()),
             proposed_source_identifiers: vec![PROPOSED_ID],
             proposed_attributes,
             ..Default::default()
@@ -1255,19 +1278,21 @@ mod tests {
 
         // Create a `MockMdocDisclosureSession` with the return URL and the `MockMdocDisclosureProposal`,
         // copy the disclosure count and check that it is 0.
-        let disclosure_session = MockMdocDisclosureSession {
-            session_state: MdocDisclosureSessionState::Proposal(disclosure_session),
+        let disclosure_session = MockDisclosureSession {
+            session_state: DisclosureSessionState::Proposal(disclosure_session),
             ..Default::default()
         };
         let disclosure_count = match disclosure_session.session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => Arc::clone(&proposal.disclosure_count),
+            DisclosureSessionState::Proposal(ref proposal) => Arc::clone(&proposal.disclosure_count),
             _ => unreachable!(),
         };
         assert_eq!(disclosure_count.load(Ordering::Relaxed), 0);
 
         let reader_certificate = disclosure_session.certificate.clone();
 
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            disclosure_session,
+        )));
 
         // Accepting disclosure should succeed and give us the return URL.
         let accept_result = wallet
@@ -1275,7 +1300,7 @@ mod tests {
             .await
             .expect("Could not accept disclosure");
 
-        assert_matches!(accept_result, Some(result_return_url) if result_return_url == return_url);
+        assert_matches!(accept_result, Some(result_return_url) if &result_return_url == return_url.as_ref());
 
         // Check that the disclosure session is no longer
         // present and that the disclosure count is 1.
@@ -1319,8 +1344,8 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(
-            MockMdocDisclosureSession::default(),
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            MockDisclosureSession::default(),
         )));
 
         wallet.lock();
@@ -1338,7 +1363,7 @@ mod tests {
         let Some(Session::Disclosure(session)) = &wallet.session else {
             panic!("wallet in unexpected state")
         };
-        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+        let DisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
             panic!("wallet in unexpected state")
         };
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
@@ -1405,11 +1430,13 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        let disclosure_session = MockMdocDisclosureSession {
-            session_state: MdocDisclosureSessionState::MissingAttributes(Default::default()),
+        let disclosure_session = MockDisclosureSession {
+            session_state: DisclosureSessionState::MissingAttributes(Default::default()),
             ..Default::default()
         };
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            disclosure_session,
+        )));
 
         // Accepting disclosure on a wallet that has a disclosure session
         // with missing attributes should result in an error.
@@ -1452,18 +1479,18 @@ mod tests {
             redirect_uri: None,
         };
         let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
-        let disclosure_session = MockMdocDisclosureSession {
-            session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+        let disclosure_session = MockDisclosureSession {
+            session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
-                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpSessionError::Client(
-                    VpClientError::Request(response.into()),
-                )))),
+                next_error: Mutex::new(Some(VpSessionError::Client(VpClientError::Request(response.into())))),
                 ..Default::default()
             }),
             ..Default::default()
         };
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            disclosure_session,
+        )));
 
         // Accepting disclosure when the verifier responds with
         // an invalid request error should result in an error.
@@ -1481,7 +1508,7 @@ mod tests {
         let Some(Session::Disclosure(session)) = &wallet.session else {
             panic!("wallet in unexpected state")
         };
-        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+        let DisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
             panic!("wallet in unexpected state")
         };
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
@@ -1515,7 +1542,7 @@ mod tests {
 
         // Set up the disclosure session to return a different error.
         match session.protocol_state.session_state {
-            MdocDisclosureSessionState::Proposal(ref proposal) => proposal.next_error.lock().replace(
+            DisclosureSessionState::Proposal(ref proposal) => proposal.next_error.lock().replace(
                 VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
                     RemoteEcdsaKeyError::KeyNotFound("foobar".to_string()).into(),
                 )))
@@ -1540,7 +1567,7 @@ mod tests {
         let Some(Session::Disclosure(session)) = &wallet.session else {
             panic!("wallet in unexpected state")
         };
-        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+        let DisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
             panic!("wallet in unexpected state")
         };
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
@@ -1583,14 +1610,14 @@ mod tests {
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
-        let disclosure_session = MockMdocDisclosureSession {
-            session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+        let disclosure_session = MockDisclosureSession {
+            session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
-                next_error: Mutex::new(Some(MdocDisclosureError::Vp(VpSessionError::Client(
-                    VpClientError::DeviceResponse(mdoc::Error::Cose(CoseError::Signing(
+                next_error: Mutex::new(Some(VpSessionError::Client(VpClientError::DeviceResponse(
+                    mdoc::Error::Cose(CoseError::Signing(
                         RemoteEcdsaKeyError::Instruction(instruction_error).into(),
-                    ))),
+                    )),
                 )))),
                 ..Default::default()
             }),
@@ -1600,7 +1627,9 @@ mod tests {
         let was_terminated = Arc::clone(&disclosure_session.was_terminated);
         assert!(!was_terminated.load(Ordering::Relaxed));
 
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            disclosure_session,
+        )));
 
         // Accepting disclosure when the verifier responds with an `InstructionError` indicating
         // that the account is blocked should result in a `DisclosureError::Instruction` error.
@@ -1689,8 +1718,8 @@ mod tests {
         let events = test::setup_mock_recent_history_callback(&mut wallet).await.unwrap();
 
         let proposed_attributes = setup_proposed_attributes(&[("age_over_18", DataElementValue::Bool(true))]);
-        let disclosure_session = MockMdocDisclosureSession {
-            session_state: MdocDisclosureSessionState::Proposal(MockMdocDisclosureProposal {
+        let disclosure_session = MockDisclosureSession {
+            session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
                 proposed_source_identifiers: vec![PROPOSED_ID],
                 proposed_attributes,
                 next_error: Mutex::new(Some(VpVerifierError::MissingReaderRegistration.into())),
@@ -1702,7 +1731,9 @@ mod tests {
 
         let reader_certificate = disclosure_session.certificate.clone();
 
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new_browser(disclosure_session)));
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new_browser(
+            disclosure_session,
+        )));
 
         // Accepting disclosure when the verifier responds with an error indicating that
         // attributes were shared should result in a disclosure event being recorded.
@@ -1723,7 +1754,7 @@ mod tests {
         let Some(Session::Disclosure(session)) = &wallet.session else {
             panic!("wallet in unexpected state")
         };
-        let MdocDisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
+        let DisclosureSessionState::Proposal(proposal) = &session.protocol_state.session_state else {
             panic!("wallet in unexpected state")
         };
         assert_eq!(proposal.disclosure_count.load(Ordering::Relaxed), 0);
@@ -1762,8 +1793,8 @@ mod tests {
         // Prepare a registered and unlocked wallet with an active disclosure session.
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
-        let disclosure_session = MockMdocDisclosureSession::default();
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
+        let disclosure_session = MockDisclosureSession::default();
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new(
             RedirectUriPurpose::Issuance,
             disclosure_session,
         )));

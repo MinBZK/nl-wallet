@@ -7,8 +7,7 @@ use uuid::Uuid;
 
 use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::ItemsRequest;
-use openid4vc::disclosure_session::DisclosureSession;
-use openid4vc::disclosure_session::HttpVpMessageClient;
+use openid4vc::disclosure_session::VpDisclosureSession;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use openid4vc::verifier::SessionType;
 use openid4vc::verifier::StatusResponse;
@@ -45,7 +44,7 @@ type PerformanceTestWallet = Wallet<
     HttpAccountProviderClient,
     HttpDigidSession,
     HttpIssuanceSession,
-    DisclosureSession<HttpVpMessageClient, Uuid>,
+    VpDisclosureSession<Uuid>,
     WpWteIssuanceClient,
 >;
 
