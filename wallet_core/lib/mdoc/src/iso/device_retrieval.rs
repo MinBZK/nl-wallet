@@ -120,11 +120,11 @@ pub type NameSpaces = IndexMap<NameSpace, DataElements>;
 /// The attribute names that the RP wishes disclosed within a particular namespace, as part of a [`ItemsRequest`],
 /// along with a boolean with which the RP can claim its intention to (not) retain the attribute value after receiving
 /// and verifying it.
-pub type DataElements = IndexMap<DataElementIdentifier, IndentToRetain>;
+pub type DataElements = IndexMap<DataElementIdentifier, IntentToRetain>;
 
 ///  Claimed intention of the RP to (not) retain the attribute value after receiving and verifying it, as part of
 /// [`DataElements`] within a [`ItemsRequest`].
-pub type IndentToRetain = bool;
+pub type IntentToRetain = bool;
 
 #[cfg(any(test, feature = "examples"))]
 mod examples {
