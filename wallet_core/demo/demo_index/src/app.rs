@@ -13,6 +13,7 @@ use axum::routing::get;
 use axum::Router;
 use demo_utils::headers::set_content_security_policy;
 use itertools::Itertools;
+use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
@@ -46,7 +47,7 @@ pub fn create_router(settings: Settings) -> Router {
         demo_services: settings.demo_services,
     });
 
-    let app = Router::new()
+    let mut app = Router::new()
         .route("/", get(index))
         .fallback_service(
             ServiceBuilder::new()
@@ -64,6 +65,10 @@ pub fn create_router(settings: Settings) -> Router {
         .layer(middleware::from_fn(|req, next| {
             set_content_security_policy(req, next, &CSP_HEADER)
         }));
+
+    if settings.log_requests {
+        app = app.layer(axum::middleware::from_fn(log_request_response));
+    }
 
     app
 }

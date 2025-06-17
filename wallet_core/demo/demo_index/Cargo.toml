@@ -34,4 +34,5 @@ url = { workspace = true, features = ["serde"] }
 
 demo_utils.path = "../demo_utils"
 http_utils.path = "../../lib/http_utils"
+server_utils.path = "../../wallet_server/server_utils"
 utils.path = "../../lib/utils"

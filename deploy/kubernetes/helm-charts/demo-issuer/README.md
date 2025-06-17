@@ -77,3 +77,9 @@
 | `issuanceServerBaseUrl` | Base URL of the issuance server          | `nil` |
 | `universalLinkBaseUrl`  | Base URL for universal links             | `nil` |
 | `helpBaseUrl`           | Base URL for the help link in wallet web | `nil` |
+
+### Logging
+
+| Name         | Description                                 | Value   |
+| ------------ | ------------------------------------------- | ------- |
+| `logRequest` | Log request and response headers and bodies | `false` |

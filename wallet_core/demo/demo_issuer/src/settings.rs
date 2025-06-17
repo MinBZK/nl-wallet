@@ -23,6 +23,7 @@ pub struct Settings {
     pub universal_link_base_url: BaseUrl,
     pub help_base_url: BaseUrl,
     pub structured_logging: bool,
+    pub log_requests: bool,
     pub usecases: IndexMap<String, Usecase>,
 }
 
@@ -56,6 +57,7 @@ impl Settings {
             .set_default("issuance_server.port", 8002)?
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("structured_logging", false)?
+            .set_default("log_requests", false)?
             .add_source(File::from(prefix_local_path("demo_issuer.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("demo_issuer")
