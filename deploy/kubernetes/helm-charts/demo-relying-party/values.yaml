@@ -81,3 +81,7 @@ resources:
 verificationServerBaseUrl: null
 helpBaseUrl: null
 demoIndexUrl: null
+
+## @section Logging
+## @param logRequest Log request and response headers and bodies
+logRequest: false

@@ -98,3 +98,7 @@ resources:
 issuanceServerBaseUrl: null
 universalLinkBaseUrl: null
 helpBaseUrl: null
+
+## @section Logging
+## @param logRequest Log request and response headers and bodies
+logRequest: false
