@@ -6,13 +6,12 @@ use rustls_pki_types::TrustAnchor;
 use tracing::info;
 use tracing::warn;
 
-use ::utils::vec_at_least::VecAtLeastTwoUnique;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::identifiers::AttributeIdentifier;
 use attestation_data::x509::CertificateType;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
-use crypto::utils;
+use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use http_utils::urls::BaseUrl;
 use mdoc::disclosure::DeviceResponse;
@@ -22,6 +21,7 @@ use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use mdoc::holder::ProposedDocument;
 use poa::factory::PoaFactory;
+use utils::vec_at_least::VecAtLeastTwoUnique;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -242,7 +242,7 @@ where
         let method = request_uri_object.request_uri_method.unwrap_or_default();
         let request_nonce = match method {
             RequestUriMethod::GET => None,
-            RequestUriMethod::POST => Some(utils::random_string(32)),
+            RequestUriMethod::POST => Some(random_string(32)),
         };
 
         let jws = client
@@ -262,7 +262,7 @@ where
             })
             .await?;
 
-        let mdoc_nonce = utils::random_string(32);
+        let mdoc_nonce = random_string(32);
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
             &auth_request.client_id,
@@ -452,7 +452,6 @@ mod tests {
     use serde::ser::Error;
     use serde_json::json;
 
-    use ::utils::vec_at_least::VecAtLeastTwoUnique;
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
     use attestation_data::identifiers::AttributeIdentifier;
@@ -465,7 +464,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::mock_remote::MockRemoteKeyFactoryError;
     use crypto::server_keys::generate::Ca;
-    use crypto::utils;
+    use crypto::utils::random_string;
     use crypto::x509::CertificateConfiguration;
     use crypto::x509::CertificateError;
     use http_utils::urls::BaseUrl;
@@ -490,6 +489,7 @@ mod tests {
     use mdoc::SessionTranscript;
     use poa::factory::PoaFactory;
     use poa::Poa;
+    use utils::vec_at_least::VecAtLeastTwoUnique;
 
     use crate::disclosure_session::VpSessionError;
     use crate::disclosure_session::VpVerifierError;
@@ -1356,14 +1356,14 @@ mod tests {
         IsoVpAuthorizationRequest::new(
             &vec![ItemsRequest::new_example()].into(),
             key_pair.certificate(),
-            utils::random_string(32),
+            random_string(32),
             EcKeyPair::generate(EcCurve::P256)
                 .unwrap()
                 .to_jwk_public_key()
                 .try_into()
                 .unwrap(),
             VERIFIER_URL.parse().unwrap(),
-            Some(utils::random_string(32)),
+            Some(random_string(32)),
         )
         .unwrap()
     }
@@ -1383,7 +1383,7 @@ mod tests {
         let wallet_messages = Arc::new(Mutex::new(Vec::new()));
         let client = MockErrorFactoryVpMessageClient::new(response_factory, Arc::clone(&wallet_messages));
 
-        let mdoc_nonce = utils::random_string(32);
+        let mdoc_nonce = random_string(32);
 
         let ca = Ca::generate("my_ca", CertificateConfiguration::default()).unwrap();
         let mock_key_pair = ca
@@ -1577,11 +1577,10 @@ mod tests {
             }
 
             async fn generate_new_multiple(&self, count: u64) -> Result<Vec<Self::Key>, Self::Error> {
-                let keys = iter::repeat_with(|| {
-                    MockRemoteEcdsaKey::new(utils::random_string(32), SigningKey::random(&mut OsRng))
-                })
-                .take(count as usize)
-                .collect::<Vec<_>>();
+                let keys =
+                    iter::repeat_with(|| MockRemoteEcdsaKey::new(random_string(32), SigningKey::random(&mut OsRng)))
+                        .take(count as usize)
+                        .collect::<Vec<_>>();
                 Ok(keys)
             }
         }
