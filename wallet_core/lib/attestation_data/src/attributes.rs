@@ -90,11 +90,7 @@ impl Attributes {
         let mut result = IndexMap::with_capacity(self.0.len());
         let mut to_process: VecDeque<(Vec<&str>, &IndexMap<String, Attribute>)> = VecDeque::from([(vec![], &self.0)]);
 
-        loop {
-            let Some((prefix, attributes)) = to_process.pop_front() else {
-                break;
-            };
-
+        while let Some((prefix, attributes)) = to_process.pop_front() {
             let mut to_add = Vec::with_capacity(attributes.len());
             for (name, attribute) in attributes {
                 let path = prefix.iter().copied().chain([name.as_str()]).collect();
