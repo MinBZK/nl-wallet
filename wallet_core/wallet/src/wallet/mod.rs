@@ -37,8 +37,8 @@ use crate::update_policy::UpdatePolicyRepository;
 use crate::wte::WpWteIssuanceClient;
 
 use self::attestations::AttestationsCallback;
-use self::disclosure::DisclosureSession;
-use self::issuance::IssuanceSession;
+use self::disclosure::WalletDisclosureSession;
+use self::issuance::WalletIssuanceSession;
 
 pub use self::disclosure::DisclosureError;
 pub use self::disclosure::DisclosureProposalPresentation;
@@ -94,8 +94,8 @@ impl<A, G> WalletRegistration<A, G> {
 #[derive(Debug)]
 enum Session<DS, IS, MDS> {
     Digid(DS),
-    Issuance(IssuanceSession<IS>),
-    Disclosure(DisclosureSession<MDS>),
+    Issuance(WalletIssuanceSession<IS>),
+    Disclosure(WalletDisclosureSession<MDS>),
 }
 
 pub struct Wallet<

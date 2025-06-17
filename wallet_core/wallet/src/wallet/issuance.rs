@@ -18,7 +18,7 @@ use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use openid4vc::issuance_session::HttpVcMessageClient;
-use openid4vc::issuance_session::IssuanceSession as Openid4vcIssuanceSession;
+use openid4vc::issuance_session::IssuanceSession;
 use openid4vc::issuance_session::IssuanceSessionError;
 use openid4vc::token::CredentialPreviewError;
 use openid4vc::token::TokenRequest;
@@ -122,7 +122,7 @@ pub enum IssuanceError {
 }
 
 #[derive(Debug, Clone, Constructor)]
-pub struct IssuanceSession<IS> {
+pub struct WalletIssuanceSession<IS> {
     is_pid: bool,
     preview_attestations: VecNonEmpty<AttestationPresentation>,
     protocol_state: IS,
@@ -134,7 +134,7 @@ where
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
     DS: DigidSession,
-    IS: Openid4vcIssuanceSession,
+    IS: IssuanceSession,
     S: Storage,
     APC: AccountProviderClient,
 {
@@ -358,7 +358,7 @@ where
         // The IssuanceSession trait guarantees that credential_preview_data()
         // returns at least one value, so this unwrap() is safe.
         let event_attestations = attestations.clone().try_into().unwrap();
-        self.session.replace(Session::Issuance(IssuanceSession::new(
+        self.session.replace(Session::Issuance(WalletIssuanceSession::new(
             is_pid,
             event_attestations,
             issuance_session,
@@ -653,7 +653,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup a mock OpenID4VCI session.
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             true,
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             MockIssuanceSession::default(),
@@ -716,7 +716,7 @@ mod tests {
             client.expect_issuer().return_const(IssuerRegistration::new_mock());
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             true,
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
@@ -918,7 +918,7 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             true,
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
@@ -954,7 +954,11 @@ mod tests {
             String::from(VCT_EXAMPLE_CREDENTIAL),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            true,
+            attestations,
+            pid_issuer,
+        )));
 
         // Accept the PID issuance with the PIN.
         wallet
@@ -1071,7 +1075,7 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             true,
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
@@ -1157,7 +1161,7 @@ mod tests {
 
             client
         };
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
             true,
             vec![AttestationPresentation::new_mock()].try_into().unwrap(),
             pid_issuer,
@@ -1187,7 +1191,11 @@ mod tests {
             String::from(VCT_EXAMPLE_CREDENTIAL),
             VerifiedTypeMetadataDocuments::nl_pid_example(),
         );
-        wallet.session = Some(Session::Issuance(IssuanceSession::new(true, attestations, pid_issuer)));
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            true,
+            attestations,
+            pid_issuer,
+        )));
 
         // Have the mdoc storage return an error on query.
         wallet.storage.write().await.has_query_error = true;

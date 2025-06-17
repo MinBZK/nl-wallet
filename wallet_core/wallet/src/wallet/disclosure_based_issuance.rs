@@ -184,8 +184,8 @@ mod tests {
 
     use crate::disclosure::mock::MockDisclosureProposal;
     use crate::disclosure::mock::MockDisclosureSession;
-    use crate::wallet::disclosure::DisclosureSession;
     use crate::wallet::disclosure::RedirectUriPurpose;
+    use crate::wallet::disclosure::WalletDisclosureSession;
     use crate::wallet::test::create_example_preview_data;
     use crate::wallet::test::WalletDeviceVendor;
     use crate::wallet::test::WalletWithMocks;
@@ -214,7 +214,7 @@ mod tests {
         let credential_offer = format!("{OPENID4VCI_CREDENTIAL_OFFER_URL_SCHEME}://?{credential_offer}")
             .parse()
             .unwrap();
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new(
             RedirectUriPurpose::Issuance,
             MockDisclosureSession {
                 session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
@@ -265,7 +265,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         // Setup an disclosure based issuance session returning an error that means there are no attestations to offer.
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new(
             RedirectUriPurpose::Issuance,
             MockDisclosureSession {
                 session_state: DisclosureSessionState::Proposal(MockDisclosureProposal {
@@ -300,7 +300,7 @@ mod tests {
         let mut wallet = WalletWithMocks::new_registered_and_unlocked(WalletDeviceVendor::Apple);
 
         let disclosure_session = MockDisclosureSession::default();
-        wallet.session = Some(Session::Disclosure(DisclosureSession::new(
+        wallet.session = Some(Session::Disclosure(WalletDisclosureSession::new(
             RedirectUriPurpose::Browser,
             disclosure_session,
         )));
