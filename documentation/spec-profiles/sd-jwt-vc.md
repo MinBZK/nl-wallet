@@ -120,11 +120,13 @@ The NL Wallet supports rendering of claims that select any of the following
 types:
 
 - JSON types: `boolean`, `number` and `string`
-- To format date, time or date-time values from `string`-types, the NL Wallet
-  uses the `format` property from the JSON Schema, which can be one of
-  `date`, `time` or `datetime`. If no format or another format is present,
-  `string` is assumed without further processing. The NL Wallet does *not* (yet)
-  support claims that select a JSON `array` or `object` value.
+- There is limited support to use the `format` property of JSON Schema to format
+  dates. Only direct explicit properties can be used, i.e. no `$ref` and no
+  `additionalProperties`, `patternProperties` or `allOf`, `anyOf`, `oneOf`
+  constructs.
+  Example:`{"properties": {"birth_date": {"type": "string", "format": "date"}}}`
+- The NL Wallet does _not_ (yet) support claims that select a JSON `array` or
+  `object` value.
 - Type Metadata MUST only contain claim paths that select the supported types
   above. Any Type Metadata that contains claims that select a non-supported
   type, will be rejected.
