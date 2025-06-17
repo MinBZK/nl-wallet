@@ -31,7 +31,7 @@ use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_data::issuable_document::IssuableDocument;
 use attestation_data::issuable_document::IssuableDocuments;
-use attestation_data::qualification::AttestationQualification;
+use attestation_types::qualification::AttestationQualification;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
 use crypto::EcdsaKeySend;

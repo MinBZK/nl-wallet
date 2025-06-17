@@ -68,6 +68,7 @@ regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
 attestation_data.path = "../attestation_data"
+attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"

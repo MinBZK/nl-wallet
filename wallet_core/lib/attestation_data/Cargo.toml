@@ -34,6 +34,7 @@ x509-parser = { workspace = true, features = ["verify", "validate"] }
 rand_core = { workspace = true, optional = true }
 rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_rs"] }
 
+attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"

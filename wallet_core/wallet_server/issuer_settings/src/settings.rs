@@ -12,7 +12,7 @@ use serde::de;
 use serde::Deserialize;
 use serde::Deserializer;
 
-use attestation_data::qualification::AttestationQualification;
+use attestation_types::qualification::AttestationQualification;
 use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateError;
@@ -226,7 +226,7 @@ mod tests {
     use indexmap::IndexMap;
 
     use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::qualification::AttestationQualification;
+    use attestation_types::qualification::AttestationQualification;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
     use crypto::server_keys::generate::Ca;

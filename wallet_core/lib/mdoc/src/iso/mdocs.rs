@@ -23,7 +23,7 @@ use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use attestation_data::attributes::Entry;
-use attestation_data::qualification::AttestationQualification;
+use attestation_types::qualification::AttestationQualification;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
 use utils::date_time_seconds::DateTimeSeconds;

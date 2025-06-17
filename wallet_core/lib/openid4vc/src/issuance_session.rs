@@ -1101,7 +1101,7 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::LocalizedStrings;
     use attestation_data::credential_payload::CredentialPayload;
-    use attestation_data::qualification::AttestationQualification;
+    use attestation_types::qualification::AttestationQualification;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;

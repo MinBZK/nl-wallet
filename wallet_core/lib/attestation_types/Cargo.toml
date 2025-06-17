@@ -1,0 +1,12 @@
+[package]
+name = "attestation_types"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde_with = { workspace = true, features = ["macros"] }
+strum = { workspace = true, features = ["derive"] }

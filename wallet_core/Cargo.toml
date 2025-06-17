@@ -11,6 +11,7 @@ members = [
     "lib/android_attest",
     "lib/apple_app_attest",
     "lib/attestation_data",
+    "lib/attestation_types",
     "lib/crypto",
     "lib/dcql",
     "lib/error_category",

@@ -22,7 +22,7 @@ use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::date_time_seconds::DateTimeSeconds;
 
 use crate::attributes::Attributes;
-use crate::qualification::AttestationQualification;
+use attestation_types::qualification::AttestationQualification;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum SdJwtCredentialPayloadError {
