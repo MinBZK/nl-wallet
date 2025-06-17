@@ -1,11 +1,11 @@
 use futures::TryFutureExt;
-use http_utils::reqwest::client_builder_accept_json;
 use reqwest::header::ACCEPT;
 use reqwest::ClientBuilder;
 use reqwest::Method;
 use reqwest::Response;
 use serde::de::DeserializeOwned;
 
+use http_utils::reqwest::client_builder_accept_json;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
 
