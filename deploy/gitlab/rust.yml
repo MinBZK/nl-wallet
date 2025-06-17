@@ -13,7 +13,14 @@ lint-rust:
     - find wallet_core -mindepth 2 -type f -name Cargo.toml -print0 | xargs -0 -n1 -I {} cargo fmt --manifest-path {} -- --check
     # Check clippy
     - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
-    - grep ^exclude wallet_core/Cargo.toml | grep -oP '".*?"' | tr -d '"' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+    - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests -- -Dwarnings
+    # Again clippy with json
+    - cargo clippy --manifest-path wallet_core/Cargo.toml --locked --all-features --all-targets --tests --message-format=json -- -Dwarnings > wallet_core/clippy.json
+    - grep '^exclude' wallet_core/Cargo.toml | grep -oe '\[.*\]' | jq -r '.[]' | xargs -I "{}" cargo clippy --manifest-path wallet_core/{}/Cargo.toml --locked --all-features --all-targets --tests --message-format=json -- -Dwarnings >> wallet_core/clippy.json
+  artifacts:
+    name: lint-rust
+    paths:
+     - wallet_core/clippy.json
 
 .test-rust:
   extends: .rust
