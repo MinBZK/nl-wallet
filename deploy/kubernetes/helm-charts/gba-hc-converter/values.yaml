@@ -53,6 +53,13 @@ serviceAccountName: null
 ##
 securityContext: {}
 
+## @section Network Policy configuration
+## Parameters for the network policy configuration
+## @param networkPolicy.ingress Ingress rules for GBA converter pods pods
+##
+networkPolicy:
+  ingress: []
+
 ## @section GBA HC Converter parameters
 ## Parameters for the GBA HC Converter configuration
 ## @param gbaHcConverter.replicaCount Number of replicas for the GBA HC Converter

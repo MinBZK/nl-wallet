@@ -42,15 +42,14 @@
 
 ### Ingress parameters
 
-| Name                    | Description                            | Value |
-| ----------------------- | -------------------------------------- | ----- |
-| `ingress.name`          | Name of the ingress                    | `""`  |
-| `ingress.className`     | Ingress class name                     | `""`  |
-| `ingress.hostname`      | Hostname for the ingress               | `""`  |
-| `ingress.contextPath`   | Optional context path for the ingress  | `""`  |
-| `ingress.tlsSecretName` | TLS secret name for the ingress        | `""`  |
-| `ingress.labels`        | Additional labels for the ingress      | `{}`  |
-| `ingress.annotations`   | Additional annotations for the ingress | `{}`  |
+| Name                    | Description                            | Value   |
+| ----------------------- | -------------------------------------- | ------- |
+| `ingress.className`     | Ingress class name                     | `nginx` |
+| `ingress.hostname`      | Hostname for the ingress               | `nil`   |
+| `ingress.contextPath`   | Optional context path for the ingress  | `nil`   |
+| `ingress.tlsSecretName` | TLS secret name for the ingress        | `nil`   |
+| `ingress.labels`        | Additional labels for the ingress      | `{}`    |
+| `ingress.annotations`   | Additional annotations for the ingress | `{}`    |
 
 ### Resource requests and limits
 

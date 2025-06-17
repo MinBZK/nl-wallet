@@ -1,0 +1,16 @@
+kind: NetworkPolicy
+apiVersion: {{ include "common.capabilities.networkPolicy.apiVersion" . }}
+metadata:
+  name: "{{ .Release.Name }}-access-gba"
+  labels:
+    {{- include "common.labels.standard" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "common.labels.componentSelectorLabels" (list .Chart.Name .) | nindent 6 }}
+  {{- with .Values.networkPolicy.ingress }}
+  ingress:
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  policyTypes:
+    - Ingress
