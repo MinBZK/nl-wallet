@@ -46,6 +46,12 @@
 | ----------------- | ----------------------------------- | ----- |
 | `securityContext` | Security context for the containers | `{}`  |
 
+### Network Policy configuration
+
+| Name                    | Description                               | Value |
+| ----------------------- | ----------------------------------------- | ----- |
+| `networkPolicy.ingress` | Ingress rules for GBA converter pods pods | `[]`  |
+
 ### GBA HC Converter parameters
 
 | Name                                       | Description                                                    | Value                                 |

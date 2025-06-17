@@ -51,7 +51,6 @@ securityContext: {}
 
 ## @section Ingress parameters
 ## Enable and configure ingress
-## @param ingress.name Name of the ingress
 ## @param ingress.className Ingress class name
 ## @param ingress.hostname Hostname for the ingress
 ## @param ingress.contextPath Optional context path for the ingress
