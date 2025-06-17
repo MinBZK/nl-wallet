@@ -95,6 +95,8 @@
 - Add `demo_issuer` to demonstrate disclosure based issuance.
 - Add support for static Universal Links in `wallet_web`, to be used for
   disclosure based issuance.
+- Add functionality for issuing, storing and viewing attestations in SD-JWT
+  format.
 
 ## Code improvements
 
