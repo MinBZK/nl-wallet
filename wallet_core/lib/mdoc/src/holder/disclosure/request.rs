@@ -1,20 +1,4 @@
-use chrono::DateTime;
-use chrono::Utc;
-use rustls_pki_types::TrustAnchor;
-
-use crypto::x509::BorrowingCertificate;
-use crypto::x509::CertificateUsage;
-use utils::generator::Generator;
-
 use crate::device_retrieval::DeviceRequest;
-use crate::device_retrieval::DocRequest;
-use crate::device_retrieval::ReaderAuthenticationKeyed;
-use crate::engagement::SessionTranscript;
-use crate::errors::Result;
-use crate::utils::cose::ClonePayload;
-use crate::utils::serialization;
-use crate::utils::serialization::CborSeq;
-use crate::utils::serialization::TaggedBytes;
 use crate::ItemsRequest;
 
 impl DeviceRequest {
@@ -23,30 +7,50 @@ impl DeviceRequest {
     }
 }
 
-impl DocRequest {
-    pub fn verify(
-        &self,
-        session_transcript: &SessionTranscript,
-        time: &impl Generator<DateTime<Utc>>,
-        trust_anchors: &[TrustAnchor],
-    ) -> Result<Option<BorrowingCertificate>> {
-        // If reader authentication is present, verify it and return the certificate.
-        self.reader_auth
-            .as_ref()
-            .map(|reader_auth| {
-                // Reconstruct the reader authentication bytes for this `DocRequest`,
-                // based on the item requests and session transcript.
-                let reader_auth_payload = ReaderAuthenticationKeyed::new(session_transcript, &self.items_request);
-                let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
+#[cfg(any(test, feature = "examples"))]
+mod verify {
+    use chrono::DateTime;
+    use chrono::Utc;
+    use rustls_pki_types::TrustAnchor;
 
-                // Perform verification and return the `Certificate`.
-                let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
-                cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
-                let cert = cose.signing_cert()?;
+    use crypto::x509::BorrowingCertificate;
+    use crypto::x509::CertificateUsage;
+    use utils::generator::Generator;
 
-                Ok(cert)
-            })
-            .transpose()
+    use crate::device_retrieval::DocRequest;
+    use crate::device_retrieval::ReaderAuthenticationKeyed;
+    use crate::engagement::SessionTranscript;
+    use crate::errors::Result;
+    use crate::utils::cose::ClonePayload;
+    use crate::utils::serialization;
+    use crate::utils::serialization::CborSeq;
+    use crate::utils::serialization::TaggedBytes;
+
+    impl DocRequest {
+        pub fn verify(
+            &self,
+            session_transcript: &SessionTranscript,
+            time: &impl Generator<DateTime<Utc>>,
+            trust_anchors: &[TrustAnchor],
+        ) -> Result<Option<BorrowingCertificate>> {
+            // If reader authentication is present, verify it and return the certificate.
+            self.reader_auth
+                .as_ref()
+                .map(|reader_auth| {
+                    // Reconstruct the reader authentication bytes for this `DocRequest`,
+                    // based on the item requests and session transcript.
+                    let reader_auth_payload = ReaderAuthenticationKeyed::new(session_transcript, &self.items_request);
+                    let reader_auth_payload = TaggedBytes(CborSeq(reader_auth_payload));
+
+                    // Perform verification and return the `Certificate`.
+                    let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
+                    cose.verify_against_trust_anchors(CertificateUsage::ReaderAuth, time, trust_anchors)?;
+                    let cert = cose.signing_cert()?;
+
+                    Ok(cert)
+                })
+                .transpose()
+        }
     }
 }
 
@@ -63,6 +67,11 @@ mod tests {
     use crate::test::generate_reader_mock;
     use crate::utils::cose;
     use crate::utils::cose::MdocCose;
+    use crate::utils::serialization::CborSeq;
+    use crate::utils::serialization::TaggedBytes;
+    use crate::DocRequest;
+    use crate::ReaderAuthenticationKeyed;
+    use crate::SessionTranscript;
 
     use super::*;
 
