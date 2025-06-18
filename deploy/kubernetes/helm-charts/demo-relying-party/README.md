@@ -66,3 +66,9 @@
 | `verificationServerBaseUrl` | Base URL of the verification server      | `nil` |
 | `helpBaseUrl`               | Base URL for the help link in wallet web | `nil` |
 | `demoIndexUrl`              | URL of the demo index                    | `nil` |
+
+### Logging
+
+| Name         | Description                                 | Value   |
+| ------------ | ------------------------------------------- | ------- |
+| `logRequest` | Log request and response headers and bodies | `false` |

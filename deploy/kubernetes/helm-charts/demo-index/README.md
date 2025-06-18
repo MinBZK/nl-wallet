@@ -58,3 +58,9 @@
 | `resources.requests.memory` | Memory request | `32Mi` |
 | `resources.limits.cpu`      | CPU limit      | `200m` |
 | `resources.limits.memory`   | Memory limit   | `64Mi` |
+
+### Logging
+
+| Name         | Description                                 | Value   |
+| ------------ | ------------------------------------------- | ------- |
+| `logRequest` | Log request and response headers and bodies | `false` |

@@ -55,6 +55,8 @@ spec:
               value: {{ .Values.helpBaseUrl }}
             - name: DEMO_ISSUER__STRUCTURED_LOGGING
               value: "true"
+            - name: DEMO_ISSUER__LOG_REQUESTS
+              value: {{ .Values.logRequests | quote }}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

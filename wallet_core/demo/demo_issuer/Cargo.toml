@@ -41,4 +41,5 @@ demo_utils.path = "../demo_utils"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
 mdoc.path = "../../lib/mdoc"
 openid4vc.path = "../../lib/openid4vc"
+server_utils.path = "../../wallet_server/server_utils"
 utils.path = "../../lib/utils"
