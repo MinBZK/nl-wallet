@@ -1,5 +1,5 @@
 test-android:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android-emulator:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android-emulator:${BUILD_TAG}"
   tags:
     - linux
   rules: !reference [.default-or-release-or-merge-request, rules]
@@ -30,7 +30,7 @@ test-android:
 
 ### Android building
 .build-android-app:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
   extends: .ruby-cache
   tags:
     - linux
@@ -55,7 +55,6 @@ test-android:
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
-    UNIVERSAL_LINK_BASE: "https://${UL_HOSTNAME}/deeplink/"
   script:
     - VERSION=${CI_COMMIT_TAG#v}
     - set -euo pipefail
@@ -77,18 +76,18 @@ test-android:
     - rm wallet_app/android/upload-keystore.jks wallet_app/android/key.properties
 
 .build-android-app-ont:
-  extends: [.env-ont-k8s, .build-android-app]
+  extends: [.env-k8s, .build-android-app]
   rules: !reference [.default-branch, rules]
   needs:
     - !reference [.build-android-app, needs]
+    - job: build-env-ont
+      artifacts: true
     - job: wallet-config-ont
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"
     APP_NAME: "NL Wallet (latest)"
     APP_MOCK: "false"
-    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ONT}"
-    CONFIG_ENV: "ont"
 
 build-android-app-ont:
   extends: .build-android-app-ont
@@ -107,10 +106,9 @@ build-android-app-ont-profile:
   variables:
     APP_FILE_FORMAT: "apk"
     APP_BUILD_MODE: "profile"
-    DEMO_INDEX_URL: "https://${DEMO_INDEX_EXTERNAL_HOSTNAME_ONT}/${DEMO_INDEX_EXTERNAL_CONTEXT_PATH}/"
 
 .build-android-app-release-tag:
-  extends: [.env-ont-k8s, .build-android-app]
+  extends: [.env-k8s, .build-android-app]
   rules: !reference [.release-tag, rules]
   variables:
     APP_MOCK: "false"
@@ -126,7 +124,6 @@ build-android-app-mock:
     APP_MOCK: "true" # override .build-android-app-release-tag
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
-    CONFIG_ENV: "dev"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
@@ -139,13 +136,13 @@ build-android-app-demo:
   rules:
     - !reference [.on-demo-build, rules]
   needs:
+    - job: build-env-demo
+      artifacts: true
     - job: wallet-config-demo
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "demo"
     APP_NAME: "NL Wallet (demo)"
-    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_DEMO}"
-    CONFIG_ENV: "demo"
     SENTRY_DSN: "${SENTRY_DSN_DEMO}"
     SENTRY_ENVIRONMENT: "demo"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_DEMO}"
@@ -157,13 +154,13 @@ build-android-app-acceptance:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
+    - job: build-env-acceptance
+      artifacts: true
     - job: wallet-config-acceptance
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "acceptance"
     APP_NAME: "NL Wallet (acceptance)"
-    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_ACC}"
-    CONFIG_ENV: "acceptance"
     SENTRY_DSN: "${SENTRY_DSN_ACC}"
     SENTRY_ENVIRONMENT: "acceptance"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_ACC}"
@@ -175,13 +172,13 @@ build-android-app-preproduction:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
+    - job: build-env-preproduction
+      artifacts: true
     - job: wallet-config-preproduction
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: "preproduction"
     APP_NAME: "NL Wallet (pre-production)"
-    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PREPROD}"
-    CONFIG_ENV: "preproduction"
     SENTRY_DSN: "${SENTRY_DSN_PREPROD}"
     SENTRY_ENVIRONMENT: "preproduction"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PREPROD}"
@@ -193,13 +190,13 @@ build-android-app-production:
   extends: .build-android-app-release-tag
   needs:
     - !reference [.build-android-app, needs]
+    - job: build-env-production
+      artifacts: true
     - job: wallet-config-production
       artifacts: true
   variables:
     APP_PACKAGE_IDENTIFIER_SUFFIX: ""
     APP_NAME: "NL Wallet (production)"
-    UL_HOSTNAME: "${APP_EXTERNAL_HOSTNAME_PROD}"
-    CONFIG_ENV: "production"
     SENTRY_DSN: "${SENTRY_DSN_PROD}"
     SENTRY_ENVIRONMENT: "production"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_PROD}"
@@ -209,9 +206,7 @@ build-android-app-production:
 
 ### Android deploying
 .deploy-android-app:
-  extends: [.env-ont-k8s, .ruby-cache]
-  environment:
-    action: start
+  extends: [.env-k8s, .ruby-cache]
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"

@@ -1,5 +1,5 @@
 check-test-reporting:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   rules: !reference [.default-or-merge-request, rules]
   script:
     - cd testreporting
@@ -9,7 +9,7 @@ check-test-reporting:
     - npm run type-check
 
 build-test-report:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   rules: !reference [.default-branch, rules]
   needs:
     - job: test-ios

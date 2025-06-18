@@ -5,7 +5,9 @@ default:
 variables:
   HELM_CHARTS_PATH: deploy/kubernetes/helm-charts
 
-.deploy-environment: &deploy-environment
+.deploy-base:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
   environment:
     name: ${K8S_CLUSTER}
     action: start
@@ -53,25 +55,11 @@ variables:
         FILE_OPTIONS+="-f $file "
       done
 
-fetch-variables:
-  rules:
-    - when: always
-  script:
-    - |
-      GITLAB_URL_NO_PREFIX=${GITLAB_URL#https://}
-      git clone https://repo-variables-deploy-token:${CI_GITLAB_API_TOKEN}@${GITLAB_URL_NO_PREFIX}/wallet/deployments/variables.git
-  artifacts:
-    paths:
-      - variables/general
-      - variables/${DEPLOY_ENV}
-
 db-cluster-provider-${DEPLOY_ENV}:
-  allow_failure: true
-  rules:
-    - when: on_success
-  <<: *deploy-environment
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster-provider
@@ -81,12 +69,10 @@ db-cluster-provider-${DEPLOY_ENV}:
     - !reference [.deploy-postgres-cluster, script]
 
 db-cluster-demo-rp-${DEPLOY_ENV}:
-  allow_failure: true
-  rules:
-    - when: on_success
-  <<: *deploy-environment
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster-demo-rp
@@ -96,12 +82,10 @@ db-cluster-demo-rp-${DEPLOY_ENV}:
     - !reference [.deploy-postgres-cluster, script]
 
 db-cluster-demo-issuer-${DEPLOY_ENV}:
-  allow_failure: true
-  rules:
-    - when: on_success
-  <<: *deploy-environment
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster-demo-issuer
@@ -111,12 +95,10 @@ db-cluster-demo-issuer-${DEPLOY_ENV}:
     - !reference [.deploy-postgres-cluster, script]
 
 db-cluster-pid-${DEPLOY_ENV}:
-  allow_failure: true
-  rules:
-    - when: on_success
-  <<: *deploy-environment
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: database-cnpg
     RELEASE_NAME: db-cluster-pid
@@ -125,7 +107,8 @@ db-cluster-pid-${DEPLOY_ENV}:
   script:
     - !reference [.deploy-postgres-cluster, script]
 
-.basic-helm-deployment: &basic-helm-deployment
+.deploy-helm:
+  extends: .deploy-base
   script:
     - !reference [.build-helm-dependency, script]
     - !reference [.replace-chart-app-version, script]
@@ -139,50 +122,46 @@ db-cluster-pid-${DEPLOY_ENV}:
     - !reference [.check-helm-install-status, script]
 
 wallet-provider-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-helm
   needs:
-    - db-cluster-provider-${DEPLOY_ENV}
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+    - job: db-cluster-provider-${DEPLOY_ENV}
+      artifacts: false
   variables:
     CHART_NAME: wallet-provider
     RELEASE_NAME: wallet-provider
     CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/wallet-provider.yaml"
-  <<: *basic-helm-deployment
 
 pid-issuer-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-helm
   needs:
-    - db-cluster-pid-${DEPLOY_ENV}
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+    - job: db-cluster-pid-${DEPLOY_ENV}
+      artifacts: false
   variables:
     CHART_NAME: pid-issuer
     RELEASE_NAME: pid-issuer
     CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/pid-issuer.yaml"
-  <<: *basic-helm-deployment
 
 demo-rp-verification-server-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-helm
   needs:
-    - db-cluster-demo-rp-${DEPLOY_ENV}
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+    - job: db-cluster-demo-rp-${DEPLOY_ENV}
+      artifacts: false
   variables:
     CHART_NAME: demo-rp-verification-server
     RELEASE_NAME: demo-rp-verification-server
     CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-rp-verification-server.yaml"
-  <<: *basic-helm-deployment
 
 demo-relying-party-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: demo-relying-party
     RELEASE_NAME: demo-relying-party
@@ -193,7 +172,6 @@ demo-relying-party-${DEPLOY_ENV}:
     - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
-      cat variables/${DEPLOY_ENV}/demo-relying-party.yaml
       helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
@@ -201,24 +179,22 @@ demo-relying-party-${DEPLOY_ENV}:
     - !reference [.check-helm-install-status, script]
 
 demo-issuer-issuance-server-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-helm
   needs:
-    - db-cluster-demo-issuer-${DEPLOY_ENV}
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
+    - job: db-cluster-demo-issuer-${DEPLOY_ENV}
+      artifacts: false
   variables:
     CHART_NAME: demo-issuer-issuance-server
     RELEASE_NAME: demo-issuer-issuance-server
     CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-issuer-issuance-server.yaml"
-  <<: *basic-helm-deployment
 
 demo-issuer-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: demo-issuer
     RELEASE_NAME: demo-issuer
@@ -229,7 +205,6 @@ demo-issuer-${DEPLOY_ENV}:
     - !reference [.parse-config-files, script]
     - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
     - |
-      cat variables/${DEPLOY_ENV}/demo-issuer.yaml
       helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
       --set global.imageRegistry=${HARBOR_REGISTRY} \
       --set image.tag=${DEPLOY_IMAGE_VERSION} \
@@ -237,35 +212,30 @@ demo-issuer-${DEPLOY_ENV}:
     - !reference [.check-helm-install-status, script]
 
 demo-index-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-helm
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: demo-index
     RELEASE_NAME: demo-index
     CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/demo-index.yaml"
-  <<: *basic-helm-deployment
 
 update-policy-server-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-helm
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: update-policy-server
     RELEASE_NAME: update-policy-server
     CONFIG_FILES: "variables/general/global.yaml,variables/${DEPLOY_ENV}/update-policy-server.yaml"
-  <<: *basic-helm-deployment
 
 brpproxy-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: brpproxy
     RELEASE_NAME: brpproxy
@@ -281,11 +251,10 @@ brpproxy-${DEPLOY_ENV}:
     - !reference [.check-helm-install-status, script]
 
 gbamock-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: gbamock
     RELEASE_NAME: gbamock
@@ -301,11 +270,10 @@ gbamock-${DEPLOY_ENV}:
     - !reference [.check-helm-install-status, script]
 
 gba-hc-converter-${DEPLOY_ENV}:
-  <<: *deploy-environment
-  rules:
-    - when: on_success
+  extends: .deploy-base
   needs:
-    - fetch-variables
+    - pipeline: $PARENT_PIPELINE_ID
+      job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: gba-hc-converter
     RELEASE_NAME: gba-hc-converter
@@ -327,51 +295,56 @@ gba-hc-converter-${DEPLOY_ENV}:
     - !reference [.check-helm-install-status, script]
 
 run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
+  extends: .deploy-base
   allow_failure: true
-  rules:
-    - when: manual
+  when: manual
   <<: *deploy-environment
   needs:
-    - gba-hc-converter-${DEPLOY_ENV}
+    - job: gba-hc-converter-${DEPLOY_ENV}
+      artifacts: false
   script:
     - kubectl create job --from=cronjob/encrypt-gba-v-testdata gba-encrypt-test-data-$(date +%s)
 
 run-demo-issuer-issuance-server-reset-${DEPLOY_ENV}:
+  extends: .deploy-base
   allow_failure: true
-  rules:
-    - when: manual
+  when: manual
   <<: *deploy-environment
   needs:
-    - demo-issuer-issuance-server-${DEPLOY_ENV}
+    - job: demo-issuer-issuance-server-${DEPLOY_ENV}
+      artifacts: false
   script:
     - kubectl create job --from=cronjob/demo-issuer-issuance-server-reset demo-issuer-issuance-db-reset-$(date +%s)
 
 run-demo-rp-verification-server-reset-${DEPLOY_ENV}:
+  extends: .deploy-base
   allow_failure: true
-  rules:
-    - when: manual
+  when: manual
   <<: *deploy-environment
   needs:
-    - demo-rp-verification-server-${DEPLOY_ENV}
+    - job: demo-rp-verification-server-${DEPLOY_ENV}
+      artifacts: false
   script:
     - kubectl create job --from=cronjob/demo-rp-verification-server-reset demo-rp-verification-db-reset-$(date +%s)
 
 run-pid-issuer-reset-${DEPLOY_ENV}:
+  extends: .deploy-base
   allow_failure: true
-  rules:
-    - when: manual
+  when: manual
   <<: *deploy-environment
   needs:
-    - pid-issuer-${DEPLOY_ENV}
+    - job: pid-issuer-${DEPLOY_ENV}
+      artifacts: false
   script:
     - kubectl create job --from=cronjob/pid-issuer-reset pid-issuer-db-reset-$(date +%s)
 
 run-wallet-provider-reset-${DEPLOY_ENV}:
+  extends: .deploy-base
   allow_failure: true
-  rules:
-    - when: manual
+  when: manual
   <<: *deploy-environment
   needs:
-    - wallet-provider-${DEPLOY_ENV}
+    - job: wallet-provider-${DEPLOY_ENV}
+      artifacts: false
   script:
     - kubectl create job --from=cronjob/wallet-provider-reset wallet-provider-db-reset-$(date +%s)

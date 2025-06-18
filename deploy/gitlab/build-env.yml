@@ -1,0 +1,37 @@
+.clone-variables:
+  before_script:
+    - git clone --depth 1 https://repo-variables-deploy-token:${REPO_VARIABLES_DEPLOY_TOKEN}@${CI_SERVER_HOST}/wallet/deployments/variables.git
+
+.build-env:
+  extends: .clone-variables
+  script:
+    - NAME=${CI_JOB_NAME#build-env-}
+    - variables/create-env.sh $NAME | tee build-${NAME}.env
+    - . build-${NAME}.env
+    - export NAME
+  artifacts:
+    name: build-env-${NAME}
+    reports:
+      dotenv: build-*.env
+
+build-env-ont:
+  extends: .build-env
+  rules:
+    - !reference [.on-schedule, rules]
+    - !reference [.default-or-release, rules]
+
+build-env-demo:
+  extends: .build-env
+  rules: !reference [.on-demo-build, rules]
+
+build-env-acceptance:
+  extends: .build-env
+  rules: !reference [.release-tag, rules]
+
+build-env-preproduction:
+  extends: .build-env
+  rules: !reference [.release-tag, rules]
+
+build-env-production:
+  extends: .build-env
+  rules: !reference [.release-tag, rules]

@@ -38,9 +38,9 @@ configuration determined by `wallet/.env` (or by using environment variables).
 In addition, it requires an `test_integration/.env` file containing these keys:
 
 - `RELYING_PARTY_URL`: The external URL from where the disclosure flow is started. Is used as return_url.
-- `INTERNAL_WALLET_SERVER_URL`: The internal URL where the disclosure session is started. Normally
+- `INTERNAL_VERIFICATION_SERVER_URL`: The internal URL where the disclosure session is started. Normally
   used by the relying party server.
-- `PUBLIC_WALLET_SERVER_URL`: The public URL of the Wallet Server where the status for the session can be retrieved.
+- `PUBLIC_VERIFICATION_SERVER_URL`: The public URL of the Verification Server where the status for the session can be retrieved.
   Normally used by the wallet_web frontend.
 - `APPLE_ATTESTATION_ENVIRONMENT`: The Apple attestation environment to be used for Apple key and app attestation that is configured in the Wallet Provider. Valid values are `development` and `production`, defaulting to the former if not provided.
 - `TEAM_IDENTIFIER`: The Apple Team Identifier to be used for Apple key and app attestation that is configured in the Wallet Provider. Note that this needs to be provided together with `BUNDLE_IDENTIFIER`.

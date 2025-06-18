@@ -42,8 +42,7 @@ export default defineConfig({
   reporter: [["list"], ["junit", { outputFile: "../test-results/results.xml" }], ["allure-playwright"]],
   projects,
   use: {
-    baseURL:
-      "https://" + process.env.DEMO_INDEX_EXTERNAL_HOSTNAME + "/" + process.env.DEMO_INDEX_EXTERNAL_CONTEXT_PATH + "/",
+    baseURL: process.env.DEMO_INDEX_URL,
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     trace: "retain-on-failure",

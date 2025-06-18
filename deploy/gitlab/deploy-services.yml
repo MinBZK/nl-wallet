@@ -1,69 +1,81 @@
-
-.deployment-needs:
-  needs:
-    - build-update-policy-server-image
-    - build-wallet-provider-image
-    - build-wp-migrations-image
-    - build-demo-relying-party-image
-    - build-demo-issuer-image
-    - build-verification-server-image
-    - build-issuance-server-image
-    - build-pid-issuer-image
-    - build-ws-migrations-image
-    - build-gba-hc-converter-image
-    - build-gba-fetch-image
-    - build-gba-fetch-frontend-image
+.create-deployment:
+  extends: .clone-variables
+  rules: !reference [.default-or-release-or-merge-request, rules]
+  script:
+    # CI variables take precedence over dotenv
+    - . variables/${DEPLOY_ENV}/cluster.env
+    - export DEPLOY_ENV
+    - export DEPLOY_IMAGE_VERSION="${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}"
+    - export K8S_CLUSTER
+    - export K8S_NAMESPACE
+    - envsubst '${DEPLOY_ENV} ${DEPLOY_IMAGE_VERSION} ${K8S_CLUSTER} ${K8S_NAMESPACE}' < deploy/gitlab-templates/deploy-template.yml > deploy-${DEPLOY_ENV}.yml
+  artifacts:
+    name: deploy-${DEPLOY_ENV}
+    paths:
+      - deploy-${DEPLOY_ENV}.yml
+      - variables/general
+      - variables/${DEPLOY_ENV}
 
 create-deployment-demo:
-  extends: .default-or-release-or-merge-request
-  when: on_success
-  script:
-    - export DEPLOY_ENV=demo
-    - export FILE_NAME=${FILE_NAME}
-    - export K8S_CLUSTER=${K8S_DEMO_CLUSTER}
-    - export K8S_NAMESPACE=${K8S_DEMO_NAMESPACE}
-    - export DEPLOY_IMAGE_VERSION=${CI_COMMIT_TAG:-${CI_COMMIT_SHORT_SHA}}
-    - envsubst '${DEPLOY_ENV} ${K8S_CLUSTER} ${K8S_NAMESPACE} ${DEPLOY_IMAGE_VERSION}' < deploy/gitlab-templates/deploy-template.yml > ${FILE_NAME}
-  artifacts:
-    paths:
-      - ${FILE_NAME}
-    expire_in: 1 day
+  extends: .create-deployment
   variables:
-    FILE_NAME: deploy-demo.yml
+    DEPLOY_ENV: demo
+
+create-deployment-ont:
+  extends: .create-deployment
+  variables:
+    DEPLOY_ENV: ont
+
+.deploy-apps:
+  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  needs:
+    - job: build-update-policy-server-image
+      artifacts: false
+    - job: build-wallet-provider-image
+      artifacts: false
+    - job: build-wp-migrations-image
+      artifacts: false
+    - job: build-demo-relying-party-image
+      artifacts: false
+    - job: build-demo-issuer-image
+      artifacts: false
+    - job: build-verification-server-image
+      artifacts: false
+    - job: build-issuance-server-image
+      artifacts: false
+    - job: build-pid-issuer-image
+      artifacts: false
+    - job: build-ws-migrations-image
+      artifacts: false
+    - job: build-gba-hc-converter-image
+      artifacts: false
+    - job: build-gba-fetch-image
+      artifacts: false
+    - job: build-gba-fetch-frontend-image
+      artifacts: false
+  variables:
+    PARENT_PIPELINE_ID: $CI_PIPELINE_ID
 
 deploy-apps-demo:
-  extends: .default-or-release-or-merge-request-manual
-  when: manual
+  extends: .deploy-apps
   needs:
-    - create-deployment-demo
-    - !reference [.deployment-needs, needs]
+    - job: create-deployment-demo
+      artifacts: false
+    - !reference [.deploy-apps, needs]
   trigger:
     include:
       - artifact: deploy-demo.yml
         job: create-deployment-demo
     strategy: depend
-
-create-deployment-ont:
-  extends: .default-or-release-or-merge-request
-  script:
-    - export DEPLOY_ENV=ont
-    - export FILE_NAME=${FILE_NAME}
-    - export K8S_CLUSTER=${K8S_CLUSTER}
-    - export K8S_NAMESPACE=${K8S_NAMESPACE}
-    - export DEPLOY_IMAGE_VERSION=${CI_COMMIT_SHORT_SHA}
-    - envsubst '${DEPLOY_ENV} ${K8S_CLUSTER} ${K8S_NAMESPACE} ${DEPLOY_IMAGE_VERSION}' < deploy/gitlab-templates/deploy-template.yml > ${FILE_NAME}
-  artifacts:
-    paths:
-      - ${FILE_NAME}
-    expire_in: 1 day
-  variables:
-    FILE_NAME: deploy-ont.yml
+  when: manual
+  allow_failure: true
 
 deploy-apps-ont:
-  extends: .default-or-release-or-merge-request-manual
+  extends: .deploy-apps
   needs:
-    - create-deployment-ont
-    - !reference [.deployment-needs, needs]
+    - job: create-deployment-ont
+      artifacts: false
+    - !reference [.deploy-apps, needs]
   trigger:
     include:
       - artifact: deploy-ont.yml

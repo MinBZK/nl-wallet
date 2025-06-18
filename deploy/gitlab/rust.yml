@@ -1,5 +1,5 @@
 .rust:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-rust:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-rust:${BUILD_TAG}"
   tags:
     - linux
 
@@ -36,14 +36,13 @@ test-rust:
     SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
   services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
+    - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
       alias: postgres
       variables:
         POSTGRESQL_USER: "postgres"
         POSTGRESQL_PASSWORD: "postgres"
         POSTGRESQL_MULTIPLE_DATABASES: "wallet_provider,verification_server,issuance_server,pid_issuer"
   script:
-    - set -euxo pipefail
     - |
       cat > scripts/.env <<EOD
       export DB_HOST=postgres
@@ -74,17 +73,17 @@ test-rust:
       - wallet_core/target/nextest/ci/junit.xml
 
 test-rust-gba-pid:
-  extends: [.env-ont-k8s, .test-rust]
+  extends: [.env-k8s, .test-rust]
   rules: !reference [.default-branch, rules]
   needs:
     - job: deploy-apps-ont
       artifacts: false
+    - job: build-env-ont
+      artifacts: true
     - job: wallet-config-ont
       artifacts: true
   variables:
     APPLE_ATTESTATION_ENVIRONMENT: "production"
-    CONFIG_ENV: ont
-    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
   script:
     - cd wallet_core/tests_integration
     - |
@@ -137,7 +136,7 @@ test-rust-doctest:
     CONFIG_ENV: "dev"
 
 test-rust-compilation-android:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-android:${BUILD_TAG}"
   extends: [.test-rust-compilation]
   script:
     - (cd wallet_core; cargo ndk --target arm64-v8a check --package flutter_api --locked --release)
@@ -305,17 +304,14 @@ build-performance-test:
   rules: !reference [.default-branch, rules]
   needs:
     - !reference [.build-binary, needs]
+    - job: build-env-ont
+      artifacts: true
     - job: wallet-config-ont
       artifacts: true
   script:
     - cargo build --locked --release --package "tests_integration" --bin performance_test --features performance_test,allow_insecure_url
   variables:
     APPLE_ATTESTATION_ENVIRONMENT: "production"
-    CONFIG_ENV: ont
-    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}/"
-    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}/"
-    INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}/"
   artifacts:
     name: performance-test
     paths:

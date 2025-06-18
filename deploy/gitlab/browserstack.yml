@@ -1,5 +1,9 @@
-.upload-browserstack-android-app:
-  extends: .ruby-cache
+upload-browserstack-android-app:
+  extends: [.env-k8s, .ruby-cache]
+  rules: !reference [.default-branch, rules]
+  needs:
+    - job: build-android-app-ont-profile
+      artifacts: true
   variables:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
@@ -11,14 +15,5 @@
     - bundle install
     - |
       bundle exec fastlane android ci_browserstack \
-        application_id:"${INTERNAL_APP_IDENTIFIER}${APP_PACKAGE_IDENTIFIER_SUFFIX:+.$APP_PACKAGE_IDENTIFIER_SUFFIX}" \
+        application_id:"${INTERNAL_APP_IDENTIFIER}.latest" \
         version:"${CI_COMMIT_TAG#v}"
-
-upload-browserstack-android-app-ont:
-  extends: [.env-ont-k8s, .upload-browserstack-android-app]
-  rules: !reference [.default-branch, rules]
-  needs:
-    - job: build-android-app-ont-profile
-      artifacts: true
-  variables:
-    APP_PACKAGE_IDENTIFIER_SUFFIX: "latest"

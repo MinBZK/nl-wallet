@@ -55,8 +55,9 @@ async fn main() {
     let temp_path = temp_dir.path();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
-    let public_wallet_server_url = option_env!("PUBLIC_WALLET_SERVER_URL").unwrap_or("http://localhost:3005/");
-    let internal_wallet_server_url = option_env!("INTERNAL_WALLET_SERVER_URL").unwrap_or("http://localhost:3006/");
+    let public_wallet_server_url = option_env!("PUBLIC_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
+    let internal_wallet_server_url =
+        option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
 
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
