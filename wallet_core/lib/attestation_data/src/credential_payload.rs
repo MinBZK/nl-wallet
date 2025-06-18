@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
@@ -150,15 +152,17 @@ impl CredentialPayload {
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
         let attr_claim_paths = Self::claim_paths_from_attributes(self.previewable_payload.attributes.as_ref());
-        let mut metadata_claims = type_metadata.claims().iter();
+        let sd_by_claims = type_metadata
+            .claims()
+            .iter()
+            .map(|claim| (&claim.path, claim.sd))
+            .collect::<HashMap<_, _>>();
 
         let sd_jwt = attr_claim_paths
             .into_iter()
             .try_fold(SdJwtBuilder::new(self)?, |builder, claims| {
-                let claim_opt = metadata_claims.find(|c| c.path == claims);
-
-                let should_be_selectively_discloseable = match claim_opt {
-                    Some(c) => !matches!(c.sd, ClaimSelectiveDisclosureMetadata::Never),
+                let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
+                    Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
                     None => true,
                 };
 
