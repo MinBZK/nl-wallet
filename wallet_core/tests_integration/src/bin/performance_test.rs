@@ -55,8 +55,9 @@ async fn main() {
     let temp_path = temp_dir.path();
 
     let relying_party_url = option_env!("RELYING_PARTY_URL").unwrap_or("http://localhost:3004/");
-    let public_wallet_server_url = option_env!("PUBLIC_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
-    let internal_wallet_server_url =
+    let public_verification_server_url =
+        option_env!("PUBLIC_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
+    let internal_verification_server_url =
         option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
 
     let config_server_config = default_config_server_config();
@@ -134,8 +135,8 @@ async fn main() {
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };
 
-    let internal_demo_rp_url: Url = internal_wallet_server_url.parse().unwrap();
-    let public_demo_rp_url: Url = public_wallet_server_url.parse().unwrap();
+    let internal_demo_rp_url: Url = internal_verification_server_url.parse().unwrap();
+    let public_demo_rp_url: Url = public_verification_server_url.parse().unwrap();
 
     let response = client
         .post(

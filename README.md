@@ -20,7 +20,7 @@ following channels to allow you to contribute:
 - The user interface of the app is available on [Figma][3].
 - The source code is published in this [GitHub repository][4].
 - More information, events and discussions can be found on [Pleio][5].
-- Project documentation is available on [Github pages][26].
+- Project documentation is available on [Github pages][25].
 
 Feel free to look around and share your [feedback and ideas][6].
 
@@ -52,8 +52,8 @@ page.
 
 ## Documentation
 
-We have a dedicated documentation section [here][26]. In more general terms,
-with the NL reference wallet we want to achieve the following things:
+We have a dedicated [documentation section][25]. In more general terms, with the
+NL reference wallet we want to achieve the following things:
 
 - We want to validate the feasibility of the framework as proposed in the EU.
 - We want to explore how we can set the bar in terms of privacy protection,
@@ -165,8 +165,8 @@ anything, but the glibc binary really requires a glibc-based distribution.
 ##### Services we depend on
 
 - PostgreSQL 10+ (first version with `jsonb` support)
-- RDO-MAX v2.13.x+ (see [their repository][27] for details)
-- BrpProxy v2.1.x (see [their repository][28] for details)
+- RDO-MAX v2.13.x+ (see [their repository][26] for details)
+- BrpProxy v2.1.x (see [their repository][27] for details)
 
 Specifically for PostgreSQL you need to consider storage requirements. Our
 database-backed services are wallet_provider, verification_server,
@@ -280,12 +280,12 @@ system. Likely the easiest way to do so is:
 #### Docker
 
 Make sure you can run Docker on your development system. You can follow the
-[getting started guide][25] to do so.
+[getting started guide][24] to do so.
 
 #### PKCS #11 library
 
-The wallet_provider is designed to use a HSM with the [PKCS #11][30] API.
-For local development we use the [SoftHSMv2][29] library.
+The wallet_provider is designed to use a HSM with the [PKCS #11][29] API.
+For local development we use the [SoftHSMv2][28] library.
 The latest release (2.6.1) of this library is more than five years old
 and does *not* work in combination with the latest openssl.
 You need to compile the library from source and set the correct `HSM_LIBRARY_PATH`
@@ -370,33 +370,6 @@ the app by following these steps:
 - `cd wallet_app`
 - `flutter pub get`
 - `flutter run`! 🎉
-
-#### Running GitLab CI locally (optional)
-
-In order to run and validate jobs from the GitLab CI locally on a development
-machine, the `gitlab-ci-local` tool may be used. Follow the installation
-instructions for it [here][24].
-
-The environment variables that are necessary to run the CI jobs need to be
-specified by copying and populating the example YAML file:
-
-```sh
-cp .gitlab-ci-local-variables.example.yml .gitlab-ci-local-variables.yml
-```
-
-Make sure that Docker is running and configure it so that containers have a
-maximum memory size of at least 16GB. Log into Harbor, where the docker images
-are hosted:
-
-```sh
-docker login -u <HARBOR USER> -p <HARBOR CLI SECRET> <HARBOR HOSTNAME>
-```
-
-Now, any job from GitLab CI can be run localy, e.g.:
-
-```sh
-gitlab-ci-local test-rust
-```
 
 ## File structure
 
@@ -568,16 +541,14 @@ read the text in a regular text editor or pager to see them.
 
 [23]: https://apps.apple.com/us/app/xcode/id497799835?mt=12
 
-[24]: https://github.com/firecow/gitlab-ci-local#installation
+[24]: https://docs.docker.com/get-started/get-docker/
 
-[25]: https://docs.docker.com/get-started/get-docker/
+[25]: https://minbzk.github.io/nl-wallet/
 
-[26]: https://minbzk.github.io/nl-wallet/
+[26]: https://github.com/minvws/nl-rdo-max
 
-[27]: https://github.com/minvws/nl-rdo-max
+[27]: https://github.com/BRP-API/Haal-Centraal-BRP-bevragen
 
-[28]: https://github.com/BRP-API/Haal-Centraal-BRP-bevragen
+[28]: https://github.com/softhsm/SoftHSMv2
 
-[29]: https://github.com/softhsm/SoftHSMv2
-
-[30]: https://en.wikipedia.org/wiki/PKCS_11
+[29]: https://en.wikipedia.org/wiki/PKCS_11
