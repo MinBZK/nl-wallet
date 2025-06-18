@@ -95,7 +95,9 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.0.iter()
     }
+}
 
+impl<T, const N: usize> VecAtLeastN<T, N, false> {
     pub fn insert(&mut self, index: usize, element: T) {
         self.0.insert(index, element);
     }
