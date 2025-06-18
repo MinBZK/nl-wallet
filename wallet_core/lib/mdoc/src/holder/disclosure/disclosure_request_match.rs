@@ -191,10 +191,10 @@ impl<I> DisclosureRequestMatch<I> {
 
 #[cfg(test)]
 mod tests {
-    use crypto::factory::KeyFactory;
     use futures::FutureExt;
     use rstest::rstest;
 
+    use crypto::factory::KeyFactory;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;
