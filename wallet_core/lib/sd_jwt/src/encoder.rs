@@ -250,6 +250,16 @@ mod test {
     }
 
     #[test]
+    fn errors() {
+        let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
+        encoder.conceal("/claim1/abc").unwrap();
+        assert!(matches!(
+            encoder.conceal("claim2/2").unwrap_err(),
+            Error::InvalidPath(_)
+        ));
+    }
+
+    #[test]
     fn test_wrong_path() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
         assert!(matches!(
