@@ -5,3 +5,6 @@ pub mod identifiers;
 pub mod issuable_document;
 pub mod qualification;
 pub mod x509;
+
+#[cfg(test)]
+pub use attributes::test::complex_attributes;

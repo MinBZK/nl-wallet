@@ -250,6 +250,16 @@ mod test {
     }
 
     #[test]
+    fn nested() {
+        let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
+        encoder.conceal("/claim1/abc").unwrap();
+        encoder.conceal("/claim1").unwrap();
+
+        assert!(encoder.object.get("claim1").is_none());
+        assert_eq!(encoder.object.get("_sd").unwrap().as_array().unwrap().len(), 1);
+    }
+
+    #[test]
     fn errors() {
         let mut encoder = SdObjectEncoder::try_from(object()).unwrap();
         encoder.conceal("/claim1/abc").unwrap();
