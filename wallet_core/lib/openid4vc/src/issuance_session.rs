@@ -25,6 +25,7 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::MdocCredentialPayloadError;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use crypto::factory::KeyFactory;
@@ -41,7 +42,6 @@ use jwt::wte::WteClaims;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
-use mdoc::holder::MdocCredentialPayloadError;
 use mdoc::utils::cose::CoseError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::utils::serialization::TaggedBytes;
@@ -1101,8 +1101,8 @@ mod tests {
     use attestation_data::auth::issuer_auth::IssuerRegistration;
     use attestation_data::auth::LocalizedStrings;
     use attestation_data::credential_payload::CredentialPayload;
-    use attestation_types::qualification::AttestationQualification;
     use attestation_data::x509::generate::mock::generate_issuer_mock;
+    use attestation_types::qualification::AttestationQualification;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
@@ -1110,7 +1110,6 @@ mod tests {
     use crypto::x509::CertificateError;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::TaggedBytes;
-    use mdoc::IssuerSigned;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::TypeMetadata;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
@@ -1424,15 +1423,12 @@ mod tests {
         }
 
         pub fn into_response_from_holder_public_key(self, holder_public_key: &VerifyingKey) -> CredentialResponse {
-            let (issuer_signed, _) = IssuerSigned::sign(
-                self.previewable_payload,
-                self.metadata_integrity,
-                holder_public_key,
-                &self.issuer_key,
-            )
-            .now_or_never()
-            .unwrap()
-            .unwrap();
+            let (issuer_signed, _) = self
+                .previewable_payload
+                .into_issuer_signed(self.metadata_integrity, holder_public_key, &self.issuer_key)
+                .now_or_never()
+                .unwrap()
+                .unwrap();
 
             CredentialResponse::MsoMdoc {
                 credential: Box::new(issuer_signed.into()),

@@ -54,14 +54,13 @@ impl DocRequest {
 mod tests {
     use assert_matches::assert_matches;
 
-    use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
     use utils::generator::TimeGenerator;
 
     use crate::errors::Error;
     use crate::iso::device_retrieval::ReaderAuthenticationBytes;
+    use crate::test::generate_reader_mock;
     use crate::utils::cose;
     use crate::utils::cose::MdocCose;
 
@@ -98,8 +97,7 @@ mod tests {
     async fn test_doc_request_verify() {
         // Create a CA, certificate and private key and trust anchors.
         let ca = Ca::generate_reader_mock_ca().unwrap();
-        let reader_registration = ReaderRegistration::new_mock();
-        let private_key = generate_reader_mock(&ca, reader_registration.into()).unwrap();
+        let private_key = generate_reader_mock(&ca).unwrap();
         let trust_anchors = &[ca.to_trust_anchor()];
 
         // Create a basic session transcript, item request and a `DocRequest`.

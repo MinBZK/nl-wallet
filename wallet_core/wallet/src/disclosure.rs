@@ -11,7 +11,7 @@ pub mod mock {
     use uuid::Uuid;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::identifiers::AttributeIdentifier;
+    use mdoc::identifiers::AttributeIdentifier;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;

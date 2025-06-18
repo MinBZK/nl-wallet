@@ -11,11 +11,12 @@ workspace = true
 examples = []
 example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
-mock = ["crypto/mock"]
+mock = ["crypto/mock", "mdoc/test"]
 
 [dependencies]
 chrono.workspace = true
 ciborium.workspace = true
+coset = { workspace = true, features = ["std"] }
 derive_more = { workspace = true, features = ["debug", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
@@ -39,6 +40,7 @@ crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
+mdoc.path = "../mdoc"
 sd_jwt.path = "../sd_jwt"
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 utils.path = "../utils"
@@ -57,4 +59,6 @@ tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
 jwt.path = "../jwt"
+mdoc = { path = "../mdoc", features = ["mock", "mock_example_constructors", "test"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
+utils = { path = "../utils", features = ["mock_time"] }

@@ -12,9 +12,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use attestation_data::identifiers::AttributeIdentifier;
-use attestation_data::identifiers::AttributeIdentifierHolder;
-
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;

@@ -9,13 +9,11 @@ use ciborium::Value;
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use ssri::Integrity;
 
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::x509::generate::mock::generate_issuer_mock;
 use crypto::server_keys::generate::Ca;
 use utils::generator::Generator;
 
+use crate::test::generate_issuer_mock;
 use crate::utils::serialization::cbor_deserialize;
 use crate::utils::serialization::cbor_serialize;
 use crate::verifier::ItemsRequests;
@@ -80,7 +78,7 @@ impl DeviceResponse {
 
         // Re sign document with a newly generated certificate that includes a SAN DNS name
         for doc in device_response.documents.as_mut().unwrap() {
-            let new_key = generate_issuer_mock(ca, Some(IssuerRegistration::new_mock())).unwrap();
+            let new_key = generate_issuer_mock(ca).unwrap();
             let new_cert = new_key.certificate();
 
             doc.issuer_signed.issuer_auth.0.unprotected = IssuerSigned::create_unprotected_header(new_cert.to_vec());
@@ -241,14 +239,11 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
-    use attestation_data::x509::generate::mock::generate_issuer_mock;
     use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
-    use crypto::keys::WithIdentifier;
     use crypto::mock_remote::MockRemoteEcdsaKey;
 
     use crate::holder::Mdoc;
-    use crate::test::data::pid_example_payload;
+    use crate::test::data::pid_example;
 
     use super::*;
 
@@ -301,20 +296,26 @@ pub mod mock {
             Self::new_mock_inner(ca, &key).await
         }
 
-        async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
-            let issuer_keypair = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
-            let previewable_payload = pid_example_payload().previewable_payload;
+        // async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
+        //     let issuer_keypair = generate_issuer_mock(ca).unwrap();
+        //     let previewable_payload = pid_example_payload().previewable_payload;
 
-            Mdoc::sign::<MockRemoteEcdsaKey>(
-                previewable_payload,
-                // Note that this resource integrity does not match any metadata source document.
-                Integrity::from(crypto::utils::random_bytes(32)),
-                key.identifier().to_string(),
-                key.verifying_key(),
-                &issuer_keypair,
-            )
-            .await
-            .unwrap()
+        //     Mdoc::sign::<MockRemoteEcdsaKey>(
+        //         previewable_payload,
+        //         // Note that this resource integrity does not match any metadata source document.
+        //         Integrity::from(crypto::utils::random_bytes(32)),
+        //         key.identifier().to_string(),
+        //         key.verifying_key(),
+        //         &issuer_keypair,
+        //     )
+        //     .await
+        //     .unwrap()
+        // }
+
+        async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
+            let test_document = pid_example().0[0].clone();
+
+            test_document.sign(ca, key).await
         }
     }
 }

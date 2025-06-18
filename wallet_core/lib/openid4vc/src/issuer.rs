@@ -27,6 +27,8 @@ use tracing::info;
 
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::IntoCredentialPayload;
+use attestation_data::credential_payload::MdocCredentialPayloadError;
+use attestation_data::credential_payload::MdocParts;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::credential_payload::SdJwtCredentialPayloadError;
 use attestation_data::issuable_document::IssuableDocument;
@@ -46,9 +48,6 @@ use jwt::validations;
 use jwt::wte::WteClaims;
 use jwt::EcdsaDecodingKey;
 use jwt::VerifiedJwt;
-use mdoc::holder::MdocCredentialPayloadError;
-use mdoc::holder::MdocParts;
-use mdoc::IssuerSigned;
 use poa::Poa;
 use poa::PoaVerificationError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
@@ -1190,14 +1189,14 @@ impl CredentialResponse {
     ) -> Result<CredentialResponse, CredentialRequestError> {
         // Construct an mdoc `IssuerSigned` from the contents of `PreviewableCredentialPayload`
         // and the attestation config by signing it.
-        let (issuer_signed, mso) = IssuerSigned::sign(
-            preview_credential_payload,
-            attestation_config.first_metadata_integrity.clone(),
-            holder_pubkey,
-            &attestation_config.key_pair,
-        )
-        .await
-        .map_err(CredentialRequestError::CredentialSigning)?;
+        let (issuer_signed, mso) = preview_credential_payload
+            .into_issuer_signed(
+                attestation_config.first_metadata_integrity.clone(),
+                holder_pubkey,
+                &attestation_config.key_pair,
+            )
+            .await
+            .map_err(CredentialRequestError::CredentialSigning)?;
 
         // As a last check, convert the `IssuerSigned` back to a full `CredentialPayload`
         // and validate it against the normalized metadata for this attestation.

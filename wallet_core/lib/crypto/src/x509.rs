@@ -96,6 +96,17 @@ impl CertificateUsage {
     }
 }
 
+// This requires both "generate" and "mock", because this is not to be used in the Wallet.
+// The wallet must use CertificateType.
+#[cfg(all(feature = "generate", feature = "mock"))]
+impl TryFrom<CertificateUsage> for Vec<rcgen::CustomExtension> {
+    type Error = CertificateError;
+
+    fn try_from(source: CertificateUsage) -> Result<Self, Self::Error> {
+        Ok(vec![source.into()])
+    }
+}
+
 #[derive(thiserror::Error, Debug, ErrorCategory)]
 #[category(pd)]
 pub enum CertificateError {

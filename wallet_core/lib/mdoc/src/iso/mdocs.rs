@@ -22,7 +22,6 @@ use serde_bytes::ByteBuf;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
-use attestation_data::attributes::Entry;
 use attestation_types::qualification::AttestationQualification;
 use crypto::utils::random_bytes;
 use http_utils::urls::HttpsUri;
@@ -36,6 +35,16 @@ use crate::utils::serialization::TaggedBytes;
 
 /// Name of a namespace within an mdoc.
 pub type NameSpace = String;
+
+/// An attribute name and value.
+///
+/// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
+/// `digestID`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Entry {
+    pub name: DataElementIdentifier,
+    pub value: DataElementValue,
+}
 
 /// Digest (hash) of an attribute, computed over a [`IssuerSignedItemBytes`], included in the device-signed part
 /// ([`MobileSecurityObject`]) of an mdoc.

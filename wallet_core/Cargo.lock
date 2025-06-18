@@ -593,6 +593,7 @@ dependencies = [
  "attestation_types",
  "chrono",
  "ciborium",
+ "coset",
  "crypto",
  "derive_more",
  "error_category",
@@ -602,6 +603,7 @@ dependencies = [
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
+ "mdoc",
  "p256",
  "rand_core",
  "rcgen",
@@ -3760,7 +3762,6 @@ version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
- "attestation_data",
  "attestation_types",
  "base64 0.22.1",
  "chrono",

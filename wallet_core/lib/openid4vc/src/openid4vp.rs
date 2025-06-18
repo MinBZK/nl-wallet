@@ -862,6 +862,7 @@ mod tests {
     use utils::generator::TimeGenerator;
     use utils::vec_at_least::VecAtLeastTwoUnique;
 
+    use crate::mock::test_document_to_issuer_signed;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
     use crate::openid4vp::AuthResponseError;
     use crate::openid4vp::IsoVpAuthorizationRequest;
@@ -1277,7 +1278,7 @@ mod tests {
         let issuer_signed_and_keys = join_all(
             stored_documents
                 .into_iter()
-                .map(|doc| doc.issuer_signed(ca, &key_factory)),
+                .map(|doc| test_document_to_issuer_signed(doc, ca, &key_factory)),
         )
         .await;
 
