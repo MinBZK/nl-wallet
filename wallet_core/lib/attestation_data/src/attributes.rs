@@ -87,25 +87,36 @@ impl Attributes {
 
     /// Returns a flattened view of the attribute values
     pub fn flattened(&self) -> IndexMap<VecNonEmpty<&str>, &AttributeValue> {
-        let mut result = IndexMap::with_capacity(self.0.len());
-        let mut to_process = Vec::from([(vec![], &self.0)]);
+        /// Recursive depth first traversal helper to flatten all leaf nodes.
+        ///
+        /// - `prefix` is the path to the current level
+        /// - `attrs` are the attributes at the current nesting level
+        /// - `result` is a running index map of attributes by path (deepest-first)
+        fn traverse_depth_first<'a>(
+            prefix: &[&'a str],
+            attrs: &'a IndexMap<String, Attribute>,
+            result: &mut IndexMap<VecNonEmpty<&'a str>, &'a AttributeValue>,
+        ) {
+            attrs.iter().for_each(|(key, attr)| {
+                let path = prefix
+                    .iter()
+                    .copied()
+                    .chain(std::iter::once(key.as_str()))
+                    .collect_vec();
 
-        while let Some((prefix, attributes)) = to_process.pop() {
-            let to_add = attributes.iter().filter_map(|(name, attribute)| {
-                let path = prefix.iter().copied().chain([name.as_str()]).collect_vec();
-                match attribute {
-                    Attribute::Single(attribute) => {
-                        // Guaranteed to have single entry
-                        result.insert(VecNonEmpty::try_from(path).unwrap(), attribute);
-                        None
+                match attr {
+                    Attribute::Nested(nested) => {
+                        traverse_depth_first(&path, nested, result);
                     }
-                    Attribute::Nested(nested) => Some((path, nested)),
+                    Attribute::Single(attribute) => {
+                        result.insert(VecNonEmpty::try_from(path).unwrap(), attribute);
+                    }
                 }
-            });
-
-            // Push items in reverse to front to maintain order
-            to_add.rev().for_each(|item| to_process.push(item))
+            })
         }
+
+        let mut result = IndexMap::with_capacity(self.0.len());
+        traverse_depth_first(&[], &self.0, &mut result);
         result
     }
 
@@ -292,8 +303,11 @@ impl Attributes {
             result: &mut Vec<VecNonEmpty<ClaimPath>>,
         ) {
             for (key, attr) in attrs {
-                let mut path = prefix.to_vec();
-                path.push(ClaimPath::SelectByKey(key.clone()));
+                let path = prefix
+                    .iter()
+                    .cloned()
+                    .chain(std::iter::once(ClaimPath::SelectByKey(key.clone())))
+                    .collect_vec();
 
                 // If it's a nested attribute, recurse deeper first
                 if let Attribute::Nested(nested) = attr {
@@ -305,7 +319,7 @@ impl Attributes {
             }
         }
 
-        let mut result = Vec::new();
+        let mut result = Vec::with_capacity(self.0.len());
         traverse_depth_first(&[], self.as_ref(), &mut result);
         result
     }
@@ -718,6 +732,7 @@ pub mod test {
                     ("area_code".to_string(), Attribute::Single(AttributeValue::Integer(31))),
                 ])),
             ),
+            ("adult".to_string(), Attribute::Single(AttributeValue::Bool(true))),
         ])
         .into()
     }
@@ -746,6 +761,10 @@ pub mod test {
                 (
                     VecNonEmpty::try_from(vec!["country", "area_code"]).unwrap(),
                     &AttributeValue::Integer(31)
+                ),
+                (
+                    VecNonEmpty::try_from(vec!["adult"]).unwrap(),
+                    &AttributeValue::Bool(true)
                 ),
             ]),
         );
@@ -777,6 +796,10 @@ pub mod test {
                     "path": ["country", "area_code"],
                     "display": [{"lang": "en", "label": "country area code"}],
                 },
+                {
+                    "path": ["adult"],
+                    "display": [{"lang": "en", "label": "adult"}],
+                },
             ],
             "schema": { "properties": {} }
         });
@@ -807,6 +830,10 @@ pub mod test {
                 {
                     "path": ["country", "iso"],
                     "display": [{"lang": "en", "label": "country iso"}],
+                },
+                {
+                    "path": ["adult"],
+                    "display": [{"lang": "en", "label": "adult"}],
                 },
             ],
             "schema": { "properties": {} }
