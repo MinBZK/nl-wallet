@@ -195,23 +195,29 @@ impl Attributes {
             return Ok(());
         }
 
-        if keys.len() == 1 {
-            if let Some(entries) = attributes.get_mut(prefix) {
-                Self::insert_entry(keys[0], entries, result)
-                    .map_err(|error| AttributesError::AttributeError(format!("{}.{}", prefix, keys[0]), error))?;
+        match *keys {
+            [head] => {
+                if let Some(entries) = attributes.get_mut(prefix) {
+                    Self::insert_entry(head, entries, result)
+                        .map_err(|error| AttributesError::AttributeError(format!("{}.{}", prefix, head), error))?;
 
-                if entries.is_empty() {
-                    attributes.swap_remove(prefix);
+                    if entries.is_empty() {
+                        attributes.swap_remove(prefix);
+                    }
                 }
             }
-        } else {
-            let prefixed_key = format!("{}.{}", prefix, keys[0]);
+            [head, ..] => {
+                let prefixed_key = format!("{}.{}", prefix, head);
 
-            if let Attribute::Nested(result) = result
-                .entry(String::from(keys[0]))
-                .or_insert_with(|| Attribute::Nested(IndexMap::new()))
-            {
-                Self::traverse_attributes_by_claim(&prefixed_key, &keys[1..], attributes, result)?
+                if let Attribute::Nested(result) = result
+                    .entry(String::from(head))
+                    .or_insert_with(|| Attribute::Nested(IndexMap::new()))
+                {
+                    Self::traverse_attributes_by_claim(&prefixed_key, &keys[1..], attributes, result)?;
+                }
+            }
+            [] => {
+                panic!("Unexpected empty key path");
             }
         }
 
