@@ -45,5 +45,5 @@ sphinxcontrib-serializinghtml==2.0.0
 tomli==2.2.1
 typing_extensions==4.13.2
 uc-micro-py==1.0.3
-urllib3==2.4.0
+urllib3==2.5.0
 zipp==3.21.0
