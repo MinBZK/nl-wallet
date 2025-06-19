@@ -91,22 +91,20 @@ impl Attributes {
         let mut to_process: VecDeque<(Vec<&str>, &IndexMap<String, Attribute>)> = VecDeque::from([(vec![], &self.0)]);
 
         while let Some((prefix, attributes)) = to_process.pop_front() {
-            let mut to_add = Vec::with_capacity(attributes.len());
-            for (name, attribute) in attributes {
-                let path = prefix.iter().copied().chain([name.as_str()]).collect();
+            let to_add = attributes.iter().filter_map(|(name, attribute)| {
+                let path = prefix.iter().copied().chain([name.as_str()]).collect_vec();
                 match attribute {
                     Attribute::Single(attribute) => {
                         // Guaranteed to have single entry
                         result.insert(VecNonEmpty::try_from(path).unwrap(), attribute);
+                        None
                     }
-                    Attribute::Nested(nested) => {
-                        to_add.push((path, nested));
-                    }
+                    Attribute::Nested(nested) => Some((path, nested)),
                 }
-            }
+            });
 
             // Push items in reverse to front to maintain order
-            to_add.into_iter().rev().for_each(|item| to_process.push_front(item))
+            to_add.rev().for_each(|item| to_process.push_front(item))
         }
         result
     }
@@ -269,16 +267,12 @@ impl Attributes {
     pub fn to_mdoc_attributes(self, attestation_type: &str) -> IndexMap<NameSpace, Vec<Entry>> {
         let mut result = IndexMap::new();
         for (path, attribute) in self.flattened() {
-            let mut prefix: Vec<&str> = std::iter::once(attestation_type).chain(path.iter().copied()).collect();
-            // path is non-empty so it has at least one element
-            let name = prefix.pop().unwrap().to_string();
-            result
-                .entry(prefix.iter().join("."))
-                .or_insert_with(Vec::new)
-                .push(Entry {
-                    name,
-                    value: attribute.clone().into(),
-                })
+            let (path, name) = path.into_inner_last();
+            let mut prefix = std::iter::once(attestation_type).chain(path.iter().copied());
+            result.entry(prefix.join(".")).or_insert_with(Vec::new).push(Entry {
+                name: name.to_string(),
+                value: attribute.clone().into(),
+            })
         }
         result
     }
