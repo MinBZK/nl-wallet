@@ -191,6 +191,7 @@ impl NormalizedTypeMetadata {
         Ok(())
     }
 
+    /// Returns all claim paths that only consist out of `SelectByKey` as a `VecNonEmpty` of `&str`
     pub fn claim_key_paths(&self) -> Vec<VecNonEmpty<&str>> {
         self.claims
             .iter()

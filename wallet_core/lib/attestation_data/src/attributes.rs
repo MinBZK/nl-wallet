@@ -168,11 +168,12 @@ impl Attributes {
         type_metadata: &NormalizedTypeMetadata,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
     ) -> Result<Self, AttributesError> {
+        // Get the claim paths consisting only out of claim key paths
         let key_paths = type_metadata.claim_key_paths();
 
         let mut result = IndexMap::with_capacity(key_paths.len());
 
-        // The claims list determines the final order of the converted attributes.
+        // The key paths of the claims determines the order of the attributes result
         for key_path in key_paths {
             Self::traverse_attributes_by_claim(type_metadata.vct(), key_path.as_slice(), &mut attributes, &mut result)?;
         }
