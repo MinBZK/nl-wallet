@@ -124,6 +124,7 @@ build-android-app-mock:
     APP_MOCK: "true" # override .build-android-app-release-tag
     APP_PACKAGE_IDENTIFIER_SUFFIX: "mock"
     APP_NAME: "NL Wallet (mock)"
+    CONFIG_ENV: "dev"
     SENTRY_DSN: "${SENTRY_DSN_MOCK}"
     SENTRY_ENVIRONMENT: "mock"
     SENTRY_AUTH_TOKEN: "${SENTRY_AUTH_TOKEN_MOCK}"
