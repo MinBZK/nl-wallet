@@ -296,25 +296,8 @@ pub mod mock {
             Self::new_mock_inner(ca, &key).await
         }
 
-        // async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
-        //     let issuer_keypair = generate_issuer_mock(ca).unwrap();
-        //     let previewable_payload = pid_example_payload().previewable_payload;
-
-        //     Mdoc::sign::<MockRemoteEcdsaKey>(
-        //         previewable_payload,
-        //         // Note that this resource integrity does not match any metadata source document.
-        //         Integrity::from(crypto::utils::random_bytes(32)),
-        //         key.identifier().to_string(),
-        //         key.verifying_key(),
-        //         &issuer_keypair,
-        //     )
-        //     .await
-        //     .unwrap()
-        // }
-
         async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
             let test_document = pid_example().0[0].clone();
-
             test_document.sign(ca, key).await
         }
     }

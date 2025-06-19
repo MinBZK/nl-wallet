@@ -415,8 +415,6 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
-    // use attestation_data::attributes::AttributeValue;
-    // use attestation_data::credential_payload::CredentialPayload;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 
     use super::*;
