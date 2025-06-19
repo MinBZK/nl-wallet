@@ -2,10 +2,10 @@
 
 ## Introduction
 
-The NL Wallet, VV, and OV implement
-the [SD-JWT VC Draft 08](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08) [SD-JWT-VC]
-specification, with *additional constraints and customizations* outlined in the
-profile below.
+The NL Wallet, VV, and OV implement the
+[SD-JWT VC Draft 08](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08)
+[SD-JWT-VC] specification, with _additional constraints and customizations_
+outlined in the profile below.
 
 Our goal is to contribute to a fully interoperable EUDI framework that delivers
 maximum value to users and organizations. Achieving this requires consensus on
@@ -15,8 +15,8 @@ experience from designing, developing and testing the NL Wallet. Note that it
 should not be read as the final specifications of our product, or the broader
 Dutch ecosystem. Nor is it an official position of the Dutch government.
 
-Considerations that underpin the choices made in this profile are described
-in [Profile considerations](#profile-considerations).
+Considerations that underpin the choices made in this profile are described in
+[Profile considerations](#profile-considerations).
 
 Ideally, the profile is temporary and our final product implements the same
 specifications as all others within the EU and Dutch framework. Until that time,
@@ -29,17 +29,17 @@ profile.
 ### Type Metadata
 
 - `extends`
-    - OPTIONAL, A URI of another type that this type extends.
-      See [Extending Types](#extending-types). `extends#integrity` is required
-      when referring to an extended type.
+    - OPTIONAL, A URI of another type that this type extends. See
+      [Extending Types](#extending-types). `extends#integrity` is required when
+      referring to an extended type.
 - `extends#integrity`
     - OPTIONAL, MUST be present when `extends` is present.
 - `claims`
-    - REQUIRED (OPTIONAL in [SD-JWT-VC]):
-      See [Claims Metadata](#claims-metadata)
+    - REQUIRED (OPTIONAL in [SD-JWT-VC]): See
+      [Claims Metadata](#claims-metadata)
 - `display`
-    - REQUIRED (OPTIONAL in [SD-JWT-VC]).
-      See [Display Metadata](#display-metadata). At least one Display Metadata
+    - REQUIRED (OPTIONAL in [SD-JWT-VC]). See
+      [Display Metadata](#display-metadata). At least one Display Metadata
       containing `simple` rendering MUST be present.
 - `schema`
     - REQUIRED (OPTIONAL in [SD-JWT-VC]). An embedded JSON Schema document
@@ -53,18 +53,18 @@ profile.
 - `lang`
     - REQUIRED, must be unique for every object in the `display` array.
 - `summary` (not present in [SD-JWT-VC])
-    - OPTIONAL. Contains a summary of the credential (
-      see [Credential Summary](#credential-summary)).
+    - OPTIONAL. Contains a summary of the credential ( see
+      [Credential Summary](#credential-summary)).
 - `rendering`
     - OPTIONAL. Only `simple` rendering is supported.
 
 #### Credential Summary
 
 The optional `summary` field of the Display Metadata provides a summary of the
-credential for the end user, and may contain `svg_id` identifiers from
-the [Claim metadata](#claim-metadata) as placeholders for credential attributes.
-The NL Wallet will render this field as a subtitle of the card, with the
-`svg_id` identifiers replaced by the appropriate attribute values.
+credential for the end user, and may contain `svg_id` identifiers from the
+[Claim metadata](#claim-metadata) as placeholders for credential attributes. The
+NL Wallet will render this field as a subtitle of the card, with the `svg_id`
+identifiers replaced by the appropriate attribute values.
 
 Example:
 
@@ -90,20 +90,19 @@ the example above:
 
 #### Simple Rendering
 
-The NL Wallet supports `simple` rendering as specified, except the `uri`
-of [Logo Metadata](#logo-metadata).
+The NL Wallet supports `simple` rendering as specified, except the `uri` of
+[Logo Metadata](#logo-metadata).
 
 Rendering using `svg_templates` is not supported.
 
 ##### Logo metadata
 
 - `uri`
-    - REQUIRED. MUST use `data` URI scheme as defined
-      in [RFC 2397](https://datatracker.ietf.org/doc/html/rfc2397) (no external
-      links).
-      Example:
-      `"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vc..."`
-      The following mime-types are supported: `image/jpeg`, `image/png`,
+    - REQUIRED. MUST use `data` URI scheme as defined in
+      [RFC 2397](https://datatracker.ietf.org/doc/html/rfc2397) (no external
+      links). Example:
+      `"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vc..."` The
+      following mime-types are supported: `image/jpeg`, `image/png`,
       `image/svg+xml`.
 
 ### Claims Metadata
@@ -148,74 +147,70 @@ types:
 ### Extending types
 
 Extending types is supported. [SD-JWT-VC] does not explicitly define how
-extended types should relate to
-base types.
+extended types should relate to base types.
 
 When processing types that extend one other, the following rules are applied:
 
 - The `display` metadata entries are merged based on the `lang` field:
     - Entries within the base document that have the same language as the
-      extending document
-      are replaced entirely by the entry contained in the extending document.
-      Individual
-      properties for a `display` metadata entry are not merged.
+      extending document are replaced entirely by the entry contained in the
+      extending document. Individual properties for a `display` metadata entry
+      are not merged.
     - Order: The order of the `display` metadata entries in the base document is
-      maintained.
-      New entries from extending documents are appended, based on the
-      order from the extending document.
+      maintained. New entries from extending documents are appended, based on
+      the order from the extending document.
 - The `claim` metadata entries are merged based on the `path` field:
-    - The paths of the claims of an extending document MUST be a superset of
-      the paths in the base document. This requirement exists so that the
-      order of claims can be fully overridden by an extending document. Any
-      extending document that
-      does not have claims matching all paths from the base document will be
-      rejected.
+    - The paths of the claims of an extending document MUST be a superset of the
+      paths in the base document. This requirement exists so that the order of
+      claims can be fully overridden by an extending document. Any extending
+      document that does not have claims matching all paths from the base
+      document will be rejected.
     - The `display` property of `claim` metadata entries is merged according to
-      the same rules
-      as the `display` property of the type metadata document, see above.
-    - The `sd` property can only be overridden if the value is
-      `allowed` (which is the default). Once this has been changed to `always`
-      or `never`, this constitutes an end state for that property and it can
-      no longer be overridden to another value in an extending document.
-    - The `svg_id` of the extending document takes precedence. When
-      the base document has `svg_id` set, but the extending document
-      does not, the resulting document will not have an `svg_id`.
+      the same rules as the `display` property of the type metadata document,
+      see above.
+    - The `sd` property can only be overridden if the value is `allowed` (which
+      is the default). Once this has been changed to `always` or `never`, this
+      constitutes an end state for that property and it can no longer be
+      overridden to another value in an extending document.
+    - The `svg_id` of the extending document takes precedence. When the base
+      document has `svg_id` set, but the extending document does not, the
+      resulting document will not have an `svg_id`.
     - Type information for all claim paths MUST be defined in the JSON-schema.
 
 ## Profile considerations
 
 ### C1 - Credential contents must be presentable to the end user
 
-*Issue*
+_Issue_
 
 Information necessary for proper presentation of claim data to the end user (
 consumer of the claim) is not mandatory in [SD-JWT VC], making it difficult for
 end users to understand the claims they receive and share.
 
-*Motivation*
+_Motivation_
 
 We aim to use Type Metadata for both the presentation and data definition for a
 given credential type. From our standpoint, the Type Metadata must contain
 sufficient information for properly presenting a credential (including all of
 its attributes and Localized field labels) to an end user.
 
-*Implication*
+_Implication_
 
 - `display` metadata is required for both the Type and Claims metadata.
 - `claims` MUST be present in offered [Type Metadata](#type-metadata)
 - All values in the credential MUST be referenced by a `claim` in the `claims`
   section (excluding reserved claims: `vct`, `cnf`, `iss`, `exp`, `iat`, `sub`,
-  `status`,
-  `attestation_qualification`). See [Claims Metadata](#claims-metadata).
+  `status`, `attestation_qualification`). See
+  [Claims Metadata](#claims-metadata).
 - Data that is selected by claims must be renderable for the Wallet App. A
-  `claim` path must select a type that can be rendered.
-  See [Claims Metadata](#claims-metadata).
+  `claim` path must select a type that can be rendered. See
+  [Claims Metadata](#claims-metadata).
     - `object` types are not supported.
     - `array` types are NOT YET supported.
 
 ### C2 - Credential summary (based on contents) for optimized browsing
 
-*Issue*
+_Issue_
 
 [SD-JWT VC] does not support defining a textual name or identifier of a specific
 attestation for the end user, based on the attestation contents, one that sets
@@ -223,7 +218,7 @@ apart multiple attestations of the same type (e.g. 'Master degree computer
 science' versus 'Master degree mathematics'). This makes it more difficult to
 browse stored credentials and find the right one.
 
-*Motivation*
+_Motivation_
 
 To allow for an optimized browsing UX in a wallet we propose to add a `summary`
 to the credential [Display Metadata](#display-metadata). The summary can be used
@@ -231,18 +226,18 @@ by the wallet to create a compact view for the credential. It will give the user
 a meaningful and recognizable overview of the credential's content, which has
 proven useful from our current UX explorations. The `summary` may contain
 placeholders for actual values from the credential, similar to the templating
-logic for `svg_template` rendering [SD-JWT-VC].
-See [Credential Summary](#credential-summary) for more details.
+logic for `svg_template` rendering [SD-JWT-VC]. See
+[Credential Summary](#credential-summary) for more details.
 
-*Implication*
+_Implication_
 
-- `summary` as a new OPTIONAL field in
-  the [Display Metadata](#display-metadata).
+- `summary` as a new OPTIONAL field in the
+  [Display Metadata](#display-metadata).
 - The summary can be used in both rendering modes `simple` and `svg_template`
 
 ### C3 - No support for external resources
 
-*Issue*
+_Issue_
 
 [SD-JWT VC] allows for refering to external resources in the following cases:
 
@@ -259,14 +254,14 @@ Downloading resources from external location introduces the following risks:
 - Privacy: fetching external resources introduces privacy risks, since user
   behavior may be tracked by the resource owner.
 
-*Motivation*
+_Motivation_
 
 To mitigate the risks mentioned we will currenty not allow the use of external
 resources. Part of the risks might also be mitigated by requirements to the
 scheme that NL-Wallet is part of. Distributing Type Metadata (and related
 resources) is not yet addressed in ARF or other frameworks.
 
-*Implication*
+_Implication_
 
 - Type metadata
     - `schema_uri` is NOT supported
@@ -275,7 +270,7 @@ resources) is not yet addressed in ARF or other frameworks.
 
 ### C4 - Unambiguously select a locale for displaying credentials
 
-*Issue*
+_Issue_
 
 [SD-JWT VC] allows a `lang` attribute to support localization in the Type
 Metadata specification.
@@ -287,13 +282,13 @@ In [SD-JWT VC] there are no rules defined on what a consuming Wallet should
 display when multiple items contain the same value for `lang`. This may result
 to unexpected or undesired behavior.
 
-*Motivation*
+_Motivation_
 
 To avoid unexpected or undesired behavior we propose an additional restriction
 on the collections that contain items that are only distinguished by the value
 of the `lang` attribute.
 
-*Implication*
+_Implication_
 
 - `lang` in [Display Metadata](#display-metadata) must be unique, per
   `rendering` method.
@@ -301,17 +296,17 @@ of the `lang` attribute.
 
 ### C5 - Allow attributes to be selectively disclosable by default
 
-*Issue*
+_Issue_
 
 When disclosing an [SD-JWT+KB], attributes that are not selectively disclosable
 will be included in every SD-JWT and are viewable by the relying party. This may
 lead to unintentional disclosure of more information than was requested.
 
-*Motivation*
+_Motivation_
 
 To preserve privacy, we aim to disclose only the minimum necessary information.
 
-*Implication*
+_Implication_
 
 When constructing an SD-JWT, we iterate over all attributes—whether values or
 intermediary object nodes—and mark them as selectively disclosable by default,
