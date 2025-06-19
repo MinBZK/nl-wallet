@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::num::TryFromIntError;
 
 use derive_more::AsRef;
@@ -30,6 +29,15 @@ pub enum AttributeError {
 
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AttributesError {
+    #[error("attributes without claim: {0:?}")]
+    AttributesWithoutClaim(Vec<Vec<String>>),
+
+    #[error("attribute error at {0}: {1}")]
+    AttributeError(String, #[source] AttributeError),
 
     #[error("some attributes have not been processed by metadata: {0:?}")]
     SomeAttributesNotProcessed(IndexMap<String, Vec<Entry>>),
@@ -77,6 +85,58 @@ impl Attributes {
         self.0
     }
 
+    /// Returns a flattened view of the attribute values
+    pub fn flattened(&self) -> IndexMap<VecNonEmpty<&str>, &AttributeValue> {
+        /// Recursive depth first traversal helper to flatten all leaf nodes.
+        ///
+        /// - `prefix` is the path to the current level
+        /// - `attrs` are the attributes at the current nesting level
+        /// - `result` is a running index map of attributes by path (deepest-first)
+        fn traverse_depth_first<'a>(
+            prefix: &[&'a str],
+            attrs: &'a IndexMap<String, Attribute>,
+            result: &mut IndexMap<VecNonEmpty<&'a str>, &'a AttributeValue>,
+        ) {
+            attrs.iter().for_each(|(key, attr)| {
+                let path = prefix
+                    .iter()
+                    .copied()
+                    .chain(std::iter::once(key.as_str()))
+                    .collect_vec();
+
+                match attr {
+                    Attribute::Nested(nested) => {
+                        traverse_depth_first(&path, nested, result);
+                    }
+                    Attribute::Single(attribute) => {
+                        result.insert(VecNonEmpty::try_from(path).unwrap(), attribute);
+                    }
+                }
+            })
+        }
+
+        let mut result = IndexMap::with_capacity(self.0.len());
+        traverse_depth_first(&[], &self.0, &mut result);
+        result
+    }
+
+    pub fn validate(&self, type_metadata: &NormalizedTypeMetadata) -> Result<(), AttributesError> {
+        let mut flattened_attributes = self.flattened();
+        for claim_key_path in type_metadata.claim_key_paths() {
+            flattened_attributes.swap_remove(&claim_key_path);
+        }
+        if !flattened_attributes.is_empty() {
+            return Err(AttributesError::AttributesWithoutClaim(
+                flattened_attributes
+                    .into_iter()
+                    .map(|(path, _)| path.into_iter().map(ToString::to_string).collect())
+                    .collect(),
+            ));
+        }
+        // No internal attributes can be in the attributes as they are forbidden as claim in the type metadata
+        Ok(())
+    }
+
     /// Convert a map of namespaced entries (`Entry`) to a (nested) map of attributes by key.
     /// The namespace is required to consist of nested group names, joined by a '.' and prefixed
     /// with the attestation_type.
@@ -116,57 +176,57 @@ impl Attributes {
     pub fn from_mdoc_attributes(
         type_metadata: &NormalizedTypeMetadata,
         mut attributes: IndexMap<NameSpace, Vec<Entry>>,
-    ) -> Result<Self, AttributeError> {
-        let mut result = IndexMap::new();
+    ) -> Result<Self, AttributesError> {
+        // Get the claim paths consisting only out of claim key paths
+        let key_paths = type_metadata.claim_key_paths();
 
-        // The claims list determines the final order of the converted attributes.
-        for claim in type_metadata.claims() {
-            // First, confirm that the path is made up of key entries by converting to a `Vec<&str>`.
-            let key_path = claim
-                .path
-                .iter()
-                .filter_map(|path| path.try_key_path())
-                .collect::<VecDeque<_>>();
+        let mut result = IndexMap::with_capacity(key_paths.len());
 
-            Self::traverse_attributes_by_claim(type_metadata.vct(), key_path, &mut attributes, &mut result)?;
+        // The key paths of the claims determines the order of the attributes result
+        for key_path in key_paths {
+            Self::traverse_attributes_by_claim(type_metadata.vct(), key_path.as_slice(), &mut attributes, &mut result)?;
         }
 
         if !attributes.is_empty() {
-            return Err(AttributeError::SomeAttributesNotProcessed(attributes));
+            return Err(AttributesError::SomeAttributesNotProcessed(attributes));
         }
-        // No internal attributes can be in the array map as they are forbidden as claim in the type metadata
 
         Ok(Self(result))
     }
 
     fn traverse_attributes_by_claim(
         prefix: &str,
-        mut keys: VecDeque<&str>,
+        keys: &[&str],
         attributes: &mut IndexMap<String, Vec<Entry>>,
         result: &mut IndexMap<String, Attribute>,
-    ) -> Result<(), AttributeError> {
+    ) -> Result<(), AttributesError> {
         if attributes.is_empty() {
             return Ok(());
         }
 
-        if let Some(key) = keys.pop_front() {
-            if keys.is_empty() {
+        match *keys {
+            [head] => {
                 if let Some(entries) = attributes.get_mut(prefix) {
-                    Self::insert_entry(key, entries, result)?;
+                    Self::insert_entry(head, entries, result)
+                        .map_err(|error| AttributesError::AttributeError(format!("{}.{}", prefix, head), error))?;
 
                     if entries.is_empty() {
                         attributes.swap_remove(prefix);
                     }
                 }
-            } else {
-                let prefixed_key = format!("{}.{}", prefix, key);
+            }
+            [head, ..] => {
+                let prefixed_key = format!("{}.{}", prefix, head);
 
                 if let Attribute::Nested(result) = result
-                    .entry(String::from(key))
+                    .entry(String::from(head))
                     .or_insert_with(|| Attribute::Nested(IndexMap::new()))
                 {
-                    Self::traverse_attributes_by_claim(&prefixed_key, keys, attributes, result)?
+                    Self::traverse_attributes_by_claim(&prefixed_key, &keys[1..], attributes, result)?;
                 }
+            }
+            [] => {
+                panic!("Unexpected empty key path");
             }
         }
 
@@ -216,9 +276,16 @@ impl Attributes {
     /// }
     /// ```
     pub fn to_mdoc_attributes(self, attestation_type: &str) -> IndexMap<NameSpace, Vec<Entry>> {
-        let mut flattened = IndexMap::new();
-        Self::walk_attributes_recursive(attestation_type, self.0, &mut flattened);
-        flattened
+        let mut result = IndexMap::new();
+        for (path, attribute) in self.flattened() {
+            let (path, name) = path.into_inner_last();
+            let mut prefix = std::iter::once(attestation_type).chain(path.iter().copied());
+            result.entry(prefix.join(".")).or_insert_with(Vec::new).push(Entry {
+                name: name.to_string(),
+                value: attribute.clone().into(),
+            })
+        }
+        result
     }
 
     pub fn claim_paths(&self) -> Vec<VecNonEmpty<ClaimPath>> {
@@ -236,8 +303,11 @@ impl Attributes {
             result: &mut Vec<VecNonEmpty<ClaimPath>>,
         ) {
             for (key, attr) in attrs {
-                let mut path = prefix.to_vec();
-                path.push(ClaimPath::SelectByKey(key.clone()));
+                let path = prefix
+                    .iter()
+                    .cloned()
+                    .chain(std::iter::once(ClaimPath::SelectByKey(key.clone())))
+                    .collect_vec();
 
                 // If it's a nested attribute, recurse deeper first
                 if let Attribute::Nested(nested) = attr {
@@ -249,35 +319,9 @@ impl Attributes {
             }
         }
 
-        let mut result = Vec::new();
+        let mut result = Vec::with_capacity(self.0.len());
         traverse_depth_first(&[], self.as_ref(), &mut result);
         result
-    }
-
-    fn walk_attributes_recursive(
-        namespace: &str,
-        attributes: IndexMap<String, Attribute>,
-        result: &mut IndexMap<NameSpace, Vec<Entry>>,
-    ) {
-        let mut entries = vec![];
-        for (key, value) in attributes {
-            match value {
-                Attribute::Single(single) => {
-                    entries.push(Entry {
-                        name: key,
-                        value: single.into(),
-                    });
-                }
-                Attribute::Nested(nested) => {
-                    let key = format!("{}.{}", namespace, key);
-                    Self::walk_attributes_recursive(key.as_str(), nested, result);
-                }
-            }
-        }
-
-        if !entries.is_empty() {
-            result.insert(String::from(namespace), entries);
-        }
     }
 }
 
@@ -291,11 +335,12 @@ pub mod test {
     use mdoc::Entry;
     use mdoc::NameSpace;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+    use utils::vec_at_least::VecNonEmpty;
 
     use crate::attributes::Attribute;
-    use crate::attributes::AttributeError;
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
+    use crate::attributes::AttributesError;
 
     pub fn complex_attributes() -> IndexMap<String, Attribute> {
         IndexMap::from([
@@ -508,7 +553,7 @@ pub mod test {
         )]);
 
         let result = Attributes::from_mdoc_attributes(&type_metadata, mdoc_attributes);
-        assert_matches!(result, Err(AttributeError::SomeAttributesNotProcessed(attrs))
+        assert_matches!(result, Err(AttributesError::SomeAttributesNotProcessed(attrs))
         if attrs == IndexMap::from([(
             String::from("com.example.pid.a"),
             vec![Entry { name: String::from("a3"), value: ciborium::Value::Text(String::from("3")) }]
@@ -659,6 +704,144 @@ pub mod test {
                 }
             })
         );
+    }
+
+    fn example_attributes() -> Attributes {
+        IndexMap::from([
+            (
+                "name".to_string(),
+                Attribute::Single(AttributeValue::Text("Wallet".to_string())),
+            ),
+            (
+                "address".to_string(),
+                Attribute::Nested(IndexMap::from([
+                    (
+                        "street".to_string(),
+                        Attribute::Single(AttributeValue::Text("Gracht".to_string())),
+                    ),
+                    ("number".to_string(), Attribute::Single(AttributeValue::Integer(123))),
+                ])),
+            ),
+            (
+                "country".to_string(),
+                Attribute::Nested(IndexMap::from([
+                    (
+                        "iso".to_string(),
+                        Attribute::Single(AttributeValue::Text("NL".to_string())),
+                    ),
+                    ("area_code".to_string(), Attribute::Single(AttributeValue::Integer(31))),
+                ])),
+            ),
+            ("adult".to_string(), Attribute::Single(AttributeValue::Bool(true))),
+        ])
+        .into()
+    }
+
+    #[test]
+    fn test_attributes_flattened() {
+        assert_eq!(
+            example_attributes().flattened(),
+            IndexMap::from([
+                (
+                    VecNonEmpty::try_from(vec!["name"]).unwrap(),
+                    &AttributeValue::Text("Wallet".to_string())
+                ),
+                (
+                    VecNonEmpty::try_from(vec!["address", "street"]).unwrap(),
+                    &AttributeValue::Text("Gracht".to_string())
+                ),
+                (
+                    VecNonEmpty::try_from(vec!["address", "number"]).unwrap(),
+                    &AttributeValue::Integer(123)
+                ),
+                (
+                    VecNonEmpty::try_from(vec!["country", "iso"]).unwrap(),
+                    &AttributeValue::Text("NL".to_string())
+                ),
+                (
+                    VecNonEmpty::try_from(vec!["country", "area_code"]).unwrap(),
+                    &AttributeValue::Integer(31)
+                ),
+                (
+                    VecNonEmpty::try_from(vec!["adult"]).unwrap(),
+                    &AttributeValue::Bool(true)
+                ),
+            ]),
+        );
+    }
+
+    #[test]
+    fn test_validate_ok() {
+        let metadata_json = json!({
+            "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
+            "claims": [
+                {
+                    "path": ["name"],
+                    "display": [{"lang": "en", "label": "name"}],
+                },
+                {
+                    "path": ["address", "street"],
+                    "display": [{"lang": "en", "label": "address street"}],
+                },
+                {
+                    "path": ["address", "number"],
+                    "display": [{"lang": "en", "label": "address number"}],
+                },
+                {
+                    "path": ["country", "iso"],
+                    "display": [{"lang": "en", "label": "country iso"}],
+                },
+                {
+                    "path": ["country", "area_code"],
+                    "display": [{"lang": "en", "label": "country area code"}],
+                },
+                {
+                    "path": ["adult"],
+                    "display": [{"lang": "en", "label": "adult"}],
+                },
+            ],
+            "schema": { "properties": {} }
+        });
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
+
+        let result = example_attributes().validate(&type_metadata);
+        assert_matches!(result, Ok(_));
+    }
+
+    #[test]
+    fn test_validate_missing() {
+        let metadata_json = json!({
+            "vct": "com.example.pid",
+            "display": [{"lang": "en", "name": "example"}],
+            "claims": [
+                {
+                    "path": ["name"],
+                    "display": [{"lang": "en", "label": "name"}],
+                },
+                {
+                    "path": ["address", "street"],
+                    "display": [{"lang": "en", "label": "address street"}],
+                },
+                {
+                    "path": ["address", "number"],
+                    "display": [{"lang": "en", "label": "address number"}],
+                },
+                {
+                    "path": ["country", "iso"],
+                    "display": [{"lang": "en", "label": "country iso"}],
+                },
+                {
+                    "path": ["adult"],
+                    "display": [{"lang": "en", "label": "adult"}],
+                },
+            ],
+            "schema": { "properties": {} }
+        });
+        let type_metadata = NormalizedTypeMetadata::from_single_example(serde_json::from_value(metadata_json).unwrap());
+
+        let result = example_attributes().validate(&type_metadata);
+        assert_matches!(result, Err(AttributesError::AttributesWithoutClaim(message)) if message == vec![vec!["country", "area_code"]]);
     }
 
     mod test_claim_paths_from_attributes {

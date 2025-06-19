@@ -8,8 +8,8 @@ use chrono::NaiveDate;
 use serde::Deserialize;
 use serde::Serialize;
 
-use attestation_data::attributes::AttributeError;
 use attestation_data::attributes::AttributeValue;
+use attestation_data::attributes::AttributesError;
 use attestation_data::auth::Organization;
 use error_category::ErrorCategory;
 use sd_jwt_vc_metadata::ClaimDisplayMetadata;
@@ -31,9 +31,9 @@ pub enum AttestationError {
     #[category(pd)]
     AttributeDateValue(#[from] chrono::ParseError),
 
-    #[error("error converting from mdoc attribute: {0}")]
+    #[error("error converting from mdoc attributes: {0}")]
     #[category(pd)]
-    Attribute(#[from] AttributeError),
+    Attributes(#[from] AttributesError),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

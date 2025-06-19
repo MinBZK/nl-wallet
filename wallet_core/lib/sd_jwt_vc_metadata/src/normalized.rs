@@ -190,6 +190,15 @@ impl NormalizedTypeMetadata {
 
         Ok(())
     }
+
+    /// Returns all claim paths that only consist out of `SelectByKey` as a `VecNonEmpty` of `&str`
+    pub fn claim_key_paths(&self) -> Vec<VecNonEmpty<&str>> {
+        self.claims
+            .iter()
+            .map(|claim| claim.path.iter().filter_map(|path| path.try_key_path()).collect_vec())
+            .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
+            .collect()
+    }
 }
 
 impl ClaimMetadata {
