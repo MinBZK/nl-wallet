@@ -2,60 +2,50 @@
   script:
     - scripts/generate_wallet_config.sh
       wallet_core/wallet
-      "$WALLET_ENV"
+      "$CONFIG_ENV"
       "$STATIC_HOSTNAME"
       "$CONFIG_PUBKEY"
       "$CONFIG_TLS_CA"
   artifacts:
-    name: wallet-config-$WALLET_ENV
+    name: wallet-config-$CONFIG_ENV
     paths:
       - wallet_core/wallet/wallet-config.json
       - wallet_core/wallet/config-server-config.json
 
 wallet-config-ont:
   extends: .wallet-config
+  needs:
+    - job: build-env-ont
+      artifacts: true
   rules: !reference [.default-branch, rules]
-  variables:
-    WALLET_ENV: ont
-    STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ONT
-    CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_ONT
-    CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_ONT
 
 wallet-config-demo:
   extends: .wallet-config
+  needs:
+    - job: build-env-demo
+      artifacts: true
   rules: !reference [.on-demo-build, rules]
-  variables:
-    WALLET_ENV: demo
-    STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_DEMO
-    CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_DEMO
-    CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_DEMO
 
 wallet-config-acceptance:
   extends: .wallet-config
+  needs:
+    - job: build-env-acceptance
+      artifacts: true
   rules: !reference [.release-tag, rules]
   when: manual
-  variables:
-    WALLET_ENV: acceptance
-    STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_ACC
-    CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_ACC
-    CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_ACC
 
 wallet-config-preproduction:
   extends: .wallet-config
+  needs:
+    - job: build-env-preproduction
+      artifacts: true
   rules: !reference [.release-tag, rules]
   when: manual
-  variables:
-    WALLET_ENV: preproduction
-    STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_PREPROD
-    CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_PREPROD
-    CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_PREPROD
 
 wallet-config-production:
   extends: .wallet-config
+  needs:
+    - job: build-env-production
+      artifacts: true
   rules: !reference [.release-tag, rules]
   when: manual
-  variables:
-    WALLET_ENV: production
-    STATIC_HOSTNAME: $STATIC_EXTERNAL_HOSTNAME_PROD
-    CONFIG_PUBKEY: $WALLET_CONFIG_PUBKEY_PROD
-    CONFIG_TLS_CA: $WALLET_CONFIG_TLS_CA_PROD

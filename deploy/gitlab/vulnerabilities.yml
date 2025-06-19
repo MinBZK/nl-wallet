@@ -1,6 +1,6 @@
 dependency-check:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
-  extends: .env-ont-k8s
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  extends: .env-k8s
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.default-or-release-or-merge-request, rules]
@@ -37,7 +37,7 @@ dependency-check:
   allow_failure: true
 
 osv-scanner:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.default-or-release-or-merge-request, rules]
@@ -74,7 +74,7 @@ rust-audit:
   allow_failure: true
 
 trivy-scan:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.default-or-release, rules]
@@ -138,7 +138,7 @@ trivy-scan:
 
       vulnerability_url_last_push() {
         local image=$1
-        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${image}/artifacts?page_size=1&page=1&sort=-push_time"
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts?page_size=1&page=1&sort=-push_time"
         local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.[0].addition_links.vulnerabilities.href')
         [[ -n $href ]] || return 1
         echo "https://${HARBOR_REGISTRY}${href}"
@@ -147,7 +147,7 @@ trivy-scan:
       vulnerability_url_from_ref() {
         local image=$1
         local reference=$2
-        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_NLW_PROJECT}/repositories/${image}/artifacts/${reference}"
+        local url="https://${HARBOR_REGISTRY}/api/v2.0/projects/${HARBOR_PROJECT}/repositories/${image}/artifacts/${reference}"
         local href=$(curl -fsS --user "${BASIC_AUTH}" "$url" | jq -r '.addition_links.vulnerabilities.href')
         [[ -n $href ]] || return 1
         echo "https://${HARBOR_REGISTRY}${href}"

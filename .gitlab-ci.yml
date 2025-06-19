@@ -2,7 +2,7 @@ include:
   - "deploy/gitlab/**.yml"
 
 default:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-base:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-base:${BUILD_TAG}"
 
 variables:
   CACHE_COMPRESSION_LEVEL: "fastest"
@@ -14,30 +14,15 @@ variables:
   BUNDLE_DEPLOYMENT: "true"
   BUNDLE_RETRY: 10
 
-.env-ont:
+# Kubernetes is used to deploy, but also to access our secrets for various services.
+# By default it uses the GitLab CI variables, but can be overridden using the variables repo.
+# Note this dual uses requires the secrets to live in the k8s environment that is also used for CI testing.
+.env-k8s:
   environment:
     name: ${K8S_CLUSTER}
-    deployment_tier: development
     action: access
-
-.env-demo:
-  environment:
-    name: ${K8S_DEMO_CLUSTER}
-    deployment_tier: staging
-    action: access
-
-.env-ont-k8s:
-  extends: .env-ont
-  environment:
-    action: start
     kubernetes:
       namespace: ${K8S_NAMESPACE}
-
-.env-demo-k8s:
-  extends: .env-demo
-  environment:
-    kubernetes:
-      namespace: ${K8S_DEMO_NAMESPACE}
 
 .env-macos-runner:
   tags:

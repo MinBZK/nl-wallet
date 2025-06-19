@@ -3,9 +3,9 @@ env:
   contexts:
   - name: "Default Context"
     urls:
-    - "${PUBLIC_WALLET_SERVER_URL}"
+    - "${PUBLIC_VERIFICATION_SERVER_URL}"
     includePaths:
-    - "${PUBLIC_WALLET_SERVER_URL}.*"
+    - "${PUBLIC_VERIFICATION_SERVER_URL}.*"
     excludePaths: []
     authentication:
       parameters: {}
@@ -86,7 +86,7 @@ jobs:
     theme: "console"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
     reportFile: ""
-    reportTitle: "PUBLIC_WALLET_SERVER ZAP Scanning Report"
+    reportTitle: "PUBLIC_VERIFICATION_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -112,8 +112,8 @@ jobs:
 - parameters:
     template: "traditional-xml"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "PUBLIC_WALLET_SERVER-zap.xml"
-    reportTitle: "PUBLIC_WALLET_SERVER ZAP Scanning Report"
+    reportFile: "PUBLIC_VERIFICATION_SERVER-zap.xml"
+    reportTitle: "PUBLIC_VERIFICATION_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:
@@ -133,8 +133,8 @@ jobs:
 - parameters:
     template: "traditional-json"
     reportDir: "${CI_PROJECT_DIR}/zapreports"
-    reportFile: "PUBLIC_WALLET_SERVER-zap.json"
-    reportTitle: "PUBLIC_WALLET_SERVER ZAP Scanning Report"
+    reportFile: "PUBLIC_VERIFICATION_SERVER-zap.json"
+    reportTitle: "PUBLIC_VERIFICATION_SERVER ZAP Scanning Report"
     reportDescription: ""
     displayReport: false
   risks:

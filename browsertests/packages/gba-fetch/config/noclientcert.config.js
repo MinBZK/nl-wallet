@@ -18,7 +18,7 @@ export default defineConfig({
     },
   ],
   use: {
-    baseURL: "https://" + process.env.GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT,
+    baseURL: process.env.GBA_FETCH_FRONTEND_URL,
     screenshot: "only-on-failure",
     video: "off",
     trace: "off",

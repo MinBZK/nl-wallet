@@ -20,12 +20,12 @@ export default defineConfig({
   use: {
     clientCertificates: [
       {
-        origin: "https://" + process.env.GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT,
+        origin: process.env.GBA_FETCH_FRONTEND_URL,
         pfxPath: process.env.GBA_FETCH_FRONTEND_CLIENT_CERT_PATH,
         passphrase: process.env.GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE,
       },
     ],
-    baseURL: "https://" + process.env.GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT,
+    baseURL: process.env.GBA_FETCH_FRONTEND_URL,
     screenshot: "only-on-failure",
     video: "off",
     trace: "off",

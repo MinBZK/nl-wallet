@@ -38,7 +38,7 @@ pub struct Settings {
     // used by the wallet, MUST be reachable from the public internet.
     pub wallet_server: Server,
 
-    /// Publically reachable URL used by the wallet during sessions
+    /// Publicly reachable URL used by the wallet during sessions
     pub public_url: BaseUrl,
 
     pub log_requests: bool,

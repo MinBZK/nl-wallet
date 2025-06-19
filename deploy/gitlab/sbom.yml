@@ -1,5 +1,5 @@
 build-sbom:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .ruby-cache
   rules: !reference [.default-branch, rules]
   script:
@@ -53,10 +53,12 @@ build-sbom:
   allow_failure: true
 
 upload-sbom-to-dependency-track:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
-  extends: .env-ont-k8s
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
+  extends: .env-k8s
   rules: !reference [.default-branch, rules]
   needs:
+    - job: build-env-ont
+      artifacts: true
     - job: build-sbom
       artifacts: true
   script: |

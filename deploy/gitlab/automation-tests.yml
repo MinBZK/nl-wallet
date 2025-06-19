@@ -6,9 +6,7 @@ automation-compile-check:
     - ./gradlew --no-daemon compileTestKotlin
 
 .run-automation-tests-base:
-  extends: .env-ont-k8s
-  environment:
-    action: access
+  extends: .env-k8s
   before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER
@@ -126,7 +124,7 @@ run-automation-smoke-test-ont:
   extends: .run-automation-tests-common-setup
   rules: !reference [.default-branch, rules]
   needs:
-    - job: upload-browserstack-android-app-ont
+    - job: upload-browserstack-android-app
       artifacts: false
     - job: deploy-apps-ont
       artifacts: false
@@ -141,7 +139,7 @@ run-automation-smoke-test-ont:
 
 browsertests-format-lint:
   rules: !reference [.default-or-merge-request, rules]
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-node:${BUILD_TAG}"
   script:
     - cd browsertests
     - npm ci
@@ -149,14 +147,18 @@ browsertests-format-lint:
     - npm run lint
 
 .run-browsertest-common:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
-  extends: .env-ont-k8s
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-playwright:${BUILD_TAG}"
+  extends: .env-k8s
+  needs:
+    - job: build-env-ont
+      artifacts: true
 
 run-wallet-web-browsertest-test-ont:
   extends: .run-browsertest-common
   rules:
     - !reference [.default-branch, rules]
   needs:
+    - !reference [.run-browsertest-common, needs]
     - job: deploy-apps-ont
       artifacts: false
   script: |
@@ -165,8 +167,6 @@ run-wallet-web-browsertest-test-ont:
     cd packages/wallet-web
     npx playwright install chromium webkit
     npm run test:ci
-  variables:
-    DEMO_INDEX_EXTERNAL_HOSTNAME: "${DEMO_INDEX_EXTERNAL_HOSTNAME_ONT}"
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/wallet-web/test-results/results.xml qt/quality-time/junit-results/browsertest-wallet-web.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-wallet-web.zip browsertests/packages/wallet-web/allure-results/*
@@ -184,6 +184,7 @@ run-fallback-pages-browsertest-test-ont:
   rules:
     - !reference [.default-branch, rules]
   needs:
+    - !reference [.run-browsertest-common, needs]
     - job: deploy-apps-ont
       artifacts: false
   script: |
@@ -192,8 +193,6 @@ run-fallback-pages-browsertest-test-ont:
     cd packages/fallback-pages
     npx playwright install chromium webkit
     npm run test:ci
-  variables:
-    UNIVERSAL_LINK_BASE: "https://$APP_EXTERNAL_HOSTNAME_ONT/deeplink/"
   after_script:
     - deploy/bin/store-artifact.sh browsertests/packages/fallback-pages/test-results/results.xml qt/quality-time/junit-results/browsertest-fallback-pages.xml
     - deploy/bin/store-artifact-zip.sh qt/quality-time/allure-results/browsertest-fallback-pages.zip browsertests/packages/fallback-pages/allure-results/*
@@ -213,8 +212,8 @@ run-gba-fetch-browsertest-test-ont:
   before_script: |
     kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath="{.data.gba_fetch_e2e\.p12}" | base64 -d > browsertests/packages/gba-fetch/config/gba_fetch_client_cert_ont.p12
     export GBA_FETCH_FRONTEND_CLIENT_CERT_PATH="./gba_fetch_client_cert_ont.p12"
-    export GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE=$(kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath='{.data.passphrase}' | base64 --decode)
-    export GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME="${GBA_FETCH_FRONTEND_INTERNAL_HOSTNAME_ONT}"
+    GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE="$(kubectl get secret nl-wallet-gba-fetch-browsertest-ont-client-secret -o jsonpath='{.data.passphrase}' | base64 --decode)"
+    export GBA_FETCH_FRONTEND_CLIENT_CERT_PASSPHRASE
   script: |
     cd browsertests
     npm ci
@@ -235,7 +234,7 @@ run-gba-fetch-browsertest-test-ont:
       junit: browsertests/packages/gba-fetch/test-results-*/*.xml
 
 run-performance-test-ont:
-  extends: .env-ont-k8s
+  extends: .env-k8s
   rules: !reference [.default-branch, rules]
   needs:
     - job: build-performance-test

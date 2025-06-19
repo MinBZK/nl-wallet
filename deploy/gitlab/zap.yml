@@ -1,11 +1,17 @@
-.zap-scan-common-setup:
-  image: "${HARBOR_REGISTRY}/${HARBOR_NLW_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
-  extends: .env-ont-k8s
+.zap-base:
+  image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   rules:
     - !reference [.on-schedule, rules]
     - !reference [.default-branch, rules]
-    - if: $CI_PIPELINE_SOURCE == "web"
-      when: manual
+
+.zap-scan-base:
+  extends: .zap-base
+  needs:
+    - job: build-env-ont
+      artifacts: true
+    - job: deploy-apps-ont
+      artifacts: false
+      optional: true
   allow_failure: true
   artifacts:
     name: $CI_JOB_NAME_SLUG
@@ -32,102 +38,74 @@
   script:
     - |
       envsubst < deploy/zap/get_session_token_payload.json > deploy/zap/get_session_token_payload_temp.json
-      SESSION_TOKEN=$(curl -s -X POST -d @deploy/zap/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_WALLET_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')
+      SESSION_TOKEN=$(curl -s -X POST -d @deploy/zap/get_session_token_payload_temp.json -H "Content-Type: application/json" "${INTERNAL_VERIFICATION_SERVER_URL}/disclosure/sessions" | jq -r '.session_token')
 
 zap-scan-demo:
-  extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
+  extends: .zap-scan-base
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    DEMO_INDEX_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_INDEX_EXTERNAL_CONTEXT_PATH}"
     SUT: "DEMO_RP_AND_ISSUER"
 
 zap-scan-config-server:
-  extends: .zap-scan-common-setup
+  extends: .zap-scan-base
   script:
     - !reference [.run-zap-scan, script]
   variables:
-    CONFIG_SERVER_HOST: "${STATIC_EXTERNAL_HOSTNAME_ONT}"
+    CONFIG_SERVER_HOST: "${STATIC_HOSTNAME}"
     SUT: "CONFIG_SERVER"
 
 zap-scan-wallet-provider:
-  extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
+  extends: .zap-scan-base
   script:
     - envsubst < deploy/zap/config/WALLET_PROVIDER_urls.txt > ${ZAP_HOME}/WALLET_PROVIDER_urls.txt
     - !reference [.run-zap-scan, script]
   variables:
-    WALLET_PROVIDER_BASE_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${WALLET_PROVIDER_EXTERNAL_CONTEXT_PATH}"
     SUT: "WALLET_PROVIDER"
 
 zap-scan-pid-issuer:
-  extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
+  extends: .zap-scan-base
   script:
     - envsubst < deploy/zap/config/PID_ISSUER_urls.txt > ${ZAP_HOME}/PID_ISSUER_urls.txt
     - !reference [.run-zap-scan, script]
   variables:
-    PID_ISSUER_BASE_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${PID_ISSUER_EXTERNAL_CONTEXT_PATH}"
     SUT: "PID_ISSUER"
 
-zap-scan-internal-wallet-server:
-  extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
+zap-scan-internal-verification-server:
+  extends: .zap-scan-base
   script:
     - !reference [.get-session-token, script]
     - |
-      yq e ".servers[0].url=\"${INTERNAL_WALLET_SERVER_URL}\"" -i documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
+      yq e ".servers[0].url=\"${INTERNAL_VERIFICATION_SERVER_URL}\"" -i documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/_static/openapi/wallet-disclosure-private.openapi.yaml
       yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/_static/openapi/wallet-disclosure-private.openapi.yaml documentation/_static/openapi/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-internal-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
-    INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
-    SUT: "INTERNAL_WALLET_SERVER"
+    SUT: "INTERNAL_VERIFICATION_SERVER"
 
-zap-scan-public-wallet-server:
-  extends: .zap-scan-common-setup
-  needs:
-    - job: deploy-apps-ont
-      artifacts: false
-      optional: true
+zap-scan-public-verification-server:
+  extends: .zap-scan-base
   script:
     - !reference [.get-session-token, script]
     - |
-      yq e ".servers[0].url=\"${PUBLIC_WALLET_SERVER_URL}\"" -i documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
+      yq e ".servers[0].url=\"${PUBLIC_VERIFICATION_SERVER_URL}\"" -i documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
       sed -i 's|wallet-disclosure-components.openapi.yaml#|#|g' documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|application/x-www-form-urlencoded|application/json|g" documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
       sed -i "s|{session_token}|${SESSION_TOKEN}|g" documentation/_static/openapi/wallet-disclosure-public.openapi.yaml
       yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' documentation/_static/openapi/wallet-disclosure-public.openapi.yaml documentation/_static/openapi/wallet-disclosure-components.openapi.yaml > ${ZAP_HOME}/merged-public-wallet-disclosure.openapi.yaml
     - !reference [.run-zap-scan, script]
   variables:
-    INTERNAL_WALLET_SERVER_URL: "https://${DEMO_RP_VERIFICATION_SERVER_INTERNAL_HOSTNAME_ONT}"
-    PUBLIC_WALLET_SERVER_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RP_VERIFICATION_SERVER_EXTERNAL_CONTEXT_PATH}"
-    RELYING_PARTY_URL: "https://${EXTERNAL_HOSTNAME_ONT}/${DEMO_RELYING_PARTY_EXTERNAL_CONTEXT_PATH}"
-    SUT: "PUBLIC_WALLET_SERVER"
+    SUT: "PUBLIC_VERIFICATION_SERVER"
 
 zap-scan-publish-results:
-  rules: !reference [.zap-scan-common-setup, rules]
+  rules: !reference [.zap-base, rules]
   needs:
     - { job: zap-scan-demo }
     - { job: zap-scan-config-server }
     - { job: zap-scan-wallet-provider }
     - { job: zap-scan-pid-issuer }
-    - { job: zap-scan-internal-wallet-server }
-    - { job: zap-scan-public-wallet-server }
+    - { job: zap-scan-internal-verification-server }
+    - { job: zap-scan-public-verification-server }
   script:
     - deploy/bin/store-artifact-zip.sh qt/quality-time/zap.zip zapreports/*.xml
