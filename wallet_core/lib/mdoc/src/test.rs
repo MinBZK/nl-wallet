@@ -207,7 +207,7 @@ impl TestDocument {
         normalized_metadata
     }
 
-    /// Signs this TestDocument into an [`Mdoc`] using `ca` and `key_factory`.
+    /// Signs this TestDocument into an [`Mdoc`] using `ca` and `key`.
     /// NOTE: This code is not production quality, it's filled with unsafe unwraps.
     pub async fn sign<KEY>(self, ca: &Ca, device_key: &KEY) -> Mdoc
     where
@@ -227,7 +227,7 @@ impl TestDocument {
         mdoc
     }
 
-    /// Generate an `IssuerSigned` for this `TestDocument`.
+    /// Generates an `IssuerSigned` for this `TestDocument`.
     /// NOTE: This code is not production quality, it's filled with unsafe unwraps.
     pub async fn issuer_signed<KEY>(self, ca: &Ca, device_key: &KEY, now: chrono::DateTime<Utc>) -> IssuerSigned
     where
