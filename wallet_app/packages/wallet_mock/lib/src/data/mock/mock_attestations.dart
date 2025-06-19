@@ -4,31 +4,35 @@ import '../../../mock.dart';
 import 'mock_attributes.dart';
 import 'mock_organizations.dart';
 
+final _kDefaultLogoAsset = 'assets/non-free/logos/card_rijksoverheid.png';
+final _kWhite = '#FFFFFF';
+final _kDarkBlue = '#152A62';
+
 final kPidAttestations = [
   AttestationPresentation(
-    identity: AttestationIdentity_Fixed(id: 'pid'),
+    identity: const AttestationIdentity_Fixed(id: 'pid'),
     attestationType: MockConstants.pidDocType,
     displayMetadata: _buildDisplayMetaData(
       englishTitle: 'Personal data',
       dutchTitle: 'Persoons­gegevens',
       englishSummary: '{{mock_firstNames}}',
       dutchSummary: '{{mock_firstNames}}',
-      logoAsset: 'assets/non-free/logos/card_rijksoverheid.png',
-      textColor: '#152A62',
+      logoAsset: _kDefaultLogoAsset,
+      textColor: _kDarkBlue,
     ),
     issuer: kOrganizations[kRvigId]!,
     attributes: kMockPidAttestationAttributes,
   ),
   AttestationPresentation(
-    identity: AttestationIdentity_Fixed(id: 'address'),
+    identity: const AttestationIdentity_Fixed(id: 'address'),
     attestationType: MockConstants.addressDocType,
     displayMetadata: _buildDisplayMetaData(
       englishTitle: 'Residential address',
       dutchTitle: 'Woonadres',
       englishSummary: '{{mock_city}}',
       dutchSummary: '{{mock_city}}',
-      logoAsset: 'assets/non-free/logos/card_rijksoverheid.png',
-      textColor: '#FFFFFF',
+      logoAsset: _kDefaultLogoAsset,
+      textColor: _kWhite,
     ),
     issuer: kOrganizations[kRvigId]!,
     attributes: kMockAddressAttestationAttributes,
@@ -38,14 +42,14 @@ final kPidAttestations = [
 const _kDiplomaId = 'DIPLOMA_1';
 final kDiplomaAttestation = AttestationPresentation(
   attestationType: _kDiplomaId,
-  identity: AttestationIdentity.ephemeral(),
+  identity: const AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'BSc. Diploma',
     dutchTitle: 'BSc. Diploma',
     englishSummary: '{{mock_education}}',
     dutchSummary: '{{mock_education}}',
-    logoAsset: 'assets/non-free/logos/card_rijksoverheid.png',
-    textColor: '#FFFFFF',
+    logoAsset: _kDefaultLogoAsset,
+    textColor: _kWhite,
   ),
   attributes: kMockDiplomaAttestationAttributes,
   issuer: kOrganizations[kDuoId]!,
@@ -54,14 +58,14 @@ final kDiplomaAttestation = AttestationPresentation(
 const _kMasterDiplomaId = 'DIPLOMA_2';
 final kMockMasterDiplomaWalletCard = AttestationPresentation(
   attestationType: _kMasterDiplomaId,
-  identity: AttestationIdentity.ephemeral(),
+  identity: const AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'MSc. Diploma',
     dutchTitle: 'MSc. Diploma',
     englishSummary: '{{mock_education}}',
     dutchSummary: '{{mock_education}}',
-    logoAsset: 'assets/non-free/logos/card_rijksoverheid.png',
-    textColor: '#FFFFFF',
+    logoAsset: _kDefaultLogoAsset,
+    textColor: _kWhite,
   ),
   attributes: kMockMasterDiplomaDataAttributes,
   issuer: kOrganizations[kDuoId]!,
@@ -69,14 +73,14 @@ final kMockMasterDiplomaWalletCard = AttestationPresentation(
 
 final kMockDrivingLicenseWalletCard = AttestationPresentation(
   attestationType: MockConstants.drivingLicenseDocType,
-  identity: AttestationIdentity.ephemeral(),
+  identity: const AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'Driving License',
     dutchTitle: 'Rijbewijs',
     englishSummary: '{{mock_drivingLicenseCategories}}',
     dutchSummary: '{{mock_drivingLicenseCategories}}',
     logoAsset: 'assets/non-free/logos/nl_driving_license.png',
-    textColor: '#152A62',
+    textColor: _kDarkBlue,
   ),
   attributes: kMockDrivingLicenseDataAttributes,
   issuer: kOrganizations[kRdwId]!,
@@ -84,14 +88,14 @@ final kMockDrivingLicenseWalletCard = AttestationPresentation(
 
 final kMockDrivingLicenseRenewedWalletCard = AttestationPresentation(
   attestationType: MockConstants.drivingLicenseDocType,
-  identity: AttestationIdentity.ephemeral(),
+  identity: const AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'Driving License',
     dutchTitle: 'Rijbewijs',
     englishSummary: '{{mock_drivingLicenseCategories}}',
     dutchSummary: '{{mock_drivingLicenseCategories}}',
     logoAsset: 'assets/non-free/logos/nl_driving_license.png',
-    textColor: '#152A62',
+    textColor: _kDarkBlue,
   ),
   attributes: kMockDrivingLicenseRenewedDataAttributes,
   issuer: kOrganizations[kRdwId]!,
@@ -99,14 +103,14 @@ final kMockDrivingLicenseRenewedWalletCard = AttestationPresentation(
 
 final kMockHealthInsuranceWalletCard = AttestationPresentation(
   attestationType: 'HEALTH_INSURANCE',
-  identity: AttestationIdentity.ephemeral(),
+  identity: const AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'European Health Insurance Card',
     dutchTitle: 'Europese gezondheidskaart',
     englishSummary: '{{mock_healthIssuerId}}',
     dutchSummary: '{{mock_healthIssuerId}}',
     logoAsset: 'assets/non-free/logos/nl_health_insurance.png',
-    textColor: '#FFFFFF',
+    textColor: _kWhite,
   ),
   attributes: kMockHealthInsuranceDataAttributes,
   issuer: kOrganizations[kHealthInsuranceId]!,
@@ -114,14 +118,14 @@ final kMockHealthInsuranceWalletCard = AttestationPresentation(
 
 final kMockVOGWalletCard = AttestationPresentation(
   attestationType: 'VOG',
-  identity: AttestationIdentity.ephemeral(),
+  identity: const AttestationIdentity.ephemeral(),
   displayMetadata: _buildDisplayMetaData(
     englishTitle: 'Certificate of Conduct',
     dutchTitle: 'Verklaring Omtrent het Gedrag',
     englishSummary: 'Valid through {{mock_expiryDate}}',
     dutchSummary: 'Geldig tot {{mock_expiryDate}}',
-    logoAsset: 'assets/non-free/logos/card_rijksoverheid.png',
-    textColor: '#FFFFFF',
+    logoAsset: _kDefaultLogoAsset,
+    textColor: _kWhite,
   ),
   attributes: kMockVOGDataAttributes,
   issuer: kOrganizations[kRvigId]!,

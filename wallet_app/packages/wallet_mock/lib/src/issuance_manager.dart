@@ -49,8 +49,8 @@ class IssuanceManager {
         sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: response.relyingParty.webUrl ?? 'https://origin.org',
         requestPurpose: [
-          LocalizedString(language: 'en', value: 'Card issuance'),
-          LocalizedString(language: 'nl', value: 'Kaart uitgifte'),
+          const LocalizedString(language: 'en', value: 'Card issuance'),
+          const LocalizedString(language: 'nl', value: 'Kaart uitgifte'),
         ],
         requestType: DisclosureType.Regular,
       );
@@ -67,8 +67,8 @@ class IssuanceManager {
         sessionType: DisclosureSessionType.CrossDevice,
         requestOriginBaseUrl: response.relyingParty.webUrl ?? 'https://origin.org',
         requestPurpose: [
-          LocalizedString(language: 'en', value: 'Card issuance'),
-          LocalizedString(language: 'nl', value: 'Kaart uitgifte'),
+          const LocalizedString(language: 'en', value: 'Card issuance'),
+          const LocalizedString(language: 'nl', value: 'Kaart uitgifte'),
         ],
         missingAttributes: missingAttributes.toList(),
       );
@@ -87,8 +87,8 @@ class IssuanceManager {
           _requestedAttestationsForActiveRequest,
           DisclosureStatus.Success,
           purpose: [
-            LocalizedString(language: 'en', value: 'Issuance'),
-            LocalizedString(language: 'en', value: 'Uitgave'),
+            const LocalizedString(language: 'en', value: 'Issuance'),
+            const LocalizedString(language: 'en', value: 'Uitgave'),
           ],
         );
         return _activeIssuanceResponse!.attestations;
@@ -125,8 +125,8 @@ class IssuanceManager {
         _requestedAttestationsForActiveRequest,
         DisclosureStatus.Cancelled,
         purpose: [
-          LocalizedString(language: 'en', value: 'Issuance'),
-          LocalizedString(language: 'en', value: 'Uitgave'),
+          const LocalizedString(language: 'en', value: 'Issuance'),
+          const LocalizedString(language: 'en', value: 'Uitgave'),
         ],
       );
     }

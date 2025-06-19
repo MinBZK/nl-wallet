@@ -46,24 +46,24 @@ final _kRvigOrganization = Organization(
   legalName: _kRvigOrganizationName.dutch,
   displayName: _kRvigOrganizationName.dutch,
   category: [
-    LocalizedString(language: 'en', value: 'Government'),
-    LocalizedString(language: 'nl', value: 'Overheid'),
+    const LocalizedString(language: 'en', value: 'Government'),
+    const LocalizedString(language: 'nl', value: 'Overheid'),
   ],
   description: [
-    LocalizedString(
+    const LocalizedString(
       language: 'en',
       value: 'RvIG is the authority and director for the secure and reliable use of identity data.',
     ),
-    LocalizedString(
+    const LocalizedString(
       language: 'nl',
       value: 'RvIG is de autoriteit en regisseur van het veilig en betrouwbaar gebruik van identiteits­gegevens.',
     ),
   ],
   city: [
-    LocalizedString(language: 'en', value: 'The Hague, The Netherlands'),
-    LocalizedString(language: 'nl', value: 'Den Haag, Nederland'),
+    const LocalizedString(language: 'en', value: 'The Hague, The Netherlands'),
+    const LocalizedString(language: 'nl', value: 'Den Haag, Nederland'),
   ],
-  image: Image.asset(path: MockAssets.logo_rijksoverheid),
+  image: const Image.asset(path: MockAssets.logo_rijksoverheid),
   webUrl: 'https://www.rvig.nl/',
   privacyPolicyUrl: 'https://www.rvig.nl/over-deze-site/privacyverklaring-rijksdienst-voor-identiteitsgegevens',
   kvk: '27373207',
@@ -77,7 +77,7 @@ final _kRdwOrganization = Organization(
   description:
       'De Rijksdienst voor het Wegverkeer (RDW) draagt bij aan een veilig, schoon, economisch en geordend wegverkeer.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_rdw),
+  image: const Image.asset(path: MockAssets.logo_rdw),
 );
 
 final _kDuoOrganization = Organization(
@@ -88,7 +88,7 @@ final _kDuoOrganization = Organization(
   description:
       'Dienst Uitvoering Onderwijs (DUO) verzorgt onderwijs en ontwikkeling in opdracht van het Nederlandse ministerie van Onderwijs, Cultuur en Wetenschap.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_rijksoverheid),
+  image: const Image.asset(path: MockAssets.logo_rijksoverheid),
 );
 
 final _kEmployerOrganization = Organization(
@@ -99,7 +99,7 @@ final _kEmployerOrganization = Organization(
   description:
       'Werken voor Nederland (onderdeel van De Rijksoverheid) is één van de grootste werkgevers van ons land. De kans dat jij jouw baan bij de Rijksoverheid vindt is dan ook behoorlijk groot.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_rijksoverheid),
+  image: const Image.asset(path: MockAssets.logo_rijksoverheid),
 );
 
 final _kJustisOrganization = Organization(
@@ -110,10 +110,10 @@ final _kJustisOrganization = Organization(
   description:
       'Screeningsautoriteit Justis beoordeelt de betrouwbaarheid van personen en organisaties ter bevordering van een veilige en rechtvaardige samenleving.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_rijksoverheid),
+  image: const Image.asset(path: MockAssets.logo_rijksoverheid),
 );
 
-final _kMarketPlaceOrganization = Organization(
+final _kMarketPlaceOrganization = const Organization(
   //id: kMarketplaceId,
   legalName: [
     LocalizedString(language: 'en', value: 'Marktplek B.V.'),
@@ -148,7 +148,7 @@ final _kBarOrganization = Organization(
   displayName: 'Cafe de Dobbelaar'.untranslated,
   category: 'Horeca'.untranslated,
   description: 'Familiecafe sinds 1984.'.untranslated,
-  image: Image.asset(path: MockAssets.logo_bar),
+  image: const Image.asset(path: MockAssets.logo_bar),
 );
 
 final _kHealthInsurerOrganization = Organization(
@@ -159,7 +159,7 @@ final _kHealthInsurerOrganization = Organization(
   description:
       'Of het nu gaat om het regelen van zorg, het betalen van zorg of een gezond leven. Zorgverzekeraar Z zet zich elke dag in voor de gezondheid van haar klanten.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_zorgverzekeraar_z),
+  image: const Image.asset(path: MockAssets.logo_zorgverzekeraar_z),
 );
 
 final _kHousingCorporationOrganization = Organization(
@@ -168,7 +168,7 @@ final _kHousingCorporationOrganization = Organization(
   displayName: 'BeterWonen'.untranslated,
   category: 'Wooncorporatie'.untranslated,
   description: 'Moderne woningen voor iedereen in de Gemeente Den Haag en omstreken.'.untranslated,
-  image: Image.asset(path: MockAssets.logo_housing_corp),
+  image: const Image.asset(path: MockAssets.logo_housing_corp),
   webUrl: 'https://beterwonen.nl',
   countryCode: 'nl',
   city: kSampleCityTheHague.untranslated,
@@ -181,7 +181,7 @@ final _kCarRentalOrganization = Organization(
   displayName: 'CarRental'.untranslated,
   category: 'Autoverhuur'.untranslated,
   description: 'Betrouwbaar huren.'.untranslated,
-  image: Image.asset(path: MockAssets.logo_car_rental),
+  image: const Image.asset(path: MockAssets.logo_car_rental),
 );
 
 final _kFirstAidOrganization = Organization(
@@ -192,28 +192,28 @@ final _kFirstAidOrganization = Organization(
   description:
       'Deze Healthcare Facility is fictief ter invulling van de Demo. Dit kan een zorginstelling zijn in Nederland of in het buitenland.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_first_aid),
+  image: const Image.asset(path: MockAssets.logo_first_aid),
 );
 
 final _kMunicipalityAmsterdamOrganization = Organization(
   //id: kMunicipalityAmsterdamId,
   legalName: [
-    LocalizedString(language: 'en', value: 'City of Amsterdam'),
-    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam'),
+    const LocalizedString(language: 'en', value: 'City of Amsterdam'),
+    const LocalizedString(language: 'nl', value: 'Gemeente Amsterdam'),
   ],
   displayName: [
-    LocalizedString(language: 'en', value: 'City of Amsterdam'),
-    LocalizedString(language: 'nl', value: 'Gemeente Amsterdam'),
+    const LocalizedString(language: 'en', value: 'City of Amsterdam'),
+    const LocalizedString(language: 'nl', value: 'Gemeente Amsterdam'),
   ],
   category: [
-    LocalizedString(language: 'en', value: 'Municipality'),
-    LocalizedString(language: 'nl', value: 'Gemeente'),
+    const LocalizedString(language: 'en', value: 'Municipality'),
+    const LocalizedString(language: 'nl', value: 'Gemeente'),
   ],
   description: [
-    LocalizedString(language: 'en', value: 'Everything we do, we do for the city and the people of Amsterdam.'),
-    LocalizedString(language: 'nl', value: 'Alles wat we doen, doen we voor de stad en de Amsterdammers.'),
+    const LocalizedString(language: 'en', value: 'Everything we do, we do for the city and the people of Amsterdam.'),
+    const LocalizedString(language: 'nl', value: 'Alles wat we doen, doen we voor de stad en de Amsterdammers.'),
   ],
-  image: Image.asset(path: MockAssets.logo_municipality_amsterdam),
+  image: const Image.asset(path: MockAssets.logo_municipality_amsterdam),
   city: 'Amsterdam'.untranslated,
   countryCode: 'nl',
   kvk: '34366966',
@@ -229,14 +229,14 @@ final _kMunicipalityTheHagueOrganization = Organization(
   description:
       'Den Haag is een unieke stad waar we allemaal trots op zijn. Nieuwsgierig, divers en vol vertrouwen. Vrede en Recht.'
           .untranslated,
-  image: Image.asset(path: MockAssets.logo_municipality_den_haag),
+  image: const Image.asset(path: MockAssets.logo_municipality_den_haag),
   department: 'Parkeren'.untranslated,
   city: kSampleCityTheHague.untranslated,
   countryCode: 'nl',
   webUrl: 'https://www.denhaag.nl',
 );
 
-final _kBankOrganization = Organization(
+final _kBankOrganization = const Organization(
   //id: kBankId,
   legalName: [
     LocalizedString(language: 'en', value: 'XYZ Bank N.V.'),
@@ -264,7 +264,7 @@ final _kBankOrganization = Organization(
   webUrl: 'https://jouwbank.nl',
 );
 
-final _kMonkeyBikeOrganization = Organization(
+final _kMonkeyBikeOrganization = const Organization(
   //id: kMonkeyBikeId,
   legalName: [
     LocalizedString(language: 'en', value: 'MonkeyBike Bezorgdiensten B.V.'),
@@ -305,7 +305,7 @@ final _kPharmacyOrganization = Organization(
   displayName: 'Apotheek'.untranslated,
   category: 'Apotheek'.untranslated,
   description: 'Al meer dan 25 jaar jouw betrouwbare apotheek.'.untranslated,
-  image: Image.asset(path: MockAssets.logo_zorgverzekeraar_z),
+  image: const Image.asset(path: MockAssets.logo_zorgverzekeraar_z),
   kvk: '1234-1234',
   city: kSampleCityTheHague.untranslated,
   countryCode: 'nl',

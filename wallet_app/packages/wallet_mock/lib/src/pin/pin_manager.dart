@@ -24,20 +24,20 @@ class PinManager {
 
     // We've already reached our max attempts, notify blocked.
     if (_attempts >= _kMaxAttempts) {
-      return WalletInstructionResult.instructionError(error: WalletInstructionError.blocked());
+      return const WalletInstructionResult.instructionError(error: WalletInstructionError.blocked());
     }
 
     // Pin matches, grant access and reset state
     if (pin == _selectedPin) {
       _attempts = 0;
-      return WalletInstructionResult.ok();
+      return const WalletInstructionResult.ok();
     }
 
     // Increase the nr of attempts and figure out the new state
     _attempts++;
     // Max attempts reached, block the app
     if (_attempts >= _kMaxAttempts) {
-      return WalletInstructionResult.instructionError(error: WalletInstructionError.blocked());
+      return const WalletInstructionResult.instructionError(error: WalletInstructionError.blocked());
     }
     // Intermediate timeout, report as such
     if (_attempts % _kAttemptsBeforeTimeout == 0) {
