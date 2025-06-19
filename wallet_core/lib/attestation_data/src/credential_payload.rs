@@ -81,6 +81,9 @@ pub struct CredentialPayload {
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Integrity,
 
+    /// The information on how to read the status of the Verifiable Credential.
+    pub status: Option<serde_json::Value>,
+
     #[serde(flatten)]
     pub previewable_payload: PreviewableCredentialPayload,
 }
@@ -194,6 +197,7 @@ impl IntoCredentialPayload for MdocParts {
             vct_integrity: mso
                 .type_metadata_integrity
                 .ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
+            status: None,
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: mso.doc_type,
                 issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
@@ -224,6 +228,7 @@ impl CredentialPayload {
             issued_at,
             confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
             vct_integrity: metadata_integrity,
+            status: None,
             previewable_payload,
         };
 
@@ -309,6 +314,7 @@ mod examples {
                 issued_at: now.into(),
                 confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
                 vct_integrity: Integrity::from(""),
+                status: None,
                 previewable_payload: PreviewableCredentialPayload {
                     attestation_type: String::from("urn:eudi:pid:nl:1"),
                     issuer: "https://cert.issuer.example.com".parse().unwrap(),
@@ -415,6 +421,7 @@ mod test {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
             confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
             vct_integrity: Integrity::from(""),
+            status: None,
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: String::from("com.example.pid"),
                 issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
