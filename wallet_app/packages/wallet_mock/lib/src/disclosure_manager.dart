@@ -92,6 +92,6 @@ class DisclosureManager {
     _eventLog.logDisclosure(disclosure!, DisclosureStatus.Success);
     _ongoingDisclosure = null;
 
-    return AcceptDisclosureResult.ok();
+    return const AcceptDisclosureResult.ok();
   }
 }

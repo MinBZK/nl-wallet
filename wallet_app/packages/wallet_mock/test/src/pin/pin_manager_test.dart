@@ -23,7 +23,7 @@ void main() {
 
     test('pin can not be registered twice', () {
       pinManager.setPin(kTestValidPin);
-      expect(() => pinManager.setPin(kTestValidPin), throwsA(TypeMatcher<StateError>()));
+      expect(() => pinManager.setPin(kTestValidPin), throwsA(const TypeMatcher<StateError>()));
     });
   });
 
@@ -39,12 +39,12 @@ void main() {
 
   group('check pin', () {
     test('checking pin before registration throws', () {
-      expect(() => pinManager.checkPin(kTestValidPin), throwsA(TypeMatcher<StateError>()));
+      expect(() => pinManager.checkPin(kTestValidPin), throwsA(const TypeMatcher<StateError>()));
     });
 
     test('checking the correct pin results in ok', () {
       pinManager.setPin(kTestValidPin);
-      expect(pinManager.checkPin(kTestValidPin), WalletInstructionResult.ok());
+      expect(pinManager.checkPin(kTestValidPin), const WalletInstructionResult.ok());
     });
 
     test('checking an incorrect pin results in incorrectPin', () {
@@ -53,7 +53,7 @@ void main() {
       const incorrectPin = WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false);
       expect(
         pinManager.checkPin(kTestInvalidPin),
-        WalletInstructionResult.instructionError(error: incorrectPin),
+        const WalletInstructionResult.instructionError(error: incorrectPin),
       );
     });
 
@@ -86,7 +86,7 @@ void main() {
         pinManager.checkPin(kTestInvalidPin);
         i++;
       }
-      expect(pinManager.checkPin(kTestValidPin), WalletInstructionResult.ok());
+      expect(pinManager.checkPin(kTestValidPin), const WalletInstructionResult.ok());
     });
 
     test('checking an incorrect pin 11 reports to the user that it is the last attempt', () {
@@ -97,7 +97,7 @@ void main() {
         i++;
       }
 
-      final expected = WalletInstructionResult.instructionError(
+      final expected = const WalletInstructionResult.instructionError(
         error: WalletInstructionError.incorrectPin(
           attemptsLeftInRound: 1,
           isFinalRound: true,
@@ -114,7 +114,7 @@ void main() {
         pinManager.checkPin(kTestInvalidPin);
         i++;
       }
-      final expected = WalletInstructionResult.instructionError(
+      final expected = const WalletInstructionResult.instructionError(
         error: WalletInstructionError.blocked(),
       );
       expect(pinManager.checkPin(kTestValidPin), expected);

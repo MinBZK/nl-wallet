@@ -97,18 +97,7 @@ class _MenuItemState extends State<MenuItem> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(width: widget.leftIcon == null ? 0 : 16),
-                  if (widget.leftIcon != null)
-                    SizedBox(
-                      width: widget.largeIcon ? kMenuItemLargeIconSize : kMenuItemNormalIconSize,
-                      height: widget.largeIcon ? kMenuItemLargeIconSize : kMenuItemNormalIconSize,
-                      child: IconTheme(
-                        data: IconThemeData(
-                          size: kMenuItemNormalIconSize,
-                          color: context.theme.iconTheme.color,
-                        ),
-                        child: widget.leftIcon!,
-                      ),
-                    ),
+                  if (widget.leftIcon != null) _buildLeftIcon(),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
@@ -158,18 +147,7 @@ class _MenuItemState extends State<MenuItem> {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  if (widget.rightIcon != null)
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: IconTheme(
-                        data: IconThemeData(
-                          size: _statesController.value.isPressedOrFocused ? kRightIconFocusedSize : kRightIconSize,
-                          color: context.theme.iconButtonTheme.style?.iconColor?.resolve(_statesController.value),
-                        ),
-                        child: widget.rightIcon!,
-                      ),
-                    ),
+                  if (widget.rightIcon != null) _buildRightIcon(),
                   SizedBox(width: widget.rightIcon == null ? 0 : 8),
                 ].nonNullsList,
               ),
@@ -178,6 +156,36 @@ class _MenuItemState extends State<MenuItem> {
         ),
         if (widget.dividerSide.bottom) const Divider(),
       ],
+    );
+  }
+
+  Widget _buildLeftIcon() {
+    assert(widget.leftIcon != null, 'leftIcon is expected to exist');
+    return SizedBox(
+      width: widget.largeIcon ? kMenuItemLargeIconSize : kMenuItemNormalIconSize,
+      height: widget.largeIcon ? kMenuItemLargeIconSize : kMenuItemNormalIconSize,
+      child: IconTheme(
+        data: IconThemeData(
+          size: kMenuItemNormalIconSize,
+          color: context.theme.iconTheme.color,
+        ),
+        child: widget.leftIcon!,
+      ),
+    );
+  }
+
+  Widget _buildRightIcon() {
+    assert(widget.rightIcon != null, 'rightIcon is expected to exist');
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: IconTheme(
+        data: IconThemeData(
+          size: _statesController.value.isPressedOrFocused ? kRightIconFocusedSize : kRightIconSize,
+          color: context.theme.iconButtonTheme.style?.iconColor?.resolve(_statesController.value),
+        ),
+        child: widget.rightIcon!,
+      ),
     );
   }
 }

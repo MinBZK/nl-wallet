@@ -73,8 +73,8 @@ class WalletCoreForSigning {
         _requestedAttestationsForActiveRequest,
         DisclosureStatus.Success,
         purpose: [
-          LocalizedString(language: 'en', value: 'Signing'),
-          LocalizedString(language: 'en', value: 'Ondertekenen'),
+          const LocalizedString(language: 'en', value: 'Signing'),
+          const LocalizedString(language: 'en', value: 'Ondertekenen'),
         ],
       );
     }
@@ -89,8 +89,8 @@ class WalletCoreForSigning {
         _requestedAttestationsForActiveRequest,
         DisclosureStatus.Cancelled,
         purpose: [
-          LocalizedString(language: 'en', value: 'Signing'),
-          LocalizedString(language: 'en', value: 'Ondertekenen'),
+          const LocalizedString(language: 'en', value: 'Signing'),
+          const LocalizedString(language: 'en', value: 'Ondertekenen'),
         ],
       );
     }
