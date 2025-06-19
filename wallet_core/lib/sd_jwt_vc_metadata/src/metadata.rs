@@ -139,6 +139,7 @@ pub struct TypeMetadata(UncheckedTypeMetadata);
 
 const INTERNAL_ATTRIBUTES: &[&str] = &[
     "vct",
+    "vct#integrity",
     "cnf",
     "iss",
     "nbf",
