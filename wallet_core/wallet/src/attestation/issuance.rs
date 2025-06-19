@@ -1,8 +1,8 @@
 use indexmap::IndexMap;
 
 use attestation_data::attributes::Attributes;
-use attestation_data::attributes::Entry;
 use attestation_data::auth::Organization;
+use mdoc::Entry;
 use mdoc::NameSpace;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
@@ -31,8 +31,8 @@ mod test {
 
     use attestation_data::attributes::AttributeError;
     use attestation_data::attributes::AttributeValue;
-    use attestation_data::attributes::Entry;
     use attestation_data::auth::Organization;
+    use mdoc::Entry;
     use sd_jwt_vc_metadata::JsonSchemaPropertyType;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;

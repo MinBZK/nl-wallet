@@ -694,13 +694,13 @@ mod tests {
 
     use attestation_data::attributes::AttributeError;
     use attestation_data::attributes::AttributeValue;
-    use attestation_data::attributes::Entry;
     use http_utils::urls;
     use mdoc::holder::Mdoc;
     use mdoc::holder::ProposedAttributes;
     use mdoc::holder::ProposedDocumentAttributes;
     use mdoc::test::data::PID;
     use mdoc::DataElementValue;
+    use mdoc::Entry;
     use openid4vc::disclosure_session::VpMessageClientError;
     use openid4vc::issuance_session::CredentialWithMetadata;
     use openid4vc::issuance_session::IssuedCredential;

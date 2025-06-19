@@ -9,11 +9,11 @@ use x509_parser::der_parser::Oid;
 
 use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
+use mdoc::identifiers::AttributeIdentifier;
+use mdoc::identifiers::AttributeIdentifierHolder;
 
 use crate::auth::LocalizedStrings;
 use crate::auth::Organization;
-use crate::identifiers::AttributeIdentifier;
-use crate::identifiers::AttributeIdentifierHolder;
 use crate::x509::CertificateType;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -128,9 +128,11 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use super::*;
-
     use indexmap::IndexMap;
+
+    use mdoc::verifier::ItemsRequests;
+
+    use super::*;
 
     pub type Attributes<'a> = Vec<&'a str>;
     pub type Namespaces<'a> = Vec<(&'a str, Attributes<'a>)>;
@@ -219,6 +221,31 @@ pub mod mock {
                 attributes: Default::default(),
             }
         }
+
+        pub fn mock_from_requests(authorized_requests: &ItemsRequests) -> Self {
+            let attributes = authorized_requests
+                .0
+                .iter()
+                .map(|items_request| {
+                    let namespaces: IndexMap<_, _> = items_request
+                        .name_spaces
+                        .iter()
+                        .map(|(namespace, attributes)| {
+                            let authorized_attributes = attributes
+                                .iter()
+                                .map(|attribute| (attribute.0.clone(), AuthorizedAttribute {}))
+                                .collect();
+                            (namespace.clone(), AuthorizedNamespace(authorized_attributes))
+                        })
+                        .collect();
+                    (items_request.doc_type.clone(), AuthorizedMdoc(namespaces))
+                })
+                .collect();
+            Self {
+                attributes,
+                ..Self::new_mock()
+            }
+        }
     }
 }
 
@@ -226,7 +253,7 @@ pub mod mock {
 mod test {
     use assert_matches::assert_matches;
 
-    use crate::identifiers::mock::MockAttributeIdentifierHolder;
+    use mdoc::identifiers::mock::MockAttributeIdentifierHolder;
 
     use super::mock::*;
     use super::*;

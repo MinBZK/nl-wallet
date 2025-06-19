@@ -1,12 +1,18 @@
 use std::collections::HashMap;
 
+use chrono::Utc;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use crypto::factory::KeyFactory;
+use crypto::server_keys::generate::Ca;
 use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
+use mdoc::holder::Mdoc;
+use mdoc::test::TestDocument;
+use mdoc::IssuerSigned;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
@@ -136,4 +142,24 @@ impl TokenRequest {
             redirect_uri: None,
         }
     }
+}
+
+pub async fn test_document_to_issuer_signed<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> (IssuerSigned, KF::Key)
+where
+    KF: KeyFactory,
+{
+    let key = key_factory.generate_new().await.unwrap();
+
+    let issuer_signed = doc.issuer_signed(ca, &key, Utc::now()).await;
+    (issuer_signed, key)
+}
+
+pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> (Mdoc, KF::Key)
+where
+    KF: KeyFactory,
+{
+    let key = key_factory.generate_new().await.unwrap();
+
+    let mdoc = doc.sign(ca, &key).await;
+    (mdoc, key)
 }

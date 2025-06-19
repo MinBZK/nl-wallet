@@ -86,6 +86,7 @@ mockall = { workspace = true, optional = true }
 parking_lot = { workspace = true, optional = true }
 
 attestation_data.path = "../attestation_data"
+attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils = { path = "../http_utils", features = ["client"] }
@@ -107,7 +108,7 @@ tracing-test.workspace = true
 ts-rs.workspace = true
 wiremock.workspace = true
 
-attestation_data = { path = "../attestation_data", features = ["mock", "example_credential_payloads"] }
+attestation_data = { path = "../attestation_data", features = ["generate", "mock", "example_credential_payloads"] }
 crypto = { path = "../crypto", features = ["examples", "mock_remote_key"] }
 http_utils = { path = "../http_utils", features = ["insecure_http_client"] }
 jwt = { path = "../jwt", features = ["test"] }

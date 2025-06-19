@@ -3,9 +3,9 @@ use p256::ecdsa::SigningKey;
 use rand_core::OsRng;
 
 use attestation_data::attributes::AttributeValue;
-use attestation_data::attributes::Entry;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::PreviewableCredentialPayload;
+use mdoc::Entry;
 use sd_jwt_vc_metadata::JsonSchemaPropertyFormat;
 use sd_jwt_vc_metadata::JsonSchemaPropertyType;
 use sd_jwt_vc_metadata::TypeMetadata;

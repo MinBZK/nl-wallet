@@ -12,9 +12,8 @@ use serde::Serialize;
 use serde_with::skip_serializing_none;
 use url::Url;
 
-use attestation_data::identifiers::AttributeIdentifier;
-use attestation_data::identifiers::AttributeIdentifierHolder;
-
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::engagement::*;
 use crate::iso::mdocs::*;
 use crate::utils::cose::MdocCose;
@@ -33,15 +32,6 @@ pub struct DeviceRequest {
     pub doc_requests: Vec<DocRequest>,
     /// This is a custom and optional field. Other implementations should ignore it.
     pub return_url: Option<Url>,
-}
-
-impl AttributeIdentifierHolder for DeviceRequest {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.doc_requests
-            .iter()
-            .flat_map(|doc_request| doc_request.items_request.0.attribute_identifiers())
-            .collect()
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]

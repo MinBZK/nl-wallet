@@ -4,12 +4,12 @@ use http_utils::urls::BaseUrl;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::identifiers::AttributeIdentifier;
 use crypto::factory::KeyFactory;
 use crypto::x509::BorrowingCertificate;
 use crypto::CredentialEcdsaKey;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
+use mdoc::identifiers::AttributeIdentifier;
 use poa::factory::PoaFactory;
 
 use crate::verifier::SessionType;

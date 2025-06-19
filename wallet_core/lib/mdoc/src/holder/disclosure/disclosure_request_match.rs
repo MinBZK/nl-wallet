@@ -4,13 +4,12 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
 
-use attestation_data::identifiers::AttributeIdentifier;
-use attestation_data::identifiers::AttributeIdentifierHolder;
-
 use crate::engagement::DeviceAuthenticationKeyed;
 use crate::engagement::SessionTranscript;
 use crate::errors::Result;
 use crate::holder::HolderError;
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
 use crate::mdocs::DocType;
 use crate::utils::serialization;
 use crate::utils::serialization::CborSeq;
@@ -195,13 +194,14 @@ mod tests {
     use futures::FutureExt;
     use rstest::rstest;
 
-    use attestation_data::attributes::Entry;
+    use crypto::factory::KeyFactory;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use http_utils::urls::HttpsUri;
 
     use crate::holder::mock::MockMdocDataSource;
     use crate::iso::mdocs::Attributes;
+    use crate::iso::mdocs::Entry;
     use crate::iso::mdocs::IssuerNameSpaces;
     use crate::iso::mdocs::IssuerSignedItem;
     use crate::test::data::addr_street;
@@ -243,6 +243,7 @@ mod tests {
 
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let key_factory = MockRemoteKeyFactory::default();
+        let key = key_factory.generate_new().await.unwrap();
 
         let mdoc_data_source = MockMdocDataSource::new(
             stored_documents
@@ -250,10 +251,7 @@ mod tests {
                 .map(|document| {
                     let normalized_metadata = document.normalized_metadata();
 
-                    (
-                        document.sign(&ca, &key_factory).now_or_never().unwrap(),
-                        normalized_metadata,
-                    )
+                    (document.sign(&ca, &key).now_or_never().unwrap(), normalized_metadata)
                 })
                 .collect(),
         );

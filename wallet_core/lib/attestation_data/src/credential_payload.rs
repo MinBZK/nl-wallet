@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
 use serde::Deserialize;
@@ -6,12 +7,18 @@ use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
+use attestation_types::qualification::AttestationQualification;
 use crypto::server_keys::KeyPair;
 use crypto::EcdsaKeySend;
 use error_category::ErrorCategory;
 use http_utils::urls::HttpsUri;
 use jwt::error::JwkConversionError;
 use jwt::jwk::jwk_from_p256;
+use mdoc::holder::Mdoc;
+use mdoc::utils::crypto::CryptoError;
+use mdoc::Entry;
+use mdoc::MobileSecurityObject;
+use mdoc::NameSpace;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
@@ -21,8 +28,8 @@ use sd_jwt_vc_metadata::TypeMetadataError;
 use sd_jwt_vc_metadata::TypeMetadataValidationError;
 use utils::date_time_seconds::DateTimeSeconds;
 
+use crate::attributes::AttributeError;
 use crate::attributes::Attributes;
-use crate::qualification::AttestationQualification;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 pub enum SdJwtCredentialPayloadError {
@@ -113,6 +120,90 @@ impl IntoCredentialPayload for SdJwt {
 
         metadata.validate(&json)?;
         let payload = serde_json::from_value(json)?;
+
+        Ok(payload)
+    }
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum MdocCredentialPayloadError {
+    #[error("error converting to / from JSON: {0}")]
+    #[category(pd)]
+    JsonConversion(#[from] serde_json::Error),
+
+    #[error("metadata validation error: {0}")]
+    #[category(pd)]
+    MetadataValidation(#[from] TypeMetadataValidationError),
+
+    #[error("unable to convert mdoc TDate to DateTime<Utc>")]
+    #[category(critical)]
+    DateConversion(#[from] chrono::ParseError),
+
+    #[error("mdoc is missing issuer URI")]
+    #[category(critical)]
+    MissingIssuerUri,
+
+    #[error("mdoc is missing attestation qualification")]
+    #[category(critical)]
+    MissingAttestationQualification,
+
+    #[error("mdoc is missing metadata integrity")]
+    #[category(critical)]
+    MissingMetadataIntegrity,
+
+    #[error("attribute error: {0}")]
+    #[category(pd)]
+    Attribute(#[from] AttributeError),
+
+    #[error("error converting holder VerifyingKey to JWK: {0}")]
+    #[category(pd)]
+    JwkConversion(#[from] JwkConversionError),
+
+    #[error("error converting holder public CoseKey to a VerifyingKey: {0}")]
+    #[category(pd)]
+    CoseKeyConversion(#[from] CryptoError),
+}
+
+impl IntoCredentialPayload for Mdoc {
+    type Error = MdocCredentialPayloadError;
+
+    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
+        MdocParts::new(self.issuer_signed.into_entries_by_namespace(), self.mso).into_credential_payload(metadata)
+    }
+}
+
+#[derive(derive_more::Constructor)]
+pub struct MdocParts {
+    attributes: IndexMap<NameSpace, Vec<Entry>>,
+    mso: MobileSecurityObject,
+}
+
+impl IntoCredentialPayload for MdocParts {
+    type Error = MdocCredentialPayloadError;
+
+    fn into_credential_payload(self, metadata: &NormalizedTypeMetadata) -> Result<CredentialPayload, Self::Error> {
+        let MdocParts { attributes, mso } = self;
+        let holder_pub_key = VerifyingKey::try_from(mso.device_key_info)?;
+
+        let payload = CredentialPayload {
+            issued_at: (&mso.validity_info.signed).try_into()?,
+            confirmation_key: jwk_from_p256(&holder_pub_key).map(RequiredKeyBinding::Jwk)?,
+            vct_integrity: mso
+                .type_metadata_integrity
+                .ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
+            previewable_payload: PreviewableCredentialPayload {
+                attestation_type: mso.doc_type,
+                issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
+                expires: Some((&mso.validity_info.valid_until).try_into()?),
+                not_before: Some((&mso.validity_info.valid_from).try_into()?),
+                attestation_qualification: mso
+                    .attestation_qualification
+                    .ok_or(MdocCredentialPayloadError::MissingAttestationQualification)?,
+                attributes: Attributes::from_mdoc_attributes(metadata, attributes)?,
+            },
+        };
+
+        metadata.validate(&serde_json::to_value(&payload)?)?;
 
         Ok(payload)
     }
@@ -239,6 +330,27 @@ mod examples {
                 ..empty
             }
         }
+    }
+}
+
+#[cfg(feature = "mock")]
+pub mod mock {
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
+
+    use crate::attributes::AttributeValue;
+
+    use super::*;
+
+    pub fn pid_example_payload() -> CredentialPayload {
+        CredentialPayload::example_with_attributes(
+            vec![
+                ("bsn", AttributeValue::Text("999999999".to_string())),
+                ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
+                ("family_name", AttributeValue::Text("De Bruijn".to_string())),
+            ],
+            SigningKey::random(&mut OsRng).verifying_key(),
+        )
     }
 }
 
