@@ -9,35 +9,39 @@ use indexmap::IndexMap;
 use indexmap::IndexSet;
 use ssri::Integrity;
 
-use attestation_data::attributes::Attributes;
-use attestation_data::attributes::Entry;
-use attestation_data::auth::issuer_auth::IssuerRegistration;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
-use attestation_data::identifiers::AttributeIdentifier;
-use attestation_data::identifiers::AttributeIdentifierHolder;
-use attestation_data::x509::generate::mock::generate_issuer_mock;
-use crypto::factory::KeyFactory;
+use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+use crypto::server_keys::generate::mock::RP_CERT_CN;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
-use crypto::EcdsaKey;
-use crypto::WithIdentifier;
+use crypto::x509::CertificateError;
+use crypto::x509::CertificateUsage;
+use crypto::CredentialEcdsaKey;
 use http_utils::urls::HttpsUri;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataDocuments;
+use utils::generator::mock::MockTimeGenerator;
 
 use crate::holder::Mdoc;
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::device_retrieval::DeviceRequest;
 use crate::iso::device_retrieval::DocRequest;
 use crate::iso::device_retrieval::ItemsRequest;
 use crate::iso::disclosure::IssuerSigned;
 use crate::iso::mdocs::DataElementValue;
+use crate::iso::mdocs::Entry;
 use crate::utils::cose::CoseError;
+use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
 use crate::verifier::DisclosedAttributes;
 use crate::verifier::DocumentDisclosedAttributes;
 use crate::verifier::ItemsRequests;
+use crate::DigestAlgorithm;
+use crate::IssuerNameSpaces;
 use crate::MobileSecurityObject;
+use crate::MobileSecurityObjectVersion;
+use crate::ValidityInfo;
 
 /// Wrapper around `T` that implements `Debug` by using `T`'s implementation,
 /// but with byte sequences (which can take a lot of vertical space) replaced with
@@ -161,6 +165,14 @@ impl DeviceRequest {
     }
 }
 
+pub fn generate_issuer_mock(ca: &Ca) -> Result<KeyPair, CertificateError> {
+    ca.generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+}
+
+pub fn generate_reader_mock(ca: &Ca) -> Result<KeyPair, CertificateError> {
+    ca.generate_key_pair(RP_CERT_CN, CertificateUsage::ReaderAuth, Default::default())
+}
+
 #[derive(Debug, Clone)]
 pub struct TestDocument {
     pub doc_type: String,
@@ -195,72 +207,80 @@ impl TestDocument {
         normalized_metadata
     }
 
-    async fn prepare_credential_preview<KF>(
-        self,
-        ca: &Ca,
-        key_factory: &KF,
-    ) -> (PreviewableCredentialPayload, Integrity, KeyPair, KF::Key)
+    /// Signs this TestDocument into an [`Mdoc`] using `ca` and `key`.
+    pub async fn sign<KEY>(self, ca: &Ca, device_key: &KEY) -> Mdoc
     where
-        KF: KeyFactory,
+        KEY: CredentialEcdsaKey,
     {
-        let (normalized_metadata, _) = self.metadata.into_normalized(&self.doc_type).unwrap();
-        let attributes = Attributes::from_mdoc_attributes(&normalized_metadata, self.namespaces).unwrap();
-
         let now = Utc::now();
-        let payload_preview = PreviewableCredentialPayload {
-            attestation_type: self.doc_type,
-            issuer: self.issuer_uri,
-            expires: Some((now + Duration::days(365)).into()),
-            not_before: Some(now.into()),
-            attestation_qualification: Default::default(),
-            attributes,
-        };
+        let issuer_signed = self.issuer_signed(ca, device_key, now).await;
 
-        let issuance_key = generate_issuer_mock(ca, IssuerRegistration::new_mock().into()).unwrap();
-        let mdoc_key = key_factory.generate_new().await.unwrap();
-
-        (payload_preview, self.metadata_integrity, issuance_key, mdoc_key)
-    }
-
-    /// Converts `self` into a [`PreviewableCredentialPayload`] and signs it into an [`Mdoc`] using `ca` and
-    /// `key_factory`.
-    pub async fn sign<KF>(self, ca: &Ca, key_factory: &KF) -> Mdoc
-    where
-        KF: KeyFactory,
-    {
-        let (credential_preview, metadata_integrity, issuance_key, mdoc_key) =
-            self.prepare_credential_preview(ca, key_factory).await;
-
-        Mdoc::sign::<KF::Key>(
-            credential_preview,
-            metadata_integrity,
-            mdoc_key.identifier().to_string(),
-            &mdoc_key.verifying_key().await.unwrap(),
-            &issuance_key,
+        let mdoc = Mdoc::new::<KEY>(
+            device_key.identifier().to_string(),
+            issuer_signed,
+            &MockTimeGenerator::new(now),
+            &[ca.to_trust_anchor()],
         )
-        .await
-        .unwrap()
-    }
-
-    /// Converts `self` into an [`PreviewableCredentialPayload`] and signs it into an [`IssuerSigned`] using `ca` and
-    /// `key_factory`.
-    pub async fn issuer_signed<KF>(self, ca: &Ca, key_factory: &KF) -> (IssuerSigned, KF::Key)
-    where
-        KF: KeyFactory,
-    {
-        let (credential_preview, metadata_integrity, issuance_key, mdoc_key) =
-            self.prepare_credential_preview(ca, key_factory).await;
-
-        let (issuer_signed, _) = IssuerSigned::sign(
-            credential_preview,
-            metadata_integrity,
-            &mdoc_key.verifying_key().await.unwrap(),
-            &issuance_key,
-        )
-        .await
         .unwrap();
 
-        (issuer_signed, mdoc_key)
+        mdoc
+    }
+
+    /// Generates an `IssuerSigned` for this `TestDocument`.
+    pub async fn issuer_signed<KEY>(self, ca: &Ca, device_key: &KEY, now: chrono::DateTime<Utc>) -> IssuerSigned
+    where
+        KEY: CredentialEcdsaKey,
+    {
+        let name_spaces = IssuerNameSpaces::try_from(self.namespaces.clone()).unwrap();
+
+        let mso = self.into_mobile_security_object(now, &name_spaces, device_key).await;
+
+        let issuer_key_pair = ca
+            .generate_key_pair(ISSUANCE_CERT_CN, CertificateUsage::Mdl, Default::default())
+            .unwrap();
+
+        let header = IssuerSigned::create_unprotected_header(issuer_key_pair.certificate().to_vec());
+
+        let mso_tagged = TaggedBytes(mso);
+        let issuer_auth: MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> =
+            MdocCose::sign(&mso_tagged, header, &issuer_key_pair, true)
+                .await
+                .unwrap();
+
+        IssuerSigned {
+            name_spaces: name_spaces.into(),
+            issuer_auth,
+        }
+    }
+
+    async fn into_mobile_security_object<KEY>(
+        self,
+        now: chrono::DateTime<Utc>,
+        name_spaces: &IssuerNameSpaces,
+        device_key: &KEY,
+    ) -> MobileSecurityObject
+    where
+        KEY: CredentialEcdsaKey,
+    {
+        let device_public_key = &device_key.verifying_key().await.unwrap();
+        let cose_pubkey: CoseKey = device_public_key.try_into().unwrap();
+
+        MobileSecurityObject {
+            version: MobileSecurityObjectVersion::V1_0,
+            digest_algorithm: DigestAlgorithm::SHA256,
+            doc_type: self.doc_type,
+            value_digests: (name_spaces).try_into().unwrap(),
+            device_key_info: cose_pubkey.into(),
+            validity_info: ValidityInfo {
+                signed: now.into(),
+                valid_from: now.into(),
+                valid_until: (now + Duration::days(365)).into(),
+                expected_update: None,
+            },
+            issuer_uri: Some(self.issuer_uri),
+            attestation_qualification: Some(Default::default()),
+            type_metadata_integrity: Some(self.metadata_integrity),
+        }
     }
 }
 
@@ -393,11 +413,6 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
-    use p256::ecdsa::SigningKey;
-    use rand_core::OsRng;
-
-    use attestation_data::attributes::AttributeValue;
-    use attestation_data::credential_payload::CredentialPayload;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
 
     use super::*;
@@ -410,15 +425,30 @@ pub mod data {
         vec![].into()
     }
 
-    pub fn pid_example_payload() -> CredentialPayload {
-        CredentialPayload::example_with_attributes(
-            vec![
-                ("bsn", AttributeValue::Text("999999999".to_string())),
-                ("given_name", AttributeValue::Text("Willeke Liselotte".to_string())),
-                ("family_name", AttributeValue::Text("De Bruijn".to_string())),
-            ],
-            SigningKey::random(&mut OsRng).verifying_key(),
-        )
+    pub fn pid_example() -> TestDocuments {
+        vec![TestDocument::new(
+            PID.to_owned(),
+            format!("https://{ISSUANCE_CERT_CN}").parse().unwrap(),
+            IndexMap::from_iter(vec![(
+                PID.to_string(),
+                vec![
+                    Entry {
+                        name: "bsn".to_string(),
+                        value: Value::Text("999999999".to_string()),
+                    },
+                    Entry {
+                        name: "given_name".to_string(),
+                        value: Value::Text("Willeke Liselotte".to_string()),
+                    },
+                    Entry {
+                        name: "family_name".to_string(),
+                        value: Value::Text("De Bruijn".to_string()),
+                    },
+                ],
+            )]),
+            TypeMetadataDocuments::nl_pid_example(),
+        )]
+        .into()
     }
 
     pub fn pid_given_name() -> TestDocuments {

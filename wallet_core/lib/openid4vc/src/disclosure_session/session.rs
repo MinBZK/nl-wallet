@@ -7,7 +7,6 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::identifiers::AttributeIdentifier;
 use attestation_data::x509::CertificateType;
 use crypto::factory::KeyFactory;
 use crypto::keys::CredentialEcdsaKey;
@@ -20,6 +19,7 @@ use mdoc::holder::DisclosureRequestMatch;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::ProposedAttributes;
 use mdoc::holder::ProposedDocument;
+use mdoc::identifiers::AttributeIdentifier;
 use poa::factory::PoaFactory;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 
@@ -454,8 +454,6 @@ mod tests {
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
     use attestation_data::auth::reader_auth::ValidationError;
-    use attestation_data::identifiers::AttributeIdentifier;
-    use attestation_data::identifiers::AttributeIdentifierHolder;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use attestation_data::x509::CertificateType;
     use crypto::factory::KeyFactory;
@@ -476,8 +474,9 @@ mod tests {
     use mdoc::holder::mock::MockMdocDataSource;
     use mdoc::holder::HolderError;
     use mdoc::holder::ProposedDocument;
+    use mdoc::identifiers::AttributeIdentifier;
+    use mdoc::identifiers::AttributeIdentifierHolder;
     use mdoc::utils::cose::ClonePayload;
-    use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::CborSeq;
@@ -634,18 +633,11 @@ mod tests {
             .proposed_documents
             .iter()
             .map(|proposed_document| {
-                // Can't use MdocCose::dangerous_parse_unverified() here as it is private
-                let TaggedBytes(mso): TaggedBytes<MobileSecurityObject> = cbor_deserialize(
-                    proposed_document
-                        .issuer_signed
-                        .issuer_auth
-                        .0
-                        .payload
-                        .as_ref()
-                        .unwrap()
-                        .as_slice(),
-                )
-                .unwrap();
+                let TaggedBytes(mso): TaggedBytes<MobileSecurityObject> = proposed_document
+                    .issuer_signed
+                    .issuer_auth
+                    .dangerous_parse_unverified()
+                    .unwrap();
 
                 (&mso.device_key_info.device_key).try_into().unwrap()
             })

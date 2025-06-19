@@ -199,16 +199,16 @@ pub fn mdoc_from_unsigned(
     let mdoc_public_key = mdoc_remote_key.verifying_key();
     let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(metadata);
 
-    Mdoc::sign::<MockRemoteEcdsaKey>(
-        payload,
-        metadata_integrity,
-        private_key_id,
-        mdoc_public_key,
-        &issuer_key.issuance_key,
-    )
-    .now_or_never()
-    .unwrap()
-    .unwrap()
+    payload
+        .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
+            metadata_integrity,
+            private_key_id,
+            mdoc_public_key,
+            &issuer_key.issuance_key,
+        )
+        .now_or_never()
+        .unwrap()
+        .unwrap()
 }
 
 pub fn generate_key_holder(vendor: WalletDeviceVendor) -> MockHardwareAttestedKeyHolder {

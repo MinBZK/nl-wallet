@@ -24,6 +24,8 @@ use tokio::time;
 use url::Url;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
+use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::credential_payload::mock::pid_example_payload;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -37,9 +39,6 @@ use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
-use mdoc::holder::Mdoc;
-use mdoc::test::data::pid_example_payload;
-use mdoc::utils::reader_auth::mock::reader_registration_mock_from_requests;
 use mdoc::verifier::DisclosedAttributes;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureProposal;
@@ -167,7 +166,7 @@ async fn wallet_server_settings_and_listener(
     let rp_ca = Ca::generate_reader_mock_ca().unwrap();
     let reader_trust_anchors = vec![rp_ca.as_borrowing_trust_anchor().clone()];
     let rp_trust_anchor = rp_ca.to_trust_anchor().to_owned();
-    let reader_registration = Some(reader_registration_mock_from_requests(
+    let reader_registration = Some(ReaderRegistration::mock_from_requests(
         request.items_requests.as_ref().unwrap(),
     ));
 
@@ -955,15 +954,15 @@ async fn prepare_example_holder_mocks(issuer_ca: &Ca) -> (MockMdocDataSource, Mo
     let (_, metadata_integrity, _) = TypeMetadataDocuments::from_single_example(type_metadata);
     let normalized_metadata = NormalizedTypeMetadata::from_single_example(unchecked_metadata);
 
-    let mdoc = Mdoc::sign::<MockRemoteEcdsaKey>(
-        payload_preview,
-        metadata_integrity,
-        mdoc_private_key_id,
-        mdoc_public_key,
-        &issuer_key_pair,
-    )
-    .await
-    .unwrap();
+    let mdoc = payload_preview
+        .into_signed_mdoc_unverified::<MockRemoteEcdsaKey>(
+            metadata_integrity,
+            mdoc_private_key_id,
+            mdoc_public_key,
+            &issuer_key_pair,
+        )
+        .await
+        .unwrap();
 
     // Place the Mdoc in a MockMdocDataSource and the private key in a SoftwareKeyFactory and return them.
     let mdoc_data_source = MockMdocDataSource::new(vec![(mdoc, normalized_metadata)]);

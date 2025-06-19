@@ -1,8 +1,8 @@
 include: ./../../analysis_options.yaml
 
-analyzer:
-  errors:
-    prefer_const_constructors: ignore
-
 linter:
   rules:
+    prefer_const_constructors: true
+
+analyzer:
+  exclude:

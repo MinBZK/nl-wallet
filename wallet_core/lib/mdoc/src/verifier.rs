@@ -14,13 +14,13 @@ use serde_with::IfIsHumanReadable;
 use tracing::debug;
 use tracing::warn;
 
-use attestation_data::identifiers::AttributeIdentifier;
-use attestation_data::identifiers::AttributeIdentifierHolder;
 use crypto::x509::CertificateUsage;
 use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
 
+use crate::identifiers::AttributeIdentifier;
+use crate::identifiers::AttributeIdentifierHolder;
 use crate::iso::*;
 use crate::utils::cose::ClonePayload;
 use crate::utils::crypto::cbor_digest;
@@ -353,7 +353,6 @@ mod tests {
     use chrono::Utc;
     use rstest::rstest;
 
-    use attestation_data::identifiers::AttributeIdentifierHolder;
     use crypto::examples::Examples;
     use crypto::server_keys::generate::Ca;
 
@@ -364,6 +363,7 @@ mod tests {
     use crate::examples::EXAMPLE_ATTR_VALUE;
     use crate::examples::EXAMPLE_DOC_TYPE;
     use crate::examples::EXAMPLE_NAMESPACE;
+    use crate::identifiers::AttributeIdentifierHolder;
     use crate::test;
     use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;

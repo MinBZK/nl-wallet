@@ -8,24 +8,11 @@ use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
 
+use mdoc::iso::mdocs::Entry;
+use mdoc::iso::mdocs::NameSpace;
 use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
-
-use crate::identifiers::DataElementIdentifier;
-use crate::identifiers::NameSpace;
-
-pub type DataElementValue = ciborium::Value;
-
-/// An attribute name and value.
-///
-/// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
-/// `digestID`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Entry {
-    pub name: DataElementIdentifier,
-    pub value: DataElementValue,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -301,15 +288,14 @@ pub mod test {
     use serde_json::json;
     use serde_valid::json::ToJsonString;
 
+    use mdoc::Entry;
+    use mdoc::NameSpace;
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 
     use crate::attributes::Attribute;
     use crate::attributes::AttributeError;
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
-    use crate::identifiers::NameSpace;
-
-    use super::Entry;
 
     pub fn complex_attributes() -> IndexMap<String, Attribute> {
         IndexMap::from([

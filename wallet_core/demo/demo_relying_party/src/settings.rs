@@ -22,6 +22,7 @@ pub struct Settings {
     pub help_base_url: BaseUrl,
     pub demo_index_url: BaseUrl,
     pub structured_logging: bool,
+    pub log_requests: bool,
     pub allow_origins: Option<CorsOrigin>,
     pub connect_src: Option<ConnectSource>,
     pub usecases: IndexMap<String, Usecase>,
@@ -55,6 +56,7 @@ impl Settings {
             .set_default("webserver.port", 8001)?
             .set_default("public_url", "http://localhost:8001/")?
             .set_default("structured_logging", false)?
+            .set_default("log_requests", false)?
             .add_source(File::from(prefix_local_path("demo_relying_party.toml".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("demo_relying_party")

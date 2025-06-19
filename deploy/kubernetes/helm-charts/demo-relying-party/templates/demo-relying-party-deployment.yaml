@@ -55,6 +55,8 @@ spec:
               value: {{ .Values.demoIndexUrl }}
             - name: DEMO_RELYING_PARTY__STRUCTURED_LOGGING
               value: "true"
+            - name: DEMO_RELYING_PARTY__LOG_REQUESTS
+              value: {{ .Values.logRequests | quote }}
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

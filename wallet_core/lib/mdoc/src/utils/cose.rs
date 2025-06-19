@@ -139,7 +139,7 @@ where
     /// Parse and return the payload without verifying the Cose signature.
     /// DANGEROUS: this ignores the Cose signature/mac entirely, so the authenticity of the Cose and
     /// its payload is in no way guaranteed. Use [`MdocCose::verify_and_parse()`] instead if possible.
-    pub(crate) fn dangerous_parse_unverified(&self) -> Result<T, CoseError> {
+    pub fn dangerous_parse_unverified(&self) -> Result<T, CoseError> {
         let payload =
             cbor_deserialize(self.0.payload().ok_or_else(|| CoseError::MissingPayload)?).map_err(CoseError::Cbor)?;
         Ok(payload)
@@ -490,7 +490,6 @@ mod tests {
     use serde::Deserialize;
     use serde::Serialize;
 
-    use attestation_data::auth::issuer_auth::IssuerRegistration;
     use crypto::server_keys::generate::Ca;
     use crypto::x509::CertificateUsage;
     use utils::generator::TimeGenerator;
@@ -587,7 +586,7 @@ mod tests {
     async fn cose_with_certificate() {
         let ca = Ca::generate("ca.example.com", Default::default()).unwrap();
         let issuer_key_pair = ca
-            .generate_key_pair("cert.example.com", IssuerRegistration::new_mock(), Default::default())
+            .generate_key_pair("cert.example.com", CertificateUsage::Mdl, Default::default())
             .unwrap();
 
         let payload = ToyMessage::default();

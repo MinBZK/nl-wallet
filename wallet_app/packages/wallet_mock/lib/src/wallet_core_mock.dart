@@ -167,9 +167,9 @@ class WalletCoreMock implements WalletCoreApi {
   Stream<FlutterConfiguration> crateApiFullSetConfigurationStream({hint}) {
     return Stream.value(
       FlutterConfiguration(
-        inactiveWarningTimeout: Duration(minutes: 1).inSeconds,
-        inactiveLockTimeout: Duration(minutes: 3).inSeconds,
-        backgroundLockTimeout: Duration(seconds: 20).inSeconds,
+        inactiveWarningTimeout: const Duration(minutes: 1).inSeconds,
+        inactiveLockTimeout: const Duration(minutes: 3).inSeconds,
+        backgroundLockTimeout: const Duration(seconds: 20).inSeconds,
         staticAssetsBaseUrl: 'https://example.com/',
         version: BigInt.one,
       ),
@@ -178,7 +178,7 @@ class WalletCoreMock implements WalletCoreApi {
 
   @override
   Stream<FlutterVersionState> crateApiFullSetVersionStateStream({hint}) {
-    return Stream.value(FlutterVersionState.ok());
+    return Stream.value(const FlutterVersionState.ok());
   }
 
   @override

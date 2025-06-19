@@ -536,7 +536,7 @@ class OtherStylesTab extends StatelessWidget {
         const PinFieldDemo(),
         const ThemeSectionSubHeader(title: 'BulletList'),
         BulletList(
-          items: ['Item 1', 'Item 2', 'Item 3'],
+          items: const ['Item 1', 'Item 2', 'Item 3'],
           icon: Icon(
             Icons.check,
             color: context.colorScheme.primary,

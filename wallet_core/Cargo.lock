@@ -590,8 +590,10 @@ name = "attestation_data"
 version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
+ "attestation_types",
  "chrono",
  "ciborium",
+ "coset",
  "crypto",
  "derive_more",
  "error_category",
@@ -601,6 +603,7 @@ dependencies = [
  "itertools 0.14.0",
  "jsonwebtoken",
  "jwt",
+ "mdoc",
  "p256",
  "rand_core",
  "rcgen",
@@ -619,6 +622,14 @@ dependencies = [
  "url",
  "utils",
  "x509-parser 0.17.0",
+]
+
+[[package]]
+name = "attestation_types"
+version = "0.3.0-dev"
+dependencies = [
+ "serde_with",
+ "strum 0.26.3",
 ]
 
 [[package]]
@@ -1699,6 +1710,7 @@ dependencies = [
  "http_utils",
  "itertools 0.14.0",
  "serde",
+ "server_utils",
  "strum 0.26.3",
  "tokio",
  "tower 0.5.2",
@@ -1729,6 +1741,7 @@ dependencies = [
  "serde",
  "serde_tuple",
  "serde_urlencoded",
+ "server_utils",
  "strum 0.26.3",
  "tokio",
  "tower 0.5.2",
@@ -1764,6 +1777,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_urlencoded",
+ "server_utils",
  "strum 0.26.3",
  "tokio",
  "tower 0.5.2",
@@ -3385,6 +3399,7 @@ version = "0.3.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_data",
+ "attestation_types",
  "chrono",
  "crypto",
  "derive_more",
@@ -3750,7 +3765,7 @@ version = "0.3.0-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
- "attestation_data",
+ "attestation_types",
  "base64 0.22.1",
  "chrono",
  "ciborium",
@@ -4121,6 +4136,7 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "attestation_data",
+ "attestation_types",
  "axum",
  "base64 0.22.1",
  "biscuit",

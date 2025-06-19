@@ -11,19 +11,19 @@ workspace = true
 # Include examples from the ISO specification
 examples = [
     "test",
-    "attestation_data/examples",
 ] # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
 # Include miscellaneous test utilities
 test = [
     "dep:assert_matches",
-    "attestation_data/generate",
     "dep:rstest",
     "dep:regex",
     "mock",
+    "crypto/generate",
     "sd_jwt_vc_metadata/example_constructors",
+    "utils/mock_time",
 ]
 # Include mock implementations and constructors for testing
-mock = ["attestation_data/mock", "crypto/mock"]
+mock = ["crypto/mock"]
 # Include example based constructors to several types for testing
 mock_example_constructors = [
     "test",                   # TODO PVW-4130: either cleanly separarate test and mock, or merge the two
@@ -39,7 +39,7 @@ base64.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
 ciborium.workspace = true
 coset = { workspace = true, features = ["std"] }
-derive_more = { workspace = true, features = ["debug", "as_ref", "constructor"] }
+derive_more = { workspace = true, features = ["debug", "display", "as_ref", "constructor"] }
 futures = { workspace = true, features = ["std", "async-await"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
@@ -67,7 +67,7 @@ hex-literal = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 rstest = { workspace = true, optional = true }
 
-attestation_data.path = "../attestation_data"
+attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
@@ -84,11 +84,6 @@ rstest.workspace = true
 serde_json.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
-attestation_data = { path = "../attestation_data", features = [
-    "examples",
-    "example_credential_payloads",
-    "generate",
-    "mock",
-] }
 crypto = { path = "../crypto", features = ["examples", "generate", "mock", "mock_secure_keys", "mock_remote_key"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", features = ["example_constructors"] }
+utils = { path = "../utils", features = ["mock_time"] }

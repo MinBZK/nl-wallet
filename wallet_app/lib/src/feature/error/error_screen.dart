@@ -239,7 +239,7 @@ class ErrorScreen extends StatelessWidget {
         },
       ),
       secondaryButton: ErrorButtonBuilder.buildShowDetailsButton(context),
-      actions: [],
+      actions: const [],
     );
   }
 
