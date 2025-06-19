@@ -121,7 +121,7 @@ impl Attributes {
                     .collect(),
             ));
         }
-        // No internal attributes can be in the array map as they are forbidden as claim in the type metadata
+        // No internal attributes can be in the attributes as they are forbidden as claim in the type metadata
         Ok(())
     }
 
