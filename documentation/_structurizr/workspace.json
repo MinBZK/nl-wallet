@@ -1,0 +1,2054 @@
+{
+  "configuration" : { },
+  "description" : "NL-Wallet",
+  "documentation" : { },
+  "id" : 1,
+  "lastModifiedDate" : "2025-06-19T12:20:22Z",
+  "model" : {
+    "people" : [ {
+      "id" : "1",
+      "location" : "Unspecified",
+      "name" : "User",
+      "properties" : {
+        "structurizr.dsl.identifier" : "u"
+      },
+      "relationships" : [ {
+        "description" : "Uses",
+        "destinationId" : "5",
+        "id" : "44",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Uses",
+        "destinationId" : "6",
+        "id" : "45",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Has interactions",
+        "destinationId" : "7",
+        "id" : "46",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "id" : "2",
+      "location" : "Unspecified",
+      "name" : "Wallet Administrator",
+      "properties" : {
+        "structurizr.dsl.identifier" : "ua"
+      },
+      "relationships" : [ {
+        "description" : "Maintain updatepolicy",
+        "destinationId" : "17",
+        "id" : "47",
+        "sourceId" : "2",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Maintain updatepolicy",
+        "destinationId" : "16",
+        "id" : "48",
+        "linkedRelationshipId" : "47",
+        "sourceId" : "2"
+      }, {
+        "description" : "Maintain updatepolicy",
+        "destinationId" : "5",
+        "id" : "49",
+        "linkedRelationshipId" : "47",
+        "sourceId" : "2"
+      }, {
+        "description" : "Maintain runtime config",
+        "destinationId" : "19",
+        "id" : "50",
+        "sourceId" : "2",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Revoke wallet",
+        "destinationId" : "14",
+        "id" : "86",
+        "sourceId" : "2",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Revoke wallet",
+        "destinationId" : "12",
+        "id" : "87",
+        "linkedRelationshipId" : "86",
+        "sourceId" : "2"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "id" : "3",
+      "location" : "Unspecified",
+      "name" : "PID issuer admin",
+      "properties" : {
+        "structurizr.dsl.identifier" : "uapid"
+      },
+      "relationships" : [ {
+        "description" : "Update PID attestation status",
+        "destinationId" : "36",
+        "id" : "98",
+        "sourceId" : "3",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Update PID attestation status",
+        "destinationId" : "35",
+        "id" : "99",
+        "linkedRelationshipId" : "98",
+        "sourceId" : "3"
+      }, {
+        "description" : "Update PID attestation status",
+        "destinationId" : "34",
+        "id" : "100",
+        "linkedRelationshipId" : "98",
+        "sourceId" : "3"
+      } ],
+      "tags" : "Element,Person"
+    }, {
+      "id" : "4",
+      "location" : "Unspecified",
+      "name" : "Issuer admin",
+      "properties" : {
+        "structurizr.dsl.identifier" : "uapb"
+      },
+      "relationships" : [ {
+        "description" : "Update attestation status",
+        "destinationId" : "29",
+        "id" : "130",
+        "sourceId" : "4",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Update attestation status",
+        "destinationId" : "28",
+        "id" : "131",
+        "linkedRelationshipId" : "130",
+        "sourceId" : "4"
+      }, {
+        "description" : "Update attestation status",
+        "destinationId" : "27",
+        "id" : "132",
+        "linkedRelationshipId" : "130",
+        "sourceId" : "4"
+      } ],
+      "tags" : "Element,Person"
+    } ],
+    "softwareSystems" : [ {
+      "containers" : [ {
+        "components" : [ {
+          "description" : "flutter (dart)",
+          "documentation" : { },
+          "id" : "7",
+          "name" : "App Frontend",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletapp.appgui"
+          },
+          "relationships" : [ {
+            "description" : "Exchange information from GUI to frb",
+            "destinationId" : "8",
+            "id" : "56",
+            "sourceId" : "7",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component"
+        }, {
+          "description" : "dart/rust binding",
+          "documentation" : { },
+          "id" : "8",
+          "name" : "Flutter-Rust-Bridge",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletapp.appfrb"
+          },
+          "relationships" : [ {
+            "description" : "Exchange information from frb to GUI",
+            "destinationId" : "7",
+            "id" : "55",
+            "sourceId" : "8",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Exchange information from core with frb",
+            "destinationId" : "9",
+            "id" : "57",
+            "sourceId" : "8",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component"
+        }, {
+          "documentation" : { },
+          "id" : "9",
+          "name" : "App core component",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletapp.appcore"
+          },
+          "relationships" : [ {
+            "description" : "Exchange information from frb to core",
+            "destinationId" : "8",
+            "id" : "58",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Use platform routines (iOS/Android)",
+            "destinationId" : "10",
+            "id" : "59",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Get update policies",
+            "destinationId" : "16",
+            "id" : "60",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "WP operations (account, HSM instructions)",
+            "destinationId" : "14",
+            "id" : "62",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "WP operations (account, HSM instructions)",
+            "destinationId" : "12",
+            "id" : "63",
+            "linkedRelationshipId" : "62",
+            "sourceId" : "9"
+          }, {
+            "description" : "Get runtime configuration",
+            "destinationId" : "19",
+            "id" : "66",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "HSM-assisted operation",
+            "destinationId" : "13",
+            "id" : "68",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Store/retrieve attestations, logs, configuration",
+            "destinationId" : "11",
+            "id" : "70",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Authentication for PID-issuance",
+            "destinationId" : "41",
+            "id" : "71",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Authentication for PID-issuance",
+            "destinationId" : "34",
+            "id" : "72",
+            "linkedRelationshipId" : "71",
+            "sourceId" : "9"
+          }, {
+            "description" : "interactions with PID issuer",
+            "destinationId" : "34",
+            "id" : "90",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Get PID status list",
+            "destinationId" : "39",
+            "id" : "91",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Retrieve PID / Disclose WUA (formerly WTE) + PoA",
+            "destinationId" : "35",
+            "id" : "111",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "interactions with EAA issuer",
+            "destinationId" : "27",
+            "id" : "117",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Get attestation status list",
+            "destinationId" : "33",
+            "id" : "118",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component",
+          "technology" : "rust"
+        }, {
+          "description" : "native functions",
+          "documentation" : { },
+          "id" : "10",
+          "name" : "Platform support",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletapp.appplatform"
+          },
+          "tags" : "Element,Component",
+          "technology" : "rust"
+        }, {
+          "documentation" : { },
+          "id" : "11",
+          "name" : "App database",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletapp.db"
+          },
+          "tags" : "Element,Component,Database",
+          "technology" : "sqlite"
+        } ],
+        "documentation" : { },
+        "id" : "6",
+        "name" : "Wallet app",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ws.walletapp"
+        },
+        "relationships" : [ {
+          "description" : "Get update policies",
+          "destinationId" : "16",
+          "id" : "61",
+          "linkedRelationshipId" : "60",
+          "sourceId" : "6"
+        }, {
+          "description" : "WP operations (account, HSM instructions)",
+          "destinationId" : "14",
+          "id" : "64",
+          "linkedRelationshipId" : "62",
+          "sourceId" : "6"
+        }, {
+          "description" : "WP operations (account, HSM instructions)",
+          "destinationId" : "12",
+          "id" : "65",
+          "linkedRelationshipId" : "62",
+          "sourceId" : "6"
+        }, {
+          "description" : "Get runtime configuration",
+          "destinationId" : "19",
+          "id" : "67",
+          "linkedRelationshipId" : "66",
+          "sourceId" : "6"
+        }, {
+          "description" : "HSM-assisted operation",
+          "destinationId" : "13",
+          "id" : "69",
+          "linkedRelationshipId" : "68",
+          "sourceId" : "6"
+        }, {
+          "description" : "Authentication for PID-issuance",
+          "destinationId" : "41",
+          "id" : "73",
+          "linkedRelationshipId" : "71",
+          "sourceId" : "6"
+        }, {
+          "description" : "Authentication for PID-issuance",
+          "destinationId" : "34",
+          "id" : "74",
+          "linkedRelationshipId" : "71",
+          "sourceId" : "6"
+        }, {
+          "description" : "Interactions with issuer, (disclose based) issuance",
+          "destinationId" : "28",
+          "id" : "79",
+          "sourceId" : "6",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Interactions with issuer, (disclose based) issuance",
+          "destinationId" : "27",
+          "id" : "80",
+          "linkedRelationshipId" : "79",
+          "sourceId" : "6"
+        }, {
+          "description" : "Disclose attributes to verifier",
+          "destinationId" : "23",
+          "id" : "83",
+          "sourceId" : "6",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Get PID status list",
+          "destinationId" : "39",
+          "id" : "92",
+          "linkedRelationshipId" : "91",
+          "sourceId" : "6"
+        }, {
+          "description" : "Retrieve PID / Disclose WUA (formerly WTE) + PoA",
+          "destinationId" : "35",
+          "id" : "112",
+          "linkedRelationshipId" : "111",
+          "sourceId" : "6"
+        }, {
+          "description" : "Get attestation status list",
+          "destinationId" : "33",
+          "id" : "119",
+          "linkedRelationshipId" : "118",
+          "sourceId" : "6"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Android/iOS"
+      }, {
+        "components" : [ {
+          "documentation" : { },
+          "id" : "13",
+          "name" : "Assisted wallet Instructions endpoint (/instructions)",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletprovider.hsminstructionclient"
+          },
+          "relationships" : [ {
+            "description" : "Process HSM instruction",
+            "destinationId" : "21",
+            "id" : "85",
+            "sourceId" : "13",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component"
+        }, {
+          "documentation" : { },
+          "id" : "14",
+          "name" : "Wallet Accounts endpoint (enroll/create)",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletprovider.walletaccountmanager"
+          },
+          "relationships" : [ {
+            "description" : "Update WUA status",
+            "destinationId" : "15",
+            "id" : "84",
+            "sourceId" : "14",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component"
+        }, {
+          "documentation" : { },
+          "id" : "15",
+          "name" : "Wallet Status endpoint (/status)",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.walletprovider.walletstatusmanager"
+          },
+          "tags" : "Element,Component"
+        } ],
+        "description" : "Wallet backend",
+        "documentation" : { },
+        "group" : "NL-Wallet backend containers",
+        "id" : "12",
+        "name" : "walletProvider",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ws.walletprovider"
+        },
+        "relationships" : [ {
+          "description" : "Reads from and writes to",
+          "destinationId" : "20",
+          "id" : "54",
+          "sourceId" : "12",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Call HSM for assisted operation",
+          "destinationId" : "21",
+          "id" : "77",
+          "sourceId" : "12",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Publish WUA statuslist",
+          "destinationId" : "18",
+          "id" : "78",
+          "sourceId" : "12",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "axum (rust)"
+      }, {
+        "components" : [ {
+          "documentation" : { },
+          "id" : "17",
+          "name" : "Policy configuration",
+          "properties" : {
+            "structurizr.dsl.identifier" : "ws.updateserver.updatepolicy"
+          },
+          "tags" : "Element,Component,File",
+          "technology" : "[update policy] section in .toml file"
+        } ],
+        "description" : "Serve app update policy",
+        "documentation" : { },
+        "group" : "NL-Wallet backend containers",
+        "id" : "16",
+        "name" : "UpdateServer",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ws.updateserver"
+        },
+        "tags" : "Element,Container",
+        "technology" : "axum (rust)"
+      }, {
+        "documentation" : { },
+        "group" : "NL-Wallet backend containers",
+        "id" : "18",
+        "name" : "WUA status list",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ws.statuslist"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Static content (TSL)"
+      }, {
+        "description" : "Serve app config file",
+        "documentation" : { },
+        "group" : "NL-Wallet backend containers",
+        "id" : "19",
+        "name" : "ConfigurationServer",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ws.configurationserver"
+        },
+        "tags" : "Element,Container",
+        "technology" : "axum (rust)"
+      }, {
+        "documentation" : { },
+        "group" : "NL-Wallet backend containers",
+        "id" : "20",
+        "name" : "WP database (accounts, WUA status)",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ws.db"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "postgress"
+      }, {
+        "description" : "dedicated cryptographic hardware",
+        "documentation" : { },
+        "id" : "21",
+        "name" : "HSM device",
+        "properties" : {
+          "structurizr.dsl.identifier" : "ws.wallethsm"
+        },
+        "tags" : "Element,Container"
+      } ],
+      "documentation" : { },
+      "id" : "5",
+      "location" : "Unspecified",
+      "name" : "NL-Wallet Solution",
+      "properties" : {
+        "structurizr.dsl.identifier" : "ws"
+      },
+      "relationships" : [ {
+        "description" : "Present data",
+        "destinationId" : "24",
+        "id" : "51",
+        "sourceId" : "5",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Present data",
+        "destinationId" : "23",
+        "id" : "52",
+        "linkedRelationshipId" : "51",
+        "sourceId" : "5"
+      }, {
+        "description" : "Authentication for PID-issuance",
+        "destinationId" : "41",
+        "id" : "75",
+        "linkedRelationshipId" : "71",
+        "sourceId" : "5"
+      }, {
+        "description" : "Authentication for PID-issuance",
+        "destinationId" : "34",
+        "id" : "76",
+        "linkedRelationshipId" : "71",
+        "sourceId" : "5"
+      }, {
+        "description" : "Interactions with issuer, (disclose based) issuance",
+        "destinationId" : "28",
+        "id" : "81",
+        "linkedRelationshipId" : "79",
+        "sourceId" : "5"
+      }, {
+        "description" : "Interactions with issuer, (disclose based) issuance",
+        "destinationId" : "27",
+        "id" : "82",
+        "linkedRelationshipId" : "79",
+        "sourceId" : "5"
+      }, {
+        "description" : "Get PID status list",
+        "destinationId" : "39",
+        "id" : "93",
+        "linkedRelationshipId" : "91",
+        "sourceId" : "5"
+      }, {
+        "description" : "Retrieve PID / Disclose WUA (formerly WTE) + PoA",
+        "destinationId" : "35",
+        "id" : "113",
+        "linkedRelationshipId" : "111",
+        "sourceId" : "5"
+      }, {
+        "description" : "Get attestation status list",
+        "destinationId" : "33",
+        "id" : "120",
+        "linkedRelationshipId" : "118",
+        "sourceId" : "5"
+      } ],
+      "tags" : "Element,Software System"
+    }, {
+      "documentation" : { },
+      "id" : "22",
+      "location" : "Unspecified",
+      "name" : "BRP-V",
+      "properties" : {
+        "structurizr.dsl.identifier" : "hc"
+      },
+      "tags" : "Element,Software System"
+    }, {
+      "containers" : [ {
+        "components" : [ {
+          "documentation" : { },
+          "id" : "25",
+          "name" : "Disclosure endpoint",
+          "properties" : {
+            "structurizr.dsl.identifier" : "verifier.ov.verifying"
+          },
+          "tags" : "Element,Component"
+        } ],
+        "documentation" : { },
+        "id" : "24",
+        "name" : "OV-component",
+        "properties" : {
+          "structurizr.dsl.identifier" : "verifier.ov"
+        },
+        "relationships" : [ {
+          "description" : "Get PID status list",
+          "destinationId" : "39",
+          "id" : "94",
+          "sourceId" : "24",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Get PID status list",
+          "destinationId" : "34",
+          "id" : "95",
+          "linkedRelationshipId" : "94",
+          "sourceId" : "24"
+        }, {
+          "description" : "Get attestation status list",
+          "destinationId" : "33",
+          "id" : "121",
+          "sourceId" : "24",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Get attestation status list",
+          "destinationId" : "27",
+          "id" : "122",
+          "linkedRelationshipId" : "121",
+          "sourceId" : "24"
+        } ],
+        "tags" : "Element,Container"
+      }, {
+        "documentation" : { },
+        "id" : "26",
+        "name" : "Relying Party application",
+        "properties" : {
+          "structurizr.dsl.identifier" : "verifier.rpapp"
+        },
+        "relationships" : [ {
+          "description" : "Disclosure session operations",
+          "destinationId" : "25",
+          "id" : "135",
+          "sourceId" : "26",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Disclosure session operations",
+          "destinationId" : "24",
+          "id" : "136",
+          "linkedRelationshipId" : "135",
+          "sourceId" : "26"
+        } ],
+        "tags" : "Element,Container"
+      } ],
+      "documentation" : { },
+      "id" : "23",
+      "location" : "Unspecified",
+      "name" : "Verifier (OV)",
+      "properties" : {
+        "structurizr.dsl.identifier" : "verifier"
+      },
+      "relationships" : [ {
+        "description" : "Get PID status list",
+        "destinationId" : "39",
+        "id" : "96",
+        "linkedRelationshipId" : "94",
+        "sourceId" : "23"
+      }, {
+        "description" : "Get PID status list",
+        "destinationId" : "34",
+        "id" : "97",
+        "linkedRelationshipId" : "94",
+        "sourceId" : "23"
+      }, {
+        "description" : "Get attestation status list",
+        "destinationId" : "33",
+        "id" : "123",
+        "linkedRelationshipId" : "121",
+        "sourceId" : "23"
+      }, {
+        "description" : "Get attestation status list",
+        "destinationId" : "27",
+        "id" : "124",
+        "linkedRelationshipId" : "121",
+        "sourceId" : "23"
+      } ],
+      "tags" : "Element,Software System,External"
+    }, {
+      "containers" : [ {
+        "components" : [ {
+          "documentation" : { },
+          "id" : "29",
+          "name" : "Attestation Status manager",
+          "properties" : {
+            "structurizr.dsl.identifier" : "issuerpb.vvpbi.statusmanager"
+          },
+          "relationships" : [ {
+            "description" : "Persist/retrieve attestation status",
+            "destinationId" : "31",
+            "id" : "127",
+            "sourceId" : "29",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Publish Status List",
+            "destinationId" : "33",
+            "id" : "133",
+            "sourceId" : "29",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component",
+          "technology" : "Rust (endpoint)"
+        }, {
+          "documentation" : { },
+          "id" : "30",
+          "name" : "Disc. based issuing endpoint",
+          "properties" : {
+            "structurizr.dsl.identifier" : "issuerpb.vvpbi.issuing"
+          },
+          "relationships" : [ {
+            "description" : "Retrieve attestation data for disclosed attestation",
+            "destinationId" : "32",
+            "id" : "125",
+            "sourceId" : "30",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Persist attestation status",
+            "destinationId" : "29",
+            "id" : "129",
+            "sourceId" : "30",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component",
+          "technology" : "Rust (endpoint)"
+        } ],
+        "documentation" : { },
+        "id" : "28",
+        "name" : "VV for Disclosure based issuance",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpb.vvpbi"
+        },
+        "relationships" : [ {
+          "description" : "Retrieve attestation data for disclosed attestation",
+          "destinationId" : "32",
+          "id" : "126",
+          "linkedRelationshipId" : "125",
+          "sourceId" : "28"
+        }, {
+          "description" : "Persist/retrieve attestation status",
+          "destinationId" : "31",
+          "id" : "128",
+          "linkedRelationshipId" : "127",
+          "sourceId" : "28"
+        }, {
+          "description" : "Publish Status List",
+          "destinationId" : "33",
+          "id" : "134",
+          "linkedRelationshipId" : "133",
+          "sourceId" : "28"
+        } ],
+        "tags" : "Element,Container"
+      }, {
+        "documentation" : { },
+        "id" : "31",
+        "name" : "attestation-status storage",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpb.statusdb"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "postgress DB"
+      }, {
+        "documentation" : { },
+        "id" : "32",
+        "name" : "Issuer attestation data source",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpb.ds"
+        },
+        "tags" : "Element,Container"
+      }, {
+        "documentation" : { },
+        "id" : "33",
+        "name" : "Attestation status list",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpb.statuslist"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Static content (TSL)"
+      } ],
+      "documentation" : { },
+      "id" : "27",
+      "location" : "Unspecified",
+      "name" : "Issuer - Disclosure based",
+      "properties" : {
+        "structurizr.dsl.identifier" : "issuerpb"
+      },
+      "relationships" : [ {
+        "description" : "Issue attestations",
+        "destinationId" : "5",
+        "id" : "53",
+        "sourceId" : "27",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Software System,External"
+    }, {
+      "containers" : [ {
+        "components" : [ {
+          "documentation" : { },
+          "id" : "36",
+          "name" : "Attestation Status manager",
+          "properties" : {
+            "structurizr.dsl.identifier" : "issuerpid.vvpid.statusmanager"
+          },
+          "relationships" : [ {
+            "description" : "Publish Status List",
+            "destinationId" : "39",
+            "id" : "101",
+            "sourceId" : "36",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Persist/retrieve attestation status",
+            "destinationId" : "38",
+            "id" : "103",
+            "sourceId" : "36",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component",
+          "technology" : "Rust (endpoint)"
+        }, {
+          "documentation" : { },
+          "id" : "37",
+          "name" : "Issuing endpoint",
+          "properties" : {
+            "structurizr.dsl.identifier" : "issuerpid.vvpid.issuing"
+          },
+          "relationships" : [ {
+            "description" : "Persist attestation status",
+            "destinationId" : "36",
+            "id" : "105",
+            "sourceId" : "37",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Get authenticated BSN",
+            "destinationId" : "41",
+            "id" : "106",
+            "sourceId" : "37",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Retrieve attestation data",
+            "destinationId" : "40",
+            "id" : "114",
+            "sourceId" : "37",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component",
+          "technology" : "Rust (endpoint)"
+        } ],
+        "documentation" : { },
+        "id" : "35",
+        "name" : "VV for PID issuer",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpid.vvpid"
+        },
+        "relationships" : [ {
+          "description" : "Publish Status List",
+          "destinationId" : "39",
+          "id" : "102",
+          "linkedRelationshipId" : "101",
+          "sourceId" : "35"
+        }, {
+          "description" : "Persist/retrieve attestation status",
+          "destinationId" : "38",
+          "id" : "104",
+          "linkedRelationshipId" : "103",
+          "sourceId" : "35"
+        }, {
+          "description" : "Get authenticated BSN",
+          "destinationId" : "41",
+          "id" : "107",
+          "linkedRelationshipId" : "106",
+          "sourceId" : "35"
+        }, {
+          "description" : "Retrieve PID attestation data",
+          "destinationId" : "40",
+          "id" : "108",
+          "sourceId" : "35",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Rust app"
+      }, {
+        "documentation" : { },
+        "id" : "38",
+        "name" : "attestation-status storage",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpid.pidstatusdb"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "postgress DB"
+      }, {
+        "documentation" : { },
+        "id" : "39",
+        "name" : "PID attestation status list",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpid.statuslist"
+        },
+        "tags" : "Element,Container",
+        "technology" : "Static content (TSL)"
+      }, {
+        "documentation" : { },
+        "id" : "40",
+        "name" : "GBA_hc_converter",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpid.gbahcconverter"
+        },
+        "relationships" : [ {
+          "description" : "Call BRP V",
+          "destinationId" : "42",
+          "id" : "115",
+          "sourceId" : "40",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Rust app"
+      }, {
+        "documentation" : { },
+        "id" : "41",
+        "name" : "Authorization server (RDO-max)",
+        "properties" : {
+          "structurizr.dsl.identifier" : "issuerpid.authserver"
+        },
+        "relationships" : [ {
+          "description" : "Retrieve authentication result",
+          "destinationId" : "43",
+          "id" : "109",
+          "sourceId" : "41",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container",
+        "technology" : "Python"
+      } ],
+      "documentation" : { },
+      "id" : "34",
+      "location" : "Unspecified",
+      "name" : "PID Issuer",
+      "properties" : {
+        "structurizr.dsl.identifier" : "issuerpid"
+      },
+      "relationships" : [ {
+        "description" : "Get WUA status (not in scope WP3)",
+        "destinationId" : "18",
+        "id" : "88",
+        "sourceId" : "34",
+        "tags" : "Relationship"
+      }, {
+        "description" : "Get WUA status (not in scope WP3)",
+        "destinationId" : "5",
+        "id" : "89",
+        "linkedRelationshipId" : "88",
+        "sourceId" : "34"
+      }, {
+        "description" : "Retrieve authentication result",
+        "destinationId" : "43",
+        "id" : "110",
+        "linkedRelationshipId" : "109",
+        "sourceId" : "34"
+      }, {
+        "description" : "Call BRP V",
+        "destinationId" : "42",
+        "id" : "116",
+        "linkedRelationshipId" : "115",
+        "sourceId" : "34"
+      } ],
+      "tags" : "Element,Software System,External"
+    }, {
+      "documentation" : { },
+      "id" : "42",
+      "location" : "Unspecified",
+      "name" : "BRP V",
+      "properties" : {
+        "structurizr.dsl.identifier" : "haalcentraal"
+      },
+      "tags" : "Element,Software System,External"
+    }, {
+      "documentation" : { },
+      "id" : "43",
+      "location" : "Unspecified",
+      "name" : "DigiD",
+      "properties" : {
+        "structurizr.dsl.identifier" : "digid"
+      },
+      "tags" : "Element,Software System,External"
+    } ]
+  },
+  "name" : "Name",
+  "properties" : {
+    "structurizr.dsl" : "d29ya3NwYWNlICJOYW1lIiAiTkwtV2FsbGV0IiB7CgogICAgIWlkZW50aWZpZXJzIGhpZXJhcmNoaWNhbAoKICAgIG1vZGVsIHsKICAgICAgICB1ID0gcGVyc29uICJVc2VyIgogICAgICAgIHVhID0gcGVyc29uICJXYWxsZXQgQWRtaW5pc3RyYXRvciIKICAgICAgICB1YVBpZCA9IHBlcnNvbiAiUElEIGlzc3VlciBhZG1pbiIKICAgICAgICB1YVBiID0gcGVyc29uICJJc3N1ZXIgYWRtaW4iCgogICAgICAgIHdzID0gc29mdHdhcmVTeXN0ZW0gIk5MLVdhbGxldCBTb2x1dGlvbiIgewogICAgICAgICAgICB3YWxsZXRBcHAgPSBjb250YWluZXIgIldhbGxldCBhcHAiICIiICJBbmRyb2lkL2lPUyIgewogICAgICAgICAgICAgICAgYXBwR3VpID0gY29tcG9uZW50ICJBcHAgRnJvbnRlbmQiICJmbHV0dGVyIChkYXJ0KSIgIAogICAgICAgICAgICAgICAgYXBwRnJiID0gY29tcG9uZW50ICJGbHV0dGVyLVJ1c3QtQnJpZGdlIiAiZGFydC9ydXN0IGJpbmRpbmciCiAgICAgICAgICAgICAgICBhcHBDb3JlID0gY29tcG9uZW50ICJBcHAgY29yZSBjb21wb25lbnQiICIiICJydXN0IgogICAgICAgICAgICAgICAgYXBwUGxhdGZvcm0gPSBjb21wb25lbnQgIlBsYXRmb3JtIHN1cHBvcnQiICJuYXRpdmUgZnVuY3Rpb25zIiAicnVzdCIKICAgICAgICAgICAgICAgIGRiID0gY29tcG9uZW50ICJBcHAgZGF0YWJhc2UiICIiICJzcWxpdGUiIHsKICAgICAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgICAgIH0gICAgICAKICAgICAgICAgICAgfQogICAgICAgICAgICB3YiA9IGdyb3VwICJOTC1XYWxsZXQgYmFja2VuZCBjb250YWluZXJzIiB7CiAgICAgICAgICAgICAgICB3YWxsZXRQcm92aWRlciA9IGNvbnRhaW5lciAid2FsbGV0UHJvdmlkZXIiICJXYWxsZXQgYmFja2VuZCIgImF4dW0gKHJ1c3QpIiB7CiAgICAgICAgICAgICAgICAgICAgaHNtSW5zdHJ1Y3Rpb25DbGllbnQgPSBjb21wb25lbnQgIkFzc2lzdGVkIHdhbGxldCBJbnN0cnVjdGlvbnMgZW5kcG9pbnQgKC9pbnN0cnVjdGlvbnMpIgogICAgICAgICAgICAgICAgICAgIHdhbGxldEFjY291bnRNYW5hZ2VyID0gY29tcG9uZW50ICJXYWxsZXQgQWNjb3VudHMgZW5kcG9pbnQgKGVucm9sbC9jcmVhdGUpIgogICAgICAgICAgICAgICAgICAgIHdhbGxldFN0YXR1c01hbmFnZXIgPSBjb21wb25lbnQgIldhbGxldCBTdGF0dXMgZW5kcG9pbnQgKC9zdGF0dXMpIgogICAgICAgICAgICAgICAgfQogICAgICAgICAgICAgICAgdXBkYXRlU2VydmVyID0gY29udGFpbmVyICJVcGRhdGVTZXJ2ZXIiICJTZXJ2ZSBhcHAgdXBkYXRlIHBvbGljeSIgImF4dW0gKHJ1c3QpIiB7CiAgICAgICAgICAgICAgICAgICAgdXBkYXRlUG9saWN5ID0gY29tcG9uZW50ICJQb2xpY3kgY29uZmlndXJhdGlvbiIgIiIgIlt1cGRhdGUgcG9saWN5XSBzZWN0aW9uIGluIC50b21sIGZpbGUiIHsgCiAgICAgICAgICAgICAgICAgICAgICAgIHRhZ3MgIkZpbGUiIAogICAgICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICBzdGF0dXNMaXN0ID0gY29udGFpbmVyICJXVUEgc3RhdHVzIGxpc3QiICIiICJTdGF0aWMgY29udGVudCAoVFNMKSIKICAgICAgICAgICAgICAgIGNvbmZpZ3VyYXRpb25TZXJ2ZXIgPSBjb250YWluZXIgIkNvbmZpZ3VyYXRpb25TZXJ2ZXIiICJTZXJ2ZSBhcHAgY29uZmlnIGZpbGUiICJheHVtIChydXN0KSIgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgIGRiID0gY29udGFpbmVyICJXUCBkYXRhYmFzZSAoYWNjb3VudHMsIFdVQSBzdGF0dXMpIiAiIiAicG9zdGdyZXNzIiB7CiAgICAgICAgICAgICAgICAgICAgdGFncyAiRGF0YWJhc2UiCiAgICAgICAgICAgICAgICB9ICAgICAgICAgICAgICAgIAogICAgICAgICAgICB9CiAgICAgICAgICAgIHdhbGxldEhzbSA9IGNvbnRhaW5lciAiSFNNIGRldmljZSIgImRlZGljYXRlZCBjcnlwdG9ncmFwaGljIGhhcmR3YXJlIiAKICAgICAgICAgICAgLy93YWxsZXRBZG1pblBvcnRhbCA9IGNvbnRhaW5lciAiU2VsZiBTZXJpdmNlIHBvcnRhbCIgIlNlbGZzZXJ2aWNlIGFuZCBhc3NpdGFuY2UiICJ3ZWIgZnJvbnQtZW5kIgogICAgICAgIH0KCiAgICAgICAgaGMgPSBzb2Z0d2FyZVN5c3RlbSAiQlJQLVYiCgogICAgICAgIHZlcmlmaWVyID0gc29mdHdhcmVTeXN0ZW0gIlZlcmlmaWVyIChPVikiIHsgCiAgICAgICAgICAgIHRhZ3MgIkV4dGVybmFsIiAKICAgICAgICAgICAgb3YgPSBjb250YWluZXIgIk9WLWNvbXBvbmVudCJ7CiAgICAgICAgICAgICAgICB2ZXJpZnlpbmcgPSBjb21wb25lbnQgIkRpc2Nsb3N1cmUgZW5kcG9pbnQiCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIHJwQXBwID0gY29udGFpbmVyICJSZWx5aW5nIFBhcnR5IGFwcGxpY2F0aW9uIgogICAgICAgIH0KICAgICAgICBpc3N1ZXJQYiA9IHNvZnR3YXJlU3lzdGVtICJJc3N1ZXIgLSBEaXNjbG9zdXJlIGJhc2VkIiB7IAogICAgICAgICAgICB0YWdzICJFeHRlcm5hbCIgCgogICAgICAgICAgICB2dlBiaSA9IGNvbnRhaW5lciAiVlYgZm9yIERpc2Nsb3N1cmUgYmFzZWQgaXNzdWFuY2UiIHsKICAgICAgICAgICAgICAgIHN0YXR1c01hbmFnZXIgPSBjb21wb25lbnQgIkF0dGVzdGF0aW9uIFN0YXR1cyBtYW5hZ2VyIiAiIiAgIlJ1c3QgKGVuZHBvaW50KSIKICAgICAgICAgICAgICAgIGlzc3VpbmcgPSBjb21wb25lbnQgIkRpc2MuIGJhc2VkIGlzc3VpbmcgZW5kcG9pbnQiICIiICJSdXN0IChlbmRwb2ludCkiIAogICAgICAgICAgICB9CiAgICAgICAgICAgIHN0YXR1c0RiID0gY29udGFpbmVyICJhdHRlc3RhdGlvbi1zdGF0dXMgc3RvcmFnZSIgIiIgInBvc3RncmVzcyBEQiIgeyAKICAgICAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgfQoKICAgICAgICAgICAgZHMgPSBjb250YWluZXIgIklzc3VlciBhdHRlc3RhdGlvbiBkYXRhIHNvdXJjZSIKICAgICAgICAgICAgc3RhdHVzTGlzdCA9IGNvbnRhaW5lciAiQXR0ZXN0YXRpb24gc3RhdHVzIGxpc3QiICIiICJTdGF0aWMgY29udGVudCAoVFNMKSIKICAgICAgICB9CgogICAgICAgIGlzc3VlclBpZCA9IHNvZnR3YXJlU3lzdGVtICJQSUQgSXNzdWVyIiB7IAogICAgICAgICAgICB0YWdzICJFeHRlcm5hbCIgCgogICAgICAgICAgICB2dlBpZCA9IGNvbnRhaW5lciAiVlYgZm9yIFBJRCBpc3N1ZXIiICIiICJSdXN0IGFwcCIgewogICAgICAgICAgICAgICAgc3RhdHVzTWFuYWdlciA9IGNvbXBvbmVudCAiQXR0ZXN0YXRpb24gU3RhdHVzIG1hbmFnZXIiICIiICAiUnVzdCAoZW5kcG9pbnQpIgogICAgICAgICAgICAgICAgaXNzdWluZyA9IGNvbXBvbmVudCAiSXNzdWluZyBlbmRwb2ludCIgIiIgIlJ1c3QgKGVuZHBvaW50KSIgCiAgICAgICAgICAgIH0KICAgICAgICAgICAgcGlkU3RhdHVzRGIgPSBjb250YWluZXIgImF0dGVzdGF0aW9uLXN0YXR1cyBzdG9yYWdlIiAiIiAicG9zdGdyZXNzIERCIiB7IAogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkRhdGFiYXNlIgogICAgICAgICAgICB9CiAgICAgICAgICAgIC8vcGlkSXNzdWVyID0gY29udGFpbmVyICJQSUQtaXNzdWVyIGJ1c2luZXNzIGxvZ2ljIiAiIiAiUnVzdCBhcHAiCiAgICAgICAgICAgIHN0YXR1c0xpc3QgPSBjb250YWluZXIgIlBJRCBhdHRlc3RhdGlvbiBzdGF0dXMgbGlzdCIgIiIgIlN0YXRpYyBjb250ZW50IChUU0wpIgogICAgICAgICAgICBnYmFIY0NvbnZlcnRlciA9IGNvbnRhaW5lciAiR0JBX2hjX2NvbnZlcnRlciIgIiIgIlJ1c3QgYXBwIgogICAgICAgICAgICBhdXRoU2VydmVyID0gY29udGFpbmVyICJBdXRob3JpemF0aW9uIHNlcnZlciAoUkRPLW1heCkiICIiICJQeXRob24iIAogICAgICAgIH0KCiAgICAgICAgaGFhbENlbnRyYWFsID0gc29mdHdhcmVTeXN0ZW0gIkJSUCBWIiB7CiAgICAgICAgICAgIHRhZ3MgIkV4dGVybmFsIgogICAgICAgIH0KCiAgICAgICAgZGlnaWQgPSBzb2Z0d2FyZVN5c3RlbSAiRGlnaUQiIHsKICAgICAgICAgICAgdGFncyAiRXh0ZXJuYWwiCiAgICAgICAgfQoKICAgICAgICB1IC0+IHdzICJVc2VzIgogICAgICAgIC8vIHUgLT4gd3Mud2FsbGV0QWRtaW5Qb3J0YWwgIlNlbGYgc2VydmljZSIKICAgICAgICB1IC0+IHdzLndhbGxldEFwcCAiVXNlcyIKICAgICAgICB1IC0+IHdzLndhbGxldEFwcC5hcHBHdWkgIkhhcyBpbnRlcmFjdGlvbnMiCiAgICAgICAgdWEgLT4gd3MudXBkYXRlU2VydmVyLnVwZGF0ZVBvbGljeSAiTWFpbnRhaW4gdXBkYXRlcG9saWN5IgogICAgICAgIHVhIC0+IHdzLmNvbmZpZ3VyYXRpb25TZXJ2ZXIgIk1haW50YWluIHJ1bnRpbWUgY29uZmlnIgogICAgICAgIC8vdWEgLT4gd3MgIk1hbmFnZSBzeXN0ZW0iIAoKICAgICAgICB3cyAtPiB2ZXJpZmllci5vdiAiUHJlc2VudCBkYXRhIgogICAgICAgIGlzc3VlclBiIC0+IHdzICJJc3N1ZSBhdHRlc3RhdGlvbnMiIAogICAgICAgIHdzLndhbGxldFByb3ZpZGVyIC0+IHdzLmRiICJSZWFkcyBmcm9tIGFuZCB3cml0ZXMgdG8iCgogICAgICAgIHdzLndhbGxldEFwcC5hcHBGcmIgLT4gd3Mud2FsbGV0QXBwLmFwcEd1aSAiRXhjaGFuZ2UgaW5mb3JtYXRpb24gZnJvbSBmcmIgdG8gR1VJIgogICAgICAgIHdzLndhbGxldEFwcC5hcHBHdWkgLT4gd3Mud2FsbGV0QXBwLmFwcEZyYiAiRXhjaGFuZ2UgaW5mb3JtYXRpb24gZnJvbSBHVUkgdG8gZnJiIgogICAgICAgIHdzLndhbGxldEFwcC5hcHBGcmIgLT4gd3Mud2FsbGV0QXBwLmFwcENvcmUgIkV4Y2hhbmdlIGluZm9ybWF0aW9uIGZyb20gY29yZSB3aXRoIGZyYiIKICAgICAgICB3cy53YWxsZXRBcHAuYXBwQ29yZSAtPiB3cy53YWxsZXRBcHAuYXBwRnJiICJFeGNoYW5nZSBpbmZvcm1hdGlvbiBmcm9tIGZyYiB0byBjb3JlIgogICAgICAgIHdzLndhbGxldEFwcC5hcHBDb3JlIC0+IHdzLndhbGxldEFwcC5hcHBQbGF0Zm9ybSAiVXNlIHBsYXRmb3JtIHJvdXRpbmVzIChpT1MvQW5kcm9pZCkiCiAgICAgICAgd3Mud2FsbGV0QXBwLmFwcENvcmUgLT4gd3MudXBkYXRlU2VydmVyICJHZXQgdXBkYXRlIHBvbGljaWVzIgogICAgICAgIHdzLndhbGxldEFwcC5hcHBDb3JlIC0+IHdzLndhbGxldFByb3ZpZGVyLndhbGxldEFjY291bnRNYW5hZ2VyICJXUCBvcGVyYXRpb25zIChhY2NvdW50LCBIU00gaW5zdHJ1Y3Rpb25zKSIKICAgICAgICB3cy53YWxsZXRBcHAuYXBwQ29yZSAtPiB3cy5jb25maWd1cmF0aW9uU2VydmVyICJHZXQgcnVudGltZSBjb25maWd1cmF0aW9uIgogICAgICAgIHdzLndhbGxldEFwcC5hcHBDb3JlIC0+IHdzLndhbGxldFByb3ZpZGVyLmhzbUluc3RydWN0aW9uQ2xpZW50ICJIU00tYXNzaXN0ZWQgb3BlcmF0aW9uIgogICAgICAgIHdzLndhbGxldEFwcC5hcHBDb3JlIC0+IHdzLndhbGxldEFwcC5kYiAiU3RvcmUvcmV0cmlldmUgYXR0ZXN0YXRpb25zLCBsb2dzLCBjb25maWd1cmF0aW9uIgoKICAgICAgICAvL1BJRCBpc3N1ZXIgc3BlY2lmaWMKICAgICAgICB3cy53YWxsZXRBcHAuYXBwQ29yZSAtPiBpc3N1ZXJQaWQuYXV0aFNlcnZlciAiQXV0aGVudGljYXRpb24gZm9yIFBJRC1pc3N1YW5jZSIKCiAgICAgICAgd3Mud2FsbGV0UHJvdmlkZXIgLT4gd3Mud2FsbGV0SHNtICJDYWxsIEhTTSBmb3IgYXNzaXN0ZWQgb3BlcmF0aW9uIgogICAgICAgIHdzLndhbGxldFByb3ZpZGVyIC0+IHdzLnN0YXR1c0xpc3QgIlB1Ymxpc2ggV1VBIHN0YXR1c2xpc3QiIAoKCiAgICAgICAgd3Mud2FsbGV0QXBwIC0+IGlzc3VlclBiLnZ2UGJpICJJbnRlcmFjdGlvbnMgd2l0aCBpc3N1ZXIsIChkaXNjbG9zZSBiYXNlZCkgaXNzdWFuY2UiCgogICAgICAgIHdzLndhbGxldEFwcCAtPiB2ZXJpZmllciAiRGlzY2xvc2UgYXR0cmlidXRlcyB0byB2ZXJpZmllciIKCiAgICAgICAgd3Mud2FsbGV0UHJvdmlkZXIud2FsbGV0QWNjb3VudE1hbmFnZXIgLT4gd3Mud2FsbGV0UHJvdmlkZXIud2FsbGV0U3RhdHVzTWFuYWdlciAiVXBkYXRlIFdVQSBzdGF0dXMiCiAgICAgICAgd3Mud2FsbGV0UHJvdmlkZXIuaHNtSW5zdHJ1Y3Rpb25DbGllbnQgLT4gd3Mud2FsbGV0SHNtICJQcm9jZXNzIEhTTSBpbnN0cnVjdGlvbiIKICAgICAgICB1YSAtPiB3cy53YWxsZXRQcm92aWRlci53YWxsZXRBY2NvdW50TWFuYWdlciAiUmV2b2tlIHdhbGxldCIKICAgICAgICBpc3N1ZXJQaWQgLT4gd3Muc3RhdHVzTGlzdCAiR2V0IFdVQSBzdGF0dXMgKG5vdCBpbiBzY29wZSBXUDMpIiAKCiAgICAgICAgd3Mud2FsbGV0QXBwLmFwcENvcmUgLT4gaXNzdWVyUGlkICJpbnRlcmFjdGlvbnMgd2l0aCBQSUQgaXNzdWVyIiAKICAgICAgICB3cy53YWxsZXRBcHAuYXBwQ29yZSAtPiBpc3N1ZXJQaWQuc3RhdHVzTGlzdCAiR2V0IFBJRCBzdGF0dXMgbGlzdCIgCiAgICAgICAgdmVyaWZpZXIub3YgLT4gaXNzdWVyUGlkLnN0YXR1c0xpc3QgIkdldCBQSUQgc3RhdHVzIGxpc3QiCiAgICAgICAgdWFQaWQgLT4gaXNzdWVyUGlkLnZ2UGlkLnN0YXR1c01hbmFnZXIgIlVwZGF0ZSBQSUQgYXR0ZXN0YXRpb24gc3RhdHVzIiAKICAgICAgICBpc3N1ZXJQaWQudnZQaWQuc3RhdHVzTWFuYWdlciAtPiBpc3N1ZXJQaWQuc3RhdHVzTGlzdCAiUHVibGlzaCBTdGF0dXMgTGlzdCIgCgogICAgICAgIGlzc3VlclBpZC52dlBpZC5zdGF0dXNNYW5hZ2VyIC0+IGlzc3VlclBpZC5waWRTdGF0dXNEYiAiUGVyc2lzdC9yZXRyaWV2ZSBhdHRlc3RhdGlvbiBzdGF0dXMiCiAgICAgICAgaXNzdWVyUGlkLnZ2UGlkLmlzc3VpbmcgLT4gaXNzdWVyUGlkLnZ2UGlkLnN0YXR1c01hbmFnZXIgIlBlcnNpc3QgYXR0ZXN0YXRpb24gc3RhdHVzIgogICAgICAgIGlzc3VlclBpZC52dlBpZC5pc3N1aW5nIC0+IGlzc3VlclBpZC5hdXRoU2VydmVyICJHZXQgYXV0aGVudGljYXRlZCBCU04iCgoKICAgICAgICBpc3N1ZXJQaWQudnZQaWQgLT4gaXNzdWVyUGlkLmdiYUhjQ29udmVydGVyICJSZXRyaWV2ZSBQSUQgYXR0ZXN0YXRpb24gZGF0YSIKICAgICAgICBpc3N1ZXJQaWQuYXV0aFNlcnZlciAtPiBkaWdpZCAiUmV0cmlldmUgYXV0aGVudGljYXRpb24gcmVzdWx0IgoKICAgICAgICAvL2lzc3VlclBpZC5waWRJc3N1ZXIgLT4gaXNzdWVyUGlkLmdiYUhjQ29udmVydGVyICJGZXRjaCBQSUQtQXR0cmlidXRlcyIKICAgICAgICB3cy53YWxsZXRBcHAuYXBwQ29yZSAtPiBpc3N1ZXJQaWQudnZQaWQgICJSZXRyaWV2ZSBQSUQgLyBEaXNjbG9zZSBXVUEgKGZvcm1lcmx5IFdURSkgKyBQb0EiIAogICAgICAgIC8vaXNzdWVyUGlkLnZ2UGlkLmlzc3VpbmcgIC0+IGlzc3VlclBpZC5waWRJc3N1ZXIgIlJldHJpZXZlIGF0dGVzdGF0aW9uIGRhdGEiCiAgICAgICAgaXNzdWVyUGlkLnZ2UGlkLmlzc3VpbmcgIC0+IGlzc3VlclBpZC5nYmFIY0NvbnZlcnRlciAiUmV0cmlldmUgYXR0ZXN0YXRpb24gZGF0YSIKICAgICAgICBpc3N1ZXJQaWQuZ2JhSGNDb252ZXJ0ZXIgLT4gaGFhbENlbnRyYWFsICJDYWxsIEJSUCBWIgoKICAgICAgICB3cy53YWxsZXRBcHAuYXBwQ29yZSAtPiBpc3N1ZXJQYiAiaW50ZXJhY3Rpb25zIHdpdGggRUFBIGlzc3VlciIgCiAgICAgICAgd3Mud2FsbGV0QXBwLmFwcENvcmUgLT4gaXNzdWVyUGIuc3RhdHVzTGlzdCAiR2V0IGF0dGVzdGF0aW9uIHN0YXR1cyBsaXN0IiAKICAgICAgICB2ZXJpZmllci5vdiAtPiBpc3N1ZXJQYi5zdGF0dXNMaXN0ICJHZXQgYXR0ZXN0YXRpb24gc3RhdHVzIGxpc3QiCgogICAgICAgIGlzc3VlclBiLnZ2UGJpLmlzc3VpbmcgLT4gaXNzdWVyUGIuZHMgIlJldHJpZXZlIGF0dGVzdGF0aW9uIGRhdGEgZm9yIGRpc2Nsb3NlZCBhdHRlc3RhdGlvbiIKICAgICAgICBpc3N1ZXJQYi52dlBiaS5zdGF0dXNNYW5hZ2VyIC0+IGlzc3VlclBiLnN0YXR1c0RiICJQZXJzaXN0L3JldHJpZXZlIGF0dGVzdGF0aW9uIHN0YXR1cyIKICAgICAgICBpc3N1ZXJQYi52dlBiaS5pc3N1aW5nIC0+IGlzc3VlclBiLnZ2UGJpLnN0YXR1c01hbmFnZXIgIlBlcnNpc3QgYXR0ZXN0YXRpb24gc3RhdHVzIgogICAgICAgIHVhUGIgLT4gaXNzdWVyUGIudnZQYmkuc3RhdHVzTWFuYWdlciAiVXBkYXRlIGF0dGVzdGF0aW9uIHN0YXR1cyIgCiAgICAgICAgaXNzdWVyUGIudnZQYmkuc3RhdHVzTWFuYWdlciAtPiBpc3N1ZXJQYi5zdGF0dXNMaXN0ICJQdWJsaXNoIFN0YXR1cyBMaXN0IiAKCgogICAgICAgIHZlcmlmaWVyLnJwQXBwIC0+IHZlcmlmaWVyLm92LnZlcmlmeWluZyAiRGlzY2xvc3VyZSBzZXNzaW9uIG9wZXJhdGlvbnMiCiAgICB9CgogICAgdmlld3MgewogICAgICAgIHN5c3RlbUNvbnRleHQgd3MgIkFEMU5MLVdhbGxldCIgewogICAgICAgICAgICBpbmNsdWRlIHUgd3MgdmVyaWZpZXIgaXNzdWVyUGIKICAgICAgICB9CgogICAgICAgIHN5c3RlbUNvbnRleHQgd3MgIkIxUElELUlzc3VlciIgewogICAgICAgICAgICBpbmNsdWRlIHUgaXNzdWVyUGlkIHdzIHZlcmlmaWVyCiAgICAgICAgfQoKICAgICAgICBzeXN0ZW1Db250ZXh0IHdzICJDMk5MLVdhbGxldCIgewogICAgICAgICAgICBpbmNsdWRlIHUgd3MgdmVyaWZpZXIgaXNzdWVyUGlkIGlzc3VlclBiCiAgICAgICAgfQoKICAgICAgICBjb250YWluZXIgd3MgIkQyTkwtV2FsbGV0U3lzdGVtIiB7CiAgICAgICAgICAgIGluY2x1ZGUgKiAKICAgICAgICB9CgogICAgICAgIGNvbnRhaW5lciB3cyAiRTNOTC1XYWxsZXRTeXN0ZW0iIHsKICAgICAgICAgICAgaW5jbHVkZSAqIHZlcmlmaWVyCiAgICAgICAgfQoKICAgICAgICBjb250YWluZXIgdmVyaWZpZXIgIkZSZWx5aW5nUGFydHkiewogICAgICAgICAgICBpbmNsdWRlICogd3MKICAgICAgICB9CgogICAgICAgIGNvbXBvbmVudCB3cy53YWxsZXRQcm92aWRlciAiR0QyTkwtV2FsbGV0UHJvdmlkZXIiIHsKICAgICAgICAgICAgaW5jbHVkZSAqIAogICAgICAgICAgICAKICAgICAgICB9CgogICAgICAgIGNvbXBvbmVudCB3cy53YWxsZXRBcHAgIkhEMk5MLVdhbGxldEFwcCIgewogICAgICAgICAgICBpbmNsdWRlICogCiAgICAgICAgfQoKICAgICAgICBzeXN0ZW1Db250ZXh0IGlzc3VlclBiICJJRDNJc3N1ZXJTb2Z0d2FyZVN5c3RlbSIgewogICAgICAgICAgICBpbmNsdWRlICoKICAgICAgICB9CgogICAgICAgIGNvbnRhaW5lciBpc3N1ZXJQYiAiSkQ0SXNzdWVyU29mdHdhcmVTeXN0ZW0iIHsKICAgICAgICAgICAgaW5jbHVkZSAqIHdzIAogICAgICAgIH0KCiAgICAgICAgY29udGFpbmVyIGlzc3VlclBpZCAiS0Q0UElEX0lzc3VlclNvZnR3YXJlU3lzdGVtIiB7CiAgICAgICAgICAgIGluY2x1ZGUgKiB3cyB1YVBpZCBkaWdpZAogICAgICAgIH0KCiAgICAgICAgY29tcG9uZW50IGlzc3VlclBpZC52dlBpZCAiTUQ1UElEX0lzc3VlclZWIiB7CiAgICAgICAgICAgIGluY2x1ZGUgKiB1YVBpZAogICAgICAgIH0KCiAgICAgICAgY29tcG9uZW50IGlzc3VlclBiLnZ2UGJpICJORDVQSURfSXNzdWVyUEIiIHsKICAgICAgICAgICAgaW5jbHVkZSAqIHVhUGIKICAgICAgICB9CgogICAgICAgIGNvbXBvbmVudCB3cy51cGRhdGVTZXJ2ZXIgIk81VXBkYXRlU2VydmVyIiB7CiAgICAgICAgICAgIGluY2x1ZGUgKgogICAgICAgIH0KCiAgICAgICAgcHJvcGVydGllcyB7CiAgICAgICAgICAgICJzdHJ1Y3R1cml6ci5zb3J0IiAia2V5IgogICAgICAgIH0KCiAgICAgICAgZHluYW1pYyB3cyB7CiAgICAgICAgICAgIHRpdGxlICJXYWxsZXQgTWlncmF0aW9uIgogICAgICAgICAgICB3cy53YWxsZXRBcHAgLT4gd3Mud2FsbGV0UHJvdmlkZXIgIkRpc2Nsb3NlIHJlY292ZXJ5IGNvZGUgKGFmdGVyIEFjdGl2YXRlIG5ldyBXYWxsZXQpIgogICAgICAgICAgICB3cy53YWxsZXRQcm92aWRlciAtPiB3cy53YWxsZXRBcHAgIlJlY292ZXJ5IHBvc3NpYmxlICh5L24pIgogICAgICAgICAgICB3cy53YWxsZXRBcHAgLT4gdSAiUmVjb3Zlcj8gKGlmIHBvc3NpYmxlKSIKICAgICAgICAgICAgdSAtPiB3cy53YWxsZXRBcHAgIlllcyBQcm9jZWVkIHdpdGggcmVjb3ZlcnkgIgogICAgICAgICAgICB3cy53YWxsZXRBcHAgLT4gd3Mud2FsbGV0UHJvdmlkZXIgIiIKICAgICAgICB9CiAgICAgIAogICAgICAgIHN0eWxlcyB7CiAgICAgICAgICAgIGVsZW1lbnQgIkVsZW1lbnQiIHsKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJQZXJzb24iIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzA5MzI2YgogICAgICAgICAgICAgICAgc2hhcGUgcGVyc29uCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiU29mdHdhcmUgU3lzdGVtIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICMyYjgxZTkKICAgICAgICAgICAgICAgIHNoYXBlIFdpbmRvdwogICAgICAgICAgICAgICAgZm9udFNpemUgNDAKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJDb250YWluZXIiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzJiODFlOQogICAgICAgICAgICAgICAgc2hhcGUgUm91bmRlZEJveAogICAgICAgICAgICAgICAgZm9udFNpemUgNDAKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJDb21wb25lbnQiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzEwNTZhYgogICAgICAgICAgICAgICAgc2hhcGUgQ29tcG9uZW50CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkRhdGFiYXNlIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBjeWxpbmRlcgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIkZpbGUiIHsKICAgICAgICAgICAgICAgIHNoYXBlIEZvbGRlcgogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJuZXdDb21wb25lbnQiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzg4RENhYQogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJOZXdEQiIgewogICAgICAgICAgICAgICAgc2hhcGUgY3lsaW5kZXIKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzg4RENhYQogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIkV4dGVybmFsIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICNhYWFhYWEKICAgICAgICAgICAgfQoKICAgICAgICAgICAgcmVsYXRpb25zaGlwICJSZWxhdGlvbnNoaXAiIHsKICAgICAgICAgICAgICAgIGZvbnRTaXplIDM1CiAgICAgICAgICAgIH0KICAgICAgICB9CiAgICB9CgogICAgY29uZmlndXJhdGlvbiB7CiAgICAgICAgc2NvcGUgbm9uZQogICAgfQoKfQ=="
+  },
+  "views" : {
+    "componentViews" : [ {
+      "containerId" : "12",
+      "dimensions" : {
+        "height" : 1558,
+        "width" : 2366
+      },
+      "elements" : [ {
+        "id" : "2",
+        "x" : 1735,
+        "y" : 1035
+      }, {
+        "id" : "6",
+        "x" : 30,
+        "y" : 65
+      }, {
+        "id" : "13",
+        "x" : 980,
+        "y" : 330
+      }, {
+        "id" : "14",
+        "x" : 995,
+        "y" : 695
+      }, {
+        "id" : "15",
+        "x" : 995,
+        "y" : 1150
+      }, {
+        "id" : "21",
+        "x" : 1735,
+        "y" : 315
+      } ],
+      "externalContainerBoundariesVisible" : false,
+      "key" : "GD2NL-WalletProvider",
+      "order" : 7,
+      "paperSize" : "A5_Landscape",
+      "relationships" : [ {
+        "id" : "64",
+        "vertices" : [ {
+          "x" : 655,
+          "y" : 655
+        } ]
+      }, {
+        "id" : "69"
+      }, {
+        "id" : "84"
+      }, {
+        "id" : "85"
+      }, {
+        "id" : "86"
+      } ]
+    }, {
+      "containerId" : "6",
+      "dimensions" : {
+        "height" : 3320,
+        "width" : 4004
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 375,
+        "y" : 210
+      }, {
+        "id" : "7",
+        "x" : 355,
+        "y" : 1195
+      }, {
+        "id" : "8",
+        "x" : 1300,
+        "y" : 1195
+      }, {
+        "id" : "9",
+        "x" : 1970,
+        "y" : 1755
+      }, {
+        "id" : "10",
+        "x" : 2785,
+        "y" : 1180
+      }, {
+        "id" : "11",
+        "x" : 2740,
+        "y" : 1755
+      }, {
+        "id" : "12",
+        "x" : 1829,
+        "y" : 2708
+      }, {
+        "id" : "16",
+        "x" : 2579,
+        "y" : 2708
+      }, {
+        "id" : "19",
+        "x" : 3329,
+        "y" : 2708
+      }, {
+        "id" : "27",
+        "x" : 2200,
+        "y" : 355
+      }, {
+        "id" : "34",
+        "x" : 1660,
+        "y" : 360
+      } ],
+      "externalContainerBoundariesVisible" : false,
+      "key" : "HD2NL-WalletApp",
+      "order" : 8,
+      "paperSize" : "A3_Landscape",
+      "relationships" : [ {
+        "id" : "117"
+      }, {
+        "id" : "46"
+      }, {
+        "id" : "55",
+        "vertices" : [ {
+          "x" : 1045,
+          "y" : 1310
+        }, {
+          "x" : 965,
+          "y" : 1305
+        } ]
+      }, {
+        "id" : "56",
+        "vertices" : [ {
+          "x" : 995,
+          "y" : 1465
+        } ]
+      }, {
+        "id" : "57"
+      }, {
+        "id" : "58",
+        "vertices" : [ {
+          "x" : 1545,
+          "y" : 1755
+        } ]
+      }, {
+        "id" : "59"
+      }, {
+        "id" : "60",
+        "vertices" : [ {
+          "x" : 2429,
+          "y" : 2708
+        } ]
+      }, {
+        "id" : "63",
+        "vertices" : [ {
+          "x" : 1976,
+          "y" : 2359
+        } ]
+      }, {
+        "id" : "66",
+        "vertices" : [ {
+          "x" : 3179,
+          "y" : 2708
+        } ]
+      }, {
+        "id" : "70"
+      }, {
+        "id" : "72",
+        "vertices" : [ {
+          "x" : 2186,
+          "y" : 1174
+        } ]
+      }, {
+        "id" : "90",
+        "vertices" : [ {
+          "x" : 1893,
+          "y" : 1240
+        } ]
+      } ]
+    }, {
+      "containerId" : "35",
+      "dimensions" : {
+        "height" : 2616,
+        "width" : 3162
+      },
+      "elements" : [ {
+        "id" : "3",
+        "x" : 525,
+        "y" : 615
+      }, {
+        "id" : "36",
+        "x" : 1380,
+        "y" : 660
+      }, {
+        "id" : "37",
+        "x" : 1385,
+        "y" : 1160
+      }, {
+        "id" : "38",
+        "x" : 2225,
+        "y" : 1175
+      }, {
+        "id" : "39",
+        "x" : 2215,
+        "y" : 670
+      }, {
+        "id" : "40",
+        "x" : 1385,
+        "y" : 1800
+      }, {
+        "id" : "41",
+        "x" : 2170,
+        "y" : 1800
+      } ],
+      "externalContainerBoundariesVisible" : false,
+      "key" : "MD5PID_IssuerVV",
+      "order" : 12,
+      "paperSize" : "A3_Landscape",
+      "relationships" : [ {
+        "id" : "101"
+      }, {
+        "id" : "103"
+      }, {
+        "id" : "105"
+      }, {
+        "id" : "106"
+      }, {
+        "id" : "114"
+      }, {
+        "id" : "98"
+      } ]
+    }, {
+      "containerId" : "28",
+      "dimensions" : {
+        "height" : 1825,
+        "width" : 2910
+      },
+      "elements" : [ {
+        "id" : "4",
+        "x" : 449,
+        "y" : 105
+      }, {
+        "id" : "29",
+        "x" : 1282,
+        "y" : 149
+      }, {
+        "id" : "30",
+        "x" : 1265,
+        "y" : 615
+      }, {
+        "id" : "31",
+        "x" : 1984,
+        "y" : 575
+      }, {
+        "id" : "32",
+        "x" : 1270,
+        "y" : 1350
+      }, {
+        "id" : "33",
+        "x" : 2009,
+        "y" : 155
+      } ],
+      "externalContainerBoundariesVisible" : false,
+      "key" : "ND5PID_IssuerPB",
+      "order" : 13,
+      "relationships" : [ {
+        "id" : "125"
+      }, {
+        "id" : "127"
+      }, {
+        "id" : "129"
+      }, {
+        "id" : "130"
+      }, {
+        "id" : "133"
+      } ]
+    }, {
+      "containerId" : "16",
+      "dimensions" : {
+        "height" : 958,
+        "width" : 1670
+      },
+      "elements" : [ {
+        "id" : "2",
+        "x" : 90,
+        "y" : 270
+      }, {
+        "id" : "17",
+        "x" : 925,
+        "y" : 320
+      } ],
+      "externalContainerBoundariesVisible" : false,
+      "key" : "O5UpdateServer",
+      "order" : 14,
+      "paperSize" : "A6_Landscape",
+      "relationships" : [ {
+        "id" : "47",
+        "vertices" : [ {
+          "x" : 611,
+          "y" : 474
+        } ]
+      } ]
+    } ],
+    "configuration" : {
+      "branding" : { },
+      "lastSavedView" : "KD4PID_IssuerSoftwareSystem",
+      "properties" : {
+        "structurizr.sort" : "key"
+      },
+      "styles" : {
+        "elements" : [ {
+          "color" : "#ffffff",
+          "tag" : "Element"
+        }, {
+          "background" : "#09326b",
+          "shape" : "Person",
+          "tag" : "Person"
+        }, {
+          "background" : "#2b81e9",
+          "fontSize" : 40,
+          "shape" : "Window",
+          "tag" : "Software System"
+        }, {
+          "background" : "#2b81e9",
+          "fontSize" : 40,
+          "shape" : "RoundedBox",
+          "tag" : "Container"
+        }, {
+          "background" : "#1056ab",
+          "shape" : "Component",
+          "tag" : "Component"
+        }, {
+          "shape" : "Cylinder",
+          "tag" : "Database"
+        }, {
+          "shape" : "Folder",
+          "tag" : "File"
+        }, {
+          "background" : "#88dcaa",
+          "tag" : "newComponent"
+        }, {
+          "background" : "#88dcaa",
+          "shape" : "Cylinder",
+          "tag" : "NewDB"
+        }, {
+          "background" : "#aaaaaa",
+          "tag" : "External"
+        } ],
+        "relationships" : [ {
+          "fontSize" : 35,
+          "tag" : "Relationship"
+        } ]
+      },
+      "terminology" : { }
+    },
+    "containerViews" : [ {
+      "dimensions" : {
+        "height" : 3327,
+        "width" : 3772
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 1980,
+        "y" : 113
+      }, {
+        "id" : "2",
+        "x" : 1675,
+        "y" : 2830
+      }, {
+        "id" : "6",
+        "x" : 1970,
+        "y" : 965
+      }, {
+        "id" : "12",
+        "x" : 2404,
+        "y" : 1833
+      }, {
+        "id" : "16",
+        "x" : 904,
+        "y" : 1833
+      }, {
+        "id" : "18",
+        "x" : 925,
+        "y" : 2333
+      }, {
+        "id" : "19",
+        "x" : 1645,
+        "y" : 1835
+      }, {
+        "id" : "20",
+        "x" : 2395,
+        "y" : 2345
+      }, {
+        "id" : "21",
+        "x" : 3180,
+        "y" : 1830
+      }, {
+        "id" : "23",
+        "x" : 365,
+        "y" : 1454
+      }, {
+        "id" : "27",
+        "x" : 360,
+        "y" : 944
+      }, {
+        "id" : "34",
+        "x" : 365,
+        "y" : 574
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "key" : "D2NL-WalletSystem",
+      "order" : 4,
+      "relationships" : [ {
+        "id" : "124"
+      }, {
+        "id" : "45"
+      }, {
+        "id" : "48"
+      }, {
+        "id" : "50"
+      }, {
+        "id" : "54"
+      }, {
+        "id" : "61",
+        "vertices" : [ {
+          "x" : 1180,
+          "y" : 1730
+        } ]
+      }, {
+        "id" : "65",
+        "vertices" : [ {
+          "x" : 2395,
+          "y" : 1400
+        }, {
+          "x" : 2475,
+          "y" : 1520
+        } ]
+      }, {
+        "id" : "67"
+      }, {
+        "id" : "74"
+      }, {
+        "id" : "77"
+      }, {
+        "id" : "78",
+        "vertices" : [ {
+          "x" : 2135,
+          "y" : 2315
+        }, {
+          "x" : 1525,
+          "y" : 2335
+        } ]
+      }, {
+        "id" : "80",
+        "vertices" : [ {
+          "x" : 1396,
+          "y" : 1110
+        } ]
+      }, {
+        "id" : "83"
+      }, {
+        "id" : "87"
+      }, {
+        "id" : "88",
+        "vertices" : [ {
+          "x" : 100,
+          "y" : 720
+        }, {
+          "x" : 105,
+          "y" : 2485
+        } ]
+      }, {
+        "id" : "97",
+        "vertices" : [ {
+          "x" : 270,
+          "y" : 1425
+        }, {
+          "x" : 270,
+          "y" : 850
+        } ]
+      } ],
+      "softwareSystemId" : "5"
+    }, {
+      "dimensions" : {
+        "height" : 3327,
+        "width" : 3772
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 1980,
+        "y" : 113
+      }, {
+        "id" : "2",
+        "x" : 1675,
+        "y" : 2830
+      }, {
+        "id" : "6",
+        "x" : 1970,
+        "y" : 965
+      }, {
+        "id" : "12",
+        "x" : 2404,
+        "y" : 1833
+      }, {
+        "id" : "16",
+        "x" : 904,
+        "y" : 1833
+      }, {
+        "id" : "18",
+        "x" : 925,
+        "y" : 2333
+      }, {
+        "id" : "19",
+        "x" : 1645,
+        "y" : 1835
+      }, {
+        "id" : "20",
+        "x" : 2395,
+        "y" : 2345
+      }, {
+        "id" : "21",
+        "x" : 3180,
+        "y" : 1830
+      }, {
+        "id" : "23",
+        "x" : 365,
+        "y" : 1454
+      }, {
+        "id" : "27",
+        "x" : 360,
+        "y" : 944
+      }, {
+        "id" : "34",
+        "x" : 365,
+        "y" : 574
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "key" : "E3NL-WalletSystem",
+      "order" : 5,
+      "relationships" : [ {
+        "id" : "124"
+      }, {
+        "id" : "45"
+      }, {
+        "id" : "48"
+      }, {
+        "id" : "50"
+      }, {
+        "id" : "54"
+      }, {
+        "id" : "61",
+        "vertices" : [ {
+          "x" : 1180,
+          "y" : 1730
+        } ]
+      }, {
+        "id" : "65",
+        "vertices" : [ {
+          "x" : 2395,
+          "y" : 1400
+        }, {
+          "x" : 2475,
+          "y" : 1520
+        } ]
+      }, {
+        "id" : "67"
+      }, {
+        "id" : "74"
+      }, {
+        "id" : "77"
+      }, {
+        "id" : "78",
+        "vertices" : [ {
+          "x" : 2135,
+          "y" : 2315
+        }, {
+          "x" : 1525,
+          "y" : 2335
+        } ]
+      }, {
+        "id" : "80",
+        "vertices" : [ {
+          "x" : 1396,
+          "y" : 1110
+        } ]
+      }, {
+        "id" : "83"
+      }, {
+        "id" : "87"
+      }, {
+        "id" : "88",
+        "vertices" : [ {
+          "x" : 100,
+          "y" : 720
+        }, {
+          "x" : 105,
+          "y" : 2485
+        } ]
+      }, {
+        "id" : "97",
+        "vertices" : [ {
+          "x" : 270,
+          "y" : 1425
+        }, {
+          "x" : 270,
+          "y" : 850
+        } ]
+      } ],
+      "softwareSystemId" : "5"
+    }, {
+      "dimensions" : {
+        "height" : 1754,
+        "width" : 1640
+      },
+      "elements" : [ {
+        "id" : "5",
+        "x" : 215,
+        "y" : 635
+      }, {
+        "id" : "24",
+        "x" : 1105,
+        "y" : 635
+      }, {
+        "id" : "26",
+        "x" : 1105,
+        "y" : 1120
+      }, {
+        "id" : "27",
+        "x" : 220,
+        "y" : 1219
+      }, {
+        "id" : "34",
+        "x" : 180,
+        "y" : 90
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "key" : "FRelyingParty",
+      "order" : 6,
+      "relationships" : [ {
+        "id" : "122"
+      }, {
+        "id" : "136"
+      }, {
+        "id" : "51"
+      }, {
+        "id" : "53",
+        "vertices" : [ {
+          "x" : 595,
+          "y" : 1069
+        } ]
+      }, {
+        "id" : "76"
+      }, {
+        "id" : "82",
+        "vertices" : [ {
+          "x" : 295,
+          "y" : 1069
+        } ]
+      }, {
+        "id" : "89",
+        "vertices" : [ {
+          "x" : 265,
+          "y" : 505
+        } ]
+      }, {
+        "id" : "95"
+      } ],
+      "softwareSystemId" : "23"
+    }, {
+      "dimensions" : {
+        "height" : 2331,
+        "width" : 2895
+      },
+      "elements" : [ {
+        "id" : "4",
+        "x" : 405,
+        "y" : 800
+      }, {
+        "id" : "5",
+        "x" : 1294,
+        "y" : 225
+      }, {
+        "id" : "23",
+        "x" : 1935,
+        "y" : 210
+      }, {
+        "id" : "28",
+        "x" : 1275,
+        "y" : 855
+      }, {
+        "id" : "31",
+        "x" : 1950,
+        "y" : 1425
+      }, {
+        "id" : "32",
+        "x" : 1280,
+        "y" : 1470
+      }, {
+        "id" : "33",
+        "x" : 1945,
+        "y" : 860
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "key" : "JD4IssuerSoftwareSystem",
+      "order" : 10,
+      "relationships" : [ {
+        "id" : "120"
+      }, {
+        "id" : "123"
+      }, {
+        "id" : "126"
+      }, {
+        "id" : "128"
+      }, {
+        "id" : "131"
+      }, {
+        "id" : "134"
+      }, {
+        "id" : "52"
+      }, {
+        "id" : "81"
+      } ],
+      "softwareSystemId" : "27"
+    }, {
+      "dimensions" : {
+        "height" : 3738,
+        "width" : 3400
+      },
+      "elements" : [ {
+        "id" : "3",
+        "x" : 475,
+        "y" : 1235
+      }, {
+        "id" : "5",
+        "x" : 1158,
+        "y" : 646
+      }, {
+        "id" : "23",
+        "x" : 2393,
+        "y" : 636
+      }, {
+        "id" : "35",
+        "x" : 1198,
+        "y" : 1316
+      }, {
+        "id" : "38",
+        "x" : 2450,
+        "y" : 1790
+      }, {
+        "id" : "39",
+        "x" : 2428,
+        "y" : 1296
+      }, {
+        "id" : "40",
+        "x" : 1845,
+        "y" : 2190
+      }, {
+        "id" : "41",
+        "x" : 1225,
+        "y" : 2175
+      }, {
+        "id" : "42",
+        "x" : 1885,
+        "y" : 2735
+      }, {
+        "id" : "43",
+        "x" : 1230,
+        "y" : 2745
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "key" : "KD4PID_IssuerSoftwareSystem",
+      "order" : 11,
+      "relationships" : [ {
+        "id" : "102"
+      }, {
+        "id" : "104",
+        "vertices" : [ {
+          "x" : 1714,
+          "y" : 1571
+        } ]
+      }, {
+        "id" : "107"
+      }, {
+        "id" : "108"
+      }, {
+        "id" : "109"
+      }, {
+        "id" : "113"
+      }, {
+        "id" : "115"
+      }, {
+        "id" : "52"
+      }, {
+        "id" : "75",
+        "vertices" : [ {
+          "x" : 255,
+          "y" : 785
+        }, {
+          "x" : 280,
+          "y" : 2330
+        } ]
+      }, {
+        "id" : "93"
+      }, {
+        "id" : "96"
+      }, {
+        "id" : "99"
+      } ],
+      "softwareSystemId" : "34"
+    } ],
+    "dynamicViews" : [ {
+      "dimensions" : {
+        "height" : 1712,
+        "width" : 1820
+      },
+      "elementId" : "5",
+      "elements" : [ {
+        "id" : "1",
+        "x" : 1310,
+        "y" : 730
+      }, {
+        "id" : "6",
+        "x" : 433,
+        "y" : 329
+      }, {
+        "id" : "12",
+        "x" : 455,
+        "y" : 1300
+      } ],
+      "externalBoundariesVisible" : false,
+      "generatedKey" : true,
+      "key" : "Dynamic-001",
+      "order" : 15,
+      "paperSize" : "A5_Landscape",
+      "relationships" : [ {
+        "description" : "Disclose recovery code (after Activate new Wallet)",
+        "id" : "65",
+        "order" : "1",
+        "response" : false,
+        "vertices" : [ {
+          "x" : 505,
+          "y" : 790
+        } ]
+      }, {
+        "description" : "Recovery possible (y/n)",
+        "id" : "65",
+        "order" : "2",
+        "response" : true,
+        "vertices" : [ {
+          "x" : 808,
+          "y" : 804
+        } ]
+      }, {
+        "description" : "Recover? (if possible)",
+        "id" : "45",
+        "order" : "3",
+        "response" : true,
+        "vertices" : [ {
+          "x" : 1020,
+          "y" : 850
+        } ]
+      }, {
+        "description" : "Yes Proceed with recovery",
+        "id" : "45",
+        "order" : "4",
+        "response" : false,
+        "vertices" : [ {
+          "x" : 1125,
+          "y" : 691
+        } ]
+      }, {
+        "id" : "65",
+        "order" : "5",
+        "response" : false,
+        "vertices" : [ {
+          "x" : 245,
+          "y" : 935
+        } ]
+      } ],
+      "title" : "Wallet Migration"
+    } ],
+    "systemContextViews" : [ {
+      "dimensions" : {
+        "height" : 1753,
+        "width" : 2285
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 199,
+        "y" : 493
+      }, {
+        "id" : "5",
+        "x" : 814,
+        "y" : 578
+      }, {
+        "id" : "23",
+        "x" : 1634,
+        "y" : 1218
+      }, {
+        "id" : "27",
+        "x" : 1190,
+        "y" : 85
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "key" : "AD1NL-Wallet",
+      "order" : 1,
+      "relationships" : [ {
+        "id" : "124"
+      }, {
+        "id" : "44"
+      }, {
+        "id" : "52"
+      }, {
+        "id" : "53",
+        "vertices" : [ {
+          "x" : 1375,
+          "y" : 387
+        } ]
+      }, {
+        "id" : "82",
+        "vertices" : [ {
+          "x" : 1512,
+          "y" : 655
+        } ]
+      } ],
+      "softwareSystemId" : "5"
+    }, {
+      "dimensions" : {
+        "height" : 1935,
+        "width" : 1766
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 1120,
+        "y" : 165
+      }, {
+        "id" : "5",
+        "x" : 1115,
+        "y" : 815
+      }, {
+        "id" : "23",
+        "x" : 1114,
+        "y" : 1400
+      }, {
+        "id" : "34",
+        "x" : 199,
+        "y" : 805
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "key" : "B1PID-Issuer",
+      "order" : 2,
+      "relationships" : [ {
+        "id" : "44"
+      }, {
+        "id" : "52"
+      }, {
+        "id" : "76"
+      }, {
+        "id" : "89",
+        "vertices" : [ {
+          "x" : 1013,
+          "y" : 1117
+        } ]
+      }, {
+        "id" : "97"
+      } ],
+      "softwareSystemId" : "5"
+    }, {
+      "dimensions" : {
+        "height" : 2816,
+        "width" : 2366
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 65,
+        "y" : 1410
+      }, {
+        "id" : "5",
+        "x" : 945,
+        "y" : 1455
+      }, {
+        "id" : "23",
+        "x" : 1805,
+        "y" : 1450
+      }, {
+        "id" : "27",
+        "x" : 940,
+        "y" : 2100
+      }, {
+        "id" : "34",
+        "x" : 935,
+        "y" : 750
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "key" : "C2NL-Wallet",
+      "order" : 3,
+      "relationships" : [ {
+        "id" : "124"
+      }, {
+        "id" : "44"
+      }, {
+        "id" : "52"
+      }, {
+        "id" : "53",
+        "vertices" : [ {
+          "x" : 1317,
+          "y" : 1928
+        } ]
+      }, {
+        "id" : "76"
+      }, {
+        "id" : "82",
+        "vertices" : [ {
+          "x" : 1017,
+          "y" : 1926
+        } ]
+      }, {
+        "id" : "89",
+        "vertices" : [ {
+          "x" : 935,
+          "y" : 1245
+        } ]
+      }, {
+        "id" : "97"
+      } ],
+      "softwareSystemId" : "5"
+    }, {
+      "dimensions" : {
+        "height" : 1345,
+        "width" : 2390
+      },
+      "elements" : [ {
+        "id" : "4",
+        "x" : 199,
+        "y" : 165
+      }, {
+        "id" : "5",
+        "x" : 873,
+        "y" : 810
+      }, {
+        "id" : "23",
+        "x" : 1739,
+        "y" : 810
+      }, {
+        "id" : "27",
+        "x" : 873,
+        "y" : 210
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "key" : "ID3IssuerSoftwareSystem",
+      "order" : 9,
+      "relationships" : [ {
+        "id" : "124"
+      }, {
+        "id" : "132"
+      }, {
+        "id" : "52"
+      }, {
+        "id" : "53",
+        "vertices" : [ {
+          "x" : 948,
+          "y" : 660
+        } ]
+      }, {
+        "id" : "82",
+        "vertices" : [ {
+          "x" : 1248,
+          "y" : 660
+        } ]
+      } ],
+      "softwareSystemId" : "27"
+    } ]
+  }
+}
