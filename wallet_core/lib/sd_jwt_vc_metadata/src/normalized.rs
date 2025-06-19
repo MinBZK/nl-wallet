@@ -194,13 +194,7 @@ impl NormalizedTypeMetadata {
     pub fn claim_key_paths(&self) -> Vec<VecNonEmpty<&str>> {
         self.claims
             .iter()
-            .map(|claim| {
-                claim
-                    .path
-                    .iter()
-                    .filter_map(|path| path.try_key_path())
-                    .collect::<Vec<_>>()
-            })
+            .map(|claim| claim.path.iter().filter_map(|path| path.try_key_path()).collect_vec())
             .filter_map(|key_path| VecNonEmpty::try_from(key_path).ok())
             .collect()
     }

@@ -196,12 +196,8 @@ impl Attributes {
 
         if keys.len() == 1 {
             if let Some(entries) = attributes.get_mut(prefix) {
-                if let Err(error) = Self::insert_entry(keys[0], entries, result) {
-                    return Err(AttributesError::AttributeError(
-                        format!("{}.{}", prefix, keys[0]),
-                        error,
-                    ));
-                }
+                Self::insert_entry(keys[0], entries, result)
+                    .map_err(|error| AttributesError::AttributeError(format!("{}.{}", prefix, keys[0]), error))?;
 
                 if entries.is_empty() {
                     attributes.swap_remove(prefix);
@@ -266,7 +262,7 @@ impl Attributes {
     pub fn to_mdoc_attributes(self, attestation_type: &str) -> IndexMap<NameSpace, Vec<Entry>> {
         let mut result = IndexMap::new();
         for (path, attribute) in self.flattened() {
-            let mut prefix: Vec<&str> = [attestation_type].iter().chain(path.iter()).copied().collect();
+            let mut prefix: Vec<&str> = std::iter::once(attestation_type).chain(path.iter().copied()).collect();
             // path is non-empty so it has at least one element
             let name = prefix.pop().unwrap().to_string();
             result
