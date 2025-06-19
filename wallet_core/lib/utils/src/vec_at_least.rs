@@ -97,6 +97,12 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
     }
 }
 
+impl<T, const N: usize> VecAtLeastN<T, N, false> {
+    pub fn insert(&mut self, index: usize, element: T) {
+        self.0.insert(index, element);
+    }
+}
+
 /// Should be used as the constructor for types where the uniqueness constraint is set.
 impl<T, const N: usize> TryFrom<Vec<T>> for VecAtLeastN<T, N, false> {
     type Error = VecAtLeastNError;

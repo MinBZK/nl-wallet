@@ -94,10 +94,9 @@ impl<H: Hasher> SdJwtBuilder<H> {
     /// * [`Error::InvalidPath`] if pointer is invalid.
     /// * [`Error::DataTypeMismatch`] if existing SD format is invalid.
     pub fn make_concealable(mut self, path: &str) -> Result<Self> {
-        if let Some(disclosure) = self.encoder.conceal(path)? {
-            self.disclosures
-                .insert(self.encoder.hasher.encoded_digest(disclosure.as_str()), disclosure);
-        }
+        let disclosure = self.encoder.conceal(path)?;
+        self.disclosures
+            .insert(self.encoder.hasher.encoded_digest(disclosure.as_str()), disclosure);
 
         Ok(self)
     }
@@ -217,19 +216,19 @@ mod test {
                 use super::*;
 
                 #[test]
-                fn returns_self_for_nonexistant_object_paths() {
-                    SdJwtBuilder::new(json!({}))
-                        .unwrap()
-                        .make_concealable("/email")
-                        .expect("optional attributes are allowed");
+                fn returns_an_error_for_nonexistant_object_paths() {
+                    let result = SdJwtBuilder::new(json!({})).unwrap().make_concealable("/email");
+
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/email");
                 }
 
                 #[test]
-                fn returns_self_for_nonexistant_array_paths() {
-                    SdJwtBuilder::new(json!({}))
+                fn returns_an_error_for_nonexistant_array_paths() {
+                    let result = SdJwtBuilder::new(json!({}))
                         .unwrap()
-                        .make_concealable("/nationalities/0")
-                        .expect("optional attributes are allowed");
+                        .make_concealable("/nationalities/0");
+
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/nationalities/0");
                 }
 
                 #[test]
@@ -248,23 +247,25 @@ mod test {
                 use super::*;
 
                 #[test]
-                fn returns_self_for_nonexistant_object_paths() {
-                    SdJwtBuilder::new(json!({
+                fn returns_an_error_for_nonexistant_object_paths() {
+                    let result = SdJwtBuilder::new(json!({
                       "address": {}
                     }))
                     .unwrap()
-                    .make_concealable("/address/region")
-                    .expect("optional attributes are allowed");
+                    .make_concealable("/address/region");
+
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/region");
                 }
 
                 #[test]
-                fn returns_self_for_nonexistant_array_paths() {
-                    SdJwtBuilder::new(json!({
+                fn returns_an_error_for_nonexistant_array_paths() {
+                    let result = SdJwtBuilder::new(json!({
                       "address": {}
                     }))
                     .unwrap()
-                    .make_concealable("/address/contact_person/2")
-                    .expect("optional attributes are allowed");
+                    .make_concealable("/address/contact_person/2");
+
+                    assert_matches!(result, Err(Error::InvalidPath(path)) if path == "/address/contact_person/2");
                 }
 
                 #[test]

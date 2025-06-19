@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
+use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
@@ -275,10 +276,43 @@ impl Attributes {
         }
         result
     }
+
+    pub fn claim_paths(&self) -> Vec<VecNonEmpty<ClaimPath>> {
+        /// Recursive depth first traversal helper to collect all claim paths from nested attributes.
+        ///
+        /// Depth first is necessary because the SD-JWT conceal functionality for leaves doesn't work properly if the
+        /// parent node is already concealed (and therefore not present anymore in the resulting claims).
+        ///
+        /// - `prefix` is the path to the current level
+        /// - `attrs` are the attributes at the current nesting level
+        /// - `result` is a running collection of all full paths (deepest-first)
+        fn traverse_depth_first(
+            prefix: &[ClaimPath],
+            attrs: &IndexMap<String, Attribute>,
+            result: &mut Vec<VecNonEmpty<ClaimPath>>,
+        ) {
+            for (key, attr) in attrs {
+                let mut path = prefix.to_vec();
+                path.push(ClaimPath::SelectByKey(key.clone()));
+
+                // If it's a nested attribute, recurse deeper first
+                if let Attribute::Nested(nested) = attr {
+                    traverse_depth_first(&path, nested, result);
+                }
+
+                // Push current path after children have been processed (post-order)
+                result.push(VecNonEmpty::try_from(path).unwrap());
+            }
+        }
+
+        let mut result = Vec::new();
+        traverse_depth_first(&[], self.as_ref(), &mut result);
+        result
+    }
 }
 
 #[cfg(test)]
-mod test {
+pub mod test {
     use assert_matches::assert_matches;
     use indexmap::IndexMap;
     use serde_json::json;
@@ -293,6 +327,48 @@ mod test {
     use crate::attributes::AttributeValue;
     use crate::attributes::Attributes;
     use crate::attributes::AttributesError;
+
+    pub fn complex_attributes() -> IndexMap<String, Attribute> {
+        IndexMap::from([
+            (
+                String::from("birth_date"),
+                Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
+            ),
+            (
+                String::from("place_of_birth"),
+                Attribute::Nested(IndexMap::from([
+                    (
+                        String::from("locality"),
+                        Attribute::Single(AttributeValue::Text(String::from("The Hague"))),
+                    ),
+                    (
+                        String::from("country"),
+                        Attribute::Nested(IndexMap::from([
+                            (
+                                String::from("name"),
+                                Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
+                            ),
+                            (
+                                String::from("area_code"),
+                                Attribute::Single(AttributeValue::Integer(33)),
+                            ),
+                        ])),
+                    ),
+                ])),
+            ),
+            (
+                String::from("financial"),
+                Attribute::Nested(IndexMap::from([
+                    (String::from("has_debt"), Attribute::Single(AttributeValue::Bool(true))),
+                    (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
+                    (
+                        String::from("debt_amount"),
+                        Attribute::Single(AttributeValue::Integer(-10_000)),
+                    ),
+                ])),
+            ),
+        ])
+    }
 
     #[test]
     fn test_traverse_groups() {
@@ -739,5 +815,123 @@ mod test {
 
         let result = example_attributes().validate(&type_metadata);
         assert_matches!(result, Err(AttributesError::AttributesWithoutClaim(message)) if message == vec![vec!["country", "area_code"]]);
+    }
+
+    mod test_claim_paths_from_attributes {
+        use sd_jwt_vc_metadata::ClaimPath;
+        use utils::vec_at_least::VecNonEmpty;
+
+        use super::*;
+
+        #[test]
+        fn single_attribute_should_return_correct_claimpaths() {
+            let result: Attributes = IndexMap::from([(
+                String::from("a"),
+                Attribute::Single(AttributeValue::Text(String::from("1234"))),
+            )])
+            .into();
+
+            let expected: Vec<VecNonEmpty<_>> =
+                vec![VecNonEmpty::try_from(vec![ClaimPath::SelectByKey(String::from("a"))]).unwrap()];
+
+            assert_eq!(result.claim_paths(), expected);
+        }
+
+        #[test]
+        fn nested_attribute_should_return_correct_claimpaths() {
+            let result: Attributes = IndexMap::from([
+                (
+                    String::from("b"),
+                    Attribute::Single(AttributeValue::Text(String::from("1234"))),
+                ),
+                (
+                    String::from("a"),
+                    Attribute::Nested(IndexMap::from([(
+                        String::from("a1"),
+                        Attribute::Nested(IndexMap::from([
+                            (
+                                String::from("a2"),
+                                Attribute::Single(AttributeValue::Text(String::from("1234"))),
+                            ),
+                            (
+                                String::from("a3"),
+                                Attribute::Single(AttributeValue::Text(String::from("1234"))),
+                            ),
+                        ])),
+                    )])),
+                ),
+            ])
+            .into();
+
+            let expected: Vec<VecNonEmpty<_>> = vec![
+                vec![ClaimPath::SelectByKey(String::from("b"))],
+                vec![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("a1")),
+                    ClaimPath::SelectByKey(String::from("a2")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("a1")),
+                    ClaimPath::SelectByKey(String::from("a3")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("a")),
+                    ClaimPath::SelectByKey(String::from("a1")),
+                ],
+                vec![ClaimPath::SelectByKey(String::from("a"))],
+            ]
+            .into_iter()
+            .map(|v| VecNonEmpty::try_from(v).unwrap())
+            .collect();
+
+            assert_eq!(result.claim_paths(), expected);
+        }
+
+        #[test]
+        fn test_complex() {
+            let result: Attributes = complex_attributes().into();
+
+            let expected: Vec<VecNonEmpty<_>> = vec![
+                vec![ClaimPath::SelectByKey(String::from("birth_date"))],
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("locality")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("name")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                    ClaimPath::SelectByKey(String::from("area_code")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("place_of_birth")),
+                    ClaimPath::SelectByKey(String::from("country")),
+                ],
+                vec![ClaimPath::SelectByKey(String::from("place_of_birth"))],
+                vec![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_debt")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("has_job")),
+                ],
+                vec![
+                    ClaimPath::SelectByKey(String::from("financial")),
+                    ClaimPath::SelectByKey(String::from("debt_amount")),
+                ],
+                vec![ClaimPath::SelectByKey(String::from("financial"))],
+            ]
+            .into_iter()
+            .map(|v| VecNonEmpty::try_from(v).unwrap())
+            .collect();
+
+            assert_eq!(result.claim_paths(), expected);
+        }
     }
 }

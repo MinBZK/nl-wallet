@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use indexmap::IndexMap;
 use jsonwebtoken::Algorithm;
 use p256::ecdsa::VerifyingKey;
@@ -22,6 +24,7 @@ use mdoc::NameSpace;
 use sd_jwt::builder::SdJwtBuilder;
 use sd_jwt::key_binding_jwt_claims::RequiredKeyBinding;
 use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt_vc_metadata::claim_paths_to_json_path;
 use sd_jwt_vc_metadata::ClaimSelectiveDisclosureMetadata;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataError;
@@ -77,6 +80,9 @@ pub struct CredentialPayload {
     /// Contains the integrity digest of the type metadata document of this `vct`.
     #[serde(rename = "vct#integrity")]
     pub vct_integrity: Integrity,
+
+    /// The information on how to read the status of the Verifiable Credential.
+    pub status: Option<serde_json::Value>,
 
     #[serde(flatten)]
     pub previewable_payload: PreviewableCredentialPayload,
@@ -191,6 +197,7 @@ impl IntoCredentialPayload for MdocParts {
             vct_integrity: mso
                 .type_metadata_integrity
                 .ok_or(MdocCredentialPayloadError::MissingMetadataIntegrity)?,
+            status: None,
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: mso.doc_type,
                 issuer: mso.issuer_uri.ok_or(MdocCredentialPayloadError::MissingIssuerUri)?,
@@ -221,6 +228,7 @@ impl CredentialPayload {
             issued_at,
             confirmation_key: RequiredKeyBinding::Jwk(jwk_from_p256(holder_pubkey)?),
             vct_integrity: metadata_integrity,
+            status: None,
             previewable_payload,
         };
 
@@ -235,20 +243,34 @@ impl CredentialPayload {
         issuer_key: &KeyPair<impl EcdsaKeySend>,
     ) -> Result<SdJwt, SdJwtCredentialPayloadError> {
         let vct_integrity = self.vct_integrity.clone();
-        // TODO: conceal using attributes instead of from metadata (PVW-4508)
-        let sd_jwt = type_metadata
+
+        let sd_by_claims = type_metadata
             .claims()
             .iter()
-            .try_fold(SdJwtBuilder::new(self)?, |builder, claim| match claim.sd {
-                ClaimSelectiveDisclosureMetadata::Always | ClaimSelectiveDisclosureMetadata::Allowed => {
-                    let json_path = claim
-                        .to_json_path()
-                        .map_err(SdJwtCredentialPayloadError::ClaimPathConversion)?;
-                    builder
-                        .make_concealable(&json_path)
-                        .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
+            .map(|claim| (&claim.path, claim.sd))
+            .collect::<HashMap<_, _>>();
+
+        let sd_jwt = self
+            .previewable_payload
+            .attributes
+            .claim_paths()
+            .iter()
+            .try_fold(SdJwtBuilder::new(self)?, |builder, claims| {
+                let should_be_selectively_discloseable = match sd_by_claims.get(&claims) {
+                    Some(sd) => !matches!(sd, ClaimSelectiveDisclosureMetadata::Never),
+                    None => true,
+                };
+
+                if !should_be_selectively_discloseable {
+                    return Ok(builder);
                 }
-                ClaimSelectiveDisclosureMetadata::Never => Ok(builder),
+
+                let json_path =
+                    claim_paths_to_json_path(claims).map_err(SdJwtCredentialPayloadError::ClaimPathConversion)?;
+
+                builder
+                    .make_concealable(&json_path)
+                    .map_err(SdJwtCredentialPayloadError::SdJwtCreation)
             })?
             .finish(
                 Algorithm::ES256,
@@ -292,6 +314,7 @@ mod examples {
                 issued_at: now.into(),
                 confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
                 vct_integrity: Integrity::from(""),
+                status: None,
                 previewable_payload: PreviewableCredentialPayload {
                     attestation_type: String::from("urn:eudi:pid:nl:1"),
                     issuer: "https://cert.issuer.example.com".parse().unwrap(),
@@ -362,7 +385,6 @@ mod test {
     use chrono::TimeZone;
     use chrono::Utc;
     use futures::FutureExt;
-    use indexmap::IndexMap;
     use jsonwebtoken::Algorithm;
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
@@ -381,7 +403,7 @@ mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
-    use crate::attributes::Attribute;
+    use crate::attributes::test::complex_attributes;
     use crate::attributes::AttributeValue;
     use crate::auth::issuer_auth::IssuerRegistration;
     use crate::credential_payload::IntoCredentialPayload;
@@ -399,52 +421,14 @@ mod test {
             issued_at: Utc.with_ymd_and_hms(1970, 1, 1, 0, 1, 1).unwrap().into(),
             confirmation_key: RequiredKeyBinding::Jwk(confirmation_key.clone()),
             vct_integrity: Integrity::from(""),
+            status: None,
             previewable_payload: PreviewableCredentialPayload {
                 attestation_type: String::from("com.example.pid"),
                 issuer: "https://com.example.org/pid/issuer".parse().unwrap(),
                 expires: None,
                 not_before: None,
                 attestation_qualification: "QEAA".parse().unwrap(),
-                attributes: IndexMap::from([
-                    (
-                        String::from("birth_date"),
-                        Attribute::Single(AttributeValue::Text(String::from("1963-08-12"))),
-                    ),
-                    (
-                        String::from("place_of_birth"),
-                        Attribute::Nested(IndexMap::from([
-                            (
-                                String::from("locality"),
-                                Attribute::Single(AttributeValue::Text(String::from("The Hague"))),
-                            ),
-                            (
-                                String::from("country"),
-                                Attribute::Nested(IndexMap::from([
-                                    (
-                                        String::from("name"),
-                                        Attribute::Single(AttributeValue::Text(String::from("The Netherlands"))),
-                                    ),
-                                    (
-                                        String::from("area_code"),
-                                        Attribute::Single(AttributeValue::Integer(33)),
-                                    ),
-                                ])),
-                            ),
-                        ])),
-                    ),
-                    (
-                        String::from("financial"),
-                        Attribute::Nested(IndexMap::from([
-                            (String::from("has_debt"), Attribute::Single(AttributeValue::Bool(true))),
-                            (String::from("has_job"), Attribute::Single(AttributeValue::Bool(false))),
-                            (
-                                String::from("debt_amount"),
-                                Attribute::Single(AttributeValue::Integer(-10_000)),
-                            ),
-                        ])),
-                    ),
-                ])
-                .into(),
+                attributes: complex_attributes().into(),
             },
         };
 
