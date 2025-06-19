@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use std::num::TryFromIntError;
 
 use derive_more::AsRef;
@@ -88,9 +87,9 @@ impl Attributes {
     /// Returns a flattened view of the attribute values
     pub fn flattened(&self) -> IndexMap<VecNonEmpty<&str>, &AttributeValue> {
         let mut result = IndexMap::with_capacity(self.0.len());
-        let mut to_process: VecDeque<(Vec<&str>, &IndexMap<String, Attribute>)> = VecDeque::from([(vec![], &self.0)]);
+        let mut to_process = Vec::from([(vec![], &self.0)]);
 
-        while let Some((prefix, attributes)) = to_process.pop_front() {
+        while let Some((prefix, attributes)) = to_process.pop() {
             let to_add = attributes.iter().filter_map(|(name, attribute)| {
                 let path = prefix.iter().copied().chain([name.as_str()]).collect_vec();
                 match attribute {
@@ -104,7 +103,7 @@ impl Attributes {
             });
 
             // Push items in reverse to front to maintain order
-            to_add.rev().for_each(|item| to_process.push_front(item))
+            to_add.rev().for_each(|item| to_process.push(item))
         }
         result
     }
