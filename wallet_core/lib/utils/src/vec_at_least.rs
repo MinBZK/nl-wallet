@@ -31,7 +31,7 @@ pub type VecAtLeastTwoUnique<T> = VecAtLeastN<T, 2, true>;
 /// Newtype for a [`Vec<T>`] that contains at least `N` values, with optional uniqueness validation.
 /// For convenience, a number of common use cases have been defined as type aliases. Note that a
 /// type with an `N` value of 0 is not valid and will cause a runtime panic when constructed.
-#[derive(Debug, Clone, PartialEq, Eq, Index, IntoIterator, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Index, IntoIterator, Serialize, Deserialize)]
 pub struct VecAtLeastN<T, const N: usize, const UNIQUE: bool>(Vec<T>);
 
 impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
@@ -94,6 +94,12 @@ impl<T, const N: usize, const UNIQUE: bool> VecAtLeastN<T, N, UNIQUE> {
 
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.0.iter()
+    }
+}
+
+impl<T, const N: usize> VecAtLeastN<T, N, false> {
+    pub fn insert(&mut self, index: usize, element: T) {
+        self.0.insert(index, element);
     }
 }
 
