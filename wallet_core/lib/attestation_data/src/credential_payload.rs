@@ -403,9 +403,9 @@ mod test {
     use sd_jwt_vc_metadata::NormalizedTypeMetadata;
     use sd_jwt_vc_metadata::UncheckedTypeMetadata;
 
+    use crate::attributes::test::complex_attributes;
     use crate::attributes::AttributeValue;
     use crate::auth::issuer_auth::IssuerRegistration;
-    use crate::complex_attributes;
     use crate::credential_payload::IntoCredentialPayload;
     use crate::credential_payload::SdJwtCredentialPayloadError;
     use crate::x509::CertificateType;
