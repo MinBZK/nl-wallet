@@ -208,7 +208,6 @@ impl TestDocument {
     }
 
     /// Signs this TestDocument into an [`Mdoc`] using `ca` and `key`.
-    /// NOTE: This code is not production quality, it's filled with unsafe unwraps.
     pub async fn sign<KEY>(self, ca: &Ca, device_key: &KEY) -> Mdoc
     where
         KEY: CredentialEcdsaKey,
@@ -228,7 +227,6 @@ impl TestDocument {
     }
 
     /// Generates an `IssuerSigned` for this `TestDocument`.
-    /// NOTE: This code is not production quality, it's filled with unsafe unwraps.
     pub async fn issuer_signed<KEY>(self, ca: &Ca, device_key: &KEY, now: chrono::DateTime<Utc>) -> IssuerSigned
     where
         KEY: CredentialEcdsaKey,

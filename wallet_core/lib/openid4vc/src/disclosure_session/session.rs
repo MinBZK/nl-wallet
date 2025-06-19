@@ -477,7 +477,6 @@ mod tests {
     use mdoc::identifiers::AttributeIdentifier;
     use mdoc::identifiers::AttributeIdentifierHolder;
     use mdoc::utils::cose::ClonePayload;
-    use mdoc::utils::serialization::cbor_deserialize;
     use mdoc::utils::serialization::cbor_serialize;
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::CborSeq;
@@ -634,18 +633,11 @@ mod tests {
             .proposed_documents
             .iter()
             .map(|proposed_document| {
-                // Can't use MdocCose::dangerous_parse_unverified() here as it is private
-                let TaggedBytes(mso): TaggedBytes<MobileSecurityObject> = cbor_deserialize(
-                    proposed_document
-                        .issuer_signed
-                        .issuer_auth
-                        .0
-                        .payload
-                        .as_ref()
-                        .unwrap()
-                        .as_slice(),
-                )
-                .unwrap();
+                let TaggedBytes(mso): TaggedBytes<MobileSecurityObject> = proposed_document
+                    .issuer_signed
+                    .issuer_auth
+                    .dangerous_parse_unverified()
+                    .unwrap();
 
                 (&mso.device_key_info.device_key).try_into().unwrap()
             })

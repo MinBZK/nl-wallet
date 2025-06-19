@@ -38,7 +38,7 @@ pub type NameSpace = String;
 
 /// An attribute name and value.
 ///
-/// See also [`IssuerSignedItem`](super::IssuerSignedItem), which additionally contains the attribute's `random` and
+/// See also [`IssuerSignedItem`], which additionally contains the attribute's `random` and
 /// `digestID`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Entry {

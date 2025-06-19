@@ -34,15 +34,6 @@ pub struct DeviceRequest {
     pub return_url: Option<Url>,
 }
 
-impl AttributeIdentifierHolder for DeviceRequest {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.doc_requests
-            .iter()
-            .flat_map(|doc_request| doc_request.items_request.0.attribute_identifiers())
-            .collect()
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug, Clone, Default, PartialEq, Eq)]
 pub enum DeviceRequestVersion {
     #[default]
