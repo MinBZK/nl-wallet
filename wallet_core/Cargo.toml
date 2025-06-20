@@ -183,7 +183,6 @@ serde-aux = "4.5.0"
 serde_bytes = "0.11.15"
 serde_json = { version = "1.0.138", default-features = false }
 serde_repr = "0.1.19"
-serde_tuple = "1.1.0"
 serde_urlencoded = "0.7.1"
 serde_valid = "1.0.5"
 serde_with = "3.12.0"

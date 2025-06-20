@@ -3,15 +3,15 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use indexmap::IndexMap;
+use itertools::Itertools;
 
+use attestation_data::disclosure::DocumentDisclosedAttributes;
 use attestation_data::issuable_document::IssuableDocument;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::PinnedReqwestClient;
 use http_utils::reqwest::ReqwestClientUrl;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use itertools::Itertools;
-use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::credential::CredentialOffer;
 use openid4vc::credential::CredentialOfferContainer;
 use openid4vc::credential::GrantPreAuthorizedCode;
@@ -189,9 +189,10 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
+    use attestation_data::disclosure::DisclosedAttributes;
+    use attestation_data::disclosure::DocumentDisclosedAttributes;
+    use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
-    use mdoc::verifier::DocumentDisclosedAttributes;
-    use mdoc::ValidityInfo;
     use openid4vc::credential::CredentialOffer;
     use openid4vc::issuer::AttestationTypeConfig;
     use openid4vc::issuer::IssuanceData;
@@ -215,14 +216,13 @@ mod tests {
         IndexMap::from([(
             attestation_type,
             DocumentDisclosedAttributes {
-                attributes: IndexMap::new(),
+                attributes: DisclosedAttributes::Mdoc(IndexMap::new()),
                 issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "ca".to_string(),
                 validity_info: ValidityInfo {
-                    signed: Utc::now().into(),
-                    valid_from: Utc::now().into(),
-                    valid_until: Utc::now().into(),
-                    expected_update: None,
+                    signed: Utc::now(),
+                    valid_from: Utc::now(),
+                    valid_until: Utc::now(),
                 },
             },
         )])

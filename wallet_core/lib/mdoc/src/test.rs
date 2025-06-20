@@ -34,7 +34,7 @@ use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
-use crate::verifier::DisclosedAttributes;
+use crate::verifier::DisclosedDocuments;
 use crate::verifier::DocumentDisclosedAttributes;
 use crate::verifier::ItemsRequests;
 use crate::DigestAlgorithm;
@@ -125,7 +125,7 @@ fn remove_whitespace(s: &str) -> String {
 /// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
 /// and that the first attribute in that namespace has the specified name and value.
 pub fn assert_disclosure_contains(
-    disclosed_attrs: &DisclosedAttributes,
+    disclosed_attrs: &DisclosedDocuments,
     doctype: &str,
     namespace: &str,
     name: &str,

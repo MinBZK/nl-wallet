@@ -32,6 +32,8 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
+use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::disclosure::DocumentDisclosedAttributes;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
@@ -40,8 +42,6 @@ use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use jwt::Jwt;
-use mdoc::verifier::DisclosedAttributes;
-use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use utils::generator::Generator;
 
@@ -233,7 +233,7 @@ pub struct Done {
 #[serde(rename_all = "UPPERCASE", tag = "status")]
 enum SessionResult {
     Done {
-        disclosed_attributes: DisclosedAttributes,
+        disclosed_attributes: DisclosedAttestations,
         redirect_uri_nonce: Option<String>,
     },
     Failed {
@@ -1080,7 +1080,7 @@ where
         &self,
         session_token: &SessionToken,
         redirect_uri_nonce: Option<String>,
-    ) -> Result<DisclosedAttributes, DisclosedAttributesError> {
+    ) -> Result<DisclosedAttestations, DisclosedAttributesError> {
         let disclosure_data = session_or_error(self.sessions.as_ref(), session_token).await?.data;
 
         match disclosure_data {
@@ -1487,7 +1487,7 @@ impl Session<WaitingForResponse> {
         }
     }
 
-    fn transition_finish(self, disclosed_attributes: DisclosedAttributes, nonce: Option<String>) -> Session<Done> {
+    fn transition_finish(self, disclosed_attributes: DisclosedAttestations, nonce: Option<String>) -> Session<Done> {
         self.transition(Done {
             session_result: SessionResult::Done {
                 disclosed_attributes,

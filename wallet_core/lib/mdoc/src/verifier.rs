@@ -9,8 +9,6 @@ use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::serde_as;
-use serde_with::FromInto;
-use serde_with::IfIsHumanReadable;
 use tracing::debug;
 use tracing::warn;
 
@@ -27,24 +25,22 @@ use crate::utils::crypto::cbor_digest;
 use crate::utils::crypto::dh_hmac_key;
 use crate::utils::serialization::cbor_serialize;
 use crate::utils::serialization::CborSeq;
-use crate::utils::serialization::JsonCborValue;
 use crate::utils::serialization::TaggedBytes;
 use crate::Result;
 
 /// Attributes of an mdoc that was disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone)]
 pub struct DocumentDisclosedAttributes {
-    #[serde_as(as = "IfIsHumanReadable<IndexMap<_, IndexMap<_, FromInto<JsonCborValue>>>>")]
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer_uri: HttpsUri,
     pub ca: String,
     pub validity_info: ValidityInfo,
 }
+
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
-pub type DisclosedAttributes = IndexMap<DocType, DocumentDisclosedAttributes>;
+pub type DisclosedDocuments = IndexMap<DocType, DocumentDisclosedAttributes>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
@@ -126,7 +122,7 @@ impl DeviceResponse {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedAttributes> {
+    ) -> Result<DisclosedDocuments> {
         if let Some(errors) = &self.document_errors {
             return Err(VerificationError::DeviceResponseErrors(errors.clone()).into());
         }

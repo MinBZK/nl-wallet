@@ -39,8 +39,8 @@ serde = { workspace = true, optional = true, features = ["derive"] }
 serde_with = { workspace = true, optional = true, features = ["base64"] }
 sha2 = { workspace = true, optional = true }
 
-crypto = { path = "../crypto" }
-utils = { path = "../utils" }
+crypto.path = "../crypto"
+utils.path = "../utils"
 
 [dev-dependencies]
 rstest.workspace = true

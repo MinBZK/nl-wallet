@@ -22,6 +22,8 @@ use serde_with::skip_serializing_none;
 use serde_with::DeserializeFromStr;
 use serde_with::OneOrMany;
 
+use attestation_data::disclosure::DisclosedAttestationError;
+use attestation_data::disclosure::DisclosedAttestations;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
@@ -31,7 +33,6 @@ use jwt::error::JwtX5cError;
 use jwt::Jwt;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
-use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
@@ -576,6 +577,8 @@ pub enum AuthResponseError {
     MissingPoa,
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
+    #[error("error converting disclosed attestations: {0}")]
+    DisclosedAttestation(#[from] DisclosedAttestationError),
 }
 
 // We do not reuse or embed the `AuthorizationResponse` struct from `authorization.rs`, because in no variant
@@ -684,7 +687,7 @@ impl VpAuthorizationResponse {
         accepted_wallet_client_ids: &[String],
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedAttributes, AuthResponseError> {
+    ) -> Result<DisclosedAttestations, AuthResponseError> {
         let (response, mdoc_nonce) = Self::decrypt(jwe, private_key, &auth_request.nonce)?;
 
         response.verify(
@@ -759,7 +762,7 @@ impl VpAuthorizationResponse {
         mdoc_nonce: &str,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<DisclosedAttributes, AuthResponseError> {
+    ) -> Result<DisclosedAttestations, AuthResponseError> {
         // Verify the cryptographic integrity of the disclosed attributes.
         let session_transcript = SessionTranscript::new_oid4vp(
             &auth_request.response_uri,
@@ -807,7 +810,10 @@ impl VpAuthorizationResponse {
             });
         }
 
-        Ok(disclosed_attrs)
+        Ok(disclosed_attrs
+            .into_iter()
+            .map(|(vct, attrs)| Ok((vct, attrs.try_into()?)))
+            .collect::<Result<DisclosedAttestations, DisclosedAttestationError>>()?)
     }
 }
 

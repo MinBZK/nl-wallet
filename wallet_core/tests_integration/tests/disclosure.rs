@@ -5,6 +5,7 @@ use rstest::rstest;
 use serial_test::serial;
 use url::Url;
 
+use attestation_data::disclosure::DisclosedAttestations;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::tls::pinning::TlsPinningConfig;
 use mdoc::test::data::addr_street;
@@ -12,7 +13,6 @@ use mdoc::test::data::pid_family_name;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::TestDocuments;
-use mdoc::verifier::DisclosedAttributes;
 use mdoc::ItemsRequest;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::verifier::SessionType;
@@ -220,9 +220,10 @@ async fn test_disclosure_usecases_ok(
     let status = response.status();
     assert_eq!(status, StatusCode::OK);
 
-    let disclosed_documents = response.json::<DisclosedAttributes>().await.unwrap();
+    let disclosed_documents = response.json::<DisclosedAttestations>().await.unwrap();
 
-    expected_documents.assert_matches(&disclosed_documents);
+    todo!("fix this test");
+    // expected_documents.assert_matches(&disclosed_documents);
 }
 
 #[tokio::test]

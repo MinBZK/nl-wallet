@@ -26,6 +26,7 @@ use url::Url;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::credential_payload::mock::pid_example_payload;
+use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::x509::generate::mock::generate_issuer_mock;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::mock_remote::MockRemoteEcdsaKey;
@@ -39,7 +40,6 @@ use mdoc::examples::EXAMPLE_ATTR_NAME;
 use mdoc::examples::EXAMPLE_DOC_TYPE;
 use mdoc::examples::EXAMPLE_NAMESPACE;
 use mdoc::holder::mock::MockMdocDataSource;
-use mdoc::verifier::DisclosedAttributes;
 use mdoc::ItemsRequest;
 use openid4vc::disclosure_session::DisclosureProposal;
 use openid4vc::disclosure_session::DisclosureSession;
@@ -1025,13 +1025,18 @@ async fn perform_full_disclosure(session_type: SessionType) -> (Client, SessionT
     (client, session_token, internal_url, return_url)
 }
 
-fn check_example_disclosed_attributes(disclosed_attributes: &DisclosedAttributes) {
+fn check_example_disclosed_attributes(disclosed_attributes: &DisclosedAttestations) {
     itertools::assert_equal(disclosed_attributes.keys(), [PID_ATTESTATION_TYPE]);
-    let attributes = &disclosed_attributes.get(PID_ATTESTATION_TYPE).unwrap().attributes;
+    let attributes = disclosed_attributes
+        .get(PID_ATTESTATION_TYPE)
+        .unwrap()
+        .attributes
+        .clone()
+        .unwrap_mdoc();
     itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
     let (first_entry_name, first_entry_value) = attributes.get(PID_ATTESTATION_TYPE).unwrap().first().unwrap();
     assert_eq!(first_entry_name, EXAMPLE_ATTR_NAME);
-    assert_eq!(first_entry_value.as_text(), "De Bruijn".into());
+    assert_eq!(first_entry_value.to_string(), "De Bruijn".to_owned());
 }
 
 #[tokio::test]
@@ -1049,7 +1054,7 @@ async fn test_disclosed_attributes_without_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+    let disclosed_attributes = response.json::<DisclosedAttestations>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }
@@ -1096,7 +1101,7 @@ async fn test_disclosed_attributes_with_nonce() {
     assert_eq!(response.status(), StatusCode::OK);
 
     // Check the disclosed attributes against the example attributes.
-    let disclosed_attributes = response.json::<DisclosedAttributes>().await.unwrap();
+    let disclosed_attributes = response.json::<DisclosedAttestations>().await.unwrap();
 
     check_example_disclosed_attributes(&disclosed_attributes);
 }

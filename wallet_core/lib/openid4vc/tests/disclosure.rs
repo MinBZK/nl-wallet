@@ -6,6 +6,8 @@ use std::sync::Arc;
 
 use assert_matches::assert_matches;
 use async_trait::async_trait;
+use attestation_data::attributes::AttributeValue;
+use attestation_data::disclosure::DocumentDisclosedAttributes;
 use chrono::Utc;
 use futures::future;
 use indexmap::IndexMap;
@@ -44,7 +46,6 @@ use mdoc::test::data::addr_street;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
 use mdoc::test::TestDocuments;
-use mdoc::verifier::DocumentDisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
@@ -132,8 +133,11 @@ async fn disclosure_direct() {
         .unwrap();
 
     assert_eq!(
-        disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]["family_name"],
-        "Doe".into()
+        disclosed_attrs["org.iso.18013.5.1.mDL"]
+            .attributes
+            .clone()
+            .unwrap_mdoc()["org.iso.18013.5.1"]["family_name"],
+        AttributeValue::Text("Doe".to_owned()),
     );
 }
 
@@ -323,8 +327,11 @@ impl VpMessageClient for DirectMockVpMessageClient {
             .unwrap();
 
         assert_eq!(
-            disclosed_attrs["org.iso.18013.5.1.mDL"].attributes["org.iso.18013.5.1"]["family_name"],
-            "Doe".into()
+            disclosed_attrs["org.iso.18013.5.1.mDL"]
+                .attributes
+                .clone()
+                .unwrap_mdoc()["org.iso.18013.5.1"]["family_name"],
+            AttributeValue::Text("Doe".to_owned()),
         );
 
         Ok(None)
@@ -619,7 +626,8 @@ async fn test_client_and_server(
         .await
         .unwrap();
 
-    expected_documents.assert_matches(&disclosed_documents);
+    todo!("fix this test");
+    // expected_documents.assert_matches(&disclosed_documents);
 }
 
 #[tokio::test]
