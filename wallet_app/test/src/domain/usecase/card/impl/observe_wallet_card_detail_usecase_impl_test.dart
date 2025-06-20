@@ -46,10 +46,10 @@ void main() {
 
       // Event repository returns predefined events for the card's document type
       when(
-        mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.docType, EventStatus.success),
+        mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.id!, EventStatus.success),
       ).thenAnswer((_) async => mockDetail.mostRecentSuccessfulDisclosure);
       when(
-        mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.docType, EventStatus.success),
+        mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.id!, EventStatus.success),
       ).thenAnswer((_) async => mockDetail.mostRecentIssuance);
 
       // Emit cards through the stream to simulate real-time updates
@@ -62,8 +62,8 @@ void main() {
       expect(detail, mockDetail);
 
       // Verify repositories were consulted for the events
-      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.docType, EventStatus.success)).called(1);
-      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.docType, EventStatus.success)).called(1);
+      verify(mockWalletEventRepository.readMostRecentDisclosureEvent(mockCard.id!, EventStatus.success)).called(1);
+      verify(mockWalletEventRepository.readMostRecentIssuanceEvent(mockCard.id!, EventStatus.success)).called(1);
     });
   });
 }

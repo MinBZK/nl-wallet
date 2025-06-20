@@ -193,7 +193,7 @@ class CardDetailScreen extends StatelessWidget {
         leftIcon: const Icon(Icons.history_outlined),
         label: Text.rich(context.l10n.cardDetailScreenCardHistoryCta.toTextSpan(context)),
         subtitle: Text.rich(_createInteractionText(context, detail.mostRecentSuccessfulDisclosure).toTextSpan(context)),
-        onPressed: () => _onCardHistoryPressed(context, card.docType),
+        onPressed: card.id == null ? null : () => _onCardHistoryPressed(context, card.id!),
       ),
       MenuItem(
         leftIcon: OrganizationLogo(image: card.issuer.logo, size: 24),
@@ -301,11 +301,11 @@ class CardDetailScreen extends StatelessWidget {
     );
   }
 
-  void _onCardHistoryPressed(BuildContext context, String docType) {
+  void _onCardHistoryPressed(BuildContext context, String attestationId) {
     Navigator.pushNamed(
       context,
       WalletRoutes.cardHistoryRoute,
-      arguments: docType,
+      arguments: attestationId,
     );
   }
 

@@ -19,23 +19,23 @@ class CoreWalletEventRepository extends WalletEventRepository {
   }
 
   @override
-  Future<List<WalletEvent>> getEventsForCard(String docType) async {
-    final coreEvents = await _walletCore.getHistoryForCard(docType);
+  Future<List<WalletEvent>> getEventsForCard(String attestationId) async {
+    final coreEvents = await _walletCore.getHistoryForCard(attestationId);
     return _walletEventMapper.mapList(coreEvents);
   }
 
   @override
-  Future<DisclosureEvent?> readMostRecentDisclosureEvent(String docType, EventStatus status) async {
+  Future<DisclosureEvent?> readMostRecentDisclosureEvent(String attestationId, EventStatus status) async {
     return _walletEventMapper
-        .mapList(await _walletCore.getHistoryForCard(docType))
+        .mapList(await _walletCore.getHistoryForCard(attestationId))
         .whereType<DisclosureEvent>()
         .firstWhereOrNull((e) => e.status == status);
   }
 
   @override
-  Future<IssuanceEvent?> readMostRecentIssuanceEvent(String docType, EventStatus status) async {
+  Future<IssuanceEvent?> readMostRecentIssuanceEvent(String attestationId, EventStatus status) async {
     return _walletEventMapper
-        .mapList(await _walletCore.getHistoryForCard(docType))
+        .mapList(await _walletCore.getHistoryForCard(attestationId))
         .whereType<IssuanceEvent>()
         .firstWhereOrNull((e) => e.status == status);
   }

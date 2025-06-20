@@ -55,14 +55,14 @@ void main() {
             svgId: 'first_id',
             label: 'First name',
             value: const StringValue('John'),
-            sourceCardDocType: 'com.example.docType',
+            sourceCardId: 'com.example.docType',
           ),
           DataAttribute.untranslated(
             key: 'second',
             svgId: 'second_id',
             label: 'Last name',
             value: const StringValue('Doe'),
-            sourceCardDocType: 'com.example.docType',
+            sourceCardId: 'com.example.docType',
           ),
         ],
         metadata: const [
@@ -83,7 +83,7 @@ void main() {
             svgId: 'over18',
             label: {const Locale('en'): 'Over 18', const Locale('nl'): 'Ouder dan 18'},
             value: const BooleanValue(true),
-            sourceCardDocType: 'com.example.docType',
+            sourceCardId: 'com.example.docType',
           ),
         ],
         metadata: const [
@@ -134,7 +134,7 @@ void main() {
             key: key,
             label: {const Locale('en'): 'mock'},
             value: const StringValue('mock_value'),
-            sourceCardDocType: 'com.example.docType',
+            sourceCardId: 'com.example.docType',
           ),
         ],
         metadata: const [
@@ -160,7 +160,7 @@ void main() {
             svgId: 'dob',
             label: ''.untranslated,
             value: DateValue(DateTime(2024, 10, 5)),
-            sourceCardDocType: 'com.example.docType',
+            sourceCardId: 'com.example.docType',
           ),
         ],
         metadata: const [

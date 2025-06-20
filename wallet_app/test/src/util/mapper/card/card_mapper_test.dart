@@ -27,7 +27,7 @@ const _kSampleCard = core.AttestationPresentation(
 );
 
 void main() {
-  late Mapper<CardAttributeWithDocType, DataAttribute> mockCardAttributeMapper;
+  late Mapper<CardAttributeWithCardId, DataAttribute> mockCardAttributeMapper;
   late Mapper<String, CardConfig> mockCardConfigMapper;
   late Mapper<core.Organization, Organization> mockOrganizationMapper;
   late Mapper<core.DisplayMetadata, CardDisplayMetadata> mockDisplayMetadataMapper;
@@ -72,7 +72,7 @@ void main() {
 
       verify(
         mockCardAttributeMapper.mapList(
-          _kSampleCard.attributes.map((e) => CardAttributeWithDocType(_kSampleCard.attestationType, e)),
+          _kSampleCard.attributes.map((e) => CardAttributeWithCardId(null, e)),
         ),
       ).called(1);
     });

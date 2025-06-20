@@ -99,7 +99,7 @@ abstract class WalletMockData {
     svgId: 'text_svgId',
     label: 'Label',
     value: const StringValue('Value'),
-    sourceCardDocType: 'com.example.docType',
+    sourceCardId: 'com.example.docType',
   );
 
   static const Policy policy = Policy(

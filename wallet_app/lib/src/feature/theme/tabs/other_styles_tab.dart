@@ -92,14 +92,14 @@ final _kSampleAttributes = [
     svgId: 'key1',
     label: 'Sample #1'.untranslated,
     value: const StringValue('1'),
-    sourceCardDocType: 'sourceCardDocType',
+    sourceCardId: 'sourceCardDocType',
   ),
   DataAttribute(
     key: 'key2',
     svgId: 'key2',
     label: 'Sample #2'.untranslated,
     value: const StringValue('2'),
-    sourceCardDocType: 'sourceCardDocType',
+    sourceCardId: 'sourceCardDocType',
   ),
 ];
 
@@ -327,7 +327,7 @@ class OtherStylesTab extends StatelessWidget {
           attribute: DataAttribute.untranslated(
             value: const StringValue('This is a DataAttributeRow with type text'),
             label: 'Label',
-            sourceCardDocType: 'id',
+            sourceCardId: 'id',
             key: _kMockOtherKey,
           ),
         ),
@@ -346,19 +346,19 @@ class OtherStylesTab extends StatelessWidget {
               DataAttribute.untranslated(
                 label: 'Voornaam',
                 value: const StringValue(''),
-                sourceCardDocType: '',
+                sourceCardId: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Achternaam',
                 value: const StringValue(''),
-                sourceCardDocType: '',
+                sourceCardId: '',
                 key: '',
               ),
               DataAttribute.untranslated(
                 label: 'Postcode',
                 value: const StringValue(''),
-                sourceCardDocType: '',
+                sourceCardId: '',
                 key: '',
               ),
             ],

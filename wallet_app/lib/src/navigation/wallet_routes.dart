@@ -286,9 +286,10 @@ WidgetBuilder _createCardDataScreenBuilder(RouteSettings settings) {
 
 WidgetBuilder _createCardHistoryScreenBuilder(RouteSettings settings) {
   return (context) {
-    final String docType = CardHistoryScreen.getArguments(settings);
+    final String attestationId = CardHistoryScreen.getArguments(settings);
     return BlocProvider<CardHistoryBloc>(
-      create: (context) => CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(docType)),
+      create: (context) =>
+          CardHistoryBloc(context.read(), context.read())..add(CardHistoryLoadTriggered(attestationId)),
       child: const CardHistoryScreen(),
     );
   };
