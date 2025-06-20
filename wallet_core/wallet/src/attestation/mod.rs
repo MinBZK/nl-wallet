@@ -23,17 +23,24 @@ pub enum AttestationError {
     #[category(pd)]
     AttributesNotProcessedByClaim(HashSet<Vec<String>>),
 
-    #[error("unable to convert into attestation attribute value: {0:?} having property type: {1:?}")]
+    #[error("unable to convert into attestation attribute value at {}: {}", .0.join("."), .1)]
+    #[category(pd)]
+    AttributeError(Vec<String>, #[source] AttributeError),
+
+    #[error("error converting from mdoc attributes: {0}")]
+    #[category(pd)]
+    Attributes(#[from] AttributesError),
+}
+
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+pub enum AttributeError {
+    #[error("JSON schema type does not match value: {0:?} vs {1:?}")]
     #[category(pd)]
     AttributeConversion(AttributeValue, Option<JsonSchemaPropertyType>),
 
     #[error("unable to parse attribute value into date: {0:?}")]
     #[category(pd)]
     AttributeDateValue(#[from] chrono::ParseError),
-
-    #[error("error converting from mdoc attributes: {0}")]
-    #[category(pd)]
-    Attributes(#[from] AttributesError),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

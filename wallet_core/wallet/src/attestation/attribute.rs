@@ -17,6 +17,7 @@ use super::AttestationAttributeValue;
 use super::AttestationError;
 use super::AttestationIdentity;
 use super::AttestationPresentation;
+use super::AttributeError;
 
 impl AttestationPresentation {
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
@@ -66,7 +67,10 @@ impl AttestationPresentation {
             // Get value of claim out of the nested attributes via flattened view
             // Cannot use swap_remove here to make the error checking easier
             if let Some(&value) = flattened_attributes.get(&path_with_refs) {
-                let value = AttestationAttributeValue::try_from_attribute_value(value.clone(), json_property)?;
+                let value = match AttestationAttributeValue::try_from_attribute_value(value.clone(), json_property) {
+                    Ok(value) => value,
+                    Err(error) => return Err(AttestationError::AttributeError(claim_path, error)),
+                };
 
                 attributes.push(AttestationAttribute {
                     key: claim_path,
@@ -105,7 +109,7 @@ impl AttestationAttributeValue {
     fn try_from_attribute_value(
         value: AttributeValue,
         schema_property: Option<&JsonSchemaProperty>,
-    ) -> Result<Self, AttestationError> {
+    ) -> Result<Self, AttributeError> {
         let schema_type = schema_property.map(|property| property.r#type);
         match (schema_type, value) {
             (None, AttributeValue::Bool(bool))
@@ -127,7 +131,7 @@ impl AttestationAttributeValue {
             (None, AttributeValue::Text(text)) | (Some(JsonSchemaPropertyType::String), AttributeValue::Text(text)) => {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))
             }
-            (_, value) => Err(AttestationError::AttributeConversion(value, schema_type)),
+            (_, value) => Err(AttributeError::AttributeConversion(value, schema_type)),
         }
     }
 }
