@@ -366,7 +366,7 @@ pub mod test {
             format: None,
             properties: None,
         }), None)]
-    #[case(AttributeValue::Text(String::from("2002-13-13")), Some(&JsonSchemaProperty {
+    #[case(AttributeValue::Text(String::from("2002-21-42")), Some(&JsonSchemaProperty {
             r#type: JsonSchemaPropertyType::String,
             format: Some(JsonSchemaPropertyFormat::Date),
             properties: None,
