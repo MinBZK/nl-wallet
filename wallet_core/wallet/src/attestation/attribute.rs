@@ -120,14 +120,14 @@ impl AttestationAttributeValue {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Integer(integer)))
             }
 
+            (Some(JsonSchemaPropertyType::String), AttributeValue::Text(text))
+                if schema_property.is_some_and(|property| property.format == Some(JsonSchemaPropertyFormat::Date)) =>
+            {
+                let date = NaiveDate::parse_from_str(&text, "%Y-%m-%d")?;
+                Ok(AttestationAttributeValue::Date(date))
+            }
             (None, AttributeValue::Text(text)) | (Some(JsonSchemaPropertyType::String), AttributeValue::Text(text)) => {
-                let format = schema_property.and_then(|property| property.format);
-                if let Some(JsonSchemaPropertyFormat::Date) = format {
-                    let date = NaiveDate::parse_from_str(&text, "%Y-%m-%d")?;
-                    Ok(AttestationAttributeValue::Date(date))
-                } else {
-                    Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))
-                }
+                Ok(AttestationAttributeValue::Basic(AttributeValue::Text(text)))
             }
             (_, value) => Err(AttestationError::AttributeConversion(value, schema_type)),
         }
