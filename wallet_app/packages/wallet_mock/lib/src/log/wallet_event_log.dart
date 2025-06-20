@@ -51,6 +51,7 @@ class WalletEventLog {
     };
     final bool isLogin = sharedAttestations.onlyContainsBsn;
     final event = WalletEvent.disclosure(
+      id: 'id123',
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: disclosure.relyingParty,
       purpose: disclosure.requestPurpose,
@@ -71,6 +72,7 @@ class WalletEventLog {
     List<LocalizedString>? purpose,
   }) {
     final event = WalletEvent.disclosure(
+      id: 'id123',
       dateTime: DateTime.now().toIso8601String(),
       relyingParty: organization,
       purpose: purpose ?? ''.untranslated,
@@ -84,6 +86,7 @@ class WalletEventLog {
 
   void logIssuance(AttestationPresentation attestation) {
     final event = WalletEvent.issuance(
+      id: 'id123',
       dateTime: DateTime.now().toIso8601String(),
       attestation: attestation,
       renewed: false,

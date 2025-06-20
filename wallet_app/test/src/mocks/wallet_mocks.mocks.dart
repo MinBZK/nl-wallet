@@ -5771,12 +5771,12 @@ class MockWalletCoreApi extends _i1.Mock implements _i19.WalletCoreApi {
       ) as _i8.Future<List<_i19.WalletEvent>>);
 
   @override
-  _i8.Future<List<_i19.WalletEvent>> crateApiFullGetHistoryForCard({required String? attestationType}) =>
+  _i8.Future<List<_i19.WalletEvent>> crateApiFullGetHistoryForCard({required String? attestationId}) =>
       (super.noSuchMethod(
         Invocation.method(
           #crateApiFullGetHistoryForCard,
           [],
-          {#attestationType: attestationType},
+          {#attestationId: attestationId},
         ),
         returnValue: _i8.Future<List<_i19.WalletEvent>>.value(<_i19.WalletEvent>[]),
         returnValueForMissingStub: _i8.Future<List<_i19.WalletEvent>>.value(<_i19.WalletEvent>[]),

@@ -99,8 +99,8 @@ Future<void> unlockWalletWithBiometrics() => WalletCore.instance.api.crateApiFul
 
 Future<List<WalletEvent>> getHistory() => WalletCore.instance.api.crateApiFullGetHistory();
 
-Future<List<WalletEvent>> getHistoryForCard({required String attestationType}) =>
-    WalletCore.instance.api.crateApiFullGetHistoryForCard(attestationType: attestationType);
+Future<List<WalletEvent>> getHistoryForCard({required String attestationId}) =>
+    WalletCore.instance.api.crateApiFullGetHistoryForCard(attestationId: attestationId);
 
 Future<void> resetWallet() => WalletCore.instance.api.crateApiFullResetWallet();
 

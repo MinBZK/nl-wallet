@@ -116,7 +116,7 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<List<WalletEvent>> crateApiFullGetHistory();
 
-  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationType});
+  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId});
 
   Future<String> crateApiFullGetVersionString();
 
@@ -514,10 +514,10 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       );
 
   @override
-  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationType}) {
+  Future<List<WalletEvent>> crateApiFullGetHistoryForCard({required String attestationId}) {
     return handler.executeNormal(NormalTask(
       callFfi: (port_) {
-        var arg0 = cst_encode_String(attestationType);
+        var arg0 = cst_encode_String(attestationId);
         return wire.wire__crate__api__full__get_history_for_card(port_, arg0);
       },
       codec: DcoCodec(
@@ -525,14 +525,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         decodeErrorData: dco_decode_AnyhowException,
       ),
       constMeta: kCrateApiFullGetHistoryForCardConstMeta,
-      argValues: [attestationType],
+      argValues: [attestationId],
       apiImpl: this,
     ));
   }
 
   TaskConstMeta get kCrateApiFullGetHistoryForCardConstMeta => const TaskConstMeta(
         debugName: "get_history_for_card",
-        argNames: ["attestationType"],
+        argNames: ["attestationId"],
       );
 
   @override
@@ -1554,19 +1554,21 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     switch (raw[0]) {
       case 0:
         return WalletEvent_Disclosure(
-          dateTime: dco_decode_String(raw[1]),
-          relyingParty: dco_decode_box_autoadd_organization(raw[2]),
-          purpose: dco_decode_list_localized_string(raw[3]),
-          sharedAttestations: dco_decode_opt_list_attestation_presentation(raw[4]),
-          requestPolicy: dco_decode_box_autoadd_request_policy(raw[5]),
-          status: dco_decode_disclosure_status(raw[6]),
-          typ: dco_decode_disclosure_type(raw[7]),
+          id: dco_decode_String(raw[1]),
+          dateTime: dco_decode_String(raw[2]),
+          relyingParty: dco_decode_box_autoadd_organization(raw[3]),
+          purpose: dco_decode_list_localized_string(raw[4]),
+          sharedAttestations: dco_decode_opt_list_attestation_presentation(raw[5]),
+          requestPolicy: dco_decode_box_autoadd_request_policy(raw[6]),
+          status: dco_decode_disclosure_status(raw[7]),
+          typ: dco_decode_disclosure_type(raw[8]),
         );
       case 1:
         return WalletEvent_Issuance(
-          dateTime: dco_decode_String(raw[1]),
-          attestation: dco_decode_box_autoadd_attestation_presentation(raw[2]),
-          renewed: dco_decode_bool(raw[3]),
+          id: dco_decode_String(raw[1]),
+          dateTime: dco_decode_String(raw[2]),
+          attestation: dco_decode_box_autoadd_attestation_presentation(raw[3]),
+          renewed: dco_decode_bool(raw[4]),
         );
       default:
         throw Exception("unreachable");
@@ -2259,6 +2261,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     var tag_ = sse_decode_i_32(deserializer);
     switch (tag_) {
       case 0:
+        var var_id = sse_decode_String(deserializer);
         var var_dateTime = sse_decode_String(deserializer);
         var var_relyingParty = sse_decode_box_autoadd_organization(deserializer);
         var var_purpose = sse_decode_list_localized_string(deserializer);
@@ -2267,6 +2270,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_status = sse_decode_disclosure_status(deserializer);
         var var_typ = sse_decode_disclosure_type(deserializer);
         return WalletEvent_Disclosure(
+            id: var_id,
             dateTime: var_dateTime,
             relyingParty: var_relyingParty,
             purpose: var_purpose,
@@ -2275,10 +2279,12 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
             status: var_status,
             typ: var_typ);
       case 1:
+        var var_id = sse_decode_String(deserializer);
         var var_dateTime = sse_decode_String(deserializer);
         var var_attestation = sse_decode_box_autoadd_attestation_presentation(deserializer);
         var var_renewed = sse_decode_bool(deserializer);
-        return WalletEvent_Issuance(dateTime: var_dateTime, attestation: var_attestation, renewed: var_renewed);
+        return WalletEvent_Issuance(
+            id: var_id, dateTime: var_dateTime, attestation: var_attestation, renewed: var_renewed);
       default:
         throw UnimplementedError('');
     }
@@ -2965,6 +2971,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
     // Codec=Sse (Serialization based), see doc to use other codecs
     switch (self) {
       case WalletEvent_Disclosure(
+          id: final id,
           dateTime: final dateTime,
           relyingParty: final relyingParty,
           purpose: final purpose,
@@ -2974,6 +2981,7 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           typ: final typ
         ):
         sse_encode_i_32(0, serializer);
+        sse_encode_String(id, serializer);
         sse_encode_String(dateTime, serializer);
         sse_encode_box_autoadd_organization(relyingParty, serializer);
         sse_encode_list_localized_string(purpose, serializer);
@@ -2981,8 +2989,14 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         sse_encode_box_autoadd_request_policy(requestPolicy, serializer);
         sse_encode_disclosure_status(status, serializer);
         sse_encode_disclosure_type(typ, serializer);
-      case WalletEvent_Issuance(dateTime: final dateTime, attestation: final attestation, renewed: final renewed):
+      case WalletEvent_Issuance(
+          id: final id,
+          dateTime: final dateTime,
+          attestation: final attestation,
+          renewed: final renewed
+        ):
         sse_encode_i_32(1, serializer);
+        sse_encode_String(id, serializer);
         sse_encode_String(dateTime, serializer);
         sse_encode_box_autoadd_attestation_presentation(attestation, serializer);
         sse_encode_bool(renewed, serializer);

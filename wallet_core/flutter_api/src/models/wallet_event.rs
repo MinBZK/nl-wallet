@@ -11,6 +11,7 @@ pub struct WalletEvents(Vec<WalletEvent>);
 
 pub enum WalletEvent {
     Disclosure {
+        id: String,
         // ISO8601
         date_time: String,
         relying_party: Organization,
@@ -21,6 +22,7 @@ pub enum WalletEvent {
         typ: DisclosureType,
     },
     Issuance {
+        id: String,
         // ISO8601
         date_time: String,
         attestation: AttestationPresentation,
@@ -46,13 +48,18 @@ impl From<wallet::WalletEvent> for WalletEvent {
     fn from(source: wallet::WalletEvent) -> Self {
         match source {
             wallet::WalletEvent::Issuance {
-                attestation, timestamp, ..
+                id,
+                attestation,
+                timestamp,
+                ..
             } => WalletEvent::Issuance {
+                id: id.to_string(),
                 date_time: timestamp.to_rfc3339(),
                 attestation: (*attestation).into(),
                 renewed: false,
             },
             wallet::WalletEvent::Disclosure {
+                id,
                 attestations,
                 timestamp,
                 reader_registration,
@@ -68,6 +75,7 @@ impl From<wallet::WalletEvent> for WalletEvent {
                     .collect_vec();
 
                 WalletEvent::Disclosure {
+                    id: id.to_string(),
                     date_time: timestamp.to_rfc3339(),
                     relying_party: Organization::from(reader_registration.organization),
                     purpose: RPLocalizedStrings(reader_registration.purpose_statement).into(),

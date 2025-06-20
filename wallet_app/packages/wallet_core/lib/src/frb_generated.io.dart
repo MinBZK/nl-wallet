@@ -990,6 +990,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   @protected
   void cst_api_fill_to_wire_wallet_event(WalletEvent apiObj, wire_cst_wallet_event wireObj) {
     if (apiObj is WalletEvent_Disclosure) {
+      var pre_id = cst_encode_String(apiObj.id);
       var pre_date_time = cst_encode_String(apiObj.dateTime);
       var pre_relying_party = cst_encode_box_autoadd_organization(apiObj.relyingParty);
       var pre_purpose = cst_encode_list_localized_string(apiObj.purpose);
@@ -998,6 +999,7 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       var pre_status = cst_encode_disclosure_status(apiObj.status);
       var pre_typ = cst_encode_disclosure_type(apiObj.typ);
       wireObj.tag = 0;
+      wireObj.kind.Disclosure.id = pre_id;
       wireObj.kind.Disclosure.date_time = pre_date_time;
       wireObj.kind.Disclosure.relying_party = pre_relying_party;
       wireObj.kind.Disclosure.purpose = pre_purpose;
@@ -1008,10 +1010,12 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       return;
     }
     if (apiObj is WalletEvent_Issuance) {
+      var pre_id = cst_encode_String(apiObj.id);
       var pre_date_time = cst_encode_String(apiObj.dateTime);
       var pre_attestation = cst_encode_box_autoadd_attestation_presentation(apiObj.attestation);
       var pre_renewed = cst_encode_bool(apiObj.renewed);
       wireObj.tag = 1;
+      wireObj.kind.Issuance.id = pre_id;
       wireObj.kind.Issuance.date_time = pre_date_time;
       wireObj.kind.Issuance.attestation = pre_attestation;
       wireObj.kind.Issuance.renewed = pre_renewed;
@@ -1554,11 +1558,11 @@ class WalletCoreWire implements BaseWire {
 
   void wire__crate__api__full__get_history_for_card(
     int port_,
-    ffi.Pointer<wire_cst_list_prim_u_8_strict> attestation_type,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> attestation_id,
   ) {
     return _wire__crate__api__full__get_history_for_card(
       port_,
-      attestation_type,
+      attestation_id,
     );
   }
 
@@ -2360,6 +2364,8 @@ final class wire_cst_list_missing_attribute extends ffi.Struct {
 }
 
 final class wire_cst_WalletEvent_Disclosure extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> date_time;
 
   external ffi.Pointer<wire_cst_organization> relying_party;
@@ -2378,6 +2384,8 @@ final class wire_cst_WalletEvent_Disclosure extends ffi.Struct {
 }
 
 final class wire_cst_WalletEvent_Issuance extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_prim_u_8_strict> id;
+
   external ffi.Pointer<wire_cst_list_prim_u_8_strict> date_time;
 
   external ffi.Pointer<wire_cst_attestation_presentation> attestation;
