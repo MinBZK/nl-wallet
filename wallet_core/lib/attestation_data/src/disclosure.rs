@@ -33,6 +33,18 @@ impl TryFrom<&mdoc::iso::ValidityInfo> for ValidityInfo {
     }
 }
 
+#[cfg(feature = "test")]
+impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
+    fn from(value: ValidityInfo) -> Self {
+        Self {
+            signed: value.signed.into(),
+            valid_from: value.valid_from.into(),
+            valid_until: value.valid_until.into(),
+            expected_update: None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "test", derive(derive_more::Unwrap))]
 #[serde(tag = "format", content = "attributes")]
@@ -45,11 +57,10 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
     type Error = AttributeError;
 
     fn try_from(
-        value: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
+        map: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     ) -> Result<Self, Self::Error> {
         Ok(DisclosedAttributes::Mdoc(
-            value
-                .into_iter()
+            map.into_iter()
                 .map(|(namespace, attributes)| {
                     Ok((
                         namespace,
@@ -61,6 +72,22 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
                 })
                 .collect::<Result<_, Self::Error>>()?,
         ))
+    }
+}
+
+#[cfg(feature = "test")]
+impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>> {
+    fn from(attributes: DisclosedAttributes) -> Self {
+        attributes
+            .unwrap_mdoc()
+            .into_iter()
+            .map(|(namespace, attributes)| {
+                (
+                    namespace,
+                    attributes.into_iter().map(|(key, value)| (key, value.into())).collect(),
+                )
+            })
+            .collect()
     }
 }
 
@@ -91,6 +118,18 @@ impl TryFrom<mdoc::verifier::DocumentDisclosedAttributes> for DocumentDisclosedA
             ca: doc.ca,
             validity_info: (&doc.validity_info).try_into()?,
         })
+    }
+}
+
+#[cfg(feature = "test")]
+impl From<DocumentDisclosedAttributes> for mdoc::verifier::DocumentDisclosedAttributes {
+    fn from(doc: DocumentDisclosedAttributes) -> Self {
+        mdoc::verifier::DocumentDisclosedAttributes {
+            attributes: doc.attributes.into(),
+            issuer_uri: doc.issuer_uri,
+            ca: doc.ca,
+            validity_info: doc.validity_info.into(),
+        }
     }
 }
 

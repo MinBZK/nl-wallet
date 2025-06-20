@@ -222,8 +222,12 @@ async fn test_disclosure_usecases_ok(
 
     let disclosed_documents = response.json::<DisclosedAttestations>().await.unwrap();
 
-    todo!("fix this test");
-    // expected_documents.assert_matches(&disclosed_documents);
+    expected_documents.assert_matches(
+        &disclosed_documents
+            .into_iter()
+            .map(|(credential_type, attributes)| (credential_type, attributes.into()))
+            .collect(),
+    );
 }
 
 #[tokio::test]
