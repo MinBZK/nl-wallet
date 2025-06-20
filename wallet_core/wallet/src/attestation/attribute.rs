@@ -59,24 +59,22 @@ impl AttestationPresentation {
                     .and_then(|properties| properties.get(name))
             });
 
-            // Get value of claim out of the nested attributes via flattened view
-            let value = {
-                // claim.path is also VecNonEmpty
-                let path_with_refs =
-                    VecNonEmpty::try_from(claim_path.iter().map(String::as_str).collect::<Vec<&str>>()).unwrap();
-                // Cannot use swap_remove here to make the error checking easier
-                let Some(&value) = flattened_attributes.get(&path_with_refs) else {
-                    continue;
-                };
-                AttestationAttributeValue::try_from_attribute_value(value.clone(), json_property)?
-            };
+            // claim.path is also VecNonEmpty
+            let path_with_refs =
+                VecNonEmpty::try_from(claim_path.iter().map(String::as_str).collect::<Vec<&str>>()).unwrap();
 
-            attributes.push(AttestationAttribute {
-                key: claim_path,
-                metadata: claim.display,
-                value,
-                svg_id: claim.svg_id.map(String::from),
-            })
+            // Get value of claim out of the nested attributes via flattened view
+            // Cannot use swap_remove here to make the error checking easier
+            if let Some(&value) = flattened_attributes.get(&path_with_refs) {
+                let value = AttestationAttributeValue::try_from_attribute_value(value.clone(), json_property)?;
+
+                attributes.push(AttestationAttribute {
+                    key: claim_path,
+                    metadata: claim.display,
+                    value,
+                    svg_id: claim.svg_id.map(String::from),
+                })
+            }
         }
 
         // Should not happen as the attributes should be validated by `Attributes::validate`
