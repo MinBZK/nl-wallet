@@ -781,6 +781,10 @@ pub mod test {
                     "display": [{"lang": "en", "label": "name"}],
                 },
                 {
+                    "path": ["birth_date"],
+                    "display": [{"lang": "en", "label": "birth date"}],
+                },
+                {
                     "path": ["address", "street"],
                     "display": [{"lang": "en", "label": "address street"}],
                 },
@@ -818,6 +822,10 @@ pub mod test {
                 {
                     "path": ["name"],
                     "display": [{"lang": "en", "label": "name"}],
+                },
+                {
+                    "path": ["birth_date"],
+                    "display": [{"lang": "en", "label": "birth date"}],
                 },
                 {
                     "path": ["address", "street"],

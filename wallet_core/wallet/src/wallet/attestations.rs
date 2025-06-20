@@ -107,7 +107,7 @@ where
                                 },
                                 normalized_metadata,
                                 issuer_registration.organization,
-                                payload.previewable_payload.attributes,
+                                &payload.previewable_payload.attributes,
                             )?;
 
                             Ok(attestation)

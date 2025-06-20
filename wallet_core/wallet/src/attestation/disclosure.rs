@@ -22,7 +22,7 @@ impl AttestationPresentation {
             AttestationIdentity::Ephemeral,
             metadata,
             issuer_organization,
-            nested_attributes,
+            &nested_attributes,
         )
     }
 }

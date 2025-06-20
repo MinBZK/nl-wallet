@@ -19,7 +19,7 @@ impl AttestationPresentation {
     ) -> Result<Self, AttestationError> {
         let nested_attributes = Attributes::from_mdoc_attributes(&metadata, mdoc_attributes)?;
 
-        Self::create_from_attributes(identity, metadata, issuer_organization, nested_attributes)
+        Self::create_from_attributes(identity, metadata, issuer_organization, &nested_attributes)
     }
 }
 

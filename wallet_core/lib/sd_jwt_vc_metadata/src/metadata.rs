@@ -75,8 +75,6 @@ pub enum TypeMetadataError {
 /// * Some optional fields we consider as mandatory. These are marked by the `SpecOptional` type.
 /// * Attributes contained in arrays are not (yet) supported.
 /// * Optional attributes are not yet supported.
-/// * Every attribute in the attestation received from the issuer should be covered by the JSON schema, so that its data
-///   type is known.
 /// * Every attribute in the attestation received from the issuer should have corresponding claim metadata, so that the
 ///   attribute can be rendered for display to the user.
 /// * Claims that cover a group of attributes are not (yet) supported and will not be accepted, as rendering groups of
@@ -365,6 +363,7 @@ impl Eq for JsonSchema {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JsonSchemaProperties {
     // A HashMap is used here since there are no uses that rely on the order of the properties
+    #[serde(default)]
     #[serde_as(as = "MapSkipError<_, _>")]
     pub properties: HashMap<String, JsonSchemaProperty>,
 }
@@ -1092,8 +1091,7 @@ mod test {
             "claims": claims.into_iter().map(|claim| HashMap::from([("path", claim)])).collect::<Vec<_>>(),
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
+                "type": "object"
             }
         }))
         .unwrap()
@@ -1112,8 +1110,7 @@ mod test {
             ],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
+                "type": "object"
             }
         }))
         .expect_err("Should fail deserializing type metadata because of path collision");
@@ -1131,8 +1128,7 @@ mod test {
             "claims": [],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
+                "type": "object"
             }
         })
     }
@@ -1171,8 +1167,7 @@ mod test {
             ],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
+                "type": "object"
             }
         })
     }
@@ -1250,8 +1245,7 @@ mod test {
             "claims": [],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
+                "type": "object"
             }
         }))
         .unwrap();
@@ -1292,8 +1286,7 @@ mod test {
             ],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
+                "type": "object"
             }
         }))
         .unwrap();
@@ -1349,8 +1342,7 @@ mod test {
             }],
             "schema": {
                 "$schema": "https://json-schema.org/draft/2020-12/schema",
-                "type": "object",
-                "properties": {}
+                "type": "object"
             }
         }))
         .unwrap();
