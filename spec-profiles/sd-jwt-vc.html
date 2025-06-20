@@ -300,10 +300,10 @@
 <h1>SD-JWT VC Profile for the NL Wallet, VV and OV<a class="headerlink" href="#sd-jwt-vc-profile-for-the-nl-wallet-vv-and-ov" title="Link to this heading"></a></h1>
 <section id="introduction">
 <h2>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h2>
-<p>The NL Wallet, VV, and OV implement
-the <a class="reference external" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08">SD-JWT VC Draft 08</a> [SD-JWT-VC]
-specification, with <em>additional constraints and customizations</em> outlined in the
-profile below.</p>
+<p>The NL Wallet, VV, and OV implement the
+<a class="reference external" href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-sd-jwt-vc-08">SD-JWT VC Draft 08</a>
+[SD-JWT-VC] specification, with <em>additional constraints and customizations</em>
+outlined in the profile below.</p>
 <p>Our goal is to contribute to a fully interoperable EUDI framework that delivers
 maximum value to users and organizations. Achieving this requires consensus on
 standards and implementation profiles. To contribute to that consensus, this
@@ -311,8 +311,8 @@ profile reflects our current implementation and design preferences, based on the
 experience from designing, developing and testing the NL Wallet. Note that it
 should not be read as the final specifications of our product, or the broader
 Dutch ecosystem. Nor is it an official position of the Dutch government.</p>
-<p>Considerations that underpin the choices made in this profile are described
-in <a class="reference internal" href="#profile-considerations">Profile considerations</a>.</p>
+<p>Considerations that underpin the choices made in this profile are described in
+<a class="reference internal" href="#profile-considerations">Profile considerations</a>.</p>
 <p>Ideally, the profile is temporary and our final product implements the same
 specifications as all others within the EU and Dutch framework. Until that time,
 attestation providers (issuers) and relying parties wishing to integrate with
@@ -326,9 +326,9 @@ profile.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">extends</span></code></p>
 <ul>
-<li><p>OPTIONAL, A URI of another type that this type extends.
-See <a class="reference internal" href="#extending-types">Extending Types</a>. <code class="docutils literal notranslate"><span class="pre">extends#integrity</span></code> is required
-when referring to an extended type.</p></li>
+<li><p>OPTIONAL, A URI of another type that this type extends. See
+<a class="reference internal" href="#extending-types">Extending Types</a>. <code class="docutils literal notranslate"><span class="pre">extends#integrity</span></code> is required when
+referring to an extended type.</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">extends#integrity</span></code></p>
@@ -338,14 +338,14 @@ when referring to an extended type.</p></li>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">claims</span></code></p>
 <ul>
-<li><p>REQUIRED (OPTIONAL in [SD-JWT-VC]):
-See <a class="reference internal" href="#claims-metadata">Claims Metadata</a></p></li>
+<li><p>REQUIRED (OPTIONAL in [SD-JWT-VC]): See
+<a class="reference internal" href="#claims-metadata">Claims Metadata</a></p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p>
 <ul>
-<li><p>REQUIRED (OPTIONAL in [SD-JWT-VC]).
-See <a class="reference internal" href="#display-metadata">Display Metadata</a>. At least one Display Metadata
+<li><p>REQUIRED (OPTIONAL in [SD-JWT-VC]). See
+<a class="reference internal" href="#display-metadata">Display Metadata</a>. At least one Display Metadata
 containing <code class="docutils literal notranslate"><span class="pre">simple</span></code> rendering MUST be present.</p></li>
 </ul>
 </li>
@@ -373,8 +373,8 @@ embedded using <code class="docutils literal notranslate"><span class="pre">sche
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">summary</span></code> (not present in [SD-JWT-VC])</p>
 <ul>
-<li><p>OPTIONAL. Contains a summary of the credential (
-see <a class="reference internal" href="#credential-summary">Credential Summary</a>).</p></li>
+<li><p>OPTIONAL. Contains a summary of the credential ( see
+<a class="reference internal" href="#credential-summary">Credential Summary</a>).</p></li>
 </ul>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rendering</span></code></p>
@@ -386,10 +386,10 @@ see <a class="reference internal" href="#credential-summary">Credential Summary<
 <section id="credential-summary">
 <h4>Credential Summary<a class="headerlink" href="#credential-summary" title="Link to this heading"></a></h4>
 <p>The optional <code class="docutils literal notranslate"><span class="pre">summary</span></code> field of the Display Metadata provides a summary of the
-credential for the end user, and may contain <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> identifiers from
-the <a class="reference internal" href="#claim-metadata">Claim metadata</a> as placeholders for credential attributes.
-The NL Wallet will render this field as a subtitle of the card, with the
-<code class="docutils literal notranslate"><span class="pre">svg_id</span></code> identifiers replaced by the appropriate attribute values.</p>
+credential for the end user, and may contain <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> identifiers from the
+<a class="reference internal" href="#claim-metadata">Claim metadata</a> as placeholders for credential attributes. The
+NL Wallet will render this field as a subtitle of the card, with the <code class="docutils literal notranslate"><span class="pre">svg_id</span></code>
+identifiers replaced by the appropriate attribute values.</p>
 <p>Example:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;summary&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Person data for {{firstname}} {{lastname}}&quot;</span>
 </pre></div>
@@ -410,20 +410,19 @@ the example above:</p>
 </section>
 <section id="simple-rendering">
 <h4>Simple Rendering<a class="headerlink" href="#simple-rendering" title="Link to this heading"></a></h4>
-<p>The NL Wallet supports <code class="docutils literal notranslate"><span class="pre">simple</span></code> rendering as specified, except the <code class="docutils literal notranslate"><span class="pre">uri</span></code>
-of <a class="reference internal" href="#logo-metadata">Logo Metadata</a>.</p>
+<p>The NL Wallet supports <code class="docutils literal notranslate"><span class="pre">simple</span></code> rendering as specified, except the <code class="docutils literal notranslate"><span class="pre">uri</span></code> of
+<a class="reference internal" href="#logo-metadata">Logo Metadata</a>.</p>
 <p>Rendering using <code class="docutils literal notranslate"><span class="pre">svg_templates</span></code> is not supported.</p>
 <section id="logo-metadata">
 <h5>Logo metadata<a class="headerlink" href="#logo-metadata" title="Link to this heading"></a></h5>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">uri</span></code></p>
 <ul>
-<li><p>REQUIRED. MUST use <code class="docutils literal notranslate"><span class="pre">data</span></code> URI scheme as defined
-in <a class="reference external" href="https://datatracker.ietf.org/doc/html/rfc2397">RFC 2397</a> (no external
-links).
-Example:
-<code class="docutils literal notranslate"><span class="pre">&quot;data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vc...&quot;</span></code>
-The following mime-types are supported: <code class="docutils literal notranslate"><span class="pre">image/jpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">image/png</span></code>,
+<li><p>REQUIRED. MUST use <code class="docutils literal notranslate"><span class="pre">data</span></code> URI scheme as defined in
+<a class="reference external" href="https://datatracker.ietf.org/doc/html/rfc2397">RFC 2397</a> (no external
+links). Example:
+<code class="docutils literal notranslate"><span class="pre">&quot;data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vc...&quot;</span></code> The
+following mime-types are supported: <code class="docutils literal notranslate"><span class="pre">image/jpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">image/png</span></code>,
 <code class="docutils literal notranslate"><span class="pre">image/svg+xml</span></code>.</p></li>
 </ul>
 </li>
@@ -445,11 +444,13 @@ The following mime-types are supported: <code class="docutils literal notranslat
 types:</p>
 <ul class="simple">
 <li><p>JSON types: <code class="docutils literal notranslate"><span class="pre">boolean</span></code>, <code class="docutils literal notranslate"><span class="pre">number</span></code> and <code class="docutils literal notranslate"><span class="pre">string</span></code></p></li>
-<li><p>To format date, time or date-time values from <code class="docutils literal notranslate"><span class="pre">string</span></code>-types, the NL Wallet
-uses the <code class="docutils literal notranslate"><span class="pre">format</span></code> property from the JSON Schema, which can be one of
-<code class="docutils literal notranslate"><span class="pre">date</span></code>, <code class="docutils literal notranslate"><span class="pre">time</span></code> or <code class="docutils literal notranslate"><span class="pre">datetime</span></code>. If no format or another format is present,
-<code class="docutils literal notranslate"><span class="pre">string</span></code> is assumed without further processing. The NL Wallet does <em>not</em> (yet)
-support claims that select a JSON <code class="docutils literal notranslate"><span class="pre">array</span></code> or <code class="docutils literal notranslate"><span class="pre">object</span></code> value.</p></li>
+<li><p>There is limited support to use the <code class="docutils literal notranslate"><span class="pre">format</span></code> property of JSON Schema to format
+dates. Only direct explicit properties can be used, i.e. no <code class="docutils literal notranslate"><span class="pre">$ref</span></code> and no
+<code class="docutils literal notranslate"><span class="pre">additionalProperties</span></code>, <code class="docutils literal notranslate"><span class="pre">patternProperties</span></code> or <code class="docutils literal notranslate"><span class="pre">allOf</span></code>, <code class="docutils literal notranslate"><span class="pre">anyOf</span></code>, <code class="docutils literal notranslate"><span class="pre">oneOf</span></code>
+constructs.
+Example:<code class="docutils literal notranslate"><span class="pre">{&quot;properties&quot;:</span> <span class="pre">{&quot;birth_date&quot;:</span> <span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;string&quot;,</span> <span class="pre">&quot;format&quot;:</span> <span class="pre">&quot;date&quot;}}}</span></code></p></li>
+<li><p>The NL Wallet does <em>not</em> (yet) support claims that select a JSON <code class="docutils literal notranslate"><span class="pre">array</span></code> or
+<code class="docutils literal notranslate"><span class="pre">object</span></code> value.</p></li>
 <li><p>Type Metadata MUST only contain claim paths that select the supported types
 above. Any Type Metadata that contains claims that select a non-supported
 type, will be rejected.</p></li>
@@ -485,41 +486,37 @@ rendering is not supported.</p></li>
 <section id="extending-types">
 <h3>Extending types<a class="headerlink" href="#extending-types" title="Link to this heading"></a></h3>
 <p>Extending types is supported. [SD-JWT-VC] does not explicitly define how
-extended types should relate to
-base types.</p>
+extended types should relate to base types.</p>
 <p>When processing types that extend one other, the following rules are applied:</p>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">display</span></code> metadata entries are merged based on the <code class="docutils literal notranslate"><span class="pre">lang</span></code> field:</p>
 <ul>
 <li><p>Entries within the base document that have the same language as the
-extending document
-are replaced entirely by the entry contained in the extending document.
-Individual
-properties for a <code class="docutils literal notranslate"><span class="pre">display</span></code> metadata entry are not merged.</p></li>
+extending document are replaced entirely by the entry contained in the
+extending document. Individual properties for a <code class="docutils literal notranslate"><span class="pre">display</span></code> metadata entry
+are not merged.</p></li>
 <li><p>Order: The order of the <code class="docutils literal notranslate"><span class="pre">display</span></code> metadata entries in the base document is
-maintained.
-New entries from extending documents are appended, based on the
-order from the extending document.</p></li>
+maintained. New entries from extending documents are appended, based on
+the order from the extending document.</p></li>
 </ul>
 </li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">claim</span></code> metadata entries are merged based on the <code class="docutils literal notranslate"><span class="pre">path</span></code> field:</p>
 <ul>
-<li><p>The paths of the claims of an extending document MUST be a superset of
-the paths in the base document. This requirement exists so that the
-order of claims can be fully overridden by an extending document. Any
-extending document that
-does not have claims matching all paths from the base document will be
-rejected.</p></li>
+<li><p>The paths of the claims of an extending document MUST be a superset of the
+paths in the base document. This requirement exists so that the order of
+claims can be fully overridden by an extending document. Any extending
+document that does not have claims matching all paths from the base
+document will be rejected.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">display</span></code> property of <code class="docutils literal notranslate"><span class="pre">claim</span></code> metadata entries is merged according to
-the same rules
-as the <code class="docutils literal notranslate"><span class="pre">display</span></code> property of the type metadata document, see above.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">sd</span></code> property can only be overridden if the value is
-<code class="docutils literal notranslate"><span class="pre">allowed</span></code> (which is the default). Once this has been changed to <code class="docutils literal notranslate"><span class="pre">always</span></code>
-or <code class="docutils literal notranslate"><span class="pre">never</span></code>, this constitutes an end state for that property and it can
-no longer be overridden to another value in an extending document.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> of the extending document takes precedence. When
-the base document has <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> set, but the extending document
-does not, the resulting document will not have an <code class="docutils literal notranslate"><span class="pre">svg_id</span></code>.</p></li>
+the same rules as the <code class="docutils literal notranslate"><span class="pre">display</span></code> property of the type metadata document,
+see above.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">sd</span></code> property can only be overridden if the value is <code class="docutils literal notranslate"><span class="pre">allowed</span></code> (which
+is the default). Once this has been changed to <code class="docutils literal notranslate"><span class="pre">always</span></code> or <code class="docutils literal notranslate"><span class="pre">never</span></code>, this
+constitutes an end state for that property and it can no longer be
+overridden to another value in an extending document.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> of the extending document takes precedence. When the base
+document has <code class="docutils literal notranslate"><span class="pre">svg_id</span></code> set, but the extending document does not, the
+resulting document will not have an <code class="docutils literal notranslate"><span class="pre">svg_id</span></code>.</p></li>
 <li><p>Type information for all claim paths MUST be defined in the JSON-schema.</p></li>
 </ul>
 </li>
@@ -545,11 +542,11 @@ its attributes and Localized field labels) to an end user.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">claims</span></code> MUST be present in offered <a class="reference internal" href="#type-metadata">Type Metadata</a></p></li>
 <li><p>All values in the credential MUST be referenced by a <code class="docutils literal notranslate"><span class="pre">claim</span></code> in the <code class="docutils literal notranslate"><span class="pre">claims</span></code>
 section (excluding reserved claims: <code class="docutils literal notranslate"><span class="pre">vct</span></code>, <code class="docutils literal notranslate"><span class="pre">cnf</span></code>, <code class="docutils literal notranslate"><span class="pre">iss</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">iat</span></code>, <code class="docutils literal notranslate"><span class="pre">sub</span></code>,
-<code class="docutils literal notranslate"><span class="pre">status</span></code>,
-<code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code>). See <a class="reference internal" href="#claims-metadata">Claims Metadata</a>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">status</span></code>, <code class="docutils literal notranslate"><span class="pre">attestation_qualification</span></code>). See
+<a class="reference internal" href="#claims-metadata">Claims Metadata</a>.</p></li>
 <li><p>Data that is selected by claims must be renderable for the Wallet App. A
-<code class="docutils literal notranslate"><span class="pre">claim</span></code> path must select a type that can be rendered.
-See <a class="reference internal" href="#claims-metadata">Claims Metadata</a>.</p>
+<code class="docutils literal notranslate"><span class="pre">claim</span></code> path must select a type that can be rendered. See
+<a class="reference internal" href="#claims-metadata">Claims Metadata</a>.</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">object</span></code> types are not supported.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">array</span></code> types are NOT YET supported.</p></li>
@@ -572,12 +569,12 @@ by the wallet to create a compact view for the credential. It will give the user
 a meaningful and recognizable overview of the credential’s content, which has
 proven useful from our current UX explorations. The <code class="docutils literal notranslate"><span class="pre">summary</span></code> may contain
 placeholders for actual values from the credential, similar to the templating
-logic for <code class="docutils literal notranslate"><span class="pre">svg_template</span></code> rendering [SD-JWT-VC].
-See <a class="reference internal" href="#credential-summary">Credential Summary</a> for more details.</p>
+logic for <code class="docutils literal notranslate"><span class="pre">svg_template</span></code> rendering [SD-JWT-VC]. See
+<a class="reference internal" href="#credential-summary">Credential Summary</a> for more details.</p>
 <p><em>Implication</em></p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">summary</span></code> as a new OPTIONAL field in
-the <a class="reference internal" href="#display-metadata">Display Metadata</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">summary</span></code> as a new OPTIONAL field in the
+<a class="reference internal" href="#display-metadata">Display Metadata</a>.</p></li>
 <li><p>The summary can be used in both rendering modes <code class="docutils literal notranslate"><span class="pre">simple</span></code> and <code class="docutils literal notranslate"><span class="pre">svg_template</span></code></p></li>
 </ul>
 </section>
