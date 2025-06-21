@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use attestation_types::disclosure::RequestedAttributePathsError;
 use derive_more::Constructor;
 
 use attestation_data::auth::reader_auth::ValidationError;
@@ -32,51 +33,15 @@ impl From<VpMessageClientError> for VpSessionError {
     }
 }
 
-impl From<AuthResponseError> for VpSessionError {
-    fn from(source: AuthResponseError) -> Self {
-        VpSessionError::Client(VpClientError::AuthResponseEncryption(source))
-    }
-}
-
 impl From<AuthRequestValidationError> for VpSessionError {
     fn from(source: AuthRequestValidationError) -> Self {
         VpSessionError::Verifier(VpVerifierError::AuthRequestValidation(source))
     }
 }
 
-impl From<ValidationError> for VpSessionError {
-    fn from(source: ValidationError) -> Self {
-        VpSessionError::Verifier(VpVerifierError::RequestedAttributesValidation(source))
-    }
-}
-
-impl From<CertificateError> for VpSessionError {
-    fn from(source: CertificateError) -> Self {
-        VpSessionError::Verifier(VpVerifierError::RpCertificate(source))
-    }
-}
-
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum VpClientError {
-    #[error("error sending OpenID4VP message: {0}")]
-    Request(#[source] VpMessageClientError),
-
-    #[error("error creating mdoc device response: {0}")]
-    DeviceResponse(#[source] mdoc::Error),
-
-    #[error("error matching requested attributes against mdocs: {0}")]
-    MatchRequestedAttributes(#[source] mdoc::Error),
-
-    #[error("multiple candidates for disclosure is unsupported, found for doc types: {}", .0.join(", "))]
-    // we don't want to leak information about what's in the wallet
-    #[category(pd)]
-    MultipleCandidates(Vec<String>),
-
-    #[error("error encrypting Authorization Response: {0}")]
-    #[category(unexpected)]
-    AuthResponseEncryption(#[source] AuthResponseError),
-
     #[error("error deserializing request_uri object: {0}")]
     // we cannot be sure that the URL is not included in the error.
     #[category(pd)]
@@ -86,25 +51,24 @@ pub enum VpClientError {
     #[category(critical)]
     DisclosureUriSourceMismatch(SessionType, DisclosureUriSource),
 
+    #[error("error sending OpenID4VP message: {0}")]
+    Request(#[source] VpMessageClientError),
+
+    #[error("error creating mdoc device response: {0}")]
+    DeviceResponse(#[source] mdoc::Error),
+
     #[error("error constructing PoA: {0}")]
     #[category(pd)]
     Poa(#[source] Box<dyn Error + Send + Sync + 'static>),
+
+    #[error("error encrypting Authorization Response: {0}")]
+    #[category(unexpected)]
+    AuthResponseEncryption(#[source] AuthResponseError),
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum VpVerifierError {
-    #[error("error verifying Authorization Request: {0}")]
-    AuthRequestValidation(#[source] AuthRequestValidationError),
-
-    #[error("incorrect client_id: expected {expected}, found {found}")]
-    #[category(critical)]
-    IncorrectClientId { expected: String, found: String },
-
-    #[error("no reader registration in RP certificate")]
-    #[category(critical)]
-    MissingReaderRegistration,
-
     #[error("missing session_type query parameter in request URI")]
     #[category(critical)]
     MissingSessionType,
@@ -117,11 +81,26 @@ pub enum VpVerifierError {
     #[error("error sending OpenID4VP message: {0}")]
     Request(#[source] VpMessageClientError),
 
-    #[error("error validating requested attributes: {0}")]
-    RequestedAttributesValidation(#[source] ValidationError),
+    #[error("error verifying Authorization Request: {0}")]
+    AuthRequestValidation(#[source] AuthRequestValidationError),
+
+    #[error("incorrect client_id: expected {expected}, found {found}")]
+    #[category(critical)]
+    IncorrectClientId { expected: String, found: String },
 
     #[error("error parsing RP certificate: {0}")]
     RpCertificate(#[source] CertificateError),
+
+    #[error("no reader registration in RP certificate")]
+    #[category(critical)]
+    MissingReaderRegistration,
+
+    #[error("error validating requested attributes: {0}")]
+    RequestedAttributesValidation(#[source] ValidationError),
+
+    #[error("disclosure request (partially) empty: {0}")]
+    #[category(pd)]
+    EmptyRequest(#[source] RequestedAttributePathsError),
 }
 
 #[derive(Debug, Constructor, thiserror::Error)]

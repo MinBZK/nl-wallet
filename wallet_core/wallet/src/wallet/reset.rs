@@ -7,6 +7,7 @@ use tracing::warn;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
 use platform_support::attested_key::GoogleAttestedKey;
@@ -30,11 +31,12 @@ pub enum ResetError {
 
 type ResetResult<T> = Result<T, ResetError>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     UR: Repository<VersionState>,
     S: Storage,
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
 {
     pub(super) async fn reset_to_initial_state(&mut self) -> bool {
         // Only reset if we actually have a registration. If we did generate a key but never

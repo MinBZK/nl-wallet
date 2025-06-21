@@ -19,9 +19,9 @@ use std::sync::Arc;
 
 use cfg_if::cfg_if;
 use tokio::sync::RwLock;
-use uuid::Uuid;
 
-use openid4vc::disclosure_session::VpDisclosureSession;
+use openid4vc::disclosure_session::DisclosureClient;
+use openid4vc::disclosure_session::VpDisclosureClient;
 use openid4vc::issuance_session::HttpIssuanceSession;
 use platform_support::attested_key::AttestedKey;
 use platform_support::attested_key::AttestedKeyHolder;
@@ -92,10 +92,10 @@ impl<A, G> WalletRegistration<A, G> {
 }
 
 #[derive(Debug)]
-enum Session<DS, IS, MDS> {
+enum Session<DS, IS, DCS> {
     Digid(DS),
     Issuance(WalletIssuanceSession<IS>),
-    Disclosure(WalletDisclosureSession<MDS>),
+    Disclosure(WalletDisclosureSession<DCS>),
 }
 
 pub struct Wallet<
@@ -106,10 +106,11 @@ pub struct Wallet<
     APC = HttpAccountProviderClient,            // AccountProviderClient
     DS = HttpDigidSession,                      // DigidSession
     IS = HttpIssuanceSession,                   // IssuanceSession
-    MDS = VpDisclosureSession<Uuid>,            // DisclosureSession
+    DC = VpDisclosureClient,                    // DisclosureClient
     WIC = WpWteIssuanceClient,                  // WteIssuanceClient
 > where
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
 {
     config_repository: CR,
     update_policy_repository: UR,
@@ -117,7 +118,8 @@ pub struct Wallet<
     key_holder: AKH,
     registration: WalletRegistration<AKH::AppleKey, AKH::GoogleKey>,
     account_provider_client: Arc<APC>,
-    session: Option<Session<DS, IS, MDS>>,
+    disclosure_client: DC,
+    session: Option<Session<DS, IS, DC::Session>>,
     wte_issuance_client: WIC,
     lock: WalletLock,
     attestations_callback: Option<AttestationsCallback>,

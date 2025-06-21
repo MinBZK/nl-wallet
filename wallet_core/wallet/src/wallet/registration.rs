@@ -10,6 +10,7 @@ use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use jwt::error::JwtError;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::hardware::AttestedKeyError;
 use platform_support::attested_key::hardware::HardwareAttestedKeyError;
 use platform_support::attested_key::AttestedKey;
@@ -94,9 +95,10 @@ impl WalletRegistrationError {
     }
 }
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
 {
     pub fn has_registration(&self) -> bool {
         self.registration.is_registered()

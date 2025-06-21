@@ -8,6 +8,7 @@ use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use mdoc::utils::cose::CoseError;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 
 use crate::attestation::AttestationError;
@@ -55,10 +56,11 @@ pub enum AttestationsError {
 
 pub type AttestationsCallback = Box<dyn FnMut(Vec<AttestationPresentation>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     S: Storage,
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
 {
     pub(super) async fn emit_attestations(&mut self) -> Result<(), AttestationsError> {
         info!("Emit attestations from storage");

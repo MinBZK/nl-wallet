@@ -1,80 +1,65 @@
 use std::hash::Hash;
 
-use http_utils::urls::BaseUrl;
 use rustls_pki_types::TrustAnchor;
 
-use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_types::disclosure::RequestedAttributePaths;
 use crypto::factory::KeyFactory;
-use crypto::x509::BorrowingCertificate;
 use crypto::CredentialEcdsaKey;
-use mdoc::holder::MdocDataSource;
-use mdoc::holder::ProposedAttributes;
-use mdoc::identifiers::AttributeIdentifier;
+use http_utils::urls::BaseUrl;
+use mdoc::holder::Mdoc;
 use poa::factory::PoaFactory;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::verifier::SessionType;
 
-pub use self::client::HttpVpMessageClient;
-pub use self::client::VpMessageClient;
-pub use self::client::VpMessageClientError;
-pub use self::client::VpMessageClientErrorType;
-pub use self::client::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
+pub use self::client::VpDisclosureClient;
 pub use self::error::DisclosureError;
 pub use self::error::VpClientError;
 pub use self::error::VpSessionError;
 pub use self::error::VpVerifierError;
-pub use self::session::VpDisclosureMissingAttributes;
-pub use self::session::VpDisclosureProposal;
+pub use self::message_client::HttpVpMessageClient;
+pub use self::message_client::VpMessageClient;
+pub use self::message_client::VpMessageClientError;
+pub use self::message_client::VpMessageClientErrorType;
+pub use self::message_client::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 pub use self::session::VpDisclosureSession;
 pub use self::uri_source::DisclosureUriSource;
+pub use self::verifier_certificate::VerifierCertificate;
 
 mod client;
 mod error;
+mod message_client;
 mod session;
 mod uri_source;
+mod verifier_certificate;
 
-#[derive(Debug)]
-pub enum DisclosureSessionState<M, P> {
-    MissingAttributes(M),
-    Proposal(P),
-}
+#[cfg(feature = "mock")]
+pub mod mock;
 
-pub trait DisclosureSession<I, H = HttpVpMessageClient> {
-    type MissingAttributes: DisclosureMissingAttributes;
-    type Proposal: DisclosureProposal<I>;
+pub trait DisclosureClient {
+    type Session: DisclosureSession;
 
-    async fn start<S>(
-        client: H,
+    async fn start(
+        &self,
         request_uri_query: &str,
         uri_source: DisclosureUriSource,
-        mdoc_data_source: &S,
         trust_anchors: &[TrustAnchor<'_>],
-    ) -> Result<Self, VpSessionError>
-    where
-        S: MdocDataSource<MdocIdentifier = I>,
-        H: VpMessageClient,
-        Self: Sized;
+    ) -> Result<Self::Session, VpSessionError>;
+}
 
-    fn verifier_certificate(&self) -> &BorrowingCertificate;
-    fn reader_registration(&self) -> &ReaderRegistration;
-    fn session_state(&self) -> DisclosureSessionState<&Self::MissingAttributes, &Self::Proposal>;
+pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
+    fn requested_attribute_paths(&self) -> &RequestedAttributePaths;
+    fn verifier_certificate(&self) -> &VerifierCertificate;
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
-}
-
-pub trait DisclosureMissingAttributes {
-    fn missing_attributes(&self) -> impl Iterator<Item = &AttributeIdentifier>;
-}
-
-pub trait DisclosureProposal<I> {
-    fn proposed_source_identifiers<'a>(&'a self) -> impl Iterator<Item = &'a I>
-    where
-        I: 'a;
-    fn proposed_attributes(&self) -> ProposedAttributes;
-
-    async fn disclose<K, KF>(&self, key_factory: &KF) -> Result<Option<BaseUrl>, DisclosureError<VpSessionError>>
+    async fn disclose<K, KF>(
+        self,
+        mdocs: VecNonEmpty<Mdoc>,
+        key_factory: &KF,
+    ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>
     where
         K: CredentialEcdsaKey + Eq + Hash,
-        KF: KeyFactory<Key = K> + PoaFactory<Key = K>;
+        KF: KeyFactory<Key = K> + PoaFactory<Key = K>,
+        Self: Sized;
 }

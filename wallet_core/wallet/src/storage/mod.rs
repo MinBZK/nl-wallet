@@ -35,7 +35,6 @@ pub use self::data::RegistrationData;
 pub use self::data::UnlockData;
 pub use self::data::UnlockMethod;
 pub use self::database_storage::DatabaseStorage;
-pub use self::event_log::disclosure_type_for_proposed_attributes;
 pub use self::event_log::DataDisclosureStatus;
 pub use self::event_log::DisclosureStatus;
 pub use self::event_log::DisclosureType;

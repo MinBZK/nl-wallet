@@ -18,6 +18,7 @@ mod error;
 mod http;
 
 #[cfg(test)]
+#[allow(dead_code)]
 pub mod mock;
 
 pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: LazyLock<Mime> = LazyLock::new(|| {

@@ -3,6 +3,7 @@ use tracing::instrument;
 
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
+use openid4vc::disclosure_session::DisclosureClient;
 use platform_support::attested_key::AttestedKeyHolder;
 use update_policy_model::update_policy::VersionState;
 
@@ -33,11 +34,12 @@ type HistoryResult<T> = Result<T, HistoryError>;
 
 pub type RecentHistoryCallback = Box<dyn FnMut(Vec<WalletEvent>) + Send + Sync>;
 
-impl<CR, UR, S, AKH, APC, DS, IS, MDS, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, MDS, WIC>
+impl<CR, UR, S, AKH, APC, DS, IS, DC, WIC> Wallet<CR, UR, S, AKH, APC, DS, IS, DC, WIC>
 where
     S: Storage,
     UR: Repository<VersionState>,
     AKH: AttestedKeyHolder,
+    DC: DisclosureClient,
 {
     pub(super) async fn store_history_event(&mut self, event: WalletEvent) -> Result<(), StorageError> {
         info!("Storing history event");

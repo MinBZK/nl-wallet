@@ -23,6 +23,7 @@ use crypto::server_keys::KeyPair;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use jwt::Jwt;
 use mdoc::holder::Mdoc;
+use openid4vc::disclosure_session::mock::MockDisclosureClient;
 use openid4vc::issuance_session::NormalizedCredentialPreview;
 use openid4vc::mock::MockIssuanceSession;
 use openid4vc::token::CredentialPreviewContent;
@@ -43,7 +44,6 @@ use crate::config::default_config_server_config;
 use crate::config::default_wallet_config;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
-use crate::disclosure::mock::MockDisclosureSession;
 use crate::issuance;
 use crate::issuance::MockDigidSession;
 use crate::issuance::PID_DOCTYPE;
@@ -92,7 +92,7 @@ pub type WalletWithMocks = Wallet<
     MockAccountProviderClient,
     MockDigidSession,
     MockIssuanceSession,
-    MockDisclosureSession,
+    MockDisclosureClient,
     MockWteIssuanceClient,
 >;
 
@@ -252,6 +252,7 @@ impl WalletWithMocks {
             MockStorage::default(),
             generate_key_holder(vendor),
             MockAccountProviderClient::default(),
+            MockDisclosureClient::default(),
             RegistrationStatus::Unregistered,
         )
     }
@@ -339,6 +340,7 @@ impl WalletWithMocks {
             storage,
             key_holder,
             MockAccountProviderClient::default(),
+            MockDisclosureClient::default(),
         )
         .await
     }

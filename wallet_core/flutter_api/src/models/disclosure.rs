@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use url::Url;
 
 use wallet::attestation_data::ReaderRegistration;
@@ -200,13 +201,21 @@ impl TryFrom<Result<DisclosureProposalPresentation, DisclosureError>> for StartD
             Err(error) => match error {
                 DisclosureError::AttributesNotAvailable {
                     reader_registration,
-                    missing_attributes,
+                    requested_attributes,
                     shared_data_with_relying_party_before,
                     session_type,
                 } => {
                     let request_purpose: Vec<LocalizedString> =
                         RPLocalizedStrings(reader_registration.purpose_statement).into();
-                    let missing_attributes = missing_attributes.into_iter().map(MissingAttribute::from).collect();
+                    // TODO (PVW-4525): Have the UI actually display these as requested attributes,
+                    //                  not as missing attributes.
+                    let missing_attributes = requested_attributes
+                        .into_iter()
+                        // Sort the attribute paths alphabetically to make the display order deterministic.
+                        // TODO (PVW-4525): Do any sort of sorting in the UI instead.
+                        .sorted()
+                        .map(MissingAttribute::from)
+                        .collect();
                     let result = StartDisclosureResult::RequestAttributesMissing {
                         relying_party: reader_registration.organization.into(),
                         missing_attributes,
