@@ -12,7 +12,9 @@ pub use proposed_document::ProposedDocumentAttributes;
 
 mod device_signed;
 mod disclosure_request_match;
+mod document;
 mod issuer_signed;
+mod mdoc;
 mod proposed_document;
 mod request;
 mod response;

@@ -4,10 +4,20 @@ use crypto::keys::CredentialEcdsaKey;
 use crate::errors::Result;
 use crate::iso::disclosure::DeviceResponse;
 use crate::iso::disclosure::DeviceResponseVersion;
+use crate::iso::disclosure::Document;
 
 use super::proposed_document::ProposedDocument;
 
 impl DeviceResponse {
+    pub fn new(documents: Vec<Document>) -> Self {
+        Self {
+            version: DeviceResponseVersion::default(),
+            documents: Some(documents),
+            document_errors: None,
+            status: 0,
+        }
+    }
+
     pub async fn from_proposed_documents<I, KF, K>(
         proposed_documents: Vec<ProposedDocument<I>>,
         key_factory: &KF,
