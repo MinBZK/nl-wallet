@@ -628,8 +628,12 @@ dependencies = [
 name = "attestation_types"
 version = "0.3.0-dev"
 dependencies = [
+ "derive_more",
+ "itertools 0.14.0",
  "serde_with",
  "strum 0.26.3",
+ "thiserror 2.0.11",
+ "utils",
 ]
 
 [[package]]
