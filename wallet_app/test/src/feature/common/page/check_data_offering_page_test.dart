@@ -127,7 +127,7 @@ void main() {
             docType: 'com.example.docType',
             issuer: WalletMockData.organization,
             attributes: const [],
-            id: 'id',
+            attestationId: 'id',
           ),
         ),
       );

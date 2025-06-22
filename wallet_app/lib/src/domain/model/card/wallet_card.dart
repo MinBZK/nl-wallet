@@ -13,8 +13,8 @@ part 'wallet_card.g.dart';
 
 @JsonSerializable(explicitToJson: true)
 class WalletCard extends Equatable {
-  /// ID of the card, null when the card is not persisted in the database
-  final String? id;
+  /// ID of the attestation, null when the card is not persisted in the database
+  final String? attestationId;
 
   /// Type of document
   final String docType;
@@ -32,7 +32,7 @@ class WalletCard extends Equatable {
   final CardConfig config;
 
   /// Indicates whether the card is persisted in the database.
-  bool get isPersisted => id != null;
+  bool get isPersisted => attestationId != null;
 
   LocalizedText get title => metadata.name ?? ''.untranslated;
 
@@ -41,7 +41,7 @@ class WalletCard extends Equatable {
   LocalizedText get summary => CardSummaryMapper().map(this);
 
   const WalletCard({
-    required this.id,
+    required this.attestationId,
     required this.docType,
     required this.issuer,
     required this.attributes,
@@ -55,7 +55,7 @@ class WalletCard extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
+        attestationId,
         docType,
         issuer,
         attributes,
@@ -64,7 +64,7 @@ class WalletCard extends Equatable {
       ];
 
   WalletCard copyWith({
-    String? Function()? id,
+    String? Function()? attestationId,
     String? docType,
     Organization? issuer,
     List<DataAttribute>? attributes,
@@ -72,7 +72,7 @@ class WalletCard extends Equatable {
     CardConfig? config,
   }) {
     return WalletCard(
-      id: id != null ? id() : this.id,
+      attestationId: attestationId != null ? attestationId() : this.attestationId,
       docType: docType ?? this.docType,
       issuer: issuer ?? this.issuer,
       attributes: attributes ?? this.attributes,

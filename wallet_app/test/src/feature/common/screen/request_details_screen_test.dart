@@ -68,7 +68,7 @@ void main() {
                 docType: 'com.example.docType',
                 issuer: WalletMockData.organization,
                 attributes: [],
-                id: 'id',
+                attestationId: 'id',
                 metadata: WalletMockData.card.metadata,
               ),
             ],

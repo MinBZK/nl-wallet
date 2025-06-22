@@ -193,7 +193,7 @@ class CardDetailScreen extends StatelessWidget {
         leftIcon: const Icon(Icons.history_outlined),
         label: Text.rich(context.l10n.cardDetailScreenCardHistoryCta.toTextSpan(context)),
         subtitle: Text.rich(_createInteractionText(context, detail.mostRecentSuccessfulDisclosure).toTextSpan(context)),
-        onPressed: card.id == null ? null : () => _onCardHistoryPressed(context, card.id!),
+        onPressed: card.attestationId == null ? null : () => _onCardHistoryPressed(context, card.attestationId!),
       ),
       MenuItem(
         leftIcon: OrganizationLogo(image: card.issuer.logo, size: 24),
@@ -295,7 +295,7 @@ class CardDetailScreen extends StatelessWidget {
       context,
       WalletRoutes.cardDataRoute,
       arguments: CardDataScreenArgument(
-        cardId: card.id ?? '',
+        cardId: card.attestationId ?? '',
         cardTitle: card.title.l10nValue(context),
       ).toMap(),
     );

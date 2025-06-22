@@ -22,7 +22,7 @@ abstract class WalletMockData {
     docType: 'com.example.docType',
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
-    id: 'id',
+    attestationId: 'id',
     metadata: [
       CardDisplayMetadata(
         language: testLocale,
@@ -50,14 +50,14 @@ abstract class WalletMockData {
         rendering: const SimpleCardRendering(textColor: Colors.white, bgColor: Colors.deepPurple),
       ),
     ],
-    id: 'id',
+    attestationId: 'id',
   );
 
   static WalletCard altCard = WalletCard(
     issuer: WalletMockData.organization,
     docType: 'com.example.alt.docType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
-    id: 'id2',
+    attestationId: 'id2',
     metadata: [
       CardDisplayMetadata(
         language: testLocale,

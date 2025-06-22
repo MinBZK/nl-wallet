@@ -53,7 +53,7 @@ void main() {
   group('map', () {
     test('card with `InMemory` persistence should return null as `id`', () {
       final WalletCard actual = mapper.map(_kSampleCard);
-      expect(actual.id, isNull);
+      expect(actual.attestationId, isNull);
     });
 
     test('card with `stored` persistence should return storage `id`', () {
@@ -64,7 +64,7 @@ void main() {
         attributes: [],
         issuer: _kSampleIssuer,
       );
-      expect(mapper.map(input).id, 'id-987');
+      expect(mapper.map(input).attestationId, 'id-987');
     });
 
     test('all card attributes should be mapped by the attributeMapper', () {

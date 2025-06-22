@@ -30,7 +30,7 @@ class CardMapper extends Mapper<core.AttestationPresentation, WalletCard> {
     };
 
     return WalletCard(
-      id: cardId,
+      attestationId: cardId,
       docType: input.attestationType,
       issuer: _organizationMapper.map(input.issuer),
       attributes: _attributeMapper.mapList(

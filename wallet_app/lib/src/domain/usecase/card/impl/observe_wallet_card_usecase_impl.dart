@@ -11,7 +11,7 @@ class ObserveWalletCardUseCaseImpl extends ObserveWalletCardUseCase {
   @override
   Stream<WalletCard> invoke(String cardId) {
     return walletCardRepository.observeWalletCards().map((cards) {
-      return cards.firstWhere((card) => card.id == cardId);
+      return cards.firstWhere((card) => card.attestationId == cardId);
     }).handleAppError('Error while observing card with id $cardId');
   }
 }

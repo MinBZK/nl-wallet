@@ -20,7 +20,7 @@ class ObserveWalletCardDetailUseCaseImpl extends ObserveWalletCardDetailUseCase 
   Stream<WalletCardDetail> invoke(String cardId) {
     return _walletCardRepository
         .observeWalletCards()
-        .map((cards) => cards.firstWhere((card) => card.id == cardId))
+        .map((cards) => cards.firstWhere((card) => card.attestationId == cardId))
         .asyncMap(_getWalletCardDetail)
         .handleAppError('Error while observing card details');
   }
@@ -28,16 +28,16 @@ class ObserveWalletCardDetailUseCaseImpl extends ObserveWalletCardDetailUseCase 
   Future<WalletCardDetail> _getWalletCardDetail(WalletCard card) async {
     if (!card.isPersisted) {
       throw GenericError(
-        'Unknown card. cardId: ${card.id}',
+        'Unknown card. cardId: ${card.attestationId}',
         sourceError: UnsupportedError('Details can only be fetched for persisted cards'),
       );
     }
     final DisclosureEvent? disclosureEvent = await _walletEventRepository.readMostRecentDisclosureEvent(
-      card.id!,
+      card.attestationId!,
       EventStatus.success,
     );
     final IssuanceEvent? issuanceEvent = await _walletEventRepository.readMostRecentIssuanceEvent(
-      card.id!,
+      card.attestationId!,
       EventStatus.success,
     );
     return WalletCardDetail(

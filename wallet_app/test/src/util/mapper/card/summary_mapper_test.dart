@@ -24,7 +24,7 @@ void main() {
         docType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [],
-        id: 'id',
+        attestationId: 'id',
         metadata: [const CardDisplayMetadata(language: Locale('en'), name: 'name')],
       );
       expect(mapper.map(input).testValue, '');
@@ -39,7 +39,7 @@ void main() {
         metadata: const [
           CardDisplayMetadata(language: Locale('en'), name: 'name', rawSummary: summary),
         ],
-        id: 'id',
+        attestationId: 'id',
       );
       expect(mapper.map(input).testValue, summary);
     });
@@ -68,7 +68,7 @@ void main() {
         metadata: const [
           CardDisplayMetadata(language: Locale('en'), name: 'name', rawSummary: summary),
         ],
-        id: 'id',
+        attestationId: 'id',
       );
       expect(mapper.map(input).testValue, 'First: John, Second: Doe');
     });
@@ -98,7 +98,7 @@ void main() {
             rawSummary: 'Gebruiker is 18+ {{over18}}',
           ),
         ],
-        id: 'id',
+        attestationId: 'id',
       );
 
       expect(mapper.map(input)[const Locale('en')], 'User is 18+ Yes');
@@ -117,7 +117,7 @@ void main() {
             rawSummary: 'Middle name: {{middle_name}}',
           ),
         ],
-        id: 'id',
+        attestationId: 'id',
       );
 
       expect(mapper.map(input).testValue, 'Middle name: ');
@@ -126,7 +126,7 @@ void main() {
     test('svg id should NOT rely on attribute.key for replacement', () {
       const key = 'mock_key';
       final input = WalletCard(
-        id: 'id',
+        attestationId: 'id',
         docType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [
@@ -180,7 +180,7 @@ void main() {
             rawSummary: 'Datum {{dob}}',
           ),
         ],
-        id: 'id',
+        attestationId: 'id',
       );
 
       expect(mapper.map(input)[const Locale('en')], 'Date 10/5/2024');
