@@ -772,6 +772,7 @@ impl VpAuthorizationResponse {
             auth_request.nonce.clone(),
             mdoc_nonce,
         );
+        // TODO this is still mdoc specific (PVW-4531)
         let device_response = self.device_response()?;
         let disclosed_attrs = device_response
             .verify(None, &session_transcript, time, trust_anchors)
