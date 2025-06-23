@@ -540,7 +540,8 @@ impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, ErrorCategory)]
+#[category(unexpected)]
 pub enum AuthResponseError {
     #[error("error (de)serializing JWE payload: {0}")]
     Json(#[from] serde_json::Error),
@@ -578,6 +579,7 @@ pub enum AuthResponseError {
     #[error("error verifying PoA: {0}")]
     PoaVerification(#[from] PoaVerificationError),
     #[error("error converting disclosed attestations: {0}")]
+    #[category(pd)]
     DisclosedAttestation(#[from] DisclosedAttestationError),
 }
 
