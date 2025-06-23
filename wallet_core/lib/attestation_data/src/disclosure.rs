@@ -49,8 +49,9 @@ impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
 #[cfg_attr(feature = "test", derive(derive_more::Unwrap))]
 #[serde(tag = "format", content = "attributes", rename_all = "snake_case")]
 pub enum DisclosedAttributes {
-    SdJwt(Attributes),
     MsoMdoc(IndexMap<NameSpace, IndexMap<String, AttributeValue>>),
+    #[serde(rename = "dc+sd-jwt")]
+    SdJwt(Attributes),
 }
 
 impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>> for DisclosedAttributes {
@@ -206,7 +207,7 @@ mod test {
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
             },
-            "format": "sd_jwt",
+            "format": "dc+sd-jwt",
             "attributes": {
                 "address": {
                     "street": "Main St",
@@ -227,7 +228,7 @@ mod test {
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
             },
-            "format": "sd_jwt",
+            "format": "dc+sd-jwt",
             "attributes": {
                 "nationalities": [
                     "DE",

@@ -1,24 +1,18 @@
 use indexmap::IndexMap;
 use serde::Deserialize;
-use serde::Serialize;
 
 use attestation_data::attributes::Attributes;
 use attestation_data::disclosure::ValidityInfo;
 use http_utils::urls::HttpsUri;
+use openid4vc::Format;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CredentialFormat {
-    MsoMdoc,
-    SdJwt,
-}
-
-/// Attributes of an attestation that was disclosed, but without the DisclosedAttributes enum.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Attributes of an attestation that was disclosed, but without the DisclosedAttributes enum. This way, we can
+/// deserialize both formats without having to deal with the enum variants in the code that uses this struct.
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DocumentDisclosedAttributes {
+pub struct DemoDisclosedAttestation {
     pub attributes: Attributes,
-    pub format: CredentialFormat,
+    pub format: Format,
     pub issuer_uri: HttpsUri,
 
     /// The issuer CA's common name
@@ -26,7 +20,7 @@ pub struct DocumentDisclosedAttributes {
     pub validity_info: ValidityInfo,
 }
 
-pub type DisclosedAttestations = IndexMap<String, DocumentDisclosedAttributes>;
+pub type DemoDisclosedAttestations = IndexMap<String, DemoDisclosedAttestation>;
 
 #[cfg(test)]
 mod test {
@@ -94,7 +88,7 @@ mod test {
             },
         );
 
-        let attestations: DisclosedAttestations =
+        let attestations: DemoDisclosedAttestations =
             serde_json::from_str(&serde_json::to_string(&attestations).unwrap()).unwrap();
 
         assert_eq!(attestations.len(), 2);

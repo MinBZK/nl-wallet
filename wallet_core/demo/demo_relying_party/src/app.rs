@@ -29,7 +29,7 @@ use tracing::warn;
 use url::Url;
 
 use attestation_data::attributes::AttributeValue;
-use demo_utils::disclosure::DisclosedAttestations;
+use demo_utils::disclosure::DemoDisclosedAttestations;
 use demo_utils::error::Result;
 use demo_utils::headers::cors_layer;
 use demo_utils::headers::set_content_security_policy;
@@ -263,7 +263,7 @@ pub struct DisclosedAttributesParams {
 #[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
-    attributes: DisclosedAttestations,
+    attributes: DemoDisclosedAttestations,
     demo_index_url: Url,
     base: BaseTemplate<'a>,
 }
@@ -317,11 +317,11 @@ async fn disclosed_attributes(
 }
 
 mod filters {
-    use demo_utils::disclosure::DisclosedAttestations;
+    use demo_utils::disclosure::DemoDisclosedAttestations;
 
     // searches for an attribute with a specific key, the key is a dot-separated string
     pub fn attribute(
-        attestations: &DisclosedAttestations,
+        attestations: &DemoDisclosedAttestations,
         _: &dyn askama::Values,
         name: &str,
     ) -> askama::Result<String> {

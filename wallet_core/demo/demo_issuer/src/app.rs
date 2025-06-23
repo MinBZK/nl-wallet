@@ -25,7 +25,7 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
-use demo_utils::disclosure::DisclosedAttestations;
+use demo_utils::disclosure::DemoDisclosedAttestations;
 use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
@@ -185,7 +185,7 @@ async fn usecase(
 async fn attestation(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Json(disclosed): Json<DisclosedAttestations>,
+    Json(disclosed): Json<DemoDisclosedAttestations>,
 ) -> Result<Response> {
     let Some(usecase) = state.usecases.get(&usecase) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
