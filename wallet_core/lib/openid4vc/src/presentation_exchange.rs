@@ -108,25 +108,32 @@ impl From<&VecNonEmpty<NormalizedCredentialRequest>> for PresentationDefinition 
                 .as_ref()
                 .iter()
                 .map(|request| {
-                    let CredentialQueryFormat::MsoMdoc { doctype_value } = &request.format else {
-                        panic!("SdJwt not supported yet");
+                    let (id, format) = match &request.format {
+                        CredentialQueryFormat::MsoMdoc { doctype_value } => (
+                            doctype_value.to_owned(),
+                            VpFormat::MsoMdoc {
+                                alg: IndexSet::from([FormatAlg::ES256]),
+                            },
+                        ),
+                        CredentialQueryFormat::SdJwt { vct_values } => (
+                            vct_values.first().clone(), /* TODO this only works for credential requests with a
+                                                         * single VCT value */
+                            VpFormat::SdJwt {
+                                alg: IndexSet::from([FormatAlg::ES256]),
+                            },
+                        ),
                     };
                     InputDescriptor {
-                        id: doctype_value.clone(),
-                        format: VpFormat::MsoMdoc {
-                            alg: IndexSet::from([FormatAlg::ES256]),
-                        },
+                        id,
+                        format,
                         constraints: Constraints {
                             limit_disclosure: LimitDisclosure::Required,
                             fields: request
                                 .claims
                                 .iter()
-                                .map(|attr_req| {
-                                    let path = attr_req.path.iter().map(|p| format!("['{p}']")).join("");
-                                    Field {
-                                        path: vec![format!("${path}")],
-                                        intent_to_retain: attr_req.intent_to_retain,
-                                    }
+                                .map(|attr| Field {
+                                    path: vec![format!("$['{}']", attr.path.iter().join("']['"))],
+                                    intent_to_retain: attr.intent_to_retain,
                                 })
                                 .collect(),
                         },
