@@ -1032,7 +1032,7 @@ fn check_example_disclosed_attributes(disclosed_attributes: &DisclosedAttestatio
         .unwrap()
         .attributes
         .clone()
-        .unwrap_mdoc();
+        .unwrap_mso_mdoc();
     itertools::assert_equal(attributes.keys(), [PID_ATTESTATION_TYPE]);
     let (first_entry_name, first_entry_value) = attributes.get(PID_ATTESTATION_TYPE).unwrap().first().unwrap();
     assert_eq!(first_entry_name, EXAMPLE_ATTR_NAME);

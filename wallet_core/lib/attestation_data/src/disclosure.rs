@@ -47,10 +47,10 @@ impl From<ValidityInfo> for mdoc::iso::ValidityInfo {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "test", derive(derive_more::Unwrap))]
-#[serde(tag = "format", content = "attributes")]
+#[serde(tag = "format", content = "attributes", rename_all = "snake_case")]
 pub enum DisclosedAttributes {
     SdJwt(Attributes),
-    Mdoc(IndexMap<NameSpace, IndexMap<String, AttributeValue>>),
+    MsoMdoc(IndexMap<NameSpace, IndexMap<String, AttributeValue>>),
 }
 
 impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>> for DisclosedAttributes {
@@ -59,7 +59,7 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
     fn try_from(
         map: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     ) -> Result<Self, Self::Error> {
-        Ok(DisclosedAttributes::Mdoc(
+        Ok(DisclosedAttributes::MsoMdoc(
             map.into_iter()
                 .map(|(namespace, attributes)| {
                     Ok((
@@ -79,7 +79,7 @@ impl TryFrom<IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValu
 impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>> {
     fn from(attributes: DisclosedAttributes) -> Self {
         attributes
-            .unwrap_mdoc()
+            .unwrap_mso_mdoc()
             .into_iter()
             .map(|(namespace, attributes)| {
                 (
@@ -159,7 +159,7 @@ mod test {
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
             },
-            "type": "Mdoc",
+            "format": "mso_mdoc",
             "attributes": {
                 "com.example.pid": {
                     "bsn": "0912345678"
@@ -174,7 +174,7 @@ mod test {
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
             },
-            "type": "Mdoc",
+            "format": "mso_mdoc",
             "attributes": {
                 "com.example.address": {
                     "street": "Hoofdstraat"
@@ -191,7 +191,7 @@ mod test {
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
             },
-            "type": "Mdoc",
+            "format": "mso_mdoc",
             "attributes": {
                 "com.example.pid": {
                     "bsn": "0912345678"
@@ -206,7 +206,7 @@ mod test {
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
             },
-            "type": "SdJwt",
+            "format": "sd_jwt",
             "attributes": {
                 "address": {
                     "street": "Main St",
@@ -227,7 +227,7 @@ mod test {
                 "validFrom": "2014-11-28 12:00:09 UTC",
                 "validUntil": "2014-11-28 12:00:09 UTC"
             },
-            "type": "SdJwt",
+            "format": "sd_jwt",
             "attributes": {
                 "nationalities": [
                     "DE",

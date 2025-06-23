@@ -216,7 +216,7 @@ mod tests {
         IndexMap::from([(
             attestation_type,
             DocumentDisclosedAttributes {
-                attributes: DisclosedAttributes::Mdoc(IndexMap::new()),
+                attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
                 issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "ca".to_string(),
                 validity_info: ValidityInfo {

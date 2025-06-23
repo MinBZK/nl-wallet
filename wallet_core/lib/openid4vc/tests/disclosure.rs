@@ -136,7 +136,7 @@ async fn disclosure_direct() {
         disclosed_attrs["org.iso.18013.5.1.mDL"]
             .attributes
             .clone()
-            .unwrap_mdoc()["org.iso.18013.5.1"]["family_name"],
+            .unwrap_mso_mdoc()["org.iso.18013.5.1"]["family_name"],
         AttributeValue::Text("Doe".to_owned()),
     );
 }
@@ -330,7 +330,7 @@ impl VpMessageClient for DirectMockVpMessageClient {
             disclosed_attrs["org.iso.18013.5.1.mDL"]
                 .attributes
                 .clone()
-                .unwrap_mdoc()["org.iso.18013.5.1"]["family_name"],
+                .unwrap_mso_mdoc()["org.iso.18013.5.1"]["family_name"],
             AttributeValue::Text("Doe".to_owned()),
         );
 
