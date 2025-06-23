@@ -193,7 +193,7 @@ async fn attestation(
 
     // get the requested attribute from the disclosed attributes, ignore everything else as we trust the issuance_server
     // blindly
-    let requested_path = usecase.disclosed.path.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+    let requested_path = usecase.disclosed.path.iter().map(String::as_str).collect::<Vec<_>>();
     let attribute_value = disclosed
         .get(&usecase.disclosed.credential_type)
         .and_then(|document| {
