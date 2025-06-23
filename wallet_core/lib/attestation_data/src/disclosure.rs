@@ -91,11 +91,11 @@ impl From<DisclosedAttributes> for IndexMap<NameSpace, IndexMap<DataElementIdent
     }
 }
 
-/// Attributes of an attestation that was disclosed, as computed by [`DeviceResponse::verify()`]. Grouped per namespace.
-/// Validity information and the attributes issuer's common_name is also included.
+/// Attestation that was disclosed; consisting of attributes, validity information, issuer URI and the issuer CA's
+/// common name.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DocumentDisclosedAttributes {
+pub struct DisclosedAttestation {
     #[serde(flatten)]
     pub attributes: DisclosedAttributes,
     pub issuer_uri: HttpsUri,
@@ -105,14 +105,14 @@ pub struct DocumentDisclosedAttributes {
     pub validity_info: ValidityInfo,
 }
 
-/// All attributes that were disclosed in a disclosure session, as computed by [`DeviceResponse::verify()`].
-pub type DisclosedAttestations = IndexMap<String, DocumentDisclosedAttributes>;
+/// All attestations disclosed in a disclosure session.
+pub type DisclosedAttestations = IndexMap<String, DisclosedAttestation>;
 
-impl TryFrom<mdoc::verifier::DocumentDisclosedAttributes> for DocumentDisclosedAttributes {
+impl TryFrom<mdoc::verifier::DocumentDisclosedAttributes> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 
     fn try_from(doc: mdoc::verifier::DocumentDisclosedAttributes) -> Result<Self, Self::Error> {
-        Ok(DocumentDisclosedAttributes {
+        Ok(DisclosedAttestation {
             attributes: doc.attributes.try_into()?,
             issuer_uri: doc.issuer_uri,
             ca: doc.ca,
@@ -122,8 +122,8 @@ impl TryFrom<mdoc::verifier::DocumentDisclosedAttributes> for DocumentDisclosedA
 }
 
 #[cfg(feature = "test")]
-impl From<DocumentDisclosedAttributes> for mdoc::verifier::DocumentDisclosedAttributes {
-    fn from(doc: DocumentDisclosedAttributes) -> Self {
+impl From<DisclosedAttestation> for mdoc::verifier::DocumentDisclosedAttributes {
+    fn from(doc: DisclosedAttestation) -> Self {
         mdoc::verifier::DocumentDisclosedAttributes {
             attributes: doc.attributes.into(),
             issuer_uri: doc.issuer_uri,

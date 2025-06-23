@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use indexmap::IndexMap;
 use itertools::Itertools;
 
-use attestation_data::disclosure::DocumentDisclosedAttributes;
+use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::issuable_document::IssuableDocument;
 use http_utils::reqwest::IntoPinnedReqwestClient;
 use http_utils::reqwest::PinnedReqwestClient;
@@ -43,7 +43,7 @@ pub trait AttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+        disclosed: &IndexMap<String, DisclosedAttestation>,
     ) -> Result<Vec<IssuableDocument>, Self::Error>;
 }
 
@@ -68,7 +68,7 @@ impl AttributesFetcher for HttpAttributesFetcher {
     async fn attributes(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+        disclosed: &IndexMap<String, DisclosedAttestation>,
     ) -> Result<Vec<IssuableDocument>, Self::Error> {
         let http_client = self
             .urls
@@ -129,7 +129,7 @@ where
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+        disclosed: &IndexMap<String, DisclosedAttestation>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         let to_issue = self
             .attributes_fetcher
@@ -190,7 +190,7 @@ mod tests {
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
     use attestation_data::disclosure::DisclosedAttributes;
-    use attestation_data::disclosure::DocumentDisclosedAttributes;
+    use attestation_data::disclosure::DisclosedAttestation;
     use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
     use openid4vc::credential::CredentialOffer;
@@ -212,10 +212,10 @@ mod tests {
 
     pub struct TestAttributesFetcher;
 
-    fn mock_disclosed_attrs(attestation_type: String) -> IndexMap<String, DocumentDisclosedAttributes> {
+    fn mock_disclosed_attrs(attestation_type: String) -> IndexMap<String, DisclosedAttestation> {
         IndexMap::from([(
             attestation_type,
-            DocumentDisclosedAttributes {
+            DisclosedAttestation {
                 attributes: DisclosedAttributes::MsoMdoc(IndexMap::new()),
                 issuer_uri: "https://example.com".parse().unwrap(),
                 ca: "ca".to_string(),
@@ -234,7 +234,7 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+            disclosed: &IndexMap<String, DisclosedAttestation>,
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             // Insert the received attribute type into the issuable document to demonstrate that the
             // issued attributes can depend on the disclosed attributes.
@@ -260,7 +260,7 @@ mod tests {
         async fn attributes(
             &self,
             _usecase_id: &str,
-            _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+            _disclosed: &IndexMap<String, DisclosedAttestation>,
         ) -> Result<Vec<IssuableDocument>, Self::Error> {
             Ok(self.0.clone())
         }

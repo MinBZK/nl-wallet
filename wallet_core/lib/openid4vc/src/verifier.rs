@@ -32,8 +32,8 @@ use tracing::debug;
 use tracing::info;
 use tracing::warn;
 
+use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::disclosure::DocumentDisclosedAttributes;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
@@ -855,7 +855,7 @@ pub trait DisclosureResultHandler {
     async fn disclosure_result(
         &self,
         usecase_id: &str,
-        disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+        disclosed: &IndexMap<String, DisclosedAttestation>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError>;
 }
 

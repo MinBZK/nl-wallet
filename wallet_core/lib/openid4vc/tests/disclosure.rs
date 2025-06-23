@@ -7,7 +7,7 @@ use std::sync::Arc;
 use assert_matches::assert_matches;
 use async_trait::async_trait;
 use attestation_data::attributes::AttributeValue;
-use attestation_data::disclosure::DocumentDisclosedAttributes;
+use attestation_data::disclosure::DisclosedAttestation;
 use chrono::Utc;
 use futures::future;
 use indexmap::IndexMap;
@@ -411,7 +411,7 @@ impl DisclosureResultHandler for MockDisclosureResultHandler {
     async fn disclosure_result(
         &self,
         _usecase_id: &str,
-        _disclosed: &IndexMap<String, DocumentDisclosedAttributes>,
+        _disclosed: &IndexMap<String, DisclosedAttestation>,
     ) -> Result<HashMap<String, String>, DisclosureResultHandlerError> {
         Ok(self
             .key

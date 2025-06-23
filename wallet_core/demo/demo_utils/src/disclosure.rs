@@ -42,7 +42,7 @@ mod test {
         let mut attestations: attestation_data::disclosure::DisclosedAttestations = IndexMap::new();
         attestations.insert(
             "urn:eudi:pid:nl:1".to_string(),
-            attestation_data::disclosure::DocumentDisclosedAttributes {
+            attestation_data::disclosure::DisclosedAttestation {
                 attributes: attestation_data::disclosure::DisclosedAttributes::MsoMdoc(IndexMap::from_iter(vec![(
                     "urn:eudi:pid:nl:1".to_string(),
                     IndexMap::from_iter(vec![
@@ -63,7 +63,7 @@ mod test {
         );
         attestations.insert(
             "urn:eudi:pid-address:nl:1".to_string(),
-            attestation_data::disclosure::DocumentDisclosedAttributes {
+            attestation_data::disclosure::DisclosedAttestation {
                 attributes: attestation_data::disclosure::DisclosedAttributes::SdJwt(
                     IndexMap::from_iter(vec![(
                         "address".to_string(),
