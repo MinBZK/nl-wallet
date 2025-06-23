@@ -34,8 +34,8 @@ use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
+use crate::verifier::DisclosedDocument;
 use crate::verifier::DisclosedDocuments;
-use crate::verifier::DocumentDisclosedAttributes;
 use crate::verifier::ItemsRequests;
 use crate::DigestAlgorithm;
 use crate::IssuerNameSpaces;
@@ -314,7 +314,7 @@ impl TestDocuments {
         self.0.into_iter().next()
     }
 
-    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DocumentDisclosedAttributes>) {
+    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DisclosedDocument>) {
         // verify the number of documents
         assert_eq!(disclosed_documents.len(), self.len());
         for TestDocument {

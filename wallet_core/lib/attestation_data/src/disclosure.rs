@@ -109,10 +109,10 @@ pub struct DisclosedAttestation {
 /// All attestations disclosed in a disclosure session.
 pub type DisclosedAttestations = IndexMap<String, DisclosedAttestation>;
 
-impl TryFrom<mdoc::verifier::DocumentDisclosedAttributes> for DisclosedAttestation {
+impl TryFrom<mdoc::verifier::DisclosedDocument> for DisclosedAttestation {
     type Error = DisclosedAttestationError;
 
-    fn try_from(doc: mdoc::verifier::DocumentDisclosedAttributes) -> Result<Self, Self::Error> {
+    fn try_from(doc: mdoc::verifier::DisclosedDocument) -> Result<Self, Self::Error> {
         Ok(DisclosedAttestation {
             attributes: doc.attributes.try_into()?,
             issuer_uri: doc.issuer_uri,
@@ -123,9 +123,9 @@ impl TryFrom<mdoc::verifier::DocumentDisclosedAttributes> for DisclosedAttestati
 }
 
 #[cfg(feature = "test")]
-impl From<DisclosedAttestation> for mdoc::verifier::DocumentDisclosedAttributes {
+impl From<DisclosedAttestation> for mdoc::verifier::DisclosedDocument {
     fn from(doc: DisclosedAttestation) -> Self {
-        mdoc::verifier::DocumentDisclosedAttributes {
+        mdoc::verifier::DisclosedDocument {
             attributes: doc.attributes.into(),
             issuer_uri: doc.issuer_uri,
             ca: doc.ca,

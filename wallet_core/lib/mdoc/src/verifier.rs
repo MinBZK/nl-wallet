@@ -32,7 +32,7 @@ use crate::Result;
 /// Grouped per namespace. Validity information and the attributes issuer's common_name is also included.
 #[serde_as]
 #[derive(Debug, Clone)]
-pub struct DocumentDisclosedAttributes {
+pub struct DisclosedDocument {
     pub attributes: IndexMap<NameSpace, IndexMap<DataElementIdentifier, DataElementValue>>,
     pub issuer_uri: HttpsUri,
     pub ca: String,
@@ -40,7 +40,7 @@ pub struct DocumentDisclosedAttributes {
 }
 
 /// All attributes that were disclosed in a [`DeviceResponse`], as computed by [`DeviceResponse::verify()`].
-pub type DisclosedDocuments = IndexMap<DocType, DocumentDisclosedAttributes>;
+pub type DisclosedDocuments = IndexMap<DocType, DisclosedDocument>;
 
 #[derive(thiserror::Error, Debug)]
 pub enum VerificationError {
@@ -193,7 +193,7 @@ impl IssuerSigned {
         validity: ValidityRequirement,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(DocumentDisclosedAttributes, MobileSecurityObject)> {
+    ) -> Result<(DisclosedDocument, MobileSecurityObject)> {
         let TaggedBytes(mso) =
             self.issuer_auth
                 .verify_against_trust_anchors(CertificateUsage::Mdl, time, trust_anchors)?;
@@ -229,7 +229,7 @@ impl IssuerSigned {
         };
 
         Ok((
-            DocumentDisclosedAttributes {
+            DisclosedDocument {
                 attributes,
                 issuer_uri,
                 ca: String::from(ca_cns.pop().unwrap()),
@@ -281,7 +281,7 @@ impl Document {
         session_transcript: &SessionTranscript,
         time: &impl Generator<DateTime<Utc>>,
         trust_anchors: &[TrustAnchor],
-    ) -> Result<(DocType, DocumentDisclosedAttributes)> {
+    ) -> Result<(DocType, DisclosedDocument)> {
         debug!("verifying document with doc_type: {:?}", &self.doc_type);
         debug!("verify issuer_signed");
         let (attrs, mso) = self
