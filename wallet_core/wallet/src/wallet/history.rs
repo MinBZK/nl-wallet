@@ -1,11 +1,14 @@
+use std::str::FromStr;
+
 use chrono::DateTime;
 use chrono::Utc;
-use crypto::x509::BorrowingCertificateExtension;
 use tracing::info;
 use tracing::instrument;
+use uuid::Uuid;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::BorrowingCertificateExtension;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use mdoc::holder::ProposedAttributes;
@@ -30,14 +33,21 @@ pub enum HistoryError {
     #[category(expected)]
     #[error("app version is blocked")]
     VersionBlocked,
+
     #[error("wallet is not registered")]
     #[category(expected)]
     NotRegistered,
+
     #[error("wallet is locked")]
     #[category(expected)]
     Locked,
+
     #[error("could not access history database: {0}")]
     EventStorage(#[from] StorageError),
+
+    #[error("error creating Uuid from string: {0}")]
+    #[category(critical)]
+    UuidCreation(#[from] uuid::Error),
 }
 
 type HistoryResult<T> = Result<T, HistoryError>;
@@ -147,7 +157,9 @@ where
 
         info!("Retrieving Card history from storage");
         let storage = self.storage.read().await;
-        let events = storage.fetch_wallet_events_by_attestation_id(attestation_id).await?;
+        let events = storage
+            .fetch_wallet_events_by_attestation_id(Uuid::from_str(attestation_id)?)
+            .await?;
 
         Ok(events)
     }

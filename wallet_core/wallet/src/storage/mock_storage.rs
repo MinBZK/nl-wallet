@@ -293,15 +293,15 @@ impl Storage for StorageStub {
         Ok(events)
     }
 
-    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>> {
         self.check_query_error()?;
 
         let mut events: Vec<_> = self
             .event_log
             .iter()
             .filter(|event| match *event {
-                WalletEvent::Issuance { id, .. } => id.to_string().as_str() == attestation_id,
-                WalletEvent::Disclosure { id, .. } => id.to_string().as_str() == attestation_id,
+                WalletEvent::Issuance { id, .. } => id == &attestation_id,
+                WalletEvent::Disclosure { id, .. } => id == &attestation_id,
             })
             .cloned()
             .collect();

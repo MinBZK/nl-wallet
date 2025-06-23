@@ -169,7 +169,7 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
               attestationId: 'id',
@@ -198,7 +198,7 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
               attestationId: 'id',
@@ -226,7 +226,7 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
               attestationId: 'id',
@@ -271,7 +271,7 @@ void main() {
         CardDetailLoadSuccess(
           WalletCardDetail(
             card: WalletCard(
-              docType: 'com.example.docType',
+              attestationType: 'com.example.docType',
               issuer: WalletMockData.organization,
               attributes: const [],
               attestationId: 'id',
@@ -298,7 +298,7 @@ void main() {
   group('unit', () {
     test('CardDetailScreenArgument can be extracted from RouteSettings', () async {
       final inputCard = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: const [],
         attestationId: 'id',

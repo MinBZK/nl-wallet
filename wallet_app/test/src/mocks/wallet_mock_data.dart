@@ -19,7 +19,7 @@ abstract class WalletMockData {
   static Locale testLocale = const Locale('en');
 
   static WalletCard card = WalletCard(
-    docType: 'com.example.docType',
+    attestationType: 'com.example.docType',
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
     attestationId: 'id',
@@ -38,7 +38,7 @@ abstract class WalletMockData {
   );
 
   static WalletCard simpleRenderingCard = WalletCard(
-    docType: 'com.example.docType',
+    attestationType: 'com.example.docType',
     issuer: WalletMockData.organization,
     attributes: [textDataAttribute],
     metadata: [
@@ -55,7 +55,7 @@ abstract class WalletMockData {
 
   static WalletCard altCard = WalletCard(
     issuer: WalletMockData.organization,
-    docType: 'com.example.alt.docType',
+    attestationType: 'com.example.alt.docType',
     attributes: [textDataAttribute, textDataAttribute, textDataAttribute],
     attestationId: 'id2',
     metadata: [

@@ -21,7 +21,7 @@ void main() {
   group('map', () {
     test('card without summary results in empty LocalizedText', () {
       final input = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [],
         attestationId: 'id',
@@ -33,7 +33,7 @@ void main() {
     test('card without placeholders in summary results in identical contents in LocalizedText', () {
       const summary = 'No svgIds';
       final input = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [WalletMockData.textDataAttribute],
         metadata: const [
@@ -47,7 +47,7 @@ void main() {
     test('card with placeholders in summary should result in summary with placeholders replaced', () {
       const summary = 'First: {{first_id}}, Second: {{second_id}}';
       final input = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [
           DataAttribute.untranslated(
@@ -75,7 +75,7 @@ void main() {
 
     test('placeholders should be replaced taking localization into account', () {
       final input = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [
           DataAttribute(
@@ -107,7 +107,7 @@ void main() {
 
     test('placeholders without a corresponding value should be blanked', () {
       final input = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [],
         metadata: const [
@@ -127,7 +127,7 @@ void main() {
       const key = 'mock_key';
       final input = WalletCard(
         attestationId: 'id',
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [
           DataAttribute(
@@ -152,7 +152,7 @@ void main() {
 
     test('Dates are formatted based on localization', () {
       final input = WalletCard(
-        docType: 'com.example.docType',
+        attestationType: 'com.example.docType',
         issuer: WalletMockData.organization,
         attributes: [
           DataAttribute(

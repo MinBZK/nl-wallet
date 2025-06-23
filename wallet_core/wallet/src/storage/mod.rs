@@ -181,6 +181,6 @@ pub trait Storage {
 
     async fn fetch_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
     async fn fetch_recent_wallet_events(&self) -> StorageResult<Vec<WalletEvent>>;
-    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: &str) -> StorageResult<Vec<WalletEvent>>;
+    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>>;
     async fn did_share_data_with_relying_party(&self, certificate: &BorrowingCertificate) -> StorageResult<bool>;
 }

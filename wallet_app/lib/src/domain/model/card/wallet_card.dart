@@ -17,7 +17,7 @@ class WalletCard extends Equatable {
   final String? attestationId;
 
   /// Type of document
-  final String docType;
+  final String attestationType;
 
   /// Organization that issued this card
   final Organization issuer;
@@ -42,7 +42,7 @@ class WalletCard extends Equatable {
 
   const WalletCard({
     required this.attestationId,
-    required this.docType,
+    required this.attestationType,
     required this.issuer,
     required this.attributes,
     this.metadata = const [],
@@ -56,7 +56,7 @@ class WalletCard extends Equatable {
   @override
   List<Object?> get props => [
         attestationId,
-        docType,
+        attestationType,
         issuer,
         attributes,
         metadata,
@@ -65,7 +65,7 @@ class WalletCard extends Equatable {
 
   WalletCard copyWith({
     String? Function()? attestationId,
-    String? docType,
+    String? attestationType,
     Organization? issuer,
     List<DataAttribute>? attributes,
     List<CardDisplayMetadata>? metadata,
@@ -73,7 +73,7 @@ class WalletCard extends Equatable {
   }) {
     return WalletCard(
       attestationId: attestationId != null ? attestationId() : this.attestationId,
-      docType: docType ?? this.docType,
+      attestationType: attestationType ?? this.attestationType,
       issuer: issuer ?? this.issuer,
       attributes: attributes ?? this.attributes,
       metadata: metadata ?? this.metadata,

@@ -5,13 +5,13 @@ import '../../../../wallet_assets.dart';
 import '../svg_or_image.dart';
 
 class MockCardBackground extends StatelessWidget {
-  final String docType;
+  final String attestationType;
 
-  const MockCardBackground({required this.docType, super.key});
+  const MockCardBackground({required this.attestationType, super.key});
 
   @override
   Widget build(BuildContext context) {
-    final bgAsset = _resolveBackgroundAsset(docType);
+    final bgAsset = _resolveBackgroundAsset(attestationType);
     if (bgAsset == null) return const DecoratedBox(decoration: BoxDecoration(color: Color(0xFFEEEFF7)));
     return SvgOrImage(asset: bgAsset, fit: BoxFit.cover, alignment: Alignment.topCenter);
   }

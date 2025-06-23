@@ -13,25 +13,25 @@ class WalletEventLog {
 
   Stream<List<WalletEvent>> get logStream => _logSubject.stream;
 
-  bool _eventContainsCardWithDocType(WalletEvent_Disclosure disclosure, String docType) {
+  bool _eventContainsCardWithAttestationId(WalletEvent_Disclosure disclosure, String attestationId) {
     if (disclosure.sharedAttestations == null) return false;
 
-    /// Check if the provided docType was used in this request
+    /// Check if the provided attestationId was used in this request
     return disclosure.sharedAttestations!.any(
       (card) =>
           switch (card.identity) {
             AttestationIdentity_Ephemeral() => '',
             AttestationIdentity_Fixed(:final id) => id,
           } ==
-          docType,
+          attestationId,
     );
   }
 
-  List<WalletEvent> logForDocType(String docType) => log
+  List<WalletEvent> logForAttestationId(String attestationId) => log
       .where(
         (event) => switch (event) {
-          WalletEvent_Disclosure() => _eventContainsCardWithDocType(event, docType),
-          WalletEvent_Issuance() => event.attestation.attestationType == docType,
+          WalletEvent_Disclosure() => _eventContainsCardWithAttestationId(event, attestationId),
+          WalletEvent_Issuance() => event.attestation.attestationType == attestationId,
         },
       )
       .toList();

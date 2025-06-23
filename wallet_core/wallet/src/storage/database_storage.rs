@@ -566,6 +566,8 @@ where
 
         let transaction = self.database()?.connection().begin().await?;
 
+        dbg!(&issuance_event_attestations);
+
         attestation::Entity::insert_many(attestation_models)
             .exec(&transaction)
             .await?;
@@ -710,7 +712,7 @@ where
         Self::combine_events(issuance_events, disclosure_events)
     }
 
-    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: &str) -> StorageResult<Vec<WalletEvent>> {
+    async fn fetch_wallet_events_by_attestation_id(&self, attestation_id: Uuid) -> StorageResult<Vec<WalletEvent>> {
         let connection = self.database()?.connection();
 
         let fetch_issuance_events = issuance_event::Entity::find()
@@ -728,6 +730,7 @@ where
             .all(connection);
 
         let (issuance_events, disclosure_events) = try_join!(fetch_issuance_events, fetch_disclosure_events)?;
+        dbg!(&issuance_events);
 
         Self::combine_events(issuance_events, disclosure_events)
     }
@@ -1345,6 +1348,12 @@ pub(crate) mod tests {
             .did_share_data_with_relying_party(READER_KEY.certificate())
             .await
             .unwrap());
+
+        let events_by_attestation_id = storage
+            .fetch_wallet_events_by_attestation_id(attestation_id)
+            .await
+            .unwrap();
+        assert_eq!(events_by_attestation_id.len(), 2);
     }
 
     #[tokio::test]

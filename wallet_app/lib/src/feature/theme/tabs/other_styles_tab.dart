@@ -105,7 +105,7 @@ final _kSampleAttributes = [
 
 final _kSampleCard = WalletCard(
   attestationId: 'id',
-  docType: 'docType',
+  attestationType: 'docType',
   metadata: _kSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
@@ -113,7 +113,7 @@ final _kSampleCard = WalletCard(
 
 final _kAltSampleCard = WalletCard(
   attestationId: 'alt_id',
-  docType: 'alt_docType',
+  attestationType: 'alt_docType',
   metadata: _kAltSampleCardMetaData,
   attributes: _kSampleAttributes,
   issuer: _kSampleOrganization,
@@ -420,7 +420,7 @@ class OtherStylesTab extends StatelessWidget {
             cards: [
               WalletCard(
                 attestationId: 'id',
-                docType: 'docType',
+                attestationType: 'docType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -447,7 +447,7 @@ class OtherStylesTab extends StatelessWidget {
             cards: [
               WalletCard(
                 attestationId: 'id',
-                docType: 'docType',
+                attestationType: 'docType',
                 metadata: _kSampleCardMetaData,
                 attributes: const [],
                 issuer: _kSampleOrganization,
@@ -508,7 +508,7 @@ class OtherStylesTab extends StatelessWidget {
           onPressed: () {},
           card: WalletCard(
             attestationId: 'row_id',
-            docType: 'docType',
+            attestationType: 'docType',
             metadata: _kSampleCardMetaData,
             attributes: const [],
             issuer: _kSampleOrganization,

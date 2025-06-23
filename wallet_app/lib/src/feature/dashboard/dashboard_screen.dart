@@ -199,7 +199,7 @@ class DashboardScreen extends StatelessWidget {
       child: WalletCardItem.fromWalletCard(
         context,
         walletCard,
-        key: Key(walletCard.docType),
+        key: Key(walletCard.attestationType),
         onPressed: () => _onCardPressed(context, walletCard),
       ),
     );

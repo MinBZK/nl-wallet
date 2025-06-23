@@ -1787,10 +1787,10 @@ class MockWalletCardRepository extends _i1.Mock implements _i23.WalletCardReposi
       ) as _i8.Stream<List<_i7.WalletCard>>);
 
   @override
-  _i8.Future<bool> exists(String? docType) => (super.noSuchMethod(
+  _i8.Future<bool> exists(String? attestationId) => (super.noSuchMethod(
         Invocation.method(
           #exists,
-          [docType],
+          [attestationId],
         ),
         returnValue: _i8.Future<bool>.value(false),
         returnValueForMissingStub: _i8.Future<bool>.value(false),
@@ -1807,23 +1807,23 @@ class MockWalletCardRepository extends _i1.Mock implements _i23.WalletCardReposi
       ) as _i8.Future<List<_i7.WalletCard>>);
 
   @override
-  _i8.Future<_i7.WalletCard> read(String? docType) => (super.noSuchMethod(
+  _i8.Future<_i7.WalletCard> read(String? attestationId) => (super.noSuchMethod(
         Invocation.method(
           #read,
-          [docType],
+          [attestationId],
         ),
         returnValue: _i8.Future<_i7.WalletCard>.value(_FakeWalletCard_8(
           this,
           Invocation.method(
             #read,
-            [docType],
+            [attestationId],
           ),
         )),
         returnValueForMissingStub: _i8.Future<_i7.WalletCard>.value(_FakeWalletCard_8(
           this,
           Invocation.method(
             #read,
-            [docType],
+            [attestationId],
           ),
         )),
       ) as _i8.Future<_i7.WalletCard>);
@@ -4316,16 +4316,16 @@ class MockObserveWalletCardDetailUseCase extends _i1.Mock implements _i70.Observ
 /// See the documentation for Mockito's code generation for more information.
 class MockGetWalletCardUseCase extends _i1.Mock implements _i72.GetWalletCardUseCase {
   @override
-  _i8.Future<_i44.Result<_i7.WalletCard>> invoke(String? docType) => (super.noSuchMethod(
+  _i8.Future<_i44.Result<_i7.WalletCard>> invoke(String? attestationId) => (super.noSuchMethod(
         Invocation.method(
           #invoke,
-          [docType],
+          [attestationId],
         ),
         returnValue: _i8.Future<_i44.Result<_i7.WalletCard>>.value(_i12.dummyValue<_i44.Result<_i7.WalletCard>>(
           this,
           Invocation.method(
             #invoke,
-            [docType],
+            [attestationId],
           ),
         )),
         returnValueForMissingStub:
@@ -4333,7 +4333,7 @@ class MockGetWalletCardUseCase extends _i1.Mock implements _i72.GetWalletCardUse
           this,
           Invocation.method(
             #invoke,
-            [docType],
+            [attestationId],
           ),
         )),
       ) as _i8.Future<_i44.Result<_i7.WalletCard>>);
