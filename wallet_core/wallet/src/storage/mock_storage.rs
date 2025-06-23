@@ -203,43 +203,26 @@ impl Storage for StorageStub {
         Ok(attestations)
     }
 
-    async fn fetch_unique_attestations_by_type(
-        &self,
-        attestation_types: &HashSet<&str>,
-    ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        let copies = self.fetch_unique_attestations().await?;
-
-        let copies = copies
-            .into_iter()
-            .filter(|copy| {
-                let attestation_type = match &copy.attestation {
-                    StoredAttestationFormat::MsoMdoc { mdoc } => mdoc.doc_type().as_str(),
-                    StoredAttestationFormat::SdJwt { sd_jwt } => sd_jwt
-                        .as_ref()
-                        .as_ref()
-                        .claims()
-                        .properties
-                        .get("vct")
-                        .unwrap()
-                        .as_str()
-                        .unwrap(),
-                };
-                attestation_types.contains(attestation_type)
-            })
-            .collect();
-
-        Ok(copies)
-    }
-
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
         Ok(!self
-            .fetch_unique_attestations_by_type(&HashSet::from([attestation_type]))
+            .fetch_unique_attestations()
             .await
             .unwrap()
+            .into_iter()
+            .filter(|copy| match &copy.attestation {
+                StoredAttestationFormat::MsoMdoc { mdoc } => mdoc.doc_type() == attestation_type,
+                StoredAttestationFormat::SdJwt { sd_jwt } => {
+                    sd_jwt.as_ref().as_ref().claims().properties.get("vct").unwrap() == attestation_type
+                }
+            })
+            .collect_vec()
             .is_empty())
     }
 
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
+    async fn fetch_unique_mdocs_by_doctypes<'a>(
+        &'a self,
+        doc_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredMdocCopy>> {
         // Get every unique Mdoc and filter them based on the requested doc types.
         let copies = self.fetch_unique_attestations().await?;
 

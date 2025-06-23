@@ -118,7 +118,7 @@ async fn test_gba_pid_success(
 type TestWallet = Wallet<
     LocalConfigurationRepository,
     MockUpdatePolicyRepository,
-    MockStorage,
+    StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidSession,
@@ -134,7 +134,7 @@ async fn gba_pid(bsn: &str) -> Result<(), TestError> {
     let mut wallet: TestWallet = Wallet::init_registration(
         config_repository,
         MockUpdatePolicyRepository::default(),
-        MockStorage::default(),
+        StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
     )

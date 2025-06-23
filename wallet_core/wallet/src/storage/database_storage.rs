@@ -252,6 +252,26 @@ impl<K> DatabaseStorage<K> {
         Ok(mdocs)
     }
 
+    async fn query_has_any_attestation_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
+        let select_statement = Query::select()
+            .column((attestation::Entity, attestation::Column::Id))
+            .from(attestation::Entity)
+            .and_where(Expr::col(attestation::Column::AttestationType).eq(attestation_type))
+            .take();
+
+        let exists_query = Query::select()
+            .expr_as(Expr::exists(select_statement), Alias::new("attestation_type_exists"))
+            .to_owned();
+
+        let exists_result = self.execute_query(exists_query).await?;
+        let exists = exists_result
+            .map(|result| result.try_get("", "attestation_type_exists"))
+            .transpose()?
+            .unwrap_or(false);
+
+        Ok(exists)
+    }
+
     fn combine_events(
         issuance_events: Vec<(issuance_event::Model, Option<issuance_event_attestation::Model>)>,
         disclosure_events: Vec<(disclosure_event::Model, Option<disclosure_event_attestation::Model>)>,
@@ -581,28 +601,18 @@ where
         self.query_unique_attestations(identity).await
     }
 
-    async fn fetch_unique_mdocs_by_doctypes(&self, doc_types: &HashSet<&str>) -> StorageResult<Vec<StoredMdocCopy>> {
+    async fn fetch_unique_mdocs_by_doctypes<'a>(
+        &'a self,
+        doc_types: &HashSet<&'a str>,
+    ) -> StorageResult<Vec<StoredMdocCopy>> {
         let doc_types_iter = doc_types.iter().copied();
 
         self.query_unique_mdocs(move |select| select.filter(attestation::Column::AttestationType.is_in(doc_types_iter)))
             .await
     }
 
-    async fn fetch_unique_attestations_by_type(
-        &self,
-        attestation_types: &HashSet<&str>,
-    ) -> StorageResult<Vec<StoredAttestationCopy>> {
-        self.query_unique_attestations(move |select| {
-            select.filter(attestation::Column::AttestationType.is_in(attestation_types.iter().copied()))
-        })
-        .await
-    }
-
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool> {
-        let result = self
-            .fetch_unique_mdocs_by_doctypes(&HashSet::from([attestation_type]))
-            .await?;
-        Ok(!result.is_empty())
+        self.query_has_any_attestation_with_type(attestation_type).await
     }
 
     async fn log_disclosure_event(
@@ -1053,11 +1063,11 @@ pub(crate) mod tests {
             .await
             .expect("Could not increment usage count for attestation copy");
 
-        // Fetch unique mdocs based on attestation_type
+        // Fetch unique attestations
         let fetched_unique_attestation_type = storage
-            .fetch_unique_attestations_by_type(&HashSet::from(["foo", attestation_type]))
+            .fetch_unique_attestations()
             .await
-            .expect("Could not fetch unique mdocs by attestation_type");
+            .expect("Could not fetch unique attestations");
 
         // One matching `AttestationCopy` should be returned and it should be a different copy than the fist one.
         assert_eq!(fetched_unique_attestation_type.len(), 1);
@@ -1099,15 +1109,6 @@ pub(crate) mod tests {
         assert_eq!(remaning_attestation_copy_id1, remaning_attestation_copy_id2);
         assert_ne!(attestation_copy1.attestation_copy_id, remaning_attestation_copy_id1);
         assert_ne!(attestation_copy2.attestation_copy_id, remaning_attestation_copy_id1);
-
-        // Fetch unique mdocs based on non-existent doctype
-        let fetched_unique_doctype_mismatch = storage
-            .fetch_unique_attestations_by_type(&HashSet::from(["foo", "bar"]))
-            .await
-            .unwrap();
-
-        // No entries should be returned
-        assert!(fetched_unique_doctype_mismatch.is_empty());
     }
 
     #[tokio::test]

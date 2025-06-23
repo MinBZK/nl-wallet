@@ -161,12 +161,9 @@ pub trait Storage {
     ) -> StorageResult<()>;
     async fn increment_attestation_copies_usage_count(&mut self, attestation_copy_ids: Vec<Uuid>) -> StorageResult<()>;
 
-    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
-    async fn fetch_unique_attestations_by_type<'a>(
-        &'a self,
-        attestation_types: &HashSet<&'a str>,
-    ) -> StorageResult<Vec<StoredAttestationCopy>>;
     async fn has_any_attestations_with_type(&self, attestation_type: &str) -> StorageResult<bool>;
+
+    async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     async fn fetch_unique_mdocs_by_doctypes<'a>(
         &'a self,

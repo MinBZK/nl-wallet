@@ -39,7 +39,7 @@ fn init() {
 type PerformanceTestWallet = Wallet<
     HttpConfigurationRepository<TlsPinningConfig>,
     UpdatePolicyRepository,
-    MockStorage,
+    StorageStub,
     MockHardwareAttestedKeyHolder,
     HttpAccountProviderClient,
     HttpDigidSession,
@@ -80,7 +80,7 @@ async fn main() {
     let mut wallet: PerformanceTestWallet = Wallet::init_registration(
         config_repository,
         update_policy_repository,
-        MockStorage::default(),
+        StorageStub::default(),
         MockHardwareAttestedKeyHolder::new_apple_mock(default::attestation_environment(), default::app_identifier()),
         HttpAccountProviderClient::default(),
     )
