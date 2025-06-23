@@ -214,6 +214,7 @@ pub enum VpEncValues {
 #[serde(rename_all = "snake_case")]
 pub enum VpFormat {
     MsoMdoc { alg: IndexSet<FormatAlg> },
+    SdJwt { alg: IndexSet<FormatAlg> },
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
