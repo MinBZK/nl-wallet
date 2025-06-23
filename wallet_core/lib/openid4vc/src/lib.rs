@@ -47,8 +47,8 @@ pub mod mock;
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum Format {
-    #[default]
     MsoMdoc,
+    #[default]
     #[strum(serialize = "dc+sd-jwt")]
     SdJwt,
 

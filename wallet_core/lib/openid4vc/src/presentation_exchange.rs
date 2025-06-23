@@ -24,14 +24,14 @@ use crate::Format;
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;
 
-/// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition.
+/// As specified in <https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-definition>.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PresentationDefinition {
     pub id: String,
     pub input_descriptors: Vec<InputDescriptor>,
 }
 
-/// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor-object.
+/// As specified in <https://identity.foundation/presentation-exchange/spec/v2.0.0/#input-descriptor-object>.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InputDescriptor {
     pub id: String,
@@ -79,7 +79,7 @@ pub struct Field {
 /// Per ISO 18013.7, the field paths in a Presentation Definition must all be a JSONPath expression of the form
 /// "$['namespace']['attribute_name']".
 ///
-/// See also https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition
+/// See also <https://identity.foundation/presentation-exchange/spec/v2.0.0/#jsonpath-syntax-definition>.
 static FIELD_PATH_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
 
@@ -154,7 +154,10 @@ impl TryFrom<&PresentationDefinition> for VecNonEmpty<NormalizedCredentialReques
             .input_descriptors
             .iter()
             .map(|input_descriptor| {
-                let VpFormat::MsoMdoc { alg } = &input_descriptor.format;
+                let alg = match &input_descriptor.format {
+                    VpFormat::MsoMdoc { alg } => alg,
+                    VpFormat::SdJwt { alg } => alg,
+                };
                 if !alg.contains(&FormatAlg::ES256) {
                     return Err(PdConversionError::UnsupportedAlgs);
                 }
