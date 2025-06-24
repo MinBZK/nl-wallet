@@ -203,16 +203,20 @@ mod tests {
     use std::sync::Arc;
 
     use assert_matches::assert_matches;
-    use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::x509::generate::mock::generate_reader_mock;
     use chrono::Duration;
     use chrono::TimeZone;
     use chrono::Utc;
-    use crypto::server_keys::generate::Ca;
     use itertools::Itertools;
+    use uuid::Uuid;
+
+    use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::x509::generate::mock::generate_reader_mock;
+    use crypto::server_keys::generate::Ca;
 
     use crate::storage::DataDisclosureStatus;
+    use crate::AttestationPresentation;
     use crate::DisclosureStatus;
+    use crate::WalletEvent;
 
     use super::super::test;
     use super::super::test::WalletDeviceVendor;
@@ -357,41 +361,44 @@ mod tests {
         assert_eq!(Arc::strong_count(&events), 1);
     }
 
-    // TODO
     // Tests both setting and clearing the recent_history callback on a registered `Wallet`.
-    // #[tokio::test]
-    // async fn test_set_clear_recent_history_callback_registered() {
-    //     let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
-    //
-    //     // The database contains a single Issuance Event
-    //     let attestations = vec![AttestationPresentation::new_mock()].try_into().unwrap();
-    //     let event = WalletEvent::new_issuance(attestations);
-    //     wallet.storage.write().await.event_log.push(event);
-    //
-    //     // Register mock recent history callback
-    //     let events = test::setup_mock_recent_history_callback(&mut wallet)
-    //         .await
-    //         .expect("Failed to set mock recent history callback");
-    //
-    //     // Infer that the closure is still alive by counting the `Arc` references.
-    //     assert_eq!(Arc::strong_count(&events), 2);
-    //
-    //     // Confirm that we received a single Issuance event on the callback.
-    //     {
-    //         let events = events.lock().pop().unwrap();
-    //
-    //         let event = events
-    //             .first()
-    //             .expect("Recent history callback should have been provided an issuance event");
-    //         assert_matches!(event, WalletEvent::Issuance { .. });
-    //     }
-    //
-    //     // Clear the recent_history callback on the `Wallet.`
-    //     wallet.clear_recent_history_callback();
-    //
-    //     // Infer that the closure is now dropped by counting the `Arc` references.
-    //     assert_eq!(Arc::strong_count(&events), 1);
-    // }
+    #[tokio::test]
+    async fn test_set_clear_recent_history_callback_registered() {
+        let mut wallet = Wallet::new_registered_and_unlocked(WalletDeviceVendor::Apple);
+
+        // The database contains a single Issuance Event
+        let event = WalletEvent::Issuance {
+            id: Uuid::new_v4(),
+            attestation: Box::new(AttestationPresentation::new_mock()),
+            timestamp: Utc::now(),
+            renewed: false,
+        };
+        wallet.storage.write().await.event_log.push(event);
+
+        // Register mock recent history callback
+        let events = test::setup_mock_recent_history_callback(&mut wallet)
+            .await
+            .expect("Failed to set mock recent history callback");
+
+        // Infer that the closure is still alive by counting the `Arc` references.
+        assert_eq!(Arc::strong_count(&events), 2);
+
+        // Confirm that we received a single Issuance event on the callback.
+        {
+            let events = events.lock().pop().unwrap();
+
+            let event = events
+                .first()
+                .expect("Recent history callback should have been provided an issuance event");
+            assert_matches!(event, WalletEvent::Issuance { .. });
+        }
+
+        // Clear the recent_history callback on the `Wallet.`
+        wallet.clear_recent_history_callback();
+
+        // Infer that the closure is now dropped by counting the `Arc` references.
+        assert_eq!(Arc::strong_count(&events), 1);
+    }
 
     #[tokio::test]
     async fn test_set_recent_history_callback_error() {
