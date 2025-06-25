@@ -14,6 +14,39 @@ build-documentation:
       - documentation/_build/html
   allow_failure: true
 
+generate-c4-puml:
+  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/docker-hub-proxy/structurizr/cli:latest"
+    entrypoint: [""]
+  script:
+    - mkdir -p c4diagrams
+    - /usr/local/structurizr-cli/structurizr.sh export --workspace documentation/_structurizr/workspace.dsl --output c4diagrams --format plantuml
+    - echo "Generated .puml files:"
+    - ls -l c4diagrams
+  artifacts:
+    paths:
+      - c4diagrams/
+    expire_in: 1 week
+
+generate-c4-png:
+  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/docker-hub-proxy/plantuml/plantuml:latest"
+    entrypoint: [""]
+  needs:
+    - job: generate-c4-puml
+      artifacts: true
+  script:
+    - echo "Rendering PNGs from .puml files using java -jar..."
+    - find c4diagrams -name '*.puml' -exec java -jar /opt/plantuml.jar -tpng {} +
+    - echo "Generated PNG files:"
+    - ls -l c4diagrams
+  artifacts:
+    paths:
+      - c4diagrams/
+    expire_in: 1 week
+
 publish-documentation:
   rules: !reference [.default-branch, rules]
   needs:
