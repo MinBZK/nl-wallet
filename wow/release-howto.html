@@ -240,11 +240,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#step-5-freeze-git-main-branch">Step 5: Freeze git main branch</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#step-6-set-release-version-and-tag">Step 6: Set release version and tag</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#step-7-set-development-version">Step 7: Set development version</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#step-8-run-publication-guard">Step 8: Run publication guard</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#step-9-publish-source-code-to-github">Step 9: Publish source code to GitHub</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#step-10-collect-build-artifacts-for-release">Step 10: Collect build artifacts for release</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#step-11-create-a-release-description">Step 11: Create a release description</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#step-12-create-github-release-from-tag">Step 12: Create GitHub release from tag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-8-collect-build-artifacts-for-release">Step 8: Collect build artifacts for release</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-9-create-a-release-description">Step 9: Create a release description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-10-create-github-release-from-tag">Step 10: Create GitHub release from tag</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
@@ -360,12 +358,12 @@ however still a few things we confirm. Most notably:</p>
 time instance that our software quality engineer uses for this, you can
 ask him for the link)</p></li>
 <li><p>OSV scanner ran and results accepted (see <code class="docutils literal notranslate"><span class="pre">osv-scanner</span></code> job in pipeline)</p></li>
-<li><p>ZAP scanner ran and results accepted (manual run, pipeline job coming)</p></li>
+<li><p>ZAP scanner ran and results accepted (see ZAP in Quality Time)</p></li>
 <li><p>No blocker or critical Sonar findings (you can check our Sonar instance
 for these findings, ask around for the link if you don’t have it)</p></li>
 </ul>
-<p>The manual E2E tests are usually executed by a member of the Dart/Flutter team.
-We are working on getting automated ZAP tests as part of the pipeline that will
+<p>The manual E2E tests are usually executed by the test automation engineer. We
+are working on getting automated ZAP tests as part of the pipeline that will
 block on serious issues, and warn on lower priority ones.</p>
 <p>The confirmation of the acceptability of the tests and any required reports is
 done by our software quality engineer. He will e-mail our shared e-mail account,
@@ -433,37 +431,17 @@ set <code class="docutils literal notranslate"><span class="pre">v0.2.3</span></
 done quickly so people don’t accidentally start doing work under the older
 version tags.</p>
 </section>
-<section id="step-8-run-publication-guard">
-<h3>Step 8: Run publication guard<a class="headerlink" href="#step-8-run-publication-guard" title="Link to this heading"></a></h3>
-<p>You should now be ready to run <code class="docutils literal notranslate"><span class="pre">publication-guard</span></code>, which assists us with
-filtering the repository. It takes into account various things like who opted
-to have his/her public email address in the commit message and who did not, and
-filters out various things which we have considered once to be unwanted in the
-public repository (note: that does not mean it is considered as such in
-perpetuity - we should allow for reconsideration from time to time).</p>
-<p>Clone the <code class="docutils literal notranslate"><span class="pre">/logius/wallet/publication-guard/</span></code> repository, read the <code class="docutils literal notranslate"><span class="pre">README.md</span></code>. Follow the
-instructions, for which you will find some overlap with this howto. Create any
-new to-filter-items for things you might have encountered during your review.</p>
-<p>Finally, make sure that, for any person that has done commits between the
-previous release and this one, you have followed the procedure documented in the
-<code class="docutils literal notranslate"><span class="pre">README.md</span></code> of <code class="docutils literal notranslate"><span class="pre">publication-guard</span></code> with regards to their explicit permission to
-have their name and e-mail address publicly available (or explicit denial and
-relevant anonymized e-mail address and/or name).</p>
-</section>
-<section id="step-9-publish-source-code-to-github">
-<h3>Step 9: Publish source code to GitHub<a class="headerlink" href="#step-9-publish-source-code-to-github" title="Link to this heading"></a></h3>
-<p>After executing the publication-guard filtering steps, you are ready to publish
-the filtered repository that <code class="docutils literal notranslate"><span class="pre">publication-guard</span></code> created.</p>
-<p>To do that, you need to access the filtered repository directory, rename the
-<code class="docutils literal notranslate"><span class="pre">filtered-repository</span></code> branch to <code class="docutils literal notranslate"><span class="pre">main</span></code>, add GitHub as a remote and then
-<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">--tags</span></code> (i.e., to the remote <code class="docutils literal notranslate"><span class="pre">main</span></code> on GitHub).</p>
-</section>
-<section id="step-10-collect-build-artifacts-for-release">
-<h3>Step 10: Collect build artifacts for release<a class="headerlink" href="#step-10-collect-build-artifacts-for-release" title="Link to this heading"></a></h3>
+<section id="step-8-collect-build-artifacts-for-release">
+<h3>Step 8: Collect build artifacts for release<a class="headerlink" href="#step-8-collect-build-artifacts-for-release" title="Link to this heading"></a></h3>
 <p>We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-sbom_vX.Y.Z_generic.zip</span></code>: The software-bill-of-materials for
 this release</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip</span></code>: The wallet issuance
+server for issuers, for glibc-based Linux systems built with Debian
+bookworm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip</span></code>: The wallet issuance
+server for issuers using statically linked musl.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip</span></code>: The wallet
 verification server for relying parties, for glibc-based Linux systems
 built with Debian bookworm.</p></li>
@@ -475,7 +453,8 @@ wallet platform</p></li>
 </ul>
 <p>You can collect these artifacts from our GitLab CI/CD pipeline - you need to
 go to the relevant job and click on download artifact/zip. You might need to
-rename the zip file and/or repackage in the case of <code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
+rename the zip file and/or repackage in the case of <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> and
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
 <p>Currently (2024-11-07) you need to create the sha256sums manually (in the future
 we would like to adjust the pipeline that creates the binary artifacts such that
 it will create the sha256 hashes also). To create the sha256sum texts, enter the
@@ -504,8 +483,8 @@ triggered by a <code class="docutils literal notranslate"><span class="pre">git<
 can invoke this utility and create or update a release with relevant binary
 artifacts.</p>
 </section>
-<section id="step-11-create-a-release-description">
-<h3>Step 11: Create a release description<a class="headerlink" href="#step-11-create-a-release-description" title="Link to this heading"></a></h3>
+<section id="step-9-create-a-release-description">
+<h3>Step 9: Create a release description<a class="headerlink" href="#step-9-create-a-release-description" title="Link to this heading"></a></h3>
 <p>Here is a template for the release description (this is a large body field which
 contains markdown describing a given release on GitHub). Make sure you replace
 <code class="docutils literal notranslate"><span class="pre">DAY</span></code>, <code class="docutils literal notranslate"><span class="pre">MONTH</span></code>, <code class="docutils literal notranslate"><span class="pre">YEAR</span></code>, <code class="docutils literal notranslate"><span class="pre">A.B.C</span></code>, <code class="docutils literal notranslate"><span class="pre">X.Y.Z</span></code>, <code class="docutils literal notranslate"><span class="pre">CONDITIONAL_PRE_RELEASE_WARNING</span></code>,
@@ -545,8 +524,8 @@ knows, like config-file-format changes, schema changes, etc.</p>
 <p>After you’ve created the above release description, save it somewhere so we can
 use it in the next step where we’re going to create the actual GitHub release.</p>
 </section>
-<section id="step-12-create-github-release-from-tag">
-<h3>Step 12: Create GitHub release from tag<a class="headerlink" href="#step-12-create-github-release-from-tag" title="Link to this heading"></a></h3>
+<section id="step-10-create-github-release-from-tag">
+<h3>Step 10: Create GitHub release from tag<a class="headerlink" href="#step-10-create-github-release-from-tag" title="Link to this heading"></a></h3>
 <p>When you visit our GitHub page, you should now see all the additional commits
 and the version tag you’ve previously set to indicate the release. This version
 tag will point to the head of the repository and will not have an associated

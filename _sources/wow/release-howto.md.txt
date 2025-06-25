@@ -66,12 +66,12 @@ however still a few things we confirm. Most notably:
     time instance that our software quality engineer uses for this, you can
     ask him for the link)
   * OSV scanner ran and results accepted (see `osv-scanner` job in pipeline)
-  * ZAP scanner ran and results accepted (manual run, pipeline job coming)
+  * ZAP scanner ran and results accepted (see ZAP in Quality Time)
   * No blocker or critical Sonar findings (you can check our Sonar instance
     for these findings, ask around for the link if you don't have it)
 
-The manual E2E tests are usually executed by a member of the Dart/Flutter team.
-We are working on getting automated ZAP tests as part of the pipeline that will
+The manual E2E tests are usually executed by the test automation engineer. We
+are working on getting automated ZAP tests as part of the pipeline that will
 block on serious issues, and warn on lower priority ones.
 
 The confirmation of the acceptability of the tests and any required reports is
@@ -148,40 +148,17 @@ After you've set the development version, merge the MR. It is best if this is
 done quickly so people don't accidentally start doing work under the older
 version tags.
 
-### Step 8: Run publication guard
-
-You should now be ready to run `publication-guard`, which assists us with
-filtering the repository. It takes into account various things like who opted
-to have his/her public email address in the commit message and who did not, and
-filters out various things which we have considered once to be unwanted in the
-public repository (note: that does not mean it is considered as such in
-perpetuity - we should allow for reconsideration from time to time).
-
-Clone the `/logius/wallet/publication-guard/` repository, read the `README.md`. Follow the
-instructions, for which you will find some overlap with this howto. Create any
-new to-filter-items for things you might have encountered during your review.
-
-Finally, make sure that, for any person that has done commits between the
-previous release and this one, you have followed the procedure documented in the
-`README.md` of `publication-guard` with regards to their explicit permission to
-have their name and e-mail address publicly available (or explicit denial and
-relevant anonymized e-mail address and/or name).
-
-### Step 9: Publish source code to GitHub
-
-After executing the publication-guard filtering steps, you are ready to publish
-the filtered repository that `publication-guard` created.
-
-To do that, you need to access the filtered repository directory, rename the
-`filtered-repository` branch to `main`, add GitHub as a remote and then
-`git push --tags` (i.e., to the remote `main` on GitHub).
-
-### Step 10: Collect build artifacts for release
+### Step 8: Collect build artifacts for release
 
 We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:
 
   * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for
     this release
+  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
+    server for issuers, for glibc-based Linux systems built with Debian
+    bookworm.
+  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
+    server for issuers using statically linked musl.
   * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
     verification server for relying parties, for glibc-based Linux systems
     built with Debian bookworm.
@@ -193,7 +170,8 @@ We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:
 
 You can collect these artifacts from our GitLab CI/CD pipeline - you need to
 go to the relevant job and click on download artifact/zip. You might need to
-rename the zip file and/or repackage in the case of `verification_server`.
+rename the zip file and/or repackage in the case of `issuance_server` and
+`verification_server`.
 
 Currently (2024-11-07) you need to create the sha256sums manually (in the future
 we would like to adjust the pipeline that creates the binary artifacts such that
@@ -227,7 +205,7 @@ triggered by a `git push --tags` that results in new version tags being pushed)
 can invoke this utility and create or update a release with relevant binary
 artifacts.
 
-### Step 11: Create a release description
+### Step 9: Create a release description
 
 Here is a template for the release description (this is a large body field which
 contains markdown describing a given release on GitHub). Make sure you replace
@@ -273,7 +251,7 @@ Note about `CHANGE`: Ensure that this file exists with the proper filename.
 After you've created the above release description, save it somewhere so we can
 use it in the next step where we're going to create the actual GitHub release.
 
-### Step 12: Create GitHub release from tag
+### Step 10: Create GitHub release from tag
 
 When you visit our GitHub page, you should now see all the additional commits
 and the version tag you've previously set to indicate the release. This version
