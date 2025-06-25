@@ -80,6 +80,6 @@
 
 ### Logging
 
-| Name         | Description                                 | Value   |
-| ------------ | ------------------------------------------- | ------- |
-| `logRequest` | Log request and response headers and bodies | `false` |
+| Name          | Description                                 | Value   |
+| ------------- | ------------------------------------------- | ------- |
+| `logRequests` | Log request and response headers and bodies | `false` |
