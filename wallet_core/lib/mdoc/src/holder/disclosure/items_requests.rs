@@ -41,5 +41,60 @@ impl ItemsRequests {
 
 #[cfg(test)]
 mod tests {
-    // TODO: Implement test for ItemsRequests::try_into_attribute_paths().
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+
+    use assert_matches::assert_matches;
+
+    use attestation_types::attribute_paths::AttestationAttributePathsError;
+
+    use crate::iso::device_retrieval::ItemsRequest;
+    use crate::verifier::ItemsRequests;
+
+    #[test]
+    fn test_items_requests_try_into_attribute_paths_ok() {
+        let items_requests = ItemsRequests::from(vec![ItemsRequest::new_example()]);
+
+        let attribute_paths = items_requests
+            .try_into_attribute_paths()
+            .expect("converting ItemsRequests into AttestationAttributePaths should succeed");
+
+        let expected_attribute_paths = HashMap::from([(
+            "org.iso.18013.5.1.mDL".to_string(),
+            HashSet::from([
+                vec!["org.iso.18013.5.1".to_string(), "family_name".to_string()]
+                    .try_into()
+                    .unwrap(),
+                vec!["org.iso.18013.5.1".to_string(), "issue_date".to_string()]
+                    .try_into()
+                    .unwrap(),
+                vec!["org.iso.18013.5.1".to_string(), "expiry_date".to_string()]
+                    .try_into()
+                    .unwrap(),
+                vec!["org.iso.18013.5.1".to_string(), "document_number".to_string()]
+                    .try_into()
+                    .unwrap(),
+                vec!["org.iso.18013.5.1".to_string(), "driving_privileges".to_string()]
+                    .try_into()
+                    .unwrap(),
+            ]),
+        )]);
+
+        assert_eq!(attribute_paths.as_ref(), &expected_attribute_paths);
+    }
+
+    #[test]
+    fn test_items_requests_try_into_attribute_paths_error() {
+        let items_requests = ItemsRequests::from(vec![ItemsRequest::new_example_empty()]);
+
+        let error = items_requests
+            .try_into_attribute_paths()
+            .expect_err("converting ItemsRequests into AttestationAttributePaths not should succeed");
+
+        assert_matches!(
+            error,
+            AttestationAttributePathsError::EmptyAttributes(attestation_type)
+                if attestation_type == HashSet::from(["org.iso.18013.5.1.mDL".to_string()])
+        );
+    }
 }
