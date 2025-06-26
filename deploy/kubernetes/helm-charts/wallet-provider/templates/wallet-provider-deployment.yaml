@@ -56,19 +56,22 @@ spec:
             - name: WALLET_PROVIDER__DATABASE__NAME
               valueFrom:
                 secretKeyRef:
-                  name: db-cluster-app
-                  key: dbname
+                  name: {{ .Values.database.secretName }}
+                  key: database
             - name: WALLET_PROVIDER__DATABASE__HOST
-              value: db-cluster-rw
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: host
             - name: WALLET_PROVIDER__DATABASE__USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: db-cluster-app
+                  name: {{ .Values.database.secretName }}
                   key: username
             - name: WALLET_PROVIDER__DATABASE__PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-cluster-app
+                  name: {{ .Values.database.secretName }}
                   key: password
             - name: WALLET_PROVIDER__HSM__USER_PIN
               valueFrom:

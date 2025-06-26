@@ -4,7 +4,7 @@ description: A Helm chart for CloudNative-PG database clusters
 
 type: application
 
-version: 2.6.0
+version: 3.0.0
 
 appVersion: "16.7-bookworm"
 

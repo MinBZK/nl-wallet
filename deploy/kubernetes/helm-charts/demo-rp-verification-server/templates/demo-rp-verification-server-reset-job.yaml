@@ -32,17 +32,10 @@ spec:
               image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
               args: ["fresh"]
               env:
-                - name: DB_USERNAME
-                  valueFrom:
-                    secretKeyRef:
-                      name: db-cluster-demo-rp-app
-                      key: username
-                - name: DB_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: db-cluster-demo-rp-app
-                      key: password
                 - name: DATABASE_URL
-                  value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-demo-rp-rw:5432/verification_server"
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.database.secretName }}
+                      key: url
           restartPolicy: Never
 {{- end }}
