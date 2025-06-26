@@ -22,10 +22,10 @@ impl IssuerSigned {
                                 .iter()
                                 .any(|TaggedBytes(signed_item)| signed_item.element_identifier == *element_id)
                         })
-                        .unwrap_or_default()
+                        .unwrap_or(false)
                 })
             })
-            .unwrap_or_default()
+            .unwrap_or(false)
     }
 
     pub fn into_attribute_subset(self, attribute_paths: &HashSet<(&str, &str)>) -> Self {
