@@ -65,3 +65,8 @@ impl DeviceResponse {
         Ok((device_response, keys))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: Implement test for DeviceResponse::sign_from_mdocs().
+}

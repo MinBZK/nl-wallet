@@ -38,3 +38,8 @@ impl ItemsRequests {
         AttestationAttributePaths::try_new(paths)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: Implement test for ItemsRequests::try_into_attribute_paths().
+}

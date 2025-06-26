@@ -1,3 +1,5 @@
+// TODO: Re-enable and rewrite these tests using VpDisclosureClient and VpDisclosureSession.
+
 // use std::collections::HashMap;
 // use std::collections::HashSet;
 // use std::convert::Infallible;

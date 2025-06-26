@@ -46,3 +46,8 @@ impl AttestationAttributePaths {
         inner
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: Implement test for AttestationAttributePaths::try_new().
+}

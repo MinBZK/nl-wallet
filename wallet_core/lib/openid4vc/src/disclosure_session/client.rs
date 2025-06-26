@@ -196,3 +196,8 @@ where
         Ok(session)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: Implement tests for VpDisclosureClient().
+}

@@ -17,8 +17,9 @@ pub use self::http::HttpVpMessageClient;
 mod error;
 mod http;
 
-#[cfg(test)]
+// TODO: Remove this when implementing VpDisclosureClient and VpDisclosureSession tests.
 #[allow(dead_code)]
+#[cfg(test)]
 pub mod mock;
 
 pub static APPLICATION_OAUTH_AUTHZ_REQ_JWT: LazyLock<Mime> = LazyLock::new(|| {

@@ -58,3 +58,8 @@ impl IssuerSigned {
         Self { name_spaces, ..self }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: Implement tests for IssuerSigned::matches_attribute_paths() and IssuerSigned::into_attribute_subset().
+}

@@ -179,3 +179,8 @@ where
         Ok(redirect_uri)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: Implement tests for VpDisclosureSession().
+}

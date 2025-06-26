@@ -34,3 +34,8 @@ pub fn attribute_paths_to_mdoc_paths<'a>(
         })
         .unwrap_or_default()
 }
+
+#[cfg(test)]
+mod tests {
+    // TODO: Implement test for attribute_paths_to_mdoc_paths().
+}

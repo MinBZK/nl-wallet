@@ -167,6 +167,8 @@ where
     }
 }
 
+// TODO: Re-enable and rewrite these tests.
+
 // #[cfg(test)]
 // mod tests {
 //     use assert_matches::assert_matches;
