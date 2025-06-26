@@ -152,8 +152,8 @@ version tags.
 
 We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:
 
-  * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for
-    this release
+  * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this
+    release.
   * `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
     server for issuers, for glibc-based Linux systems built with Debian
     bookworm.
@@ -164,14 +164,14 @@ We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:
     built with Debian bookworm.
   * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
     verification server for relying parties using statically linked musl.
-  * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for relying
-    parties, to assist with integrating relying party applications with the
-    wallet platform
+  * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for issuers
+    and relying parties, to assist with integrating issuers and relying party
+    applications with the wallet platform.
 
 You can collect these artifacts from our GitLab CI/CD pipeline - you need to
 go to the relevant job and click on download artifact/zip. You might need to
-rename the zip file and/or repackage in the case of `issuance_server` and
-`verification_server`.
+rename the zip file and/or repackage in the case of `issuance_server`,
+`verification_server` and `wallet_web`.
 
 Currently (2024-11-07) you need to create the sha256sums manually (in the future
 we would like to adjust the pipeline that creates the binary artifacts such that
@@ -216,14 +216,25 @@ contains markdown describing a given release on GitHub). Make sure you replace
 Release date: DAY of MONTH, YEAR
 
   * All commits in this release: https://github.com/MinBZK/nl-wallet/compare/vA.B.C...vX.Y.Z
-  * Documentation for this release: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/index.md
+  * Documentation for this release: https://minbzk.github.io/nl-wallet/vX.Y.Z/index.html
 
 We have the following artifacts as a part of this release:
 
-  * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this release
-  * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet verification server for relying parties, for glibc-based Linux systems
-  * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet verification server for relying parties, for musl-libc based Linux systems
-  * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for relying parties, to assist with integrating relying party applications with the wallet platform
+  * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this
+    release.
+  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
+    server for issuers, for glibc-based Linux systems built with Debian
+    bookworm.
+  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
+    server for issuers using statically linked musl.
+  * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
+    verification server for relying parties, for glibc-based Linux systems
+    built with Debian bookworm.
+  * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
+    verification server for relying parties using statically linked musl.
+  * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for issuers
+    and relying parties, to assist with integrating issuers and relying party
+    applications with the wallet platform.
 
 ## Notes
 
@@ -233,7 +244,7 @@ We have the following artifacts as a part of this release:
 
 ## Changes
 
-See: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/release_notes/vX.Y.Z.md
+See: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/release-notes/vX.Y.Z.md
 ```
 
 Note on `CONDITIONAL_PRE_RELEASE_WARNING`: When you mark this release as a
