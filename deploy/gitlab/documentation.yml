@@ -1,6 +1,8 @@
 build-documentation:
-  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  rules: !reference [.default-branch, rules]
   script:
+    - git fetch origin main
+    - git checkout -b main origin/main
     - cd documentation
     - python3 -m venv venv
     - source venv/bin/activate
@@ -13,12 +15,12 @@ build-documentation:
       <!DOCTYPE html>
       <html>
         <head>
-          <meta http-equiv="refresh" content="0; url=main/">
-          <script>window.location.href = "main/"</script>
+          <meta http-equiv="refresh" content="0; url=main/index.html">
+          <script>window.location.href = "main/index.html"</script>
           <title>Redirecting to main</title>
         </head>
         <body>
-          Redirecting to <a href="main/">main</a>...
+          Redirecting to <a href="main/index.html">main</a>...
         </body>
       </html>
       EOF
