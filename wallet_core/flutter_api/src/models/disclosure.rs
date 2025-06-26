@@ -163,11 +163,11 @@ impl From<String> for MissingAttribute {
     }
 }
 
-impl From<wallet::DisclosureType> for DisclosureType {
-    fn from(source: wallet::DisclosureType) -> Self {
+impl From<wallet::attestation_data::DisclosureType> for DisclosureType {
+    fn from(source: wallet::attestation_data::DisclosureType) -> Self {
         match source {
-            wallet::DisclosureType::Login => DisclosureType::Login,
-            wallet::DisclosureType::Regular => DisclosureType::Regular,
+            wallet::attestation_data::DisclosureType::Login => DisclosureType::Login,
+            wallet::attestation_data::DisclosureType::Regular => DisclosureType::Regular,
         }
     }
 }

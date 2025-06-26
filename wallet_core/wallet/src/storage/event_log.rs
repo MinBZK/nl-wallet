@@ -5,16 +5,15 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificate;
 use entity::disclosure_history_event::EventStatus;
-use entity::disclosure_history_event::EventType;
 use openid4vc::disclosure_session::VerifierCertificate;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::attestation::AttestationPresentation;
 
 pub type DisclosureStatus = EventStatus;
-pub type DisclosureType = EventType;
 
 #[derive(Debug, Clone, Copy)]
 pub enum DataDisclosureStatus {

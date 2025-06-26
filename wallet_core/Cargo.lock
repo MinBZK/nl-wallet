@@ -2031,6 +2031,7 @@ dependencies = [
 name = "entity"
 version = "0.3.0-dev"
 dependencies = [
+ "attestation_data",
  "chrono",
  "derive_more",
  "sd_jwt_vc_metadata",

@@ -16,6 +16,7 @@ pub use openid4vc::disclosure_session::DisclosureUriSource;
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use attestation_data::auth::reader_auth::ReaderRegistration;
 use attestation_data::auth::Organization;
+use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
 use error_category::sentry_capture_error;
@@ -39,16 +40,16 @@ use wallet_configuration::wallet_config::WalletConfiguration;
 use crate::account_provider::AccountProviderClient;
 use crate::attestation::AttestationError;
 use crate::attestation::AttestationPresentation;
-use crate::disclosure::disclosure_type_for_requested_attribute_paths;
 use crate::errors::ChangePinError;
 use crate::errors::UpdatePolicyError;
 use crate::instruction::InstructionError;
 use crate::instruction::RemoteEcdsaKeyError;
 use crate::instruction::RemoteEcdsaKeyFactory;
+use crate::issuance::BSN_ATTR_NAME;
+use crate::issuance::PID_DOCTYPE;
 use crate::repository::Repository;
 use crate::repository::UpdateableRepository;
 use crate::storage::DataDisclosureStatus;
-use crate::storage::DisclosureType;
 use crate::storage::Storage;
 use crate::storage::StorageError;
 use crate::storage::WalletEvent;
@@ -375,7 +376,11 @@ where
 
         // At this point, determine the disclosure type and if data was every shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
-        let disclosure_type = disclosure_type_for_requested_attribute_paths(session.requested_attribute_paths());
+        let disclosure_type = DisclosureType::from_request_attribute_paths(
+            session.requested_attribute_paths(),
+            PID_DOCTYPE,
+            (PID_DOCTYPE, BSN_ATTR_NAME),
+        );
 
         let verifier_certificate = session.verifier_certificate();
         let shared_data_with_relying_party_before = self
