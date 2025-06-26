@@ -23,19 +23,19 @@ mockall::mock! {
     pub DisclosureClient {}
 
     impl DisclosureClient for DisclosureClient {
-        type Session = MockDisclosureSession2;
+        type Session = MockDisclosureSession;
 
         async fn start<'a>(
             &self,
             request_uri_query: &str,
             uri_source: DisclosureUriSource,
             trust_anchors: &[TrustAnchor<'a>],
-        ) -> Result<MockDisclosureSession2, VpSessionError>;
+        ) -> Result<MockDisclosureSession, VpSessionError>;
     }
 }
 
 mockall::mock! {
-    pub DisclosureSession2 {
+    pub DisclosureSession {
         fn session_type(&self) -> SessionType;
         fn requested_attribute_paths(&self) -> &RequestedAttributePaths;
         fn verifier_certificate(&self) -> &VerifierCertificate;
@@ -48,7 +48,7 @@ mockall::mock! {
     }
 }
 
-impl DisclosureSession for MockDisclosureSession2 {
+impl DisclosureSession for MockDisclosureSession {
     fn session_type(&self) -> SessionType {
         self.session_type()
     }
