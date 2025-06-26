@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use attestation_types::attribute_paths::AttestationAttributePaths;
+use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
 
 use crate::issuance::BSN_ATTR_NAME;
 use crate::issuance::PID_DOCTYPE;
@@ -15,7 +16,7 @@ pub fn disclosure_type_for_requested_attribute_paths(attribute_paths: &Attestati
         .exactly_one()
         .ok()
         .and_then(|attestation_type| {
-            (attestation_type == PID_DOCTYPE).then(|| attribute_paths.as_mdoc_paths(PID_DOCTYPE))
+            (attestation_type == PID_DOCTYPE).then(|| attribute_paths_to_mdoc_paths(attribute_paths, PID_DOCTYPE))
         })
         .and_then(|paths| paths.into_iter().exactly_one().ok())
         .and_then(|path| (path == (PID_DOCTYPE, BSN_ATTR_NAME)).then_some(DisclosureType::Login))

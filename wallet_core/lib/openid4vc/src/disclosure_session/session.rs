@@ -8,6 +8,7 @@ use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
+use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
 use mdoc::holder::Mdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
@@ -23,8 +24,8 @@ use super::error::DisclosureError;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::message_client::VpMessageClient;
-use super::DisclosureSession;
 use super::AttestationAttributePaths;
+use super::DisclosureSession;
 use super::VerifierCertificate;
 
 #[derive(Debug)]
@@ -100,7 +101,7 @@ where
         let filtered_mdocs = mdocs
             .into_iter()
             .filter_map(|mut mdoc| {
-                let paths = self.requested_attribute_paths.as_mdoc_paths(mdoc.mso.doc_type.as_str());
+                let paths = attribute_paths_to_mdoc_paths(&self.requested_attribute_paths, &mdoc.mso.doc_type);
 
                 (!paths.is_empty()).then(|| {
                     mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&paths);

@@ -45,18 +45,4 @@ impl AttestationAttributePaths {
 
         inner
     }
-
-    pub fn as_mdoc_paths(&self, doc_type: &str) -> HashSet<(&str, &str)> {
-        let Self(paths) = self;
-
-        paths
-            .get(doc_type)
-            .map(|paths| {
-                paths
-                    .iter()
-                    .filter_map(|path| path.iter().map(String::as_str).collect_tuple())
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
 }

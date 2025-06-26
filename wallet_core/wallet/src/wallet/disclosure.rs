@@ -22,6 +22,7 @@ use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
+use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -352,7 +353,7 @@ where
             .into_iter()
             .filter_map(|(attestation_type, stored_mdoc_iter)| {
                 // Get the requested paths for this attestation type.
-                let mdoc_paths = session.requested_attribute_paths().as_mdoc_paths(attestation_type);
+                let mdoc_paths = attribute_paths_to_mdoc_paths(session.requested_attribute_paths(), attestation_type);
 
                 let candidate_attestations = stored_mdoc_iter
                     .into_iter()
@@ -429,9 +430,10 @@ where
         let attestations_by_type = stored_mdocs_by_type
             .into_iter()
             .map(|stored_mdocs| {
-                let mdoc_paths = session
-                    .requested_attribute_paths()
-                    .as_mdoc_paths(stored_mdocs.first().mdoc.mso.doc_type.as_str());
+                let mdoc_paths = attribute_paths_to_mdoc_paths(
+                    session.requested_attribute_paths(),
+                    &stored_mdocs.first().mdoc.mso.doc_type,
+                );
 
                 let attestations = stored_mdocs
                     .into_iter()

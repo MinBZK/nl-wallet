@@ -24,6 +24,8 @@ use crate::test::DebugCollapseBts;
 use crate::utils::serialization::CborSeq;
 use crate::utils::serialization::TaggedBytes;
 
+use super::attribute_paths_to_mdoc_paths;
+
 fn create_example_device_response(
     device_request: DeviceRequest,
     session_transcript: &SessionTranscript,
@@ -31,16 +33,16 @@ fn create_example_device_response(
 ) -> DeviceResponse {
     let mut mdoc = Mdoc::new_example_resigned(ca).now_or_never().unwrap();
 
-    let attributes_paths = device_request.into_items_requests().try_into_attribute_paths().unwrap();
+    let attribute_paths = device_request.into_items_requests().try_into_attribute_paths().unwrap();
 
     assert_eq!(
-        attributes_paths.as_ref().keys().exactly_one().ok(),
+        attribute_paths.as_ref().keys().exactly_one().ok(),
         Some(&mdoc.mso.doc_type)
     );
 
     mdoc.issuer_signed = mdoc
         .issuer_signed
-        .into_attribute_subset(&attributes_paths.as_mdoc_paths(&mdoc.mso.doc_type));
+        .into_attribute_subset(&attribute_paths_to_mdoc_paths(&attribute_paths, &mdoc.mso.doc_type));
 
     let (device_response, _) =
         DeviceResponse::sign_from_mdocs(vec![mdoc], session_transcript, &MockRemoteKeyFactory::new_example())
