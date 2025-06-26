@@ -424,7 +424,7 @@ where
             });
         }
 
-        // Now that we know that we have at least one candidate per attestation type, start attempting to conver the
+        // Now that we know that we have at least one candidate per attestation type, start attempting to convert the
         // stored attestations to `AttestationPresentation` values, placing these in `DisclosureAttestation` along with
         // the original attestation.
         let attestations_by_type = stored_mdocs_by_type
@@ -497,7 +497,7 @@ where
         }
 
         // This unwrap is guaranteed to succeed as:
-        // 1. The `RequestedAttributePaths` type inherently guarantees that it contain at least one attestation type.
+        // 1. The `RequestedAttributePaths` type inherently guarantees that it contains at least one attestation type.
         // 2. We check above if there is at least one candidate for every attestation type.
         // 3. We then check above that none of the attestation types have multiple candidates, so the
         //    length of disclosure_attestations is the same as attestations_by_type, which is at least 1.
