@@ -15,14 +15,9 @@ annotations: {}
 
 ## @section Database configuration
 ## Parameters for the database configuration
-## @param database.name Name of the default database
+## @param databases Name of the databases
 ##
-database:
-  name: "app"
-
-## @param name String to override Cluster name, default is database name
-##
-name: null
+databases: []
 
 ## @section Common parameters
 ## Number of replicas
@@ -92,16 +87,6 @@ parameters:
   log_statement: "none"
   wal_keep_size: 512MB
   archive_timeout: "5min"
-
-## @section User configuration
-## Parameters for user configuration
-## @param users.migrator.name Name of the migrator user
-## @param users.migrator.nameSecret Secret name for the migrator user's password
-##
-users:
-  migrator:
-    name: migrator
-    nameSecret: null
 
 ## @section Backup configuration
 ## Parameters for the backup configuration

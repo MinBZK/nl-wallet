@@ -1,5 +1,4 @@
 {{ $chart := . -}}
-{{ $fullName := include "common.names.fullname" . }}
 
 CHART NAME: {{ .Chart.Name }}
 CHART VERSION: {{ .Chart.Version }}
@@ -9,30 +8,36 @@ APP VERSION: {{ .Chart.AppVersion }}
 
 To connect to your database from outside the cluster execute the following commands:
 
-{{- range $pgPool := .Values.pgPools -}}
-{{- if gt (int $pgPool.pool.replicas) 0 }}
-    ** Only connecting via PgBouncer is allowed **
-
-    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $fullName }}-pooler-{{ $pgPool.pool.type }} 5432:5432 &
-
-{{ else }}
-
+{{ if empty .Values.pgPools -}}
     ** PgBouncer is disabled, connect directly with the primary **
 
-    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $fullName }}-{{ $pgPool.pool.type }} 5432:5432 &
+    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $chart.Release.Name }}-r 5432:5432 &
+    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $chart.Release.Name }}-ro 5432:5432 &
+    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $chart.Release.Name }}-rw 5432:5432 &
+{{ else -}}
+    ** Only connecting via PgBouncer is allowed **
+{{- range $pgPool := .Values.pgPools -}}
+{{- if gt (int $pgPool.pool.replicas) 0 }}
+
+    kubectl port-forward --namespace {{ $chart.Release.Namespace }} svc/{{ $chart.Release.Name }}-pooler-{{ $pgPool.pool.type }} 5432:5432 &
 
 {{ end -}}
 {{ end -}}
+{{ end }}
 
+To get the password for "{{ first .Values.databases }}" run:
 
-To get the password for "{{ .Values.users.migrator.name }}" run:
-
-    kubectl get secret --namespace {{ .Release.Namespace }} {{ .Values.users.migrator.nameSecret }} -o jsonpath="{.data.password}" | base64 -d
+    kubectl get secret --namespace {{ .Release.Namespace }} {{ $chart.Release.Name }}-{{ first .Values.databases | replace "_" "-" }} -o jsonpath="{.data.password}" | base64 -d
 
 
 To get a list of installed database clusters run:
 
-    kubectl get clusters --namespace {{ .Release.Namespace }}
+    kubectl get cluster --namespace {{ .Release.Namespace }}
+
+
+To get a list of extra created databases run:
+
+    kubectl get database --namespace {{ .Release.Namespace }}
 
 
 To connect to the database from another pod apply the following label to your pod:

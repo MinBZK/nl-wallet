@@ -14,10 +14,9 @@
 
 ### Database configuration
 
-| Name            | Description                                               | Value |
-| --------------- | --------------------------------------------------------- | ----- |
-| `database.name` | Name of the default database                              | `app` |
-| `name`          | String to override Cluster name, default is database name | `nil` |
+| Name        | Description           | Value |
+| ----------- | --------------------- | ----- |
+| `databases` | Name of the databases | `[]`  |
 
 ### Common parameters
 
@@ -70,13 +69,6 @@
 | `parameters.log_statement`   | Sets the type of SQL statements logged                              | `none`  |
 | `parameters.wal_keep_size`   | Size of WAL files to keep for standby servers                       | `512MB` |
 | `parameters.archive_timeout` | Maximum time to wait before performing a WAL file switch            | `5min`  |
-
-### User configuration
-
-| Name                        | Description                                  | Value      |
-| --------------------------- | -------------------------------------------- | ---------- |
-| `users.migrator.name`       | Name of the migrator user                    | `migrator` |
-| `users.migrator.nameSecret` | Secret name for the migrator user's password | `nil`      |
 
 ### Backup configuration
 

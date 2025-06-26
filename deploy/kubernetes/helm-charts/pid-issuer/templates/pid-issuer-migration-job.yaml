@@ -29,16 +29,9 @@ spec:
           image: "{{ .Values.global.imageRegistry }}/{{ .Values.imageMigrations.repository }}:{{ .Values.image.tag }}"
           args: ["up"]
           env:
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: db-cluster-pi-app
-                  key: username
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: db-cluster-pi-app
-                  key: password
             - name: DATABASE_URL
-              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-pi-rw:5432/pid_issuer"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: url
       restartPolicy: Never

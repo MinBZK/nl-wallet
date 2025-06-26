@@ -85,6 +85,12 @@ resources:
     cpu: "200m"
     memory: "128Mi"
 
+## section Database parameters
+## Parameters for database configuration
+## @param database.secretName The secret name that contains the connection url for the database
+database:
+  secretName: null
+
 ## @section DigiD parameters
 ## Parameters for the DigiD configuration
 ## @param digidBaseUrl Base URL for the DigiD service

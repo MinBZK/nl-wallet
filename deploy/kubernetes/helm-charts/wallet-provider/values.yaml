@@ -91,6 +91,12 @@ resources:
     cpu: "400m"
     memory: "64Mi"
 
+## section Database parameters
+## Parameters for database configuration
+## @param database.secretName The secret name that contains the connection url for the database
+database:
+  secretName: null
+
 ## @section Volumes
 ## Volumes for the container
 ## @param volumes[0].name Name of the first volume
