@@ -1,7 +1,7 @@
 build-sbom:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .ruby-cache
-  rules: !reference [.default-branch, rules]
+  rules: !reference [.default-or-release, rules]
   script:
     ## Rust
     - cargo cyclonedx --spec-version 1.5 --manifest-path wallet_core/Cargo.toml --format json --override-filename bom
