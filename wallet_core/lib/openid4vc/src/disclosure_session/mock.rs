@@ -16,7 +16,7 @@ use super::error::VpSessionError;
 use super::uri_source::DisclosureUriSource;
 use super::DisclosureClient;
 use super::DisclosureSession;
-use super::RequestedAttributePaths;
+use super::AttestationAttributePaths;
 use super::VerifierCertificate;
 
 mockall::mock! {
@@ -37,7 +37,7 @@ mockall::mock! {
 mockall::mock! {
     pub DisclosureSession {
         fn session_type(&self) -> SessionType;
-        fn requested_attribute_paths(&self) -> &RequestedAttributePaths;
+        fn requested_attribute_paths(&self) -> &AttestationAttributePaths;
         fn verifier_certificate(&self) -> &VerifierCertificate;
 
         async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
@@ -53,7 +53,7 @@ impl DisclosureSession for MockDisclosureSession {
         self.session_type()
     }
 
-    fn requested_attribute_paths(&self) -> &RequestedAttributePaths {
+    fn requested_attribute_paths(&self) -> &AttestationAttributePaths {
         self.requested_attribute_paths()
     }
 

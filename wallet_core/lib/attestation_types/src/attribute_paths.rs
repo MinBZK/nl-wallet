@@ -7,20 +7,24 @@ use itertools::Itertools;
 use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Debug, thiserror::Error)]
-pub enum RequestedAttributePathsError {
-    #[error("no attribute paths present in request")]
-    EmptyRequest,
-    #[error("no attribute paths for attestation type(s): {}", .0.join(", "))]
+pub enum AttestationAttributePathsError {
+    #[error("no attestation(s) provided")]
+    EmptyAttestations,
+    #[error("no attribute path(s) provided for attestation type(s): {}", .0.join(", "))]
     EmptyAttributes(Vec<String>),
 }
 
+/// Represents a collection of attribute paths, keyed per attestation type. The constructor of this type guarantees
+/// that paths for at least one attestation are present and that each attestation has at least one path specified.
 #[derive(Debug, Clone, PartialEq, Eq, AsRef)]
-pub struct RequestedAttributePaths(HashMap<String, HashSet<VecNonEmpty<String>>>);
+pub struct AttestationAttributePaths(HashMap<String, HashSet<VecNonEmpty<String>>>);
 
-impl RequestedAttributePaths {
-    pub fn try_new(paths: HashMap<String, HashSet<VecNonEmpty<String>>>) -> Result<Self, RequestedAttributePathsError> {
+impl AttestationAttributePaths {
+    pub fn try_new(
+        paths: HashMap<String, HashSet<VecNonEmpty<String>>>,
+    ) -> Result<Self, AttestationAttributePathsError> {
         if paths.is_empty() {
-            return Err(RequestedAttributePathsError::EmptyRequest);
+            return Err(AttestationAttributePathsError::EmptyAttestations);
         }
 
         let empty_attestation_types = paths
@@ -30,7 +34,7 @@ impl RequestedAttributePaths {
             .collect_vec();
 
         if !empty_attestation_types.is_empty() {
-            return Err(RequestedAttributePathsError::EmptyAttributes(empty_attestation_types));
+            return Err(AttestationAttributePathsError::EmptyAttributes(empty_attestation_types));
         }
 
         Ok(Self(paths))

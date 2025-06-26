@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-use attestation_types::disclosure::RequestedAttributePaths;
-use attestation_types::disclosure::RequestedAttributePathsError;
+use attestation_types::attribute_paths::AttestationAttributePaths;
+use attestation_types::attribute_paths::AttestationAttributePathsError;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::verifier::ItemsRequests;
 
 impl ItemsRequests {
-    pub fn try_into_attribute_paths(self) -> Result<RequestedAttributePaths, RequestedAttributePathsError> {
+    pub fn try_into_attribute_paths(self) -> Result<AttestationAttributePaths, AttestationAttributePathsError> {
         let Self(requests) = self;
 
         let paths = requests
@@ -35,6 +35,6 @@ impl ItemsRequests {
                 paths
             });
 
-        RequestedAttributePaths::try_new(paths)
+        AttestationAttributePaths::try_new(paths)
     }
 }

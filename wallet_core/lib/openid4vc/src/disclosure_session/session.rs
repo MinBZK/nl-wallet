@@ -24,14 +24,14 @@ use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::message_client::VpMessageClient;
 use super::DisclosureSession;
-use super::RequestedAttributePaths;
+use super::AttestationAttributePaths;
 use super::VerifierCertificate;
 
 #[derive(Debug)]
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    requested_attribute_paths: RequestedAttributePaths,
+    requested_attribute_paths: AttestationAttributePaths,
     verifier_certificate: VerifierCertificate,
     auth_request: IsoVpAuthorizationRequest,
 }
@@ -40,7 +40,7 @@ impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        requested_attribute_paths: RequestedAttributePaths,
+        requested_attribute_paths: AttestationAttributePaths,
         verifier_certificate: VerifierCertificate,
         auth_request: IsoVpAuthorizationRequest,
     ) -> Self {
@@ -62,7 +62,7 @@ where
         self.session_type
     }
 
-    fn requested_attribute_paths(&self) -> &RequestedAttributePaths {
+    fn requested_attribute_paths(&self) -> &AttestationAttributePaths {
         &self.requested_attribute_paths
     }
 

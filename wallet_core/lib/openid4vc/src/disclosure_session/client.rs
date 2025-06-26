@@ -26,8 +26,8 @@ use super::message_client::VpMessageClient;
 use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
+use super::AttestationAttributePaths;
 use super::DisclosureClient;
-use super::RequestedAttributePaths;
 use super::VerifierCertificate;
 
 #[derive(Debug, Constructor)]
@@ -84,7 +84,7 @@ impl<H> VpDisclosureClient<H> {
         auth_request_client_id: &str,
         items_requests: ItemsRequests,
         certificate: &BorrowingCertificate,
-    ) -> Result<(RequestedAttributePaths, ReaderRegistration), VpVerifierError> {
+    ) -> Result<(AttestationAttributePaths, ReaderRegistration), VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
         if auth_request_client_id != request_uri_client_id {

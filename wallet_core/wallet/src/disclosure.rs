@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-use attestation_types::disclosure::RequestedAttributePaths;
+use attestation_types::attribute_paths::AttestationAttributePaths;
 
 use crate::issuance::BSN_ATTR_NAME;
 use crate::issuance::PID_DOCTYPE;
@@ -8,7 +8,7 @@ use crate::storage::DisclosureType;
 
 /// Something is a login flow if the requested attributes has exactly one element,
 /// which is of attestation type `PID_DOCTYPE` and path `[PID_DOCTYPE, BSN_ATTR_NAME]`.
-pub fn disclosure_type_for_requested_attribute_paths(attribute_paths: &RequestedAttributePaths) -> DisclosureType {
+pub fn disclosure_type_for_requested_attribute_paths(attribute_paths: &AttestationAttributePaths) -> DisclosureType {
     attribute_paths
         .as_ref()
         .keys()
@@ -39,7 +39,7 @@ mod test {
     #[case(pid_and_other_bsn_attribute_paths(), DisclosureType::Regular)]
     #[case(pid_too_long_attribute_paths(), DisclosureType::Regular)]
     fn test_disclosure_type_from_proposed_attributes(
-        #[case] attribute_paths: RequestedAttributePaths,
+        #[case] attribute_paths: AttestationAttributePaths,
         #[case] expected: DisclosureType,
     ) {
         assert_eq!(
@@ -48,16 +48,16 @@ mod test {
         );
     }
 
-    fn pid_bsn_attribute_paths() -> RequestedAttributePaths {
-        RequestedAttributePaths::try_new(HashMap::from([(
+    fn pid_bsn_attribute_paths() -> AttestationAttributePaths {
+        AttestationAttributePaths::try_new(HashMap::from([(
             PID_DOCTYPE.to_string(),
             HashSet::from([VecNonEmpty::try_from(vec![PID_DOCTYPE.to_string(), BSN_ATTR_NAME.to_string()]).unwrap()]),
         )]))
         .unwrap()
     }
 
-    fn pid_bsn_and_other_attribute_paths() -> RequestedAttributePaths {
-        RequestedAttributePaths::try_new(HashMap::from([(
+    fn pid_bsn_and_other_attribute_paths() -> AttestationAttributePaths {
+        AttestationAttributePaths::try_new(HashMap::from([(
             PID_DOCTYPE.to_string(),
             HashSet::from([
                 VecNonEmpty::try_from(vec![PID_DOCTYPE.to_string(), BSN_ATTR_NAME.to_string()]).unwrap(),
@@ -67,8 +67,8 @@ mod test {
         .unwrap()
     }
 
-    fn pid_and_other_bsn_attribute_paths() -> RequestedAttributePaths {
-        RequestedAttributePaths::try_new(HashMap::from([
+    fn pid_and_other_bsn_attribute_paths() -> AttestationAttributePaths {
+        AttestationAttributePaths::try_new(HashMap::from([
             (
                 PID_DOCTYPE.to_string(),
                 HashSet::from([
@@ -85,8 +85,8 @@ mod test {
         .unwrap()
     }
 
-    fn pid_too_long_attribute_paths() -> RequestedAttributePaths {
-        RequestedAttributePaths::try_new(HashMap::from([(
+    fn pid_too_long_attribute_paths() -> AttestationAttributePaths {
+        AttestationAttributePaths::try_new(HashMap::from([(
             PID_DOCTYPE.to_string(),
             HashSet::from([VecNonEmpty::try_from(vec![
                 PID_DOCTYPE.to_string(),

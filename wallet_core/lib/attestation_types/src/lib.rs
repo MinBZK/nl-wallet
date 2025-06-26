@@ -1,2 +1,2 @@
-pub mod disclosure;
+pub mod attribute_paths;
 pub mod qualification;

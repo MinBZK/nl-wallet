@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use attestation_types::disclosure::RequestedAttributePathsError;
+use attestation_types::attribute_paths::AttestationAttributePathsError;
 use derive_more::Constructor;
 
 use attestation_data::auth::reader_auth::ValidationError;
@@ -100,7 +100,7 @@ pub enum VpVerifierError {
 
     #[error("disclosure request (partially) empty: {0}")]
     #[category(pd)]
-    EmptyRequest(#[source] RequestedAttributePathsError),
+    EmptyRequest(#[source] AttestationAttributePathsError),
 }
 
 #[derive(Debug, Constructor, thiserror::Error)]

@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
 
-use attestation_types::disclosure::RequestedAttributePaths;
+use attestation_types::attribute_paths::AttestationAttributePaths;
 use crypto::factory::KeyFactory;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
@@ -49,7 +49,7 @@ pub trait DisclosureClient {
 
 pub trait DisclosureSession {
     fn session_type(&self) -> SessionType;
-    fn requested_attribute_paths(&self) -> &RequestedAttributePaths;
+    fn requested_attribute_paths(&self) -> &AttestationAttributePaths;
     fn verifier_certificate(&self) -> &VerifierCertificate;
 
     async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
