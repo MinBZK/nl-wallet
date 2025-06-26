@@ -1,9 +1,8 @@
 {{ $chart := . -}}
-{{ $fullName := include "common.names.fullname" . }}
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: {{ default .Values.database.name .Values.name }}
+  name: {{ $chart.Release.Name }}
 spec:
   imageName: {{ .Values.global.imageRegistry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
   instances: {{ default 1 .Values.replicaCount }}
@@ -29,16 +28,16 @@ spec:
 
   managed:
     roles:
-      - name: {{ .Values.users.migrator.name }}
+{{- range .Values.databases }}
+{{ $fullName := print $chart.Release.Name "-" . | replace "_" "-" }}
+      - name: {{ . }}
         ensure: present
         comment: owner of the database and allowed to do migrations
         connectionLimit: -1
-        createdb: true
-        createrole: true
-        inherit: true
         login: true
         passwordSecret:
-          name: {{ .Values.users.migrator.nameSecret | quote }}
+          name: {{ $fullName }}
+{{- end }}
 
 {{- if .Values.backup.recovery }}
 
@@ -69,13 +68,12 @@ spec:
 
   bootstrap:
     initdb:
-      database: {{ .Values.database.name }}
-      owner: {{ .Values.users.migrator.name }}
+      database: {{ first .Values.databases }}
       encoding: "UTF8"
       localeCollate: "en_US.UTF-8"
       localeCType: "en_US.UTF-8"
       secret:
-        name: {{ .Values.users.migrator.nameSecret | quote }}
+        name: {{ print $chart.Release.Name "-" (first .Values.databases) | replace "_" "-" }}
       postInitApplicationSQLRefs:
         configMapRefs:
           - key: extensions.sql
@@ -105,7 +103,7 @@ spec:
     barmanObjectStore:
       serverName: {{ .Values.backup.serverName }}
       endpointURL: {{ default (print "http://minio." .Release.Namespace ".svc.cluster.local:9000") .Values.backup.endpointURL }}
-      destinationPath: {{ default (print "s3://" $fullName "-pg-wal") .Values.backup.destinationPath }}
+      destinationPath: {{ default (print "s3://" .Release.Name "-pg-wal") .Values.backup.destinationPath }}
       tags:
         backupRetentionPolicy: "expire"
       historyTags:
@@ -134,7 +132,7 @@ metadata:
   name: {{ $chart.Release.Name }}-pooler-{{ $pgPool.pool.type }}
 spec:
   cluster:
-    name: {{ default $chart.Values.database.name $chart.Values.name }}
+    name: {{ $chart.Release.Name }}
   instances: {{ $pgPool.pool.replicas }}
   type: {{ $pgPool.pool.type }}
   pgbouncer:

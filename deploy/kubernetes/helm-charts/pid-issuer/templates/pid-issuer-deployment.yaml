@@ -86,18 +86,11 @@ spec:
                   key: wte_issuer_pubkey
             - name: PID_ISSUER__METADATA
               value: "eudi:pid:1.json,eudi:pid:nl:1.json,eudi:pid-address:1.json,eudi:pid-address:nl:1.json"
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: db-cluster-pi-app
-                  key: username
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: db-cluster-pi-app
-                  key: password
             - name: PID_ISSUER__STORAGE__URL
-              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-pi-rw:5432/pid_issuer"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: url
             - name: RUST_LOG
               value: "debug,hyper=warn"
       volumes:

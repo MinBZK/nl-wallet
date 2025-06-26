@@ -1,0 +1,13 @@
+{{ $chart := . -}}
+{{- range slice .Values.databases 1 }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ print $chart.Release.Name "-" . | replace "_" "-" }}
+spec:
+  name: {{ . }}
+  owner: {{ . }}
+  cluster:
+    name: {{ $chart.Release.Name }}
+{{- end }}
