@@ -112,7 +112,7 @@ checksum = "e999941b234f3131b00bc13c22d06e8c5ff726d1b6318ac7eb276997bbb4fef0"
 
 [[package]]
 name = "android_attest"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "bitflags 2.8.0",
@@ -254,7 +254,7 @@ checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
 
 [[package]]
 name = "apple_app_attest"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "chrono",
@@ -587,7 +587,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "attestation_data"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_types",
@@ -626,7 +626,7 @@ dependencies = [
 
 [[package]]
 name = "attestation_types"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "serde_with",
  "strum 0.26.3",
@@ -1272,7 +1272,7 @@ dependencies = [
 
 [[package]]
 name = "configuration_server"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -1439,7 +1439,7 @@ checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
 
 [[package]]
 name = "crypto"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -1649,7 +1649,7 @@ checksum = "5c297a1c74b71ae29df00c3e22dd9534821d60eb9af5a0192823fa2acea70c2a"
 
 [[package]]
 name = "dcql"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "rstest",
  "serde",
@@ -1699,7 +1699,7 @@ dependencies = [
 
 [[package]]
 name = "demo_index"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -1723,7 +1723,7 @@ dependencies = [
 
 [[package]]
 name = "demo_issuer"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -1754,7 +1754,7 @@ dependencies = [
 
 [[package]]
 name = "demo_relying_party"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "askama",
@@ -1791,7 +1791,7 @@ dependencies = [
 
 [[package]]
 name = "demo_utils"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "accept-language",
  "anyhow",
@@ -2025,7 +2025,7 @@ dependencies = [
 
 [[package]]
 name = "entity"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "chrono",
  "derive_more",
@@ -2073,7 +2073,7 @@ dependencies = [
 
 [[package]]
 name = "error_category"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "error_category_derive",
  "rstest",
@@ -2085,7 +2085,7 @@ dependencies = [
 
 [[package]]
 name = "error_category_derive"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "error_category",
  "proc-macro2",
@@ -2219,7 +2219,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "android_logger 0.14.1",
  "anyhow",
@@ -2245,7 +2245,7 @@ dependencies = [
 
 [[package]]
 name = "flutter_api_macros"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "quote",
  "syn 2.0.98",
@@ -2474,7 +2474,7 @@ dependencies = [
 
 [[package]]
 name = "gba_hc_converter"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2861,7 +2861,7 @@ dependencies = [
 
 [[package]]
 name = "hsm"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "async-dropper",
  "async-trait",
@@ -2985,7 +2985,7 @@ dependencies = [
 
 [[package]]
 name = "http_utils"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "axum",
  "axum-server",
@@ -3360,7 +3360,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
 name = "issuance_server"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3395,7 +3395,7 @@ dependencies = [
 
 [[package]]
 name = "issuer_settings"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_data",
@@ -3559,7 +3559,7 @@ dependencies = [
 
 [[package]]
 name = "jwt"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "attestation_data",
@@ -3761,7 +3761,7 @@ dependencies = [
 
 [[package]]
 name = "mdoc"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "aes-gcm",
  "assert_matches",
@@ -4131,7 +4131,7 @@ checksum = "c08d65885ee38876c4f86fa503fb49d7b507c2b62552df7c70b2fce627e06381"
 
 [[package]]
 name = "openid4vc"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "async-trait",
@@ -4191,7 +4191,7 @@ dependencies = [
 
 [[package]]
 name = "openid4vc_server"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "axum",
  "axum-extra",
@@ -4444,7 +4444,7 @@ dependencies = [
 
 [[package]]
 name = "pid_issuer"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -4545,7 +4545,7 @@ checksum = "b4596b6d070b27117e987119b4dac604f3c58cfb0b191112e24771b2faeac1a6"
 
 [[package]]
 name = "platform_support"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "aes-gcm",
  "android_attest",
@@ -4577,7 +4577,7 @@ dependencies = [
 
 [[package]]
 name = "poa"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "crypto",
@@ -5427,7 +5427,7 @@ dependencies = [
 
 [[package]]
 name = "sd_jwt"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -5455,7 +5455,7 @@ dependencies = [
 
 [[package]]
 name = "sd_jwt_vc_metadata"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "assert_matches",
  "crypto",
@@ -6004,7 +6004,7 @@ dependencies = [
 
 [[package]]
 name = "server_utils"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "attestation_data",
@@ -6587,7 +6587,7 @@ checksum = "8f50febec83f5ee1df3015341d8bd429f2d1cc62bcba7ea2076759d315084683"
 
 [[package]]
 name = "tests_integration"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -7338,7 +7338,7 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "update_policy_model"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "indexmap 2.7.1",
  "rstest",
@@ -7352,7 +7352,7 @@ dependencies = [
 
 [[package]]
 name = "update_policy_server"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "axum",
@@ -7430,7 +7430,7 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "utils"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "built",
  "chrono",
@@ -7480,7 +7480,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "verification_server"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -7552,7 +7552,7 @@ dependencies = [
 
 [[package]]
 name = "wallet"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "aes-gcm",
  "apple_app_attest",
@@ -7618,7 +7618,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_account"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -7644,7 +7644,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_ca"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -7666,7 +7666,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_configuration"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "crypto",
  "derive_more",
@@ -7680,7 +7680,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_migrations"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "async-trait",
  "entity",
@@ -7690,7 +7690,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "android_attest",
  "apple_app_attest",
@@ -7728,7 +7728,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_database_settings"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "config",
  "serde",
@@ -7737,7 +7737,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_domain"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "apple_app_attest",
  "chrono",
@@ -7756,7 +7756,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_migrations"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "async-trait",
  "sea-orm-migration",
@@ -7766,7 +7766,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_persistence"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "apple_app_attest",
  "assert_matches",
@@ -7791,7 +7791,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_provider_service"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "android_attest",
  "anyhow",
@@ -7838,7 +7838,7 @@ dependencies = [
 
 [[package]]
 name = "wallet_server_migrations"
-version = "0.3.0"
+version = "0.4.0-dev"
 dependencies = [
  "sea-orm-migration",
  "tokio",
