@@ -48,7 +48,7 @@ pub enum WalletEvent {
     },
     Disclosure {
         id: Uuid,
-        attestations: Box<Vec<AttestationPresentation>>,
+        attestations: Vec<AttestationPresentation>,
         timestamp: DateTime<Utc>,
         // TODO (PVW-4135): Only store reader registration in event.
         reader_certificate: Box<BorrowingCertificate>,

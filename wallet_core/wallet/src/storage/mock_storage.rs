@@ -261,7 +261,7 @@ impl Storage for StorageStub {
 
         self.event_log.push(WalletEvent::Disclosure {
             id: Uuid::new_v4(),
-            attestations: Box::new(proposed_attestation_presentations),
+            attestations: proposed_attestation_presentations,
             timestamp,
             reader_certificate: Box::new(reader_certificate),
             reader_registration: Box::new(reader_registration),
