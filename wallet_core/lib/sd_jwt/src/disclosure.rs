@@ -49,15 +49,13 @@ impl Disclosure {
             .decode(disclosure)
             .map_err(|_e| {
                 Error::InvalidDisclosure(format!(
-                    "Base64 decoding of the disclosure was not possible {}",
-                    disclosure
+                    "Base64 decoding of the disclosure was not possible {disclosure}"
                 ))
             })
             .and_then(|data| {
                 serde_json::from_slice(&data).map_err(|_e| {
                     Error::InvalidDisclosure(format!(
-                        "decoded disclosure could not be serialized as an array {}",
-                        disclosure
+                        "decoded disclosure could not be serialized as an array {disclosure}"
                     ))
                 })
             })?;

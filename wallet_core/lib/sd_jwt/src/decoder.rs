@@ -143,7 +143,7 @@ impl SdObjectDecoder {
     ) -> Result<Option<(&'a DisclosureContent, Value)>, Error> {
         let digest_str = digest
             .as_str()
-            .ok_or(Error::DataTypeMismatch(format!("{} is not a string", digest)))?
+            .ok_or(Error::DataTypeMismatch(format!("{digest} is not a string")))?
             .to_string();
 
         // Reject if any digests were found more than once.
@@ -168,10 +168,7 @@ impl SdObjectDecoder {
     fn verify_disclosure_for_object(disclosure: &Disclosure, output: &Map<String, Value>) -> Result<(), Error> {
         let claim_name = match &disclosure.content {
             DisclosureContent::ObjectProperty(_, claim_name, _) => Ok(claim_name),
-            _ => Err(Error::DataTypeMismatch(format!(
-                "disclosure type error: {}",
-                disclosure
-            ))),
+            _ => Err(Error::DataTypeMismatch(format!("disclosure type error: {disclosure}"))),
         }?;
 
         if RESERVED_CLAIM_NAMES.contains(&claim_name.as_str()) {

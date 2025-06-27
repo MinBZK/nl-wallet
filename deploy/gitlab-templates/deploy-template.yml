@@ -36,16 +36,6 @@ variables:
         exit 1
       fi
 
-.deploy-postgres-cluster:
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.parse-config-files, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-      $FILE_OPTIONS
-
 .parse-config-files:
   script:
     - |
@@ -55,57 +45,23 @@ variables:
         FILE_OPTIONS+="-f $file "
       done
 
-db-cluster-provider-${DEPLOY_ENV}:
+db-cluster-${DEPLOY_ENV}:
   extends: .deploy-base
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
   variables:
     CHART_NAME: database-cnpg
-    RELEASE_NAME: db-cluster-provider
-    CONFIG_NAME: provider
-    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/provider/values.yaml"
+    RELEASE_NAME: db-cluster
+    CONFIG_FILES: "variables/${DEPLOY_ENV}/db-cluster.yaml"
   script:
-    - !reference [.deploy-postgres-cluster, script]
-
-db-cluster-demo-rp-${DEPLOY_ENV}:
-  extends: .deploy-base
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: database-cnpg
-    RELEASE_NAME: db-cluster-demo-rp
-    CONFIG_NAME: demo-rp
-    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/demo-rp/values.yaml"
-  script:
-    - !reference [.deploy-postgres-cluster, script]
-
-db-cluster-demo-issuer-${DEPLOY_ENV}:
-  extends: .deploy-base
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: database-cnpg
-    RELEASE_NAME: db-cluster-demo-issuer
-    CONFIG_NAME: demo-issuer
-    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/demo-issuer/values.yaml"
-  script:
-    - !reference [.deploy-postgres-cluster, script]
-
-db-cluster-pid-${DEPLOY_ENV}:
-  extends: .deploy-base
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: database-cnpg
-    RELEASE_NAME: db-cluster-pid
-    CONFIG_NAME: pid
-    CONFIG_FILES: "variables/${DEPLOY_ENV}/database/values.yaml,variables/${DEPLOY_ENV}/database/pid/values.yaml"
-  script:
-    - !reference [.deploy-postgres-cluster, script]
+    - !reference [.build-helm-dependency, script]
+    - !reference [.parse-config-files, script]
+    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
+    - |
+      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
+      --set global.imageRegistry=${HARBOR_REGISTRY} \
+      $FILE_OPTIONS
 
 .deploy-helm:
   extends: .deploy-base
@@ -126,7 +82,7 @@ wallet-provider-${DEPLOY_ENV}:
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
-    - job: db-cluster-provider-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   variables:
     CHART_NAME: wallet-provider
@@ -138,7 +94,7 @@ pid-issuer-${DEPLOY_ENV}:
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
-    - job: db-cluster-pid-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   variables:
     CHART_NAME: pid-issuer
@@ -150,7 +106,7 @@ demo-rp-verification-server-${DEPLOY_ENV}:
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
-    - job: db-cluster-demo-rp-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   variables:
     CHART_NAME: demo-rp-verification-server
@@ -183,7 +139,7 @@ demo-issuer-issuance-server-${DEPLOY_ENV}:
   needs:
     - pipeline: $PARENT_PIPELINE_ID
       job: create-deployment-${DEPLOY_ENV}
-    - job: db-cluster-demo-issuer-${DEPLOY_ENV}
+    - job: db-cluster-${DEPLOY_ENV}
       artifacts: false
   variables:
     CHART_NAME: demo-issuer-issuance-server

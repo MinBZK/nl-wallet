@@ -12,11 +12,11 @@ fn inject_dotenv_vars() {
         Ok(values) => {
             for item in values {
                 let (key, value) = item.expect("Could not read entry from .env file");
-                println!("cargo:rustc-env={}={}", key, value);
+                println!("cargo:rustc-env={key}={value}");
             }
         }
         // Do not panic on this, as we may want to operate without any `.env` file.
-        Err(error) => println!("cargo:warning=Could not read .env file: {}", error),
+        Err(error) => println!("cargo:warning=Could not read .env file: {error}"),
     }
 }
 

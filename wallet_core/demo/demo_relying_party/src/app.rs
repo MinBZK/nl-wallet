@@ -83,10 +83,7 @@ pub fn create_router(settings: Settings) -> Router {
     let mut app = Router::new()
         .route("/sessions", post(create_session))
         .route("/{usecase}/", get(usecase))
-        .route(
-            &format!("/{{usecase}}/{}", RETURN_URL_SEGMENT),
-            get(disclosed_attributes),
-        )
+        .route(&format!("/{{usecase}}/{RETURN_URL_SEGMENT}"), get(disclosed_attributes))
         .fallback_service(
             ServiceBuilder::new()
                 .layer(middleware::from_fn(set_static_cache_control))

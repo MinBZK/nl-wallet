@@ -239,7 +239,7 @@ impl<'a> Index<&str> for Words<'a> {
             "cum_laude" => &self.cum_laude,
             "true" => &self.r#true,
             "false" => &self.r#false,
-            _ => panic!("no translation for: {}", index),
+            _ => panic!("no translation for: {index}"),
         }
     }
 }

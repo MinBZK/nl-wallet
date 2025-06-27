@@ -156,11 +156,11 @@ impl WalletEvent {
 
 fn key_file_alias_for_name(database_name: &str) -> String {
     // Append suffix to database name to get key file alias
-    format!("{}{}", database_name, KEY_FILE_SUFFIX)
+    format!("{database_name}{KEY_FILE_SUFFIX}")
 }
 
 fn key_identifier_for_key_file(alias: &str) -> String {
-    format!("{}{}", KEY_IDENTIFIER_PREFIX, alias)
+    format!("{KEY_IDENTIFIER_PREFIX}{alias}")
 }
 
 /// This is the implementation of [`Storage`] as used by the [`crate::Wallet`]. Its responsibilities are:
@@ -198,7 +198,7 @@ impl<K> DatabaseStorage<K> {
 
     fn database_path_for_name(&self, name: &str) -> PathBuf {
         // Get path to database as "<storage_path>/<name>.db"
-        self.storage_path.join(format!("{}.{}", name, DATABASE_FILE_EXT))
+        self.storage_path.join(format!("{name}.{DATABASE_FILE_EXT}"))
     }
 
     async fn execute_query<S>(&self, query: S) -> StorageResult<Option<QueryResult>>

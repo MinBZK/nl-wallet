@@ -70,12 +70,13 @@
 
 ### Resource requests and limits
 
-| Name                        | Description    | Value  |
-| --------------------------- | -------------- | ------ |
-| `resources.requests.cpu`    | CPU request    | `100m` |
-| `resources.requests.memory` | Memory request | `32Mi` |
-| `resources.limits.cpu`      | CPU limit      | `400m` |
-| `resources.limits.memory`   | Memory limit   | `64Mi` |
+| Name                        | Description                                                       | Value  |
+| --------------------------- | ----------------------------------------------------------------- | ------ |
+| `resources.requests.cpu`    | CPU request                                                       | `100m` |
+| `resources.requests.memory` | Memory request                                                    | `32Mi` |
+| `resources.limits.cpu`      | CPU limit                                                         | `400m` |
+| `resources.limits.memory`   | Memory limit                                                      | `64Mi` |
+| `database.secretName`       | The secret name that contains the connection url for the database | `nil`  |
 
 ### Volumes
 

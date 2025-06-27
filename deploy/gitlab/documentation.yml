@@ -1,18 +1,71 @@
 build-documentation:
-  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  rules: !reference [.default-branch, rules]
   script:
+    - git fetch origin main
+    - git checkout -b main origin/main
     - cd documentation
     - python3 -m venv venv
     - source venv/bin/activate
     - pip3 install -r requirements.txt
     - make linkcheck
-    - sphinx-build -b html -W . _build/html
+    - sphinx-multiversion . _build/html -W
+    #GitHub pages needs an index.html at the root of the html folder
+    - |
+      cat > _build/html/index.html <<EOF
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta http-equiv="refresh" content="0; url=main/index.html">
+          <script>window.location.href = "main/index.html"</script>
+          <title>Redirecting to main</title>
+        </head>
+        <body>
+          Redirecting to <a href="main/index.html">main</a>...
+        </body>
+      </html>
+      EOF
+  variables:
+    GIT_STRATEGY: clone
+    GIT_DEPTH: 0
   artifacts:
     name: documentation
     when: always
     paths:
       - documentation/_build/html
   allow_failure: true
+
+generate-c4-puml:
+  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/docker-hub-proxy/structurizr/cli:latest"
+    entrypoint: [""]
+  script:
+    - mkdir -p c4diagrams
+    - /usr/local/structurizr-cli/structurizr.sh export --workspace documentation/_structurizr/workspace.dsl --output c4diagrams --format plantuml
+    - echo "Generated .puml files:"
+    - ls -l c4diagrams
+  artifacts:
+    paths:
+      - c4diagrams/
+    expire_in: 1 week
+
+generate-c4-png:
+  rules: !reference [.default-or-release-or-merge-request-manual, rules]
+  image:
+    name: "${HARBOR_REGISTRY}/docker-hub-proxy/plantuml/plantuml:latest"
+    entrypoint: [""]
+  needs:
+    - job: generate-c4-puml
+      artifacts: true
+  script:
+    - echo "Rendering PNGs from .puml files using java -jar..."
+    - find c4diagrams -name '*.puml' -exec java -jar /opt/plantuml.jar -tpng {} +
+    - echo "Generated PNG files:"
+    - ls -l c4diagrams
+  artifacts:
+    paths:
+      - c4diagrams/
+    expire_in: 1 week
 
 publish-documentation:
   rules: !reference [.default-branch, rules]
@@ -24,6 +77,11 @@ publish-documentation:
     - cd public
     - rm -rf *
     - mv ../documentation/_build/html/* .
+    - |
+      if [[ ! -f index.html ]]; then
+        >&2 echo "ERROR: index.html not found"
+        exit 1
+      fi
     - git add .
     - |
       if [[ -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
@@ -34,4 +92,3 @@ publish-documentation:
       else
         git status
       fi
-  allow_failure: true

@@ -35,7 +35,7 @@ pub async fn log_request_response(req: Request, next: Next) -> Result<impl IntoR
 async fn body_to_bytes(body: Body) -> Result<Bytes, (StatusCode, String)> {
     body::to_bytes(body, MAX_BODY_SIZE)
         .await
-        .map_err(|err| (StatusCode::BAD_REQUEST, format!("failed to read body: {}", err)))
+        .map_err(|err| (StatusCode::BAD_REQUEST, format!("failed to read body: {err}")))
 }
 
 fn print_headers(headers: &HeaderMap<HeaderValue>) -> String {

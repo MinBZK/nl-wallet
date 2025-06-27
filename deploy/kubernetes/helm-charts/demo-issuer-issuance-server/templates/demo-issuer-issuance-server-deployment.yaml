@@ -57,18 +57,11 @@ spec:
               value: "true"
             - name: ISSUANCE_SERVER__METADATA
               value: "com.example.degree.json,com.example.insurance.json"
-            - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: db-cluster-demo-issuer-app
-                  key: username
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: db-cluster-demo-issuer-app
-                  key: password
             - name: ISSUANCE_SERVER__STORAGE__URL
-              value: "postgres://$(DB_USERNAME):$(DB_PASSWORD)@db-cluster-demo-issuer-rw:5432/issuance_server"
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.secretName }}
+                  key: url
             - name: ISSUANCE_SERVER__ISSUER_TRUST_ANCHORS
               valueFrom:
                 configMapKeyRef:

@@ -29,7 +29,7 @@ pub fn init_panic_logger() {
         // Note that we need to use string formatting to prevent
         // the [`error!`] macro from printing the variable name.
         error!("Panic occurred: {}", message.unwrap_or("UNKNOWN"));
-        format!("{:?}", backtrace)
+        format!("{backtrace:?}")
             .split('\n')
             .filter(|backtrace_line| !backtrace_line.is_empty())
             .for_each(|backtrace_line| error!("{}", backtrace_line));

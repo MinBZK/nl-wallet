@@ -394,7 +394,7 @@ mod tests {
         // Convert it to a token request
         let state = client.state.clone();
         let token_request = client
-            .into_token_request(&redirect_uri.join(&format!("?code={}&state={}", CODE, state)).unwrap())
+            .into_token_request(&redirect_uri.join(&format!("?code={CODE}&state={state}")).unwrap())
             .unwrap();
 
         assert_eq!(token_request.client_id, Some(CLIENT_ID.to_string()));

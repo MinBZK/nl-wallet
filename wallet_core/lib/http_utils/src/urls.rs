@@ -84,7 +84,7 @@ impl TryFrom<Origin> for HeaderValue {
         let url = value.into_inner();
         let mut str = format!("{0}://{1}", url.scheme(), url.host_str().unwrap(),);
         if let Some(port) = url.port() {
-            str += &format!(":{0}", port);
+            str += &format!(":{port}");
         }
         HeaderValue::try_from(str)
     }
@@ -131,8 +131,8 @@ impl Display for SourceExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SourceExpression::SelfSource => f.write_str("'self'"),
-            SourceExpression::SchemeSource(scheme) => write!(f, "{}", scheme),
-            SourceExpression::HostSource(url) => write!(f, "{}", url),
+            SourceExpression::SchemeSource(scheme) => write!(f, "{scheme}"),
+            SourceExpression::HostSource(url) => write!(f, "{url}"),
         }
     }
 }

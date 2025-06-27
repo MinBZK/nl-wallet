@@ -499,7 +499,7 @@ read the text in a regular text editor or pager to see them.
 
 [2]: https://www.rijksoverheid.nl/onderwerpen/inloggen-europese-economische-ruimte/alles-wat-u-moet-weten-over-eidas
 
-[3]: https://www.figma.com/design/4efsEQFFJqenB80OKqfmdl/20241126_Release_UI_NLWallet?node-id=1-3716&t=HhqTBGpCrSVcW8ku-1
+[3]: https://www.figma.com/design/Pv7yVW8jg26dgW1IWjVgt1/20250625_Release_UI_NLWallet?node-id=1-3716&t=eVkXvIquG6fOOLOF-1
 
 [4]: https://github.com/MinBZK/nl-wallet/
 
