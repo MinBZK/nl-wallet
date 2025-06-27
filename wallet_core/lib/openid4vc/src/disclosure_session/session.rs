@@ -933,7 +933,7 @@ mod tests {
             |mut verifier_session| {
                 let mut request_uri_object: VpRequestUriObject =
                     serde_urlencoded::from_str(&verifier_session.request_uri_query()).unwrap();
-                request_uri_object.request_uri = format!("{}?session_type=invalid", VERIFIER_URL).parse().unwrap();
+                request_uri_object.request_uri = format!("{VERIFIER_URL}?session_type=invalid").parse().unwrap();
 
                 verifier_session.request_uri_object = request_uri_object;
                 verifier_session

@@ -577,9 +577,9 @@ impl ClaimPath {
 impl Display for ClaimPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ClaimPath::SelectByKey(key) => write!(f, "{}", key),
+            ClaimPath::SelectByKey(key) => write!(f, "{key}"),
             ClaimPath::SelectAll => f.write_str("*"),
-            ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
+            ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
         }
     }
 }
@@ -1074,7 +1074,7 @@ mod test {
                 kind: ValidationErrorKind::Format { format },
                 instance_path,
                 ..
-            } if instance.to_string() == format!("\"{}\"", date_str)
+            } if instance.to_string() == format!("\"{date_str}\"")
                     && format == "date" && instance_path.to_string() == "/birth_date"
         );
     }

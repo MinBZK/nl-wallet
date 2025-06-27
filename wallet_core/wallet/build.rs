@@ -94,7 +94,7 @@ fn parse_and_verify_json<T: DeserializeOwned + EnvironmentSpecific>(file: &str, 
 
     verify_environment(config.environment(), file);
 
-    println!("cargo:rerun-if-changed={}", file);
+    println!("cargo:rerun-if-changed={file}");
 }
 
 fn current_env() -> String {

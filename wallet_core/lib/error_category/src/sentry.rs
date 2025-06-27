@@ -180,7 +180,7 @@ fn exception_from_error<E: Error + ?Sized>(err: &E) -> Exception {
         if type_name.ends_with(variant) {
             type_name.to_owned()
         } else {
-            format!("{}::{}", type_name, variant)
+            format!("{type_name}::{variant}")
         }
     };
     Exception {
@@ -247,7 +247,7 @@ mod tests {
             "error_category::sentry::tests::ErrorEnum::Specific".to_string()
         );
         assert_eq!(event.exception.values[0].value, Some(ERROR_MSG.to_string()));
-        assert!(format!("{:?}", event).contains(ERROR_MSG));
+        assert!(format!("{event:?}").contains(ERROR_MSG));
         let category = event.tags.get("category");
         assert_eq!(category, Some(&expected_tag));
     }
@@ -271,7 +271,7 @@ mod tests {
             "error_category::sentry::tests::SpecificError".to_string()
         );
         assert_eq!(event.exception.values[0].value, Some(ERROR_MSG.to_string()));
-        assert!(format!("{:?}", event).contains(ERROR_MSG));
+        assert!(format!("{event:?}").contains(ERROR_MSG));
         let category = event.tags.get("category");
         assert_eq!(category, Some(&expected_tag));
     }

@@ -132,7 +132,7 @@ async fn sd_jwt_without_disclosures_works() -> anyhow::Result<()> {
     )
     .await;
 
-    println!("{}", sd_jwt);
+    println!("{sd_jwt}");
 
     // Try to serialize & deserialize `sd_jwt`.
     let sd_jwt = {
@@ -204,7 +204,7 @@ async fn sd_jwt_sd_hash() -> anyhow::Result<()> {
     let (issued_sd_jwt, _kb) = encoded_kb_jwt.rsplit_once("~").unwrap();
 
     let actual_sd_hash = disclosed.key_binding_jwt().claims().sd_hash.clone();
-    let expected_sd_hash = hasher.encoded_digest(&format!("{}~", issued_sd_jwt));
+    let expected_sd_hash = hasher.encoded_digest(&format!("{issued_sd_jwt}~"));
 
     assert_eq!(actual_sd_hash, expected_sd_hash);
 
