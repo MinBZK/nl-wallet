@@ -1236,7 +1236,7 @@ mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
 
         let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
-        let mdoc = Mdoc::new_mock_with_key_and_ca(&ca, &mdoc_key).await;
+        let mdoc = Mdoc::new_mock_with_ca_and_key(&ca, &mdoc_key).await;
 
         let (device_response, poa) = setup_device_response(
             &auth_request,
