@@ -4,6 +4,7 @@ import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_display_metadata.dart';
 import 'package:wallet/src/domain/model/card/metadata/card_rendering.dart';
 import 'package:wallet/src/domain/model/card/wallet_card.dart';
+import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/document.dart';
 import 'package:wallet/src/domain/model/event/wallet_event.dart';
 import 'package:wallet/src/domain/model/organization.dart';
@@ -70,6 +71,9 @@ abstract class WalletMockData {
       ),
     ],
   );
+
+  static DiscloseCardRequest discloseCardRequestSingleCard = DiscloseCardRequest.fromCard(card);
+  static DiscloseCardRequest discloseCardRequestMultiCard = DiscloseCardRequest(candidates: [card, altCard]);
 
   static final WalletCardDetail cardDetail = WalletCardDetail(
     card: card,

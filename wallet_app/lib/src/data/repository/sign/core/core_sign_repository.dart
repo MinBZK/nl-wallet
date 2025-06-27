@@ -31,14 +31,12 @@ class CoreSignRepository implements SignRepository {
     final result = await _coreForSigning.startSigning(signUri);
     switch (result) {
       case StartSignResultReadyToDisclose():
-        final cards = _cardMapper.mapList(result.requestedAttestations);
-        final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
         return StartSignReadyToSign(
           relyingParty: _organizationMapper.map(result.organization),
           trustProvider: _organizationMapper.map(result.trustProvider),
           policy: _requestPolicyMapper.map(result.policy),
           document: _documentMapper.map(result.document),
-          requestedAttributes: requestedAttributes,
+          requestedCards: _cardMapper.mapList(result.requestedAttestations),
         );
       case StartSignResultRequestedAttributesMissing():
         throw UnsupportedError('We do not support this flow yet');

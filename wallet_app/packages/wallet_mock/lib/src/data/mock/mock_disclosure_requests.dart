@@ -17,6 +17,7 @@ const _kPharmacy = 'PHARMACY';
 const _kAmsterdamLoginId = 'AMSTERDAM_LOGIN';
 
 const _kMockBirthDateKey = 'mock_birthDate';
+const _kMockCityKey = 'mock_city';
 const _kMockStreetNameKey = 'mock_streetName';
 const _kMockPostalCodeKey = 'mock_postalCode';
 const _kMockHouseNumberKey = 'mock_houseNumber';
@@ -245,6 +246,10 @@ final _kOpenBankAccountRequestedAttributes = [
     key: _kMockBirthDateKey,
   ),
   ..._kCitizenshipNumberRequest,
+  RequestedAttribute(
+    label: 'Stad',
+    key: _kMockCityKey,
+  ),
   RequestedAttribute(
     label: 'Straatnaam',
     key: _kMockStreetNameKey,

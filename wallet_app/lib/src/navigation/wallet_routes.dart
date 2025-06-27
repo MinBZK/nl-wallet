@@ -430,7 +430,7 @@ WidgetBuilder _createLoginDetailScreenBuilder(RouteSettings settings) {
     return LoginDetailScreen(
       organization: argument.organization,
       policy: argument.policy,
-      requestedAttributes: argument.requestedAttributes,
+      cardRequests: argument.cardRequests,
       sharedDataWithOrganizationBefore: argument.sharedDataWithOrganizationBefore,
     );
   };

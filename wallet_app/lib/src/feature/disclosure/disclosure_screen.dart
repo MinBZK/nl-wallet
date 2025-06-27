@@ -157,7 +157,7 @@ class DisclosureScreen extends StatelessWidget {
   Widget _buildCheckOrganizationForLoginPage(BuildContext context, DisclosureCheckOrganizationForLogin state) {
     return OrganizationApprovePage(
       onDeclinePressed: () => _stopDisclosure(context),
-      onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedAttributesApproved()),
+      onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedCardsApproved()),
       organization: state.relyingParty,
       originUrl: state.originUrl,
       sessionType: state.sessionType,
@@ -168,7 +168,7 @@ class DisclosureScreen extends StatelessWidget {
           context,
           state.relyingParty,
           state.policy,
-          state.requestedAttributes,
+          state.cardRequests,
           onReportIssuePressed: () => _onReportIssuePressed(context, _resolveReportingOptionsForState(context)),
           sharedDataWithOrganizationBefore: state.sharedDataWithOrganizationBefore,
         );
@@ -187,10 +187,12 @@ class DisclosureScreen extends StatelessWidget {
 
   Widget _buildConfirmDataAttributesPage(BuildContext context, DisclosureConfirmDataAttributes state) {
     return DisclosureConfirmDataAttributesPage(
+      onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedCardsApproved()),
       onDeclinePressed: () => _stopDisclosure(context),
-      onAcceptPressed: () => context.bloc.add(const DisclosureShareRequestedAttributesApproved()),
+      onAlternativeCardSelected: (updatedRequest) =>
+          context.bloc.add(DisclosureAlternativeCardSelected(updatedRequest)),
       relyingParty: state.relyingParty,
-      requestedAttributes: state.requestedAttributes,
+      cardRequests: state.cardRequests,
       policy: state.policy,
       requestPurpose: state.requestPurpose,
     );

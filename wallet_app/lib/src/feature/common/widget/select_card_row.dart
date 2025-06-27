@@ -2,66 +2,35 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
-import '../../../util/extension/build_context_extension.dart';
+import '../../../util/extension/object_extension.dart';
 import 'card/wallet_card_item.dart';
+import 'menu_item.dart';
 
-const _kCardDisplayWidth = 40.0;
-
+/// A widget representing a selectable card row in the UI, displayed as a [MenuItem].
+///
+/// This widget is typically used to display a [WalletCard] with a title, summary, and visual
+/// representation, and triggers an [onPressed] callback when interacted with.
 class SelectCardRow extends StatelessWidget {
-  final Function(WalletCard) onCardSelectionToggled;
+  /// The wallet card displayed in this row.
   final WalletCard card;
-  final bool isSelected;
-  final bool showError;
+
+  /// The callback invoked when the menu item is pressed.
+  final VoidCallback onPressed;
 
   const SelectCardRow({
-    required this.onCardSelectionToggled,
     required this.card,
-    required this.isSelected,
-    this.showError = false,
+    required this.onPressed,
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          constraints: const BoxConstraints(minHeight: 96),
-          child: InkWell(
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    width: _kCardDisplayWidth,
-                    child: WalletCardItem.fromWalletCard(context, card),
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(card.title.l10nValue(context), style: context.textTheme.titleMedium),
-                      Text(
-                        card.summary.l10nValue(context),
-                        style: context.textTheme.bodyLarge,
-                      ),
-                    ],
-                  ),
-                ),
-                Checkbox(
-                  value: isSelected,
-                  onChanged: (checked) => onCardSelectionToggled(card),
-                  fillColor: showError ? WidgetStatePropertyAll(context.colorScheme.error) : null,
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-          ),
-        ),
-        const Divider(),
-      ],
+    return MenuItem(
+      label: Text.rich(card.title.l10nSpan(context)),
+      subtitle: Text.rich(card.summary.l10nSpan(context)).takeIf((_) => card.summary.l10nValue(context).isNotEmpty),
+      leftIcon: WalletCardItem.fromWalletCard(context, card, showText: false),
+      largeIcon: true,
+      onPressed: onPressed,
     );
   }
 }

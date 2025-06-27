@@ -7,36 +7,50 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
+import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/event/wallet_event.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/requested_attributes.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/disclosure/cancel_disclosure_usecase.dart';
 import '../../../domain/usecase/disclosure/start_disclosure_usecase.dart';
 import '../../../domain/usecase/event/get_most_recent_wallet_event_usecase.dart';
 import '../../../util/cast_util.dart';
+import '../../../util/extension/list_extension.dart';
 import '../../report_issue/report_issue_screen.dart';
 
 part 'disclosure_event.dart';
 part 'disclosure_state.dart';
 
 class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
+  /// Use case responsible for initiating a disclosure session.
   final StartDisclosureUseCase _startDisclosureUseCase;
+
+  /// Use case responsible for canceling an ongoing disclosure session.
   final CancelDisclosureUseCase _cancelDisclosureUseCase;
+
+  /// Use case to retrieve the most recent wallet event after disclosure completion.
   final GetMostRecentWalletEventUseCase _getMostRecentWalletEventUseCase;
 
+  /// Stores the result of a successful [StartDisclosureUseCase] invocation.
+  /// Used to track session state and relay data between bloc methods.
   StartDisclosureResult? _startDisclosureResult;
 
+  /// A cached version of the user's card selection, used when navigating back and forth from the selection page.
+  List<DiscloseCardRequest>? _cardRequestsSelectionCache;
+
+  /// Returns the relying party organization from the cached [StartDisclosureResult].
   Organization? get relyingParty => _startDisclosureResult?.relyingParty;
 
+  /// Determines if the current flow is a login type disclosure.
   bool get isLoginFlow {
     assert(_startDisclosureResult != null, '_startDisclosureResult should be set to correctly fetch isLoginFlow');
     return tryCast<StartDisclosureReadyToDisclose>(_startDisclosureResult)?.type == DisclosureType.login;
   }
 
+  /// Determines if the current session is a cross-device disclosure flow.
   bool get isCrossDeviceFlow {
     assert(_startDisclosureResult != null, '_startDisclosureResult should be set to correctly fetch isCrossDeviceFlow');
     return _startDisclosureResult?.sessionType == DisclosureSessionType.crossDevice;
@@ -51,7 +65,8 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     on<DisclosureStopRequested>(_onStopRequested);
     on<DisclosureBackPressed>(_onBackPressed);
     on<DisclosureUrlApproved>(_onUrlApproved);
-    on<DisclosureShareRequestedAttributesApproved>(_onShareRequestedAttributesApproved);
+    on<DisclosureShareRequestedCardsApproved>(_onShareRequestedCardsApproved);
+    on<DisclosureAlternativeCardSelected>(_onAlternativeCardSelected);
     on<DisclosurePinConfirmed>(_onPinConfirmed);
     on<DisclosureReportPressed>(_onReportPressed);
     on<DisclosureConfirmPinFailed>(_onConfirmPinFailed);
@@ -103,7 +118,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           DisclosureConfirmDataAttributes(
             relyingParty: result.relyingParty,
             requestPurpose: result.requestPurpose,
-            requestedAttributes: result.requestedAttributes,
+            cardRequests: _cardRequestsSelectionCache ?? result.cardRequests,
             policy: result.policy,
             afterBackPressed: afterBackPressed,
             sessionType: result.sessionType,
@@ -116,7 +131,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
             originUrl: result.originUrl,
             sessionType: result.sessionType,
             policy: result.policy,
-            requestedAttributes: result.requestedAttributes,
+            cardRequests: result.cardRequests,
             sharedDataWithOrganizationBefore: result.sharedDataWithOrganizationBefore,
             afterBackPressed: afterBackPressed,
           ),
@@ -182,7 +197,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
               relyingParty: startDisclosureResult.relyingParty,
               originUrl: startDisclosureResult.originUrl,
               policy: startDisclosureResult.policy,
-              requestedAttributes: startDisclosureResult.requestedAttributes,
+              cardRequests: startDisclosureResult.cardRequests,
               sessionType: startDisclosureResult.sessionType,
               sharedDataWithOrganizationBefore: startDisclosureResult.sharedDataWithOrganizationBefore,
             ),
@@ -192,7 +207,7 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
             DisclosureConfirmDataAttributes(
               relyingParty: startDisclosureResult.relyingParty,
               requestPurpose: startDisclosureResult.requestPurpose,
-              requestedAttributes: startDisclosureResult.requestedAttributes,
+              cardRequests: _cardRequestsSelectionCache ?? startDisclosureResult.cardRequests,
               policy: startDisclosureResult.policy,
               sessionType: startDisclosureResult.sessionType,
             ),
@@ -209,13 +224,24 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
     }
   }
 
-  void _onShareRequestedAttributesApproved(DisclosureShareRequestedAttributesApproved event, emit) {
+  void _onShareRequestedCardsApproved(DisclosureShareRequestedCardsApproved event, emit) {
     assert(_startDisclosureResult is StartDisclosureReadyToDisclose, 'Invalid state to continue disclosing');
     assert(
       state is DisclosureConfirmDataAttributes || state is DisclosureCheckOrganizationForLogin,
       'Invalid UI state to move to pin entry',
     );
     emit(DisclosureConfirmPin(relyingParty: relyingParty!));
+  }
+
+  void _onAlternativeCardSelected(DisclosureAlternativeCardSelected event, Emitter<DisclosureState> emit) {
+    final state = this.state;
+    assert(state is DisclosureConfirmDataAttributes, 'BloC in invalid state for card manipulation');
+    if (state is DisclosureConfirmDataAttributes) {
+      final updatedState = state.updateWith(event.updatedCardRequest);
+      // We store a copy of the altered user selection, so that the selection is kept when navigating away from this state.
+      _cardRequestsSelectionCache = updatedState.cardRequests;
+      emit(updatedState);
+    }
   }
 
   Future<void> _onPinConfirmed(DisclosurePinConfirmed event, emit) async {
@@ -288,5 +314,12 @@ class DisclosureBloc extends Bloc<DisclosureEvent, DisclosureState> {
           ),
         );
     }
+  }
+
+  @override
+  Future<void> close() async {
+    await super.close();
+    _startDisclosureResult = null;
+    _cardRequestsSelectionCache = null;
   }
 }

@@ -72,3 +72,12 @@ class IssuanceConfirmPinFailed extends IssuanceEvent {
   @override
   List<Object?> get props => [error];
 }
+
+class IssuanceAlternativeCardSelected extends IssuanceEvent {
+  final DiscloseCardRequest updatedCardRequest;
+
+  const IssuanceAlternativeCardSelected(this.updatedCardRequest);
+
+  @override
+  List<Object?> get props => [updatedCardRequest];
+}

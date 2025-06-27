@@ -106,11 +106,9 @@ class RequestDetailCommonBuilders {
         final card = cards[i];
         return SharedAttributesCard(
           card: card,
-          attributes: card.attributes,
-          onTap: () => CheckAttributesScreen.show(
+          onPressed: () => CheckAttributesScreen.show(
             context,
             card: card,
-            attributes: card.attributes,
             onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
           ),
         );

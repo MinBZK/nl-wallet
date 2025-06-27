@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../domain/model/attribute/attribute.dart';
+import '../../domain/model/disclosure/disclose_card_request.dart';
 import '../../domain/model/organization.dart';
 import '../../domain/model/policy/organization_policy.dart';
 import '../../domain/model/policy/policy.dart';
-import '../../domain/model/requested_attributes.dart';
 import '../../navigation/secured_page_route.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
@@ -31,7 +31,7 @@ import 'argument/login_detail_screen_argument.dart';
 class LoginDetailScreen extends StatelessWidget {
   final Organization organization;
   final Policy policy;
-  final RequestedAttributes requestedAttributes;
+  final List<DiscloseCardRequest> cardRequests;
   final bool sharedDataWithOrganizationBefore;
   final VoidCallback? onReportIssuePressed;
 
@@ -48,7 +48,7 @@ class LoginDetailScreen extends StatelessWidget {
   const LoginDetailScreen({
     required this.organization,
     required this.policy,
-    required this.requestedAttributes,
+    required this.cardRequests,
     required this.sharedDataWithOrganizationBefore,
     this.onReportIssuePressed,
     super.key,
@@ -138,16 +138,14 @@ class LoginDetailScreen extends StatelessWidget {
 
   Widget _buildAttributesSection(BuildContext context) {
     final attributesSliver = SliverList.separated(
-      itemCount: requestedAttributes.length,
+      itemCount: cardRequests.length,
       itemBuilder: (context, i) {
-        final entry = requestedAttributes.entries.elementAt(i);
+        final entry = cardRequests[i];
         return SharedAttributesCard(
-          card: entry.key,
-          attributes: entry.value,
-          onTap: () => CheckAttributesScreen.show(
+          card: entry.selection,
+          onPressed: () => CheckAttributesScreen.show(
             context,
-            card: entry.key,
-            attributes: entry.value,
+            card: entry.selection,
             onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
           ),
         );
@@ -217,7 +215,7 @@ class LoginDetailScreen extends StatelessWidget {
     BuildContext context,
     Organization organization,
     Policy policy,
-    RequestedAttributes requestedAttributes, {
+    List<DiscloseCardRequest> cardRequests, {
     required bool sharedDataWithOrganizationBefore,
     VoidCallback? onReportIssuePressed,
   }) {
@@ -228,7 +226,7 @@ class LoginDetailScreen extends StatelessWidget {
           return LoginDetailScreen(
             organization: organization,
             policy: policy,
-            requestedAttributes: requestedAttributes,
+            cardRequests: cardRequests,
             sharedDataWithOrganizationBefore: sharedDataWithOrganizationBefore,
             onReportIssuePressed: onReportIssuePressed,
           );

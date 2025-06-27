@@ -21,8 +21,17 @@ class DisclosureUrlApproved extends DisclosureEvent {
   const DisclosureUrlApproved();
 }
 
-class DisclosureShareRequestedAttributesApproved extends DisclosureEvent {
-  const DisclosureShareRequestedAttributesApproved();
+class DisclosureShareRequestedCardsApproved extends DisclosureEvent {
+  const DisclosureShareRequestedCardsApproved();
+}
+
+class DisclosureAlternativeCardSelected extends DisclosureEvent {
+  final DiscloseCardRequest updatedCardRequest;
+
+  const DisclosureAlternativeCardSelected(this.updatedCardRequest);
+
+  @override
+  List<Object?> get props => [updatedCardRequest];
 }
 
 class DisclosurePinConfirmed extends DisclosureEvent {

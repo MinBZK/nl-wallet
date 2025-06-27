@@ -80,13 +80,13 @@ class SignBloc extends Bloc<SignEvent, SignState> {
       'Mock only supports flow where all attributes are available for singing',
     );
     try {
-      final requestedAttributes = (_startSignResult! as StartSignReadyToSign).requestedAttributes;
+      final requestedCards = (_startSignResult! as StartSignReadyToSign).requestedCards;
       emit(
         SignConfirmAgreement(
           document: _startSignResult!.document,
           relyingParty: _startSignResult!.relyingParty,
           policy: _startSignResult!.policy,
-          requestedAttributes: requestedAttributes.values.flattened.toList(),
+          requestedAttributes: requestedCards.map((it) => it.attributes).flattenedToList,
           trustProvider: _startSignResult!.trustProvider,
         ),
       );
@@ -148,7 +148,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
           ),
         );
       } else if (state is SignConfirmPin) {
-        final requestedAttributes = (_startSignResult! as StartSignReadyToSign).requestedAttributes.values;
+        final requestedCards = (_startSignResult! as StartSignReadyToSign).requestedCards;
         emit(
           SignConfirmAgreement(
             policy: _startSignResult!.policy,
@@ -156,7 +156,7 @@ class SignBloc extends Bloc<SignEvent, SignState> {
             trustProvider: _startSignResult!.trustProvider,
             document: _startSignResult!.document,
             afterBackPressed: true,
-            requestedAttributes: requestedAttributes.flattened.toList(),
+            requestedAttributes: requestedCards.map((it) => it.attributes).flattenedToList,
           ),
         );
       }
