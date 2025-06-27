@@ -77,6 +77,11 @@ publish-documentation:
     - cd public
     - rm -rf *
     - mv ../documentation/_build/html/* .
+    - |
+      if [[ ! -f index.html ]]; then
+        >&2 echo "ERROR: index.html not found"
+        exit 1
+      fi
     - git add .
     - |
       if [[ -n $(git status --porcelain) && $CI_COMMIT_BRANCH == "$CI_DEFAULT_BRANCH" ]]; then
