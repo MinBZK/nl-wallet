@@ -1240,7 +1240,7 @@ mod tests {
         let (device_response, poa) = setup_device_response(
             &auth_request,
             mdoc_nonce,
-            &vec![(mdoc.issuer_signed.clone(), mdoc_key)],
+            &vec![(mdoc.issuer_signed, mdoc_key)],
             &[ca.to_trust_anchor()],
             &time_generator,
         )
