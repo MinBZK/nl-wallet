@@ -266,6 +266,15 @@
 <li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.3.0.html#ci-changes">CI changes</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../release-notes/v0.4.0.html">Release notes v0.4.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.4.0.html#upgrading">Upgrading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.4.0.html#new-features">New features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.4.0.html#code-improvements">Code improvements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.4.0.html#wallet-app-improvements">Wallet app improvements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.4.0.html#bug-fixes">Bug fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.4.0.html#ci-changes">CI changes</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -435,8 +444,8 @@ version tags.</p>
 <h3>Step 8: Collect build artifacts for release<a class="headerlink" href="#step-8-collect-build-artifacts-for-release" title="Link to this heading"></a></h3>
 <p>We currently (2024-10-22) collect 4 artifacts from our GitLab CI/CD pipeline:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">wallet-sbom_vX.Y.Z_generic.zip</span></code>: The software-bill-of-materials for
-this release</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet-sbom_vX.Y.Z_generic.zip</span></code>: The software-bill-of-materials for this
+release.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip</span></code>: The wallet issuance
 server for issuers, for glibc-based Linux systems built with Debian
 bookworm.</p></li>
@@ -447,14 +456,14 @@ verification server for relying parties, for glibc-based Linux systems
 built with Debian bookworm.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip</span></code>: The wallet
 verification server for relying parties using statically linked musl.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">wallet-web_vX.Y.Z_generic.zip</span></code>: The javascript helper library for relying
-parties, to assist with integrating relying party applications with the
-wallet platform</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">wallet-web_vX.Y.Z_generic.zip</span></code>: The javascript helper library for issuers
+and relying parties, to assist with integrating issuers and relying party
+applications with the wallet platform.</p></li>
 </ul>
 <p>You can collect these artifacts from our GitLab CI/CD pipeline - you need to
 go to the relevant job and click on download artifact/zip. You might need to
-rename the zip file and/or repackage in the case of <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> and
-<code class="docutils literal notranslate"><span class="pre">verification_server</span></code>.</p>
+rename the zip file and/or repackage in the case of <code class="docutils literal notranslate"><span class="pre">issuance_server</span></code>,
+<code class="docutils literal notranslate"><span class="pre">verification_server</span></code> and <code class="docutils literal notranslate"><span class="pre">wallet_web</span></code>.</p>
 <p>Currently (2024-11-07) you need to create the sha256sums manually (in the future
 we would like to adjust the pipeline that creates the binary artifacts such that
 it will create the sha256 hashes also). To create the sha256sum texts, enter the
@@ -492,14 +501,25 @@ contains markdown describing a given release on GitHub). Make sure you replace
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Release date: DAY of MONTH, YEAR
 
   * All commits in this release: https://github.com/MinBZK/nl-wallet/compare/vA.B.C...vX.Y.Z
-  * Documentation for this release: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/index.md
+  * Documentation for this release: https://minbzk.github.io/nl-wallet/vX.Y.Z/index.html
 
 We have the following artifacts as a part of this release:
 
-  * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this release
-  * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet verification server for relying parties, for glibc-based Linux systems
-  * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet verification server for relying parties, for musl-libc based Linux systems
-  * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for relying parties, to assist with integrating relying party applications with the wallet platform
+  * `wallet-sbom_vX.Y.Z_generic.zip`: The software-bill-of-materials for this
+    release.
+  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet issuance
+    server for issuers, for glibc-based Linux systems built with Debian
+    bookworm.
+  * `wallet-issuance-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet issuance
+    server for issuers using statically linked musl.
+  * `wallet-verification-server_vX.Y.Z_x86_64-linux-glibc.zip`: The wallet
+    verification server for relying parties, for glibc-based Linux systems
+    built with Debian bookworm.
+  * `wallet-verification-server_vX.Y.Z_x86_64-linux-musl.zip`: The wallet
+    verification server for relying parties using statically linked musl.
+  * `wallet-web_vX.Y.Z_generic.zip`: The javascript helper library for issuers
+    and relying parties, to assist with integrating issuers and relying party
+    applications with the wallet platform.
 
 ## Notes
 
@@ -509,7 +529,7 @@ We have the following artifacts as a part of this release:
 
 ## Changes
 
-See: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/release_notes/vX.Y.Z.md
+See: https://github.com/MinBZK/nl-wallet/blob/vX.Y.Z/documentation/release-notes/vX.Y.Z.md
 </pre></div>
 </div>
 <p>Note on <code class="docutils literal notranslate"><span class="pre">CONDITIONAL_PRE_RELEASE_WARNING</span></code>: When you mark this release as a
