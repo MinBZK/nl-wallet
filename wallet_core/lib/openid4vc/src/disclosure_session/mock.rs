@@ -14,9 +14,9 @@ use crate::verifier::SessionType;
 use super::error::DisclosureError;
 use super::error::VpSessionError;
 use super::uri_source::DisclosureUriSource;
+use super::AttestationAttributePaths;
 use super::DisclosureClient;
 use super::DisclosureSession;
-use super::AttestationAttributePaths;
 use super::VerifierCertificate;
 
 mockall::mock! {
