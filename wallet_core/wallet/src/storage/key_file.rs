@@ -41,7 +41,7 @@ pub async fn delete_key_file(storage_path: &Path, alias: &str) -> Result<(), Key
 
 fn path_for_key_file(storage_path: &Path, alias: &str) -> PathBuf {
     // Get path to key file as "<storage_path>/<alias>.key"
-    storage_path.join(format!("{}.key", alias))
+    storage_path.join(format!("{alias}.key"))
 }
 
 async fn get_or_create_encrypted_file_contents(

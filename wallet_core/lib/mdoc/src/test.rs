@@ -114,7 +114,7 @@ where
                     }
                 });
 
-        write!(f, "{}", debugstr_collapsed)
+        write!(f, "{debugstr_collapsed}")
     }
 }
 

@@ -369,7 +369,6 @@ impl IssuerSignedItem {
 
 #[cfg(any(test, feature = "test"))]
 mod test {
-    use std::mem;
 
     use super::*;
 
@@ -382,7 +381,7 @@ mod test {
 
             modify_func(&mut name_spaces);
 
-            mem::swap(self, &mut name_spaces.try_into().unwrap());
+            *self = name_spaces.try_into().unwrap();
         }
 
         pub fn modify_attributes<F>(&mut self, name_space: &str, modify_func: F)
@@ -395,7 +394,7 @@ mod test {
 
                 modify_func(&mut new_attributes);
 
-                mem::swap(attributes, &mut new_attributes.try_into().unwrap());
+                *attributes = new_attributes.try_into().unwrap();
             });
         }
 

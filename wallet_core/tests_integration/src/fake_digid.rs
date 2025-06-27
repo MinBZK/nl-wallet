@@ -39,7 +39,7 @@ pub async fn fake_digid_auth(mut authorization_url: Url, digid_http_config: TlsP
     // so here we skip autosubmitting that form. Turns out the DigiD bridge is fine with this.
 
     // Get the HTML page containing the redirect_uri back to our own app
-    let finish_digid_path = format!("acs?SAMLart={}&RelayState={}&mocking=1", bsn, relay_state);
+    let finish_digid_path = format!("acs?SAMLart={bsn}&RelayState={relay_state}&mocking=1");
 
     let response = do_get_request(&client, ReqwestClientUrl::Relative(&finish_digid_path)).await;
     let redirect_url = response.headers().get(LOCATION).unwrap().to_str().unwrap();

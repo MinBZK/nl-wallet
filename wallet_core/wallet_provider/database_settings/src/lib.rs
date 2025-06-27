@@ -90,7 +90,7 @@ impl Database {
                 format!(
                     "{}{}@",
                     u,
-                    self.password.as_ref().map(|p| format!(":{}", p)).unwrap_or_default()
+                    self.password.as_ref().map(|p| format!(":{p}")).unwrap_or_default()
                 )
             })
             .unwrap_or_default();

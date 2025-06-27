@@ -79,7 +79,7 @@ impl GbavClient for HttpGbavClient {
 
         if let Some(ca_api_key) = &self.ca_api_key {
             request_builder = request_builder
-                .header(header::AUTHORIZATION, format!("CA {}", ca_api_key))
+                .header(header::AUTHORIZATION, format!("CA {ca_api_key}"))
                 .header(
                     HttpGbavClient::BRP_CREDENTIALS_HEADER_NAME,
                     format!(

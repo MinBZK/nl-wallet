@@ -101,7 +101,7 @@ fn read_csv(name: &str) -> Result<HashMap<String, String>, csv::Error> {
 }
 
 fn csv_path(name: &str) -> PathBuf {
-    prefix_local_path(format!("resources/stamdata/{}.csv", name).as_ref()).into_owned()
+    prefix_local_path(format!("resources/stamdata/{name}.csv").as_ref()).into_owned()
 }
 
 #[nutype(
@@ -119,7 +119,7 @@ impl Bsn {
         }
 
         // Pad the BSN with a leading zero when the length is 8
-        let padded_bsn = format!("{:0>9}", bsn);
+        let padded_bsn = format!("{bsn:0>9}");
 
         let digits: Vec<i32> = padded_bsn
             .chars()

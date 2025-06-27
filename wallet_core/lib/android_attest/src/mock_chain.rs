@@ -70,7 +70,7 @@ impl MockCaChain {
 
                     // Create a SubjectDN using the constrained_count to make it uniquely recognizable.
                     let mut distinguished_name = DistinguishedName::new();
-                    distinguished_name.push(DnType::CommonName, format!("cert {}", constrained_count));
+                    distinguished_name.push(DnType::CommonName, format!("cert {constrained_count}"));
                     params.distinguished_name = distinguished_name;
 
                     // Get the parent certificate and key pair from the previous iteration and use it to sign

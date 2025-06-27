@@ -208,7 +208,7 @@ impl Attributes {
             [head] => {
                 if let Some(entries) = attributes.get_mut(prefix) {
                     Self::insert_entry(head, entries, result)
-                        .map_err(|error| AttributesError::AttributeError(format!("{}.{}", prefix, head), error))?;
+                        .map_err(|error| AttributesError::AttributeError(format!("{prefix}.{head}"), error))?;
 
                     if entries.is_empty() {
                         attributes.swap_remove(prefix);
@@ -216,7 +216,7 @@ impl Attributes {
                 }
             }
             [head, ..] => {
-                let prefixed_key = format!("{}.{}", prefix, head);
+                let prefixed_key = format!("{prefix}.{head}");
 
                 if let Attribute::Nested(result) = result
                     .entry(String::from(head))

@@ -321,7 +321,7 @@ fn expand_struct(input: &DeriveInput, struct_data: &DataStruct) -> Result<TokenS
     let name = &input.ident;
     let category = find_list_attribute(&input.attrs, CATEGORY).ok_or(Error::new(
         input.span(),
-        format!("expected `{}` attribute on struct `{}`", CATEGORY, name),
+        format!("expected `{CATEGORY}` attribute on struct `{name}`"),
     ))?;
 
     let category_code = category_code(category)?;
@@ -345,7 +345,7 @@ fn enum_variant_category(default_category: Option<&MetaList>, variant: &Variant)
         .or(default_category)
         .ok_or(Error::new(
             variant.ident.span(),
-            format!("enum variant is missing `{}` attribute", CATEGORY),
+            format!("enum variant is missing `{CATEGORY}` attribute"),
         ))?;
 
     let variant_pattern = enum_variant_category_pattern(variant, category)?;
