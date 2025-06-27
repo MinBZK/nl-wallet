@@ -27,7 +27,7 @@ void main() {
           policy: WalletMockData.policy,
           relyingParty: WalletMockData.organization,
           trustProvider: WalletMockData.organization,
-          requestedAttributes: {},
+          requestedCards: [],
         ),
       ),
     );
@@ -54,7 +54,7 @@ void main() {
           policy: WalletMockData.policy,
           relyingParty: WalletMockData.organization,
           trustProvider: WalletMockData.organization,
-          requestedAttributes: {},
+          requestedCards: [],
         ),
       );
     }),

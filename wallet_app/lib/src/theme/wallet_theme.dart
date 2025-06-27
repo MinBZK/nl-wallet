@@ -35,6 +35,7 @@ class WalletTheme {
     tabBarTheme: LightWalletTheme.tabBarTheme,
     textButtonTheme: LightWalletTheme.textButtonTheme,
     textTheme: LightWalletTheme.textTheme,
+    cardColor: LightWalletTheme.colorScheme.surface,
   );
 
   static ThemeData dark = _baseTheme.copyWith(
@@ -57,5 +58,6 @@ class WalletTheme {
     tabBarTheme: DarkWalletTheme.tabBarTheme,
     textButtonTheme: DarkWalletTheme.textButtonTheme,
     textTheme: DarkWalletTheme.textTheme,
+    cardColor: DarkWalletTheme.colorScheme.surface,
   );
 }

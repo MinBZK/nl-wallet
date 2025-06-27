@@ -57,7 +57,7 @@ void _setupMockitoDummies() {
       type: DisclosureType.regular,
       policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
-      requestedAttributes: {},
+      cardRequests: [],
     ),
   );
   provideDummy<CoreError>(const CoreGenericError('dummy', data: {}));
@@ -66,7 +66,7 @@ void _setupMockitoDummies() {
       relyingParty: WalletMockData.organization,
       policy: WalletMockData.policy,
       sessionType: DisclosureSessionType.sameDevice,
-      requestedAttributes: {},
+      cardRequests: [],
       originUrl: '',
       requestPurpose: {},
       type: DisclosureType.regular,
@@ -79,7 +79,7 @@ void _setupMockitoDummies() {
       policy: WalletMockData.policy,
       relyingParty: WalletMockData.organization,
       trustProvider: WalletMockData.organization,
-      requestedAttributes: {},
+      requestedCards: [],
     ),
   );
   // Provide some basic [Result] dummies, anything more specific should be defined in the test itself.

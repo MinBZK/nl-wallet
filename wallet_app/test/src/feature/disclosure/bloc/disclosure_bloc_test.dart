@@ -38,7 +38,7 @@ void main() {
           type: DisclosureType.login,
           policy: WalletMockData.policy,
           sharedDataWithOrganizationBefore: false,
-          requestedAttributes: {},
+          cardRequests: [],
         ),
       ),
     );
@@ -106,7 +106,7 @@ void main() {
             type: DisclosureType.regular,
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
-            requestedAttributes: {},
+            cardRequests: [],
           ),
         );
       });
@@ -129,7 +129,7 @@ void main() {
             type: DisclosureType.login,
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
-            requestedAttributes: {},
+            cardRequests: [],
           ),
         );
       });
@@ -171,7 +171,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -231,7 +231,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -259,7 +259,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.sameDevice,
             type: DisclosureType.login,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -271,7 +271,7 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureShareRequestedCardsApproved());
     },
     expect: () => [
       isA<DisclosureCheckOrganizationForLogin>(),
@@ -290,7 +290,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -303,7 +303,7 @@ void main() {
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureUrlApproved());
-      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureShareRequestedCardsApproved());
     },
     skip: 2,
     expect: () => [isA<DisclosureConfirmPin>()],
@@ -321,7 +321,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -334,7 +334,7 @@ void main() {
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureUrlApproved());
-      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureShareRequestedCardsApproved());
       bloc.add(const DisclosurePinConfirmed());
     },
     skip: 3,
@@ -352,7 +352,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -385,7 +385,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -422,7 +422,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -435,7 +435,7 @@ void main() {
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureUrlApproved());
-      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureShareRequestedCardsApproved());
       bloc.add(const DisclosureConfirmPinFailed(error: NetworkError(hasInternet: false, sourceError: 'test')));
     },
     wait: const Duration(milliseconds: 150),
@@ -454,7 +454,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.crossDevice,
             type: DisclosureType.regular,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -467,7 +467,7 @@ void main() {
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
       bloc.add(const DisclosureUrlApproved());
-      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureShareRequestedCardsApproved());
       bloc.add(const DisclosureBackPressed());
     },
     skip: 1,
@@ -489,7 +489,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.sameDevice,
             type: DisclosureType.login,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -501,7 +501,7 @@ void main() {
       bloc.add(const DisclosureSessionStarted(''));
       // Give the bloc 25ms to process the previous event
       await Future.delayed(const Duration(milliseconds: 25));
-      bloc.add(const DisclosureShareRequestedAttributesApproved());
+      bloc.add(const DisclosureShareRequestedCardsApproved());
       bloc.add(const DisclosureBackPressed());
     },
     skip: 1,
@@ -573,7 +573,7 @@ void main() {
           requestPurpose: ''.untranslated,
           sessionType: DisclosureSessionType.crossDevice,
           type: DisclosureType.regular,
-          requestedAttributes: {},
+          cardRequests: [],
           policy: WalletMockData.policy,
           sharedDataWithOrganizationBefore: false,
         ),
@@ -642,7 +642,7 @@ void main() {
             requestPurpose: 'requestPurpose'.untranslated,
             sessionType: DisclosureSessionType.sameDevice,
             type: DisclosureType.login,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
             sharedDataWithOrganizationBefore: false,
           ),
@@ -677,7 +677,7 @@ void main() {
           requestPurpose: ''.untranslated,
           sessionType: DisclosureSessionType.crossDevice,
           type: DisclosureType.regular,
-          requestedAttributes: {},
+          cardRequests: [],
           policy: WalletMockData.policy,
           sharedDataWithOrganizationBefore: false,
         ),
@@ -712,5 +712,150 @@ void main() {
         relyingParty: WalletMockData.organization,
       ),
     ],
+  );
+
+  blocTest(
+    'card selection state is maintained when navigating back and forth between CheckUrl and ConfirmDataAttributes',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
+        return Result.success(
+          StartDisclosureReadyToDisclose(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'testPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            policy: WalletMockData.policy,
+            sharedDataWithOrganizationBefore: false,
+            cardRequests: [
+              WalletMockData.discloseCardRequestSingleCard,
+              WalletMockData.discloseCardRequestMultiCard,
+            ],
+          ),
+        );
+      });
+    },
+    build: create,
+    act: (bloc) async {
+      // 1. Start session → CheckUrl
+      bloc.add(const DisclosureSessionStarted(''));
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 2. Approve URL → ConfirmDataAttributes (initial state with default selection)
+      bloc.add(const DisclosureUrlApproved());
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 3. Update selection of "disclosureCardRequestMultiCard"
+      expect(
+        WalletMockData.discloseCardRequestMultiCard.hasAlternatives,
+        isTrue,
+        reason: 'Sanity check to verify we are working with compatible request',
+      );
+      bloc.add(
+        DisclosureAlternativeCardSelected(
+          WalletMockData.discloseCardRequestMultiCard
+              .select(WalletMockData.discloseCardRequestMultiCard.alternatives.first),
+        ),
+      );
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 4. Press back → CheckUrl
+      bloc.add(const DisclosureBackPressed());
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 5. Approve URL again → ConfirmDataAttributes (should preserve selection)
+      bloc.add(const DisclosureUrlApproved());
+    },
+    expect: () {
+      return [
+        isA<DisclosureCheckUrl>(),
+        isA<DisclosureConfirmDataAttributes>()
+            .having((state) => state.cardRequests.map((it) => it.selectedIndex), 'initial selection is all 0', [0, 0]),
+        isA<DisclosureConfirmDataAttributes>().having(
+          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          'update selection of second request',
+          [0, 1],
+        ),
+        isA<DisclosureCheckUrl>(),
+        isA<DisclosureConfirmDataAttributes>().having(
+          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          'updated selection should be maintained',
+          [0, 1],
+        ),
+      ];
+    },
+  );
+
+  blocTest(
+    'card selection state is maintained when navigating back from ConfirmPin to ConfirmDataAttributes',
+    setUp: () {
+      when(startDisclosureUseCase.invoke(any, isQrCode: anyNamed('isQrCode'))).thenAnswer((_) async {
+        return Result.success(
+          StartDisclosureReadyToDisclose(
+            relyingParty: WalletMockData.organization,
+            originUrl: 'http://origin.org',
+            requestPurpose: 'testPurpose'.untranslated,
+            sessionType: DisclosureSessionType.crossDevice,
+            type: DisclosureType.regular,
+            policy: WalletMockData.policy,
+            sharedDataWithOrganizationBefore: false,
+            cardRequests: [
+              WalletMockData.discloseCardRequestSingleCard,
+              WalletMockData.discloseCardRequestMultiCard,
+            ],
+          ),
+        );
+      });
+    },
+    build: create,
+    act: (bloc) async {
+      // 1. Start session → CheckUrl
+      bloc.add(const DisclosureSessionStarted(''));
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 2. Approve URL → ConfirmDataAttributes (initial state with default selection)
+      bloc.add(const DisclosureUrlApproved());
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 3. Update selection of "disclosureCardRequestMultiCard"
+      expect(
+        WalletMockData.discloseCardRequestMultiCard.hasAlternatives,
+        isTrue,
+        reason: 'Sanity check to verify we are working with compatible request',
+      );
+      bloc.add(
+        DisclosureAlternativeCardSelected(
+          WalletMockData.discloseCardRequestMultiCard
+              .select(WalletMockData.discloseCardRequestMultiCard.alternatives.first),
+        ),
+      );
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 4. Proceed to ConfirmPin
+      bloc.add(const DisclosureShareRequestedCardsApproved());
+      await Future.delayed(const Duration(milliseconds: 25));
+
+      // 5. Press back → ConfirmDataAttributes
+      bloc.add(const DisclosureBackPressed());
+      await Future.delayed(const Duration(milliseconds: 25));
+    },
+    expect: () {
+      return [
+        isA<DisclosureCheckUrl>(),
+        isA<DisclosureConfirmDataAttributes>()
+            .having((state) => state.cardRequests.map((it) => it.selectedIndex), 'initial selection is all 0', [0, 0]),
+        isA<DisclosureConfirmDataAttributes>().having(
+          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          'update selection of second request',
+          [0, 1],
+        ),
+        isA<DisclosureConfirmPin>(),
+        isA<DisclosureConfirmDataAttributes>().having(
+          (state) => state.cardRequests.map((it) => it.selectedIndex),
+          'updated selection should be maintained after returning from ConfirmPin',
+          [0, 1],
+        ),
+      ];
+    },
   );
 }

@@ -12,7 +12,7 @@ void main() {
       relyingParty: WalletMockData.organization,
       policy: WalletMockData.policy,
       sessionType: DisclosureSessionType.crossDevice,
-      requestedAttributes: {},
+      cardRequests: [],
       originUrl: 'url',
       requestPurpose: 'test'.untranslated,
       type: DisclosureType.regular,

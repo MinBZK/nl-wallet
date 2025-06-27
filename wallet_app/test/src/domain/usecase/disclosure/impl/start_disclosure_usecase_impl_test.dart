@@ -28,7 +28,7 @@ void main() {
       type: DisclosureType.login,
       policy: WalletMockData.policy,
       sharedDataWithOrganizationBefore: false,
-      requestedAttributes: {},
+      cardRequests: [],
     );
     when(repository.startDisclosure(any, isQrCode: anyNamed('isQrCode'))).thenAnswer(
       (_) async => readyToDiscloseResult,

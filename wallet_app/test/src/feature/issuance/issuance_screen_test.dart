@@ -13,8 +13,8 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
-import 'package:wallet/src/feature/common/screen/request_details_screen.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
+import 'package:wallet/src/feature/issuance/issuance_request_details_screen.dart';
 import 'package:wallet/src/feature/issuance/issuance_screen.dart';
 import 'package:wallet/src/feature/issuance/page/issuance_review_cards_page.dart';
 import 'package:wallet/src/feature/organization/approve/organization_approve_page.dart';
@@ -84,9 +84,8 @@ void main() {
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
             policy: WalletMockData.policy,
-            requestedAttributes: {
-              WalletMockData.card: [WalletMockData.textDataAttribute],
-            },
+            purpose: 'sample purpose'.untranslated,
+            cardRequests: [WalletMockData.discloseCardRequestSingleCard],
           ),
         ),
       );
@@ -100,9 +99,8 @@ void main() {
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
             policy: WalletMockData.policy,
-            requestedAttributes: {
-              WalletMockData.card: [WalletMockData.textDataAttribute],
-            },
+            purpose: 'sample purpose'.untranslated,
+            cardRequests: [WalletMockData.discloseCardRequestSingleCard],
           ),
         ),
         brightness: Brightness.dark,
@@ -522,12 +520,8 @@ void main() {
           IssuanceCheckOrganization(
             organization: WalletMockData.organization,
             policy: WalletMockData.policy,
-            requestedAttributes: {
-              WalletMockData.card: [
-                WalletMockData.textDataAttribute,
-                WalletMockData.textDataAttribute,
-              ],
-            },
+            purpose: 'sample purpose'.untranslated,
+            cardRequests: [WalletMockData.discloseCardRequestSingleCard],
           ),
         ),
         providers: [
@@ -550,7 +544,7 @@ void main() {
       await tester.tap(find.byKey(kShowDetailsButtonKey));
       await tester.pumpAndSettle();
 
-      expect(find.byType(RequestDetailsScreen), findsOneWidget);
+      expect(find.byType(IssuanceRequestDetailsScreen), findsOneWidget);
     });
 
     testWidgets('When user rejects cards on review page, the stop sheet is shown', (tester) async {

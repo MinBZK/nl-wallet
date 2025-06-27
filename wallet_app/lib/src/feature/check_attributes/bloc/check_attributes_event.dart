@@ -4,7 +4,11 @@ abstract class CheckAttributesEvent extends Equatable {
   const CheckAttributesEvent();
 }
 
-class CheckAttributesLoadTriggered extends CheckAttributesEvent {
+class CheckAttributesCardSelected extends CheckAttributesEvent {
+  final WalletCard card;
+
+  const CheckAttributesCardSelected({required this.card});
+
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [card];
 }

@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-06-06T14:47:24+02:00",
+    "@@last_modified": "2025-06-17T13:13:35+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -205,6 +205,7 @@
     },
     "checkAgreementPageSubtitle": "Check the agreements before continuing.",
     "checkAgreementPageTitle": "Are you aware of the agreements?",
+    "checkAttributesScreenChangeCardCta": "Swap card",
     "checkAttributesScreenDataIncorrectCta": "Are your details incorrect?",
     "checkAttributesScreenSubtitle": "Card issued by {issuer}",
     "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} data from {title}} other {{count} data from {title}}}",
@@ -1127,6 +1128,7 @@
     "scanWithWalletDialogBody": "It looks like you have scanned a QR code with a different app. To be sure, scan the QR code with the NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR code",
     "scanWithWalletDialogTitle": "Scan the QR code with NL Wallet",
+    "selectCardSheetTitle": "Choose another card",
     "settingsScreenChangeLanguageCta": "Change language",
     "settingsScreenChangePinCta": "Change PIN",
     "settingsScreenClearDataCta": "Remove data",
@@ -1171,6 +1173,7 @@
     "setupSecurityLoadingPageTitle": "Please wait",
     "setupSecurityScreenWCAGPinChosenAnnouncement": "PIN chosen. Repeat to confirm.",
     "setupSecuritySelectPinPageTitle": "Choose a 6-digit PIN",
+    "sharedAttributesCardChangeCardCta": "Swap card",
     "sharedAttributesCardCta": "View",
     "sharedAttributesCardCtaSemanticsLabel": "View {card}",
     "@sharedAttributesCardCtaSemanticsLabel": {

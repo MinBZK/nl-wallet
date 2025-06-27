@@ -167,13 +167,26 @@ class DisclosureCheckUrl extends DisclosureState {
 }
 
 class DisclosureCheckOrganizationForLogin extends DisclosureState {
+  /// The organization requesting attributes for the login session.
   final Organization relyingParty;
+
+  /// The URL origin of the login request.
   final String originUrl;
-  final DisclosureSessionType sessionType;
-  final bool sharedDataWithOrganizationBefore;
-  final bool afterBackPressed;
+
+  /// List of card requests for the user to choose which card to disclose.
+  final List<DiscloseCardRequest> cardRequests;
+
+  /// The policy document outlining how the relying party handles disclosed data.
   final Policy policy;
-  final RequestedAttributes requestedAttributes;
+
+  /// Type of session (i.e., cross-device or regular).
+  final DisclosureSessionType sessionType;
+
+  /// Indicates if the user has previously shared data with this organization.
+  final bool sharedDataWithOrganizationBefore;
+
+  /// Indicates if this state was reached by pressing the back button.
+  final bool afterBackPressed;
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kLoginDisclosureSteps);
@@ -189,7 +202,7 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
     required this.originUrl,
     required this.sessionType,
     required this.policy,
-    required this.requestedAttributes,
+    required this.cardRequests,
     required this.sharedDataWithOrganizationBefore,
     this.afterBackPressed = false,
   });
@@ -200,7 +213,7 @@ class DisclosureCheckOrganizationForLogin extends DisclosureState {
         originUrl,
         sessionType,
         policy,
-        requestedAttributes,
+        cardRequests,
         sharedDataWithOrganizationBefore,
         ...super.props,
       ];
@@ -233,11 +246,22 @@ class DisclosureMissingAttributes extends DisclosureState {
 }
 
 class DisclosureConfirmDataAttributes extends DisclosureState {
+  /// The organization requesting access to the user's wallet data.
   final Organization relyingParty;
-  final RequestedAttributes requestedAttributes;
-  final Policy policy;
+
+  /// A localized text describing the purpose of the data request.
   final LocalizedText requestPurpose;
+
+  /// A list of card disclosure requests, each allowing the user to select which card to share.
+  final List<DiscloseCardRequest> cardRequests;
+
+  /// The relying party's policy document outlining data handling practices.
+  final Policy policy;
+
+  /// Indicates if this state was reached by pressing the back button.
   final bool afterBackPressed;
+
+  /// Specifies the type of disclosure session (e.g., cross-device or regular).
   final DisclosureSessionType sessionType;
 
   @override
@@ -252,17 +276,41 @@ class DisclosureConfirmDataAttributes extends DisclosureState {
   const DisclosureConfirmDataAttributes({
     required this.relyingParty,
     required this.requestPurpose,
-    required this.requestedAttributes,
+    required this.cardRequests,
     required this.policy,
     required this.sessionType,
     this.afterBackPressed = false,
   });
 
+  DisclosureConfirmDataAttributes copyWith({
+    Organization? relyingParty,
+    LocalizedText? requestPurpose,
+    List<DiscloseCardRequest>? cardRequests,
+    Policy? policy,
+    DisclosureSessionType? sessionType,
+    bool? afterBackPressed,
+  }) {
+    return DisclosureConfirmDataAttributes(
+      relyingParty: relyingParty ?? this.relyingParty,
+      requestPurpose: requestPurpose ?? this.requestPurpose,
+      cardRequests: cardRequests ?? this.cardRequests,
+      policy: policy ?? this.policy,
+      sessionType: sessionType ?? this.sessionType,
+      afterBackPressed: afterBackPressed ?? this.afterBackPressed,
+    );
+  }
+
+  /// Returns a new [DisclosureConfirmDataAttributes] with the updated request.
+  DisclosureConfirmDataAttributes updateWith(DiscloseCardRequest updatedEntry) {
+    final updatedCardRequests = cardRequests.replace(updatedEntry, (it) => it.id);
+    return copyWith(cardRequests: updatedCardRequests);
+  }
+
   @override
   List<Object?> get props => [
         relyingParty,
         requestPurpose,
-        requestedAttributes,
+        cardRequests,
         policy,
         sessionType,
         ...super.props,

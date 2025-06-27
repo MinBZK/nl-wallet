@@ -29,6 +29,23 @@ void main() {
       await screenMatchesGolden('light');
     });
 
+    testGoldens('check attributes with alternatives - light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CheckAttributesScreen(
+          onDataIncorrectPressed: () {},
+          onAlternativeCardSelected: (_) {},
+        ).withState<CheckAttributesBloc, CheckAttributesState>(
+          MockCheckAttributesBloc(),
+          CheckAttributesSuccess(
+            card: WalletMockData.card,
+            attributes: WalletMockData.card.attributes,
+            alternatives: [WalletMockData.altCard],
+          ),
+        ),
+      );
+      await screenMatchesGolden('alternatives.light');
+    });
+
     testGoldens('check attributes dark', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CheckAttributesScreen(

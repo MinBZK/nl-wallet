@@ -1,11 +1,10 @@
+import 'package:collection/collection.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../domain/model/attribute/attribute.dart';
-import '../../domain/model/policy/organization_policy.dart';
-import '../../domain/model/requested_attributes.dart';
 import '../../navigation/wallet_routes.dart';
 import '../../util/cast_util.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -18,7 +17,6 @@ import '../common/page/missing_attributes_page.dart';
 import '../common/page/network_error_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/screen/placeholder_screen.dart';
-import '../common/screen/request_details_screen.dart';
 import '../common/widget/button/icon/back_icon_button.dart';
 import '../common/widget/button/icon/close_icon_button.dart';
 import '../common/widget/fake_paging_animated_switcher.dart';
@@ -30,6 +28,7 @@ import '../organization/approve/organization_approve_page.dart';
 import '../report_issue/report_issue_screen.dart';
 import 'argument/issuance_screen_argument.dart';
 import 'bloc/issuance_bloc.dart';
+import 'issuance_request_details_screen.dart';
 import 'issuance_stop_sheet.dart';
 import 'page/issuance_confirm_pin_for_disclosure_page.dart';
 import 'page/issuance_confirm_pin_for_issuance_page.dart';
@@ -66,12 +65,9 @@ class IssuanceScreen extends StatelessWidget {
       body: PopScope(
         canPop: false,
         onPopInvokedWithResult: (didPop, result) {
-          if (didPop) {
-            return;
-          }
-          final bloc = context.bloc;
-          if (bloc.state.canGoBack) {
-            bloc.add(const IssuanceBackPressed());
+          if (didPop) return;
+          if (context.bloc.state.canGoBack) {
+            context.bloc.add(const IssuanceBackPressed());
           } else {
             _stopIssuance(context);
           }
@@ -153,8 +149,9 @@ class IssuanceScreen extends StatelessWidget {
 
   Widget _buildCheckOrganizationPage(BuildContext context, IssuanceCheckOrganization state) {
     late String description;
-    if (state.requestedAttributes.attributes.length == 1) {
-      final requestedAttribute = state.requestedAttributes.attributes.firstOrNull;
+    final attributes = state.cardRequests.map((it) => it.selection.attributes).flattened;
+    if (attributes.length == 1) {
+      final requestedAttribute = attributes.firstOrNull;
       final attributeLabel = requestedAttribute?.label.l10nValue(context) ?? '';
       description = context.l10n.issuanceRequestedAttributeDescription(
         attributeLabel,
@@ -162,7 +159,7 @@ class IssuanceScreen extends StatelessWidget {
       );
     } else {
       description = context.l10n.issuanceRequestedAttributesDescription(
-        state.requestedAttributes.attributes.length,
+        attributes.length,
         state.organization.displayName.l10nValue(context),
       );
     }
@@ -173,15 +170,7 @@ class IssuanceScreen extends StatelessWidget {
       organization: state.organization,
       purpose: ApprovalPurpose.issuance,
       description: description,
-      onShowDetailsPressed: () {
-        RequestDetailsScreen.show(
-          context,
-          title: context.l10n.requestDetailScreenAltTitle(state.organization.displayName.l10nValue(context)),
-          requestedAttributes: state.requestedAttributes.cards,
-          policy: OrganizationPolicy(organization: state.organization, policy: state.policy),
-          organization: state.organization,
-        );
-      },
+      onShowDetailsPressed: () => IssuanceRequestDetailsScreen.show(context, bloc: context.bloc),
     );
   }
 

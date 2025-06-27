@@ -38,12 +38,14 @@ class IssuanceCheckOrganization extends IssuanceState {
 
   final Organization organization;
   final Policy policy;
-  final RequestedAttributes requestedAttributes;
+  final List<DiscloseCardRequest> cardRequests;
+  final LocalizedText purpose;
 
   const IssuanceCheckOrganization({
     required this.organization,
-    required this.requestedAttributes,
+    required this.cardRequests,
     required this.policy,
+    required this.purpose,
     this.afterBackPressed = false,
   });
 
@@ -54,7 +56,31 @@ class IssuanceCheckOrganization extends IssuanceState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  List<Object?> get props => [organization, policy, requestedAttributes, ...super.props];
+  List<Object?> get props => [organization, policy, cardRequests, purpose, ...super.props];
+
+  /// Returns a new [IssuanceCheckOrganization] with the updated request
+  IssuanceCheckOrganization updateWith(DiscloseCardRequest updatedEntry) {
+    final updatedCardRequests = cardRequests.replace(updatedEntry, (it) => it.id);
+    return copyWith(cardRequests: updatedCardRequests);
+  }
+
+  /// Creates a new [IssuanceCheckOrganization] instance with the same properties as this one,
+  /// but with the provided properties updated.
+  IssuanceCheckOrganization copyWith({
+    Organization? organization,
+    List<DiscloseCardRequest>? cardRequests,
+    Policy? policy,
+    LocalizedText? purpose,
+    bool? afterBackPressed,
+  }) {
+    return IssuanceCheckOrganization(
+      organization: organization ?? this.organization,
+      cardRequests: cardRequests ?? this.cardRequests,
+      policy: policy ?? this.policy,
+      purpose: purpose ?? this.purpose,
+      afterBackPressed: afterBackPressed ?? this.afterBackPressed,
+    );
+  }
 }
 
 class IssuanceMissingAttributes extends IssuanceState {

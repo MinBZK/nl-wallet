@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
 import 'package:wallet/src/feature/disclosure/page/disclosure_confirm_data_attributes_page.dart';
 import 'package:wallet/src/util/extension/string_extension.dart';
@@ -17,13 +18,14 @@ void main() {
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
-          onDeclinePressed: () {},
           onAcceptPressed: () {},
+          onDeclinePressed: () {},
+          onAlternativeCardSelected: (update) {},
           relyingParty: WalletMockData.organization,
-          requestedAttributes: {
-            WalletMockData.card: WalletMockData.card.attributes,
-            WalletMockData.altCard: WalletMockData.altCard.attributes,
-          },
+          cardRequests: [
+            DiscloseCardRequest.fromCard(WalletMockData.card),
+            DiscloseCardRequest.fromCard(WalletMockData.altCard),
+          ],
           policy: WalletMockData.policy,
           requestPurpose: 'data purpose'.untranslated,
         ),
@@ -43,10 +45,11 @@ void main() {
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
-          onDeclinePressed: () {},
           onAcceptPressed: () {},
+          onDeclinePressed: () {},
+          onAlternativeCardSelected: (update) {},
           relyingParty: WalletMockData.organization,
-          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
           policy: WalletMockData.policy,
           requestPurpose: 'data purpose'.untranslated,
         ),
@@ -66,10 +69,11 @@ void main() {
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
-          onDeclinePressed: () {},
           onAcceptPressed: () {},
+          onDeclinePressed: () {},
+          onAlternativeCardSelected: (update) {},
           relyingParty: WalletMockData.organization,
-          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
           policy: WalletMockData.policy,
           requestPurpose: 'data purpose'.untranslated,
         ),
@@ -87,10 +91,11 @@ void main() {
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
-          onDeclinePressed: () => isCalled = true,
           onAcceptPressed: () {},
+          onDeclinePressed: () => isCalled = true,
+          onAlternativeCardSelected: (update) {},
           relyingParty: WalletMockData.organization,
-          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
           policy: WalletMockData.policy,
           requestPurpose: 'data purpose'.untranslated,
         ),
@@ -113,10 +118,11 @@ void main() {
       Provider<ContextMapper<OrganizationPolicy, String>>(
         create: (c) => PolicyBodyTextMapper(),
         child: DisclosureConfirmDataAttributesPage(
-          onDeclinePressed: () {},
           onAcceptPressed: () => isCalled = true,
+          onDeclinePressed: () {},
+          onAlternativeCardSelected: (update) {},
           relyingParty: WalletMockData.organization,
-          requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+          cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
           policy: WalletMockData.policy,
           requestPurpose: 'data purpose'.untranslated,
         ),

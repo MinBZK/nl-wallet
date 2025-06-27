@@ -17,7 +17,7 @@ final _kDefaultReadyToDiscloseResponse = StartIssuanceReadyToDisclose(
   relyingParty: WalletMockData.organization,
   policy: WalletMockData.policy,
   sessionType: DisclosureSessionType.sameDevice,
-  requestedAttributes: {},
+  cardRequests: [WalletMockData.discloseCardRequestMultiCard],
   originUrl: 'https://example.org',
   requestPurpose: {},
   type: DisclosureType.regular,
@@ -67,7 +67,7 @@ void main() {
             relyingParty: WalletMockData.organization,
             policy: WalletMockData.policy,
             sessionType: DisclosureSessionType.crossDevice,
-            requestedAttributes: {},
+            cardRequests: [],
             originUrl: 'https://example.org',
             requestPurpose: {},
             type: DisclosureType.regular,
@@ -345,6 +345,48 @@ void main() {
       isA<IssuanceReviewCards>(),
       isA<IssuanceLoadInProgress>(),
       isA<IssuanceGenericError>(),
+    ],
+  );
+
+  blocTest(
+    'verify navigation back and forth between check organization and pin input maintains custom selection',
+    build: () => createBloc(isRefreshFlow: false),
+    setUp: () {
+      when(startIssuanceUseCase.invoke(any)).thenAnswer(
+        (_) async => Result.success(_kDefaultReadyToDiscloseResponse),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const IssuanceSessionStarted('https://example.org'));
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      // Select a different card
+      final cardRequest = _kDefaultReadyToDiscloseResponse.cardRequests.first;
+      expect(
+        cardRequest.hasAlternatives,
+        isTrue,
+        reason: 'sanity check to see if provided sample supports card selection',
+      );
+      final update = cardRequest.select(cardRequest.alternatives.first);
+      bloc.add(IssuanceAlternativeCardSelected(update));
+      // Navigate to Pin Input
+      bloc.add(const IssuanceOrganizationApproved());
+      await Future.delayed(const Duration(milliseconds: 10));
+      // Navigate back to Check Organization
+      bloc.add(const IssuanceBackPressed());
+      await Future.delayed(const Duration(milliseconds: 10));
+      // Navigate back to Pin Input
+      bloc.add(const IssuanceOrganizationApproved());
+    },
+    expect: () => [
+      isA<IssuanceCheckOrganization>()
+          .having((it) => it.cardRequests.map((it) => it.selectedIndex), 'verify initial selection', [0]),
+      isA<IssuanceCheckOrganization>()
+          .having((it) => it.cardRequests.map((it) => it.selectedIndex), 'verify altered selection', [1]),
+      isA<IssuanceProvidePinForDisclosure>(),
+      isA<IssuanceCheckOrganization>()
+          .having((it) => it.cardRequests.map((it) => it.selectedIndex), 'verify altered selection is maintained', [1]),
+      isA<IssuanceProvidePinForDisclosure>(),
     ],
   );
 }

@@ -61,11 +61,9 @@ class HistoryDetailIssuePage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: SharedAttributesCard(
           card: card,
-          attributes: card.attributes,
-          onTap: () => CheckAttributesScreen.show(
+          onPressed: () => CheckAttributesScreen.show(
             context,
             card: card,
-            attributes: card.attributes,
             onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
           ),
         ),

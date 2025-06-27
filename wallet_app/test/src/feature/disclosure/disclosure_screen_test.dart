@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
+import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/disclosure/disclosure_session_type.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/policy/organization_policy.dart';
@@ -88,7 +89,7 @@ void main() {
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
             policy: WalletMockData.policy,
-            requestedAttributes: {},
+            cardRequests: [],
           ),
         ),
         brightness: Brightness.dark,
@@ -107,9 +108,7 @@ void main() {
           DisclosureConfirmDataAttributes(
             relyingParty: WalletMockData.organization,
             requestPurpose: 'requestPurpose'.untranslated,
-            requestedAttributes: {
-              WalletMockData.card: [WalletMockData.textDataAttribute],
-            },
+            cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
             policy: WalletMockData.policy,
             sessionType: DisclosureSessionType.sameDevice,
           ),
@@ -135,7 +134,7 @@ void main() {
             originUrl: 'https://origin.org',
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
-            requestedAttributes: {},
+            cardRequests: [],
             policy: WalletMockData.policy,
           ),
         ),
@@ -221,9 +220,7 @@ void main() {
           MockDisclosureBloc(),
           DisclosureConfirmDataAttributes(
             relyingParty: WalletMockData.organization,
-            requestedAttributes: {
-              WalletMockData.card: [WalletMockData.textDataAttribute],
-            },
+            cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
             requestPurpose: 'Sample reason'.untranslated,
             policy: WalletMockData.policy,
             sessionType: DisclosureSessionType.crossDevice,
@@ -244,9 +241,7 @@ void main() {
           MockDisclosureBloc(),
           DisclosureConfirmDataAttributes(
             relyingParty: WalletMockData.organization,
-            requestedAttributes: {
-              WalletMockData.card: [WalletMockData.textDataAttribute],
-            },
+            cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
             requestPurpose: 'Sample reason'.untranslated,
             policy: WalletMockData.policy,
             sessionType: DisclosureSessionType.crossDevice,
@@ -363,7 +358,7 @@ void main() {
             sharedDataWithOrganizationBefore: true,
             sessionType: DisclosureSessionType.crossDevice,
             policy: WalletMockData.policy,
-            requestedAttributes: {},
+            cardRequests: [],
           ),
         ),
         providers: [
@@ -573,7 +568,7 @@ void main() {
               originUrl: '',
               sessionType: DisclosureSessionType.sameDevice,
               policy: WalletMockData.policy,
-              requestedAttributes: {},
+              cardRequests: [],
             ),
           ),
           providers: [
@@ -622,7 +617,7 @@ void main() {
               originUrl: 'originUrl',
               sessionType: DisclosureSessionType.crossDevice,
               policy: WalletMockData.policy,
-              requestedAttributes: const {},
+              cardRequests: [],
               sharedDataWithOrganizationBefore: false,
             ),
           ),
@@ -646,7 +641,7 @@ void main() {
               originUrl: 'originUrl',
               sessionType: DisclosureSessionType.crossDevice,
               policy: WalletMockData.policy,
-              requestedAttributes: const {},
+              cardRequests: [],
               sharedDataWithOrganizationBefore: false,
             ),
           ),
@@ -721,7 +716,7 @@ void main() {
             DisclosureConfirmDataAttributes(
               relyingParty: WalletMockData.organization,
               requestPurpose: 'test purpose'.untranslated,
-              requestedAttributes: {WalletMockData.card: WalletMockData.card.attributes},
+              cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
               policy: WalletMockData.policy,
               sessionType: DisclosureSessionType.crossDevice,
             ),
