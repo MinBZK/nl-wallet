@@ -1,0 +1,438 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wallet creation &mdash; NL Wallet 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=675a712c" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+      <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Lokalise" href="../lokalise.html" />
+    <link rel="prev" title="Pin validation" href="pin_validation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #383EDE" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            NL Wallet
+              <img src="../_static/wallet.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../relying-party.html">Relying Party</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#step-by-step">Step-by-step</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#architecture-overview">Architecture Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#preparations-and-onboarding">Preparations and Onboarding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#decisions">Decisions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#what-a-pid-doctype-looks-like">What a PID_DOCTYPE looks like</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#what-an-address-doctype-looks-like">What an ADDRESS_DOCTYPE looks like</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#required-data">Required Data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#example-reader-auth-json">Example reader_auth.json</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#example-screenshot-of-reader-auth-json-data-used-in-wallet-app">Example Screenshot of reader_auth.json Data Used in Wallet App</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#certificate-request">Certificate Request</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#file-request">File Request</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#wallet-server-installation">Wallet server installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#obtaining-the-software">Obtaining the software</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#creating-a-database-backend-optional">Creating a database backend (optional)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#create-a-database-server">Create a database server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#create-user-and-database-itself">Create user and database itself:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#apply-database-schema">Apply database schema:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#creating-a-configuration">Creating a configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../relying-party.html#the-storage-settings">The storage settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../relying-party.html#using-in-memory-session-state">Using in-memory session state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../relying-party.html#using-database-persisted-session-state-optional">Using database persisted session state (optional)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#determine-public-url">Determine public URL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#universal-link-base-url">Universal link base URL</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#the-ephemeral-id-secret">The ephemeral ID secret</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#configuring-the-trustanchor-and-the-usecase">Configuring the trustanchor and the usecase</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#creating-the-configuration-file">Creating the configuration file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#configuring-an-api-key-optional">Configuring an API key (optional)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#configuring-cross-origin-resource-sharing-optional">Configuring Cross-Origin Resource Sharing (optional)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#running-the-server-for-the-first-time">Running the server for the first time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#server-logging">Server logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#validating-the-configuration">Validating the configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#background">Background</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#what-a-disclosure-session-looks-like">What a Disclosure Session Looks Like</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#cross-device-vs-same-device">Cross Device vs. Same Device</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#notes-on-requirements-applicable-to-your-application">Notes on Requirements Applicable to Your Application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#integration">Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#api-specifications">API Specifications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#example-calls">Example calls</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#initiate-a-disclosure-session">Initiate a Disclosure Session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#check-status-of-session">Check Status of Session</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../relying-party.html#retrieve-disclosure-results">Retrieve Disclosure Results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../relying-party.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../spec-references.html">Specification references</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../spec-references.html#protocols">Protocols</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spec-references.html#attestation-formats">Attestation formats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spec-references.html#cryptography">Cryptography</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spec-references.html#other">Other</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html">Generic issuance in NL Wallet ecosystem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#sd-jwt">SD-JWT</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#mdoc">mdoc</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#serialize-the-mdoc-to-json-for-json-schema">1. Serialize the mdoc to JSON for JSON Schema</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#convert-namespace-structure-to-nested-sd-jwt-structure">2. Convert namespace structure to nested SD-JWT structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#example">Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#sd-jwt-vc-type-metadata-used-for-validation">SD-JWT VC Type Metadata used for validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#mdoc-formatted-document-snippet">Mdoc formatted document snippet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../generic_issuance/technical_attestation_schema.html#transformed-snippet-used-for-validation-against-type-metadata">Transformed snippet used for validation against Type Metadata</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html">SD-JWT VC Profile for the NL Wallet, VV and OV</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#sd-jwt-vc-type-metadata">SD-JWT VC Type Metadata</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#type-metadata">Type Metadata</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#display-metadata">Display Metadata</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#credential-summary">Credential Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#simple-rendering">Simple Rendering</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#claims-metadata">Claims Metadata</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#claim-metadata">Claim Metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#claim-display-metadata">Claim Display Metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#extending-types">Extending types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#profile-considerations">Profile considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#c1-credential-contents-must-be-presentable-to-the-end-user">C1 - Credential contents must be presentable to the end user</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#c2-credential-summary-based-on-contents-for-optimized-browsing">C2 - Credential summary (based on contents) for optimized browsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#c3-no-support-for-external-resources">C3 - No support for external resources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#c4-unambiguously-select-a-locale-for-displaying-credentials">C4 - Unambiguously select a locale for displaying credentials</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../spec-profiles/sd-jwt-vc.html#c5-allow-attributes-to-be-selectively-disclosable-by-default">C5 - Allow attributes to be selectively disclosable by default</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api/README.html">Open Api Specifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="app_startup.html">App Startup</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="app_startup.html#initialization">Initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app_startup.html#extra-callbacks">Extra callbacks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="app_startup.html#configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="app_startup.html#wallet-lock">Wallet lock</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="disclosure.html">Disclosure with OpenID4VP</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="disclosure.html#generic-disclosure">Generic disclosure</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="disclosure_based_issuance.html">Disclosure based issuance</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="disclosure_based_issuance.html#api">API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="disclosure_based_issuance.html#attestation-server">Attestation server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="disclosure_based_issuance.html#issuance-server-configuration"><code class="docutils literal notranslate"><span class="pre">issuance_server</span></code> configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="disclosure_based_issuance.html#qr-ul">QR/UL</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="disclosure_based_issuance.html#sequence-diagram">Sequence diagram</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="issuance.html">Issuance with OpenID4VCI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="issuance.html#pid-issuance">PID issuance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="issuance.html#generic-issuance">Generic issuance</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="overview_components.html">Components overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pin_validation.html">Pin validation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pin_validation.html#local-pin-validation">Local pin validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pin_validation.html#remote-pin-validation">Remote pin validation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Wallet creation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#create-wallet-app">Create wallet (app)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#create-wallet-server">Create wallet (server)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../lokalise.html">Lokalise</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../lokalise.html#workflow">Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../lokalise.html#exporting-translations-lokalise-app">Exporting translations (lokalise -&gt; app)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../lokalise.html#export-script">Export script</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../lokalise.html#importing-keys-translations-app-lokalise">Importing keys/translations (app -&gt; lokalise)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../lokalise.html#import-script">Import script</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../chores/update-rust.html">How to update Rust (or anything really) for NL Wallet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../chores/update-rust.html#update-rust-images">Update Rust images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chores/update-rust.html#update-rust-macos-runner">Update Rust macOS Runner</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../chores/update-rust.html#update-rust-workspace-version">Update Rust workspace version</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wow/definition-of-done.html">Definition of done</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../wow/definition-of-done.html#in-general">In general</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wow/definition-of-done.html#things-we-check-every-pull-or-merge-request">Things we check every pull- or merge request</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#is-in-compliance-with-our-coding-and-quality-standards">Is in compliance with our coding and quality standards</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#implements-and-tests-all-acceptance-criteria-and-or-capabilities">Implements and tests all acceptance criteria and/or capabilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#implements-any-screens-according-to-our-figma-designs-if-applicable">Implements any screens according to our Figma designs (if applicable)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#is-described-in-release-notes-with-any-breaking-changes-or-upgrade-steps">Is described in release notes, with any breaking changes or upgrade steps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#is-documented-in-readme-md-files-openapi-specs-documentation-folder">Is documented (in README.md files, OpenAPI specs, documentation folder)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#does-not-contain-commits-with-personal-secret-or-copyrighted-information">Does not contain commits with personal, secret or copyrighted information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#incurred-technical-debt-has-a-todo-comment-and-a-related-issue-ticket">Incurred technical debt has a TODO comment and a related issue ticket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/definition-of-done.html#can-be-deployed-locally-and-remotely-ci-cd-related-setup-up-to-date">Can be deployed locally and remotely (CI/CD related setup up-to-date)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../wow/merge-requests.html">Merge Requests</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../wow/release-howto.html">Releases Howto</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../wow/release-howto.html#assumptions">Assumptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wow/release-howto.html#what-constitutes-a-release">What constitutes a release?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../wow/release-howto.html#doing-a-release">Doing a release</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-1-make-sure-the-release-on-jira-is-green">Step 1: Make sure the release on Jira is green</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-2-make-sure-figma-links-are-up-to-date-in-readme-md">Step 2: Make sure Figma links are up-to-date in README.md</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-3-confirm-appropiate-tests-and-reports-have-been-done-for-this-release">Step 3: Confirm appropiate tests and reports have been done for this release</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-4-release-approval">Step 4: Release approval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-5-freeze-git-main-branch">Step 5: Freeze git main branch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-6-set-release-version-and-tag">Step 6: Set release version and tag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-7-set-development-version">Step 7: Set development version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-8-collect-build-artifacts-for-release">Step 8: Collect build artifacts for release</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-9-create-a-release-description">Step 9: Create a release description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../wow/release-howto.html#step-10-create-github-release-from-tag">Step 10: Create GitHub release from tag</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../wow/release-howto.html#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../templates/release-notes.html">Release Notes Template</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../templates/release-notes.html#vx-y-z-fill-in-version-place-at-documentation-release-notes-vx-y-z-md">vX.Y.Z (fill in version, place at /documentation/release-notes/vX.Y.Z.md)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../templates/release-notes.html#important-this-is-an-optional-header-remove-if-there-are-no">Important (this is an optional header, remove if there are no )</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../templates/release-notes.html#changes">Changes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/releases.html">Releases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../release-notes/v0.3.0.html">Release notes v0.3.0</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.3.0.html#upgrading">Upgrading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.3.0.html#new-features">New features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.3.0.html#code-improvements">Code improvements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.3.0.html#wallet-app-improvements">Wallet app improvements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.3.0.html#bug-fixes">Bug fixes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../release-notes/v0.3.0.html#ci-changes">CI changes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #383EDE" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">NL Wallet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content style-external-links">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Wallet creation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/diagrams/wallet_creation.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="wallet-creation">
+<h1>Wallet creation<a class="headerlink" href="#wallet-creation" title="Link to this heading"></a></h1>
+<p>The diagram below illustrates the Wallet creation process. Including certificate generation and registration with the <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>.</p>
+<section id="create-wallet-app">
+<h2>Create wallet (app)<a class="headerlink" href="#create-wallet-app" title="Link to this heading"></a></h2>
+<pre  class="mermaid">
+        sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    actor user
+    participant platform
+    participant wallet_app
+    participant wallet_core
+    participant wallet_provider
+    title Create Wallet (app) [2.1]
+
+    user-&gt;&gt;wallet_app: provide valid pin
+    note over user, wallet_app: pin validity is guaranteed locally, see 3.1
+    activate user
+        wallet_app-&gt;&gt;wallet_core: register(pin)
+        wallet_core-&gt;&gt;wallet_provider: requestChallenge()
+        opt server error
+        wallet_provider--&gt;&gt;wallet_core: server error
+            wallet_core--&gt;&gt;wallet_app: error
+            wallet_app-&gt;&gt;user: show server error
+        end
+        note over wallet_provider,wallet_provider: see 2.2 for details
+        wallet_provider--&gt;&gt;wallet_core: challenge
+        activate wallet_core
+        critical key generation
+            option key setup (pin key)
+                wallet_core-&gt;&gt;wallet_core: generateSalt()
+                wallet_core-&gt;&gt;platform: store(salt)
+                platform-&gt;&gt;platform: generateHwBackedDbKey()
+                platform-&gt;&gt;platform: persistEncrypted(salt)
+            option key setup (hw key)
+                wallet_core-&gt;&gt;platform: generateHwKey()
+                note over platform, wallet_core: HW key = Hardware backed key
+        end
+        critical sign challenge
+            option sign with pin key
+                wallet_core-&gt;&gt;wallet_core: deriveEcdsaKeyPair(pin, salt)
+                wallet_core-&gt;&gt;wallet_core: signChallenge(ecdsaKey, challenge)
+            option sign with hw key
+                wallet_core-&gt;&gt;platform: signWithHwKey(pinSignedChallenge)
+                platform-&gt;&gt;platform: sign(hwKey, pinSignedChallenge)
+                platform--&gt;&gt;wallet_core: doubleSignedChallenge
+        end
+        wallet_core-&gt;&gt;platform: getHwPublicKey()
+        platform--&gt;&gt;wallet_core: hwPublicKey
+        wallet_core-&gt;&gt;+wallet_provider: createWallet(&lt;br/&gt;pinPubKey, hwPubKey&lt;br/&gt;doubleSignedChallenge&lt;br/&gt;)
+        deactivate wallet_core
+        wallet_provider-&gt;&gt;wallet_provider: createWallet()
+        opt server error
+            note over wallet_provider,user: same as server error above
+        end
+        note over wallet_provider,wallet_provider: see 2.2 for details
+        wallet_provider--&gt;&gt;-wallet_core: walletId, walletCertificate
+        wallet_core-&gt;&gt;platform: store(walletId, walletCert)
+        platform-&gt;&gt;platform: persist(walletId, walletCert)
+        wallet_core-&gt;&gt;wallet_app: registration success
+        wallet_app-&gt;&gt;user: render wallet created
+    deactivate user
+    </pre></section>
+<section id="create-wallet-server">
+<h2>Create wallet (server)<a class="headerlink" href="#create-wallet-server" title="Link to this heading"></a></h2>
+<p>High level overview of what happens inside the <code class="docutils literal notranslate"><span class="pre">wallet_provider</span></code>.</p>
+<pre  class="mermaid">
+        sequenceDiagram
+    %% Force ordering by explicitly setting up participants
+    actor user
+    participant wallet_core
+    participant wallet_provider
+    participant hsm
+    title Create Wallet (server) [2.2]
+
+    wallet_core-&gt;&gt;+wallet_provider: requestChallenge() 
+    note over wallet_core,wallet_provider: POST /enroll
+    wallet_provider-&gt;&gt;wallet_provider: generateChallenge()
+    wallet_provider--&gt;&gt;-wallet_core: challenge
+    wallet_core-&gt;&gt;+wallet_provider: createWallet(&lt;br/&gt;pinPubKey, pinSignedChallenge&lt;br/&gt;hWPubKey, hwSignedChallenge&lt;br/&gt;)
+    note over wallet_core,wallet_provider: POST /createwallet
+    wallet_provider-&gt;&gt;wallet_provider: verifySignedChallenge()
+    wallet_provider-&gt;&gt;wallet_provider: storePubKeys()
+    wallet_provider-&gt;&gt;wallet_provider: generateCertificate()
+    wallet_provider--&gt;&gt;-wallet_core: walletId, walletCertificate
+    </pre></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pin_validation.html" class="btn btn-neutral float-left" title="Pin validation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../lokalise.html" class="btn btn-neutral float-right" title="Lokalise" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, NL Wallet.</p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    <span class="fa fa-book"> Other Versions</span>
+    v: v0.3.0
+    <span class="fa fa-caret-down"></span>
+  </span>
+    <div class="rst-other-versions">
+        <dl>
+            <dt>Releases</dt>
+            <dd><a href="wallet_creation.html">v0.3.0</a></dd>
+        </dl>
+        <dl>
+            <dt>Branches</dt>
+            <dd><a href="../../main/diagrams/wallet_creation.html">main</a></dd>
+        </dl>
+    </div>
+</div><script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
