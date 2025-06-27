@@ -189,8 +189,8 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::AttributeValue;
-    use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::DisclosedAttestation;
+    use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::disclosure::ValidityInfo;
     use attestation_data::issuable_document::IssuableDocument;
     use openid4vc::credential::CredentialOffer;

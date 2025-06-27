@@ -16,6 +16,7 @@ use openid4vc::mock::test_document_to_mdoc;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
+use rand_core::OsRng;
 use ring::hmac;
 use ring::rand;
 use rstest::rstest;
@@ -35,16 +36,17 @@ use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
-use mdoc::examples::example_items_requests;
-use mdoc::examples::IsoCertTimeGenerator;
 use mdoc::holder::mock::MockMdocDataSource as IsoMockMdocDataSource;
 use mdoc::holder::DisclosureRequestMatch;
 use mdoc::holder::Mdoc;
 use mdoc::holder::MdocDataSource;
 use mdoc::holder::StoredMdoc;
 use mdoc::test::data::addr_street;
+use mdoc::test::data::pid_example;
+use mdoc::test::data::pid_example_items_requests;
 use mdoc::test::data::pid_full_name;
 use mdoc::test::data::pid_given_name;
+use mdoc::test::data::PID;
 use mdoc::test::TestDocuments;
 use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
@@ -92,6 +94,7 @@ use poa::factory::PoaFactory;
 use poa::Poa;
 use poa::PoaError;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
+use utils::generator::mock::MockTimeGenerator;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecAtLeastTwoUnique;
 
@@ -105,7 +108,7 @@ async fn disclosure_direct() {
     let response_uri: BaseUrl = "https://example.com/response_uri".parse().unwrap();
     let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
     let iso_auth_request = IsoVpAuthorizationRequest::new(
-        &example_items_requests(),
+        &pid_example_items_requests(),
         auth_keypair.certificate(),
         nonce.clone(),
         encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -127,17 +130,14 @@ async fn disclosure_direct() {
             &iso_auth_request,
             &[MOCK_WALLET_CLIENT_ID.to_string()],
             &mdoc_nonce,
-            &IsoCertTimeGenerator,
+            &MockTimeGenerator::default(),
             &[issuer_ca.to_trust_anchor()],
         )
         .unwrap();
 
     assert_eq!(
-        disclosed_attrs["org.iso.18013.5.1.mDL"]
-            .attributes
-            .clone()
-            .unwrap_mso_mdoc()["org.iso.18013.5.1"]["family_name"],
-        AttributeValue::Text("Doe".to_owned()),
+        disclosed_attrs[PID].attributes.clone().unwrap_mso_mdoc()[PID]["family_name"],
+        AttributeValue::Text("De Bruijn".to_owned()),
     );
 }
 
@@ -147,7 +147,11 @@ async fn disclosure_jwe(
     trust_anchors: &[TrustAnchor<'_>],
     issuer_ca: &Ca,
 ) -> String {
-    let mdocs = IsoMockMdocDataSource::new_example_resigned(issuer_ca).await;
+    let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
+    let mdocs = IsoMockMdocDataSource::new(vec![(
+        Mdoc::new_mock_with_key_and_ca(issuer_ca, &mdoc_key).await,
+        pid_example().into_first().unwrap().normalized_metadata(),
+    )]);
     let mdoc_nonce = "mdoc_nonce".to_string();
 
     // Verify the Authorization Request JWE and read the requested attributes.
@@ -173,7 +177,7 @@ async fn disclosure_jwe(
     let to_disclose = candidates.into_values().map(|mut docs| docs.pop().unwrap()).collect();
 
     // Compute the disclosure.
-    let key_factory = MockRemoteKeyFactory::new_example();
+    let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
     let (device_response, keys) = DeviceResponse::from_proposed_documents(to_disclose, &key_factory)
         .await
         .unwrap();
@@ -199,13 +203,18 @@ async fn disclosure_using_message_client() {
     let ca = Ca::generate("myca", Default::default()).unwrap();
     let rp_keypair = generate_reader_mock(
         &ca,
-        Some(ReaderRegistration::mock_from_requests(&example_items_requests())),
+        Some(ReaderRegistration::mock_from_requests(&pid_example_items_requests())),
     )
     .unwrap();
 
     // Initialize the "wallet"
     let issuer_ca = Ca::generate_issuer_mock_ca().unwrap();
-    let mdocs = IsoMockMdocDataSource::new_example_resigned(&issuer_ca).await;
+
+    let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
+    let mdocs = IsoMockMdocDataSource::new(vec![(
+        Mdoc::new_mock_with_key_and_ca(&issuer_ca, &mdoc_key).await,
+        pid_example().into_first().unwrap().normalized_metadata(),
+    )]);
 
     // Start a session at the "RP"
     let message_client = DirectMockVpMessageClient::new(rp_keypair, vec![issuer_ca.to_trust_anchor().to_owned()]);
@@ -227,7 +236,7 @@ async fn disclosure_using_message_client() {
     };
 
     // Finish the disclosure.
-    let key_factory = MockRemoteKeyFactory::new_example();
+    let key_factory = MockRemoteKeyFactory::new(vec![mdoc_key]);
     proposal.disclose(&key_factory).await.unwrap();
 }
 
@@ -262,7 +271,7 @@ impl DirectMockVpMessageClient {
         let encryption_keypair = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            &example_items_requests(),
+            &pid_example_items_requests(),
             auth_keypair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(),
@@ -321,17 +330,14 @@ impl VpMessageClient for DirectMockVpMessageClient {
                 &self.auth_request.clone().try_into().unwrap(),
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 &mdoc_nonce,
-                &IsoCertTimeGenerator,
+                &MockTimeGenerator::default(),
                 &self.trust_anchors,
             )
             .unwrap();
 
         assert_eq!(
-            disclosed_attrs["org.iso.18013.5.1.mDL"]
-                .attributes
-                .clone()
-                .unwrap_mso_mdoc()["org.iso.18013.5.1"]["family_name"],
-            AttributeValue::Text("Doe".to_owned()),
+            disclosed_attrs[PID].attributes.clone().unwrap_mso_mdoc()[PID]["family_name"],
+            AttributeValue::Text("De Bruijn".to_owned()),
         );
 
         Ok(None)

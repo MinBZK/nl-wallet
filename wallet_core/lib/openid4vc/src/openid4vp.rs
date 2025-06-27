@@ -836,12 +836,12 @@ mod tests {
     use itertools::Itertools;
     use josekit::jwk::alg::ec::EcCurve;
     use josekit::jwk::alg::ec::EcKeyPair;
+    use p256::ecdsa::SigningKey;
+    use rand_core::OsRng;
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
     use attestation_data::x509::generate::mock::generate_reader_mock;
-    use crypto::examples::Examples;
-    use crypto::examples::EXAMPLE_KEY_IDENTIFIER;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
@@ -849,8 +849,9 @@ mod tests {
     use jwt::Jwt;
     use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
-    use mdoc::examples::IsoCertTimeGenerator;
+    use mdoc::holder::Mdoc;
     use mdoc::test::data::addr_street;
+    use mdoc::test::data::pid_example_items_requests;
     use mdoc::test::data::pid_full_name;
     use mdoc::utils::serialization::cbor_serialize;
     use mdoc::utils::serialization::CborBase64;
@@ -1174,36 +1175,6 @@ mod tests {
         device_response
     }
 
-    /// Helper function to use `setup_device_response`, given the examples from ISO 18013-5, resigned with a newly
-    /// generated CA.
-    async fn example_device_response(
-        auth_request: &IsoVpAuthorizationRequest,
-        mdoc_nonce: &str,
-        ca: &Ca,
-    ) -> (DeviceResponse, Option<Poa>) {
-        let issuer_signed_and_keys = DeviceResponse::example_resigned(ca)
-            .await
-            .documents
-            .unwrap()
-            .iter()
-            .map(|d| {
-                (
-                    d.issuer_signed.clone(),
-                    MockRemoteEcdsaKey::new(EXAMPLE_KEY_IDENTIFIER.to_owned(), Examples::static_device_key()),
-                )
-            })
-            .collect_vec();
-
-        setup_device_response(
-            auth_request,
-            mdoc_nonce,
-            &issuer_signed_and_keys,
-            &[ca.to_trust_anchor()],
-            &IsoCertTimeGenerator,
-        )
-        .await
-    }
-
     /// Manually construct a mock `DeviceResponse` and PoA using the given `auth_request`, `issuer_signed` and
     /// `mdoc_nonce`.
     async fn setup_device_response(
@@ -1256,12 +1227,25 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup();
+        let (_, _, _, auth_request) = setup_with_items_requests(&pid_example_items_requests());
         let mdoc_nonce = "mdoc_nonce";
 
+        let time_generator = MockTimeGenerator::default();
         let auth_request = IsoVpAuthorizationRequest::try_from(auth_request).unwrap();
         let ca = Ca::generate_issuer_mock_ca().unwrap();
-        let (device_response, poa) = example_device_response(&auth_request, mdoc_nonce, &ca).await;
+
+        let mdoc_key = MockRemoteEcdsaKey::new(String::from("mdoc_key"), SigningKey::random(&mut OsRng));
+        let mdoc = Mdoc::new_mock_with_key_and_ca(&ca, &mdoc_key).await;
+
+        let (device_response, poa) = setup_device_response(
+            &auth_request,
+            mdoc_nonce,
+            &vec![(mdoc.issuer_signed.clone(), mdoc_key)],
+            &[ca.to_trust_anchor()],
+            &time_generator,
+        )
+        .await;
+
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
 
         auth_response
@@ -1269,7 +1253,7 @@ mod tests {
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
                 mdoc_nonce,
-                &IsoCertTimeGenerator,
+                &time_generator,
                 &[ca.to_trust_anchor()],
             )
             .unwrap();
