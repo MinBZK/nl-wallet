@@ -132,8 +132,10 @@ impl InstructionAndResult for GenerateKey {
 
 // Sign instruction.
 
+#[serde_as]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Sign {
+    #[serde_as(as = "Vec<(Base64, _)>")]
     pub messages_with_identifiers: Vec<(Vec<u8>, Vec<String>)>,
 }
 

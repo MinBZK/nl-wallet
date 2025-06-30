@@ -111,6 +111,12 @@ pub enum CredentialKeyType {
 #[derive(Debug, Clone, From, Into, AsRef, Serialize, Deserialize)]
 pub struct AppleAssertion(Vec<u8>);
 
+impl AsRef<[u8]> for AppleAssertion {
+    fn as_ref(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 #[cfg(any(test, feature = "mock_secure_keys"))]
 mod mock_secure_keys {
     use aes_gcm::Aes256Gcm;
