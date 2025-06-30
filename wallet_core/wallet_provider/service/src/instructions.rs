@@ -188,10 +188,9 @@ impl HandleInstruction for GenerateKey {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let identifiers: Vec<&str> = self.identifiers.iter().map(|i| i.as_str()).collect();
         let keys = user_state
             .wallet_user_hsm
-            .generate_wrapped_keys(&user_state.wrapping_key_identifier, &identifiers)
+            .generate_wrapped_keys(&user_state.wrapping_key_identifier, self.count)
             .await?;
 
         let (public_keys, wrapped_keys) = keys
@@ -446,6 +445,7 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
+    use crypto::p256_der::verifying_key_sha256;
     use p256::ecdsa::signature::Verifier;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
@@ -501,9 +501,7 @@ mod tests {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my_wrapping_key_identifier";
 
-        let instruction = GenerateKey {
-            identifiers: vec!["key1".to_string(), "key2".to_string()],
-        };
+        let instruction = GenerateKey { count: 2 };
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
@@ -520,12 +518,10 @@ mod tests {
             .await
             .unwrap();
 
-        let generated_keys: Vec<String> = result
+        result
             .public_keys
-            .into_iter()
-            .map(|(identifier, _key)| identifier)
-            .collect();
-        assert_eq!(vec!["key1", "key2"], generated_keys);
+            .iter()
+            .for_each(|(identifier, key)| assert_eq!(verifying_key_sha256(key.as_inner()), *identifier));
     }
 
     #[tokio::test]

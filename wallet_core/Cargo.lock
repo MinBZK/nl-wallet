@@ -1453,6 +1453,7 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "assert_matches",
+ "base64 0.22.1",
  "chrono",
  "derive_more",
  "error_category",

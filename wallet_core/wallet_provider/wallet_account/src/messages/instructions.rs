@@ -114,7 +114,7 @@ impl InstructionAndResult for ChangePinRollback {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GenerateKey {
-    pub identifiers: Vec<String>,
+    pub count: u64,
 }
 
 #[serde_as]
