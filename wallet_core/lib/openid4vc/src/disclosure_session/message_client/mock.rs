@@ -202,18 +202,21 @@ impl MockVerifierSession {
             .unwrap_or(serde_urlencoded::to_string(&self.request_uri_object).unwrap())
     }
 
-    /// Generate the first protocol message of the verifier.
-    fn signed_auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
-        let request = IsoVpAuthorizationRequest::new(
+    pub fn iso_auth_request(&self, wallet_nonce: Option<String>) -> IsoVpAuthorizationRequest {
+        IsoVpAuthorizationRequest::new(
             &self.items_requests,
             self.key_pair.certificate(),
             self.nonce.clone(),
             self.encryption_keypair.to_jwk_public_key().try_into().unwrap(),
             self.response_uri.clone(),
-            wallet_request.wallet_nonce,
+            wallet_nonce,
         )
         .unwrap()
-        .into();
+    }
+
+    /// Generate the first protocol message of the verifier.
+    fn signed_auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
+        let request = self.iso_auth_request(wallet_request.wallet_nonce).into();
 
         Jwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
