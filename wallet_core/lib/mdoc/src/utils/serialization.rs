@@ -186,7 +186,7 @@ where
         )
         .deserialized()
         .map(|v| CborSeq(v))
-        .map_err(|e| de::Error::custom(format!("CborSeq::deserialize failed: {}", e)))
+        .map_err(|e| de::Error::custom(format!("CborSeq::deserialize failed: {e}")))
     }
 }
 

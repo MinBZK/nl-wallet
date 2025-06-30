@@ -765,7 +765,7 @@ mod test {
     )]
     #[case(base64(json!({"SAMLart": "", "RelayState": "/", "ErrorMessage": null})), None)]
     fn test_digid_app2app_error_message(#[case] input: String, #[case] expected: Option<App2AppErrorMessage>) {
-        let res: ReturnUrlParameters = serde_urlencoded::from_str(&format!("app-app={}", input)).unwrap();
+        let res: ReturnUrlParameters = serde_urlencoded::from_str(&format!("app-app={input}")).unwrap();
         assert_eq!(res.app_app.error_message, expected);
     }
 

@@ -280,7 +280,7 @@ mod tests {
 
     fn read_json(name: &str) -> String {
         fs::read_to_string(prefix_local_path(
-            format!("resources/test/haal-centraal-examples/{}.json", name).as_ref(),
+            format!("resources/test/haal-centraal-examples/{name}.json").as_ref(),
         ))
         .unwrap()
     }

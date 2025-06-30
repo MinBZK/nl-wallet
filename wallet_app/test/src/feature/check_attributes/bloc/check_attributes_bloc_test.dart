@@ -7,32 +7,28 @@ import '../../../mocks/wallet_mock_data.dart';
 void main() {
   blocTest(
     'verify initial state',
-    build: () => CheckAttributesBloc(
-      attributes: WalletMockData.card.attributes,
-      card: WalletMockData.card,
-    ),
-    verify: (bloc) {
-      expect(
-        bloc.state,
-        CheckAttributesInitial(
-          attributes: WalletMockData.card.attributes,
-          card: WalletMockData.card,
-        ),
-      );
-    },
+    build: () => CheckAttributesBloc(cards: [WalletMockData.card, WalletMockData.altCard]),
+    verify: (bloc) => expect(bloc.state, CheckAttributesInitial()),
   );
 
   blocTest(
-    'verify success state',
-    build: () => CheckAttributesBloc(
-      attributes: WalletMockData.card.attributes,
-      card: WalletMockData.card,
+    'verify initial state when providing a single card',
+    build: () => CheckAttributesBloc.forCard(WalletMockData.card),
+    verify: (bloc) => expect(
+      bloc.state,
+      CheckAttributesSuccess(card: WalletMockData.card, attributes: WalletMockData.card.attributes),
     ),
-    act: (bloc) => bloc.add(CheckAttributesLoadTriggered()),
+  );
+
+  blocTest(
+    'verify state when providing multiple cards and triggering load for the first card',
+    build: () => CheckAttributesBloc(cards: [WalletMockData.card, WalletMockData.altCard]),
+    act: (bloc) => bloc.add(CheckAttributesCardSelected(card: WalletMockData.altCard)),
     expect: () => [
       CheckAttributesSuccess(
-        attributes: WalletMockData.card.attributes,
-        card: WalletMockData.card,
+        attributes: WalletMockData.altCard.attributes,
+        card: WalletMockData.altCard,
+        alternatives: [WalletMockData.card],
       ),
     ],
   );

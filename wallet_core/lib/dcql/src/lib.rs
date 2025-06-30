@@ -184,9 +184,9 @@ pub enum ClaimPath {
 impl Display for ClaimPath {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            ClaimPath::SelectByKey(key) => write!(f, "{}", key),
+            ClaimPath::SelectByKey(key) => write!(f, "{key}"),
             ClaimPath::SelectAll => f.write_str("*"),
-            ClaimPath::SelectByIndex(index) => write!(f, "{}", index),
+            ClaimPath::SelectByIndex(index) => write!(f, "{index}"),
         }
     }
 }

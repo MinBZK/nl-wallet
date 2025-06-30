@@ -85,7 +85,7 @@ async fn do_and_verify_iso_example_disclosure() {
         reader_x509_subject.as_ref().unwrap().first().unwrap(),
         (&"CN".to_string(), &"reader")
     );
-    println!("Reader: {:#?}", reader_x509_subject);
+    println!("Reader: {reader_x509_subject:#?}");
 
     // Construct a new `DeviceResponse`, based on the mdoc from the example device response in the standard.
     let ca = Ca::generate_issuer_mock_ca().unwrap();

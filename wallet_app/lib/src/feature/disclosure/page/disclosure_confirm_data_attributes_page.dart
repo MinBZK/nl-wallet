@@ -3,14 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
+import '../../../domain/model/card/wallet_card.dart';
+import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/organization_policy.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/requested_attributes.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../../util/extension/string_extension.dart';
 import '../../../util/mapper/context_mapper.dart';
 import '../../check_attributes/check_attributes_screen.dart';
+import '../../common/sheet/select_card_sheet.dart';
+import '../../common/widget/animation/animated_card_switcher.dart';
 import '../../common/widget/button/confirm/confirm_buttons.dart';
 import '../../common/widget/button/link_button.dart';
 import '../../common/widget/button/primary_button.dart';
@@ -28,23 +31,37 @@ import '../../organization/widget/organization_row.dart';
 import '../../policy/policy_screen.dart';
 
 class DisclosureConfirmDataAttributesPage extends StatelessWidget {
-  final VoidCallback onDeclinePressed;
+  /// Callback invoked when the user accepts the data sharing request.
   final VoidCallback onAcceptPressed;
 
+  /// Callback invoked when the user declines the data sharing request.
+  final VoidCallback onDeclinePressed;
+
+  /// Called when an alternative [WalletCard] is selected for a [DiscloseCardRequest].
+  /// The [cardRequest] parameter contains the updated selection.
+  final Function(DiscloseCardRequest cardRequest) onAlternativeCardSelected;
+
+  /// The organization/entity requesting access to wallet data.
   final Organization relyingParty;
-  final RequestedAttributes requestedAttributes;
-  final Policy policy;
 
   /// Inform the user what the purpose is of this request
   final LocalizedText requestPurpose;
 
-  int get totalNrOfAttributes => requestedAttributes.values.map((attributes) => attributes.length).sum;
+  /// List of wallet cards whose attributes are being requested.
+  final List<DiscloseCardRequest> cardRequests;
+
+  /// The policy document defining how the relying party handles disclosed data.
+  final Policy policy;
+
+  /// Calculates the total number of attributes across all requested wallet cards.
+  int get totalNrOfAttributes => cardRequests.map((it) => it.selection.attributes).flattened.length;
 
   const DisclosureConfirmDataAttributesPage({
-    required this.onDeclinePressed,
     required this.onAcceptPressed,
+    required this.onDeclinePressed,
+    required this.onAlternativeCardSelected,
     required this.relyingParty,
-    required this.requestedAttributes,
+    required this.cardRequests,
     required this.policy,
     required this.requestPurpose,
     super.key,
@@ -90,22 +107,34 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
 
   Widget _buildSharedAttributeCardsSliver() {
     return SliverList.separated(
-      itemCount: requestedAttributes.length,
+      itemCount: cardRequests.length,
       itemBuilder: (context, i) {
-        final entry = requestedAttributes.entries.elementAt(i);
-        return SharedAttributesCard(
-          card: entry.key,
-          attributes: entry.value,
-          onTap: () => CheckAttributesScreen.show(
+        final cardRequest = cardRequests[i];
+        final sharedAttributesCard = SharedAttributesCard(
+          key: Key(cardRequest.selection.hashCode.toString()),
+          card: cardRequest.selection,
+          onPressed: () => CheckAttributesScreen.showWithAlternatives(
             context,
-            card: entry.key,
-            attributes: entry.value,
+            selection: cardRequest.selection,
+            cards: cardRequest.candidates,
             onDataIncorrectPressed: () => InfoScreen.showDetailsIncorrect(context),
+            onAlternativeCardSelected: (card) => onAlternativeCardSelected(cardRequest.select(card)),
           ),
+          onChangeCardPressed: cardRequest.hasAlternatives ? () => _onChangeCardPressed(context, cardRequest) : null,
+        );
+        final animationEnabled = !context.isScreenReaderEnabled && cardRequest.hasAlternatives;
+        return AnimatedCardSwitcher(
+          enableAnimation: animationEnabled,
+          child: sharedAttributesCard,
         );
       },
       separatorBuilder: (context, i) => const SizedBox(height: 16),
     );
+  }
+
+  Future<void> _onChangeCardPressed(BuildContext context, DiscloseCardRequest request) async {
+    final userSelection = await SelectCardSheet.show(context, candidates: request.alternatives);
+    if (userSelection != null) onAlternativeCardSelected(request.select(userSelection));
   }
 
   Widget _buildHeaderSection(BuildContext context) {

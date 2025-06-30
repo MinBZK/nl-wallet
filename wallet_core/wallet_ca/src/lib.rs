@@ -28,7 +28,7 @@ pub fn read_self_signed_ca(ca_crt_file: &CachedInput, ca_key_file: &CachedInput)
 
 pub fn write_certificate(certificate: &impl AsRef<[u8]>, file_prefix: &str, force: bool) -> Result<()> {
     // Verify certificate file does not exist before writing (depending on force)
-    let crt_file = format!("{}.crt.pem", file_prefix);
+    let crt_file = format!("{file_prefix}.crt.pem");
     let crt_path = Path::new(&crt_file);
     assert_not_exists(crt_path, force)?;
 
@@ -40,7 +40,7 @@ pub fn write_certificate(certificate: &impl AsRef<[u8]>, file_prefix: &str, forc
 pub fn write_key_pair(certificate: &impl AsRef<[u8]>, key: &SigningKey, file_prefix: &str, force: bool) -> Result<()> {
     // Verify certificate and key files do not exist before writing to either (depending on force)
     // We verify this before calling write_certificate_inner to avoid writing the certificate if the key file fails.
-    let key_file = format!("{}.key.pem", file_prefix);
+    let key_file = format!("{file_prefix}.key.pem");
     let key_path = Path::new(&key_file);
     assert_not_exists(key_path, force)?;
 

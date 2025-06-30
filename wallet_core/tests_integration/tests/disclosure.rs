@@ -144,7 +144,7 @@ async fn test_disclosure_usecases_ok(
 
     let mut disclosed_attributes_url = urls
         .verifier_internal_url
-        .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+        .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
 
     // disclosed attributes endpoint should return a response with code Bad Request when the status is not DONE
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
@@ -291,7 +291,7 @@ async fn test_disclosure_without_pid() {
 
     let disclosed_attributes_url = urls
         .verifier_internal_url
-        .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+        .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
 
     assert_matches!(
         get_verifier_status(&client, status_url.clone()).await,

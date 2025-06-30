@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2025-06-06T14:47:24+02:00",
+    "@@last_modified": "2025-06-17T13:13:35+02:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -201,6 +201,7 @@
     },
     "checkAgreementPageSubtitle": "Controleer de afspraken voor je verder gaat.",
     "checkAgreementPageTitle": "Ken je de afspraken?",
+    "checkAttributesScreenChangeCardCta": "Wissel kaart",
     "checkAttributesScreenDataIncorrectCta": "Kloppen je gegevens niet?",
     "checkAttributesScreenSubtitle": "Kaart uitgegeven door {issuer}",
     "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} gegeven uit {title}} other {{count} gegevens uit {title}}}",
@@ -1123,6 +1124,7 @@
     "scanWithWalletDialogBody": "Het lijkt erop dat je een QR-code hebt gescand met een andere app. Scan voor de zekerheid de QR-code met de NL Wallet.",
     "scanWithWalletDialogScanCta": "Scan QR-code",
     "scanWithWalletDialogTitle": "Scan QR-code met NL Wallet",
+    "selectCardSheetTitle": "Kies een andere kaart",
     "settingsScreenChangeLanguageCta": "Taal veranderen",
     "settingsScreenChangePinCta": "Pincode veranderen",
     "settingsScreenClearDataCta": "Gegevens verwijderen",
@@ -1167,6 +1169,7 @@
     "setupSecurityLoadingPageTitle": "Even geduld",
     "setupSecurityScreenWCAGPinChosenAnnouncement": "Pincode gekozen. Herhaal pincode om te bevestigen.",
     "setupSecuritySelectPinPageTitle": "Kies een 6-cijferige pincode",
+    "sharedAttributesCardChangeCardCta": "Wissel kaart",
     "sharedAttributesCardCta": "Bekijk",
     "sharedAttributesCardCtaSemanticsLabel": "Bekijk {card}",
     "@sharedAttributesCardCtaSemanticsLabel": {

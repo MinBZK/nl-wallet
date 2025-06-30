@@ -337,7 +337,7 @@
 //         _url: BaseUrl,
 //         error: ErrorResponse<VpAuthorizationErrorCode>,
 //     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
-//         panic!("error: {:?}", error)
+//         panic!("error: {error:?}", error)
 //     }
 // }
 

@@ -279,13 +279,13 @@ impl CommandExtension for Command {
 fn keypair_paths(temp: &TempDir, prefix: &str) -> (ChildPath, ChildPath, ChildPath) {
     (
         temp.child(prefix),
-        temp.child(format!("{}.crt.pem", prefix)),
-        temp.child(format!("{}.key.pem", prefix)),
+        temp.child(format!("{prefix}.crt.pem")),
+        temp.child(format!("{prefix}.key.pem")),
     )
 }
 
 fn public_key_path(temp: &TempDir, prefix: &str) -> ChildPath {
-    temp.child(format!("{}.pk.pem", prefix))
+    temp.child(format!("{prefix}.pk.pem"))
 }
 
 fn generate_public_key(path: &ChildPath) {

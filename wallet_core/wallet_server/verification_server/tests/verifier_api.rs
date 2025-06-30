@@ -381,9 +381,9 @@ async fn test_requester_authentication(#[case] mut auth: RequesterAuth) {
     let public_disclosed_attributes_url = settings
         .server_settings
         .public_url
-        .join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+        .join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
     let internal_disclosed_attributes_url =
-        internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+        internal_url.join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
 
     // check if using no token returns a 401 on the (public) attributes URL if an API key is used and a 404 otherwise
     // (because it is served on the internal URL)
@@ -746,7 +746,7 @@ async fn test_disclosure_expired<S, F, Fut>(
 
     // Fetching the disclosed attributes should return 400, since the session is not finished.
     let disclosed_attributes_url =
-        internal_url.join(&format!("disclosure/sessions/{}/disclosed_attributes", session_token));
+        internal_url.join(&format!("disclosure/sessions/{session_token}/disclosed_attributes"));
     let response = client.get(disclosed_attributes_url.clone()).send().await.unwrap();
 
     test_http_json_error_body(response, StatusCode::BAD_REQUEST, "session_state").await;

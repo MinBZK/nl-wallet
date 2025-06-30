@@ -1,7 +1,7 @@
 import '../attribute/attribute.dart';
 import '../organization.dart';
 import '../policy/policy.dart';
-import '../requested_attributes.dart';
+import 'disclose_card_request.dart';
 import 'disclosure_session_type.dart';
 import 'disclosure_type.dart';
 
@@ -22,7 +22,7 @@ sealed class StartDisclosureResult {
 }
 
 class StartDisclosureReadyToDisclose extends StartDisclosureResult {
-  final RequestedAttributes requestedAttributes;
+  final List<DiscloseCardRequest> cardRequests;
   final Policy policy;
   final DisclosureType type;
 
@@ -32,7 +32,7 @@ class StartDisclosureReadyToDisclose extends StartDisclosureResult {
     required super.requestPurpose,
     required super.sessionType,
     required this.type,
-    required this.requestedAttributes,
+    required this.cardRequests,
     required this.policy,
     required super.sharedDataWithOrganizationBefore,
   });

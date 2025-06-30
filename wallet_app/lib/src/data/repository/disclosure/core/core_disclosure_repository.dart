@@ -2,6 +2,7 @@ import 'package:wallet_core/core.dart' as core;
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
+import '../../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../../domain/model/disclosure/disclosure_type.dart';
 import '../../../../domain/model/organization.dart';
@@ -38,7 +39,6 @@ class CoreDisclosureRepository implements DisclosureRepository {
     switch (result) {
       case core.StartDisclosureResult_Request():
         final cards = _attestationMapper.mapList(result.requestedAttestations);
-        final requestedAttributes = cards.asMap().map((key, value) => MapEntry(value, value.attributes));
         final relyingParty = _relyingPartyMapper.map(result.relyingParty);
         final policy = _requestPolicyMapper.map(result.policy);
         return StartDisclosureReadyToDisclose(
@@ -47,7 +47,7 @@ class CoreDisclosureRepository implements DisclosureRepository {
           requestPurpose: _localizedStringMapper.map(result.requestPurpose),
           sessionType: _disclosureSessionTypeMapper.map(result.sessionType),
           type: _disclosureTypeMapper.map(result.requestType),
-          requestedAttributes: requestedAttributes,
+          cardRequests: cards.map(DiscloseCardRequest.fromCard).toList(),
           policy: policy,
           sharedDataWithOrganizationBefore: result.sharedDataWithRelyingPartyBefore,
         );

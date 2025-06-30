@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
@@ -8,6 +9,7 @@ import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../test_util/golden_utils.dart';
 
 const _defaultTestSurfaceSize = Size(328, 208);
+const _largeTestSurfaceSize = Size(328, 260);
 
 void main() {
   group('widgets', () {
@@ -70,7 +72,7 @@ void main() {
         SharedAttributesCard(
           card: WalletMockData.card,
           attributes: WalletMockData.card.attributes,
-          onTap: () => listenerTriggered = true,
+          onPressed: () => listenerTriggered = true,
         ),
       );
 
@@ -96,7 +98,7 @@ void main() {
             child: SharedAttributesCard(
               card: WalletMockData.simpleRenderingCard,
               attributes: WalletMockData.simpleRenderingCard.attributes + WalletMockData.simpleRenderingCard.attributes,
-              onTap: () {},
+              onPressed: () {},
             ),
           ),
         );
@@ -115,12 +117,122 @@ void main() {
             child: SharedAttributesCard(
               card: WalletMockData.card,
               attributes: WalletMockData.card.attributes,
-              onTap: () {},
+              onPressed: () {},
             ),
           ),
           brightness: Brightness.dark,
         );
         await screenMatchesGolden('shared_attributes/mock');
+      },
+    );
+    testGoldens(
+      'shared attributes with change card button - light mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _largeTestSurfaceSize,
+          Container(
+            height: _largeTestSurfaceSize.height,
+            width: _largeTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              onPressed: () {},
+              onChangeCardPressed: () {},
+            ),
+          ),
+        );
+        await screenMatchesGolden('shared_attributes/change_card.light');
+      },
+    );
+    testGoldens(
+      'shared attributes with change card button - dark mode',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _largeTestSurfaceSize,
+          Container(
+            height: _largeTestSurfaceSize.height,
+            width: _largeTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: SharedAttributesCard(
+              card: WalletMockData.card,
+              attributes: WalletMockData.card.attributes,
+              onPressed: () {},
+              onChangeCardPressed: () {},
+            ),
+          ),
+          brightness: Brightness.dark,
+        );
+        await screenMatchesGolden('shared_attributes/change_card.dark');
+      },
+    );
+
+    testGoldens(
+      'shared attributes with simple rendering card - light mode - focused',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _defaultTestSurfaceSize,
+          Container(
+            height: _defaultTestSurfaceSize.height,
+            width: _defaultTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.simpleRenderingCard,
+              attributes: WalletMockData.simpleRenderingCard.attributes + WalletMockData.simpleRenderingCard.attributes,
+              onPressed: () {},
+            ),
+          ),
+        );
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('shared_attributes/simple.focused');
+      },
+    );
+
+    testGoldens(
+      'shared attributes with change card button - light mode - focus on top section',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _largeTestSurfaceSize,
+          Container(
+            height: _largeTestSurfaceSize.height,
+            width: _largeTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.simpleRenderingCard,
+              attributes: WalletMockData.simpleRenderingCard.attributes,
+              onPressed: () {},
+              onChangeCardPressed: () {},
+            ),
+          ),
+        );
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('shared_attributes/change_card.focused.top');
+      },
+    );
+
+    testGoldens(
+      'shared attributes with change card button - light mode - focus on bottom section',
+      (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          surfaceSize: _largeTestSurfaceSize,
+          Container(
+            height: _largeTestSurfaceSize.height,
+            width: _largeTestSurfaceSize.width,
+            padding: const EdgeInsets.only(bottom: 8) /* to allow shadow to render */,
+            child: SharedAttributesCard(
+              card: WalletMockData.simpleRenderingCard,
+              attributes: WalletMockData.simpleRenderingCard.attributes,
+              onPressed: () {},
+              onChangeCardPressed: () {},
+            ),
+          ),
+        );
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        await screenMatchesGolden('shared_attributes/change_card.focused.bottom');
       },
     );
   });

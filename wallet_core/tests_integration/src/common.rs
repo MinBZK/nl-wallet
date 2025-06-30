@@ -90,25 +90,25 @@ fn init() {
 }
 
 pub fn local_wp_base_url(port: u16) -> BaseUrl {
-    format!("https://localhost:{}/api/v1/", port)
+    format!("https://localhost:{port}/api/v1/")
         .parse()
         .expect("hardcode values should always parse successfully")
 }
 
 pub fn local_config_base_url(port: u16) -> BaseUrl {
-    format!("https://localhost:{}/config/v1/", port)
+    format!("https://localhost:{port}/config/v1/")
         .parse()
         .expect("hardcoded values should always parse successfully")
 }
 
 pub fn local_ups_base_url(port: u16) -> BaseUrl {
-    format!("https://localhost:{}/update/v1/", port)
+    format!("https://localhost:{port}/update/v1/")
         .parse()
         .expect("hardcoded values should always parse successfully")
 }
 
 pub fn local_pid_base_url(port: u16) -> BaseUrl {
-    format!("http://localhost:{}/issuance/", port)
+    format!("http://localhost:{port}/issuance/")
         .parse()
         .expect("hardcoded values should always parse successfully")
 }
@@ -357,7 +357,7 @@ pub async fn start_config_server(settings: CsSettings, trust_anchor: ReqwestTrus
 
     tokio::spawn(async {
         if let Err(error) = configuration_server::server::serve_with_listener(listener, settings).await {
-            println!("Could not start config_server: {:?}", error);
+            println!("Could not start config_server: {error:?}");
             process::exit(1);
         }
     });
@@ -373,7 +373,7 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
 
     tokio::spawn(async {
         if let Err(error) = update_policy_server::server::serve_with_listener(listener, settings).await {
-            println!("Could not start update_policy_server: {:?}", error);
+            println!("Could not start update_policy_server: {error:?}");
             process::exit(1);
         }
     });
@@ -402,7 +402,7 @@ pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_a
         )
         .await
         {
-            println!("Could not start wallet_provider: {:?}", error);
+            println!("Could not start wallet_provider: {error:?}");
 
             process::exit(1);
         }
@@ -493,7 +493,7 @@ async fn start_mock_attestation_server(
             .expect("issuance server should be started");
     });
 
-    let url: BaseUrl = format!("https://localhost:{}/", port).as_str().parse().unwrap();
+    let url: BaseUrl = format!("https://localhost:{port}/").as_str().parse().unwrap();
     wait_for_server(url.clone(), std::iter::once(trust_anchor.into_certificate())).await;
     url
 }
@@ -505,7 +505,7 @@ pub async fn start_issuance_server(
 ) -> BaseUrl {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let public_url = BaseUrl::from_str(format!("http://localhost:{}/", port).as_str()).unwrap();
+    let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
     settings.issuer_settings.server_settings.public_url = public_url.clone();
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
@@ -528,7 +528,7 @@ pub async fn start_issuance_server(
         )
         .await
         {
-            println!("Could not start issuance_server: {:?}", error);
+            println!("Could not start issuance_server: {error:?}");
 
             process::exit(1);
         }
@@ -545,7 +545,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
 ) -> u16 {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
-    let public_url = BaseUrl::from_str(format!("http://localhost:{}/", port).as_str()).unwrap();
+    let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
 
     let storage_settings = &settings.issuer_settings.server_settings.storage;
     settings.issuer_settings.server_settings.public_url = public_url.clone();
@@ -569,7 +569,7 @@ pub async fn start_pid_issuer_server<A: AttributeService + Send + Sync + 'static
         )
         .await
         {
-            println!("Could not start pid_issuer: {:?}", error);
+            println!("Could not start pid_issuer: {error:?}");
 
             process::exit(1);
         }
@@ -593,7 +593,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         }
     };
 
-    let public_url = BaseUrl::from_str(format!("http://localhost:{}/", port).as_str()).unwrap();
+    let public_url = BaseUrl::from_str(format!("http://localhost:{port}/").as_str()).unwrap();
     let internal_url = internal_url(&settings);
 
     let storage_settings = &settings.server_settings.storage;
@@ -615,7 +615,7 @@ pub async fn start_verification_server(mut settings: VerifierSettings, hsm: Opti
         )
         .await
         {
-            println!("Could not start verification_server: {:?}", error);
+            println!("Could not start verification_server: {error:?}");
 
             process::exit(1);
         }
@@ -670,7 +670,7 @@ pub async fn start_gba_hc_converter(settings: GbaSettings) {
                     return;
                 }
             }
-            println!("Could not start gba_hc_converter: {:?}", error);
+            println!("Could not start gba_hc_converter: {error:?}");
             process::exit(1);
         }
     });

@@ -391,7 +391,7 @@ class OtherStylesTab extends StatelessWidget {
         const ThemeSectionSubHeader(title: 'SharedWalletCard'),
         SharedAttributesCard(
           card: _kSampleCard,
-          attributes: _kSampleCard.attributes,
+          attributes: [_kSampleCard.attributes.first],
         ),
       ],
     );
@@ -505,7 +505,7 @@ class OtherStylesTab extends StatelessWidget {
         const PinHeader(title: 'Title', description: 'Description', hasError: false),
         const ThemeSectionSubHeader(title: 'SelectCardRow'),
         SelectCardRow(
-          onCardSelectionToggled: (_) {},
+          onPressed: () {},
           card: WalletCard(
             id: 'row_id',
             docType: 'docType',
@@ -513,7 +513,6 @@ class OtherStylesTab extends StatelessWidget {
             attributes: const [],
             issuer: _kSampleOrganization,
           ),
-          isSelected: true,
         ),
         const ThemeSectionSubHeader(title: 'StatusIcon'),
         const StatusIcon(icon: Icons.ac_unit),

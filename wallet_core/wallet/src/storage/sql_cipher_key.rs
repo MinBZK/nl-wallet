@@ -8,7 +8,7 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
     bytes
         .iter()
         .fold(String::with_capacity(bytes.len() * 2), |mut result, b| {
-            let _ = write!(result, "{:02X}", b);
+            let _ = write!(result, "{b:02X}");
             result
         })
 }
@@ -58,7 +58,7 @@ impl From<&SqlCipherKey> for String {
         let key_hex = bytes_to_hex(&value.key);
         let salt_hex = value.salt.as_ref().map(|s| bytes_to_hex(s)).unwrap_or_default();
 
-        format!("x'{}{}'", key_hex, salt_hex)
+        format!("x'{key_hex}{salt_hex}'")
     }
 }
 

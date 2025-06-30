@@ -9,22 +9,23 @@ import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/bloc/network_error_state.dart';
 import '../../../domain/model/card/wallet_card.dart';
+import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/policy/policy.dart';
-import '../../../domain/model/requested_attributes.dart';
 import '../../../domain/model/result/application_error.dart';
 import '../../../domain/usecase/issuance/cancel_issuance_usecase.dart';
 import '../../../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../../../util/cast_util.dart';
+import '../../../util/extension/list_extension.dart';
 
 part 'issuance_event.dart';
 part 'issuance_state.dart';
 
 class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
-  final StartIssuanceUseCase startIssuanceUseCase;
+  final StartIssuanceUseCase _startIssuanceUseCase;
   final CancelIssuanceUseCase _cancelIssuanceUseCase;
 
   StartIssuanceResult? _startIssuanceResult;
@@ -36,8 +37,11 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     return _startIssuanceResult?.sessionType == DisclosureSessionType.crossDevice;
   }
 
+  /// A cached version of the user's card selection, used when navigating back and forth from the selection page.
+  List<DiscloseCardRequest>? _cardRequestsSelectionCache;
+
   IssuanceBloc(
-    this.startIssuanceUseCase,
+    this._startIssuanceUseCase,
     this._cancelIssuanceUseCase,
   ) : super(const IssuanceInitial()) {
     on<IssuanceSessionStarted>(_onSessionStarted);
@@ -50,13 +54,14 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     on<IssuanceApproveCards>(_onCardsApproved);
     on<IssuanceCardToggled>(_onIssuanceCardToggled);
     on<IssuanceStopRequested>(_onIssuanceStopRequested);
+    on<IssuanceAlternativeCardSelected>(_onAlternativeCardSelected);
   }
 
   Future<void> _onSessionStarted(IssuanceSessionStarted event, Emitter<IssuanceState> emit) async {
     // Cancel any potential ongoing (disclosure based) issuance session, needed for when the user taps an issuance
     // deeplink during an active issuance (or disclosure) session (e.g. by switching back to the browser).
     await _cancelIssuanceUseCase.invoke();
-    final startResult = await startIssuanceUseCase.invoke(event.issuanceUri, isQrCode: event.isQrCode);
+    final startResult = await _startIssuanceUseCase.invoke(event.issuanceUri, isQrCode: event.isQrCode);
 
     /// Handle [error]/[ready to disclose]/[missing attributes] cases.
     await startResult.process(
@@ -69,7 +74,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
               IssuanceCheckOrganization(
                 organization: result.relyingParty,
                 policy: result.policy,
-                requestedAttributes: result.requestedAttributes,
+                cardRequests: result.cardRequests,
+                purpose: result.requestPurpose,
               ),
             );
           case StartIssuanceMissingAttributes():
@@ -82,6 +88,17 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
         }
       },
     );
+  }
+
+  void _onAlternativeCardSelected(IssuanceAlternativeCardSelected event, Emitter<IssuanceState> emit) {
+    final state = this.state;
+    assert(state is IssuanceCheckOrganization, 'BloC in invalid state for card manipulation');
+    if (state is IssuanceCheckOrganization) {
+      final updatedState = state.updateWith(event.updatedCardRequest);
+      // We store a copy of the altered user selection, so that the selection is kept when navigating away from this state.
+      _cardRequestsSelectionCache = updatedState.cardRequests;
+      emit(updatedState);
+    }
   }
 
   Future<void> _onIssuanceBackPressed(event, Emitter<IssuanceState> emit) async {
@@ -99,7 +116,8 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
           IssuanceCheckOrganization(
             organization: startIssuanceResult.relyingParty,
             policy: (startIssuanceResult as StartIssuanceReadyToDisclose).policy,
-            requestedAttributes: startIssuanceResult.requestedAttributes,
+            cardRequests: _cardRequestsSelectionCache ?? startIssuanceResult.cardRequests,
+            purpose: startIssuanceResult.requestPurpose,
             afterBackPressed: true,
           ),
         );
