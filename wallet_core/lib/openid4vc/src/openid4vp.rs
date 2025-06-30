@@ -841,6 +841,7 @@ mod tests {
     use rustls_pki_types::TrustAnchor;
     use serde_json::json;
 
+    use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
@@ -1248,7 +1249,7 @@ mod tests {
 
         let auth_response = VpAuthorizationResponse::new(device_response, &auth_request, poa);
 
-        auth_response
+        let attestations = auth_response
             .verify(
                 &auth_request,
                 &[MOCK_WALLET_CLIENT_ID.to_string()],
@@ -1257,6 +1258,23 @@ mod tests {
                 &[ca.to_trust_anchor()],
             )
             .unwrap();
+
+        assert_eq!(attestations.len(), 1);
+
+        let (attestation_type, attestation) = attestations.first().unwrap();
+
+        assert_eq!("urn:eudi:pid:nl:1", attestation_type.as_str(),);
+        let DisclosedAttributes::MsoMdoc(attributes) = &attestation.attributes else {
+            panic!("should be mdoc attributes")
+        };
+
+        let (namespace, mdoc_attributes) = &attributes.first().unwrap();
+        assert_eq!("urn:eudi:pid:nl:1", namespace.as_str());
+
+        assert_eq!(
+            vec!["bsn", "given_name", "family_name"],
+            mdoc_attributes.keys().map(|key| key.as_str()).collect_vec()
+        );
     }
 
     async fn setup_poa_test(ca: &Ca) -> (Vec<(IssuerSigned, MockRemoteEcdsaKey)>, IsoVpAuthorizationRequest) {
