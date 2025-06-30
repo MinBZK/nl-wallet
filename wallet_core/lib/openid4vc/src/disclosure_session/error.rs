@@ -74,7 +74,7 @@ pub enum VpClientError {
     MultipleCandidates(Vec<String>),
 
     #[error("error encrypting Authorization Response: {0}")]
-    #[category(unexpected)]
+    #[category(defer)]
     AuthResponseEncryption(#[source] AuthResponseError),
 
     #[error("error deserializing request_uri object: {0}")]

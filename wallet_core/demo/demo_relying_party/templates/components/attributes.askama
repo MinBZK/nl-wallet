@@ -1,22 +1,16 @@
 {% macro attributes(attributes) %}
 <dl class="attributes">
-{% for doctype in attributes %}
-    {% for namespace in doctype.1.attributes %}
-        {% for (key, value) in namespace.1 %}
-            <dt>{{ base.trans[key.as_str()] }}</dt>
-            <dd>
-            {% match value %}
-            {% when Value::Text(text) %}
-                {{ text }}
-            {% when Value::Integer(int) %}
-                {{ "{:?}" | format(int) }}
-            {% when Value::Bool(bool) %}
-                {{ base.trans[format!("{bool:?}").as_str()] }}
-            {% else %}
-                {{ "{:?}" | format(value) }}
-            {% endmatch %}
-            </dd>
-        {% endfor %}
+{% for (attestation_type, attestation) in attributes %}
+    {% for (key, value) in attestation.attributes.flattened() %}
+        <dt>{{ base.trans[key.into_last()] }}</dt>
+        <dd>
+        {% match value %}
+        {% when AttributeValue::Bool(bool) %}
+            {{ base.trans[format!("{bool:?}").as_str()] }}
+        {% else %}
+            {{ value }}
+        {% endmatch %}
+        </dd>
     {% endfor %}
 {% endfor %}
 </dl>

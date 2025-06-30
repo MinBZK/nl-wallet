@@ -6,6 +6,7 @@ use regex::Regex;
 
 use utils::path::prefix_local_path;
 
+pub mod disclosure;
 pub mod error;
 pub mod headers;
 pub mod language;

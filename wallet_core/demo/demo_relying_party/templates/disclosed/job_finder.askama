@@ -1,4 +1,4 @@
-{% let username = attributes | attribute("given_name") %}
+{% let username = attributes | attribute("urn:eudi:pid:nl:1.given_name") %}
 {% call header::header(base.trans.job_title, Some(base.trans.job_title_part), Some(username)) %}
 <main>
     <section>

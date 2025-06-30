@@ -17,7 +17,6 @@ config = { workspace = true, features = ["preserve_order", "toml"] }
 indexmap.workspace = true
 itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_tuple.workspace = true
 serde_urlencoded.workspace = true
 strum.workspace = true
 tokio = { workspace = true, features = ["parking_lot", "rt-multi-thread", "net"] }

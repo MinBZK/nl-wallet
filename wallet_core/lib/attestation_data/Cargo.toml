@@ -12,6 +12,7 @@ examples = []
 example_credential_payloads = ["dep:rand_core"]
 generate = ["dep:rcgen", "crypto/generate"]
 mock = ["crypto/mock", "mdoc/test"]
+test = ["derive_more/unwrap"]
 
 [dependencies]
 chrono.workspace = true
@@ -48,6 +49,7 @@ utils.path = "../utils"
 [dev-dependencies]
 assert_matches.workspace = true
 chrono = { workspace = true, features = ["std", "clock"] }
+derive_more = { workspace = true, features = ["unwrap"] }
 futures.workspace = true
 rand_core.workspace = true
 rcgen = { workspace = true, features = ["x509-parser", "aws_lc_rs"] }
