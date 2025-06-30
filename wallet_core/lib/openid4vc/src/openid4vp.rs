@@ -830,6 +830,7 @@ pub struct VpResponse {
 mod tests {
     use std::borrow::Cow;
 
+    use attestation_data::request::NormalizedCredentialRequests;
     use chrono::DateTime;
     use chrono::Utc;
     use futures::future::join_all;
@@ -850,7 +851,6 @@ mod tests {
     use crypto::server_keys::KeyPair;
     use dcql::CredentialQueryFormat;
     use jwt::Jwt;
-    use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::test::data::addr_street;
@@ -860,7 +860,6 @@ mod tests {
     use mdoc::utils::serialization::CborBase64;
     use mdoc::utils::serialization::CborSeq;
     use mdoc::utils::serialization::TaggedBytes;
-    use mdoc::verifier::ItemsRequests;
     use mdoc::DeviceAuthenticationKeyed;
     use mdoc::DeviceResponse;
     use mdoc::DeviceResponseVersion;
@@ -900,11 +899,11 @@ mod tests {
     }
 
     fn setup() -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
-        setup_with_items_requests(&example_items_requests())
+        setup_with_items_requests(&NormalizedCredentialRequests::example())
     }
 
     fn setup_with_items_requests(
-        items_request: &ItemsRequests,
+        credential_requests: &NormalizedCredentialRequests,
     ) -> (TrustAnchor<'static>, KeyPair, EcKeyPair, VpAuthorizationRequest) {
         let ca = Ca::generate("myca", Default::default()).unwrap();
         let trust_anchor = ca.to_trust_anchor().to_owned();
@@ -913,7 +912,7 @@ mod tests {
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            &items_request.clone().into(),
+            credential_requests,
             rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
@@ -1234,7 +1233,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_items_requests(&pid_example_items_requests());
+        let (_, _, _, auth_request) = setup_with_items_requests(&pid_example_items_requests().into());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();

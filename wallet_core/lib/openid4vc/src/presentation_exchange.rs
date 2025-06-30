@@ -249,6 +249,7 @@ impl PresentationSubmission {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
+    use attestation_data::request::NormalizedCredentialRequests;
     use rstest::rstest;
     use serde_json::json;
 
@@ -281,6 +282,15 @@ mod tests {
         let converted: ItemsRequests = (&pd).try_into().unwrap();
 
         assert_eq!(items_requests, converted);
+    }
+
+    #[test]
+    fn convert_pd_credential_requests() {
+        let orginal: NormalizedCredentialRequests = NormalizedCredentialRequests::example();
+        let pd: PresentationDefinition = (&orginal).into();
+        let converted: NormalizedCredentialRequests = (&pd).try_into().unwrap();
+
+        assert_eq!(orginal, converted);
     }
 
     #[test]

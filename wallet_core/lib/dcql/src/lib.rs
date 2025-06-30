@@ -82,7 +82,7 @@ pub enum ClaimsSelection {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "format", content = "meta", rename_all = "snake_case")]
 pub enum CredentialQueryFormat {
     MsoMdoc {

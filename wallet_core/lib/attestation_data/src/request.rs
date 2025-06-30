@@ -28,7 +28,7 @@ pub enum ResponseError {
 }
 
 #[nutype(
-    derive(Debug, Clone, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
+    derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
     validate(predicate = |items| !items.is_empty()),
 )]
 pub struct NormalizedCredentialRequests(Vec<NormalizedCredentialRequest>);
@@ -96,14 +96,14 @@ impl NormalizedCredentialRequests {
 }
 
 /// Request for a credential.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NormalizedCredentialRequest {
     pub format: CredentialQueryFormat,
     pub claims: Vec<AttributeRequest>,
 }
 
 /// Request for a single attribute with the given [path].
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AttributeRequest {
     pub path: VecNonEmpty<ClaimPath>,
     pub intent_to_retain: bool,
