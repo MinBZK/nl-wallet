@@ -28,7 +28,7 @@ pub enum AttributeValue {
 #[derive(Debug, thiserror::Error)]
 pub enum AttributeError {
     #[error("unable to convert mdoc cbor value: {0:?}")]
-    FromCborConversion(ciborium::Value),
+    FromCborConversion(Box<ciborium::Value>),
 
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
@@ -68,7 +68,7 @@ impl TryFrom<ciborium::Value> for AttributeValue {
             ciborium::Value::Array(elements) => Ok(AttributeValue::Array(
                 elements.into_iter().map(Self::try_from).try_collect()?,
             )),
-            _ => Err(AttributeError::FromCborConversion(value)),
+            _ => Err(AttributeError::FromCborConversion(Box::new(value))),
         }
     }
 }
