@@ -2,6 +2,7 @@ use derive_more::Display;
 use indexmap::IndexSet;
 
 use crate::DataElementIdentifier;
+use crate::Document;
 use crate::NameSpace;
 
 #[derive(Debug, Display, PartialEq, Eq, Hash, Clone)]
@@ -20,6 +21,15 @@ pub trait AttributeIdentifierHolder {
         self.attribute_identifiers()
             .into_iter()
             .filter(|attribute| !other_attributes.contains(attribute))
+            .collect()
+    }
+
+    /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
+    fn match_against_issuer_signed(&self, document: &Document) -> Vec<AttributeIdentifier> {
+        let document_identifiers = document.issuer_signed_attribute_identifiers();
+        self.attribute_identifiers()
+            .into_iter()
+            .filter(|attribute| !document_identifiers.contains(attribute))
             .collect()
     }
 }

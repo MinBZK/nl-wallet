@@ -418,8 +418,8 @@ pub mod data {
     use super::*;
 
     pub const PID: &str = "urn:eudi:pid:nl:1";
-    const ADDR: &str = "urn:eudi:pid-address:nl:1";
-    const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
+    pub const ADDR: &str = "urn:eudi:pid-address:nl:1";
+    pub const ADDR_NS: &str = "urn:eudi:pid-address:nl:1.address";
 
     pub fn empty() -> TestDocuments {
         vec![].into()

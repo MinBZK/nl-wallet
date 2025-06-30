@@ -344,17 +344,6 @@ impl Document {
     }
 }
 
-impl ItemsRequest {
-    /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
-    pub fn match_against_issuer_signed(&self, document: &Document) -> Vec<AttributeIdentifier> {
-        let document_identifiers = document.issuer_signed_attribute_identifiers();
-        self.attribute_identifiers()
-            .into_iter()
-            .filter(|attribute| !document_identifiers.contains(attribute))
-            .collect()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::ops::Add;

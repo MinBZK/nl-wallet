@@ -21,6 +21,7 @@ derive_more = { workspace = true, features = ["debug", "display"] }
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
 jsonwebtoken.workspace = true
+nutype.workspace = true
 p256.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
@@ -37,6 +38,7 @@ rcgen = { workspace = true, optional = true, features = ["x509-parser", "aws_lc_
 
 attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
+dcql.path = "../dcql"
 error_category.path = "../error_category"
 http_utils.path = "../http_utils"
 jwt.path = "../jwt"
