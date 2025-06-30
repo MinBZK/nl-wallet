@@ -17,8 +17,6 @@ pub use self::http::HttpVpMessageClient;
 mod error;
 mod http;
 
-// TODO: Remove this when implementing VpDisclosureClient and VpDisclosureSession tests.
-#[allow(dead_code)]
 #[cfg(test)]
 pub mod mock;
 

@@ -852,7 +852,6 @@ mod tests {
     use mdoc::examples::Example;
     use mdoc::holder::Mdoc;
     use mdoc::test::data::addr_street;
-    use mdoc::test::data::pid_example_items_requests;
     use mdoc::test::data::pid_full_name;
     use mdoc::utils::serialization::cbor_serialize;
     use mdoc::utils::serialization::CborBase64;
@@ -1228,7 +1227,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_verify_authorization_response() {
-        let (_, _, _, auth_request) = setup_with_items_requests(&pid_example_items_requests());
+        let (_, _, _, auth_request) = setup_with_items_requests(&ItemsRequests::new_pid_example());
         let mdoc_nonce = "mdoc_nonce";
 
         let time_generator = MockTimeGenerator::default();

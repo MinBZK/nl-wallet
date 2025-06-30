@@ -17,8 +17,8 @@ use crypto::server_keys::KeyPair;
 use crypto::utils;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
-use mdoc::iso::device_retrieval::ItemsRequest;
 use mdoc::verifier::ItemsRequests;
+use mdoc::SessionTranscript;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -42,41 +42,29 @@ pub enum WalletMessage {
     Error(ErrorResponse<VpAuthorizationErrorCode>),
 }
 
-impl WalletMessage {
-    pub fn request(&self) -> &WalletRequest {
-        match self {
-            WalletMessage::Request(request) => request,
-            _ => panic!("not a request"),
-        }
-    }
-
-    pub fn disclosure(&self) -> &str {
-        match self {
-            WalletMessage::Disclosure(jwe) => jwe,
-            _ => panic!("not a disclosure"),
-        }
-    }
-
-    pub fn error(&self) -> &ErrorResponse<VpAuthorizationErrorCode> {
-        match self {
-            WalletMessage::Error(error) => error,
-            _ => panic!("not a error"),
-        }
-    }
-}
-
 /// An implementation of [`VpMessageClient`] that sends an error made by the response factory,
 /// allowing inspection of the messages that were sent.
-#[derive(Debug, Clone, Constructor)]
+#[derive(Debug, Clone)]
 pub struct MockErrorFactoryVpMessageClient<F> {
+    pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
     #[debug(skip)]
     pub response_factory: F,
-    pub wallet_messages: Arc<Mutex<Vec<WalletMessage>>>,
+    pub error_has_error: bool,
+}
+
+impl<F> MockErrorFactoryVpMessageClient<F> {
+    pub fn new(response_factory: F, error_has_error: bool) -> Self {
+        Self {
+            wallet_messages: Arc::new(Mutex::new(Vec::new())),
+            response_factory,
+            error_has_error,
+        }
+    }
 }
 
 impl<F> VpMessageClient for MockErrorFactoryVpMessageClient<F>
 where
-    F: Fn() -> Option<VpMessageClientError>,
+    F: Fn() -> VpMessageClientError,
 {
     async fn get_authorization_request(
         &self,
@@ -86,7 +74,7 @@ where
         self.wallet_messages
             .lock()
             .push(WalletMessage::Request(WalletRequest { wallet_nonce }));
-        let error = (self.response_factory)().unwrap();
+        let error = (self.response_factory)();
 
         Err(error)
     }
@@ -97,7 +85,7 @@ where
         jwe: String,
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Disclosure(jwe));
-        let error = (self.response_factory)().unwrap();
+        let error = (self.response_factory)();
 
         Err(error)
     }
@@ -109,14 +97,22 @@ where
     ) -> Result<Option<BaseUrl>, VpMessageClientError> {
         self.wallet_messages.lock().push(WalletMessage::Error(error));
 
-        match (self.response_factory)() {
-            Some(err) => Err(err),
-            None => Ok(None),
+        if self.error_has_error {
+            let error = (self.response_factory)();
+
+            Err(error)
+        } else {
+            Ok(None)
         }
     }
 }
 
-pub fn request_uri_object(mut request_uri: Url, session_type: SessionType, client_id: String) -> VpRequestUriObject {
+pub fn request_uri_object(
+    mut request_uri: Url,
+    session_type: SessionType,
+    request_uri_method: RequestUriMethod,
+    client_id: String,
+) -> VpRequestUriObject {
     request_uri.set_query(Some(
         &serde_urlencoded::to_string(VerifierUrlParameters {
             session_type,
@@ -130,7 +126,7 @@ pub fn request_uri_object(mut request_uri: Url, session_type: SessionType, clien
 
     VpRequestUriObject {
         request_uri: request_uri.try_into().unwrap(),
-        request_uri_method: Some(RequestUriMethod::POST),
+        request_uri_method: Some(request_uri_method),
         client_id,
     }
 }
@@ -138,7 +134,7 @@ pub fn request_uri_object(mut request_uri: Url, session_type: SessionType, clien
 /// Contains the minimum logic to respond with the correct verifier messages in a disclosure session,
 /// exposing fields to its user to inspect and/or modify the behaviour.
 #[derive(Debug)]
-pub struct MockVerifierSession<F> {
+pub struct MockVerifierSession {
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<TrustAnchor<'static>>,
@@ -149,22 +145,16 @@ pub struct MockVerifierSession<F> {
     pub request_uri_override: Option<String>,
     pub response_uri: BaseUrl,
     pub wallet_messages: Mutex<Vec<WalletMessage>>,
-
-    key_pair: KeyPair,
-    #[debug(skip)]
-    transform_auth_request: F,
+    pub key_pair: KeyPair,
 }
 
-impl<F> MockVerifierSession<F>
-where
-    F: Fn(VpAuthorizationRequest) -> VpAuthorizationRequest,
-{
+impl MockVerifierSession {
     pub fn new(
-        session_type: SessionType,
         verifier_url: &BaseUrl,
+        session_type: SessionType,
+        request_uri_method: RequestUriMethod,
         redirect_uri: Option<BaseUrl>,
         reader_registration: Option<ReaderRegistration>,
-        transform_auth_request: F,
     ) -> Self {
         // Generate trust anchors, signing key and certificate containing `ReaderRegistration`.
         let ca = Ca::generate_reader_mock_ca().unwrap();
@@ -178,9 +168,10 @@ where
         let request_uri_object = request_uri_object(
             verifier_url.join_base_url("request_uri").into_inner(),
             session_type,
+            request_uri_method,
             String::from(key_pair.certificate().san_dns_name().unwrap().unwrap()),
         );
-        let items_requests = vec![ItemsRequest::new_example()].into();
+        let items_requests = ItemsRequests::new_pid_example();
 
         MockVerifierSession {
             redirect_uri,
@@ -188,7 +179,6 @@ where
             reader_registration,
             key_pair,
             items_requests,
-            transform_auth_request,
             nonce,
             encryption_keypair,
             request_uri_object,
@@ -202,6 +192,10 @@ where
         self.key_pair.certificate().san_dns_name().unwrap().unwrap()
     }
 
+    pub fn session_transcript(&self, mdoc_nonce: &str) -> SessionTranscript {
+        SessionTranscript::new_oid4vp(&self.response_uri, self.client_id(), self.nonce.clone(), mdoc_nonce)
+    }
+
     pub fn request_uri_query(&self) -> String {
         self.request_uri_override
             .clone()
@@ -209,7 +203,7 @@ where
     }
 
     /// Generate the first protocol message of the verifier.
-    fn auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
+    fn signed_auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
         let request = IsoVpAuthorizationRequest::new(
             &self.items_requests,
             self.key_pair.certificate(),
@@ -221,8 +215,6 @@ where
         .unwrap()
         .into();
 
-        let request = (self.transform_auth_request)(request);
-
         Jwt::sign_with_certificate(&request, &self.key_pair)
             .now_or_never()
             .unwrap()
@@ -230,16 +222,13 @@ where
     }
 }
 
-/// Implements [`VpMessageClient`] by simply forwarding the requests to an instance of [`MockVerifierSession<F>`].
+/// Implements [`VpMessageClient`] by simply forwarding the requests to an instance of [`MockVerifierSession`].
 #[derive(Debug, Clone, Constructor)]
-pub struct MockVerifierVpMessageClient<F> {
-    session: Arc<MockVerifierSession<F>>,
+pub struct MockVerifierVpMessageClient {
+    session: Arc<MockVerifierSession>,
 }
 
-impl<F> VpMessageClient for MockVerifierVpMessageClient<F>
-where
-    F: Fn(VpAuthorizationRequest) -> VpAuthorizationRequest,
-{
+impl VpMessageClient for MockVerifierVpMessageClient {
     async fn get_authorization_request(
         &self,
         url: BaseUrl,
@@ -253,7 +242,7 @@ where
             .wallet_messages
             .lock()
             .push(WalletMessage::Request(wallet_request.clone()));
-        let auth_request = self.session.auth_request(wallet_request);
+        let auth_request = self.session.signed_auth_request(wallet_request);
 
         Ok(auth_request)
     }
