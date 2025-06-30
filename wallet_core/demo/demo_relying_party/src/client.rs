@@ -2,9 +2,9 @@ use futures::TryFutureExt;
 use reqwest::Client;
 use reqwest::Response;
 
+use demo_utils::disclosure::DemoDisclosedAttestations;
 use http_utils::error::HttpJsonErrorBody;
 use http_utils::urls::BaseUrl;
-use mdoc::verifier::DisclosedAttributes;
 use mdoc::verifier::ItemsRequests;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionToken;
@@ -83,7 +83,7 @@ impl WalletServerClient {
         &self,
         session_token: SessionToken,
         nonce: Option<String>,
-    ) -> Result<DisclosedAttributes, anyhow::Error> {
+    ) -> Result<DemoDisclosedAttestations, anyhow::Error> {
         let mut disclosed_attributes_url = self
             .base_url
             .join(&format!("/disclosure/sessions/{session_token}/disclosed_attributes"));
@@ -115,7 +115,7 @@ impl WalletServerClient {
             .and_then(|response| async { Self::error_for_response(response).await })
             .and_then(|response| async {
                 response
-                    .json::<DisclosedAttributes>()
+                    .json::<DemoDisclosedAttestations>()
                     .map_err(anyhow::Error::from)
                     .await
             })

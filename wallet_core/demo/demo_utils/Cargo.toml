@@ -14,6 +14,7 @@ askama.workspace = true
 axum = { workspace = true, features = ["query"] }
 base64.workspace = true
 nutype.workspace = true
+indexmap.workspace = true
 regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 strum.workspace = true
@@ -21,9 +22,12 @@ serde_with = { workspace = true, features = ["macros"] }
 tower-http.workspace = true
 tracing.workspace = true
 
-crypto = { path = "../../lib/crypto" }
+attestation_data.path = "../../lib/attestation_data"
+crypto.path = "../../lib/crypto"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
+openid4vc.path = "../../lib/openid4vc"
 utils.path = "../../lib/utils"
 
 [dev-dependencies]
 rstest.workspace = true
+serde_json.workspace = true

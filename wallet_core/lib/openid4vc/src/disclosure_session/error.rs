@@ -62,7 +62,7 @@ pub enum VpClientError {
     Poa(#[source] Box<dyn Error + Send + Sync + 'static>),
 
     #[error("error encrypting Authorization Response: {0}")]
-    #[category(unexpected)]
+    #[category(defer)]
     AuthResponseEncryption(#[source] AuthResponseError),
 }
 

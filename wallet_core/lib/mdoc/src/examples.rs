@@ -288,17 +288,17 @@ pub mod mock {
 
         pub async fn new_mock_with_key(key: &MockRemoteEcdsaKey) -> Self {
             let ca = Ca::generate_issuer_mock_ca().unwrap();
-            Self::new_mock_inner(&ca, key).await
+            Self::new_mock_with_key_and_ca(&ca, key).await
         }
 
         pub async fn new_mock_with_ca(ca: &Ca) -> Self {
             let key = MockRemoteEcdsaKey::new("identifier".to_owned(), SigningKey::random(&mut OsRng));
-            Self::new_mock_inner(ca, &key).await
+            Self::new_mock_with_key_and_ca(ca, &key).await
         }
 
-        async fn new_mock_inner(ca: &Ca, key: &MockRemoteEcdsaKey) -> Self {
-            let test_document = pid_example().0[0].clone();
-            test_document.sign(ca, key).await
+        pub async fn new_mock_with_key_and_ca(ca: &Ca, device_key: &MockRemoteEcdsaKey) -> Self {
+            let test_document = pid_example().into_first().unwrap();
+            test_document.sign(ca, device_key).await
         }
     }
 }

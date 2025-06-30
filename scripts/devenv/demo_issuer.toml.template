@@ -16,7 +16,10 @@ key = "${DEMO_ISSUER_ATTESTATION_SERVER_KEY}"
 
 [usecases.university]
 client_id = "university.example.com"
-disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]
+
+[usecases.university.disclosed]
+credential_type = "urn:eudi:pid:nl:1"
+path = ["urn:eudi:pid:nl:1", "bsn"]
 
 [[usecases.university.999991772]]
 attestation_type = "com.example.degree"
@@ -30,7 +33,10 @@ cum_laude = false
 
 [usecases.insurance]
 client_id = "insurance.example.com"
-disclosed = ["urn:eudi:pid:nl:1", "urn:eudi:pid:nl:1", "bsn"]
+
+[usecases.insurance.disclosed]
+credential_type = "urn:eudi:pid:nl:1"
+path = ["urn:eudi:pid:nl:1", "bsn"]
 
 [[usecases.insurance.999991772]]
 attestation_type = "com.example.insurance"

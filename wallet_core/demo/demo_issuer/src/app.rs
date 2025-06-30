@@ -25,6 +25,7 @@ use tower_http::trace::TraceLayer;
 use url::Url;
 
 use attestation_data::issuable_document::IssuableDocument;
+use demo_utils::disclosure::DemoDisclosedAttestations;
 use demo_utils::error::Result;
 use demo_utils::headers::set_content_security_policy;
 use demo_utils::headers::set_static_cache_control;
@@ -34,7 +35,6 @@ use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use http_utils::urls::disclosure_based_issuance_base_uri;
 use http_utils::urls::BaseUrl;
-use mdoc::verifier::DocumentDisclosedAttributes;
 use openid4vc::openid4vp::RequestUriMethod;
 use openid4vc::openid4vp::VpRequestUriObject;
 use openid4vc::verifier::SessionType;
@@ -185,7 +185,7 @@ async fn usecase(
 async fn attestation(
     State(state): State<Arc<ApplicationState>>,
     Path(usecase): Path<String>,
-    Json(disclosed): Json<IndexMap<String, DocumentDisclosedAttributes>>,
+    Json(disclosed): Json<DemoDisclosedAttestations>,
 ) -> Result<Response> {
     let Some(usecase) = state.usecases.get(&usecase) else {
         return Ok(StatusCode::NOT_FOUND.into_response());
@@ -193,17 +193,23 @@ async fn attestation(
 
     // get the requested attribute from the disclosed attributes, ignore everything else as we trust the issuance_server
     // blindly
-    let attribute = disclosed
-        .get(&usecase.disclosed.doc_type)
-        .and_then(|document| document.attributes.get(&usecase.disclosed.namespace))
-        .and_then(|attributes| attributes.get(&usecase.disclosed.attribute_name))
-        .ok_or(anyhow::Error::msg("invalid disclosure result"))?
-        .as_text()
-        .unwrap();
+    let requested_path = usecase.disclosed.path.iter().map(String::as_str).collect::<Vec<_>>();
+    let attribute_value = disclosed
+        .get(&usecase.disclosed.credential_type)
+        .and_then(|document| {
+            document
+                .attributes
+                .flattened()
+                .iter()
+                .find_map(|(path, attribute_value)| {
+                    (path.as_ref() == requested_path).then_some(attribute_value.to_owned())
+                })
+        })
+        .ok_or(anyhow::Error::msg("invalid disclosure result"))?;
 
     let documents: Vec<IssuableDocument> = usecase
         .data
-        .get(attribute)
+        .get(attribute_value)
         .map(|docs| docs.clone().into_inner())
         .unwrap_or_default();
 

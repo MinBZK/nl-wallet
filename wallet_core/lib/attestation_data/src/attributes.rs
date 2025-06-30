@@ -1,6 +1,7 @@
 use std::num::TryFromIntError;
 
 use derive_more::AsRef;
+use derive_more::Display;
 use derive_more::From;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -13,19 +14,21 @@ use sd_jwt_vc_metadata::ClaimPath;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use utils::vec_at_least::VecNonEmpty;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Display, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AttributeValue {
     Integer(i64),
     Bool(bool),
     Text(String),
+
+    #[display("[{}]", _0.iter().join(", "))]
     Array(Vec<AttributeValue>),
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum AttributeError {
     #[error("unable to convert mdoc cbor value: {0:?}")]
-    FromCborConversion(ciborium::Value),
+    FromCborConversion(Box<ciborium::Value>),
 
     #[error("unable to convert number to cbor: {0}")]
     NumberToCborConversion(#[from] TryFromIntError),
@@ -65,12 +68,13 @@ impl TryFrom<ciborium::Value> for AttributeValue {
             ciborium::Value::Array(elements) => Ok(AttributeValue::Array(
                 elements.into_iter().map(Self::try_from).try_collect()?,
             )),
-            _ => Err(AttributeError::FromCborConversion(value)),
+            _ => Err(AttributeError::FromCborConversion(Box::new(value))),
         }
     }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(any(test, feature = "test"), derive(derive_more::Unwrap))]
 #[serde(untagged)]
 pub enum Attribute {
     Single(AttributeValue),
@@ -78,7 +82,7 @@ pub enum Attribute {
 }
 
 #[derive(Debug, Default, Clone, Eq, PartialEq, Serialize, Deserialize, AsRef, From)]
-pub struct Attributes(#[from] IndexMap<String, Attribute>);
+pub struct Attributes(IndexMap<String, Attribute>);
 
 impl Attributes {
     pub fn into_inner(self) -> IndexMap<String, Attribute> {
