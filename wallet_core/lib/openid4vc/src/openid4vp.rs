@@ -24,6 +24,8 @@ use serde_with::OneOrMany;
 
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::request::NormalizedCredentialRequests;
+use attestation_data::request::ResponseError;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
@@ -33,7 +35,6 @@ use jwt::error::JwtX5cError;
 use jwt::Jwt;
 use mdoc::errors::Error as MdocError;
 use mdoc::utils::serialization::CborBase64;
-use mdoc::verifier::ItemsRequests;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
 use poa::Poa;
@@ -364,7 +365,7 @@ pub struct IsoVpAuthorizationRequest {
     pub nonce: String,
     pub encryption_pubkey: Jwk,
     pub response_uri: BaseUrl,
-    pub items_requests: ItemsRequests,
+    pub credential_requests: NormalizedCredentialRequests,
     pub presentation_definition: PresentationDefinition,
     pub client_metadata: ClientMetadata,
     pub state: Option<String>,
@@ -373,7 +374,7 @@ pub struct IsoVpAuthorizationRequest {
 
 impl IsoVpAuthorizationRequest {
     pub fn new(
-        items_requests: &ItemsRequests,
+        credential_requests: &NormalizedCredentialRequests,
         rp_certificate: &BorrowingCertificate,
         nonce: String,
         encryption_pubkey: JwePublicKey,
@@ -392,8 +393,8 @@ impl IsoVpAuthorizationRequest {
             nonce,
             encryption_pubkey: encryption_pubkey.clone(),
             response_uri,
-            presentation_definition: items_requests.into(),
-            items_requests: items_requests.clone(),
+            presentation_definition: credential_requests.into(),
+            credential_requests: credential_requests.clone(),
             client_metadata: ClientMetadata {
                 jwks: VpJwks::Direct {
                     keys: vec![encryption_pubkey.clone()],
@@ -530,7 +531,7 @@ impl TryFrom<VpAuthorizationRequest> for IsoVpAuthorizationRequest {
             client_id: vp_auth_request.oauth_request.client_id,
             nonce: vp_auth_request.oauth_request.nonce.unwrap(),
             encryption_pubkey: jwk,
-            items_requests: (&presentation_definition).try_into()?,
+            credential_requests: (&presentation_definition).try_into()?,
             response_uri: vp_auth_request.response_uri.unwrap(),
             presentation_definition,
             client_metadata,
@@ -567,7 +568,7 @@ pub enum AuthResponseError {
     #[error("error verifying disclosed mdoc(s): {0}")]
     Verification(#[source] mdoc::Error),
     #[error("missing requested attributes: {0}")]
-    MissingAttributes(#[source] mdoc::Error),
+    MissingAttributes(#[source] ResponseError),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
@@ -793,7 +794,7 @@ impl VpAuthorizationResponse {
 
         // Check that we received all attributes that we requested
         auth_request
-            .items_requests
+            .credential_requests
             .match_against_response(device_response)
             .map_err(AuthResponseError::MissingAttributes)?;
 
@@ -847,6 +848,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;
     use crypto::server_keys::KeyPair;
+    use dcql::CredentialQueryFormat;
     use jwt::Jwt;
     use mdoc::examples::example_items_requests;
     use mdoc::examples::Example;
@@ -911,7 +913,7 @@ mod tests {
         let encryption_privkey = EcKeyPair::generate(EcCurve::P256).unwrap();
 
         let auth_request = IsoVpAuthorizationRequest::new(
-            items_request,
+            &items_request.clone().into(),
             rp_keypair.certificate(),
             "nonce".to_string(),
             encryption_privkey.to_jwk_public_key().try_into().unwrap(),
@@ -1123,15 +1125,19 @@ mod tests {
 
     fn challenges(auth_request: &IsoVpAuthorizationRequest, session_transcript: &SessionTranscript) -> Vec<Vec<u8>> {
         auth_request
-            .items_requests
-            .0
+            .credential_requests
+            .as_ref()
             .iter()
             .map(|it| {
+                let CredentialQueryFormat::MsoMdoc { ref doctype_value } = &it.format else {
+                    panic!("sd-jwt is not yet supported")
+                };
+
                 // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
                 let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
                     device_authentication: Default::default(),
                     session_transcript: Cow::Borrowed(session_transcript),
-                    doc_type: Cow::Borrowed(&it.doc_type),
+                    doc_type: Cow::Borrowed(doctype_value),
                     device_name_spaces_bytes: IndexMap::new().into(),
                 }));
 

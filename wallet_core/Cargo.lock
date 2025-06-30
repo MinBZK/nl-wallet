@@ -4165,6 +4165,7 @@ dependencies = [
  "chrono",
  "crypto",
  "dashmap 6.1.0",
+ "dcql",
  "derive_more",
  "error_category",
  "futures",

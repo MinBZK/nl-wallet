@@ -1306,7 +1306,7 @@ impl Session<Created> {
             )
         })?;
         let auth_request = IsoVpAuthorizationRequest::new(
-            &self.state.data.items_requests,
+            &self.state.data.items_requests.clone().into(),
             usecase.key_pair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key

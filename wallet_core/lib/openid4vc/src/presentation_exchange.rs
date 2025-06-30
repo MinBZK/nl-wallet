@@ -5,17 +5,19 @@
 //! Presentation Exchange that are always used by the ISO 18013-7 profile are mandatory here.
 use std::sync::LazyLock;
 
-use indexmap::IndexMap;
 use indexmap::IndexSet;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation_data::request::AttributeRequest;
+use attestation_data::request::NormalizedCredentialRequest;
+use attestation_data::request::NormalizedCredentialRequests;
 use crypto::utils::random_string;
+use dcql::ClaimPath;
+use dcql::CredentialQueryFormat;
 use error_category::ErrorCategory;
-use mdoc::verifier::ItemsRequests;
 use mdoc::Document;
-use mdoc::ItemsRequest;
 
 use crate::openid4vp::FormatAlg;
 use crate::openid4vp::VpFormat;
@@ -81,7 +83,7 @@ static FIELD_PATH_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"^\$\[['"]([^'"]*)['"]\]\[['"]([^'"]*)['"]\]$"#).unwrap());
 
 impl Field {
-    fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
+    pub(crate) fn parse_paths(&self) -> Result<(String, String), PdConversionError> {
         if self.path.len() != 1 {
             return Err(PdConversionError::TooManyPaths);
         }
@@ -96,38 +98,53 @@ impl Field {
     }
 }
 
-impl From<&ItemsRequests> for PresentationDefinition {
-    fn from(items_requests: &ItemsRequests) -> Self {
+impl From<&NormalizedCredentialRequests> for PresentationDefinition {
+    fn from(requested_creds: &NormalizedCredentialRequests) -> Self {
         PresentationDefinition {
             id: random_string(16),
-            input_descriptors: items_requests
-                .0
+            input_descriptors: requested_creds
+                .as_ref()
                 .iter()
-                .map(|items_request| InputDescriptor {
-                    id: items_request.doc_type.clone(),
-                    format: VpFormat::MsoMdoc {
-                        alg: IndexSet::from([FormatAlg::ES256]),
-                    },
-                    constraints: Constraints {
-                        limit_disclosure: LimitDisclosure::Required,
-                        fields: items_request
-                            .name_spaces
-                            .iter()
-                            .flat_map(|(namespace, attrs)| {
-                                attrs.iter().map(|(attr, intent_to_retain)| Field {
-                                    path: vec![format!("$['{}']['{}']", namespace.as_str(), attr.as_str())],
-                                    intent_to_retain: *intent_to_retain,
+                .map(|request| {
+                    let CredentialQueryFormat::MsoMdoc { doctype_value } = &request.format else {
+                        panic!("SdJwt not supported yet");
+                    };
+                    InputDescriptor {
+                        id: doctype_value.clone(),
+                        format: VpFormat::MsoMdoc {
+                            alg: IndexSet::from([FormatAlg::ES256]),
+                        },
+                        constraints: Constraints {
+                            limit_disclosure: LimitDisclosure::Required,
+                            fields: request
+                                .claims
+                                .iter()
+                                .map(|attr_req| {
+                                    let (namespace, attr) = attr_req.to_namespace_and_attribute().unwrap(); // TODO: error handling, TryFrom?
+                                    Field {
+                                        path: vec![format!("$['{}']['{}']", namespace, attr)],
+                                        intent_to_retain: attr_req.intent_to_retain,
+                                    }
                                 })
-                            })
-                            .collect(),
-                    },
+                                .collect(),
+                        },
+                    }
                 })
                 .collect(),
         }
     }
 }
 
-impl TryFrom<&PresentationDefinition> for ItemsRequests {
+/// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-submission.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PresentationSubmission {
+    pub id: String,
+    /// Must be the id value of a valid presentation definition
+    pub definition_id: String,
+    pub descriptor_map: Vec<InputDescriptorMappingObject>,
+}
+
+impl TryFrom<&PresentationDefinition> for NormalizedCredentialRequests {
     type Error = PdConversionError;
 
     fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
@@ -140,34 +157,33 @@ impl TryFrom<&PresentationDefinition> for ItemsRequests {
                     return Err(PdConversionError::UnsupportedAlgs);
                 }
 
-                let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
-                for field in &input_descriptor.constraints.fields {
-                    let (namespace, attr) = field.parse_paths()?;
-                    name_spaces
-                        .entry(namespace)
-                        .or_default()
-                        .insert(attr, field.intent_to_retain);
-                }
+                let claims = input_descriptor
+                    .constraints
+                    .fields
+                    .iter()
+                    .map(|field| {
+                        let (namespace, attr) = field.parse_paths()?;
+                        // The unwrap below is safe because we know the vec is non-empty.
+                        Ok(AttributeRequest {
+                            path: vec![ClaimPath::SelectByKey(namespace), ClaimPath::SelectByKey(attr)]
+                                .try_into()
+                                .unwrap(),
+                            intent_to_retain: field.intent_to_retain,
+                        })
+                    })
+                    .collect::<Result<_, _>>()?;
 
-                Ok(ItemsRequest {
-                    doc_type: input_descriptor.id.clone(),
-                    request_info: None,
-                    name_spaces,
+                Ok(NormalizedCredentialRequest {
+                    format: CredentialQueryFormat::MsoMdoc {
+                        doctype_value: input_descriptor.id.clone(),
+                    },
+                    claims,
                 })
             })
             .collect::<Result<Vec<_>, Self::Error>>()?;
 
-        Ok(items_requests.into())
+        Ok(items_requests.try_into().unwrap()) // TODO: Error Handling
     }
-}
-
-/// As specified in https://identity.foundation/presentation-exchange/spec/v2.0.0/#presentation-submission.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PresentationSubmission {
-    pub id: String,
-    /// Must be the id value of a valid presentation definition
-    pub definition_id: String,
-    pub descriptor_map: Vec<InputDescriptorMappingObject>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

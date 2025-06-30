@@ -4,11 +4,11 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::request::NormalizedCredentialRequests;
 use attestation_data::x509::CertificateType;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use http_utils::urls::BaseUrl;
-use mdoc::verifier::ItemsRequests;
 
 use crate::errors::AuthorizationErrorCode;
 use crate::errors::ErrorResponse;
@@ -82,7 +82,7 @@ impl<H> VpDisclosureClient<H> {
     fn process_auth_request(
         request_uri_client_id: &str,
         auth_request_client_id: &str,
-        items_requests: ItemsRequests,
+        credential_requests: NormalizedCredentialRequests,
         certificate: &BorrowingCertificate,
     ) -> Result<(AttestationAttributePaths, ReaderRegistration), VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
@@ -103,11 +103,11 @@ impl<H> VpDisclosureClient<H> {
 
         // Verify that the requested attributes are included in the reader authentication.
         reader_registration
-            .verify_requested_attributes(&items_requests.as_ref().iter())
+            .verify_requested_attributes(&credential_requests.as_ref().iter())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
         // Convert the request into a generic representation.
-        let requested_attribute_paths = items_requests
+        let requested_attribute_paths = credential_requests
             .try_into_attribute_paths()
             .map_err(VpVerifierError::EmptyRequest)?;
 
@@ -177,7 +177,7 @@ where
         let process_request_result = Self::process_auth_request(
             &request_uri_object.client_id,
             &auth_request.client_id,
-            auth_request.items_requests.clone(),
+            auth_request.credential_requests.clone(),
             &certificate,
         );
         let (requested_attribute_paths, registration) = match process_request_result {

@@ -211,7 +211,7 @@ where
     /// Generate the first protocol message of the verifier.
     fn auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
         let request = IsoVpAuthorizationRequest::new(
-            &self.items_requests,
+            &self.items_requests.clone().into(),
             self.key_pair.certificate(),
             self.nonce.clone(),
             self.encryption_keypair.to_jwk_public_key().try_into().unwrap(),

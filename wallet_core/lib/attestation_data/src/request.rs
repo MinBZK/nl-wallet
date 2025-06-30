@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::num::NonZero;
 
 use indexmap::IndexMap;
@@ -6,6 +8,8 @@ use nutype::nutype;
 use serde::Deserialize;
 use serde::Serialize;
 
+use attestation_types::attribute_paths::AttestationAttributePaths;
+use attestation_types::attribute_paths::AttestationAttributePathsError;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use mdoc::identifiers::AttributeIdentifier;
@@ -60,6 +64,34 @@ impl NormalizedCredentialRequests {
         } else {
             Err(ResponseError::MissingAttributes(not_found))
         }
+    }
+
+    pub fn try_into_attribute_paths(self) -> Result<AttestationAttributePaths, AttestationAttributePathsError> {
+        let paths = self
+            .into_iter()
+            .fold(HashMap::<_, HashSet<_>>::new(), |mut paths, request| {
+                // For an mdoc items request, simply make a path of length 2,
+                // consisting of the name space and element identifier.
+                let CredentialQueryFormat::MsoMdoc { doctype_value } = request.format else {
+                    panic!("sd-jwt is not yet supported")
+                };
+
+                let attributes: HashSet<VecNonEmpty<String>> = request
+                    .claims
+                    .into_iter()
+                    .map(|claim| {
+                        let attrs = claim.path.into_iter().map(|attr| format!("{attr}")).collect::<Vec<_>>();
+                        VecNonEmpty::try_from(attrs).expect("source was also non empty")
+                    })
+                    .collect();
+
+                // In case a doc type occurs multiple times, merge the paths.
+                paths.entry(doctype_value).or_default().extend(attributes);
+
+                paths
+            });
+
+        AttestationAttributePaths::try_new(paths)
     }
 }
 
