@@ -34,8 +34,8 @@ use crate::utils::cose::CoseError;
 use crate::utils::cose::CoseKey;
 use crate::utils::cose::MdocCose;
 use crate::utils::serialization::TaggedBytes;
-use crate::verifier::DisclosedAttributes;
-use crate::verifier::DocumentDisclosedAttributes;
+use crate::verifier::DisclosedDocument;
+use crate::verifier::DisclosedDocuments;
 use crate::verifier::ItemsRequests;
 use crate::DigestAlgorithm;
 use crate::IssuerNameSpaces;
@@ -125,7 +125,7 @@ fn remove_whitespace(s: &str) -> String {
 /// Assert that the specified doctype was disclosed, and that it contained the specified namespace,
 /// and that the first attribute in that namespace has the specified name and value.
 pub fn assert_disclosure_contains(
-    disclosed_attrs: &DisclosedAttributes,
+    disclosed_attrs: &DisclosedDocuments,
     doctype: &str,
     namespace: &str,
     name: &str,
@@ -314,7 +314,7 @@ impl TestDocuments {
         self.0.into_iter().next()
     }
 
-    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DocumentDisclosedAttributes>) {
+    pub fn assert_matches(&self, disclosed_documents: &IndexMap<String, DisclosedDocument>) {
         // verify the number of documents
         assert_eq!(disclosed_documents.len(), self.len());
         for TestDocument {
@@ -518,6 +518,22 @@ pub mod data {
             )]),
             TypeMetadataDocuments::address_example(),
         )]
+        .into()
+    }
+
+    pub fn pid_example_items_requests() -> ItemsRequests {
+        vec![ItemsRequest {
+            doc_type: PID.to_string(),
+            name_spaces: IndexMap::from_iter([(
+                PID.to_string(),
+                IndexMap::from_iter([
+                    ("bsn".to_string(), false),
+                    ("given_name".to_string(), false),
+                    ("family_name".to_string(), false),
+                ]),
+            )]),
+            request_info: None,
+        }]
         .into()
     }
 }

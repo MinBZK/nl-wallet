@@ -6,13 +6,14 @@ use config::Environment;
 use config::File;
 use indexmap::IndexMap;
 use serde::Deserialize;
-use serde_tuple::Deserialize_tuple;
 
+use attestation_data::attributes::AttributeValue;
 use attestation_data::issuable_document::IssuableDocuments;
 use http_utils::tls::server::TlsServerConfig;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
 use utils::path::prefix_local_path;
+use utils::vec_at_least::VecNonEmpty;
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -36,16 +37,15 @@ pub struct Server {
 #[derive(Deserialize, Clone)]
 pub struct Usecase {
     #[serde(flatten)]
-    pub data: IndexMap<String, IssuableDocuments>,
+    pub data: IndexMap<AttributeValue, IssuableDocuments>,
     pub client_id: String,
     pub disclosed: Disclosed,
 }
 
-#[derive(Deserialize_tuple, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Disclosed {
-    pub doc_type: String,
-    pub namespace: String,
-    pub attribute_name: String,
+    pub credential_type: String,
+    pub path: VecNonEmpty<String>,
 }
 
 impl Settings {

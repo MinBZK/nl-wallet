@@ -17,14 +17,10 @@ use axum::routing::post;
 use axum::Json;
 use axum::Router;
 use base64::prelude::*;
-use ciborium::Value;
-use http_utils::urls::ConnectSource;
-use http_utils::urls::SourceExpression;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
-use server_utils::log_requests::log_request_response;
 use strum::IntoEnumIterator;
 use tower::ServiceBuilder;
 use tower_http::services::ServeDir;
@@ -32,6 +28,8 @@ use tower_http::trace::TraceLayer;
 use tracing::warn;
 use url::Url;
 
+use attestation_data::attributes::AttributeValue;
+use demo_utils::disclosure::DemoDisclosedAttestations;
 use demo_utils::error::Result;
 use demo_utils::headers::cors_layer;
 use demo_utils::headers::set_content_security_policy;
@@ -42,8 +40,10 @@ use demo_utils::LANGUAGE_JS_SHA256;
 use demo_utils::WALLET_WEB_CSS_SHA256;
 use demo_utils::WALLET_WEB_JS_SHA256;
 use http_utils::urls::BaseUrl;
-use mdoc::verifier::DisclosedAttributes;
+use http_utils::urls::ConnectSource;
+use http_utils::urls::SourceExpression;
 use openid4vc::server_state::SessionToken;
+use server_utils::log_requests::log_request_response;
 use utils::path::prefix_local_path;
 
 use crate::client::WalletServerClient;
@@ -260,7 +260,7 @@ pub struct DisclosedAttributesParams {
 #[template(path = "disclosed/attributes.askama", escape = "html", ext = "html")]
 struct DisclosedAttributesTemplate<'a> {
     usecase: &'a str,
-    attributes: DisclosedAttributes,
+    attributes: DemoDisclosedAttestations,
     demo_index_url: Url,
     base: BaseTemplate<'a>,
 }
@@ -314,19 +314,22 @@ async fn disclosed_attributes(
 }
 
 mod filters {
-    use mdoc::verifier::DisclosedAttributes;
+    use demo_utils::disclosure::DemoDisclosedAttestations;
 
-    pub fn attribute(attributes: &DisclosedAttributes, _: &dyn askama::Values, name: &str) -> askama::Result<String> {
-        for doctype in attributes {
-            for namespace in &doctype.1.attributes {
-                for (attribute_name, attribute_value) in namespace.1 {
-                    if attribute_name == name {
-                        return Ok(attribute_value
-                            .as_text()
-                            .ok_or(askama::Error::custom("could not format attribute_value as text"))?
-                            .to_owned());
-                    }
-                }
+    // searches for an attribute with a specific key, the key is a dot-separated string
+    pub fn attribute(
+        attestations: &DemoDisclosedAttestations,
+        _: &dyn askama::Values,
+        name: &str,
+    ) -> askama::Result<String> {
+        for (_, attestation) in attestations {
+            if let Some(attribute_value) = attestation
+                .attributes
+                .flattened()
+                .iter()
+                .find_map(|(path, attribute_value)| (path.as_ref().join(".") == name).then_some(attribute_value))
+            {
+                return Ok(attribute_value.to_string());
             }
         }
 
