@@ -23,7 +23,7 @@ use error_category::ErrorCategory;
 use mdoc::holder::Mdoc;
 use mdoc::utils::serialization::CborError;
 use openid4vc::issuance_session::CredentialWithMetadata;
-use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::sd_jwt::VerifiedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::TypeMetadataChainError;
 
@@ -119,7 +119,7 @@ pub struct StoredAttestationCopy {
 #[derive(Debug, Clone)]
 pub enum StoredAttestationFormat {
     MsoMdoc { mdoc: Box<Mdoc> },
-    SdJwt { sd_jwt: Box<SdJwt> },
+    SdJwt { sd_jwt: Box<VerifiedSdJwt> },
 }
 
 /// This trait abstracts the persistent storage for the wallet.
