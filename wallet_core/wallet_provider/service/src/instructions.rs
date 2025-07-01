@@ -283,7 +283,7 @@ impl HandleInstruction for IssueWte {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         H: Encrypter<VerifyingKey, Error = HsmError> + WalletUserHsm<Error = HsmError>,
     {
-        let (wrapped_privkey, wte) = user_state
+        let (wrapped_privkey, key_id, wte) = user_state
             .wte_issuer
             .issue_wte()
             .await
@@ -294,7 +294,7 @@ impl HandleInstruction for IssueWte {
             wallet_user_id: wallet_user.id,
             keys: vec![WalletUserKey {
                 wallet_user_key_id: uuid_generator.generate(),
-                key_identifier: self.key_identifier,
+                key_identifier: key_id.clone(),
                 key: wrapped_privkey,
             }],
         };
@@ -305,7 +305,7 @@ impl HandleInstruction for IssueWte {
             .await?;
         tx.commit().await?;
 
-        Ok(IssueWteResult { wte })
+        Ok(IssueWteResult { key_id, wte })
     }
 }
 
@@ -452,7 +452,7 @@ mod tests {
     use rstest::rstest;
 
     use crypto::utils::random_bytes;
-    use crypto::utils::random_string;
+
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::validations;
     use jwt::Jwt;
@@ -594,9 +594,7 @@ mod tests {
         let wallet_user = wallet_user::mock::wallet_user_1();
         let wrapping_key_identifier = "my-wrapping-key-identifier";
 
-        let instruction = IssueWte {
-            key_identifier: random_string(32),
-        };
+        let instruction = IssueWte;
 
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
 
@@ -629,9 +627,7 @@ mod tests {
             ..wallet_user::mock::wallet_user_1()
         };
 
-        let instruction = IssueWte {
-            key_identifier: random_string(32),
-        };
+        let instruction = IssueWte;
 
         let result = instruction.validate_instruction(&wallet_user).unwrap_err();
 

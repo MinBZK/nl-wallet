@@ -155,12 +155,11 @@ impl InstructionAndResult for Sign {
 // IssueWte instruction.
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct IssueWte {
-    pub key_identifier: String,
-}
+pub struct IssueWte;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IssueWteResult {
+    pub key_id: String,
     pub wte: Jwt<JwtCredentialClaims<WteClaims>>,
 }
 

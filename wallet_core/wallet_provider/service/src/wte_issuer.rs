@@ -4,6 +4,7 @@ use derive_more::Constructor;
 use p256::ecdsa::VerifyingKey;
 
 use crypto::keys::SecureEcdsaKey;
+use crypto::p256_der::verifying_key_sha256;
 use hsm::keys::HsmEcdsaKey;
 use hsm::model::wrapped_key::WrappedKey;
 use hsm::service::HsmError;
@@ -16,7 +17,7 @@ use wallet_provider_domain::model::hsm::WalletUserHsm;
 pub trait WteIssuer {
     type Error: Error + Send + Sync + 'static;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error>;
+    async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error>;
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error>;
 }
 
@@ -47,7 +48,7 @@ where
 {
     type Error = HsmWteIssuerError;
 
-    async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
+    async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
         let (pubkey, wrapped_privkey) = self.hsm.generate_wrapped_key(&self.wrapping_key_identifier).await?;
 
         let jwt = JwtCredentialClaims::new_signed(
@@ -59,7 +60,7 @@ where
         )
         .await?;
 
-        Ok((wrapped_privkey, jwt))
+        Ok((wrapped_privkey, verifying_key_sha256(&pubkey), jwt))
     }
 
     async fn public_key(&self) -> Result<VerifyingKey, Self::Error> {
@@ -77,6 +78,7 @@ pub mod mock {
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 
+    use crypto::p256_der::verifying_key_sha256;
     use hsm::model::wrapped_key::WrappedKey;
     use jwt::credential::JwtCredentialClaims;
     use jwt::wte::WteClaims;
@@ -89,10 +91,11 @@ pub mod mock {
     impl WteIssuer for MockWteIssuer {
         type Error = Infallible;
 
-        async fn issue_wte(&self) -> Result<(WrappedKey, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
+        async fn issue_wte(&self) -> Result<(WrappedKey, String, Jwt<JwtCredentialClaims<WteClaims>>), Self::Error> {
             let privkey = SigningKey::random(&mut OsRng);
             Ok((
                 WrappedKey::new(privkey.to_bytes().to_vec(), *privkey.verifying_key()),
+                verifying_key_sha256(privkey.verifying_key()),
                 "a.b.c".into(),
             ))
         }
@@ -131,7 +134,7 @@ mod tests {
             wrapping_key_identifier: wrapping_key_identifier.to_string(),
         };
 
-        let (wte_privkey, wte) = wte_issuer.issue_wte().await.unwrap();
+        let (wte_privkey, _key_id, wte) = wte_issuer.issue_wte().await.unwrap();
 
         let wte_claims = wte
             .parse_and_verify(&wte_verifying_key.into(), &jwt::validations())
