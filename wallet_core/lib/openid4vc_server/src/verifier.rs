@@ -23,12 +23,12 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::request::NormalizedCredentialRequests;
 use crypto::keys::EcdsaKeySend;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
-use mdoc::verifier::ItemsRequests;
 use openid4vc::disclosure_session::APPLICATION_OAUTH_AUTHZ_REQ_JWT;
 use openid4vc::openid4vp::VpResponse;
 use openid4vc::openid4vp::WalletRequest;
@@ -294,7 +294,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StartDisclosureRequest {
     pub usecase: String,
-    pub items_requests: Option<ItemsRequests>,
+    pub credential_requests: Option<NormalizedCredentialRequests>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -317,7 +317,7 @@ where
         .verifier
         .new_session(
             start_request.usecase,
-            start_request.items_requests,
+            start_request.credential_requests,
             start_request.return_url_template,
         )
         .await

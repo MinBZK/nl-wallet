@@ -108,10 +108,10 @@ pub struct DeletionPolicy {
     pub deleteable: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizedMdoc(pub IndexMap<String, AuthorizedNamespace>);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizedNamespace(pub IndexMap<String, AuthorizedAttribute>);
 
 // This struct could be extended in the future for attribute specific policies

@@ -34,6 +34,7 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestations;
+use attestation_data::request::NormalizedCredentialRequests;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
@@ -42,7 +43,6 @@ use crypto::EcdsaKeySend;
 use http_utils::urls::BaseUrl;
 use jwt::error::JwtError;
 use jwt::Jwt;
-use mdoc::verifier::ItemsRequests;
 use utils::generator::Generator;
 
 use crate::openid4vp::AuthRequestError;
@@ -86,8 +86,8 @@ pub enum SessionError {
 pub enum NewSessionError {
     #[error("session error: {0}")]
     Session(#[from] SessionError),
-    #[error("no ItemsRequest: can't request a disclosure of 0 attributes")]
-    NoItemsRequests,
+    #[error("no CredentialRequests: can't request a disclosure of 0 attributes")]
+    NoCredentialRequests,
     #[error("unknown use case: {0}")]
     UnknownUseCase(String),
     #[error("presence or absence of return url template does not match configuration for the required use case")]
@@ -207,7 +207,7 @@ pub struct Session<S: DisclosureState> {
 /// State for a session that has just been created.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Created {
-    items_requests: ItemsRequests,
+    credential_requests: NormalizedCredentialRequests,
     usecase_id: String,
     client_id: String,
     redirect_uri_template: Option<RedirectUriTemplate>,
@@ -513,7 +513,7 @@ pub trait UseCase {
     fn new_session(
         &self,
         id: String,
-        items_requests: Option<ItemsRequests>,
+        credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError>;
 }
@@ -542,7 +542,7 @@ pub trait UseCases {
 #[derive(Debug)]
 pub struct RpInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    items_requests: Option<ItemsRequests>,
+    credential_requests: Option<NormalizedCredentialRequests>,
     return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -555,8 +555,6 @@ pub struct RpInitiatedUseCases<K, S> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum NewDisclosureUseCaseError {
-    #[error("no ItemsRequest")]
-    NoItemsRequests,
     #[error(transparent)]
     UseCaseCertificate(#[from] UseCaseCertificateError),
 }
@@ -565,16 +563,9 @@ impl<K> RpInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        items_requests: Option<ItemsRequests>,
+        credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Self, NewDisclosureUseCaseError> {
-        if items_requests
-            .as_ref()
-            .is_some_and(|items_requests| items_requests.0.is_empty())
-        {
-            return Err(NewDisclosureUseCaseError::NoItemsRequests);
-        }
-
         let client_id = client_id_from_key_pair(&key_pair)?;
         let use_case = Self {
             data: UseCaseData {
@@ -582,7 +573,7 @@ impl<K> RpInitiatedUseCase<K> {
                 client_id,
                 session_type_return_url,
             },
-            items_requests,
+            credential_requests,
             return_url_template,
         };
 
@@ -600,7 +591,7 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        items_requests: Option<ItemsRequests>,
+        credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         // If the caller passes a `return_url_template` then we use that,
@@ -621,20 +612,17 @@ impl<K: EcdsaKeySend> UseCase for RpInitiatedUseCase<K> {
             return Err(NewSessionError::ReturnUrlConfigurationMismatch);
         }
 
-        // If the caller passed `Some(items_requests)`, then `items_requests` should not be empty.
-        if items_requests
-            .as_ref()
-            .is_some_and(|items_request| items_request.0.is_empty())
-        {
-            return Err(NewSessionError::NoItemsRequests);
-        }
+        // We use either the specified credential_requests, or if not specified, the one configured in the usecase.
+        let credential_requests = credential_requests
+            .or_else(|| self.credential_requests.clone())
+            .ok_or_else(|| NewSessionError::NoCredentialRequests)?;
 
-        // We use either the specified items_requests, or if not specified, the one configured in the usecase.
-        let items_requests = items_requests
-            .or_else(|| self.items_requests.clone())
-            .ok_or_else(|| NewSessionError::NoItemsRequests)?;
-
-        let session = Session::<Created>::new(items_requests, id, self.data.client_id.clone(), redirect_uri_template);
+        let session = Session::<Created>::new(
+            credential_requests,
+            id,
+            self.data.client_id.clone(),
+            redirect_uri_template,
+        );
         Ok(session)
     }
 }
@@ -734,7 +722,7 @@ impl<K, S> RpInitiatedUseCases<K, S> {
 #[derive(Debug, Constructor)]
 pub struct WalletInitiatedUseCase<K> {
     data: UseCaseData<K>,
-    items_requests: ItemsRequests,
+    credential_requests: NormalizedCredentialRequests,
     return_url_template: ReturnUrlTemplate,
 }
 
@@ -747,7 +735,7 @@ impl<K> WalletInitiatedUseCase<K> {
     pub fn try_new(
         key_pair: KeyPair<K>,
         session_type_return_url: SessionTypeReturnUrl,
-        items_requests: ItemsRequests,
+        credential_requests: NormalizedCredentialRequests,
         return_url_template: ReturnUrlTemplate,
     ) -> Result<Self, UseCaseCertificateError> {
         let client_id = client_id_from_key_pair(&key_pair)?;
@@ -757,7 +745,7 @@ impl<K> WalletInitiatedUseCase<K> {
                 client_id,
                 session_type_return_url,
             },
-            items_requests,
+            credential_requests,
             return_url_template,
         };
 
@@ -775,11 +763,11 @@ impl<K: EcdsaKeySend> UseCase for WalletInitiatedUseCase<K> {
     fn new_session(
         &self,
         id: String,
-        _items_requests: Option<ItemsRequests>,
+        _credential_requests: Option<NormalizedCredentialRequests>,
         _return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<Session<Created>, NewSessionError> {
         let session = Session::<Created>::new(
-            self.items_requests.clone(),
+            self.credential_requests.clone(),
             id,
             self.data.client_id.clone(),
             Some(RedirectUriTemplate {
@@ -920,7 +908,7 @@ where
     pub async fn new_session(
         &self,
         usecase_id: String,
-        items_requests: Option<ItemsRequests>,
+        credential_requests: Option<NormalizedCredentialRequests>,
         return_url_template: Option<ReturnUrlTemplate>,
     ) -> Result<SessionToken, NewSessionError> {
         info!("create verifier session: {usecase_id}");
@@ -929,7 +917,7 @@ where
             Some(use_case) => use_case,
             None => return Err(NewSessionError::UnknownUseCase(usecase_id)),
         };
-        let session_state = use_case.new_session(usecase_id, items_requests, return_url_template)?;
+        let session_state = use_case.new_session(usecase_id, credential_requests, return_url_template)?;
         let session_token = session_state.state.token.clone();
 
         self.sessions
@@ -1193,7 +1181,7 @@ impl<T: DisclosureState> Session<T> {
 impl Session<Created> {
     /// Create a new disclosure session.
     fn new(
-        items_requests: ItemsRequests,
+        credential_requests: NormalizedCredentialRequests,
         usecase_id: String,
         client_id: String,
         redirect_uri_template: Option<RedirectUriTemplate>,
@@ -1202,7 +1190,7 @@ impl Session<Created> {
             state: SessionState::new(
                 SessionToken::new_random(),
                 Created {
-                    items_requests,
+                    credential_requests,
                     usecase_id,
                     client_id,
                     redirect_uri_template,
@@ -1306,7 +1294,7 @@ impl Session<Created> {
             )
         })?;
         let auth_request = IsoVpAuthorizationRequest::new(
-            &self.state.data.items_requests.clone().into(),
+            &self.state.data.credential_requests.clone(),
             usecase.key_pair.certificate(),
             nonce.clone(),
             encryption_keypair.to_jwk_public_key().try_into().unwrap(), // safe because we just constructed this key
@@ -1511,7 +1499,6 @@ mod tests {
     use chrono::DateTime;
     use chrono::Duration;
     use chrono::Utc;
-    use indexmap::IndexMap;
     use itertools::Itertools;
     use p256::ecdsa::SigningKey;
     use ring::hmac;
@@ -1519,9 +1506,13 @@ mod tests {
     use rstest::rstest;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
+    use attestation_data::request::AttributeRequest;
+    use attestation_data::request::NormalizedCredentialRequest;
+    use attestation_data::request::NormalizedCredentialRequests;
     use attestation_data::x509::generate::mock::generate_reader_mock;
     use crypto::server_keys::generate::Ca;
-    use mdoc::ItemsRequest;
+    use dcql::ClaimPath;
+    use dcql::CredentialQueryFormat;
     use utils::generator::Generator;
     use utils::generator::TimeGenerator;
 
@@ -1538,7 +1529,6 @@ mod tests {
     use super::ErrorResponse;
     use super::GetAuthRequestError;
     use super::HashMap;
-    use super::ItemsRequests;
     use super::NewSessionError;
     use super::RpInitiatedUseCase;
     use super::RpInitiatedUseCases;
@@ -1567,20 +1557,29 @@ mod tests {
     const DISCLOSURE_USECASE: &str = "example_usecase";
     const DISCLOSURE_USECASE_ALL_REDIRECT_URI: &str = "example_usecase_all_redirect_uri";
 
-    fn new_disclosure_request() -> ItemsRequests {
-        vec![ItemsRequest {
-            doc_type: DISCLOSURE_DOC_TYPE.to_string(),
-            request_info: None,
-            name_spaces: IndexMap::from([(
-                DISCLOSURE_NAME_SPACE.to_string(),
-                IndexMap::from_iter(
-                    DISCLOSURE_ATTRS
-                        .iter()
-                        .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
-                ),
-            )]),
+    fn new_disclosure_request() -> NormalizedCredentialRequests {
+        vec![NormalizedCredentialRequest {
+            format: CredentialQueryFormat::MsoMdoc {
+                doctype_value: DISCLOSURE_DOC_TYPE.to_string(),
+            },
+            claims: DISCLOSURE_ATTRS
+                .iter()
+                .map(|(attr_name, intent_to_retain)| {
+                    AttributeRequest {
+                        // unwrap below is safe because claims path is not empty
+                        path: vec![
+                            ClaimPath::SelectByKey(DISCLOSURE_NAME_SPACE.to_string()),
+                            ClaimPath::SelectByKey(attr_name.to_string()),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                        intent_to_retain: *intent_to_retain,
+                    }
+                })
+                .collect(),
         }]
-        .into()
+        .try_into()
+        .unwrap()
     }
 
     type TestVerifier = Verifier<
@@ -1984,7 +1983,7 @@ mod tests {
                     session_type_return_url: SessionTypeReturnUrl::Neither,
                     client_id: "client_id".to_string(),
                 },
-                items_requests: vec![ItemsRequest::new_example()].into(),
+                credential_requests: vec![NormalizedCredentialRequest::new_example()].try_into().unwrap(),
                 return_url_template: "https://example.com".parse().unwrap(),
             },
         )]);

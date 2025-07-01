@@ -101,7 +101,7 @@ async fn test_disclosure_usecases_ok(
 ) {
     let start_request = StartDisclosureRequest {
         usecase: usecase.clone(),
-        items_requests: Some(test_documents.into()),
+        credential_requests: Some(test_documents.into()),
         // The setup script is hardcoded to include "http://localhost:3004/" in the `ReaderRegistration`
         // contained in the certificate, so we have to specify a return URL prefixed with that.
         return_url_template,
@@ -258,7 +258,7 @@ async fn test_disclosure_without_pid() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank_no_return_url".to_owned(),
-        items_requests: Some(
+        credential_requests: Some(
             vec![ItemsRequest {
                 doc_type: "urn:eudi:pid:nl:1".to_owned(),
                 request_info: None,
@@ -270,8 +270,10 @@ async fn test_disclosure_without_pid() {
                             .map(|(name, intent_to_retain)| (name.to_string(), intent_to_retain)),
                     ),
                 )]),
-            }]
-            .into(),
+            }
+            .into()]
+            .try_into()
+            .unwrap(),
         ),
         return_url_template: None,
     };

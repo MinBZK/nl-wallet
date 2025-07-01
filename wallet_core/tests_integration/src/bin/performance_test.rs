@@ -118,7 +118,7 @@ async fn main() {
 
     let start_request = StartDisclosureRequest {
         usecase: "xyz_bank".to_owned(),
-        items_requests: Some(
+        credential_requests: Some(
             vec![ItemsRequest {
                 doc_type: "urn:eudi:pid:nl:1".to_owned(),
                 request_info: None,
@@ -130,8 +130,10 @@ async fn main() {
                             .map(|(name, intent_to_retain)| (name.to_string(), *intent_to_retain)),
                     ),
                 )]),
-            }]
-            .into(),
+            }
+            .into()]
+            .try_into()
+            .unwrap(),
         ),
         return_url_template: Some(relying_party_url.parse().unwrap()),
     };

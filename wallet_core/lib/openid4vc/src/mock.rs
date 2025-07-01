@@ -1,22 +1,18 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use indexmap::IndexMap;
 use indexmap::IndexSet;
 use rustls_pki_types::TrustAnchor;
 
 use attestation_data::auth::issuer_auth::IssuerRegistration;
 use crypto::factory::KeyFactory;
 use crypto::server_keys::generate::Ca;
-use crypto::utils::random_string;
 use http_utils::urls::BaseUrl;
 use jwt::credential::JwtCredential;
 use jwt::wte::WteClaims;
 use mdoc::holder::Mdoc;
 use mdoc::test::TestDocument;
-use mdoc::verifier::ItemsRequests;
 use mdoc::IssuerSigned;
-use mdoc::ItemsRequest;
 
 use crate::issuance_session::CredentialWithMetadata;
 use crate::issuance_session::HttpVcMessageClient;
@@ -27,14 +23,6 @@ use crate::metadata::CredentialResponseEncryption;
 use crate::metadata::IssuerData;
 use crate::metadata::IssuerMetadata;
 use crate::oidc::Config;
-use crate::openid4vp::FormatAlg;
-use crate::openid4vp::VpFormat;
-use crate::presentation_exchange::Constraints;
-use crate::presentation_exchange::Field;
-use crate::presentation_exchange::InputDescriptor;
-use crate::presentation_exchange::LimitDisclosure;
-use crate::presentation_exchange::PdConversionError;
-use crate::presentation_exchange::PresentationDefinition;
 use crate::token::TokenRequest;
 use crate::token::TokenRequestGrantType;
 
@@ -174,69 +162,4 @@ where
 
     let mdoc = doc.sign(ca, &key).await;
     (mdoc, key)
-}
-
-impl From<&ItemsRequests> for PresentationDefinition {
-    fn from(items_requests: &ItemsRequests) -> Self {
-        PresentationDefinition {
-            id: random_string(16),
-            input_descriptors: items_requests
-                .0
-                .iter()
-                .map(|items_request| InputDescriptor {
-                    id: items_request.doc_type.clone(),
-                    format: VpFormat::MsoMdoc {
-                        alg: IndexSet::from([FormatAlg::ES256]),
-                    },
-                    constraints: Constraints {
-                        limit_disclosure: LimitDisclosure::Required,
-                        fields: items_request
-                            .name_spaces
-                            .iter()
-                            .flat_map(|(namespace, attrs)| {
-                                attrs.iter().map(|(attr, intent_to_retain)| Field {
-                                    path: vec![format!("$['{}']['{}']", namespace.as_str(), attr.as_str())],
-                                    intent_to_retain: *intent_to_retain,
-                                })
-                            })
-                            .collect(),
-                    },
-                })
-                .collect(),
-        }
-    }
-}
-
-impl TryFrom<&PresentationDefinition> for ItemsRequests {
-    type Error = PdConversionError;
-
-    fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
-        let items_requests = pd
-            .input_descriptors
-            .iter()
-            .map(|input_descriptor| {
-                let VpFormat::MsoMdoc { alg } = &input_descriptor.format;
-                if !alg.contains(&FormatAlg::ES256) {
-                    return Err(PdConversionError::UnsupportedAlgs);
-                }
-
-                let mut name_spaces: IndexMap<String, IndexMap<String, bool>> = IndexMap::new();
-                for field in &input_descriptor.constraints.fields {
-                    let (namespace, attr) = field.parse_paths()?;
-                    name_spaces
-                        .entry(namespace)
-                        .or_default()
-                        .insert(attr, field.intent_to_retain);
-                }
-
-                Ok(ItemsRequest {
-                    doc_type: input_descriptor.id.clone(),
-                    request_info: None,
-                    name_spaces,
-                })
-            })
-            .collect::<Result<Vec<_>, Self::Error>>()?;
-
-        Ok(items_requests.into())
-    }
 }

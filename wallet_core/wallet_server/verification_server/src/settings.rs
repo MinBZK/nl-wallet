@@ -17,6 +17,7 @@ use serde_with::base64::Base64;
 use serde_with::hex::Hex;
 use serde_with::serde_as;
 
+use attestation_data::request::NormalizedCredentialRequests;
 use attestation_data::x509::CertificateType;
 use crypto::trust_anchor::BorrowingTrustAnchor;
 use crypto::x509::CertificateUsage;
@@ -24,7 +25,6 @@ use hsm::service::Pkcs11Hsm;
 use http_utils::urls::BaseUrl;
 use http_utils::urls::CorsOrigin;
 use http_utils::urls::DEFAULT_UNIVERSAL_LINK_BASE;
-use mdoc::verifier::ItemsRequests;
 use openid4vc::return_url::ReturnUrlTemplate;
 use openid4vc::server_state::SessionStore;
 use openid4vc::server_state::SessionStoreTimeouts;
@@ -89,7 +89,7 @@ pub struct UseCaseSettings {
     #[serde(flatten)]
     pub key_pair: KeyPair,
 
-    pub items_requests: Option<ItemsRequests>,
+    pub credential_requests: Option<NormalizedCredentialRequests>,
     pub return_url_template: Option<ReturnUrlTemplate>,
 }
 
@@ -121,7 +121,7 @@ impl UseCaseSettings {
         let use_case = RpInitiatedUseCase::try_new(
             self.key_pair.parse(hsm).await?,
             self.session_type_return_url,
-            self.items_requests,
+            self.credential_requests,
             self.return_url_template,
         )?;
 

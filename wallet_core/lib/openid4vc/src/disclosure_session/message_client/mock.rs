@@ -11,14 +11,14 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
+use attestation_data::request::NormalizedCredentialRequest;
+use attestation_data::request::NormalizedCredentialRequests;
 use attestation_data::x509::generate::mock::generate_reader_mock;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use crypto::utils;
 use http_utils::urls::BaseUrl;
 use jwt::Jwt;
-use mdoc::iso::device_retrieval::ItemsRequest;
-use mdoc::verifier::ItemsRequests;
 
 use crate::errors::ErrorResponse;
 use crate::errors::VpAuthorizationErrorCode;
@@ -142,7 +142,7 @@ pub struct MockVerifierSession<F> {
     pub redirect_uri: Option<BaseUrl>,
     pub reader_registration: Option<ReaderRegistration>,
     pub trust_anchors: Vec<TrustAnchor<'static>>,
-    pub items_requests: ItemsRequests,
+    pub credential_requests: NormalizedCredentialRequests,
     pub nonce: String,
     pub encryption_keypair: EcKeyPair,
     pub request_uri_object: VpRequestUriObject,
@@ -180,14 +180,14 @@ where
             session_type,
             String::from(key_pair.certificate().san_dns_name().unwrap().unwrap()),
         );
-        let items_requests = vec![ItemsRequest::new_example()].into();
+        let credential_requests = vec![NormalizedCredentialRequest::new_example()].try_into().unwrap();
 
         MockVerifierSession {
             redirect_uri,
             trust_anchors,
             reader_registration,
             key_pair,
-            items_requests,
+            credential_requests,
             transform_auth_request,
             nonce,
             encryption_keypair,
@@ -211,7 +211,7 @@ where
     /// Generate the first protocol message of the verifier.
     fn auth_request(&self, wallet_request: WalletRequest) -> Jwt<VpAuthorizationRequest> {
         let request = IsoVpAuthorizationRequest::new(
-            &self.items_requests.clone().into(),
+            &self.credential_requests,
             self.key_pair.certificate(),
             self.nonce.clone(),
             self.encryption_keypair.to_jwk_public_key().try_into().unwrap(),

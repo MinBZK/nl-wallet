@@ -148,7 +148,7 @@ impl TryFrom<&PresentationDefinition> for NormalizedCredentialRequests {
     type Error = PdConversionError;
 
     fn try_from(pd: &PresentationDefinition) -> Result<Self, Self::Error> {
-        let items_requests = pd
+        let credential_requests = pd
             .input_descriptors
             .iter()
             .map(|input_descriptor| {
@@ -182,7 +182,7 @@ impl TryFrom<&PresentationDefinition> for NormalizedCredentialRequests {
             })
             .collect::<Result<Vec<_>, Self::Error>>()?;
 
-        Ok(items_requests.try_into().unwrap()) // TODO: Error Handling
+        Ok(credential_requests.try_into().unwrap()) // TODO: Error Handling
     }
 }
 
@@ -249,12 +249,10 @@ impl PresentationSubmission {
 #[cfg(test)]
 mod tests {
     use assert_matches::assert_matches;
-    use attestation_data::request::NormalizedCredentialRequests;
     use rstest::rstest;
     use serde_json::json;
 
-    use mdoc::examples::example_items_requests;
-    use mdoc::verifier::ItemsRequests;
+    use attestation_data::request::NormalizedCredentialRequests;
 
     use super::FormatAlg;
     use super::LimitDisclosure;
@@ -273,15 +271,6 @@ mod tests {
     #[case(r#"$['namespace']['attribute_name"]"#, true)] // (although not required by ISO 18013-7).
     fn field_path_regex(#[case] path: &str, #[case] should_match: bool) {
         assert_eq!(FIELD_PATH_REGEX.is_match(path), should_match);
-    }
-
-    #[test]
-    fn convert_pd_itemsrequests() {
-        let items_requests: ItemsRequests = example_items_requests();
-        let pd: PresentationDefinition = (&items_requests).into();
-        let converted: ItemsRequests = (&pd).try_into().unwrap();
-
-        assert_eq!(items_requests, converted);
     }
 
     #[test]
