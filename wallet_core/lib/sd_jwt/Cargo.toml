@@ -19,11 +19,7 @@ examples = ["futures", "rand_core"]
 anyhow.workspace = true
 base64.workspace = true
 chrono.workspace = true
-derive_more = { workspace = true, features = [
-    "as_ref",
-    "from",
-    "into",
-] }
+derive_more = { workspace = true, features = ["as_ref", "from"] }
 indexmap.workspace = true
 itertools.workspace = true
 jsonwebtoken.workspace = true

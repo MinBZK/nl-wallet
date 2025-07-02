@@ -9,7 +9,6 @@ use chrono::Duration;
 use chrono::Utc;
 use derive_more::AsRef;
 use derive_more::From;
-use derive_more::Into;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
@@ -75,7 +74,7 @@ pub struct SdJwt {
     disclosures: IndexMap<String, Disclosure>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, From, Into, AsRef)]
+#[derive(Debug, Clone, Eq, PartialEq, From, AsRef)]
 pub struct VerifiedSdJwt(SdJwt);
 
 impl VerifiedSdJwt {
