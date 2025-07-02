@@ -118,7 +118,7 @@ pub struct StoredAttestationCopy {
 
 #[derive(Debug, Clone)]
 pub enum StoredAttestationFormat {
-    MsoMdoc { mdoc: Box<Mdoc> },
+    MsoMdoc { mdoc: Box<Mdoc> }, // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
     SdJwt { sd_jwt: Box<VerifiedSdJwt> },
 }
 

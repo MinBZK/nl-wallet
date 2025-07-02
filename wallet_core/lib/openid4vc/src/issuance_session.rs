@@ -224,7 +224,7 @@ pub enum IssuanceSessionError {
 
 #[derive(Clone, Debug)]
 pub enum IssuedCredential {
-    MsoMdoc(Box<Mdoc>),
+    MsoMdoc(Box<Mdoc>), // TODO: Wrap in similar VerifiedMdoc type (PVW-4132)
     SdJwt(Box<VerifiedSdJwt>),
 }
 
