@@ -389,7 +389,7 @@ impl From<TestDocuments> for DeviceRequest {
 }
 
 impl AttributeIdentifierHolder for TestDocuments {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.0
             .iter()
             .flat_map(|document| {

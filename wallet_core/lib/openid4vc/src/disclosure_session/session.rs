@@ -620,7 +620,7 @@ mod tests {
             .items_requests
             .as_ref()
             .iter()
-            .flat_map(|items_request| items_request.attribute_identifiers())
+            .flat_map(|items_request| items_request.mdoc_attribute_identifiers())
             .collect::<IndexSet<_>>();
 
         // Make sure starting the session resulted in a proposal.

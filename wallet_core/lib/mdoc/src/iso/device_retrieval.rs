@@ -90,7 +90,7 @@ pub struct ItemsRequest {
 }
 
 impl AttributeIdentifierHolder for ItemsRequest {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.name_spaces
             .iter()
             .flat_map(|(namespace, attributes)| {

@@ -66,7 +66,7 @@ impl<I> DisclosureRequestMatch<I> {
         // are needed to satisfy the request. Note that a `doc_type` may occur more
         // than once in a `DeviceRequest`, so we combine all attributes and then split
         // them out by `doc_type`.
-        let mut requested_attributes_by_doc_type = items_requests.attribute_identifiers().into_iter().fold(
+        let mut requested_attributes_by_doc_type = items_requests.mdoc_attribute_identifiers().into_iter().fold(
             HashMap::<_, IndexSet<_>>::with_capacity(doc_types.len()),
             |mut requested_attributes, attribute_identifier| {
                 // This unwrap is safe, as `doc_types` is derived from the same `DeviceRequest`.
@@ -295,7 +295,7 @@ mod tests {
         ExpectedDisclosureRequestMatch::Candidates(candidates.0.into_iter().map(Into::into).collect())
     }
     fn missing_attributes(missing_attributes: &TestDocuments) -> ExpectedDisclosureRequestMatch {
-        ExpectedDisclosureRequestMatch::MissingAttributes(missing_attributes.attribute_identifiers())
+        ExpectedDisclosureRequestMatch::MissingAttributes(missing_attributes.mdoc_attribute_identifiers())
     }
 
     impl<T> From<DisclosureRequestMatch<T>> for ExpectedDisclosureRequestMatch {

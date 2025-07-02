@@ -13,11 +13,11 @@ pub struct AttributeIdentifier {
 }
 
 pub trait AttributeIdentifierHolder {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier>;
+    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier>;
 
     fn difference(&self, other: &impl AttributeIdentifierHolder) -> IndexSet<AttributeIdentifier> {
-        let other_attributes = other.attribute_identifiers();
-        self.attribute_identifiers()
+        let other_attributes = other.mdoc_attribute_identifiers();
+        self.mdoc_attribute_identifiers()
             .into_iter()
             .filter(|attribute| !other_attributes.contains(attribute))
             .collect()
@@ -29,10 +29,10 @@ where
     I: IntoIterator<Item = &'a T> + Clone,
     T: AttributeIdentifierHolder + 'a,
 {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.clone()
             .into_iter()
-            .flat_map(AttributeIdentifierHolder::attribute_identifiers)
+            .flat_map(AttributeIdentifierHolder::mdoc_attribute_identifiers)
             .collect()
     }
 }
@@ -92,7 +92,7 @@ pub mod mock {
     }
 
     impl AttributeIdentifierHolder for MockAttributeIdentifierHolder {
-        fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
             self.0.clone()
         }
     }

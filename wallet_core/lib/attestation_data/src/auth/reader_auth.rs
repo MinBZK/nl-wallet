@@ -69,18 +69,22 @@ impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
 }
 
 impl AttributeIdentifierHolder for ReaderRegistration {
-    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+    fn mdoc_attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.authorized_attributes
             .iter()
             .flat_map(|(doc_type, paths)| {
-                paths.iter().map(|paths| {
+                paths.iter().filter_map(|paths| {
+                    if paths.len().get() != 2 {
+                        return None;
+                    }
+
                     let namespace = paths.first().to_string();
                     let attribute = paths.last().to_string();
-                    AttributeIdentifier {
+                    Some(AttributeIdentifier {
                         credential_type: doc_type.to_owned(),
                         namespace,
                         attribute,
-                    }
+                    })
                 })
             })
             .collect()
@@ -311,6 +315,12 @@ mod test {
     }
 
     #[test]
+    fn attribute_identifiers_for_single_claimpath() {
+        let registration = create_registration(vec![("some_doctype", vec![vec!["some_attribute"]])]);
+        assert!(registration.mdoc_attribute_identifiers().is_empty());
+    }
+
+    #[test]
     fn validate_items_request() {
         let request: MockAttributeIdentifierHolder = vec![
             "some_doctype/some_namespace/some_attribute".parse().unwrap(),
@@ -330,7 +340,10 @@ mod test {
         .into();
         let registration = create_registration(vec![(
             "some_doctype",
-            vec![vec!["some_namespace", "some_attribute", "another_attribute"]],
+            vec![
+                vec!["some_namespace", "some_attribute"],
+                vec!["some_namespace", "another_attribute"],
+            ],
         )]);
 
         let result = registration.verify_requested_attributes(&request);

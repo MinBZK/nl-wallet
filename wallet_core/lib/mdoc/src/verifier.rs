@@ -93,7 +93,7 @@ impl ItemsRequests {
                     .and_then(|docs| docs.iter().find(|doc| doc.doc_type == items_request.doc_type))
                     .map_or_else(
                         // If the entire document is missing then all requested attributes are missing
-                        || items_request.attribute_identifiers().into_iter().collect(),
+                        || items_request.mdoc_attribute_identifiers().into_iter().collect(),
                         |doc| items_request.match_against_issuer_signed(doc),
                     )
             })
@@ -334,7 +334,7 @@ impl ItemsRequest {
     /// Returns requested attributes, if any, that are not present in the `issuer_signed`.
     pub fn match_against_issuer_signed(&self, document: &Document) -> Vec<AttributeIdentifier> {
         let document_identifiers = document.issuer_signed_attribute_identifiers();
-        self.attribute_identifiers()
+        self.mdoc_attribute_identifiers()
             .into_iter()
             .filter(|attribute| !document_identifiers.contains(attribute))
             .collect()
@@ -481,7 +481,7 @@ mod tests {
         items_requests
             .0
             .iter()
-            .flat_map(AttributeIdentifierHolder::attribute_identifiers)
+            .flat_map(AttributeIdentifierHolder::mdoc_attribute_identifiers)
             .collect()
     }
 
