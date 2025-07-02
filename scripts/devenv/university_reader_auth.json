@@ -45,10 +45,8 @@
   },
   "requestOriginBaseUrl": "https://university.example.com",
   "authorizedAttributes": {
-    "urn:eudi:pid:nl:1": {
-      "urn:eudi:pid:nl:1": {
-        "bsn": {}
-      }
-    }
+    "urn:eudi:pid:nl:1": [
+      ["urn:eudi:pid:nl:1", "bsn"]
+    ]
   }
 }

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use indexmap::IndexMap;
 use indexmap::IndexSet;
 use serde::Deserialize;
@@ -11,6 +13,8 @@ use crypto::x509::BorrowingCertificateExtension;
 use error_category::ErrorCategory;
 use mdoc::identifiers::AttributeIdentifier;
 use mdoc::identifiers::AttributeIdentifierHolder;
+use sd_jwt_vc_metadata::ClaimPath;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::auth::LocalizedStrings;
 use crate::auth::Organization;
@@ -34,7 +38,7 @@ pub struct ReaderRegistration {
     pub organization: Organization,
     /// Origin base url, for visual user inspection
     pub request_origin_base_url: Url,
-    pub authorized_attributes: IndexMap<String, AuthorizedMdoc>,
+    pub authorized_attributes: HashMap<String, Vec<VecNonEmpty<ClaimPath>>>,
 }
 
 impl ReaderRegistration {
@@ -68,16 +72,16 @@ impl AttributeIdentifierHolder for ReaderRegistration {
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         self.authorized_attributes
             .iter()
-            .flat_map(|(doc_type, AuthorizedMdoc(namespaces))| {
-                namespaces
-                    .into_iter()
-                    .flat_map(|(namespace, AuthorizedNamespace(attributes))| {
-                        attributes.into_iter().map(|(attribute, _)| AttributeIdentifier {
-                            credential_type: doc_type.to_owned(),
-                            namespace: namespace.to_owned(),
-                            attribute: attribute.to_owned(),
-                        })
-                    })
+            .flat_map(|(doc_type, paths)| {
+                paths.iter().map(|paths| {
+                    let namespace = paths.first().to_string();
+                    let attribute = paths.last().to_string();
+                    AttributeIdentifier {
+                        credential_type: doc_type.to_owned(),
+                        namespace,
+                        attribute,
+                    }
+                })
             })
             .collect()
     }
@@ -128,7 +132,7 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use indexmap::IndexMap;
+    use itertools::Itertools;
 
     use mdoc::verifier::ItemsRequests;
 
@@ -142,22 +146,21 @@ pub mod mock {
         /// Build attributes for [`ReaderRegistration`] from a list of attributes.
         pub fn create_attributes(
             doc_type: String,
-            name_space: String,
+            namespace: &str,
             attributes: impl Iterator<Item = impl Into<String>>,
-        ) -> IndexMap<String, AuthorizedMdoc> {
+        ) -> HashMap<String, Vec<VecNonEmpty<ClaimPath>>> {
             [(
                 doc_type,
-                AuthorizedMdoc(
-                    [(
-                        name_space,
-                        AuthorizedNamespace(
-                            attributes
-                                .map(|attribute| (attribute.into(), AuthorizedAttribute {}))
-                                .collect(),
-                        ),
-                    )]
-                    .into(),
-                ),
+                attributes
+                    .map(|attribute| {
+                        vec![
+                            ClaimPath::SelectByKey(String::from(namespace)),
+                            ClaimPath::SelectByKey(attribute.into()),
+                        ]
+                        .try_into()
+                        .unwrap()
+                    })
+                    .collect_vec(),
             )]
             .into()
         }
@@ -168,34 +171,40 @@ pub mod mock {
             (
                 "some_doctype",
                 vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
+                    vec!["some_namespace", "another_attribute"],
+                    vec!["some_namespace", "some_attribute"],
+                    vec!["another_namespace", "some_attribute"],
+                    vec!["another_namespace", "another_attribute"],
                 ],
             ),
             (
                 "another_doctype",
                 vec![
-                    ("some_namespace", vec!["some_attribute", "another_attribute"]),
-                    ("another_namespace", vec!["some_attribute", "another_attribute"]),
+                    vec!["some_namespace", "some_attribute"],
+                    vec!["some_namespace", "another_attribute"],
+                    vec!["another_namespace", "some_attribute"],
+                    vec!["another_namespace", "another_attribute"],
                 ],
             ),
         ])
     }
 
     // Utility function to easily create [`ReaderRegistration`]
-    pub fn create_registration(registered_doctypes: DocTypes) -> ReaderRegistration {
-        let mut authorized_attributes = IndexMap::new();
-        for (doc_type, namespaces) in registered_doctypes {
-            let mut namespace_map = IndexMap::new();
-            for (ns, attrs) in namespaces {
-                let mut attribute_map = IndexMap::new();
-                for attr in attrs {
-                    attribute_map.insert(attr.to_owned(), AuthorizedAttribute {});
-                }
-                namespace_map.insert(ns.to_owned(), AuthorizedNamespace(attribute_map));
-            }
-            authorized_attributes.insert(doc_type.to_owned(), AuthorizedMdoc(namespace_map));
-        }
+    pub fn create_registration(registered_doctypes: Vec<(&str, Vec<Vec<&str>>)>) -> ReaderRegistration {
+        let authorized_attributes = HashMap::from_iter(registered_doctypes.into_iter().map(|(name, names)| {
+            let paths = names
+                .into_iter()
+                .map(|paths| {
+                    paths
+                        .into_iter()
+                        .map(|path| ClaimPath::SelectByKey(String::from(path)))
+                        .collect_vec()
+                        .try_into()
+                        .unwrap()
+                })
+                .collect_vec();
+            (name.to_string(), paths)
+        }));
 
         ReaderRegistration {
             authorized_attributes,
@@ -223,24 +232,27 @@ pub mod mock {
         }
 
         pub fn mock_from_requests(authorized_requests: &ItemsRequests) -> Self {
-            let authorized_attributes = authorized_requests
-                .0
-                .iter()
-                .map(|items_request| {
-                    let namespaces: IndexMap<_, _> = items_request
-                        .name_spaces
-                        .iter()
-                        .map(|(namespace, attributes)| {
-                            let authorized_attributes = attributes
-                                .iter()
-                                .map(|attribute| (attribute.0.clone(), AuthorizedAttribute {}))
-                                .collect();
-                            (namespace.clone(), AuthorizedNamespace(authorized_attributes))
-                        })
-                        .collect();
-                    (items_request.doc_type.clone(), AuthorizedMdoc(namespaces))
-                })
-                .collect();
+            let authorized_attributes = HashMap::from_iter(authorized_requests.0.iter().map(|items_request| {
+                let paths = items_request
+                    .name_spaces
+                    .iter()
+                    .flat_map(|(namespace, attributes)| {
+                        attributes
+                            .iter()
+                            .map(|(attribute, _)| {
+                                vec![
+                                    ClaimPath::SelectByKey(namespace.clone()),
+                                    ClaimPath::SelectByKey(attribute.clone()),
+                                ]
+                                .try_into()
+                                .unwrap()
+                            })
+                            .collect_vec()
+                    })
+                    .collect_vec();
+                (items_request.doc_type.clone(), paths)
+            }));
+
             Self {
                 authorized_attributes,
                 ..Self::new_mock()
@@ -318,7 +330,7 @@ mod test {
         .into();
         let registration = create_registration(vec![(
             "some_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
+            vec![vec!["some_namespace", "some_attribute", "another_attribute"]],
         )]);
 
         let result = registration.verify_requested_attributes(&request);
@@ -336,7 +348,7 @@ mod test {
         .into();
         let registration = create_registration(vec![(
             "some_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
+            vec![vec!["some_namespace", "some_attribute", "another_attribute"]],
         )]);
 
         let result = registration.verify_requested_attributes(&request);
@@ -355,7 +367,7 @@ mod test {
         .into();
         let registration = create_registration(vec![(
             "some_doctype",
-            vec![("some_namespace", vec!["some_attribute", "another_attribute"])],
+            vec![vec!["some_namespace", "some_attribute", "another_attribute"]],
         )]);
 
         let result = registration.verify_requested_attributes(&request);

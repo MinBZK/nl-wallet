@@ -560,7 +560,7 @@ mod tests {
             ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
                 authorized_attributes: ReaderRegistration::create_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
-                    EXAMPLE_NAMESPACE.to_string(),
+                    EXAMPLE_NAMESPACE,
                     EXAMPLE_ATTRIBUTES.iter().copied(),
                 ),
                 ..ReaderRegistration::new_mock()
@@ -1337,7 +1337,7 @@ mod tests {
             Some(ReaderRegistration {
                 authorized_attributes: ReaderRegistration::create_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
-                    EXAMPLE_NAMESPACE.to_string(),
+                    EXAMPLE_NAMESPACE,
                     EXAMPLE_ATTRIBUTES.iter().copied(),
                 ),
                 ..ReaderRegistration::new_mock()
