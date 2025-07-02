@@ -44,7 +44,7 @@
     "privacyPolicyUrl": "https://www.baanvinder.nl/privacy"
   },
   "requestOriginBaseUrl": "https://www.baanvinder.nl",
-  "attributes": {
+  "authorizedAttributes": {
     "urn:eudi:pid:nl:1": {
       "urn:eudi:pid:nl:1": {
         "given_name": {},

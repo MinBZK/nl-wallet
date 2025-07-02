@@ -558,7 +558,7 @@ mod tests {
         let reader_registration = match certificate_kind {
             ReaderCertificateKind::NoReaderRegistration => None,
             ReaderCertificateKind::WithReaderRegistration => ReaderRegistration {
-                attributes: ReaderRegistration::create_attributes(
+                authorized_attributes: ReaderRegistration::create_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
                     EXAMPLE_NAMESPACE.to_string(),
                     EXAMPLE_ATTRIBUTES.iter().copied(),
@@ -1335,7 +1335,7 @@ mod tests {
         let key_pair = generate_reader_mock(
             &ca,
             Some(ReaderRegistration {
-                attributes: ReaderRegistration::create_attributes(
+                authorized_attributes: ReaderRegistration::create_attributes(
                     EXAMPLE_DOC_TYPE.to_string(),
                     EXAMPLE_NAMESPACE.to_string(),
                     EXAMPLE_ATTRIBUTES.iter().copied(),

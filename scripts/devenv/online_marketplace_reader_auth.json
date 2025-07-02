@@ -44,7 +44,7 @@
     "privacyPolicyUrl": "https://www.marktplek.nl/privacy"
   },
   "requestOriginBaseUrl": "https://www.marktplek.nl",
-  "attributes": {
+  "authorizedAttributes": {
     "urn:eudi:pid:nl:1": {
       "urn:eudi:pid:nl:1": {
         "given_name": {},

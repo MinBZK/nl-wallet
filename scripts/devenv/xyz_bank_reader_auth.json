@@ -44,7 +44,7 @@
     "privacyPolicyUrl": "https://www.xyzbank.nl/privacy"
   },
   "requestOriginBaseUrl": "https://www.xyzbank.nl",
-  "attributes": {
+  "authorizedAttributes": {
     "urn:eudi:pid:nl:1": {
       "urn:eudi:pid:nl:1": {
         "given_name": {},

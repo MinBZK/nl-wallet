@@ -34,7 +34,7 @@ pub struct ReaderRegistration {
     pub organization: Organization,
     /// Origin base url, for visual user inspection
     pub request_origin_base_url: Url,
-    pub attributes: IndexMap<String, AuthorizedMdoc>,
+    pub authorized_attributes: IndexMap<String, AuthorizedMdoc>,
 }
 
 impl ReaderRegistration {
@@ -66,7 +66,7 @@ impl TryFrom<ReaderRegistration> for Vec<rcgen::CustomExtension> {
 
 impl AttributeIdentifierHolder for ReaderRegistration {
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.attributes
+        self.authorized_attributes
             .iter()
             .flat_map(|(doc_type, AuthorizedMdoc(namespaces))| {
                 namespaces
@@ -184,7 +184,7 @@ pub mod mock {
 
     // Utility function to easily create [`ReaderRegistration`]
     pub fn create_registration(registered_doctypes: DocTypes) -> ReaderRegistration {
-        let mut attributes = IndexMap::new();
+        let mut authorized_attributes = IndexMap::new();
         for (doc_type, namespaces) in registered_doctypes {
             let mut namespace_map = IndexMap::new();
             for (ns, attrs) in namespaces {
@@ -194,11 +194,11 @@ pub mod mock {
                 }
                 namespace_map.insert(ns.to_owned(), AuthorizedNamespace(attribute_map));
             }
-            attributes.insert(doc_type.to_owned(), AuthorizedMdoc(namespace_map));
+            authorized_attributes.insert(doc_type.to_owned(), AuthorizedMdoc(namespace_map));
         }
 
         ReaderRegistration {
-            attributes,
+            authorized_attributes,
             ..ReaderRegistration::new_mock()
         }
     }
@@ -218,12 +218,12 @@ pub mod mock {
                 deletion_policy: DeletionPolicy { deleteable: true },
                 organization,
                 request_origin_base_url: "https://example.com/".parse().unwrap(),
-                attributes: Default::default(),
+                authorized_attributes: Default::default(),
             }
         }
 
         pub fn mock_from_requests(authorized_requests: &ItemsRequests) -> Self {
-            let attributes = authorized_requests
+            let authorized_attributes = authorized_requests
                 .0
                 .iter()
                 .map(|items_request| {
@@ -242,7 +242,7 @@ pub mod mock {
                 })
                 .collect();
             Self {
-                attributes,
+                authorized_attributes,
                 ..Self::new_mock()
             }
         }
