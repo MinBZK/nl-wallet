@@ -54,7 +54,7 @@ use openid4vc::issuance_session::CredentialWithMetadata;
 use openid4vc::issuance_session::IssuedCredential;
 use platform_support::hw_keystore::PlatformEncryptionKey;
 use sd_jwt::hasher::Sha256Hasher;
-use sd_jwt::sd_jwt::SdJwt;
+use sd_jwt::sd_jwt::VerifiedSdJwt;
 
 use super::data::KeyedData;
 use super::database::Database;
@@ -257,7 +257,7 @@ impl<K> DatabaseStorage<K> {
                             StoredAttestationFormat::MsoMdoc { mdoc: Box::new(mdoc) }
                         }
                         AttestationFormat::SdJwt => {
-                            let sd_jwt = SdJwt::dangerous_parse_unverified(
+                            let sd_jwt = VerifiedSdJwt::dangerous_parse_unverified(
                                 // Since we put utf-8 bytes into the database, we are certain we also get them out.
                                 String::from_utf8(attestation_bytes).unwrap().as_str(),
                                 &Sha256Hasher,
@@ -606,7 +606,7 @@ where
                                 let model = attestation_copy::ActiveModel {
                                     id: Set(Uuid::now_v7()),
                                     attestation_id: Set(attestation_id),
-                                    attestation: Set(sd_jwt.to_string().into_bytes()),
+                                    attestation: Set(sd_jwt.into_inner().to_string().into_bytes()),
                                     attestation_format: Set(AttestationFormat::SdJwt),
                                     ..Default::default()
                                 };
@@ -1185,7 +1185,7 @@ pub(crate) mod tests {
         let ca = Ca::generate_issuer_mock_ca().unwrap();
         let issuance_keypair = generate_issuer_mock(&ca, IssuerRegistration::new_mock().into()).unwrap();
         let sd_jwt = SdJwt::example_pid_sd_jwt(&issuance_keypair);
-        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone()));
+        let credential = IssuedCredential::SdJwt(Box::new(sd_jwt.clone().into()));
 
         let issued_copies = IssuedCredentialCopies::new_or_panic(
             vec![credential.clone(), credential.clone(), credential.clone()]

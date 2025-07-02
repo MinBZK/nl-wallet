@@ -77,14 +77,18 @@ pub enum JwkConversionError {
 pub enum JwtX5cError {
     #[error("error validating JWT: {0}")]
     Jwt(#[from] JwtError),
+
     #[error("missing X.509 certificate(s) in JWT header to validate JWT against")]
     #[category(critical)]
     MissingCertificates,
+
     #[error("error base64-decoding certificate: {0}")]
     #[category(critical)]
     CertificateBase64(#[source] DecodeError),
+
     #[error("error parsing certificate: {0}")]
     CertificateParsing(#[source] CertificateError),
+
     #[error("error verifying certificate: {0}")]
     CertificateValidation(#[source] CertificateError),
 }

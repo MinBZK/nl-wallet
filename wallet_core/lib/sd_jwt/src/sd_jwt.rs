@@ -7,22 +7,27 @@ use std::fmt::Display;
 use chrono::DateTime;
 use chrono::Duration;
 use chrono::Utc;
+use derive_more::AsRef;
+use derive_more::From;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use jsonwebtoken::Algorithm;
 use jsonwebtoken::Header;
 use jsonwebtoken::Validation;
+use rustls_pki_types::TrustAnchor;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
 
 use crypto::x509::BorrowingCertificate;
+use crypto::x509::CertificateUsage;
 use crypto::EcdsaKeySend;
 use jwt::jwk::jwk_to_p256;
 use jwt::EcdsaDecodingKey;
 use jwt::Jwt;
 use jwt::VerifiedJwt;
+use utils::generator::Generator;
 use utils::spec::SpecOptional;
 
 use crate::decoder::SdObjectDecoder;
@@ -67,6 +72,15 @@ pub struct SdJwt {
     issuer_certificates: Vec<BorrowingCertificate>,
 
     disclosures: IndexMap<String, Disclosure>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, From, AsRef)]
+pub struct VerifiedSdJwt(SdJwt);
+
+impl VerifiedSdJwt {
+    pub fn into_inner(self) -> SdJwt {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -210,23 +224,6 @@ impl SdJwt {
         })
     }
 
-    /// Parses an SD-JWT into its components as [`SdJwt`] without verifying the signature.
-    ///
-    /// ## Error
-    /// Returns [`Error::Deserialization`] if parsing fails.
-    pub fn dangerous_parse_unverified(sd_jwt: &str, hasher: &impl Hasher) -> Result<Self> {
-        let (jwt, disclosures) = Self::parse_sd_jwt_unverified(sd_jwt, hasher)?;
-
-        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
-        let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt)?;
-
-        Ok(Self {
-            issuer_signed_jwt,
-            issuer_certificates,
-            disclosures,
-        })
-    }
-
     fn parse_sd_jwt_unverified(
         sd_jwt: &str,
         hasher: &impl Hasher,
@@ -287,6 +284,49 @@ impl SdJwt {
 impl Display for SdJwt {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&(self.presentation()))
+    }
+}
+
+impl VerifiedSdJwt {
+    /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] verifying against the provided trust anchors.
+    pub fn parse_and_verify_against_trust_anchors(
+        sd_jwt: &str,
+        hasher: &impl Hasher,
+        time: &impl Generator<DateTime<Utc>>,
+        trust_anchors: &[TrustAnchor],
+    ) -> Result<VerifiedSdJwt> {
+        let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt, hasher)?;
+
+        let (issuer_signed_jwt, issuer_certificate) = VerifiedJwt::try_new_against_trust_anchors(
+            jwt,
+            &sd_jwt_validation(),
+            time,
+            CertificateUsage::Mdl,
+            trust_anchors,
+        )?;
+
+        Ok(Self(SdJwt {
+            issuer_signed_jwt,
+            issuer_certificates: vec![issuer_certificate],
+            disclosures,
+        }))
+    }
+
+    /// Parses an SD-JWT into its components as [`VerifiedSdJwt`] without verifying the signature.
+    ///
+    /// ## Error
+    /// Returns [`Error::Deserialization`] if parsing fails.
+    pub fn dangerous_parse_unverified(sd_jwt: &str, hasher: &impl Hasher) -> Result<Self> {
+        let (jwt, disclosures) = SdJwt::parse_sd_jwt_unverified(sd_jwt, hasher)?;
+
+        let issuer_certificates = jwt.extract_x5c_certificates()?.into();
+        let issuer_signed_jwt = VerifiedJwt::new_dangerous(jwt)?;
+
+        Ok(Self(SdJwt {
+            issuer_signed_jwt,
+            issuer_certificates,
+            disclosures,
+        }))
     }
 }
 

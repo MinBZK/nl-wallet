@@ -196,9 +196,15 @@ impl Storage for MockStorage {
             .filter(|copy| {
                 let attestation_type = match &copy.attestation {
                     StoredAttestationFormat::MsoMdoc { mdoc } => mdoc.doc_type().as_str(),
-                    StoredAttestationFormat::SdJwt { sd_jwt } => {
-                        sd_jwt.claims().properties.get("vct").unwrap().as_str().unwrap()
-                    }
+                    StoredAttestationFormat::SdJwt { sd_jwt } => sd_jwt
+                        .as_ref()
+                        .as_ref()
+                        .claims()
+                        .properties
+                        .get("vct")
+                        .unwrap()
+                        .as_str()
+                        .unwrap(),
                 };
                 attestation_types.contains(attestation_type)
             })
