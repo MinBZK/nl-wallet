@@ -445,12 +445,12 @@ mod tests {
 
     use assert_matches::assert_matches;
     use base64::prelude::*;
-    use crypto::p256_der::verifying_key_sha256;
     use p256::ecdsa::signature::Verifier;
     use p256::ecdsa::SigningKey;
     use rand::rngs::OsRng;
     use rstest::rstest;
 
+    use crypto::p256_der::verifying_key_sha256;
     use crypto::utils::random_bytes;
 
     use hsm::model::wrapped_key::WrappedKey;
