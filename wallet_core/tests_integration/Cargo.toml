@@ -228,7 +228,7 @@ wiremock = { workspace = true, optional = true }
 
 android_attest = { path = "../lib/android_attest", optional = true }
 apple_app_attest = { path = "../lib/apple_app_attest", optional = true, features = ["mock"] }
-attestation_data = { path = "../lib/attestation_data", optional = true, features = ["example_credential_payloads"] }
+attestation_data = { path = "../lib/attestation_data", optional = true, features = ["example_credential_payloads", "mock"] }
 configuration_server = { path = "../configuration_server", optional = true }
 crypto = { path = "../lib/crypto", optional = true, features = ["mock_remote_key"] }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
