@@ -314,7 +314,7 @@ impl VpAuthorizationRequest {
         jws: &Jwt<VpAuthorizationRequest>,
         trust_anchors: &[TrustAnchor],
     ) -> Result<(VpAuthorizationRequest, BorrowingCertificate), AuthRequestValidationError> {
-        Ok(jws.verify_against_trust_anchors(
+        Ok(jws.verify_against_trust_anchors_and_audience(
             &[VpAuthorizationRequestAudience::SelfIssued],
             trust_anchors,
             &TimeGenerator,
