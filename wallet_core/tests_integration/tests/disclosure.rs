@@ -44,15 +44,13 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_full_name(),
     pid_full_name()
 )]
-#[case(
-    SessionType::SameDevice,
+#[case(SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank",
     pid_full_name(),
-    pid_full_name())
-]
-#[case(
-    SessionType::SameDevice,
+    pid_full_name()
+)]
+#[case(SessionType::SameDevice,
     Some("http://localhost:3004/return".parse().unwrap()),
     "xyz_bank_all_return_url",
     pid_full_name(),
@@ -83,8 +81,7 @@ async fn get_verifier_status(client: &reqwest::Client, status_url: Url) -> Statu
     pid_family_name() + pid_given_name(),
     pid_full_name()
 )]
-#[case(
-    SessionType::SameDevice,
+#[case(SessionType::SameDevice,
     None,
     "multiple_cards",
     pid_given_name() + addr_street(),

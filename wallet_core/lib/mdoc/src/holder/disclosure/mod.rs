@@ -36,13 +36,13 @@ pub fn credential_request_to_mdoc_paths<'a>(
     credential_requests
         .as_ref()
         .iter()
-        .find(|request| {
+        .filter(|request| {
             request.format
                 == CredentialQueryFormat::MsoMdoc {
                     doctype_value: attestation_type.to_string(),
                 }
         })
-        .map(|request| {
+        .flat_map(|request| {
             request
                 .claims
                 .iter()
@@ -50,7 +50,7 @@ pub fn credential_request_to_mdoc_paths<'a>(
                 .collect::<Result<HashSet<_>, _>>()
                 .unwrap_or_default()
         })
-        .unwrap_or_default()
+        .collect()
 }
 
 #[cfg(test)]

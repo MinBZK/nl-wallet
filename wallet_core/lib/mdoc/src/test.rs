@@ -569,14 +569,6 @@ pub mod data {
         }
     }
 
-    // impl TryFrom<TestDocuments> for NormalizedCredentialRequests {
-    //     type Error = NormalizedCredentialRequestsError;
-
-    //     fn try_from(source: TestDocuments) -> Result<Self, Self::Error> {
-    //         NormalizedCredentialRequests::try_new(source.0.into_iter().map(Into::into).collect())
-    //     }
-    // }
-
     impl From<TestDocuments> for NormalizedCredentialRequests {
         fn from(source: TestDocuments) -> Self {
             NormalizedCredentialRequests::try_new(source.0.into_iter().map(Into::into).collect()).unwrap()
