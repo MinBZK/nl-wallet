@@ -220,11 +220,9 @@ platform :ios do
     end
 
     match_basic_auth = ci_get_basic_auth
-    match_keychain_password = ENV["MATCH_KEYCHAIN_PASSWORD"]
 
     options[:app_store] = true
     options[:match_basic_auth] = match_basic_auth
-    options[:keychain_password] = match_keychain_password
 
     build(options)
   end
@@ -333,7 +331,6 @@ platform :ios do
       type: options[:app_store] ? "appstore" : "adhoc",
       readonly: true,
       git_basic_authorization: options[:match_basic_auth],
-      keychain_password: options[:keychain_password]
     )
 
     # Update the Xcode project so that Flutter can produce a signed build archive

@@ -95,12 +95,14 @@ where
                         }
                         StoredAttestationFormat::SdJwt { sd_jwt } => {
                             let issuer_certificate = sd_jwt
+                                .as_ref()
+                                .as_ref()
                                 .issuer_certificate()
                                 .ok_or(AttestationsError::MissingIssuerCertificate)?;
                             let issuer_registration = IssuerRegistration::from_certificate(issuer_certificate)?
                                 .ok_or(AttestationsError::MissingIssuerRegistration)?;
 
-                            let payload = sd_jwt.into_credential_payload(&normalized_metadata)?;
+                            let payload = sd_jwt.into_inner().into_credential_payload(&normalized_metadata)?;
                             let attestation = AttestationPresentation::create_from_attributes(
                                 AttestationIdentity::Fixed {
                                     id: attestation_id.to_string(),
@@ -215,7 +217,9 @@ mod tests {
             vec![
                 CredentialWithMetadata::new(
                     IssuedCredentialCopies::new_or_panic(
-                        vec![IssuedCredential::SdJwt(Box::new(sd_jwt))].try_into().unwrap(),
+                        vec![IssuedCredential::SdJwt(Box::new(sd_jwt.into()))]
+                            .try_into()
+                            .unwrap(),
                     ),
                     attestation_type.clone(),
                     VerifiedTypeMetadataDocuments::nl_pid_example(),
