@@ -307,9 +307,20 @@
 <h1>Release notes v0.4.0<a class="headerlink" href="#release-notes-v0-4-0" title="Link to this heading"></a></h1>
 <section id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>This release changes the identifiers used by the wallet and Wallet Provider
+to refer to the wallet’s keys, invalidating existing keys and their
+identifiers. The WP’s database will therefore have to be cleared when
+deploying this.</p></li>
+</ul>
 </section>
 <section id="new-features">
 <h2>New features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The wallet and Wallet Provider now use the SHA256 of the public keys to
+refer to the wallet’s keys, so that the wallet’s signing instructions to the
+WP are non-repudiable.</p></li>
+</ul>
 </section>
 <section id="code-improvements">
 <h2>Code improvements<a class="headerlink" href="#code-improvements" title="Link to this heading"></a></h2>
@@ -356,8 +367,6 @@
         <dl>
             <dt>Releases</dt>
             <dd><a href="../../v0.3.0/index.html">v0.3.0</a></dd>
-            <dd><a href="../../v0.9.1/index.html">v0.9.1</a></dd>
-            <dd><a href="../../v0.9.2/index.html">v0.9.2</a></dd>
         </dl>
         <dl>
             <dt>Branches</dt>
