@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::collections::HashSet;
 use std::num::NonZero;
 
 use nutype::nutype;
@@ -10,44 +8,11 @@ use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::attribute_paths::AttestationAttributePaths;
-use crate::attribute_paths::AttestationAttributePathsError;
-
 #[nutype(
     derive(Debug, Clone, PartialEq, Eq, AsRef, TryFrom, Into, IntoIterator, Serialize, Deserialize),
     validate(predicate = |items| !items.is_empty()),
 )]
 pub struct NormalizedCredentialRequests(Vec<NormalizedCredentialRequest>);
-
-impl NormalizedCredentialRequests {
-    pub fn try_into_attribute_paths(self) -> Result<AttestationAttributePaths, AttestationAttributePathsError> {
-        let paths = self
-            .into_iter()
-            .fold(HashMap::<_, HashSet<_>>::new(), |mut paths, request| {
-                // For an mdoc items request, simply make a path of length 2,
-                // consisting of the name space and element identifier.
-                let CredentialQueryFormat::MsoMdoc { doctype_value } = request.format else {
-                    panic!("sd-jwt is not yet supported")
-                };
-
-                let attributes: HashSet<VecNonEmpty<String>> = request
-                    .claims
-                    .into_iter()
-                    .map(|claim| {
-                        let attrs = claim.path.into_iter().map(|attr| format!("{attr}")).collect::<Vec<_>>();
-                        VecNonEmpty::try_from(attrs).expect("source was also non empty")
-                    })
-                    .collect();
-
-                // In case a doc type occurs multiple times, merge the paths.
-                paths.entry(doctype_value).or_default().extend(attributes);
-
-                paths
-            });
-
-        AttestationAttributePaths::try_new(paths)
-    }
-}
 
 /// Request for a credential.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -88,8 +53,12 @@ impl AttributeRequest {
 
 #[cfg(any(test, feature = "mock"))]
 mod mock {
+    use std::collections::HashMap;
+    use std::collections::HashSet;
+
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;
+    use utils::vec_at_least::VecNonEmpty;
 
     use super::AttributeRequest;
     use super::NormalizedCredentialRequest;
@@ -180,6 +149,32 @@ mod mock {
     }
 
     impl NormalizedCredentialRequests {
+        pub fn mock_from_hashmap(input: HashMap<String, HashSet<VecNonEmpty<String>>>) -> Self {
+            let requests = input
+                .into_iter()
+                .map(|(doc_type, paths)| {
+                    let format = CredentialQueryFormat::MsoMdoc {
+                        doctype_value: doc_type.to_string(),
+                    };
+                    let claims = paths
+                        .into_iter()
+                        .map(|path| {
+                            let claim_path: Vec<_> = path
+                                .into_iter()
+                                .map(|element| ClaimPath::SelectByKey(element.to_string()))
+                                .collect();
+                            AttributeRequest {
+                                path: VecNonEmpty::try_from(claim_path).expect("empy path not allowed"),
+                                intent_to_retain: false,
+                            }
+                        })
+                        .collect();
+                    NormalizedCredentialRequest { format, claims }
+                })
+                .collect();
+            Self::try_new(requests).expect("should contain at least 1 request")
+        }
+
         pub fn example() -> Self {
             vec![NormalizedCredentialRequest {
                 format: CredentialQueryFormat::MsoMdoc {

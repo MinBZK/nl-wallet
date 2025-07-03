@@ -26,7 +26,6 @@ use super::message_client::VpMessageClient;
 use super::message_client::VpMessageClientError;
 use super::session::VpDisclosureSession;
 use super::uri_source::DisclosureUriSource;
-use super::AttestationAttributePaths;
 use super::DisclosureClient;
 use super::VerifierCertificate;
 
@@ -84,7 +83,7 @@ impl<H> VpDisclosureClient<H> {
         auth_request_client_id: &str,
         credential_requests: NormalizedCredentialRequests,
         certificate: &BorrowingCertificate,
-    ) -> Result<(AttestationAttributePaths, ReaderRegistration), VpVerifierError> {
+    ) -> Result<(NormalizedCredentialRequests, ReaderRegistration), VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
         if auth_request_client_id != request_uri_client_id {
@@ -106,12 +105,7 @@ impl<H> VpDisclosureClient<H> {
             .verify_requested_attributes(&credential_requests.as_ref().as_slice())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
-        // Convert the request into a generic representation.
-        let requested_attribute_paths = credential_requests
-            .try_into_attribute_paths()
-            .map_err(VpVerifierError::EmptyRequest)?;
-
-        Ok((requested_attribute_paths, reader_registration))
+        Ok((credential_requests, reader_registration))
     }
 }
 

@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
-use itertools::Itertools;
+use dcql::CredentialQueryFormat;
 
-use attestation_types::attribute_paths::AttestationAttributePaths;
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequests;
 
 use crate::identifiers::AttributeIdentifier;
 
@@ -10,7 +11,6 @@ mod device_response;
 mod device_signed;
 mod document;
 mod issuer_signed;
-mod items_requests;
 mod mdoc;
 
 #[cfg(test)]
@@ -26,21 +26,29 @@ pub enum ResponseValidationError {
     ExpectedMdoc,
 }
 
-/// Return the mdoc-specific paths for a particular attestation type in [`AttestationAttributePaths`], which is always
-/// a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set, either when
-/// the attestation type is not present or when none of the paths can be represented as a 2-tuple.
-pub fn attribute_paths_to_mdoc_paths<'a>(
-    attribute_paths: &'a AttestationAttributePaths,
+/// Return the mdoc-specific paths for a particular attestation type in [`NormalizedCredentialRequests`], which is
+/// always a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set, either
+/// when the attestation type is not present or when none of the paths can be represented as a 2-tuple.
+pub fn credential_request_to_mdoc_paths<'a>(
+    credential_requests: &'a NormalizedCredentialRequests,
     attestation_type: &str,
 ) -> HashSet<(&'a str, &'a str)> {
-    attribute_paths
+    credential_requests
         .as_ref()
-        .get(attestation_type)
-        .map(|paths| {
-            paths
+        .iter()
+        .find(|request| {
+            request.format
+                == CredentialQueryFormat::MsoMdoc {
+                    doctype_value: attestation_type.to_string(),
+                }
+        })
+        .map(|request| {
+            request
+                .claims
                 .iter()
-                .filter_map(|path| path.iter().map(String::as_str).collect_tuple())
-                .collect()
+                .map(AttributeRequest::to_namespace_and_attribute)
+                .collect::<Result<HashSet<_>, _>>()
+                .unwrap_or_default()
         })
         .unwrap_or_default()
 }

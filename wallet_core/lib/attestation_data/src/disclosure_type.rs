@@ -1,7 +1,8 @@
+use attestation_types::request::NormalizedCredentialRequests;
+use dcql::CredentialQueryFormat;
 use itertools::Itertools;
 
-use attestation_types::attribute_paths::AttestationAttributePaths;
-use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
+use mdoc::holder::disclosure::credential_request_to_mdoc_paths;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DisclosureType {
@@ -11,18 +12,21 @@ pub enum DisclosureType {
 
 impl DisclosureType {
     pub fn from_request_attribute_paths(
-        attribute_paths: &AttestationAttributePaths,
+        credential_requests: &NormalizedCredentialRequests,
         login_attestation_type: &str,
         login_attribute_path: (&str, &str),
     ) -> Self {
-        attribute_paths
+        credential_requests
             .as_ref()
-            .keys()
+            .iter()
             .exactly_one()
             .ok()
-            .and_then(|attestation_type| {
-                (attestation_type == login_attestation_type)
-                    .then(|| attribute_paths_to_mdoc_paths(attribute_paths, login_attestation_type))
+            .and_then(|credential_request| {
+                (credential_request.format
+                    == CredentialQueryFormat::MsoMdoc {
+                        doctype_value: login_attestation_type.to_string(),
+                    })
+                .then(|| credential_request_to_mdoc_paths(credential_requests, login_attestation_type))
             })
             .and_then(|paths| paths.into_iter().exactly_one().ok())
             .and_then(|path| (path == login_attribute_path).then_some(DisclosureType::Login))
@@ -51,7 +55,7 @@ mod test {
     #[case(pid_and_other_bsn_attribute_paths(), DisclosureType::Regular)]
     #[case(pid_too_long_attribute_paths(), DisclosureType::Regular)]
     fn test_disclosure_type_from_request_attribute_paths(
-        #[case] attribute_paths: AttestationAttributePaths,
+        #[case] attribute_paths: NormalizedCredentialRequests,
         #[case] expected: DisclosureType,
     ) {
         assert_eq!(
@@ -64,29 +68,27 @@ mod test {
         );
     }
 
-    fn pid_bsn_attribute_paths() -> AttestationAttributePaths {
-        AttestationAttributePaths::try_new(HashMap::from([(
+    fn pid_bsn_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([(
             LOGIN_ATTESTATION_TYPE.to_string(),
             HashSet::from([
                 VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap(),
             ]),
         )]))
-        .unwrap()
     }
 
-    fn pid_bsn_and_other_attribute_paths() -> AttestationAttributePaths {
-        AttestationAttributePaths::try_new(HashMap::from([(
+    fn pid_bsn_and_other_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([(
             LOGIN_ATTESTATION_TYPE.to_string(),
             HashSet::from([
                 VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), LOGIN_ATTRIBUTE_ID.to_string()]).unwrap(),
                 VecNonEmpty::try_from(vec![LOGIN_NAMESPACE.to_string(), "other".to_string()]).unwrap(),
             ]),
         )]))
-        .unwrap()
     }
 
-    fn pid_and_other_bsn_attribute_paths() -> AttestationAttributePaths {
-        AttestationAttributePaths::try_new(HashMap::from([
+    fn pid_and_other_bsn_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([
             (
                 LOGIN_ATTESTATION_TYPE.to_string(),
                 HashSet::from([VecNonEmpty::try_from(vec![
@@ -104,11 +106,10 @@ mod test {
                 .unwrap()]),
             ),
         ]))
-        .unwrap()
     }
 
-    fn pid_too_long_attribute_paths() -> AttestationAttributePaths {
-        AttestationAttributePaths::try_new(HashMap::from([(
+    fn pid_too_long_attribute_paths() -> NormalizedCredentialRequests {
+        NormalizedCredentialRequests::mock_from_hashmap(HashMap::from([(
             LOGIN_ATTESTATION_TYPE.to_string(),
             HashSet::from([VecNonEmpty::try_from(vec![
                 LOGIN_NAMESPACE.to_string(),
@@ -117,6 +118,5 @@ mod test {
             ])
             .unwrap()]),
         )]))
-        .unwrap()
     }
 }

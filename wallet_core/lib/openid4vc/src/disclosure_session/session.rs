@@ -1,5 +1,6 @@
 use std::hash::Hash;
 
+use attestation_types::request::NormalizedCredentialRequests;
 use itertools::Itertools;
 use tracing::info;
 use tracing::warn;
@@ -8,7 +9,7 @@ use crypto::factory::KeyFactory;
 use crypto::utils::random_string;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
+use mdoc::holder::disclosure::credential_request_to_mdoc_paths;
 use mdoc::holder::Mdoc;
 use mdoc::iso::disclosure::DeviceResponse;
 use mdoc::iso::engagement::SessionTranscript;
@@ -24,7 +25,6 @@ use super::error::DisclosureError;
 use super::error::VpClientError;
 use super::error::VpSessionError;
 use super::message_client::VpMessageClient;
-use super::AttestationAttributePaths;
 use super::DisclosureSession;
 use super::VerifierCertificate;
 
@@ -32,7 +32,7 @@ use super::VerifierCertificate;
 pub struct VpDisclosureSession<H> {
     client: H,
     session_type: SessionType,
-    requested_attribute_paths: AttestationAttributePaths,
+    credential_requests: NormalizedCredentialRequests,
     verifier_certificate: VerifierCertificate,
     auth_request: IsoVpAuthorizationRequest,
 }
@@ -41,14 +41,14 @@ impl<H> VpDisclosureSession<H> {
     pub(super) fn new(
         client: H,
         session_type: SessionType,
-        requested_attribute_paths: AttestationAttributePaths,
+        credential_requests: NormalizedCredentialRequests,
         verifier_certificate: VerifierCertificate,
         auth_request: IsoVpAuthorizationRequest,
     ) -> Self {
         Self {
             client,
             session_type,
-            requested_attribute_paths,
+            credential_requests,
             verifier_certificate,
             auth_request,
         }
@@ -63,8 +63,8 @@ where
         self.session_type
     }
 
-    fn requested_attribute_paths(&self) -> &AttestationAttributePaths {
-        &self.requested_attribute_paths
+    fn credential_requests(&self) -> &NormalizedCredentialRequests {
+        &self.credential_requests
     }
 
     fn verifier_certificate(&self) -> &VerifierCertificate {
@@ -101,7 +101,7 @@ where
         let filtered_mdocs = mdocs
             .into_iter()
             .filter_map(|mut mdoc| {
-                let paths = attribute_paths_to_mdoc_paths(&self.requested_attribute_paths, &mdoc.mso.doc_type);
+                let paths = credential_request_to_mdoc_paths(&self.credential_requests, &mdoc.mso.doc_type);
 
                 (!paths.is_empty()).then(|| {
                     mdoc.issuer_signed = mdoc.issuer_signed.into_attribute_subset(&paths);

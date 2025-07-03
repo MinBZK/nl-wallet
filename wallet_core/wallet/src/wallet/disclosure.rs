@@ -19,11 +19,12 @@ use attestation_data::auth::Organization;
 use attestation_data::disclosure_type::DisclosureType;
 use crypto::x509::BorrowingCertificateExtension;
 use crypto::x509::CertificateError;
+use dcql::CredentialQueryFormat;
 use error_category::sentry_capture_error;
 use error_category::ErrorCategory;
 use http_utils::tls::pinning::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
-use mdoc::holder::disclosure::attribute_paths_to_mdoc_paths;
+use mdoc::holder::disclosure::credential_request_to_mdoc_paths;
 use mdoc::holder::Mdoc;
 use mdoc::utils::cose::CoseError;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -325,10 +326,15 @@ where
         // Retrieve all attestation with the requested attestation types from
         // the database, which are returned in original insertion order.
         let requested_attestation_types = session
-            .requested_attribute_paths()
+            .credential_requests()
             .as_ref()
-            .keys()
-            .map(String::as_str)
+            .iter()
+            .map(|r| {
+                let CredentialQueryFormat::MsoMdoc { ref doctype_value } = &r.format else {
+                    panic!("sd-jwt is not yet supported");
+                };
+                doctype_value.as_str()
+            })
             .collect();
         let stored_mdocs = self
             .storage
@@ -354,7 +360,7 @@ where
             .into_iter()
             .filter_map(|(attestation_type, stored_mdoc_iter)| {
                 // Get the requested paths for this attestation type.
-                let mdoc_paths = attribute_paths_to_mdoc_paths(session.requested_attribute_paths(), attestation_type);
+                let mdoc_paths = credential_request_to_mdoc_paths(session.credential_requests(), attestation_type);
 
                 let candidate_attestations = stored_mdoc_iter
                     .into_iter()
@@ -377,7 +383,7 @@ where
         // At this point, determine the disclosure type and if data was every shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
         let disclosure_type = DisclosureType::from_request_attribute_paths(
-            session.requested_attribute_paths(),
+            session.credential_requests(),
             PID_DOCTYPE,
             (PID_DOCTYPE, BSN_ATTR_NAME),
         );
@@ -400,13 +406,21 @@ where
             // For now we simply represent the requested attribute paths by joining all elements with a slash.
             // TODO (PVW-3813): Attempt to translate the requested attributes using the TAS cache.
             let requested_attributes = session
-                .requested_attribute_paths()
+                .credential_requests()
                 .as_ref()
                 .iter()
-                .flat_map(|(attestation_type, paths)| {
-                    paths
+                .flat_map(|request| {
+                    let CredentialQueryFormat::MsoMdoc { ref doctype_value } = &request.format else {
+                        panic!("sd-jwt is not yet supported");
+                    };
+                    request
+                        .claims
                         .iter()
-                        .map(|path| iter::once(attestation_type).chain(path.iter()).join("/"))
+                        .map(|path| {
+                            iter::once(doctype_value.to_string())
+                                .chain(path.path.iter().map(|path| format!("{path}")))
+                                .join("/")
+                        })
                         .collect_vec()
                 })
                 .collect();
@@ -435,8 +449,8 @@ where
         let attestations_by_type = stored_mdocs_by_type
             .into_iter()
             .map(|stored_mdocs| {
-                let mdoc_paths = attribute_paths_to_mdoc_paths(
-                    session.requested_attribute_paths(),
+                let mdoc_paths = credential_request_to_mdoc_paths(
+                    session.credential_requests(),
                     &stored_mdocs.first().mdoc.mso.doc_type,
                 );
 

@@ -61,6 +61,7 @@ serde_valid.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio = { workspace = true, features = ["macros"] }
 
+attestation_types = { path = "../attestation_types", features = ["mock"] }
 crypto = { path = "../crypto", features = ["generate", "mock"] }
 jwt.path = "../jwt"
 mdoc = { path = "../mdoc", features = ["mock", "mock_example_constructors", "test"] }

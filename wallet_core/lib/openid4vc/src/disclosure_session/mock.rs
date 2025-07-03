@@ -2,6 +2,7 @@ use std::hash::Hash;
 
 use rustls_pki_types::TrustAnchor;
 
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::factory::KeyFactory;
 use crypto::CredentialEcdsaKey;
 use http_utils::urls::BaseUrl;
@@ -14,7 +15,6 @@ use crate::verifier::SessionType;
 use super::error::DisclosureError;
 use super::error::VpSessionError;
 use super::uri_source::DisclosureUriSource;
-use super::AttestationAttributePaths;
 use super::DisclosureClient;
 use super::DisclosureSession;
 use super::VerifierCertificate;
@@ -37,7 +37,7 @@ mockall::mock! {
 mockall::mock! {
     pub DisclosureSession {
         fn session_type(&self) -> SessionType;
-        fn requested_attribute_paths(&self) -> &AttestationAttributePaths;
+        fn credential_requests(&self) -> &NormalizedCredentialRequests;
         fn verifier_certificate(&self) -> &VerifierCertificate;
 
         async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
@@ -53,8 +53,8 @@ impl DisclosureSession for MockDisclosureSession {
         self.session_type()
     }
 
-    fn requested_attribute_paths(&self) -> &AttestationAttributePaths {
-        self.requested_attribute_paths()
+    fn credential_requests(&self) -> &NormalizedCredentialRequests {
+        self.credential_requests()
     }
 
     fn verifier_certificate(&self) -> &VerifierCertificate {

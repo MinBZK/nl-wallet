@@ -7563,6 +7563,7 @@ dependencies = [
  "chrono",
  "ciborium",
  "crypto",
+ "dcql",
  "derive_more",
  "entity",
  "error_category",
