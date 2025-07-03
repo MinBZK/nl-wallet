@@ -4,6 +4,8 @@ use itertools::Itertools;
 
 use attestation_types::attribute_paths::AttestationAttributePaths;
 
+use crate::identifiers::AttributeIdentifier;
+
 mod device_response;
 mod device_signed;
 mod document;
@@ -15,6 +17,14 @@ mod mdoc;
 mod doc_request;
 #[cfg(test)]
 mod iso_tests;
+
+#[derive(Debug, thiserror::Error)]
+pub enum ResponseValidationError {
+    #[error("attributes mismatch: {0:?}")]
+    MissingAttributes(Vec<AttributeIdentifier>),
+    #[error("expected an mdoc")]
+    ExpectedMdoc,
+}
 
 /// Return the mdoc-specific paths for a particular attestation type in [`AttestationAttributePaths`], which is always
 /// a pair of namespace and element (i.e. attribute) identifier. Note that this may return an empty set, either when

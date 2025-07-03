@@ -5,5 +5,4 @@ pub mod disclosure;
 pub mod disclosure_type;
 pub mod issuable_document;
 pub mod mdoc;
-pub mod request;
 pub mod x509;

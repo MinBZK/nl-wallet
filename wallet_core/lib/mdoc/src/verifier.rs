@@ -13,7 +13,13 @@ use serde_with::serde_as;
 use tracing::debug;
 use tracing::warn;
 
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::MdocCredentialRequestError;
+use attestation_types::request::NormalizedCredentialRequest;
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::x509::CertificateUsage;
+use dcql::ClaimPath;
+use dcql::CredentialQueryFormat;
 use http_utils::urls::HttpsUri;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmpty;
@@ -104,6 +110,77 @@ impl ItemsRequests {
         } else {
             Err(VerificationError::MissingAttributes(not_found).into())
         }
+    }
+}
+
+impl TryFrom<NormalizedCredentialRequest> for ItemsRequest {
+    type Error = MdocCredentialRequestError;
+
+    fn try_from(source: NormalizedCredentialRequest) -> Result<Self, Self::Error> {
+        let CredentialQueryFormat::MsoMdoc { doctype_value } = &source.format else {
+            panic!("SdJwt not supported yet");
+        };
+
+        let name_spaces = source
+            .claims
+            .into_iter()
+            .map(|req| {
+                let (ns, attr) = req.to_namespace_and_attribute().unwrap(); // TODO: error handling
+                (ns.to_owned(), attr.to_owned(), req.intent_to_retain)
+            })
+            .fold(IndexMap::new(), |mut acc, (ns, attr, intent_to_retain)| {
+                let entry: &mut IndexMap<_, _> = acc.entry(ns).or_default();
+                entry.insert(attr, intent_to_retain);
+                acc
+            });
+
+        let items_request = ItemsRequest {
+            doc_type: doctype_value.clone(),
+            name_spaces,
+            request_info: None,
+        };
+        Ok(items_request)
+    }
+}
+
+impl From<ItemsRequest> for NormalizedCredentialRequest {
+    fn from(source: ItemsRequest) -> Self {
+        let doctype_value = source.doc_type;
+
+        let format = CredentialQueryFormat::MsoMdoc { doctype_value };
+
+        // unwrap below is safe because claims path is not empty
+        let claims = source
+            .name_spaces
+            .into_iter()
+            .flat_map(|(namespace, attrs)| {
+                attrs
+                    .into_iter()
+                    .map(move |(attribute, intent_to_retain)| AttributeRequest {
+                        path: vec![
+                            ClaimPath::SelectByKey(namespace.clone()),
+                            ClaimPath::SelectByKey(attribute.clone()),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                        intent_to_retain,
+                    })
+            })
+            .collect();
+
+        NormalizedCredentialRequest { format, claims }
+    }
+}
+
+impl From<ItemsRequests> for NormalizedCredentialRequests {
+    fn from(source: ItemsRequests) -> Self {
+        source
+            .0
+            .into_iter()
+            .map(Into::into)
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap()
     }
 }
 

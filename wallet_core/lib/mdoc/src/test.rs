@@ -413,7 +413,12 @@ impl MdocCose<CoseSign1, TaggedBytes<MobileSecurityObject>> {
 
 #[cfg(any(test, feature = "mock"))]
 pub mod data {
+    use attestation_types::request::AttributeRequest;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::server_keys::generate::mock::ISSUANCE_CERT_CN;
+    use dcql::ClaimPath;
+    use dcql::CredentialQueryFormat;
 
     use super::*;
 
@@ -535,5 +540,71 @@ pub mod data {
             request_info: None,
         }]
         .into()
+    }
+
+    impl From<TestDocument> for NormalizedCredentialRequest {
+        fn from(source: TestDocument) -> Self {
+            let format = CredentialQueryFormat::MsoMdoc {
+                doctype_value: source.doc_type,
+            };
+
+            // unwrap below is safe because claims path is not empty
+            let claims = source
+                .namespaces
+                .into_iter()
+                .flat_map(|(namespace, attrs)| {
+                    attrs.into_iter().map(move |entry| AttributeRequest {
+                        path: vec![
+                            ClaimPath::SelectByKey(namespace.clone()),
+                            ClaimPath::SelectByKey(entry.name),
+                        ]
+                        .try_into()
+                        .unwrap(),
+                        intent_to_retain: true,
+                    })
+                })
+                .collect();
+
+            NormalizedCredentialRequest { format, claims }
+        }
+    }
+
+    // impl TryFrom<TestDocuments> for NormalizedCredentialRequests {
+    //     type Error = NormalizedCredentialRequestsError;
+
+    //     fn try_from(source: TestDocuments) -> Result<Self, Self::Error> {
+    //         NormalizedCredentialRequests::try_new(source.0.into_iter().map(Into::into).collect())
+    //     }
+    // }
+
+    impl From<TestDocuments> for NormalizedCredentialRequests {
+        fn from(source: TestDocuments) -> Self {
+            NormalizedCredentialRequests::try_new(source.0.into_iter().map(Into::into).collect()).unwrap()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use attestation_types::request::NormalizedCredentialRequest;
+
+    use crate::ItemsRequest;
+
+    use super::data::addr_street;
+    use super::data::pid_full_name;
+    use super::TestDocuments;
+
+    #[rstest]
+    #[case(NormalizedCredentialRequest::pid_full_name(), pid_full_name())]
+    #[case(NormalizedCredentialRequest::addr_street(), addr_street())]
+    fn try_from_credential_request_for_items_request(
+        #[case] input: NormalizedCredentialRequest,
+        #[case] expected: TestDocuments,
+    ) {
+        let actual: ItemsRequest = input.try_into().unwrap();
+
+        assert_eq!(actual, expected.into_first().unwrap().into());
     }
 }

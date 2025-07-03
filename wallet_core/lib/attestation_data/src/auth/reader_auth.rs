@@ -130,6 +130,8 @@ impl BorrowingCertificateExtension for ReaderRegistration {
 pub mod mock {
     use indexmap::IndexMap;
 
+    use attestation_types::request::NormalizedCredentialRequests;
+    use dcql::CredentialQueryFormat;
     use mdoc::verifier::ItemsRequests;
 
     use super::*;
@@ -160,6 +162,35 @@ pub mod mock {
                 ),
             )]
             .into()
+        }
+
+        pub fn mock_from_credential_requests(authorized_requests: &NormalizedCredentialRequests) -> Self {
+            let attributes = authorized_requests
+                .as_ref()
+                .iter()
+                .map(|credential_request| {
+                    let CredentialQueryFormat::MsoMdoc { ref doctype_value } = credential_request.format else {
+                        panic!("sd-jwt is not yet supported");
+                    };
+                    let namespaces: IndexMap<_, _> = credential_request
+                        .claims
+                        .iter()
+                        .map(|attribute_request| attribute_request.to_namespace_and_attribute().unwrap())
+                        .fold(IndexMap::new(), |mut acc, (namespace, attribute)| {
+                            let authorized_namespace: &mut AuthorizedNamespace =
+                                acc.entry(namespace.to_string()).or_default();
+                            authorized_namespace
+                                .0
+                                .insert(attribute.to_string(), AuthorizedAttribute {});
+                            acc
+                        });
+                    (doctype_value.clone(), AuthorizedMdoc(namespaces))
+                })
+                .collect();
+            Self {
+                attributes,
+                ..Self::new_mock()
+            }
         }
     }
 

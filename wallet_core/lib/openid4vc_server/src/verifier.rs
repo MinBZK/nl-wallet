@@ -23,7 +23,7 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::keys::EcdsaKeySend;
 use http_utils::error::HttpJsonError;
 use http_utils::urls;

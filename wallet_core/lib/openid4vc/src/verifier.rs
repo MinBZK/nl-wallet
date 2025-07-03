@@ -34,7 +34,7 @@ use tracing::warn;
 
 use attestation_data::disclosure::DisclosedAttestation;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::request::NormalizedCredentialRequests;
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::keys::EcdsaKey;
 use crypto::server_keys::KeyPair;
 use crypto::utils::random_string;
@@ -1506,10 +1506,10 @@ mod tests {
     use rstest::rstest;
 
     use attestation_data::auth::reader_auth::ReaderRegistration;
-    use attestation_data::request::AttributeRequest;
-    use attestation_data::request::NormalizedCredentialRequest;
-    use attestation_data::request::NormalizedCredentialRequests;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_types::request::AttributeRequest;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::server_keys::generate::Ca;
     use dcql::ClaimPath;
     use dcql::CredentialQueryFormat;

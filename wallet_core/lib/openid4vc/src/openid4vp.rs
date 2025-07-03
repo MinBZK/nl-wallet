@@ -24,8 +24,7 @@ use serde_with::OneOrMany;
 
 use attestation_data::disclosure::DisclosedAttestationError;
 use attestation_data::disclosure::DisclosedAttestations;
-use attestation_data::request::NormalizedCredentialRequests;
-use attestation_data::request::ResponseError;
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::utils::random_string;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::CertificateError;
@@ -34,6 +33,7 @@ use http_utils::urls::BaseUrl;
 use jwt::error::JwtX5cError;
 use jwt::Jwt;
 use mdoc::errors::Error as MdocError;
+use mdoc::holder::disclosure::ResponseValidationError;
 use mdoc::utils::serialization::CborBase64;
 use mdoc::DeviceResponse;
 use mdoc::SessionTranscript;
@@ -568,7 +568,7 @@ pub enum AuthResponseError {
     #[error("error verifying disclosed mdoc(s): {0}")]
     Verification(#[source] mdoc::Error),
     #[error("missing requested attributes: {0}")]
-    MissingAttributes(#[source] ResponseError),
+    MissingAttributes(#[source] ResponseValidationError),
     #[error("received unexpected amount of Verifiable Presentations: expected 1, found {0}")]
     UnexpectedVpCount(usize),
     #[error("error in Presentation Submission: {0}")]
@@ -793,9 +793,8 @@ impl VpAuthorizationResponse {
         }
 
         // Check that we received all attributes that we requested
-        auth_request
-            .credential_requests
-            .match_against_response(device_response)
+        device_response
+            .match_against_request(&auth_request.credential_requests)
             .map_err(AuthResponseError::MissingAttributes)?;
 
         // Safe: if we have found all requested items in the documents, then the documents are not absent.
@@ -830,7 +829,6 @@ pub struct VpResponse {
 mod tests {
     use std::borrow::Cow;
 
-    use attestation_data::request::NormalizedCredentialRequests;
     use chrono::DateTime;
     use chrono::Utc;
     use futures::future::join_all;
@@ -845,6 +843,7 @@ mod tests {
 
     use attestation_data::disclosure::DisclosedAttributes;
     use attestation_data::x509::generate::mock::generate_reader_mock;
+    use attestation_types::request::NormalizedCredentialRequests;
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::mock_remote::MockRemoteKeyFactory;
     use crypto::server_keys::generate::Ca;

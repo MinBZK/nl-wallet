@@ -1,6 +1,11 @@
 use derive_more::Display;
 use indexmap::IndexSet;
 
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::MdocCredentialRequestError;
+use attestation_types::request::NormalizedCredentialRequest;
+use dcql::CredentialQueryFormat;
+
 use crate::DataElementIdentifier;
 use crate::Document;
 use crate::NameSpace;
@@ -11,6 +16,23 @@ pub struct AttributeIdentifier {
     pub credential_type: String,
     pub namespace: NameSpace,
     pub attribute: DataElementIdentifier,
+}
+
+impl AttributeIdentifier {
+    pub fn from_attribute_request(
+        doc_type: &str,
+        attribute_request: &AttributeRequest,
+    ) -> Result<Self, MdocCredentialRequestError> {
+        let (namespace, attribute) = attribute_request.to_namespace_and_attribute()?;
+
+        let identifier = Self {
+            credential_type: doc_type.to_owned(),
+            namespace: namespace.to_owned(),
+            attribute: attribute.to_owned(),
+        };
+
+        Ok(identifier)
+    }
 }
 
 pub trait AttributeIdentifierHolder {
@@ -34,15 +56,25 @@ pub trait AttributeIdentifierHolder {
     }
 }
 
-impl<'a, I, T> AttributeIdentifierHolder for I
+impl<T> AttributeIdentifierHolder for &[T]
 where
-    I: IntoIterator<Item = &'a T> + Clone,
-    T: AttributeIdentifierHolder + 'a,
+    T: AttributeIdentifierHolder,
 {
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
-        self.clone()
-            .into_iter()
+        self.iter()
             .flat_map(AttributeIdentifierHolder::attribute_identifiers)
+            .collect()
+    }
+}
+
+impl AttributeIdentifierHolder for NormalizedCredentialRequest {
+    fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
+        let CredentialQueryFormat::MsoMdoc { doctype_value } = &self.format else {
+            panic!("SdJwt not supported yet");
+        };
+        self.claims
+            .iter()
+            .map(|claim| AttributeIdentifier::from_attribute_request(doctype_value, claim).unwrap())
             .collect()
     }
 }

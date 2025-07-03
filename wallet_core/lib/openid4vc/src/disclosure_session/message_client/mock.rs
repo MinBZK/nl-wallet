@@ -11,9 +11,9 @@ use rustls_pki_types::TrustAnchor;
 use url::Url;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::request::NormalizedCredentialRequest;
-use attestation_data::request::NormalizedCredentialRequests;
 use attestation_data::x509::generate::mock::generate_reader_mock;
+use attestation_types::request::NormalizedCredentialRequest;
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::server_keys::generate::Ca;
 use crypto::server_keys::KeyPair;
 use crypto::utils;

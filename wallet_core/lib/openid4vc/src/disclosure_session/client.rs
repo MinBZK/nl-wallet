@@ -4,8 +4,8 @@ use tracing::info;
 use tracing::warn;
 
 use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::request::NormalizedCredentialRequests;
 use attestation_data::x509::CertificateType;
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use http_utils::urls::BaseUrl;
@@ -103,7 +103,7 @@ impl<H> VpDisclosureClient<H> {
 
         // Verify that the requested attributes are included in the reader authentication.
         reader_registration
-            .verify_requested_attributes(&credential_requests.as_ref().iter())
+            .verify_requested_attributes(&credential_requests.as_ref().as_slice())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
         // Convert the request into a generic representation.

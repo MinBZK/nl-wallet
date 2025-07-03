@@ -630,8 +630,11 @@ dependencies = [
 name = "attestation_types"
 version = "0.4.0-dev"
 dependencies = [
+ "dcql",
  "derive_more",
  "itertools 0.14.0",
+ "nutype",
+ "serde",
  "serde_with",
  "strum 0.26.3",
  "thiserror 2.0.11",
@@ -1774,6 +1777,7 @@ dependencies = [
  "askama",
  "askama_web",
  "attestation_data",
+ "attestation_types",
  "axum",
  "base64 0.22.1",
  "ciborium",
@@ -3792,6 +3796,7 @@ dependencies = [
  "ciborium",
  "coset",
  "crypto",
+ "dcql",
  "derive_more",
  "error_category",
  "futures",
@@ -4216,6 +4221,7 @@ name = "openid4vc_server"
 version = "0.4.0-dev"
 dependencies = [
  "attestation_data",
+ "attestation_types",
  "axum",
  "axum-extra",
  "crypto",
@@ -7475,6 +7481,7 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "attestation_data",
+ "attestation_types",
  "axum",
  "chrono",
  "config",

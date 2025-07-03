@@ -10,9 +10,9 @@ use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
 
-use attestation_data::request::AttributeRequest;
-use attestation_data::request::NormalizedCredentialRequest;
-use attestation_data::request::NormalizedCredentialRequests;
+use attestation_types::request::AttributeRequest;
+use attestation_types::request::NormalizedCredentialRequest;
+use attestation_types::request::NormalizedCredentialRequests;
 use crypto::utils::random_string;
 use dcql::ClaimPath;
 use dcql::CredentialQueryFormat;
@@ -252,7 +252,7 @@ mod tests {
     use rstest::rstest;
     use serde_json::json;
 
-    use attestation_data::request::NormalizedCredentialRequests;
+    use attestation_types::request::NormalizedCredentialRequests;
 
     use super::FormatAlg;
     use super::LimitDisclosure;
