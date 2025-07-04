@@ -154,12 +154,11 @@ where
     (issuer_signed, key)
 }
 
-pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> (Mdoc, KF::Key)
+pub async fn test_document_to_mdoc<KF>(doc: TestDocument, ca: &Ca, key_factory: &KF) -> Mdoc
 where
     KF: KeyFactory,
 {
     let key = key_factory.generate_new().await.unwrap();
 
-    let mdoc = doc.sign(ca, &key).await;
-    (mdoc, key)
+    doc.sign(ca, &key).await
 }
