@@ -36,12 +36,12 @@ mockall::mock! {
 
 mockall::mock! {
     pub DisclosureSession {
-        fn session_type(&self) -> SessionType;
-        fn requested_attribute_paths(&self) -> &AttestationAttributePaths;
-        fn verifier_certificate(&self) -> &VerifierCertificate;
+        pub fn session_type(&self) -> SessionType;
+        pub fn requested_attribute_paths(&self) -> &AttestationAttributePaths;
+        pub fn verifier_certificate(&self) -> &VerifierCertificate;
 
-        async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
-        async fn disclose(
+        pub async fn terminate(self) -> Result<Option<BaseUrl>, VpSessionError>;
+        pub async fn disclose(
             self,
             mdocs: VecNonEmpty<Mdoc>,
         ) -> Result<Option<BaseUrl>, (Self, DisclosureError<VpSessionError>)>;

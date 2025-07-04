@@ -210,10 +210,10 @@ pub enum RedirectUriPurpose {
 
 #[derive(Debug, Clone)]
 pub struct WalletDisclosureSession<DCS> {
-    redirect_uri_purpose: RedirectUriPurpose,
-    disclosure_type: DisclosureType,
-    attestations: Option<VecNonEmpty<DisclosureAttestation>>,
-    protocol_state: DCS,
+    pub(super) redirect_uri_purpose: RedirectUriPurpose,
+    pub(super) disclosure_type: DisclosureType,
+    pub(super) attestations: Option<VecNonEmpty<DisclosureAttestation>>,
+    pub(super) protocol_state: DCS,
 }
 
 impl<DCS> WalletDisclosureSession<DCS> {
@@ -250,12 +250,6 @@ pub struct DisclosureAttestation {
     copy_id: Uuid,
     mdoc: Mdoc,
     presentation: AttestationPresentation,
-}
-
-impl<DCS> WalletDisclosureSession<DCS> {
-    pub(super) fn protocol_state(&self) -> &DCS {
-        &self.protocol_state
-    }
 }
 
 impl RedirectUriPurpose {
@@ -725,7 +719,7 @@ where
                     .collect_vec()
                     .try_into()
                     .unwrap(),
-                session.protocol_state().verifier_certificate().clone(),
+                session.protocol_state.verifier_certificate().clone(),
                 session.disclosure_type,
                 DataDisclosureStatus::NotDisclosed,
             );
