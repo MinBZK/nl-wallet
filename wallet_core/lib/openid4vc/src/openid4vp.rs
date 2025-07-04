@@ -1127,19 +1127,20 @@ mod tests {
             .as_ref()
             .iter()
             .map(|it| {
-                let CredentialQueryFormat::MsoMdoc { ref doctype_value } = &it.format else {
-                    panic!("sd-jwt is not yet supported")
-                };
+                match &it.format {
+                    CredentialQueryFormat::MsoMdoc { ref doctype_value } => {
+                        // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
+                        let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
+                            device_authentication: Default::default(),
+                            session_transcript: Cow::Borrowed(session_transcript),
+                            doc_type: Cow::Borrowed(doctype_value),
+                            device_name_spaces_bytes: IndexMap::new().into(),
+                        }));
 
-                // Assemble the challenge (serialized Device Authentication) to sign with the mdoc key
-                let device_authentication = TaggedBytes(CborSeq(DeviceAuthenticationKeyed {
-                    device_authentication: Default::default(),
-                    session_transcript: Cow::Borrowed(session_transcript),
-                    doc_type: Cow::Borrowed(doctype_value),
-                    device_name_spaces_bytes: IndexMap::new().into(),
-                }));
-
-                cbor_serialize(&device_authentication).unwrap()
+                        cbor_serialize(&device_authentication).unwrap()
+                    }
+                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
+                }
             })
             .collect_vec()
     }

@@ -118,7 +118,7 @@ impl TryFrom<NormalizedCredentialRequest> for ItemsRequest {
 
     fn try_from(source: NormalizedCredentialRequest) -> Result<Self, Self::Error> {
         let CredentialQueryFormat::MsoMdoc { doctype_value } = &source.format else {
-            panic!("SdJwt not supported yet");
+            return Err(MdocCredentialRequestError::SdJwtNotSupported);
         };
 
         let name_spaces = source

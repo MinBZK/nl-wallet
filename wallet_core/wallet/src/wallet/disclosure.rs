@@ -329,11 +329,9 @@ where
             .credential_requests()
             .as_ref()
             .iter()
-            .map(|r| {
-                let CredentialQueryFormat::MsoMdoc { ref doctype_value } = &r.format else {
-                    panic!("sd-jwt is not yet supported");
-                };
-                doctype_value.as_str()
+            .map(|r| match &r.format {
+                CredentialQueryFormat::MsoMdoc { ref doctype_value } => doctype_value.as_str(),
+                CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
             })
             .collect();
         let stored_mdocs = self
@@ -409,11 +407,8 @@ where
                 .credential_requests()
                 .as_ref()
                 .iter()
-                .flat_map(|request| {
-                    let CredentialQueryFormat::MsoMdoc { ref doctype_value } = &request.format else {
-                        panic!("sd-jwt is not yet supported");
-                    };
-                    request
+                .flat_map(|request| match &request.format {
+                    CredentialQueryFormat::MsoMdoc { ref doctype_value } => request
                         .claims
                         .iter()
                         .map(|path| {
@@ -421,7 +416,8 @@ where
                                 .chain(path.path.iter().map(|path| format!("{path}")))
                                 .join("/")
                         })
-                        .collect_vec()
+                        .collect_vec(),
+                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
                 })
                 .collect();
             let session_type = session.session_type();

@@ -168,23 +168,23 @@ pub mod mock {
             let attributes = authorized_requests
                 .as_ref()
                 .iter()
-                .map(|credential_request| {
-                    let CredentialQueryFormat::MsoMdoc { ref doctype_value } = credential_request.format else {
-                        panic!("sd-jwt is not yet supported");
-                    };
-                    let namespaces: IndexMap<_, _> = credential_request
-                        .claims
-                        .iter()
-                        .map(|attribute_request| attribute_request.to_namespace_and_attribute().unwrap())
-                        .fold(IndexMap::new(), |mut acc, (namespace, attribute)| {
-                            let authorized_namespace: &mut AuthorizedNamespace =
-                                acc.entry(namespace.to_string()).or_default();
-                            authorized_namespace
-                                .0
-                                .insert(attribute.to_string(), AuthorizedAttribute {});
-                            acc
-                        });
-                    (doctype_value.clone(), AuthorizedMdoc(namespaces))
+                .map(|credential_request| match credential_request.format {
+                    CredentialQueryFormat::MsoMdoc { ref doctype_value } => {
+                        let namespaces: IndexMap<_, _> = credential_request
+                            .claims
+                            .iter()
+                            .map(|attribute_request| attribute_request.to_namespace_and_attribute().unwrap())
+                            .fold(IndexMap::new(), |mut acc, (namespace, attribute)| {
+                                let authorized_namespace: &mut AuthorizedNamespace =
+                                    acc.entry(namespace.to_string()).or_default();
+                                authorized_namespace
+                                    .0
+                                    .insert(attribute.to_string(), AuthorizedAttribute {});
+                                acc
+                            });
+                        (doctype_value.clone(), AuthorizedMdoc(namespaces))
+                    }
+                    CredentialQueryFormat::SdJwt { .. } => todo!("PVW-4139 support SdJwt"),
                 })
                 .collect();
             Self {

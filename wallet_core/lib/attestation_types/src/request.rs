@@ -34,6 +34,8 @@ pub enum MdocCredentialRequestError {
     UnexpectedClaimsPathAmount(NonZero<usize>),
     #[error("unexpected claim path type, expected key string")]
     UnexpectedClaimsPathType,
+    #[error("sd-jwt is not supported here")]
+    SdJwtNotSupported,
 }
 
 impl AttributeRequest {
