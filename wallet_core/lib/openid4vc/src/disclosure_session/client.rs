@@ -3,8 +3,6 @@ use reqwest::ClientBuilder;
 use tracing::info;
 use tracing::warn;
 
-use attestation_data::auth::reader_auth::ReaderRegistration;
-use attestation_data::x509::CertificateType;
 use crypto::utils as crypto_utils;
 use crypto::x509::BorrowingCertificate;
 use http_utils::urls::BaseUrl;
@@ -84,8 +82,8 @@ impl<H> VpDisclosureClient<H> {
         request_uri_client_id: &str,
         auth_request_client_id: &str,
         items_requests: ItemsRequests,
-        certificate: &BorrowingCertificate,
-    ) -> Result<(AttestationAttributePaths, ReaderRegistration), VpVerifierError> {
+        certificate: BorrowingCertificate,
+    ) -> Result<(AttestationAttributePaths, VerifierCertificate), VpVerifierError> {
         // The `client_id` in the Authorization Request, which has been authenticated, has to equal
         // the `client_id` that the RP sent in the Request URI object at the start of the session.
         if auth_request_client_id != request_uri_client_id {
@@ -96,14 +94,13 @@ impl<H> VpDisclosureClient<H> {
         }
 
         // Extract `ReaderRegistration` from the certificate.
-        let reader_registration =
-            match CertificateType::from_certificate(certificate).map_err(VpVerifierError::RpCertificate)? {
-                CertificateType::ReaderAuth(Some(reader_registration)) => *reader_registration,
-                _ => return Err(VpVerifierError::MissingReaderRegistration)?,
-            };
+        let verifier_certificate = VerifierCertificate::try_new(certificate)
+            .map_err(VpVerifierError::RpCertificate)?
+            .ok_or(VpVerifierError::MissingReaderRegistration)?;
 
         // Verify that the requested attributes are included in the reader authentication.
-        reader_registration
+        verifier_certificate
+            .registration()
             .verify_requested_attributes(&items_requests.as_ref().iter())
             .map_err(VpVerifierError::RequestedAttributesValidation)?;
 
@@ -114,7 +111,7 @@ impl<H> VpDisclosureClient<H> {
             // already catches this specific error condition.
             .map_err(VpVerifierError::EmptyRequest)?;
 
-        Ok((requested_attribute_paths, reader_registration))
+        Ok((requested_attribute_paths, verifier_certificate))
     }
 }
 
@@ -181,9 +178,9 @@ where
             &request_uri_object.client_id,
             &auth_request.client_id,
             auth_request.items_requests.clone(),
-            &certificate,
+            certificate,
         );
-        let (requested_attribute_paths, registration) = match process_request_result {
+        let (requested_attribute_paths, verifier_certificate) = match process_request_result {
             Ok(value) => value,
             Err(error) => return Err(self.report_error_back(auth_request.response_uri, error).await)?,
         };
@@ -192,7 +189,7 @@ where
             self.client.clone(),
             session_type,
             requested_attribute_paths,
-            VerifierCertificate::new(certificate, registration),
+            verifier_certificate,
             auth_request,
         );
 

@@ -228,14 +228,13 @@ mod tests {
         Arc<MockVerifierSession>,
     ) {
         let session_type = SessionType::SameDevice;
-        let reader_registration = ReaderRegistration::new_mock();
 
         let verifier_session = Arc::new(MockVerifierSession::new(
             &VERIFIER_URL,
             session_type,
             RequestUriMethod::GET,
             redirect_uri,
-            Some(reader_registration.clone()),
+            Some(ReaderRegistration::new_mock()),
         ));
 
         let mock_client = MockVerifierVpMessageClient::new(Arc::clone(&verifier_session));
@@ -247,10 +246,9 @@ mod tests {
                 .clone()
                 .try_into_attribute_paths()
                 .unwrap(),
-            verifier_certificate: VerifierCertificate::new(
-                verifier_session.key_pair.certificate().clone(),
-                reader_registration,
-            ),
+            verifier_certificate: VerifierCertificate::try_new(verifier_session.key_pair.certificate().clone())
+                .unwrap()
+                .unwrap(),
             auth_request: verifier_session.iso_auth_request(None),
         };
 
