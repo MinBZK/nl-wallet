@@ -29,6 +29,7 @@ pub struct AttributeRequest {
 }
 
 #[derive(Debug, thiserror::Error)]
+#[cfg_attr(any(test, feature = "mock"), derive(PartialEq, Eq))]
 pub enum MdocCredentialRequestError {
     #[error("unexpected amount of claim paths: {0}")]
     UnexpectedClaimsPathAmount(NonZero<usize>),
@@ -50,6 +51,59 @@ impl AttributeRequest {
             return Err(MdocCredentialRequestError::UnexpectedClaimsPathType);
         };
         Ok((namespace, attribute))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rstest::rstest;
+
+    use dcql::ClaimPath;
+    use utils::vec_at_least::VecNonEmpty;
+
+    use super::{AttributeRequest, MdocCredentialRequestError};
+
+    #[rstest]
+    #[case(
+        vec![
+            ClaimPath::SelectByKey("namespace".to_string()),
+            ClaimPath::SelectByKey("attr".to_string())].try_into().unwrap(),
+        Ok(("namespace", "attr"))
+    )]
+    #[case(
+        vec![ClaimPath::SelectByKey("namespace".to_string())].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(1.try_into().unwrap()))
+    )]
+    #[case(
+        vec![
+            ClaimPath::SelectByKey("namespace".to_string()),
+            ClaimPath::SelectByKey("addr".to_string()),
+            ClaimPath::SelectByKey("street".to_string())
+        ].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(3.try_into().unwrap()))
+    )]
+    #[case(
+        vec![
+            ClaimPath::SelectByKey("namespace".to_string()),
+            ClaimPath::SelectByIndex(1)].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
+    )]
+    #[case(
+        vec![
+            ClaimPath::SelectAll,
+            ClaimPath::SelectByKey("attr".to_string())].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathType)
+    )]
+    fn test_to_namespace_and_attribute(
+        #[case] claim_paths: VecNonEmpty<ClaimPath>,
+        #[case] expected: Result<(&str, &str), MdocCredentialRequestError>,
+    ) {
+        let test_subject = AttributeRequest {
+            path: claim_paths,
+            intent_to_retain: false,
+        };
+        let actual = test_subject.to_namespace_and_attribute();
+        assert_eq!(actual, expected);
     }
 }
 

@@ -441,6 +441,8 @@ mod tests {
     use crate::holder::Mdoc;
     use crate::identifiers::AttributeIdentifierHolder;
     use crate::test;
+    use crate::test::data::addr_street;
+    use crate::test::data::pid_full_name;
     use crate::test::DebugCollapseBts;
     use crate::DeviceAuthenticationBytes;
     use crate::DeviceResponse;
@@ -681,5 +683,24 @@ mod tests {
         items_requests.0.reverse();
 
         (device_response, items_requests, Ok(()))
+    }
+
+    #[rstest]
+    #[case(
+        NormalizedCredentialRequest::pid_full_name(),
+        pid_full_name().into_first().unwrap().into()
+    )]
+    #[case(
+        NormalizedCredentialRequest::addr_street(),
+        addr_street().into_first().unwrap().into()
+    )]
+    fn items_requests_to_and_from_credential_requests(
+        #[case] original: NormalizedCredentialRequest,
+        #[case] expected: ItemsRequest,
+    ) {
+        let actual: ItemsRequest = original.clone().try_into().unwrap();
+        assert_eq!(actual, expected);
+        let converted: NormalizedCredentialRequest = actual.into();
+        assert_eq!(converted, original);
     }
 }

@@ -21,3 +21,6 @@ thiserror.workspace = true
 
 dcql.path = "../dcql"
 utils.path = "../utils"
+
+[dev-dependencies]
+rstest.workspace = true

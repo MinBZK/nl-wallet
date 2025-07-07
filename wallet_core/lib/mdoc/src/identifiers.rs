@@ -70,7 +70,8 @@ where
 impl AttributeIdentifierHolder for NormalizedCredentialRequest {
     fn attribute_identifiers(&self) -> IndexSet<AttributeIdentifier> {
         let CredentialQueryFormat::MsoMdoc { doctype_value } = &self.format else {
-            panic!("SdJwt not supported yet");
+            // This function should never be called for an sd-jwt request, as this is mdoc specific
+            panic!("sd-jwt not supported");
         };
         self.claims
             .iter()
@@ -119,6 +120,38 @@ pub mod mock {
     use super::AttributeIdentifier;
     use super::AttributeIdentifierHolder;
 
+    pub fn some_attr() -> AttributeIdentifier {
+        AttributeIdentifier {
+            credential_type: "some_doc".to_string(),
+            namespace: "some_ns".to_string(),
+            attribute: "some_attr".to_string(),
+        }
+    }
+
+    pub fn another_attr() -> AttributeIdentifier {
+        AttributeIdentifier {
+            credential_type: "some_doc".to_string(),
+            namespace: "some_ns".to_string(),
+            attribute: "another_attr".to_string(),
+        }
+    }
+
+    pub fn another_namespace() -> AttributeIdentifier {
+        AttributeIdentifier {
+            credential_type: "some_doc".to_string(),
+            namespace: "another_ns".to_string(),
+            attribute: "some_attr".to_string(),
+        }
+    }
+
+    pub fn another_doctype() -> AttributeIdentifier {
+        AttributeIdentifier {
+            credential_type: "another_doc".to_string(),
+            namespace: "some_ns".to_string(),
+            attribute: "some_attr".to_string(),
+        }
+    }
+
     #[derive(Debug, thiserror::Error, PartialEq, Eq)]
     pub enum AttributeIdParsingError {
         #[error("Expected string with 3 parts separated by '/', got {0} parts")]
@@ -157,5 +190,115 @@ pub mod mock {
             };
             Ok(result)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use attestation_types::request::MdocCredentialRequestError;
+    use attestation_types::request::NormalizedCredentialRequest;
+    use attestation_types::request::{self};
+    use dcql::ClaimPath;
+    use utils::vec_at_least::VecNonEmpty;
+
+    use super::mock::*;
+    use super::AttributeIdentifier;
+    use super::AttributeIdentifierHolder;
+
+    #[rstest]
+    #[case(
+        vec![ClaimPath::SelectByKey("ns".to_string())].try_into().unwrap(),
+        Err(MdocCredentialRequestError::UnexpectedClaimsPathAmount(1.try_into().unwrap()))
+    )]
+    #[case(
+        vec![
+            ClaimPath::SelectByKey("ns".to_string()),
+            ClaimPath::SelectByKey("attr".to_string())
+        ].try_into().unwrap(),
+        Ok("doc/ns/attr".parse().unwrap())
+    )]
+    fn test_from_attribute_request(
+        #[case] path: VecNonEmpty<ClaimPath>,
+        #[case] expected: Result<AttributeIdentifier, MdocCredentialRequestError>,
+    ) {
+        let actual = AttributeIdentifier::from_attribute_request(
+            "doc",
+            &request::AttributeRequest {
+                path,
+                intent_to_retain: false,
+            },
+        );
+        assert_eq!(actual, expected);
+    }
+
+    #[rstest]
+    #[case(
+        vec![].into(),
+        vec![some_attr(), another_attr(), another_namespace(), another_doctype()].into(),
+        vec![].into(),
+    )]
+    #[case(
+        vec![some_attr(), another_attr(), another_namespace(), another_doctype()].into(),
+        vec![].into(),
+        vec![some_attr(), another_attr(), another_namespace(), another_doctype()].into(),
+    )]
+    #[case(
+        vec![some_attr(), another_attr(), another_namespace(), another_doctype()].into(),
+        vec![some_attr()].into(),
+        vec![another_attr(), another_namespace(), another_doctype()].into(),
+    )]
+    #[case(
+        vec![some_attr(), another_attr(), another_namespace(), another_doctype()].into(),
+        vec![another_attr()].into(),
+        vec![some_attr(), another_namespace(), another_doctype()].into(),
+    )]
+    #[case(
+        vec![some_attr(), another_attr(), another_namespace(), another_doctype()].into(),
+        vec![another_namespace()].into(),
+        vec![some_attr(), another_attr(), another_doctype()].into(),
+    )]
+    #[case(
+        vec![some_attr(), another_attr(), another_namespace(), another_doctype()].into(),
+        vec![another_doctype()].into(),
+        vec![some_attr(), another_attr(), another_namespace()].into(),
+    )]
+    #[case(
+        vec![some_attr(), another_attr(), ].into(),
+        vec![another_attr(), another_namespace()].into(),
+        vec![some_attr()].into(),
+    )]
+    fn test_attribute_identifier_holder_difference(
+        #[case] a: MockAttributeIdentifierHolder,
+        #[case] b: MockAttributeIdentifierHolder,
+        #[case] expected: MockAttributeIdentifierHolder,
+    ) {
+        use super::AttributeIdentifierHolder;
+
+        let difference = a.difference(&b);
+        assert_eq!(difference, expected.attribute_identifiers())
+    }
+
+    #[rstest]
+    #[case(
+        NormalizedCredentialRequest::pid_full_name(),
+        vec![
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/family_name".parse().unwrap(),
+            "urn:eudi:pid:nl:1/urn:eudi:pid:nl:1/given_name".parse().unwrap(),
+        ].into(),
+    )]
+    #[case(
+        NormalizedCredentialRequest::addr_street(),
+        vec![
+            "urn:eudi:pid-address:nl:1/urn:eudi:pid-address:nl:1.address/street_address".parse().unwrap(),
+        ].into(),
+    )]
+    fn test_normalized_credential_request(
+        #[case] input: NormalizedCredentialRequest,
+        #[case] expected: MockAttributeIdentifierHolder,
+    ) {
+        let actual = input.attribute_identifiers();
+        assert_eq!(actual, expected.attribute_identifiers());
     }
 }
