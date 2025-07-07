@@ -194,8 +194,8 @@ pub mod mock {
     }
 
     // Utility function to easily create [`ReaderRegistration`]
-    pub fn create_registration(registered_doctypes: Vec<(&str, Vec<Vec<&str>>)>) -> ReaderRegistration {
-        let authorized_attributes = HashMap::from_iter(registered_doctypes.into_iter().map(|(name, names)| {
+    pub fn create_registration(authorized_attributes: Vec<(&str, Vec<Vec<&str>>)>) -> ReaderRegistration {
+        let authorized_attributes = HashMap::from_iter(authorized_attributes.into_iter().map(|(name, names)| {
             let paths = names
                 .into_iter()
                 .map(|paths| {
