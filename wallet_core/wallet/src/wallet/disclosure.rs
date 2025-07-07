@@ -453,6 +453,7 @@ where
                             .into_attribute_subset(&mdoc_paths);
 
                         let attestation_presentation = AttestationPresentation::create_for_disclosure(
+                            stored_mdoc.mdoc_id,
                             stored_mdoc.normalized_metadata.clone(),
                             issuer_registration.organization,
                             issuer_signed.into_entries_by_namespace(),
