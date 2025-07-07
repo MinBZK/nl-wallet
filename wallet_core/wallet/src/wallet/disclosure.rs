@@ -337,7 +337,7 @@ where
         let stored_mdocs_by_type = stored_mdocs
             .into_iter()
             .filter_map(|stored_mdoc| {
-                // Get a reference from `requested_attestation_types`` for  `.chunk_by()`,
+                // Get a reference from `requested_attestation_types` for `.chunk_by()`,
                 // filtering out any attestations with types that were not requested,
                 // even though the database should never return this.
                 requested_attestation_types
@@ -373,7 +373,7 @@ where
             })
             .collect_vec();
 
-        // At this point, determine the disclosure type and if data was every shared with this RP before, as the UI
+        // At this point, determine the disclosure type and if data was ever shared with this RP before, as the UI
         // needs this context both for when all requested attributes are present and for when attributes are missing.
         let disclosure_type = DisclosureType::from_request_attribute_paths(
             session.requested_attribute_paths(),
