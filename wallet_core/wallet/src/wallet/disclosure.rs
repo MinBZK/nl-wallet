@@ -350,6 +350,11 @@ where
                 // Get the requested paths for this attestation type.
                 let mdoc_paths = attribute_paths_to_mdoc_paths(session.requested_attribute_paths(), attestation_type);
 
+                // If none of the requested paths map to a 2-tuple, there can be no mdoc candidates.
+                if mdoc_paths.is_empty() {
+                    return None;
+                }
+
                 let candidate_attestations = stored_mdoc_iter
                     .into_iter()
                     .filter_map(|(_, stored_mdoc)| {
