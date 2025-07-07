@@ -20,6 +20,7 @@ use super::DisclosureSession;
 use super::VerifierCertificate;
 
 mockall::mock! {
+    #[derive(Debug)]
     pub DisclosureClient {}
 
     impl DisclosureClient for DisclosureClient {
@@ -35,6 +36,7 @@ mockall::mock! {
 }
 
 mockall::mock! {
+    #[derive(Debug)]
     pub DisclosureSession {
         pub fn session_type(&self) -> SessionType;
         pub fn requested_attribute_paths(&self) -> &AttestationAttributePaths;

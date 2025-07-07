@@ -33,6 +33,7 @@ pub use poa::factory::mock::MOCK_WALLET_CLIENT_ID;
 // traits using generic methods, and "impl trait" arguments, so we use `mockall::mock!` to make an indirection.
 
 mockall::mock! {
+    #[derive(Debug)]
     pub IssuanceSession {
         pub fn start() -> Result<Self, IssuanceSessionError>
         where

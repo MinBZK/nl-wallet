@@ -367,6 +367,10 @@ impl WalletWithMocks {
         )
         .await
     }
+
+    pub fn mut_storage(&mut self) -> &mut MockStorage {
+        Arc::get_mut(&mut self.storage).unwrap().get_mut()
+    }
 }
 
 pub async fn setup_mock_attestations_callback(
