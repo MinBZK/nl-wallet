@@ -38,6 +38,6 @@ build-env-production:
 
 .sentry-env:
   before_script:
-    - if [[ -z $SENTRY_ENVIRONMENT ]]; then export SENTRY_ENVIRONMENT]="$CONFIG_ENV"; done
+    - if [[ -z ${SENTRY_ENVIRONMENT:-} ]]; then export SENTRY_ENVIRONMENT="$CONFIG_ENV"; fi
     - SENTRY_VARS=$(kubectl get secret nl-wallet-sentry-${SENTRY_ENVIRONMENT} -o json | jq -r '.data | to_entries | map("export SENTRY_\(.key | ascii_upcase)=\(.value | @base64d)") | .[]')
     - eval $SENTRY_VARS
