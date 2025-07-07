@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2025-06-17T13:13:35+02:00",
+    "@@last_modified": "2025-07-03T15:54:37+02:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -106,6 +106,7 @@
     "cardDetailScreenCardDataCta": "Details in this card",
     "cardDetailScreenCardDeleteCta": "Delete card",
     "cardDetailScreenCardHistoryCta": "Card activities",
+    "cardDetailScreenCardImageWCAGLabel": "{name} card",
     "cardDetailScreenCardUpdateCta": "Renew data",
     "cardDetailScreenCardValidUntil": "Valid until {dateTime}",
     "@cardDetailScreenCardValidUntil": {
@@ -175,6 +176,7 @@
     },
     "cardTitleSemanticsLabel": "Card",
     "cardValueFalse": "No",
+    "cardValueNull": "Not provided",
     "cardValueTrue": "Yes",
     "changeLanguageScreenTitle": "Select a language",
     "changePinScreenConfirmNewPinTitle": "Repeat your new PIN",
@@ -246,7 +248,7 @@
     "dataIncorrectScreenHeaderTitle": "Are your details incorrect?",
     "detailsIncorrectScreenDescription": "If your details is incorrect, it can cause problems. Contact your issuer to change your details.\n\nAre you still waiting for an adjustment? It can take a while before changes appear in the app.",
     "detailsIncorrectScreenTitle": "Are your details incorrect?",
-    "disclosureConfirmDataAttributesCheckConditionsCta": "Read the terms and conditions",
+    "disclosureConfirmDataAttributesCheckConditionsCta": "Read the agreement",
     "disclosureConfirmDataAttributesDisclaimer": "Only share if you trust the organization and the request.",
     "disclosureConfirmDataAttributesPageApproveCta": "Share",
     "disclosureConfirmDataAttributesPageDenyCta": "Stop",
@@ -320,6 +322,18 @@
     "disclosureGenericErrorPageTitle": "Something went wrong",
     "disclosureLoadingSubtitle": "Your request is being retrieved",
     "disclosureLoadingTitle": "Please wait",
+    "disclosureMissingAttributesPageCloseCta": "Stop request",
+    "disclosureMissingAttributesPageDescription": "{organization} is requesting data which is not yet in your Wallet.",
+    "@disclosureMissingAttributesPageDescription": {
+        "placeholders": {
+            "organization": {
+                "example": "DUO",
+                "type": "String"
+            }
+        }
+    },
+    "disclosureMissingAttributesPageReportIssueCta": "Report an issue?",
+    "disclosureMissingAttributesPageTitle": "You're missing data",
     "disclosureRelyingPartyErrorCloseCta": "Close",
     "disclosureRelyingPartyErrorDescription": "This action was unsuccessful. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "disclosureRelyingPartyErrorDescriptionWithOrganizationName": "This action was unsuccessful. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
@@ -421,7 +435,7 @@
     "@fraudCheckPageTitle": {
         "placeholders": {
             "url": {
-                "example": "https:\/\/example.org",
+                "example": "https://example.org",
                 "type": "String"
             }
         }
@@ -630,7 +644,7 @@
     },
     "historyDetailScreenStoppedTitleForDisclosure": "Sharing stopped with {organization}",
     "historyDetailScreenStoppedTitleForLogin": "Login at {organization} stopped",
-    "historyDetailScreenTermsCta": "Read the terms",
+    "historyDetailScreenTermsCta": "Read the agreement",
     "historyDetailScreenTermsTitle": "Agreements",
     "historyDetailScreenTitle": "Details",
     "historyDetailScreenTitleForDisclosure": "Shared with {organization}",
@@ -680,10 +694,25 @@
     "issuanceCheckDataOfferingPagePositiveCta": "Yes, add",
     "issuanceCheckDataOfferingPageSubtitle": "If the data is correct you can add it.",
     "issuanceCheckDataOfferingPageTitle": "Is the retrieved data correct?",
+    "issuanceConfirmPinPageDescription": "By entering your PIN you agree to exchange your data.",
+    "issuanceConfirmPinPageErrorDescription": "{count, plural, one {You can try {count} more time} other {You can try {count} more times}}",
+    "@issuanceConfirmPinPageErrorDescription": {
+        "placeholders": {
+            "count": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "issuanceConfirmPinPageErrorTitle": "Invalid PIN",
     "issuanceConfirmPinPageTitle": "Agree with your PIN",
     "issuanceGenericErrorPageCloseCta": "Close",
     "issuanceGenericErrorPageDescription": "Something went wrong. Try again later.",
     "issuanceGenericErrorPageTitle": "Something went wrong",
+    "issuanceIdentityValidationFailedPageCloseCta": "Close",
+    "issuanceIdentityValidationFailedPageDescription": "It seems like the data you're trying to retrieve belongs to someone else.",
+    "issuanceIdentityValidationFailedPageSomethingNotRightCta": "Is something not right?",
+    "issuanceIdentityValidationFailedPageTitle": "Your identity check did not match.",
     "issuanceLoadingCardsDescription": "Cards are being retrieved",
     "issuanceLoadingCardsTitle": "Please wait",
     "issuanceLoadingRequestDescription": "Your request is being retrieved",
@@ -698,6 +727,28 @@
         }
     },
     "issuanceNoCardsPageTitle": "No cards found",
+    "issuanceProofIdentityPageIncorrectCta": "Is something not right?",
+    "issuanceProofIdentityPageNegativeCta": "No",
+    "issuanceProofIdentityPagePositiveCta": "Share",
+    "issuanceProofIdentityPageRefreshDataSubtitle": "Share your identity with {organization} to refresh your data.",
+    "@issuanceProofIdentityPageRefreshDataSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceProofIdentityPageSubtitle": "Share your identity with {organization} to retrieve your data.",
+    "@issuanceProofIdentityPageSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "RvIG",
+                "type": "String"
+            }
+        }
+    },
+    "issuanceProofIdentityPageTitle": "Proof who you are",
     "issuanceRelyingPartyErrorCloseCta": "Close",
     "issuanceRelyingPartyErrorDescription": "The card(s) couldn’t be added. This may have several reasons.\n\nGo back to the organization's website where you started and try again. If it still doesn’t work, contact the organization.",
     "issuanceRelyingPartyErrorDescriptionWithOrganizationName": "The cards couldn’t be added. This may have several reasons.\n\nGo back to the {organization} website where you started and try again. If it still doesn’t work, contact {organization}.",
@@ -798,6 +849,8 @@
         }
     },
     "issuanceReviewCardsPageToggleAddCta": "Check details",
+    "issuanceScreenRefreshTitle": "Refresh data",
+    "issuanceScreenTitle": "Retrieve data",
     "issuanceSelectCardsPageAddCta": "Add",
     "issuanceSelectCardsPageDataIncorrectCta": "Is something not right?",
     "issuanceSelectCardsPageDescription": "Select the ones you would like to add",
@@ -831,7 +884,17 @@
             }
         }
     },
+    "issuanceSuccessPageCardsUpdatedSubtitle": "{cards, plural, one {Card updated} other {Cards updated}}",
+    "@issuanceSuccessPageCardsUpdatedSubtitle": {
+        "placeholders": {
+            "cards": {
+                "example": "2",
+                "type": "int"
+            }
+        }
+    },
     "issuanceSuccessPageCloseCta": "To my overview",
+    "issuanceSuccessPageOpenWebCta": "Back to website",
     "issuanceSuccessPageTitle": "{cards, plural, one {Card added} other {Cards added}}",
     "@issuanceSuccessPageTitle": {
         "placeholders": {
@@ -862,7 +925,7 @@
     "lockedOutDialogDescriptioniOSVariant": "Too many failed attempts. Unlock with your PIN.",
     "lockedOutDialogTitle": "Face scan or fingerprint failed",
     "lockedOutDialogTitleiOSVariant": "Face ID or Touch ID failed",
-    "loginDetailScreenAgreementCta": "Read the terms",
+    "loginDetailScreenAgreementCta": "Read the agreement",
     "loginDetailScreenAgreementTitle": "Agreement",
     "loginDetailScreenCredentialsBody": "Only the following data is shared. No more.",
     "loginDetailScreenCredentialsTitle": "Login credentials",
@@ -890,6 +953,7 @@
             }
         }
     },
+    "missingAttributesPageReportIssueCta": "Report an issue?",
     "missingAttributesPageShowDetailsCta": "See details",
     "missingAttributesPageTitle": "Missing data",
     "missingAttributesSheetAttributesTitle": "Requested attributes",
