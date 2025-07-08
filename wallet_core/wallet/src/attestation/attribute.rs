@@ -112,6 +112,8 @@ impl AttestationAttributeValue {
     ) -> Result<Self, AttributeError> {
         let schema_type = schema_property.map(|property| property.r#type);
         match (schema_type, value) {
+            (_, AttributeValue::Null) => Ok(AttestationAttributeValue::Basic(AttributeValue::Null)),
+
             (None, AttributeValue::Bool(bool))
             | (Some(JsonSchemaPropertyType::Boolean), AttributeValue::Bool(bool)) => {
                 Ok(AttestationAttributeValue::Basic(AttributeValue::Bool(bool)))

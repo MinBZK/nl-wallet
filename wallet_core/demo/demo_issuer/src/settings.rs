@@ -36,7 +36,6 @@ pub struct Server {
 
 #[derive(Deserialize, Clone)]
 pub struct Usecase {
-    #[serde(flatten)]
     pub data: IndexMap<AttributeValue, IssuableDocuments>,
     pub client_id: String,
     pub disclosed: Disclosed,
@@ -58,7 +57,7 @@ impl Settings {
             .set_default("universal_link_base_url", DEFAULT_UNIVERSAL_LINK_BASE)?
             .set_default("structured_logging", false)?
             .set_default("log_requests", false)?
-            .add_source(File::from(prefix_local_path("demo_issuer.toml".as_ref()).as_ref()).required(false))
+            .add_source(File::from(prefix_local_path("demo_issuer.json".as_ref()).as_ref()).required(false))
             .add_source(
                 Environment::with_prefix("demo_issuer")
                     .separator("__")
